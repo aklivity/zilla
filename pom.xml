@@ -1,0 +1,112 @@
+<?xml version="1.0" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.aklivity.zilla</groupId>
+  <artifactId>parent</artifactId>
+  <version>develop-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>zilla</name>
+  <url>https://github.com/aklivity/zilla</url>
+  <inceptionYear>2021</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>Aklivity Community License</name>
+      <url>http://www.aklivity.io/aklivity-community-license</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:https://github.com/aklivity/zilla</connection>
+    <developerConnection>scm:git:https://github.com/aklivity/zilla</developerConnection>
+    <url>https://github.com/aklivity/zilla</url>
+  </scm>
+
+  <repositories>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/aklivity/packages/</url>
+    </repository>
+  </repositories>
+
+  <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
+
+  <modules>
+    <module>build</module>
+    <module>specs</module>
+    <module>engine</module>
+    <module>runtime</module>
+    <module>manager</module>
+  </modules>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.mycila</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <version>4.1</version>
+          <configuration>
+            <header>${maven.multiModuleProjectDirectory}/COPYRIGHT-AklivityCommunity</header>
+            <properties>
+              <copyrightYears>${project.inceptionYear}-2021</copyrightYears>
+            </properties>
+            <includes>
+              <include>src/**</include>
+            </includes>
+            <excludes>
+              <exclude>src/conf/**</exclude>
+            </excludes>
+            <mapping>
+              <idl>SLASHSTAR_STYLE</idl>
+              <rpt>SCRIPT_STYLE</rpt>
+            </mapping>
+            <failIfUnknown>true</failIfUnknown>
+            <failIfMissing>true</failIfMissing>
+          </configuration>
+          <executions>
+            <execution>
+              <phase>validate</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+
+      <distributionManagement>
+        <downloadUrl>https://maven.pkg.github.com/aklivity/zilla/</downloadUrl>
+        <repository>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/aklivity/zilla/</url>
+        </repository>
+        <snapshotRepository>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/aklivity/zilla/</url>
+        </snapshotRepository>
+      </distributionManagement>
+    </profile>
+  </profiles>
+</project>
