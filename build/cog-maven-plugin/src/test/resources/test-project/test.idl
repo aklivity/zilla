@@ -1,0 +1,585 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+scope test
+{
+
+    scope inner {
+        //option byteorder native;
+        
+        struct FlatParent
+        {
+            uint64 fixed1;
+        }
+
+        struct Flat extends FlatParent [0x10000001]
+        {
+            uint16 fixed2 = 222;
+            string8 string1;
+            uint24 fixed3 = 333;
+            string8 string2;
+            int32 fixed4 = 444;
+            string8 string3;
+            int8 fixed5 = 55;
+            varstring string4;
+        }
+
+        struct Nested
+        {
+            uint64 fixed4 = 444;
+            Flat flat;
+            int64 fixed5;
+        }
+
+        struct FlatWithArray
+        {
+            uint64 fixed1 = 111;
+            string8 string1;
+            string8[] array1;
+            int32 fixed2 = 5;
+        }
+
+        struct FlatWithOctets
+        {
+            uint32 fixed1 = 11;
+            octets[10] octets1;
+            uint16 lengthOctets2;
+            string8 string1;
+            octets[lengthOctets2] octets2;
+            varint32 lengthOctets3;
+            octets[lengthOctets3] octets3 = null;
+            int32 lengthOctets4;
+            octets[lengthOctets4] octets4 = null;
+            int24 lengthOctets5;
+            octets[lengthOctets5] octets5 = null;
+            octets extension;
+        }
+
+        struct OctetsDefaultedNoAnchor
+        {
+            int32 length;
+            octets[length] payload = null;
+            octets extension;
+        }
+
+        union UnionOctets switch (uint8)
+        {
+            case 1: octets[4] octets4;
+            case 2: octets[16] octets16;
+            case 3: string8 string1;
+        }
+
+        union UnionChild switch (uint8) extends FlatParent
+        {
+            case 8: int8 width8;
+            case 16: int16 width16;
+            case 32: int32 width32;
+        }
+
+        struct Integers
+        {
+            uint8  unsigned8  = 0xFF;
+            uint16 unsigned16 = 0xFFFF;
+            uint24 unsigned24 = 0xFFFFFF;
+            uint32 unsigned32 = 0x7FFFFFFF; // TODO: 0xFFFFFFFF;
+            uint64 unsigned64 = 0x7FFFFFFF; // TODO: 0xFFFFFFFFFFFFFFFF;
+            varuint32 variableunsigned32 = 123;
+            varint32 variable32 = 123;
+            int8  signed8  =  -8;
+            int16 signed16 = -16;
+            int24 signed24 = -24;
+            int32 signed32 = -32;
+            int64 signed64 = -64;
+            varint64 variable64 = -234;
+        }
+
+        struct IntegerFixedArrays
+        {
+            uint8[1]  uint8Array;
+            uint16[2] uint16Array;
+            uint24[3] uint24Array;
+            uint32[4] uint32Array;
+            uint64[8] uint64Array;
+            string8 anchor;
+            int8[1]  int8Array;
+            int16[2] int16Array;
+            int24[3] int24Array;
+            int32[4] int32Array;
+            int64[8] int64Array;
+        }
+
+        struct IntegerVariableArrays
+        {
+            uint8  fixed1 = 0;
+            int32 lengthUnsigned64;
+            int16 fixed2 = 0;
+            varint32[] varint32Array;
+            uint64[lengthUnsigned64] unsigned64Array = null;
+            uint8 lengthSigned16;
+            int16[lengthSigned16] signed16Array;
+            uint8 lengthSigned24;
+            int24[lengthSigned24] signed24Array;
+            varint64[] varint64Array;
+            int8 lengthInt8;
+            int32[lengthInt8] arrayWithInt8Size = null;
+            int16 lengthInt16;
+            int32[lengthInt16] arrayWithInt16Size = null;
+            int24 lengthInt24;
+            int32[lengthInt24] arrayWithInt24Size = null;
+        }
+
+        struct NestedAllDefaulting
+        {
+            uint8 fixed1 = 11;
+            Integers integers;
+        }
+
+        enum Roll
+        {
+            EGG,
+            SPRING,
+            FORWARD
+        }
+
+        struct StructWithString8Default
+        {
+            string8 field = "field";
+        }
+
+        struct StructWithNullString8Default
+        {
+            string8 field = null;
+        }
+
+        struct StructWithMultipleString8Defaults
+        {
+            string8 field1 = "field1";
+            string8 field2 = "field2";
+            string8 field3 = null;
+        }
+
+        struct StructWithMultipleString16Defaults
+        {
+            string16 field1 = "field1";
+            string16 field2 = "field2";
+            string16 field3 = null;
+        }
+
+        struct StructWithMultipleString32Defaults
+        {
+            string32 field1 = "field1";
+            string32 field2 = "field2";
+            string16 field3 = null;
+        }
+
+        struct StructWithMultipleVarStringDefaults
+        {
+            varstring field1 = "field1";
+            varstring field2 = "field2";
+            varstring field3 = null;
+        }
+
+        struct StructWithEnumDefault
+        {
+            Roll roll = SPRING;
+            int8 field2;
+        }
+
+        enum EnumWithInt8 (int8)
+        {
+            ONE (1),
+            TWO (2),
+            THREE (3),
+            FOUR (4),
+            FIVE (5),
+            SIX (6),
+            SEVEN (7),
+            EIGHT (8),
+            NINE (9),
+            TEN (10),
+            ELEVEN (11)
+        }
+
+        enum EnumWithInt16 (int16)
+        {
+            ONE (1),
+            TWO (2),
+            THREE (3)
+        }
+
+        enum EnumWithInt32 (int32)
+        {
+            ONE (1),
+            TWO (2),
+            THREE (3)
+        }
+
+        enum EnumWithInt64 (int64)
+        {
+            TEN (0x10L),
+            ELEVEN (0x11L),
+            TWELVE (0x12L)
+        }
+
+        enum EnumWithUint8 (uint8)
+        {
+            ICHI (201),
+            NI (202),
+            SAN (203)
+        }
+
+        enum EnumWithUint16 (uint16)
+        {
+            ICHI (60001),
+            NI (60002),
+            SAN (60003)
+        }
+
+        enum EnumWithUint32 (uint32)
+        {
+            ICHI (4000000001L),
+            NI (4000000002L),
+            SAN (4000000003L)
+        }
+
+        enum EnumWithUint64 (uint64)
+        {
+            ICHI (4000000001L),
+            NI (4000000002L),
+            SAN (4000000003L)
+        }
+
+        enum EnumWithString (string8)
+        {
+            BLUE ("blue"),
+            RED ("red"),
+            YELLOW ("yellow")
+        }
+
+        enum EnumWithString16 (string16)
+        {
+            BLUE ("blue"),
+            RED ("red"),
+            YELLOW ("yellow")
+        }
+
+        enum EnumWithString32 (string32)
+        {
+            BLUE ("blue"),
+            RED ("red"),
+            YELLOW ("yellow")
+        }
+
+        struct PotentialNameConflicts
+        {
+           string8 value;
+           int32 newLimit;
+           string8 buffer;
+           octets[10] offset;
+           string8 limit;
+        }
+
+        struct ContiguousSizeFields
+        {
+            int8 length1;
+            int8 length2;
+            int8[length1] array1 = null;
+            int8[length2] array2 = null;
+            string8 string1;
+            int8 length3;
+            int8 length4;
+            int8[length3] array3 = null;
+            int8[length4] array4 = null;
+        }
+
+        variant VariantUint8KindWithString32Type switch (uint8) of string
+        {
+           case 0xa1: string8;
+           case 0x16: string16;
+           case 0xb1: string32;
+        }
+
+        variant VariantUint8KindWithInt64Type switch (uint8) of int64
+        {
+            case 0x71: int32;
+            case 0x81: int64;
+            case 0x50: int24;
+            case 0x51: int8;
+            case 0x61: int16;
+        }
+
+        variant VariantEnumKindOfString switch (EnumWithInt8) of string
+        {
+            case NINE: string8;
+            case TEN: string16;
+            case ELEVEN: string32;
+        }
+
+        variant VariantEnumKindOfInt8 switch (EnumWithInt8) of int8
+        {
+            case ONE: int8;
+            case TWO: 0;
+            case THREE: 1;
+        }
+
+        variant VariantEnumKindOfInt16 switch (EnumWithInt16) of int16
+        {
+            case ONE: 0;
+            case TWO: int8;
+            case THREE: int16;
+        }
+
+        variant VariantEnumKindWithInt32 switch (EnumWithInt8) of int32
+        {
+            case ONE: int8;
+            case TWO: int16;
+            case THREE: int32;
+        }
+
+        variant VariantOfInt32 switch (EnumWithInt8) of int32
+        {
+            case FOUR: int32;
+            case FIVE: int8;
+        }
+
+        variant VariantEnumKindOfUint8 switch (EnumWithUint8) of uint8
+        {
+            case ICHI: uint8;
+            case NI: 0;
+            case SAN: 1;
+        }
+
+        variant VariantEnumKindOfUint16 switch (EnumWithUint16) of uint16
+        {
+            case ICHI: uint16;
+            case NI: uint8;
+            case SAN: 0;
+        }
+
+        variant VariantEnumKindOfUint32 switch (EnumWithUint32) of uint32
+        {
+            case ICHI: 0;
+            case NI: uint32;
+            case SAN: 1;
+        }
+
+        variant VariantUint8KindOfUint64 switch (uint8) of uint64
+        {
+            case 0x80: uint64;
+            case 0x53: uint8;
+            case 0x44: 0;
+            case 0x01: 1;
+            case 0x70: uint32;
+            case 0x60: uint16;
+            case 0x50: uint24;
+        }
+
+        variant VariantOfList switch (EnumWithInt8) of list
+        {
+            case ONE: list<uint32, uint32, 0x40>;
+            case TWO: list<uint8, uint8, 0x40>;
+            case THREE: list<0, 0>;
+        }
+
+        variant VariantOfArray switch (EnumWithInt8) of array
+        {
+            case SEVEN: array<uint32, uint32>;
+            case EIGHT: array<uint8, uint8>;
+        }
+
+        variant VariantOfMap switch (EnumWithInt8) of map
+        {
+            case FOUR: map<uint32>;
+            case FIVE: map<uint16>;
+            case SIX: map<uint8>;
+        }
+
+        variant VariantOfOctets switch (EnumWithInt8) of octets[]
+        {
+            case ONE: octets[uint32];
+            case TWO: octets[uint16];
+            case THREE: octets[uint8];
+        }
+
+        variant VariantWithoutOf switch (EnumWithInt8)
+        {
+            case NINE:
+            case TEN:
+            case ELEVEN:
+               VariantEnumKindOfString;
+            case FOUR:
+            case FIVE:
+               VariantOfInt32;
+        }
+
+        list<uint32, uint32> ListWithArrayOfStruct
+        {
+            required string8 requiredField;
+            FlatParent[] arrayField;
+        }
+
+        list<uint32, uint32> ListWithPhysicalAndLogicalLength
+        {
+            required string8 field0;
+            uint32 field1;
+            string8 field2;
+        }
+
+        list<uint8, uint8> ListWithVariant
+        {
+            int8 intField1;
+            VariantUint8KindWithInt64Type variantOfInt64;
+            VariantEnumKindOfInt8 variantOfInt8;
+            int16 intField2;
+            VariantEnumKindOfInt16 variantOfInt16;
+            VariantEnumKindWithInt32 variantOfInt32;
+            required VariantEnumKindOfUint8 variantOfUint8;
+            VariantEnumKindOfUint16 variantOfUint16 = 60000;
+            VariantEnumKindOfUint32 variantOfUint32 = 0;
+            VariantEnumKindOfString variantOfString32;
+        }
+
+        list<uint8, uint8> ListWithEnum
+        {
+            required Roll roll;
+            EnumWithInt8 enumWithInt8;
+            EnumWithInt64 enumWithInt64 = TEN;
+            required EnumWithUint16 enumWithUint16;
+            EnumWithUint32 enumWithUint32 = SAN;
+            EnumWithString enumWithString;
+        }
+
+        list<uint8, uint8> ListWithUnion
+        {
+            UnionOctets unionOctets;
+            uint8 field1 = 1;
+        }
+
+        list<uint32, uint32, 0x40> ListWithMissingFieldByte
+        {
+            required VariantEnumKindOfString variantOfString1;
+            VariantEnumKindOfString variantOfString2;
+            VariantEnumKindOfUint32 variantOfUint = 4000000000L;
+            VariantEnumKindWithInt32 variantOfInt;
+        }
+
+        list ListFromVariantOfList using VariantOfList
+        {
+            required VariantEnumKindOfString variantOfString1;
+            VariantEnumKindOfString variantOfString2;
+            VariantEnumKindOfUint32 variantOfUint = 4000000000L;
+            VariantEnumKindWithInt32 variantOfInt;
+        }
+
+        typedef VariantEnumKindOfUint32 as TypedefUint32;
+        typedef VariantEnumKindOfString as TypedefString;
+        typedef TypedefUint32 as TypedefFromTypedef;
+        typedef Flat as TypedefStruct;
+        typedef UnionOctets as TypedefUnion;
+        typedef ListWithVariant as TypedefList;
+        typedef EnumWithInt8 as TypedefEnum;
+
+        map ConstrainedMap<VariantEnumKindOfString, V> using VariantOfMap;
+
+        list ListWithTypedef using VariantOfList
+        {
+            required TypedefUint32 field1;
+            TypedefFromTypedef field2 = 4000000000L;
+        }
+
+        list ListWithArray using VariantOfList
+        {
+            required VariantEnumKindOfString field1;
+            VariantOfArray<VariantEnumKindOfString> arrayOfString;
+        }
+
+        list ListWithMap using VariantOfList
+        {
+            required VariantEnumKindOfString field1;
+            VariantOfMap<VariantEnumKindOfString, TypedefString> mapOfString;
+        }
+
+        list ListWithConstrainedMap using VariantOfList
+        {
+            ConstrainedMap<VariantWithoutOf> constrainedMap;
+        }
+
+        variant VariantWithFourTypes switch (EnumWithInt8)
+        {
+            case ONE:
+            case TWO:
+            case THREE:
+                VariantOfList;
+            case FOUR:
+            case FIVE:
+            case SIX:
+                VariantOfMap<VariantWithFourTypes, VariantWithFourTypes>;
+            case NINE:
+            case TEN:
+            case ELEVEN:
+                VariantEnumKindOfString;
+        }
+
+        variant VariantWithVariantCase switch (EnumWithInt8) of uint64
+        {
+            case ONE: VariantUint8KindOfUint64;
+        }
+
+        enum EnumWithVariantOfUint64 (VariantWithVariantCase)
+        {
+            TYPE1 (0x10L),
+            TYPE2 (0x11L),
+            TYPE3 (0x12L),
+            TYPE4 (0x13L),
+            TYPE5 (0x14L)
+        }
+
+        list ListWithEnumAndVariantWithDefault using VariantOfList
+        {
+            EnumWithVariantOfUint64 field1 = TYPE3;
+            required EnumWithVariantOfUint64 field2;
+            VariantOfInt32 field3 = 100;
+            VariantEnumKindOfUint8 field4 = 1;
+            VariantEnumKindOfUint8 field5;
+        }
+
+        union UnionWithEnum switch (EnumWithVariantOfUint64)
+        {
+            case TYPE2: ListWithEnumAndVariantWithDefault listValue;
+        }
+
+        struct StructWithNonPrimitiveFields
+        {
+            string8 stringField;
+            EnumWithUint8 enumField;
+            UnionOctets unionField;
+            UnionOctets[] arrayField;
+            ListWithPhysicalAndLogicalLength listField;
+            VariantEnumKindOfInt8 variantField;
+        }
+    }
+
+    scope networkOrder
+    {
+        option byteorder network;
+
+        union UnionString switch (uint8)
+        {
+            case 1: string8 string1;
+            case 2: string16 string2;
+            case 3: string32 string3;
+        }
+    }
+}

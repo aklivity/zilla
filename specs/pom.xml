@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>io.aklivity.zilla.specs</groupId>
-  <artifactId>parent</artifactId>
+  <groupId>io.aklivity.zilla</groupId>
+  <artifactId>specs-parent</artifactId>
   <packaging>pom</packaging>
   <name>zilla::specs</name>
 

@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>io.aklivity.zilla.manager</groupId>
-  <artifactId>parent</artifactId>
+  <groupId>io.aklivity.zilla</groupId>
+  <artifactId>manager-parent</artifactId>
   <name>zilla::manager</name>
 
 </project>
