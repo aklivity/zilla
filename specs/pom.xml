@@ -12,11 +12,11 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>io.aklivity.zilla</groupId>
-  <artifactId>specs-parent</artifactId>
+  <artifactId>specs</artifactId>
   <packaging>pom</packaging>
   <name>zilla::specs</name>
 
   <modules>
+    <module>cog.spec</module>
   </modules>
 </project>

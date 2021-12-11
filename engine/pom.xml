@@ -12,10 +12,11 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>engine-parent</artifactId>
+  <artifactId>engine</artifactId>
   <packaging>pom</packaging>
   <name>zilla::engine</name>
 
   <modules>
+    <module>drive</module>
   </modules>
 </project>

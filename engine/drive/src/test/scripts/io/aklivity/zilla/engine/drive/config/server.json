@@ -1,0 +1,18 @@
+{
+    "vaults":
+    [
+        {
+            "name": "test",
+            "type": "test"
+        }
+    ],
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "test",
+            "kind": "server",
+            "exit": "app#0"
+        }
+    ]
+}

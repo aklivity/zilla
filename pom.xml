@@ -47,6 +47,9 @@
     <antlr4.version>4.7</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
     <junit.version>5.6.2</junit.version>
+    <jmock.version>2.6.0</jmock.version>
+    <mockito.version>3.4.6</mockito.version>
+    <k3po.version>3.1.0</k3po.version>
     <jmh.version>1.12</jmh.version>
   </properties>
 
@@ -61,6 +64,26 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>jakarta.json</groupId>
+        <artifactId>jakarta.json-api</artifactId>
+        <version>1.1.6</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.json.bind</groupId>
+        <artifactId>jakarta.json.bind-api</artifactId>
+        <version>1.0.2</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.12</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest-library</artifactId>
+        <version>1.3</version>
+      </dependency>
       <dependency>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-runtime</artifactId>
@@ -80,6 +103,16 @@
         <groupId>org.junit.vintage</groupId>
         <artifactId>junit-vintage-engine</artifactId>
         <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jmock</groupId>
+        <artifactId>jmock-junit4</artifactId>
+        <version>${jmock.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.maven</groupId>
@@ -121,12 +154,56 @@
         <artifactId>jmh-generator-annprocess</artifactId>
         <version>${jmh.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.kaazing</groupId>
+        <artifactId>k3po.driver</artifactId>
+        <version>${k3po.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.kaazing</groupId>
+        <artifactId>k3po.lang</artifactId>
+        <version>${k3po.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.kaazing</groupId>
+        <artifactId>k3po.junit</artifactId>
+        <version>${k3po.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.jasig.maven</groupId>
+          <artifactId>maven-notice-plugin</artifactId>
+          <version>1.1.0</version>
+          <dependencies>
+            <dependency>
+              <groupId>javax.xml.bind</groupId>
+              <artifactId>jaxb-api</artifactId>
+              <version>2.1</version>
+            </dependency>
+            <dependency>
+              <groupId>com.sun.xml.bind</groupId>
+              <artifactId>jaxb-impl</artifactId>
+              <version>2.2.5</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <includeScopes>compile</includeScopes>
+          </configuration>
+          <executions>
+            <execution>
+              <phase>validate</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
         <plugin>
           <groupId>org.antlr</groupId>
           <artifactId>antlr4-maven-plugin</artifactId>
@@ -202,28 +279,16 @@
           </dependencies>
         </plugin>
         <plugin>
-          <groupId>org.jasig.maven</groupId>
-          <artifactId>maven-notice-plugin</artifactId>
-          <version>1.1.0</version>
-          <dependencies>
-            <dependency>
-              <groupId>javax.xml.bind</groupId>
-              <artifactId>jaxb-api</artifactId>
-              <version>2.1</version>
-            </dependency>
-            <dependency>
-              <groupId>com.sun.xml.bind</groupId>
-              <artifactId>jaxb-impl</artifactId>
-              <version>2.2.5</version>
-            </dependency>
-          </dependencies>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.6</version>
           <configuration>
-            <includeScopes>compile</includeScopes>
+            <propertyName>jacoco.java.option</propertyName>
           </configuration>
           <executions>
             <execution>
-              <phase>validate</phase>
               <goals>
+                <goal>prepare-agent</goal>
                 <goal>check</goal>
               </goals>
             </execution>
@@ -258,6 +323,48 @@
               <phase>package</phase>
               <goals>
                 <goal>add-module-info</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.0.0-M5</version>
+          <configuration>
+            <argLine>@{jacoco.java.option}</argLine>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.0.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.0.0-M4</version>
+          <configuration>
+            <argLine>@{jacoco.java.option}</argLine>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.kaazing</groupId>
+          <artifactId>k3po-maven-plugin</artifactId>
+          <version>${k3po.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>start</goal>
+                <goal>stop</goal>
               </goals>
             </execution>
           </executions>
