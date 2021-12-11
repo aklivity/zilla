@@ -57,7 +57,6 @@
     <module>conf</module>
     <module>build</module>
     <module>specs</module>
-    <module>engine</module>
     <module>runtime</module>
     <module>manager</module>
   </modules>

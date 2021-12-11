@@ -17,5 +17,6 @@
   <name>zilla::runtime</name>
 
   <modules>
+    <module>engine</module>
   </modules>
 </project>
