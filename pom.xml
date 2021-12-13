@@ -47,6 +47,7 @@
     <antlr4.version>4.7</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
     <junit.version>5.6.2</junit.version>
+    <byteman.version>4.0.13</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>3.4.6</mockito.version>
     <k3po.version>3.1.0</k3po.version>
@@ -162,7 +163,6 @@
         <groupId>org.kaazing</groupId>
         <artifactId>k3po.driver</artifactId>
         <version>${k3po.version}</version>
-        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.kaazing</groupId>
@@ -173,6 +173,26 @@
         <groupId>org.kaazing</groupId>
         <artifactId>k3po.junit</artifactId>
         <version>${k3po.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.byteman</groupId>
+        <artifactId>byteman</artifactId>
+        <version>${byteman.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.byteman</groupId>
+        <artifactId>byteman-submit</artifactId>
+        <version>${byteman.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.byteman</groupId>
+        <artifactId>byteman-install</artifactId>
+        <version>${byteman.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.byteman</groupId>
+        <artifactId>byteman-bmunit</artifactId>
+        <version>${byteman.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -237,6 +257,7 @@
             </includes>
             <excludes>
               <exclude>src/conf/**</exclude>
+              <exclude>src/**/*.btm</exclude>
             </excludes>
             <mapping>
               <g4>SLASHSTAR_STYLE</g4>
@@ -349,7 +370,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M4</version>
           <configuration>
-            <argLine>@{jacoco.java.option}</argLine>
+            <argLine>@{jacoco.java.option} -Djdk.attach.allowAttachSelf=true</argLine>
           </configuration>
           <executions>
             <execution>
@@ -399,6 +420,31 @@
           </executions>
         </plugin>
         <plugin>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-rulecheck-maven-plugin</artifactId>
+          <version>${byteman.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>junit</groupId>
+              <artifactId>junit</artifactId>
+              <version>4.13.1</version>
+            </dependency>
+          </dependencies>
+          <executions>
+            <execution>
+              <goals>
+                <goal>rulecheck</goal>
+              </goals>
+              <configuration>
+                <includes>
+                  <include>**/*.btm</include>
+                </includes>
+                <verbose>false</verbose>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
           <version>1.0.0</version>
@@ -425,6 +471,19 @@
                     <versionRange>[1.0.0.RC1,)</versionRange>
                     <goals>
                       <goal>add-module-info</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore></ignore>
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.jboss.byteman</groupId>
+                    <artifactId>byteman-rulecheck-maven-plugin</artifactId>
+                    <versionRange>[3.0.6,)</versionRange>
+                    <goals>
+                      <goal>rulecheck</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>

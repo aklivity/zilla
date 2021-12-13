@@ -19,5 +19,6 @@
   <modules>
     <module>engine</module>
     <module>cog-proxy</module>
+    <module>cog-tcp</module>
   </modules>
 </project>
