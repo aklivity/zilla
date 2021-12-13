@@ -169,7 +169,7 @@ public class DispatchAgent implements AxleContext, Agent
     private final DeadlineTimerWheel timerWheel;
     private final Long2ObjectHashMap<Runnable> tasksByTimerId;
     private final Long2ObjectHashMap<Future<?>> futuresById;
-    private final ElektronSignaler signaler;
+    private final AxleSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
 
     private final ConfigurationContext configuration;
@@ -262,7 +262,7 @@ public class DispatchAgent implements AxleContext, Agent
         this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
-        this.signaler = new ElektronSignaler(executor);
+        this.signaler = new AxleSignaler(executor);
 
         this.poller = new Poller();
 
@@ -291,14 +291,14 @@ public class DispatchAgent implements AxleContext, Agent
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
         this.countersByName = new HashMap<>();
 
-        Map<String, Axle> elektronsByName = new LinkedHashMap<>();
+        Map<String, Axle> axlesByName = new LinkedHashMap<>();
         for (Cog cog: cogs)
         {
             String name = cog.name();
-            elektronsByName.put(name, cog.supplyAxle(this));
+            axlesByName.put(name, cog.supplyAxle(this));
         }
 
-        this.configuration = new ConfigurationContext(elektronsByName::get, labels::supplyLabelId, supplyLoadEntry::apply);
+        this.configuration = new ConfigurationContext(axlesByName::get, labels::supplyLabelId, supplyLoadEntry::apply);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
@@ -1416,7 +1416,7 @@ public class DispatchAgent implements AxleContext, Agent
         return dispatcher;
     }
 
-    private final class ElektronSignaler implements Signaler
+    private final class AxleSignaler implements Signaler
     {
         private final ThreadLocal<SignalFW.Builder> signalRW = withInitial(DispatchAgent::newSignalRW);
 
@@ -1424,7 +1424,7 @@ public class DispatchAgent implements AxleContext, Agent
 
         private long nextFutureId;
 
-        private ElektronSignaler(
+        private AxleSignaler(
             ExecutorService executorService)
         {
             this.executorService = executorService;

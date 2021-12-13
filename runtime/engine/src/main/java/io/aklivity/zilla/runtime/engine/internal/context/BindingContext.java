@@ -22,26 +22,26 @@ import io.aklivity.zilla.runtime.engine.config.Binding;
 final class BindingContext
 {
     private final Binding binding;
-    private final Axle elektron;
+    private final Axle axle;
 
     private StreamFactory attached;
 
     BindingContext(
         Binding binding,
-        Axle elektron)
+        Axle axle)
     {
         this.binding = binding;
-        this.elektron = elektron;
+        this.axle = axle;
     }
 
     public void attach()
     {
-        attached = elektron.attach(binding);
+        attached = axle.attach(binding);
     }
 
     public void detach()
     {
-        elektron.detach(binding);
+        axle.detach(binding);
         attached = null;
     }
 

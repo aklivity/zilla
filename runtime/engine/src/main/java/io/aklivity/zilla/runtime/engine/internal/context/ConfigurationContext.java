@@ -27,18 +27,18 @@ import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public class ConfigurationContext
 {
-    private final Function<String, Axle> elektronsByName;
+    private final Function<String, Axle> axlesByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
 
     private final Int2ObjectHashMap<NamespaceContext> namespacesById;
 
     public ConfigurationContext(
-        Function<String, Axle> elektronsByName,
+        Function<String, Axle> axlesByName,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
-        this.elektronsByName = elektronsByName;
+        this.axlesByName = axlesByName;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespacesById = new Int2ObjectHashMap<>();
@@ -91,7 +91,7 @@ public class ConfigurationContext
     private void attachNamespace(
         Namespace namespace)
     {
-        NamespaceContext context = new NamespaceContext(namespace, elektronsByName, supplyLabelId, supplyLoadEntry);
+        NamespaceContext context = new NamespaceContext(namespace, axlesByName, supplyLabelId, supplyLoadEntry);
         namespacesById.put(context.namespaceId(), context);
         context.attach();
     }

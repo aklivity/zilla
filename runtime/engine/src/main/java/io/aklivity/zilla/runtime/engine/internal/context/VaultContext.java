@@ -24,26 +24,26 @@ import io.aklivity.zilla.runtime.engine.config.Vault;
 final class VaultContext
 {
     private final Vault vault;
-    private final Axle elektron;
+    private final Axle axle;
 
     private BindingVault attached;
 
     VaultContext(
         Vault vault,
-        Axle elektron)
+        Axle axle)
     {
         this.vault = requireNonNull(vault);
-        this.elektron = requireNonNull(elektron);
+        this.axle = requireNonNull(axle);
     }
 
     public void attach()
     {
-        attached = elektron.attach(vault);
+        attached = axle.attach(vault);
     }
 
     public void detach()
     {
-        elektron.detach(vault);
+        axle.detach(vault);
         attached = null;
     }
 

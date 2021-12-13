@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.config.Vault;
 public class NamespaceContext
 {
     private final Namespace namespace;
-    private final Function<String, Axle> lookupElektron;
+    private final Function<String, Axle> lookupAxle;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
@@ -38,12 +38,12 @@ public class NamespaceContext
 
     public NamespaceContext(
         Namespace namespace,
-        Function<String, Axle> lookupElektron,
+        Function<String, Axle> lookupAxle,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
         this.namespace = namespace;
-        this.lookupElektron = lookupElektron;
+        this.lookupAxle = lookupAxle;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
@@ -71,11 +71,11 @@ public class NamespaceContext
     private void attachBinding(
         Binding binding)
     {
-        Axle elektron = lookupElektron.apply(binding.type);
-        if (elektron != null)
+        Axle axle = lookupAxle.apply(binding.type);
+        if (axle != null)
         {
             int bindingId = supplyLabelId.applyAsInt(binding.entry);
-            BindingContext context = new BindingContext(binding, elektron);
+            BindingContext context = new BindingContext(binding, axle);
             bindingsById.put(bindingId, context);
             context.attach();
             supplyLoadEntry.accept(binding.id);
@@ -96,11 +96,11 @@ public class NamespaceContext
     private void attachVault(
         Vault vault)
     {
-        Axle elektron = lookupElektron.apply(vault.type);
-        if (elektron != null)
+        Axle axle = lookupAxle.apply(vault.type);
+        if (axle != null)
         {
             int vaultId = supplyLabelId.applyAsInt(vault.name);
-            VaultContext context = new VaultContext(vault, elektron);
+            VaultContext context = new VaultContext(vault, axle);
             vaultsById.put(vaultId, context);
             context.attach();
         }
