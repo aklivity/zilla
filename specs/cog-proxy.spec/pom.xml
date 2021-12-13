@@ -12,28 +12,31 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>cog.spec</artifactId>
-  <name>zilla::specs::cog.spec</name>
+  <artifactId>cog-proxy.spec</artifactId>
+  <name>zilla::specs::cog-proxy.spec</name>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.11</jacoco.coverage.ratio>
-    <jacoco.missed.count>18</jacoco.missed.count>
+    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
+    <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.kaazing</groupId>
       <artifactId>k3po.lang</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.agrona</groupId>
-      <artifactId>agrona</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>cog.spec</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.kaazing</groupId>
@@ -57,12 +60,12 @@
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>io.aklivity.zilla</groupId>
+        <groupId>${project.groupId}</groupId>
         <artifactId>cog-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.specs.cog.internal.types</packageName>
+          <scopeNames>core proxy</scopeNames>
+          <packageName>io.aklivity.zilla.specs.cog.proxy.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -93,11 +96,32 @@
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>org.kaazing</groupId>
+        <artifactId>k3po-maven-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+          </dependency>
+          <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>engine</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/specs/cog/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/cog/proxy/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

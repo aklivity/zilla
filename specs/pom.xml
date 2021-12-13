@@ -18,5 +18,6 @@
 
   <modules>
     <module>cog.spec</module>
+    <module>cog-proxy.spec</module>
   </modules>
 </project>

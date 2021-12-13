@@ -1,0 +1,38 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/net#0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+connected
+
+write "\r\n\r\n" [0x00] "\r\n" "QUIT" "\n"              # header
+      [0x21]                                            # version = 2, command = proxy
+      [0x11]                                            # protocol = tcp4
+      [0x00 0x5d]                                       # length
+      [0xc0 0xa8 0x00 0x01]                             # source address = 192.168.0.1
+      [0xc0 0xa8 0x00 0xfe]                             # destination address = 192.168.0.254
+      [0x80 0x00]                                       # source port = 32768
+      [0x01 0xbb]                                       # destination port = 443
+      [0x20 0x00 0x4e]                                  # ssl
+      [0x07]                                            # version, client certificate (connection)
+      0                                                 # verified
+      [0x21 0x00 0x07] "TLSv1.3"                        # version
+      [0x23 0x00 0x1b] "ECDHE-RSA-AES128-GCM-SHA256"    # cipher
+      [0x24 0x00 0x06] "SHA256"                         # signature
+      [0x22 0x00 0x0b] "name@domain"                    # common name
+      [0x25 0x00 0x07] "RSA2048"                        # key
+write flush

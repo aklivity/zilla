@@ -157,33 +157,6 @@
         </dependencies>
       </plugin>
       <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>io/aklivity/zilla/runtime/engine/internal/types/**/*.class</exclude>
-            <exclude>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/types/**/*.class</exclude>
-          </excludes>
-          <rules>
-            <rule>
-              <element>BUNDLE</element>
-              <limits>
-                <limit>
-                  <counter>INSTRUCTION</counter>
-                  <value>COVEREDRATIO</value>
-                  <minimum>${jacoco.coverage.ratio}</minimum>
-                </limit>
-                <limit>
-                  <counter>CLASS</counter>
-                  <value>MISSEDCOUNT</value>
-                  <maximum>${jacoco.missed.count}</maximum>
-                </limit>
-              </limits>
-            </rule>
-          </rules>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
       </plugin>
@@ -234,6 +207,33 @@
               <include>commons-cli:commons-cli</include>
             </includes>
           </artifactSet>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>io/aklivity/zilla/runtime/engine/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/types/**/*.class</exclude>
+          </excludes>
+          <rules>
+            <rule>
+              <element>BUNDLE</element>
+              <limits>
+                <limit>
+                  <counter>INSTRUCTION</counter>
+                  <value>COVEREDRATIO</value>
+                  <minimum>${jacoco.coverage.ratio}</minimum>
+                </limit>
+                <limit>
+                  <counter>CLASS</counter>
+                  <value>MISSEDCOUNT</value>
+                  <maximum>${jacoco.missed.count}</maximum>
+                </limit>
+              </limits>
+            </rule>
+          </rules>
         </configuration>
       </plugin>
     </plugins>
