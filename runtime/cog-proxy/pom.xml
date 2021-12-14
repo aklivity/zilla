@@ -158,23 +158,6 @@
         <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>io.gatling</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <configuration>
-          <artifactSet>
-            <includes>
-              <include>org.agrona:agrona</include>
-              <include>io.aklivity.zilla:engine</include>
-              <include>org.openjdk.jmh:jmh-core</include>
-              <include>net.sf.jopt-simple:jopt-simple</include>
-              <include>org.apache.commons:commons-math3</include>
-              <include>commons-cli:commons-cli</include>
-              <include>com.github.biboudis:jmh-profilers</include>
-            </includes>
-          </artifactSet>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
@@ -201,6 +184,23 @@
               </limits>
             </rule>
           </rules>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.gatling</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <artifactSet>
+            <includes>
+              <include>org.agrona:agrona</include>
+              <include>io.aklivity.zilla:engine</include>
+              <include>org.openjdk.jmh:jmh-core</include>
+              <include>net.sf.jopt-simple:jopt-simple</include>
+              <include>org.apache.commons:commons-math3</include>
+              <include>commons-cli:commons-cli</include>
+              <include>com.github.biboudis:jmh-profilers</include>
+            </includes>
+          </artifactSet>
         </configuration>
       </plugin>
     </plugins>
