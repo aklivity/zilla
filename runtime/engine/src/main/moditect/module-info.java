@@ -13,19 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.engine.drive
+module io.aklivity.zilla.runtime.engine
 {
-    exports io.aklivity.zilla.engine.drive;
-    exports io.aklivity.zilla.engine.drive.config;
-    exports io.aklivity.zilla.engine.drive.ext;
-    exports io.aklivity.zilla.engine.drive.cog;
-    exports io.aklivity.zilla.engine.drive.cog.budget;
-    exports io.aklivity.zilla.engine.drive.cog.buffer;
-    exports io.aklivity.zilla.engine.drive.cog.concurrent;
-    exports io.aklivity.zilla.engine.drive.cog.function;
-    exports io.aklivity.zilla.engine.drive.cog.poller;
-    exports io.aklivity.zilla.engine.drive.cog.stream;
-    exports io.aklivity.zilla.engine.drive.cog.vault;
+    exports io.aklivity.zilla.runtime.engine;
+    exports io.aklivity.zilla.runtime.engine.cog;
+    exports io.aklivity.zilla.runtime.engine.cog.budget;
+    exports io.aklivity.zilla.runtime.engine.cog.buffer;
+    exports io.aklivity.zilla.runtime.engine.cog.concurrent;
+    exports io.aklivity.zilla.runtime.engine.cog.function;
+    exports io.aklivity.zilla.runtime.engine.cog.poller;
+    exports io.aklivity.zilla.runtime.engine.cog.stream;
+    exports io.aklivity.zilla.runtime.engine.cog.vault;
+    exports io.aklivity.zilla.runtime.engine.config;
+    exports io.aklivity.zilla.runtime.engine.ext;
 
     requires transitive java.json;
     requires transitive java.json.bind;
@@ -33,10 +33,10 @@ module io.aklivity.zilla.engine.drive
     requires jdk.unsupported;
     requires java.net.http;
 
-    uses io.aklivity.zilla.engine.drive.config.ConditionAdapterSpi;
-    uses io.aklivity.zilla.engine.drive.config.OptionsAdapterSpi;
-    uses io.aklivity.zilla.engine.drive.config.WithAdapterSpi;
-    uses io.aklivity.zilla.engine.drive.ext.DriveExtSpi;
-    uses io.aklivity.zilla.engine.drive.cog.CogFactorySpi;
-    uses io.aklivity.zilla.engine.drive.cog.vault.BindingVault;
+    uses io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
+    uses io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.WithAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 }
