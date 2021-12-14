@@ -1,0 +1,114 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/net#0"
+        option zilla:window 60000
+        option zilla:padding 1000
+        option zilla:transmission "duplex"
+connected
+
+# client connection preface
+write "PRI * HTTP/2.0\r\n"
+      "\r\n"
+      "SM\r\n"
+      "\r\n"
+write flush
+
+# server connection preface - SETTINGS frame
+read [0x00 0x00 0x12]                   # length = 18
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x00]                             # flags = 0x00
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+     [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+     [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
+     [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
+
+write [0x00 0x00 0x12]                   # length = 18
+      [0x04]                             # HTTP2 SETTINGS frame
+      [0x00]                             # flags = 0x00
+      [0x00 0x00 0x00 0x00]              # stream_id = 0
+      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+      [0x00 0x04 0x00 0x00 0x71 0x48]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 29000
+      [0x00 0x05 0x00 0x00 0x4e 0x20]    # SETTINGS_MAX_FRAME_SIZE(0x05) = 20000
+write flush
+
+read [0x00 0x00 0x00]                   # length = 0
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x01]                             # ACK
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+
+write [0x00 0x00 0x00]                  # length = 0
+      [0x04]                            # HTTP2 SETTINGS frame
+      [0x01]                            # ACK
+      [0x00 0x00 0x00 0x00]             # stream_id = 0
+write flush
+
+#
+# request headers with HEADERS frames
+#
+write [0x00 0x00 0x13]                  # length = 19
+      [0x01]                            # HEADERS frame
+      [0x05]                            # END_HEADERS | END_STREAM
+      [0x00 0x00 0x00 0x01]             # stream_id = 1
+      [0x82]                            # :method: GET
+      [0x86]                            # :scheme: http
+      [0x84]                            # :path: /
+      [0x01] [0x0e] "localhost:8080"    # :authority: localhost:8080
+write flush
+
+#
+# response HEADERS frame
+#
+read [0x00 0x00 0x5b]                                      # length
+     [0x01]                                                # HTTP2 HEADERS frame
+     [0x04]                                                # END_HEADERS
+     [0x00 0x00 0x00 0x01]                                 # stream_id=1
+     [0x88]                                                # :status: 200
+     [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
+     [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
+     [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
+     [0x0f 0x0d] [0x05] "30000"                            # content-length
+
+#
+# response DATA frame
+#
+read [0x00 0x4e 0x20]                          # length = 20000
+     [0x00]                                    # HTTP2 DATA frame
+     [0x00]                                    # no flags
+     [0x00 0x00 0x00 0x01]                     # stream_id=1
+read [0..20000]
+
+#
+# response DATA frame 9000 = max(30000 - 20000, 29000 - 20000)
+#
+read [0x00 0x23 0x28]                          # length = 9000
+     [0x00]                                    # HTTP2 DATA frame
+     [0x00]                                    # no flags
+     [0x00 0x00 0x00 0x01]                     # stream_id=1
+read [0..9000]
+
+# stream-level flow control
+write [0x00 0x00 0x04]                         # length
+     [0x08]                                    # WINDOW_UPDATE frame
+     [0x00]                                    # no flags
+     [0x00 0x00 0x00 0x01]                     # stream_id=1
+     [0x00 0x00 0x03 0xe8]                     # window size increment = 1000
+
+read [0x00 0x03 0xe8]                          # length = 1000
+     [0x00]                                    # HTTP2 DATA frame
+     [0x00]                                    # no flags
+     [0x00 0x00 0x00 0x01]                     # stream_id=1
+read [0..1000]

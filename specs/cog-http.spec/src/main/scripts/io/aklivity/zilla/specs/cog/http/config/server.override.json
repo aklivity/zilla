@@ -1,0 +1,18 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "http",
+            "kind": "server",
+            "options":
+            {
+                "overrides":
+                {
+                    ":authority": "otherhost:8181"
+                }
+            },
+            "exit": "app#0"
+        }
+    ]
+}

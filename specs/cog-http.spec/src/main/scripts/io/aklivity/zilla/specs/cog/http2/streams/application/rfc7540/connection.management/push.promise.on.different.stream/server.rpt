@@ -1,0 +1,173 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+accept "zilla://streams/app#0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                             .header(":method", "POST")
+                             .header(":scheme", "http")
+                             .header(":path", "/")
+                             .header(":authority", "localhost:8080")
+                             .build()}
+connected
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("server", "CERN/3.0 libwww/2.17")
+                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
+                              .header("content-type", "text/html; charset=UTF-8")
+                              .header("content-length", "113")
+                              .build()}
+write flush
+
+write notify REQUEST_ONE_RESPONSE_HEADERS_SENT
+
+write await REQUEST_TWO_RESPONSE_HEADERS_SENT
+
+write zilla:data.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                             .header(":method", "GET")
+                             .header(":scheme", "http")
+                             .header(":path", "/style.css")
+                             .header(":authority", "localhost:8080")
+                             .build()}
+write flush
+write notify PROMISE_ONE_SENT
+
+write zilla:data.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                             .header(":method", "GET")
+                             .header(":scheme", "http")
+                             .header(":path", "/script.js")
+                             .header(":authority", "localhost:8080")
+                             .build()}
+write flush
+write notify PROMISE_TWO_SENT
+
+write "<html>"
+      "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
+      "<body><script src=\"script.js\"></script></body>"
+      "</html>"
+write flush
+write close
+
+write notify REQUEST_ONE_RESPONSE_COMPLETED
+
+
+accepted
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":method", "GET")
+                             .header(":scheme", "http")
+                             .header(":path", "/push")
+                             .header(":authority", "localhost:8080")
+                             .build()}
+connected
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("server", "CERN/3.0 libwww/2.17")
+                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
+                              .build()}
+write flush
+
+write notify REQUEST_TWO_RESPONSE_HEADERS_SENT
+
+
+accepted
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":method", "GET")
+                             .header(":scheme", "http")
+                             .header(":path", "/style.css")
+                             .header(":authority", "localhost:8080")
+                             .build()}
+connected
+
+write await REQUEST_ONE_RESPONSE_COMPLETED
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("server", "CERN/3.0 libwww/2.17")
+                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
+                              .header("content-type", "text/css")
+                              .header("content-length", "31")
+                              .build()}
+write flush
+
+write notify PROMISE_ONE_RESPONSE_HEADERS_SENT
+
+write await PROMISE_TWO_RESPONSE_HEADERS_SENT
+
+write zilla:data.ext ${http:dataEx()
+                             .typeId(zilla:id("http"))
+                             .promise(":method", "GET")
+                             .promise(":scheme", "http")
+                             .promise(":path", "/widget.css")
+                             .promise(":authority", "localhost:8080")
+                             .build()}
+write flush
+write notify PROMISE_THREE_SENT
+
+write "h1 {"
+      "    color: blue;"
+      "}"
+write flush
+
+write notify PROMISE_ONE_RESPONSE_CONTENT_SENT
+
+
+accepted
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":method", "GET")
+                             .header(":scheme", "http")
+                             .header(":path", "/script.js")
+                             .header(":authority", "localhost:8080")
+                             .build()}
+connected
+
+write await PROMISE_ONE_RESPONSE_HEADERS_SENT
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("server", "CERN/3.0 libwww/2.17")
+                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
+                              .header("content-type", "text/javascript")
+                              .header("content-length", "15")
+                              .build()}
+write flush
+write notify PROMISE_TWO_RESPONSE_HEADERS_SENT
+
+write await PROMISE_ONE_RESPONSE_CONTENT_SENT
+
+write "function f() {"
+      "}"
+write flush
+
+write notify PROMISE_TWO_RESPONSE_CONTENT_SENT
