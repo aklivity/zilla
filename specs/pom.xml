@@ -21,5 +21,6 @@
     <module>cog-proxy.spec</module>
     <module>cog-tcp.spec</module>
     <module>cog-tls.spec</module>
+    <module>cog-echo.spec</module>
   </modules>
 </project>
