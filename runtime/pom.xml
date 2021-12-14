@@ -25,6 +25,7 @@
     <module>cmd-start</module>
     <module>cmd-stop</module>
     <module>cmd-tune</module>
+    <module>cmd-load</module>
   </modules>
 
   <dependencyManagement>
@@ -67,6 +68,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>cmd-tune</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cmd-load</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
