@@ -24,6 +24,9 @@ import static java.util.Optional.ofNullable;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
 import static org.agrona.BitUtil.SIZE_OF_SHORT;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -42,6 +45,17 @@ public final class CoreFunctions
     private static final ThreadLocal<String8FW.Builder> STRING_RW = withInitial(String8FW.Builder::new);
     private static final ThreadLocal<String16FW.Builder> STRING16_RW = withInitial(String16FW.Builder::new);
     private static final ThreadLocal<String16FW.Builder> STRING16N_RW = withInitial(() -> new String16FW.Builder(BIG_ENDIAN));
+
+    @Function
+    public static String file(
+        String name) throws IOException
+    {
+        String working = System.getProperty("user.dir");
+        Path filename = Paths.get(name);
+        return working == null || filename.isAbsolute()
+                ? name
+                : Paths.get(working).resolve(filename).toString();
+    }
 
     @Function
     public static byte[] fromHex(

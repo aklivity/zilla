@@ -1,0 +1,33 @@
+{
+    "vaults":
+    [
+        {
+            "name": "server",
+            "type": "filesystem",
+            "options":
+            {
+                "keys":
+                {
+                    "store": "stores/server/keys",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        }
+    ],
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "tls",
+            "kind": "server",
+            "vault": "server",
+            "options":
+            {
+                "keys": [ "localhost" ],
+                "alpn": [ "protocol2", null ]
+            },
+            "exit": "app#0"
+        }
+    ]
+}
