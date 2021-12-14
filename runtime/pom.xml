@@ -22,6 +22,7 @@
     <module>cog-tcp</module>
     <module>cog-tls</module>
     <module>cli</module>
+    <module>cmd-start</module>
   </modules>
 
   <dependencyManagement>
