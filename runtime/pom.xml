@@ -23,6 +23,7 @@
     <module>cog-tls</module>
     <module>cli</module>
     <module>cmd-start</module>
+    <module>cmd-stop</module>
   </modules>
 
   <dependencyManagement>
@@ -45,6 +46,21 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>cog-tls</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cli</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cmd-start</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cmd-stop</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
