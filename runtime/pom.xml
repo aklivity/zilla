@@ -21,6 +21,7 @@
     <module>cog-proxy</module>
     <module>cog-tcp</module>
     <module>cog-tls</module>
+    <module>cli</module>
   </modules>
 
   <dependencyManagement>
