@@ -510,6 +510,14 @@
 
   <profiles>
     <profile>
+      <id>incubator</id>
+
+      <modules>
+        <module>incubator</module>
+      </modules>
+    </profile>
+
+    <profile>
       <id>release</id>
 
       <distributionManagement>
