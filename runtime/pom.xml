@@ -19,6 +19,7 @@
   <modules>
     <module>engine</module>
     <module>cog-echo</module>
+    <module>cog-fan</module>
     <module>cog-proxy</module>
     <module>cog-tcp</module>
     <module>cog-tls</module>
@@ -42,6 +43,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>cog-echo</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cog-fan</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
