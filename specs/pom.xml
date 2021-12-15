@@ -19,6 +19,7 @@
   <modules>
     <module>cog.spec</module>
     <module>cog-echo.spec</module>
+    <module>cog-fan.spec</module>
     <module>cog-proxy.spec</module>
     <module>cog-tcp.spec</module>
     <module>cog-tls.spec</module>

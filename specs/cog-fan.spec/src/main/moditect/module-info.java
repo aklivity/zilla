@@ -13,9 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-scope echo
+open module io.aklivity.zilla.specs.cog.fan
 {
-    scope stream
-    {
-    }
+    requires transitive io.aklivity.zilla.specs.cog;
 }
