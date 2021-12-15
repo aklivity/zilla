@@ -25,6 +25,7 @@
     <module>cog-tls</module>
     <module>cog-http</module>
     <module>cog-sse</module>
+    <module>cog-ws</module>
     <module>cog-kafka</module>
     <module>cli</module>
     <module>cmd-start</module>
@@ -73,6 +74,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>cog-sse</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cog-ws</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
