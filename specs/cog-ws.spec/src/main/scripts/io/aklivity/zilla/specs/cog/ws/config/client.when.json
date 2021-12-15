@@ -1,0 +1,32 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "app#0",
+            "type" : "ws",
+            "kind": "client",
+            "options":
+            {
+                "defaults":
+                {
+                    "protocol": "primary",
+                    "scheme": "http",
+                    "authority": "localhost:8080",
+                    "path": "/echo"
+                }
+            },
+            "routes":
+            [
+                {
+                    "exit": "net#0",
+                    "when":
+                    [
+                        {
+                            "protocol": "primary"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

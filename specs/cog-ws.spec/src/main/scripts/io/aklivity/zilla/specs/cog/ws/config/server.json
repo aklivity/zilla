@@ -1,0 +1,11 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "ws",
+            "kind": "server",
+            "exit": "app#0"
+        }
+    ]
+}

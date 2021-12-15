@@ -25,6 +25,7 @@
     <module>cog-tls.spec</module>
     <module>cog-http.spec</module>
     <module>cog-sse.spec</module>
+    <module>cog-ws.spec</module>
     <module>cog-kafka.spec</module>
   </modules>
 </project>
