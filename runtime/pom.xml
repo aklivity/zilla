@@ -18,10 +18,11 @@
 
   <modules>
     <module>engine</module>
+    <module>cog-echo</module>
     <module>cog-proxy</module>
     <module>cog-tcp</module>
     <module>cog-tls</module>
-    <module>cog-echo</module>
+    <module>cog-http</module>
     <module>cli</module>
     <module>cmd-start</module>
     <module>cmd-stop</module>
@@ -34,6 +35,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>engine</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cog-echo</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -53,7 +59,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-echo</artifactId>
+        <artifactId>cog-http</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

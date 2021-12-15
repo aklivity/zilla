@@ -128,10 +128,10 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${net}/max.nukleus.data.frame.size/client",
-        "${net}/max.nukleus.data.frame.size/server",
+        "${net}/max.zilla.data.frame.size/client",
+        "${net}/max.zilla.data.frame.size/server",
     })
-    public void maxNukleusDataFrameSize() throws Exception
+    public void maxZillaDataFrameSize() throws Exception
     {
         k3po.finish();
     }

@@ -70,7 +70,7 @@ read [0x00 0x00 0x13]                   # length = 19
      [0x84]                             # :path: /
      [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
 
-write [0x00 0x00 0x4f]                                      # length
+write [0x00 0x00 0x4a]                                      # length
       [0x01]                                                # HTTP2 HEADERS frame
       [0x04]                                                # END_HEADERS
       [0x00 0x00 0x00 0x01]                                 # stream_id=1

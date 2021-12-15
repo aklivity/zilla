@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.engine.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_POOL_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.DRIVE_BUFFER_POOL_CAPACITY_NAME;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.DRIVE_BUFFER_SLOT_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -28,7 +28,7 @@ public class EngineConfigurationTest
     @Test
     public void shouldVerifyConstants() throws Exception
     {
-        assertEquals(ENGINE_BUFFER_POOL_CAPACITY.name(), DRIVE_BUFFER_POOL_CAPACITY_NAME);
-        assertEquals(ENGINE_BUFFER_SLOT_CAPACITY.name(), DRIVE_BUFFER_SLOT_CAPACITY_NAME);
+        assertEquals(ENGINE_BUFFER_POOL_CAPACITY.name(), ENGINE_BUFFER_POOL_CAPACITY_NAME);
+        assertEquals(ENGINE_BUFFER_SLOT_CAPACITY.name(), ENGINE_BUFFER_SLOT_CAPACITY_NAME);
     }
 }

@@ -81,7 +81,7 @@ read [0x00 0x00 0x5b]                                      # length
      [0x0f 0x0d] [0x05] "65527"                            # content-length
 
 #
-# comes in two nuklei DATA frames
+# comes in two zilla DATA frames
 # response HTTP2 DATA frame
 #
 read [0x00 0xff 0xf7]                          # length = 65527

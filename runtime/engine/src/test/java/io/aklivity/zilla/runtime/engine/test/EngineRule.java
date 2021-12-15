@@ -57,8 +57,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public final class EngineRule implements TestRule
 {
     // needed by test annotations
-    public static final String DRIVE_BUFFER_POOL_CAPACITY_NAME = "zilla.engine.buffer.pool.capacity";
-    public static final String DRIVE_BUFFER_SLOT_CAPACITY_NAME = "zilla.engine.buffer.slot.capacity";
+    public static final String ENGINE_BUFFER_POOL_CAPACITY_NAME = "zilla.engine.buffer.pool.capacity";
+    public static final String ENGINE_BUFFER_SLOT_CAPACITY_NAME = "zilla.engine.buffer.slot.capacity";
 
     private static final long EXTERNAL_AFFINITY_MASK = 1L << (Long.SIZE - 1);
     private static final Pattern DATA_FILENAME_PATTERN = Pattern.compile("data\\d+");
