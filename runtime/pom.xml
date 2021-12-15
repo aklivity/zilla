@@ -23,6 +23,7 @@
     <module>cog-tcp</module>
     <module>cog-tls</module>
     <module>cog-http</module>
+    <module>cog-sse</module>
     <module>cli</module>
     <module>cmd-start</module>
     <module>cmd-stop</module>
@@ -60,6 +61,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>cog-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cog-sse</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
