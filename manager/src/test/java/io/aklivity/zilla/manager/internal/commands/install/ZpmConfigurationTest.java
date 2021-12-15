@@ -32,7 +32,7 @@ import javax.json.bind.JsonbBuilder;
 
 import org.junit.Test;
 
-public class ZmConfigurationTest
+public class ZpmConfigurationTest
 {
     @Test
     public void shouldReadEmptyConfiguration()
@@ -42,7 +42,7 @@ public class ZmConfigurationTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmConfiguration config = builder.fromJson(text, ZmConfiguration.class);
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
 
         assertThat(config, not(nullValue()));
         assertThat(config.dependencies, nullValue());
@@ -55,7 +55,7 @@ public class ZmConfigurationTest
                 "{" +
                 "}";
 
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(config);
@@ -74,11 +74,11 @@ public class ZmConfigurationTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmConfiguration config = builder.fromJson(text, ZmConfiguration.class);
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
 
         assertThat(config, not(nullValue()));
         assertThat(config.repositories, not(nullValue()));
-        assertThat(config.repositories, emptyCollectionOf(ZmRepository.class));
+        assertThat(config.repositories, emptyCollectionOf(ZpmRepository.class));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class ZmConfigurationTest
                     "]" +
                 "}";
 
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
         config.repositories = Collections.emptyList();
 
         Jsonb builder = JsonbBuilder.create();
@@ -112,11 +112,11 @@ public class ZmConfigurationTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmConfiguration config = builder.fromJson(text, ZmConfiguration.class);
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
 
         assertThat(config, not(nullValue()));
         assertThat(config.repositories, not(nullValue()));
-        assertThat(config.repositories, equalTo(singletonList(new ZmRepository("https://repo1.maven.org/maven2/"))));
+        assertThat(config.repositories, equalTo(singletonList(new ZpmRepository("https://repo1.maven.org/maven2/"))));
     }
 
     @Test
@@ -130,9 +130,9 @@ public class ZmConfigurationTest
                     "]" +
                 "}";
 
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
         config.repositories = Collections.singletonList(
-                new ZmRepository("https://repo1.maven.org/maven2/"));
+                new ZpmRepository("https://repo1.maven.org/maven2/"));
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(config);
@@ -153,12 +153,12 @@ public class ZmConfigurationTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmConfiguration config = builder.fromJson(text, ZmConfiguration.class);
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
 
         assertThat(config, not(nullValue()));
         assertThat(config.repositories, not(nullValue()));
-        assertThat(config.repositories, equalTo(asList(new ZmRepository("https://maven.example.com/maven2/"),
-                new ZmRepository("https://repo1.maven.org/maven2/"))));
+        assertThat(config.repositories, equalTo(asList(new ZpmRepository("https://maven.example.com/maven2/"),
+                new ZpmRepository("https://repo1.maven.org/maven2/"))));
     }
 
     @Test
@@ -173,10 +173,10 @@ public class ZmConfigurationTest
                     "]" +
                 "}";
 
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
         config.repositories = Arrays.asList(
-                new ZmRepository("https://maven.example.com/maven2/"),
-                new ZmRepository("https://repo1.maven.org/maven2/"));
+                new ZpmRepository("https://maven.example.com/maven2/"),
+                new ZpmRepository("https://repo1.maven.org/maven2/"));
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(config);
@@ -195,11 +195,11 @@ public class ZmConfigurationTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmConfiguration config = builder.fromJson(text, ZmConfiguration.class);
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
 
         assertThat(config, not(nullValue()));
         assertThat(config.dependencies, not(nullValue()));
-        assertThat(config.dependencies, emptyCollectionOf(ZmDependency.class));
+        assertThat(config.dependencies, emptyCollectionOf(ZpmDependency.class));
     }
 
     @Test
@@ -212,7 +212,7 @@ public class ZmConfigurationTest
                     "]" +
                 "}";
 
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
         config.dependencies = Collections.emptyList();
 
         Jsonb builder = JsonbBuilder.create();
@@ -233,10 +233,10 @@ public class ZmConfigurationTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmConfiguration config = builder.fromJson(text, ZmConfiguration.class);
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
 
         assertThat(config, not(nullValue()));
-        assertThat(config.dependencies, equalTo(singletonList(new ZmDependency("io.aklivity.zilla", "engine", "1.0.0"))));
+        assertThat(config.dependencies, equalTo(singletonList(new ZpmDependency("io.aklivity.zilla", "engine", "1.0.0"))));
     }
 
     @Test
@@ -250,9 +250,9 @@ public class ZmConfigurationTest
                     "]" +
                 "}";
 
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
         config.dependencies = Collections.singletonList(
-                new ZmDependency("io.aklivity.zilla", "engine", "1.0.0"));
+                new ZpmDependency("io.aklivity.zilla", "engine", "1.0.0"));
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(config);
@@ -273,12 +273,12 @@ public class ZmConfigurationTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmConfiguration config = builder.fromJson(text, ZmConfiguration.class);
+        ZpmConfiguration config = builder.fromJson(text, ZpmConfiguration.class);
 
         assertThat(config, not(nullValue()));
         assertThat(config.dependencies, equalTo(asList(
-                new ZmDependency("io.aklivity.zilla", "engine", "1.0.0"),
-                new ZmDependency("io.aklivity.zilla", "cog-tcp", "1.0.0"))));
+                new ZpmDependency("io.aklivity.zilla", "engine", "1.0.0"),
+                new ZpmDependency("io.aklivity.zilla", "cog-tcp", "1.0.0"))));
     }
 
     @Test
@@ -293,10 +293,10 @@ public class ZmConfigurationTest
                     "]" +
                 "}";
 
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
         config.dependencies = Arrays.asList(
-                new ZmDependency("io.aklivity.zilla", "engine", "1.0.0"),
-                new ZmDependency("io.aklivity.zilla", "cog-tcp", "1.0.0"));
+                new ZpmDependency("io.aklivity.zilla", "engine", "1.0.0"),
+                new ZpmDependency("io.aklivity.zilla", "cog-tcp", "1.0.0"));
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(config);

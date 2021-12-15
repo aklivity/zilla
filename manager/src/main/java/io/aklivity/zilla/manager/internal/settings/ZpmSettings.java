@@ -13,21 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.manager.internal.commands.install;
+package io.aklivity.zilla.manager.internal.settings;
 
 import java.util.List;
 import java.util.Objects;
 
-public final class ZmConfiguration
+public final class ZpmSettings
 {
-    public List<ZmDependency> dependencies;
-    public List<ZmDependency> imports;
-    public List<ZmRepository> repositories;
+    public List<ZpmCredentials> credentials;
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(dependencies, imports, repositories);
+        return Objects.hash(credentials);
     }
 
     @Override
@@ -38,14 +36,12 @@ public final class ZmConfiguration
             return true;
         }
 
-        if (!(obj instanceof ZmConfiguration))
+        if (!(obj instanceof ZpmSettings))
         {
             return false;
         }
 
-        ZmConfiguration that = (ZmConfiguration) obj;
-        return Objects.deepEquals(this.dependencies, that.dependencies) &&
-                Objects.deepEquals(this.imports, that.imports) &&
-                Objects.deepEquals(this.repositories, that.repositories);
+        ZpmSettings that = (ZpmSettings) obj;
+        return Objects.deepEquals(this.credentials, that.credentials);
     }
 }

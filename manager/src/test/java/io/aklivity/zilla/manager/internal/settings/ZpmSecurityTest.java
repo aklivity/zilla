@@ -26,7 +26,7 @@ import javax.json.bind.JsonbBuilder;
 
 import org.junit.Test;
 
-public class ZmSecurityTest
+public class ZpmSecurityTest
 {
     @Test
     public void shouldReadEmptySecurity()
@@ -36,7 +36,7 @@ public class ZmSecurityTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmSecurity security = builder.fromJson(text, ZmSecurity.class);
+        ZpmSecurity security = builder.fromJson(text, ZpmSecurity.class);
 
         assertThat(security, not(nullValue()));
         assertThat(security.secret, nullValue());
@@ -49,7 +49,7 @@ public class ZmSecurityTest
                 "{" +
                 "}";
 
-        ZmSecurity security = new ZmSecurity();
+        ZpmSecurity security = new ZpmSecurity();
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(security);
@@ -66,7 +66,7 @@ public class ZmSecurityTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmSecurity security = builder.fromJson(text, ZmSecurity.class);
+        ZpmSecurity security = builder.fromJson(text, ZpmSecurity.class);
 
         assertThat(security, not(nullValue()));
         assertThat(security.secret, equalTo("whisper"));
@@ -80,7 +80,7 @@ public class ZmSecurityTest
                     "\"secret\":\"whisper\"" +
                 "}";
 
-        ZmSecurity security = new ZmSecurity();
+        ZpmSecurity security = new ZpmSecurity();
         security.secret = "whisper";
 
         Jsonb builder = JsonbBuilder.create();

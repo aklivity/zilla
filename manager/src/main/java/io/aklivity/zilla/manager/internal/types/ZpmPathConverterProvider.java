@@ -24,11 +24,11 @@ import com.github.rvesse.airline.types.TypeConverter;
 import com.github.rvesse.airline.types.TypeConverterProvider;
 import com.github.rvesse.airline.types.numerics.NumericTypeConverter;
 
-public final class ZmPathConverterProvider implements TypeConverterProvider
+public final class ZpmPathConverterProvider implements TypeConverterProvider
 {
-    private final ZmPathConverter converter = new ZmPathConverter();
+    private final ZpmPathConverter converter = new ZpmPathConverter();
 
-    private final class ZmPathConverter implements TypeConverter
+    private final class ZpmPathConverter implements TypeConverter
     {
         @Override
         public void setNumericConverter(

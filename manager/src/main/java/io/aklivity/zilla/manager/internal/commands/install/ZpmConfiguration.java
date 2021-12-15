@@ -15,54 +15,37 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install;
 
+import java.util.List;
 import java.util.Objects;
 
-import javax.json.bind.annotation.JsonbTypeAdapter;
-
-import io.aklivity.zilla.manager.internal.commands.install.adapters.ZmRepositoryAdapter;
-
-@JsonbTypeAdapter(ZmRepositoryAdapter.class)
-public final class ZmRepository
+public final class ZpmConfiguration
 {
-    public String location;
-
-    public ZmRepository()
-    {
-    }
+    public List<ZpmDependency> dependencies;
+    public List<ZpmDependency> imports;
+    public List<ZpmRepository> repositories;
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(location);
+        return Objects.hash(dependencies, imports, repositories);
     }
 
     @Override
-    public boolean equals(
-        Object obj)
+    public boolean equals(Object obj)
     {
         if (obj == this)
         {
             return true;
         }
 
-        if (!(obj instanceof ZmRepository))
+        if (!(obj instanceof ZpmConfiguration))
         {
             return false;
         }
 
-        ZmRepository that = (ZmRepository) obj;
-        return Objects.equals(this.location, that.location);
-    }
-
-    @Override
-    public String toString()
-    {
-        return location;
-    }
-
-    ZmRepository(
-        String location)
-    {
-        this.location = location;
+        ZpmConfiguration that = (ZpmConfiguration) obj;
+        return Objects.deepEquals(this.dependencies, that.dependencies) &&
+                Objects.deepEquals(this.imports, that.imports) &&
+                Objects.deepEquals(this.repositories, that.repositories);
     }
 }

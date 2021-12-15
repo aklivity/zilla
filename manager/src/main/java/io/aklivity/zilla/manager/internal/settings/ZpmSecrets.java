@@ -18,7 +18,7 @@ package io.aklivity.zilla.manager.internal.settings;
 import org.sonatype.plexus.components.cipher.DefaultPlexusCipher;
 import org.sonatype.plexus.components.cipher.PlexusCipherException;
 
-public final class ZmSecrets
+public final class ZpmSecrets
 {
     public static String decryptSecret(
         String secret,
@@ -36,7 +36,7 @@ public final class ZmSecrets
         return cipher.encryptAndDecorate(secret, passphrase);
     }
 
-    private ZmSecrets()
+    private ZpmSecrets()
     {
     }
 }

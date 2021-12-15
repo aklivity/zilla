@@ -15,33 +15,28 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install.cache;
 
-import static java.util.Collections.unmodifiableSet;
-
-import java.nio.file.Path;
 import java.util.Objects;
-import java.util.Set;
 
-public final class ZmArtifact
+public final class ZpmArtifactId
 {
-    public final ZmArtifactId id;
-    public final Path path;
-    public final Set<ZmArtifactId> depends;
+    public final String group;
+    public final String artifact;
+    public final String version;
 
-
-    public ZmArtifact(
-        ZmArtifactId id,
-        Path path,
-        Set<ZmArtifactId> depends)
+    public ZpmArtifactId(
+        String groupId,
+        String artifactId,
+        String version)
     {
-        this.id = id;
-        this.path = path;
-        this.depends = unmodifiableSet(depends);
+        this.group = groupId;
+        this.artifact = artifactId;
+        this.version = version;
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(id, path, depends);
+        return Objects.hash(group, artifact, version);
     }
 
     @Override
@@ -53,20 +48,20 @@ public final class ZmArtifact
             return true;
         }
 
-        if (!(obj instanceof ZmArtifact))
+        if (!(obj instanceof ZpmArtifactId))
         {
             return false;
         }
 
-        ZmArtifact that = (ZmArtifact) obj;
-        return Objects.equals(this.id, that.id) &&
-                Objects.equals(this.path, that.path) &&
-                Objects.equals(this.depends, that.depends);
+        ZpmArtifactId that = (ZpmArtifactId) obj;
+        return Objects.equals(this.group, that.group) &&
+                Objects.equals(this.artifact, that.artifact) &&
+                Objects.equals(this.version, that.version);
     }
 
     @Override
     public String toString()
     {
-        return String.format("%s [%s] -> %s", id, path, depends);
+        return String.format("%s:%s:%s", group, artifact, version);
     }
 }

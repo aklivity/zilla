@@ -23,9 +23,9 @@ import javax.json.Json;
 import javax.json.JsonString;
 import javax.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.manager.internal.commands.install.ZmDependency;
+import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
 
-public final class ZmDependencyAdapter implements JsonbAdapter<ZmDependency, JsonString>
+public final class ZpmDependencyAdapter implements JsonbAdapter<ZpmDependency, JsonString>
 {
     private static final String DEFAULT_GROUP_ID = "io.aklivity.zilla";
 
@@ -35,7 +35,7 @@ public final class ZmDependencyAdapter implements JsonbAdapter<ZmDependency, Jso
 
     @Override
     public JsonString adaptToJson(
-        ZmDependency dependency)
+        ZpmDependency dependency)
     {
         String groupId = dependency.groupId;
         String artifactId = dependency.artifactId;
@@ -47,16 +47,16 @@ public final class ZmDependencyAdapter implements JsonbAdapter<ZmDependency, Jso
     }
 
     @Override
-    public ZmDependency adaptFromJson(
+    public ZpmDependency adaptFromJson(
         JsonString value)
     {
         final String entry = ((JsonString) value).getString();
         final Matcher matcher = DEPENDENCY_PATTERN.matcher(entry);
 
-        ZmDependency dependency = null;
+        ZpmDependency dependency = null;
         if (matcher.matches())
         {
-            dependency = new ZmDependency();
+            dependency = new ZpmDependency();
             dependency.groupId = Optional.ofNullable(matcher.group("groupId")).orElse(DEFAULT_GROUP_ID);
             dependency.artifactId = matcher.group("artifactId");
             dependency.version = matcher.group("version");

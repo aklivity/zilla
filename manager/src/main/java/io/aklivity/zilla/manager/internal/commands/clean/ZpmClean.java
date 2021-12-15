@@ -26,12 +26,12 @@ import java.nio.file.Path;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
-import io.aklivity.zilla.manager.internal.ZmCommand;
+import io.aklivity.zilla.manager.internal.ZpmCommand;
 
 @Command(
     name = "clean",
     description = "Clean up")
-public final class ZmClean extends ZmCommand
+public final class ZpmClean extends ZpmCommand
 {
     @Option(name = { "--keep-image" })
     public Boolean keepImage = false;

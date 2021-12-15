@@ -32,7 +32,7 @@ import javax.json.bind.JsonbBuilder;
 
 import org.junit.Test;
 
-public class ZmSettingsTest
+public class ZpmSettingsTest
 {
     @Test
     public void shouldReadEmptySettings()
@@ -42,7 +42,7 @@ public class ZmSettingsTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmSettings settings = builder.fromJson(text, ZmSettings.class);
+        ZpmSettings settings = builder.fromJson(text, ZpmSettings.class);
 
         assertThat(settings, not(nullValue()));
         assertThat(settings.credentials, nullValue());
@@ -55,7 +55,7 @@ public class ZmSettingsTest
                 "{" +
                 "}";
 
-        ZmSettings settings = new ZmSettings();
+        ZpmSettings settings = new ZpmSettings();
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(settings);
@@ -74,11 +74,11 @@ public class ZmSettingsTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmSettings settings = builder.fromJson(text, ZmSettings.class);
+        ZpmSettings settings = builder.fromJson(text, ZpmSettings.class);
 
         assertThat(settings, not(nullValue()));
         assertThat(settings.credentials, not(nullValue()));
-        assertThat(settings.credentials, emptyCollectionOf(ZmCredentials.class));
+        assertThat(settings.credentials, emptyCollectionOf(ZpmCredentials.class));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class ZmSettingsTest
                     "]" +
                 "}";
 
-        ZmSettings settings = new ZmSettings();
+        ZpmSettings settings = new ZpmSettings();
         settings.credentials = Collections.emptyList();
 
         Jsonb builder = JsonbBuilder.create();
@@ -117,12 +117,12 @@ public class ZmSettingsTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmSettings settings = builder.fromJson(text, ZmSettings.class);
+        ZpmSettings settings = builder.fromJson(text, ZpmSettings.class);
 
         assertThat(settings, not(nullValue()));
         assertThat(settings.credentials, not(nullValue()));
         assertThat(settings.credentials, equalTo(singletonList(
-                new ZmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"))));
+                new ZpmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"))));
     }
 
     @Test
@@ -141,9 +141,9 @@ public class ZmSettingsTest
                     "]" +
                 "}";
 
-        ZmSettings settings = new ZmSettings();
+        ZpmSettings settings = new ZpmSettings();
         settings.credentials = Collections.singletonList(
-            new ZmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"));
+            new ZpmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"));
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(settings);
@@ -174,13 +174,13 @@ public class ZmSettingsTest
                 "}";
 
         Jsonb builder = JsonbBuilder.create();
-        ZmSettings settings = builder.fromJson(text, ZmSettings.class);
+        ZpmSettings settings = builder.fromJson(text, ZpmSettings.class);
 
         assertThat(settings, not(nullValue()));
         assertThat(settings.credentials, not(nullValue()));
         assertThat(settings.credentials, equalTo(asList(
-                new ZmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"),
-                new ZmCredentials("HTTP Realm 2", "repo2.maven.org", "user2", "pass2"))));
+                new ZpmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"),
+                new ZpmCredentials("HTTP Realm 2", "repo2.maven.org", "user2", "pass2"))));
     }
 
     @Test
@@ -205,10 +205,10 @@ public class ZmSettingsTest
                     "]" +
                 "}";
 
-        ZmSettings settings = new ZmSettings();
+        ZpmSettings settings = new ZpmSettings();
         settings.credentials = Arrays.asList(
-                new ZmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"),
-                new ZmCredentials("HTTP Realm 2", "repo2.maven.org", "user2", "pass2"));
+                new ZpmCredentials("HTTP Realm", "repo1.maven.org", "user", "pass"),
+                new ZpmCredentials("HTTP Realm 2", "repo2.maven.org", "user2", "pass2"));
 
         Jsonb builder = JsonbBuilder.create();
         String actual = builder.toJson(settings);

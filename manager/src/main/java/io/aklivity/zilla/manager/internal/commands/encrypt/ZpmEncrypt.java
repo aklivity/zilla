@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.manager.internal.commands.encrypt;
 
-import static io.aklivity.zilla.manager.internal.settings.ZmSecrets.decryptSecret;
-import static io.aklivity.zilla.manager.internal.settings.ZmSecrets.encryptSecret;
+import static io.aklivity.zilla.manager.internal.settings.ZpmSecrets.decryptSecret;
+import static io.aklivity.zilla.manager.internal.settings.ZpmSecrets.encryptSecret;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.newInputStream;
 import static java.nio.file.Files.newOutputStream;
@@ -39,13 +39,13 @@ import org.sonatype.plexus.components.cipher.PlexusCipherException;
 
 import com.github.rvesse.airline.annotations.Command;
 
-import io.aklivity.zilla.manager.internal.ZmCommand;
-import io.aklivity.zilla.manager.internal.settings.ZmSecurity;
+import io.aklivity.zilla.manager.internal.ZpmCommand;
+import io.aklivity.zilla.manager.internal.settings.ZpmSecurity;
 
 @Command(
     name = "encrypt",
     description = "Encrypt passwords")
-public class ZmEncrypt extends ZmCommand
+public class ZpmEncrypt extends ZpmCommand
 {
     private static final String SECRET_CHARS =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/";
@@ -55,7 +55,7 @@ public class ZmEncrypt extends ZmCommand
     {
         try
         {
-            ZmSecurity security = readSecurity(settingsDir);
+            ZpmSecurity security = readSecurity(settingsDir);
 
             if (security.secret == null)
             {
@@ -81,12 +81,12 @@ public class ZmEncrypt extends ZmCommand
         }
     }
 
-    private ZmSecurity readSecurity(
+    private ZpmSecurity readSecurity(
         Path settingsDir) throws IOException, PlexusCipherException
     {
         Path securityFile = settingsDir.resolve("security.json");
 
-        ZmSecurity security = new ZmSecurity();
+        ZpmSecurity security = new ZpmSecurity();
 
         Jsonb builder = JsonbBuilder.newBuilder()
                 .withConfig(new JsonbConfig().withFormatting(true))
@@ -96,7 +96,7 @@ public class ZmEncrypt extends ZmCommand
         {
             try (InputStream in = newInputStream(securityFile))
             {
-                security = builder.fromJson(in, ZmSecurity.class);
+                security = builder.fromJson(in, ZpmSecurity.class);
             }
         }
 
@@ -104,7 +104,7 @@ public class ZmEncrypt extends ZmCommand
     }
 
     private void writeSecurity(
-        ZmSecurity security) throws IOException
+        ZpmSecurity security) throws IOException
     {
         Path securityFile = settingsDir.resolve("security.json");
 

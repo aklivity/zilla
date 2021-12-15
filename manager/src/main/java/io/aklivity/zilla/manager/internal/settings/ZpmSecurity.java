@@ -13,21 +13,34 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.manager.internal;
+package io.aklivity.zilla.manager.internal.settings;
 
-import com.github.rvesse.airline.Cli;
+import java.util.Objects;
 
-public final class ZmMain
+public final class ZpmSecurity
 {
-    public static void main(
-        String[] args)
+    public String secret;
+
+    @Override
+    public int hashCode()
     {
-        Cli<Runnable> parser = new Cli<>(ZmCli.class);
-        parser.parse(args).run();
+        return Objects.hash(secret);
     }
 
-    private ZmMain()
+    @Override
+    public boolean equals(Object obj)
     {
-        // utility class
+        if (obj == this)
+        {
+            return true;
+        }
+
+        if (!(obj instanceof ZpmSecurity))
+        {
+            return false;
+        }
+
+        ZpmSecurity that = (ZpmSecurity) obj;
+        return Objects.equals(this.secret, that.secret);
     }
 }

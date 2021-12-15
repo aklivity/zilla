@@ -26,9 +26,9 @@ import org.junit.Test;
 
 import com.github.rvesse.airline.Cli;
 
-import io.aklivity.zilla.manager.internal.ZmCli;
+import io.aklivity.zilla.manager.internal.ZpmCli;
 
-public class ZmInstallTest
+public class ZpmInstallTest
 {
     @Test
     public void shouldInstallEngine() throws IOException
@@ -38,22 +38,22 @@ public class ZmInstallTest
             "install",
             "--config-directory", "src/test/conf/install",
             "--lock-directory", "target/test-locks/install",
-            "--output-directory", "target/zm",
+            "--output-directory", "target/zpm",
             "--launcher-directory", "target",
             "--silent"
         };
 
-        Cli<Runnable> parser = new Cli<>(ZmCli.class);
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
         Runnable install = parser.parse(args);
 
         install.run();
 
-        assertThat(install, instanceOf(ZmInstall.class));
-        assertThat(new File("src/test/conf/install/zm.json"), anExistingFile());
-        assertThat(new File("target/test-locks/install/zm-lock.json"), anExistingFile());
-        assertThat(new File("target/zm/cache/io.aklivity.zilla/engine/jars/engine-develop-SNAPSHOT.jar"), anExistingFile());
-        assertThat(new File("target/zm/cache/io.aklivity.zilla/cog-tcp/jars/cog-tcp-develop-SNAPSHOT.jar"), anExistingFile());
-        assertThat(new File("target/zm/cache/io.aklivity.zilla/cog-tls/jars/cog-tls-develop-SNAPSHOT.jar"), anExistingFile());
-        assertThat(new File("target/zm/cache/org.agrona/agrona/jars/agrona-1.6.0.jar"), anExistingFile());
+        assertThat(install, instanceOf(ZpmInstall.class));
+        assertThat(new File("src/test/conf/install/zpm.json"), anExistingFile());
+        assertThat(new File("target/test-locks/install/zpm-lock.json"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io.aklivity.zilla/engine/jars/engine-develop-SNAPSHOT.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io.aklivity.zilla/cog-tcp/jars/cog-tcp-develop-SNAPSHOT.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io.aklivity.zilla/cog-tls/jars/cog-tls-develop-SNAPSHOT.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/org.agrona/agrona/jars/agrona-1.6.0.jar"), anExistingFile());
     }
 }

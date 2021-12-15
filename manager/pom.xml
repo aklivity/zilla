@@ -122,7 +122,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/manager/internal/ZmMain.class</exclude>
+            <exclude>io/aklivity/zilla/manager/internal/ZpmMain.class</exclude>
           </excludes>
           <rules>
             <rule>
@@ -157,7 +157,7 @@
           </filters>
           <transformers>
             <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-              <mainClass>io.aklivity.zilla.manager.internal.ZmMain</mainClass>
+              <mainClass>io.aklivity.zilla.manager.internal.ZpmMain</mainClass>
               <manifestEntries>
                 <Name>io/aklivity/zilla/manager/</Name>
                 <Specification-Title>${project.name}</Specification-Title>

@@ -22,9 +22,9 @@ import org.junit.Test;
 
 import com.github.rvesse.airline.Cli;
 
-import io.aklivity.zilla.manager.internal.ZmCli;
+import io.aklivity.zilla.manager.internal.ZpmCli;
 
-public class ZmWrapTest
+public class ZpmWrapTest
 {
     @Test
     public void shouldWrap()
@@ -33,15 +33,15 @@ public class ZmWrapTest
         {
             "wrap",
             "--version", "1.0",
-            "--output-directory", "target/zm",
+            "--output-directory", "target/zpm",
             "--launcher-directory", "target"
         };
 
-        Cli<Runnable> parser = new Cli<>(ZmCli.class);
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
         Runnable wrap = parser.parse(args);
 
         wrap.run();
 
-        assertThat(wrap, instanceOf(ZmWrap.class));
+        assertThat(wrap, instanceOf(ZpmWrap.class));
     }
 }

@@ -19,22 +19,22 @@ import javax.json.Json;
 import javax.json.JsonString;
 import javax.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.manager.internal.commands.install.ZmRepository;
+import io.aklivity.zilla.manager.internal.commands.install.ZpmRepository;
 
-public final class ZmRepositoryAdapter implements JsonbAdapter<ZmRepository, JsonString>
+public final class ZpmRepositoryAdapter implements JsonbAdapter<ZpmRepository, JsonString>
 {
     @Override
     public JsonString adaptToJson(
-        ZmRepository repository)
+        ZpmRepository repository)
     {
         return Json.createValue(repository.location);
     }
 
     @Override
-    public ZmRepository adaptFromJson(
+    public ZpmRepository adaptFromJson(
         JsonString location)
     {
-        ZmRepository repository = new ZmRepository();
+        ZpmRepository repository = new ZpmRepository();
         repository.location = location.getString();
         return repository;
     }

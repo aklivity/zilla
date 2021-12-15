@@ -24,13 +24,13 @@ import java.util.Arrays;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
-import io.aklivity.zilla.manager.internal.ZmCommand;
-import io.aklivity.zilla.manager.internal.types.ZmPathConverterProvider;
+import io.aklivity.zilla.manager.internal.ZpmCommand;
+import io.aklivity.zilla.manager.internal.types.ZpmPathConverterProvider;
 
 @Command(
     name = "wrap",
     description = "Generate wrapper")
-public class ZmWrap extends ZmCommand
+public class ZpmWrap extends ZpmCommand
 {
     @Option(name = { "--repository" })
     public String repoURL = "https://repo.maven.apache.org/maven2";
@@ -41,10 +41,10 @@ public class ZmWrap extends ZmCommand
     @Option(name = { "--version" })
     public String version = VERSION;
 
-    @Option(name = { "--zmw-directory" },
-            description = "zmw directory",
-            typeConverterProvider = ZmPathConverterProvider.class)
-    public Path zmwDir = Paths.get(".zmw");
+    @Option(name = { "--zpmw-directory" },
+            description = "zpmw directory",
+            typeConverterProvider = ZpmPathConverterProvider.class)
+    public Path zpmwDir = Paths.get(".zpmw");
 
     private Path wrappedPath;
     private Path localPath;
@@ -76,8 +76,8 @@ public class ZmWrap extends ZmCommand
 
     private void generateWrapper() throws IOException
     {
-        Path zmwPath = launcherDir.resolve("zmw");
-        Files.write(zmwPath, Arrays.asList(
+        Path zpmwPath = launcherDir.resolve("zpmw");
+        Files.write(zpmwPath, Arrays.asList(
                 "#!/bin/sh",
                 String.format("localPath=\"%s\"", localPath),
                 String.format("wrappedPath=\"%s\"", wrappedPath),
@@ -97,6 +97,6 @@ public class ZmWrap extends ZmCommand
                   "fi",
                 "fi",
                 "java $JAVA_OPTIONS -jar \"$wrappedPath\" \"$@\""));
-        zmwPath.toFile().setExecutable(true);
+        zpmwPath.toFile().setExecutable(true);
     }
 }

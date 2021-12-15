@@ -23,14 +23,14 @@ import javax.inject.Inject;
 import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.annotations.Option;
 
-import io.aklivity.zilla.manager.internal.types.ZmPathConverterProvider;
+import io.aklivity.zilla.manager.internal.types.ZpmPathConverterProvider;
 
-public abstract class ZmCommand implements Runnable
+public abstract class ZpmCommand implements Runnable
 {
-    public static final String VERSION = ZmCommand.class.getPackage().getImplementationVersion();
+    public static final String VERSION = ZpmCommand.class.getPackage().getImplementationVersion();
 
     @Inject
-    public HelpOption<ZmCommand> helpOption;
+    public HelpOption<ZpmCommand> helpOption;
 
     @Option(name = { "--silent" },
             hidden = true)
@@ -38,28 +38,28 @@ public abstract class ZmCommand implements Runnable
 
     @Option(name = { "--settings-directory" },
             description = "settings directory",
-            typeConverterProvider = ZmPathConverterProvider.class)
-    public Path settingsDir = Paths.get(System.getProperty("user.home"), ".zm");
+            typeConverterProvider = ZpmPathConverterProvider.class)
+    public Path settingsDir = Paths.get(System.getProperty("user.home"), ".zpm");
 
     @Option(name = { "--config-directory" },
             description = "config directory",
-            typeConverterProvider = ZmPathConverterProvider.class)
+            typeConverterProvider = ZpmPathConverterProvider.class)
     public Path configDir = Paths.get("");
 
     @Option(name = { "--output-directory" },
             description = "output directory",
-            typeConverterProvider = ZmPathConverterProvider.class)
-    public Path outputDir = Paths.get(".zm");
+            typeConverterProvider = ZpmPathConverterProvider.class)
+    public Path outputDir = Paths.get(".zpm");
 
     @Option(name = { "--lock-directory" },
             description = "lock directory",
-            typeConverterProvider = ZmPathConverterProvider.class,
+            typeConverterProvider = ZpmPathConverterProvider.class,
             hidden = true)
     public Path lockDir;
 
     @Option(name = { "--launcher-directory" },
             description = "launcher directory",
-            typeConverterProvider = ZmPathConverterProvider.class)
+            typeConverterProvider = ZpmPathConverterProvider.class)
     public Path launcherDir = Paths.get("");
 
     protected Path cacheDir;

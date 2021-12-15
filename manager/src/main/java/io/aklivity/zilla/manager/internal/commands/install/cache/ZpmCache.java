@@ -46,16 +46,16 @@ import org.apache.ivy.plugins.resolver.ChainResolver;
 import org.apache.ivy.plugins.resolver.IBiblioResolver;
 import org.apache.ivy.plugins.resolver.RepositoryResolver;
 
-import io.aklivity.zilla.manager.internal.commands.install.ZmDependency;
-import io.aklivity.zilla.manager.internal.commands.install.ZmRepository;
+import io.aklivity.zilla.manager.internal.commands.install.ZpmDependency;
+import io.aklivity.zilla.manager.internal.commands.install.ZpmRepository;
 
-public final class ZmCache
+public final class ZpmCache
 {
     private final Ivy ivy;
     private final ResolveOptions options;
 
-    public ZmCache(
-        List<ZmRepository> repositories,
+    public ZpmCache(
+        List<ZpmRepository> repositories,
         Path directory)
     {
         ResolveOptions options = new ResolveOptions();
@@ -78,20 +78,20 @@ public final class ZmCache
         this.ivy = Ivy.newInstance(ivySettings);
     }
 
-    public List<ZmArtifact> resolve(
-        List<ZmDependency> imports,
-        List<ZmDependency> dependencies)
+    public List<ZpmArtifact> resolve(
+        List<ZpmDependency> imports,
+        List<ZpmDependency> dependencies)
     {
-        Map<ZmDependency, String> imported = resolveImports(imports);
+        Map<ZpmDependency, String> imported = resolveImports(imports);
         ModuleDescriptor resolvable = createResolvableDescriptor(imported, dependencies);
 
         return resolveDependencyArtifacts(resolvable);
     }
 
-    private Map<ZmDependency, String> resolveImports(
-        List<ZmDependency> imports)
+    private Map<ZpmDependency, String> resolveImports(
+        List<ZpmDependency> imports)
     {
-        Map<ZmDependency, String> imported = new LinkedHashMap<>();
+        Map<ZpmDependency, String> imported = new LinkedHashMap<>();
 
         if (imports != null)
         {
@@ -106,15 +106,15 @@ public final class ZmCache
         return imported;
     }
 
-    private ZmDependency asDependency(
+    private ZpmDependency asDependency(
         ModuleId moduleId)
     {
-        return ZmDependency.of(moduleId.getOrganisation(), moduleId.getName(), null);
+        return ZpmDependency.of(moduleId.getOrganisation(), moduleId.getName(), null);
     }
 
     private DefaultModuleDescriptor createResolvableDescriptor(
-        Map<ZmDependency, String> imported,
-        List<ZmDependency> dependencies)
+        Map<ZpmDependency, String> imported,
+        List<ZpmDependency> dependencies)
     {
         List<ModuleRevisionId> revisionIds = dependencies.stream()
             .map(d -> ModuleRevisionId.newInstance(d.groupId, d.artifactId, ofNullable(d.version).orElse(imported.get(d))))
@@ -173,10 +173,10 @@ public final class ZmCache
         return descriptors;
     }
 
-    private List<ZmArtifact> resolveDependencyArtifacts(
+    private List<ZpmArtifact> resolveDependencyArtifacts(
         ModuleDescriptor moduleDescriptor)
     {
-        List<ZmArtifact> artifacts = new LinkedList<>();
+        List<ZpmArtifact> artifacts = new LinkedList<>();
         try
         {
             ResolveReport report = ivy.resolve(moduleDescriptor, options);
@@ -200,21 +200,21 @@ public final class ZmCache
                     continue;
                 }
 
-                Set<ZmArtifactId> depends = new LinkedHashSet<>();
+                Set<ZpmArtifactId> depends = new LinkedHashSet<>();
                 for (DependencyDescriptor dd : descriptor.getDependencies())
                 {
                     ModuleRevisionId dependId = dd.getDependencyRevisionId();
                     ArtifactDownloadReport[] dependDownloads = report.getArtifactsReports(dependId);
                     if (dependDownloads.length != 0)
                     {
-                        ZmArtifactId depend = newArtifactId(dependId);
+                        ZpmArtifactId depend = newArtifactId(dependId);
                         depends.add(depend);
                     }
                 }
 
-                ZmArtifactId id = newArtifactId(resolveId);
+                ZpmArtifactId id = newArtifactId(resolveId);
                 Path local = downloads[0].getLocalFile().toPath();
-                ZmArtifact artifact = new ZmArtifact(id, local, depends);
+                ZpmArtifact artifact = new ZpmArtifact(id, local, depends);
                 artifacts.add(artifact);
             }
         }
@@ -226,18 +226,18 @@ public final class ZmCache
         return artifacts;
     }
 
-    private ZmArtifactId newArtifactId(
+    private ZpmArtifactId newArtifactId(
         ModuleRevisionId resolveId)
     {
         String groupId = resolveId.getOrganisation();
         String artifactId = resolveId.getName();
         String version = resolveId.getRevision();
 
-        return new ZmArtifactId(groupId, artifactId, version);
+        return new ZpmArtifactId(groupId, artifactId, version);
     }
 
     private RepositoryResolver newResolver(
-        ZmRepository repository)
+        ZpmRepository repository)
     {
         String name = "maven"; // TODO
         String root = repository.location;

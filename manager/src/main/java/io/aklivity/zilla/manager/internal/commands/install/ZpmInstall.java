@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.manager.internal.commands.install;
 
-import static io.aklivity.zilla.manager.internal.settings.ZmSecrets.decryptSecret;
+import static io.aklivity.zilla.manager.internal.settings.ZpmSecrets.decryptSecret;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.getLastModifiedTime;
@@ -79,20 +79,20 @@ import org.sonatype.plexus.components.cipher.PlexusCipherException;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
-import io.aklivity.zilla.manager.internal.ZmCommand;
-import io.aklivity.zilla.manager.internal.commands.install.cache.ZmArtifact;
-import io.aklivity.zilla.manager.internal.commands.install.cache.ZmArtifactId;
-import io.aklivity.zilla.manager.internal.commands.install.cache.ZmCache;
-import io.aklivity.zilla.manager.internal.commands.install.cache.ZmModule;
-import io.aklivity.zilla.manager.internal.settings.ZmCredentials;
-import io.aklivity.zilla.manager.internal.settings.ZmSecrets;
-import io.aklivity.zilla.manager.internal.settings.ZmSecurity;
-import io.aklivity.zilla.manager.internal.settings.ZmSettings;
+import io.aklivity.zilla.manager.internal.ZpmCommand;
+import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifact;
+import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmArtifactId;
+import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmCache;
+import io.aklivity.zilla.manager.internal.commands.install.cache.ZpmModule;
+import io.aklivity.zilla.manager.internal.settings.ZpmCredentials;
+import io.aklivity.zilla.manager.internal.settings.ZpmSecrets;
+import io.aklivity.zilla.manager.internal.settings.ZpmSecurity;
+import io.aklivity.zilla.manager.internal.settings.ZpmSettings;
 
 @Command(
     name = "install",
     description = "Install dependencies")
-public final class ZmInstall extends ZmCommand
+public final class ZpmInstall extends ZpmCommand
 {
     private static final String MODULE_INFO_JAVA_FILENAME = "module-info.java";
     private static final String MODULE_INFO_CLASS_FILENAME = "module-info.class";
@@ -117,36 +117,36 @@ public final class ZmInstall extends ZmCommand
 
         try
         {
-            ZmConfiguration config;
+            ZpmConfiguration config;
 
-            Path zmFile = configDir.resolve("zm.json");
+            Path zpmFile = configDir.resolve("zpm.json");
 
-            logger.info(String.format("reading %s", zmFile));
-            config = readOrDefaultConfig(zmFile);
+            logger.info(String.format("reading %s", zpmFile));
+            config = readOrDefaultConfig(zpmFile);
 
-            Path lockFile = lockDir.resolve("zm-lock.json");
+            Path lockFile = lockDir.resolve("zpm-lock.json");
             logger.info(String.format("reading %s", lockFile));
-            config = overrideConfigIfLocked(config, zmFile, lockFile);
+            config = overrideConfigIfLocked(config, zpmFile, lockFile);
 
             logger.info("resolving dependencies");
             readSettings(settingsDir);
             createDirectories(cacheDir);
-            List<ZmRepository> repositories = new ArrayList<>(config.repositories);
+            List<ZpmRepository> repositories = new ArrayList<>(config.repositories);
             if (!excludeLocalRepo)
             {
                 String localRepo = String.format("file://%s/.m2/repository", System.getProperty("user.home"));
-                repositories.add(0, new ZmRepository(localRepo));
+                repositories.add(0, new ZpmRepository(localRepo));
             }
-            ZmCache cache = new ZmCache(repositories, cacheDir);
-            Collection<ZmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
-            Map<ZmDependency, ZmDependency> resolvables = artifacts.stream()
+            ZpmCache cache = new ZpmCache(repositories, cacheDir);
+            Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
+            Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
                     .map(a -> a.id)
                     .collect(
                         toMap(
-                            id -> ZmDependency.of(id.group, id.artifact, null),
-                            id -> ZmDependency.of(id.group, id.artifact, id.version)));
+                            id -> ZpmDependency.of(id.group, id.artifact, null),
+                            id -> ZpmDependency.of(id.group, id.artifact, id.version)));
 
-            ZmConfiguration resolved = new ZmConfiguration();
+            ZpmConfiguration resolved = new ZpmConfiguration();
             resolved.repositories = config.repositories;
             resolved.imports = null;
             resolved.dependencies = config.dependencies.stream()
@@ -162,8 +162,8 @@ public final class ZmInstall extends ZmCommand
             createDirectories(modulesDir);
             createDirectories(generatedDir);
 
-            ZmModule delegate = new ZmModule();
-            Collection<ZmModule> modules = discoverModules(artifacts);
+            ZpmModule delegate = new ZpmModule();
+            Collection<ZpmModule> modules = discoverModules(artifacts);
             migrateUnnamed(modules, delegate);
             generateSystemOnlyAutomatic(modules);
             delegateAutomatic(modules, delegate);
@@ -201,7 +201,7 @@ public final class ZmInstall extends ZmCommand
     {
         Path settingsFile = settingsDir.resolve("settings.json");
 
-        ZmSettings settings = new ZmSettings();
+        ZpmSettings settings = new ZpmSettings();
         settings.credentials = emptyList();
 
         Jsonb builder = JsonbBuilder.newBuilder()
@@ -212,7 +212,7 @@ public final class ZmInstall extends ZmCommand
         {
             try (InputStream in = newInputStream(settingsFile))
             {
-                settings = builder.fromJson(in, ZmSettings.class);
+                settings = builder.fromJson(in, ZpmSettings.class);
             }
         }
 
@@ -220,24 +220,24 @@ public final class ZmInstall extends ZmCommand
         {
             Path securityFile = settingsDir.resolve("security.json");
 
-            ZmSecurity security = new ZmSecurity();
+            ZpmSecurity security = new ZpmSecurity();
 
             if (Files.exists(securityFile))
             {
                 try (InputStream in = newInputStream(securityFile))
                 {
-                    security = builder.fromJson(in, ZmSecurity.class);
+                    security = builder.fromJson(in, ZpmSecurity.class);
                 }
             }
 
             security.secret = decryptSecret(security.secret, SYSTEM_PROPERTY_SEC_LOCATION);
 
-            for (ZmCredentials credentials : settings.credentials)
+            for (ZpmCredentials credentials : settings.credentials)
             {
                 String realm = defaultRealmIfNecessary(credentials);
                 String host = credentials.host;
                 String username = credentials.username;
-                String password = ZmSecrets.decryptSecret(credentials.password, security.secret);
+                String password = ZpmSecrets.decryptSecret(credentials.password, security.secret);
 
                 CredentialsStore.INSTANCE.addCredentials(
                     realm,
@@ -248,10 +248,10 @@ public final class ZmInstall extends ZmCommand
         }
     }
 
-    private ZmConfiguration readOrDefaultConfig(
-        Path zmFile) throws IOException
+    private ZpmConfiguration readOrDefaultConfig(
+        Path zpmFile) throws IOException
     {
-        ZmConfiguration config = new ZmConfiguration();
+        ZpmConfiguration config = new ZpmConfiguration();
         config.repositories = emptyList();
         config.imports = emptyList();
         config.dependencies = emptyList();
@@ -260,24 +260,24 @@ public final class ZmInstall extends ZmCommand
                 .withConfig(new JsonbConfig().withFormatting(true))
                 .build();
 
-        if (Files.exists(zmFile))
+        if (Files.exists(zpmFile))
         {
-            try (InputStream in = newInputStream(zmFile))
+            try (InputStream in = newInputStream(zpmFile))
             {
-                config = builder.fromJson(in, ZmConfiguration.class);
+                config = builder.fromJson(in, ZpmConfiguration.class);
             }
         }
 
         return config;
     }
 
-    private ZmConfiguration overrideConfigIfLocked(
-        ZmConfiguration config,
-        Path zmFile,
+    private ZpmConfiguration overrideConfigIfLocked(
+        ZpmConfiguration config,
+        Path zpmFile,
         Path lockFile) throws IOException
     {
         if (Files.exists(lockFile) &&
-            getLastModifiedTime(lockFile).compareTo(getLastModifiedTime(zmFile)) >= 0)
+            getLastModifiedTime(lockFile).compareTo(getLastModifiedTime(zpmFile)) >= 0)
         {
             Jsonb builder = JsonbBuilder.newBuilder()
                     .withConfig(new JsonbConfig().withFormatting(true))
@@ -285,14 +285,14 @@ public final class ZmInstall extends ZmCommand
 
             try (InputStream in = newInputStream(lockFile))
             {
-                config = builder.fromJson(in, ZmConfiguration.class);
+                config = builder.fromJson(in, ZpmConfiguration.class);
             }
         }
         return config;
     }
 
     private void writeLockFile(
-        ZmConfiguration config,
+        ZpmConfiguration config,
         Path lockFile) throws IOException
     {
         Jsonb builder = JsonbBuilder.newBuilder()
@@ -306,8 +306,8 @@ public final class ZmInstall extends ZmCommand
         }
     }
 
-    private Collection<ZmModule> discoverModules(
-        Collection<ZmArtifact> artifacts)
+    private Collection<ZpmModule> discoverModules(
+        Collection<ZpmArtifact> artifacts)
     {
         Path[] artifactPaths = artifacts.stream().map(a -> a.path).toArray(Path[]::new);
         Set<ModuleReference> references = ModuleFinder.of(artifactPaths).findAll();
@@ -316,12 +316,12 @@ public final class ZmInstall extends ZmCommand
                 .filter(r -> r.location().isPresent())
                 .collect(Collectors.toMap(r -> r.location().get(), r -> r.descriptor()));
 
-        Collection<ZmModule> modules = new LinkedHashSet<>();
-        for (ZmArtifact artifact : artifacts)
+        Collection<ZpmModule> modules = new LinkedHashSet<>();
+        for (ZpmArtifact artifact : artifacts)
         {
             URI artifactURI = artifact.path.toUri();
             ModuleDescriptor descriptor = descriptors.get(artifactURI);
-            ZmModule module = descriptor != null ? new ZmModule(descriptor, artifact) : new ZmModule(artifact);
+            ZpmModule module = descriptor != null ? new ZpmModule(descriptor, artifact) : new ZpmModule(artifact);
             modules.add(module);
         }
 
@@ -329,12 +329,12 @@ public final class ZmInstall extends ZmCommand
     }
 
     private void migrateUnnamed(
-        Collection <ZmModule> modules,
-        ZmModule delegate)
+        Collection <ZpmModule> modules,
+        ZpmModule delegate)
     {
-        for (Iterator<ZmModule> iterator = modules.iterator(); iterator.hasNext();)
+        for (Iterator<ZpmModule> iterator = modules.iterator(); iterator.hasNext();)
         {
-            ZmModule module = iterator.next();
+            ZpmModule module = iterator.next();
             if (module.name == null)
             {
                 delegate.paths.addAll(module.paths);
@@ -346,13 +346,13 @@ public final class ZmInstall extends ZmCommand
     }
 
     private void delegateAutomatic(
-        Collection <ZmModule> modules,
-        ZmModule delegate)
+        Collection <ZpmModule> modules,
+        ZpmModule delegate)
     {
-        Map<ZmArtifactId, ZmModule> modulesMap = new LinkedHashMap<>();
+        Map<ZpmArtifactId, ZpmModule> modulesMap = new LinkedHashMap<>();
         modules.forEach(m -> modulesMap.put(m.id, m));
 
-        for (ZmModule module : modules)
+        for (ZpmModule module : modules)
         {
             if (module.automatic)
             {
@@ -364,9 +364,9 @@ public final class ZmInstall extends ZmCommand
     }
 
     private void delegateModule(
-        ZmModule delegate,
-        ZmModule module,
-        Function<ZmArtifactId, ZmModule> lookup)
+        ZpmModule delegate,
+        ZpmModule module,
+        Function<ZpmArtifactId, ZpmModule> lookup)
     {
         if (!module.delegating)
         {
@@ -374,20 +374,20 @@ public final class ZmInstall extends ZmCommand
             module.paths.clear();
             module.delegating = true;
 
-            for (ZmArtifactId dependId : module.depends)
+            for (ZpmArtifactId dependId : module.depends)
             {
-                ZmModule depend = lookup.apply(dependId);
+                ZpmModule depend = lookup.apply(dependId);
                 delegateModule(delegate, depend, lookup);
             }
         }
     }
 
     private void generateSystemOnlyAutomatic(
-        Collection<ZmModule> modules) throws IOException
+        Collection<ZpmModule> modules) throws IOException
     {
-        Map<ZmModule, Path> promotions = new IdentityHashMap<>();
+        Map<ZpmModule, Path> promotions = new IdentityHashMap<>();
 
-        for (ZmModule module : modules)
+        for (ZpmModule module : modules)
         {
             if (module.automatic && module.depends.isEmpty())
             {
@@ -433,16 +433,16 @@ public final class ZmInstall extends ZmCommand
             }
         }
 
-        for (Map.Entry<ZmModule, Path> entry : promotions.entrySet())
+        for (Map.Entry<ZpmModule, Path> entry : promotions.entrySet())
         {
-            ZmModule module = entry.getKey();
+            ZpmModule module = entry.getKey();
             Path newArtifactPath = entry.getValue();
 
             ModuleDescriptor descriptor = moduleDescriptor(newArtifactPath);
             assert descriptor != null;
 
-            ZmArtifact newArtifact = new ZmArtifact(module.id, newArtifactPath, module.depends);
-            ZmModule promotion = new ZmModule(descriptor, newArtifact);
+            ZpmArtifact newArtifact = new ZpmArtifact(module.id, newArtifactPath, module.depends);
+            ZpmModule promotion = new ZpmModule(descriptor, newArtifact);
 
             modules.remove(module);
             modules.add(promotion);
@@ -450,9 +450,9 @@ public final class ZmInstall extends ZmCommand
     }
 
     private void copyNonDelegating(
-        Collection<ZmModule> modules) throws IOException
+        Collection<ZpmModule> modules) throws IOException
     {
-        for (ZmModule module : modules)
+        for (ZpmModule module : modules)
         {
             if (!module.delegating)
             {
@@ -465,7 +465,7 @@ public final class ZmInstall extends ZmCommand
     }
 
     private void generateDelegate(
-        ZmModule delegate) throws IOException
+        ZpmModule delegate) throws IOException
     {
         Path generatedModulesDir = generatedDir.resolve("modules");
         Path generatedDelegateDir = generatedModulesDir.resolve(delegate.name);
@@ -588,9 +588,9 @@ public final class ZmInstall extends ZmCommand
     }
 
     private void generateDelegating(
-        Collection<ZmModule> modules) throws IOException
+        Collection<ZpmModule> modules) throws IOException
     {
-        for (ZmModule module : modules)
+        for (ZpmModule module : modules)
         {
             if (module.delegating)
             {
@@ -601,7 +601,7 @@ public final class ZmInstall extends ZmCommand
                 Path generatedModuleInfo = generatedModuleDir.resolve(MODULE_INFO_JAVA_FILENAME);
                 Files.write(generatedModuleInfo, Arrays.asList(
                         String.format("open module %s {", module.name),
-                        String.format("    requires transitive %s;", ZmModule.DELEGATE_NAME),
+                        String.format("    requires transitive %s;", ZpmModule.DELEGATE_NAME),
                         "}"));
 
                 ToolProvider javac = ToolProvider.findFirst("javac").get();
@@ -626,7 +626,7 @@ public final class ZmInstall extends ZmCommand
     }
 
     private void linkModules(
-        Collection<ZmModule> modules) throws IOException
+        Collection<ZpmModule> modules) throws IOException
     {
         ToolProvider jlink = ToolProvider.findFirst("jlink").get();
 
@@ -692,7 +692,7 @@ public final class ZmInstall extends ZmCommand
     }
 
     private Path modulePath(
-        ZmModule module)
+        ZpmModule module)
     {
         return modulesDir.resolve(String.format("%s.jar", module.name));
     }
@@ -768,7 +768,7 @@ public final class ZmInstall extends ZmCommand
     }
 
     private String defaultRealmIfNecessary(
-        ZmCredentials credentials)
+        ZpmCredentials credentials)
     {
         return ofNullable(credentials.realm)
             .orElse(DEFAULT_REALMS.get(credentials.host));

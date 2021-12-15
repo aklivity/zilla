@@ -17,14 +17,14 @@ package io.aklivity.zilla.manager.internal.settings;
 
 import java.util.Objects;
 
-public final class ZmCredentials
+public final class ZpmCredentials
 {
     public String realm;
     public String host;
     public String username;
     public String password;
 
-    public ZmCredentials()
+    public ZpmCredentials()
     {
     }
 
@@ -43,12 +43,12 @@ public final class ZmCredentials
             return true;
         }
 
-        if (!(obj instanceof ZmCredentials))
+        if (!(obj instanceof ZpmCredentials))
         {
             return false;
         }
 
-        ZmCredentials that = (ZmCredentials) obj;
+        ZpmCredentials that = (ZpmCredentials) obj;
         return Objects.equals(this.realm, that.realm) &&
                 Objects.equals(this.host, that.host) &&
                 Objects.equals(this.username, that.username) &&
@@ -61,16 +61,16 @@ public final class ZmCredentials
         return String.format("%s:%s:%s:%s", realm, host, username, password != null ? "****" : null);
     }
 
-    public static ZmCredentials of(
+    public static ZpmCredentials of(
         String realm,
         String host,
         String username,
         String password)
     {
-        return new ZmCredentials(realm, host, username, password);
+        return new ZpmCredentials(realm, host, username, password);
     }
 
-    ZmCredentials(
+    ZpmCredentials(
         String realm,
         String host,
         String username,

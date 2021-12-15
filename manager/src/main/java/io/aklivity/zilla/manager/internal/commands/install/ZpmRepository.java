@@ -19,23 +19,21 @@ import java.util.Objects;
 
 import javax.json.bind.annotation.JsonbTypeAdapter;
 
-import io.aklivity.zilla.manager.internal.commands.install.adapters.ZmDependencyAdapter;
+import io.aklivity.zilla.manager.internal.commands.install.adapters.ZpmRepositoryAdapter;
 
-@JsonbTypeAdapter(ZmDependencyAdapter.class)
-public final class ZmDependency
+@JsonbTypeAdapter(ZpmRepositoryAdapter.class)
+public final class ZpmRepository
 {
-    public String groupId;
-    public String artifactId;
-    public String version;
+    public String location;
 
-    public ZmDependency()
+    public ZpmRepository()
     {
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(groupId, artifactId, version);
+        return Objects.hash(location);
     }
 
     @Override
@@ -47,38 +45,24 @@ public final class ZmDependency
             return true;
         }
 
-        if (!(obj instanceof ZmDependency))
+        if (!(obj instanceof ZpmRepository))
         {
             return false;
         }
 
-        ZmDependency that = (ZmDependency) obj;
-        return Objects.equals(this.groupId, that.groupId) &&
-                Objects.equals(this.artifactId, that.artifactId) &&
-                Objects.equals(this.version, that.version);
+        ZpmRepository that = (ZpmRepository) obj;
+        return Objects.equals(this.location, that.location);
     }
 
     @Override
     public String toString()
     {
-        return String.format("%s:%s:%s", groupId, artifactId, version);
+        return location;
     }
 
-    public static ZmDependency of(
-        String groupId,
-        String artifactId,
-        String version)
+    ZpmRepository(
+        String location)
     {
-        return new ZmDependency(groupId, artifactId, version);
-    }
-
-    ZmDependency(
-        String groupId,
-        String artifactId,
-        String version)
-    {
-        this.groupId = groupId;
-        this.artifactId = artifactId;
-        this.version = version;
+        this.location = location;
     }
 }

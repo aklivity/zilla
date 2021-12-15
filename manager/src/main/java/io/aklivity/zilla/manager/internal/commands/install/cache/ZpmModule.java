@@ -24,20 +24,20 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
-public final class ZmModule
+public final class ZpmModule
 {
     public static final String DELEGATE_NAME = "io.aklivity.zilla.manager.delegate";
-    public static final ZmArtifactId DELEGATE_ID = null;
+    public static final ZpmArtifactId DELEGATE_ID = null;
 
     public final String name;
     public final boolean automatic;
     public final Set<Path> paths;
-    public final ZmArtifactId id;
-    public final Set<ZmArtifactId> depends;
+    public final ZpmArtifactId id;
+    public final Set<ZpmArtifactId> depends;
 
     public boolean delegating;
 
-    public ZmModule()
+    public ZpmModule()
     {
         this.name = DELEGATE_NAME;
         this.automatic = false;
@@ -47,8 +47,8 @@ public final class ZmModule
         this.delegating = false;
     }
 
-    public ZmModule(
-        ZmArtifact artifact)
+    public ZpmModule(
+        ZpmArtifact artifact)
     {
         this.name = null;
         this.automatic = false;
@@ -58,9 +58,9 @@ public final class ZmModule
         this.delegating = true;
     }
 
-    public ZmModule(
+    public ZpmModule(
         ModuleDescriptor descriptor,
-        ZmArtifact artifact)
+        ZpmArtifact artifact)
     {
         this.name = descriptor.name();
         this.automatic = descriptor.isAutomatic();
@@ -70,8 +70,8 @@ public final class ZmModule
         this.delegating = false;
     }
 
-    public ZmModule(
-        ZmModule module)
+    public ZpmModule(
+        ZpmModule module)
     {
         this.name = module.name;
         this.automatic = false;
@@ -96,12 +96,12 @@ public final class ZmModule
             return true;
         }
 
-        if (!(obj instanceof ZmModule))
+        if (!(obj instanceof ZpmModule))
         {
             return false;
         }
 
-        ZmModule that = (ZmModule) obj;
+        ZpmModule that = (ZpmModule) obj;
         return Objects.equals(this.name, that.name) &&
                 Objects.equals(this.paths, that.paths) &&
                 Objects.equals(this.id, that.id) &&

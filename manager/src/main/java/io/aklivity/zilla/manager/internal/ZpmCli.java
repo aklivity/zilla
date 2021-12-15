@@ -18,25 +18,25 @@ package io.aklivity.zilla.manager.internal;
 import com.github.rvesse.airline.annotations.Cli;
 import com.github.rvesse.airline.help.Help;
 
-import io.aklivity.zilla.manager.internal.commands.clean.ZmClean;
-import io.aklivity.zilla.manager.internal.commands.encrypt.ZmEncrypt;
-import io.aklivity.zilla.manager.internal.commands.install.ZmInstall;
-import io.aklivity.zilla.manager.internal.commands.wrap.ZmWrap;
+import io.aklivity.zilla.manager.internal.commands.clean.ZpmClean;
+import io.aklivity.zilla.manager.internal.commands.encrypt.ZpmEncrypt;
+import io.aklivity.zilla.manager.internal.commands.install.ZpmInstall;
+import io.aklivity.zilla.manager.internal.commands.wrap.ZpmWrap;
 
-@Cli(name = "zm",
-    description = "Zilla Management Tool",
+@Cli(name = "zpm",
+    description = "Zilla Package Manager",
     defaultCommand = Help.class,
     commands =
     {
         Help.class,
-        ZmWrap.class,
-        ZmInstall.class,
-        ZmClean.class,
-        ZmEncrypt.class
+        ZpmWrap.class,
+        ZpmInstall.class,
+        ZpmClean.class,
+        ZpmEncrypt.class
     })
-public final class ZmCli
+public final class ZpmCli
 {
-    private ZmCli()
+    private ZpmCli()
     {
         // utility class
     }

@@ -31,9 +31,9 @@ import org.junit.Test;
 
 import com.github.rvesse.airline.Cli;
 
-import io.aklivity.zilla.manager.internal.ZmCli;
+import io.aklivity.zilla.manager.internal.ZpmCli;
 
-public class ZmEncryptTest
+public class ZpmEncryptTest
 {
     @Test
     public void shouldEncrypt()
@@ -41,10 +41,10 @@ public class ZmEncryptTest
         String[] args =
         {
             "encrypt",
-            "--settings-directory", "target/zm-settings",
+            "--settings-directory", "target/zpm-settings",
         };
 
-        Cli<Runnable> parser = new Cli<>(ZmCli.class);
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
         Runnable encrypt = parser.parse(args);
 
         final InputStream in = System.in;
@@ -66,7 +66,7 @@ public class ZmEncryptTest
             System.setOut(out);
         }
 
-        assertThat(encrypt, instanceOf(ZmEncrypt.class));
+        assertThat(encrypt, instanceOf(ZpmEncrypt.class));
         assertThat(output.toString(UTF_8).trim(), allOf(startsWith("{"), endsWith("}")));
     }
 }

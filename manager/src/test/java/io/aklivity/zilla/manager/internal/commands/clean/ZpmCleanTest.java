@@ -22,9 +22,9 @@ import org.junit.Test;
 
 import com.github.rvesse.airline.Cli;
 
-import io.aklivity.zilla.manager.internal.ZmCli;
+import io.aklivity.zilla.manager.internal.ZpmCli;
 
-public class ZmCleanTest
+public class ZpmCleanTest
 {
     @Test
     public void shouldCleanup()
@@ -32,14 +32,14 @@ public class ZmCleanTest
         String[] args =
         {
             "clean",
-            "--output-directory", "target/zm"
+            "--output-directory", "target/zpm"
         };
 
-        Cli<Runnable> parser = new Cli<>(ZmCli.class);
+        Cli<Runnable> parser = new Cli<>(ZpmCli.class);
         Runnable clean = parser.parse(args);
 
         clean.run();
 
-        assertThat(clean, instanceOf(ZmClean.class));
+        assertThat(clean, instanceOf(ZpmClean.class));
     }
 }
