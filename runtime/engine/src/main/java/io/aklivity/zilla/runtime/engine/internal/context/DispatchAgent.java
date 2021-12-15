@@ -929,7 +929,8 @@ public class DispatchAgent implements AxleContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case DataFW.TYPE_ID:
-                    supplyLoadEntry.apply(routeId).initialBytesRead(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH));
+                    int bytesRead = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
+                    supplyLoadEntry.apply(routeId).initialBytesRead(bytesRead);
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case EndFW.TYPE_ID:

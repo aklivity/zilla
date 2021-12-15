@@ -1,0 +1,1481 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.runtime.cog.kafka.internal.stream;
+
+import static io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheCursorRecord.cursorNextValue;
+import static io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheCursorRecord.cursorRetryValue;
+import static io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheCursorRecord.cursorValue;
+import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
+import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType.HISTORICAL;
+import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType.LIVE;
+import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
+import static java.lang.System.currentTimeMillis;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.LongFunction;
+import java.util.function.LongSupplier;
+import java.util.function.LongUnaryOperator;
+
+import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCache;
+import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheIndexFile;
+import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCachePartition;
+import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCachePartition.Node;
+import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheSegment;
+import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheTopic;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRoute;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaTopic;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.ArrayFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaDeltaFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaKeyFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.cache.KafkaCacheEntryFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaFetchBeginExFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaFetchDataExFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
+import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+
+public final class KafkaCacheServerFetchFactory implements StreamFactory
+{
+    static final int SIZE_OF_FLUSH_WITH_EXTENSION = 64;
+
+    private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
+
+    private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
+    private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
+
+    private static final int FLAGS_INIT = 0x02;
+    private static final int FLAGS_FIN = 0x01;
+
+    private static final int SIGNAL_RECONNECT = 1;
+    private static final int SIGNAL_SEGMENT_RETAIN = 2;
+    private static final int SIGNAL_SEGMENT_DELETE = 3;
+    private static final int SIGNAL_SEGMENT_COMPACT = 4;
+
+    private final BeginFW beginRO = new BeginFW();
+    private final DataFW dataRO = new DataFW();
+    private final EndFW endRO = new EndFW();
+    private final AbortFW abortRO = new AbortFW();
+    private final ResetFW resetRO = new ResetFW();
+    private final WindowFW windowRO = new WindowFW();
+    private final SignalFW signalRO = new SignalFW();
+    private final ExtensionFW extensionRO = new ExtensionFW();
+    private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
+    private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
+    private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
+    private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
+
+    private final BeginFW.Builder beginRW = new BeginFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
+    private final EndFW.Builder endRW = new EndFW.Builder();
+    private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final WindowFW.Builder windowRW = new WindowFW.Builder();
+    private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
+
+    private final KafkaCacheEntryFW ancestorEntryRO = new KafkaCacheEntryFW();
+
+    private final int kafkaTypeId;
+    private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
+    private final BufferPool bufferPool;
+    private final Signaler signaler;
+    private final StreamFactory streamFactory;
+    private final LongUnaryOperator supplyInitialId;
+    private final LongUnaryOperator supplyReplyId;
+    private final LongSupplier supplyTraceId;
+    private final LongFunction<String> supplyNamespace;
+    private final LongFunction<String> supplyLocalName;
+    private final LongFunction<KafkaBinding> supplyBinding;
+    private final Function<String, KafkaCache> supplyCache;
+    private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
+    private final int reconnectDelay;
+
+    public KafkaCacheServerFetchFactory(
+        KafkaConfiguration config,
+        AxleContext context,
+        LongFunction<KafkaBinding> supplyBinding,
+        Function<String, KafkaCache> supplyCache,
+        LongFunction<KafkaCacheRoute> supplyCacheRoute)
+    {
+        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.writeBuffer = context.writeBuffer();
+        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.bufferPool = context.bufferPool();
+        this.signaler = context.signaler();
+        this.streamFactory = context.streamFactory();
+        this.supplyInitialId = context::supplyInitialId;
+        this.supplyReplyId = context::supplyReplyId;
+        this.supplyTraceId = context::supplyTraceId;
+        this.supplyNamespace = context::supplyNamespace;
+        this.supplyLocalName = context::supplyLocalName;
+        this.supplyBinding = supplyBinding;
+        this.supplyCache = supplyCache;
+        this.supplyCacheRoute = supplyCacheRoute;
+        this.reconnectDelay = config.cacheServerReconnect();
+    }
+
+    @Override
+    public MessageConsumer newStream(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length,
+        MessageConsumer sender)
+    {
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final long routeId = begin.routeId();
+        final long initialId = begin.streamId();
+        final long affinity = begin.affinity();
+        final long authorization = begin.authorization();
+
+        assert (initialId & 0x0000_0000_0000_0001L) != 0L;
+
+        final OctetsFW extension = begin.extension();
+        final ExtensionFW beginEx = extension.get(extensionRO::wrap);
+        assert beginEx != null && beginEx.typeId() == kafkaTypeId;
+        final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::wrap);
+        final KafkaFetchBeginExFW kafkaFetchBeginEx = kafkaBeginEx.fetch();
+
+        final String16FW beginTopic = kafkaFetchBeginEx.topic();
+        final KafkaOffsetFW progress = kafkaFetchBeginEx.partition();
+        final int partitionId = progress.partitionId();
+        final long partitionOffset = progress.partitionOffset();
+        final KafkaDeltaType deltaType = kafkaFetchBeginEx.deltaType().get();
+        final String topicName = beginTopic.asString();
+
+        MessageConsumer newStream = null;
+
+        final KafkaBinding binding = supplyBinding.apply(routeId);
+        final KafkaRoute resolved = binding != null ? binding.resolve(authorization, topicName) : null;
+
+        if (resolved != null)
+        {
+            final long resolvedId = resolved.id;
+            final KafkaCacheRoute cacheRoute = supplyCacheRoute.apply(resolvedId);
+            final long partitionKey = cacheRoute.topicPartitionKey(topicName, partitionId);
+
+            KafkaCacheServerFetchFanout fanout = cacheRoute.serverFetchFanoutsByTopicPartition.get(partitionKey);
+            if (fanout == null)
+            {
+                final KafkaTopic topic = binding.topic(topicName);
+                final KafkaDeltaType routeDeltaType = topic != null ? topic.deltaType : deltaType;
+                final KafkaOffsetType defaultOffset = topic != null ? topic.defaultOffset : HISTORICAL;
+                final String cacheName = String.format("%s.%s", supplyNamespace.apply(routeId), supplyLocalName.apply(routeId));
+                final KafkaCache cache = supplyCache.apply(cacheName);
+                final KafkaCacheTopic cacheTopic = cache.supplyTopic(topicName);
+                final KafkaCachePartition partition = cacheTopic.supplyFetchPartition(partitionId);
+                final KafkaCacheServerFetchFanout newFanout = new KafkaCacheServerFetchFanout(resolvedId, authorization,
+                        affinity, partition, routeDeltaType, defaultOffset);
+
+                cacheRoute.serverFetchFanoutsByTopicPartition.put(partitionKey, newFanout);
+                fanout = newFanout;
+            }
+
+            final int leaderId = cacheRoute.leadersByPartitionId.get(partitionId);
+
+            newStream = new KafkaCacheServerFetchStream(
+                    fanout,
+                    sender,
+                    routeId,
+                    initialId,
+                    leaderId,
+                    authorization,
+                    partitionOffset)::onServerMessage;
+        }
+
+        return newStream;
+    }
+
+    private MessageConsumer newStream(
+        MessageConsumer sender,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .routeId(routeId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(extension)
+                .build();
+
+        final MessageConsumer receiver =
+                streamFactory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), sender);
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+
+        return receiver;
+    }
+
+    private void doBegin(
+        MessageConsumer receiver,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long affinity,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .routeId(routeId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(extension)
+                .build();
+
+        receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .routeId(routeId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .extension(extension)
+                .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+    }
+
+    private void doEnd(
+        MessageConsumer receiver,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                               .routeId(routeId)
+                               .streamId(streamId)
+                               .sequence(sequence)
+                               .acknowledge(acknowledge)
+                               .maximum(maximum)
+                               .traceId(traceId)
+                               .authorization(authorization)
+                               .extension(extension)
+                               .build();
+
+        receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
+    }
+
+    private void doAbort(
+        MessageConsumer receiver,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .routeId(routeId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
+
+        receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+    }
+
+    private void doWindow(
+        MessageConsumer sender,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int padding)
+    {
+        final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .routeId(routeId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .padding(padding)
+                .build();
+
+        sender.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
+    }
+
+    private void doReset(
+        MessageConsumer sender,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        Flyweight extension)
+    {
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+               .routeId(routeId)
+               .streamId(streamId)
+               .sequence(sequence)
+               .acknowledge(acknowledge)
+               .maximum(maximum)
+               .traceId(traceId)
+               .authorization(authorization)
+               .extension(extension.buffer(), extension.offset(), extension.sizeof())
+               .build();
+
+        sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    final class KafkaCacheServerFetchFanout
+    {
+        private final long routeId;
+        private final long authorization;
+        private final KafkaCachePartition partition;
+        private final KafkaDeltaType deltaType;
+        private final KafkaOffsetType defaultOffset;
+        private final long retentionMillisMax;
+        private final List<KafkaCacheServerFetchStream> members;
+
+        private long leaderId;
+        private long initialId;
+        private long replyId;
+        private MessageConsumer receiver;
+
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private long partitionOffset;
+        private long latestOffset = DEFAULT_LATEST_OFFSET;
+        private long retainId = NO_CANCEL_ID;
+        private long deleteId = NO_CANCEL_ID;
+        private long compactId = NO_CANCEL_ID;
+        private long compactAt = Long.MAX_VALUE;
+        private long reconnectAt = NO_CANCEL_ID;
+        private int reconnectAttempt;
+
+        private KafkaCacheServerFetchFanout(
+            long routeId,
+            long authorization,
+            long leaderId,
+            KafkaCachePartition partition,
+            KafkaDeltaType deltaType,
+            KafkaOffsetType defaultOffset)
+        {
+            this.routeId = routeId;
+            this.authorization = authorization;
+            this.partition = partition;
+            this.deltaType = deltaType;
+            this.defaultOffset = defaultOffset;
+            this.retentionMillisMax = defaultOffset == LIVE ? SECONDS.toMillis(30) : Long.MAX_VALUE;
+            this.members = new ArrayList<>();
+            this.leaderId = leaderId;
+        }
+
+        private void onServerFanoutMemberOpening(
+            long traceId,
+            KafkaCacheServerFetchStream member)
+        {
+            if (member.leaderId != leaderId)
+            {
+                doServerFanoutInitialAbortIfNecessary(traceId);
+                doServerFanoutReplyResetIfNecessary(traceId);
+                leaderId = member.leaderId;
+
+                members.forEach(m -> m.cleanupServer(traceId, ERROR_NOT_LEADER_FOR_PARTITION));
+                members.clear();
+            }
+
+            members.add(member);
+
+            assert !members.isEmpty();
+
+            doServerFanoutInitialBeginIfNecessary(traceId);
+
+            if (KafkaState.initialOpened(state))
+            {
+                member.doServerInitialWindow(traceId, 0L, 0, 0, 0);
+            }
+
+            if (KafkaState.replyOpened(state))
+            {
+                member.doServerReplyBeginIfNecessary(traceId);
+            }
+        }
+
+        private void onServerFanoutMemberClosed(
+            long traceId,
+            KafkaCacheServerFetchStream member)
+        {
+            members.remove(member);
+
+            if (members.isEmpty())
+            {
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                    this.reconnectAt = NO_CANCEL_ID;
+                }
+
+                doServerFanoutInitialAbortIfNecessary(traceId);
+                doServerFanoutReplyResetIfNecessary(traceId);
+            }
+        }
+
+        private void doServerFanoutInitialBeginIfNecessary(
+            long traceId)
+        {
+            if (KafkaState.closed(state))
+            {
+                state = 0;
+            }
+
+            if (!KafkaState.initialOpening(state))
+            {
+                doServerFanoutInitialBegin(traceId);
+            }
+        }
+
+        private void doServerFanoutInitialBegin(
+            long traceId)
+        {
+            assert state == 0;
+
+            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+
+            if (KafkaConfiguration.DEBUG)
+            {
+                System.out.format("[0x%016x] %s FETCH connect, affinity %d\n", initialId, partition, leaderId);
+            }
+
+            this.partitionOffset = partition.nextOffset(defaultOffset);
+
+            this.receiver = newStream(this::onServerFanoutMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, leaderId,
+                ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .fetch(f -> f.topic(partition.topic())
+                                     .partition(p -> p.partitionId(partition.id())
+                                                      .partitionOffset(partitionOffset)))
+                        .build()
+                        .sizeof()));
+            state = KafkaState.openingInitial(state);
+        }
+
+        private void doServerFanoutInitialEndIfNecessary(
+            long traceId)
+        {
+            if (!KafkaState.initialClosed(state))
+            {
+                doServerFanoutInitialEnd(traceId);
+            }
+        }
+
+        private void doServerFanoutInitialEnd(
+            long traceId)
+        {
+            doEnd(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+
+            state = KafkaState.closedInitial(state);
+        }
+
+        private void doServerFanoutInitialAbortIfNecessary(
+            long traceId)
+        {
+            if (!KafkaState.initialClosed(state))
+            {
+                doServerFanoutInitialAbort(traceId);
+            }
+        }
+
+        private void doServerFanoutInitialAbort(
+            long traceId)
+        {
+            doAbort(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+
+            state = KafkaState.closedInitial(state);
+        }
+
+        private void onServerFanoutMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onServerFanoutReplyBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onServerFanoutReplyData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onServerFanoutReplyEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onServerFanoutReplyAbort(abort);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onServerFanoutInitialReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onServerFanoutInitialWindow(window);
+                break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onServerFanoutInitialSignal(signal);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onServerFanoutReplyBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final OctetsFW extension = begin.extension();
+            final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
+            assert beginEx != null && beginEx.typeId() == kafkaTypeId;
+            final KafkaBeginExFW kafkaBeginEx = extension.get(kafkaBeginExRO::wrap);
+            assert kafkaBeginEx.kind() == KafkaBeginExFW.KIND_FETCH;
+            final KafkaFetchBeginExFW kafkaFetchBeginEx = kafkaBeginEx.fetch();
+            final KafkaOffsetFW progress = kafkaFetchBeginEx.partition();
+            final int partitionId = progress.partitionId();
+            final long partitionOffset = progress.partitionOffset();
+
+            state = KafkaState.openedReply(state);
+
+            assert partitionId == partition.id();
+            assert partitionOffset >= 0L && partitionOffset >= this.partitionOffset;
+            this.partitionOffset = partitionOffset;
+            this.latestOffset = progress.latestOffset();
+
+            partition.newHeadIfNecessary(partitionOffset);
+
+            members.forEach(s -> s.doServerReplyBeginIfNecessary(traceId));
+
+            doServerFanoutReplyWindow(traceId, 0, bufferPool.slotCapacity());
+        }
+
+        private void onServerFanoutReplyData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final int reserved = data.reserved();
+            final int flags = data.flags();
+            final OctetsFW valueFragment = data.payload();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence + reserved;
+
+            assert replyAck <= replySeq;
+            assert replySeq <= replyAck + replyMax;
+
+            KafkaFetchDataExFW kafkaFetchDataEx = null;
+            if ((flags & (FLAGS_INIT | FLAGS_FIN)) != 0x00)
+            {
+                final OctetsFW extension = data.extension();
+                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+                assert dataEx != null && dataEx.typeId() == kafkaTypeId;
+                final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::wrap);
+                assert kafkaDataEx.kind() == KafkaDataExFW.KIND_FETCH;
+                kafkaFetchDataEx = kafkaDataEx.fetch();
+            }
+
+            if ((flags & FLAGS_INIT) != 0x00)
+            {
+                assert kafkaFetchDataEx != null;
+                final int deferred = kafkaFetchDataEx.deferred();
+                final int partitionId = kafkaFetchDataEx.partition().partitionId();
+                final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
+                final int headersSizeMax = Math.max(kafkaFetchDataEx.headers().sizeof(), kafkaFetchDataEx.headersSizeMax());
+                final long timestamp = kafkaFetchDataEx.timestamp();
+                final KafkaKeyFW key = kafkaFetchDataEx.key();
+                final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
+                final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
+
+                assert delta.type().get() == KafkaDeltaType.NONE;
+                assert delta.ancestorOffset() == -1L;
+                assert partitionId == partition.id();
+                assert partitionOffset >= this.partitionOffset : String.format("%d >= %d", partitionOffset, this.partitionOffset);
+
+                final KafkaCachePartition.Node head = partition.head();
+                final KafkaCachePartition.Node nextHead =
+                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, headersSizeMax);
+
+                final long nextOffset = partition.nextOffset(defaultOffset);
+                assert partitionOffset >= 0 && partitionOffset >= nextOffset
+                        : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
+
+                if (nextHead != head)
+                {
+                    if (retainId != NO_CANCEL_ID)
+                    {
+                        signaler.cancel(retainId);
+                        this.retainId = NO_CANCEL_ID;
+                    }
+
+                    assert retainId == NO_CANCEL_ID;
+
+                    final long retainAt = partition.retainAt(nextHead.segment());
+                    this.retainId = doServerFanoutInitialSignalAt(retainAt, SIGNAL_SEGMENT_RETAIN);
+
+                    if (deleteId == NO_CANCEL_ID &&
+                        partition.cleanupPolicy().delete() &&
+                        !nextHead.previous().sentinel())
+                    {
+                        final long deleteAt = partition.deleteAt(nextHead.previous().segment(), retentionMillisMax);
+                        this.deleteId = doServerFanoutInitialSignalAt(deleteAt, SIGNAL_SEGMENT_DELETE);
+                    }
+                }
+
+                final long keyHash = partition.computeKeyHash(key);
+                final KafkaCacheEntryFW ancestor = findAndMarkAncestor(key, nextHead, (int) keyHash, partitionOffset);
+                partition.writeEntryStart(partitionOffset, timestamp, key, keyHash, valueLength, ancestor, deltaType);
+            }
+
+            if (valueFragment != null)
+            {
+                partition.writeEntryContinue(valueFragment);
+            }
+
+            if ((flags & FLAGS_FIN) != 0x00)
+            {
+                assert kafkaFetchDataEx != null;
+                final int partitionId = kafkaFetchDataEx.partition().partitionId();
+                final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
+                final long latestOffset = kafkaFetchDataEx.partition().latestOffset();
+                final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
+                final ArrayFW<KafkaHeaderFW> headers = kafkaFetchDataEx.headers();
+
+                assert delta.type().get() == KafkaDeltaType.NONE;
+                assert delta.ancestorOffset() == -1L;
+                assert partitionId == partition.id();
+                assert partitionOffset >= this.partitionOffset;
+
+                partition.writeEntryFinish(headers, deltaType);
+
+                this.partitionOffset = partitionOffset;
+                this.latestOffset = latestOffset;
+
+                members.forEach(s -> s.doServerReplyFlushIfNecessary(traceId));
+            }
+
+            doServerFanoutReplyWindow(traceId, 0, replyMax);
+        }
+
+        private KafkaCacheEntryFW findAndMarkAncestor(
+            KafkaKeyFW key,
+            KafkaCachePartition.Node head,
+            int keyHash,
+            long descendantOffset)
+        {
+            KafkaCacheEntryFW ancestorEntry = null;
+            ancestor:
+            if (key.length() != -1)
+            {
+                ancestorEntry = head.findAndMarkAncestor(key, keyHash, descendantOffset, ancestorEntryRO);
+                if (ancestorEntry != null)
+                {
+                    if (partition.cleanupPolicy().compact())
+                    {
+                        final long newCompactAt = partition.compactAt(head.segment());
+                        if (newCompactAt != Long.MAX_VALUE)
+                        {
+                            if (compactId != NO_CANCEL_ID && newCompactAt < compactAt)
+                            {
+                                signaler.cancel(compactId);
+                                this.compactId = NO_CANCEL_ID;
+                            }
+
+                            if (compactId == NO_CANCEL_ID)
+                            {
+                                this.compactAt = newCompactAt;
+                                this.compactId = doServerFanoutInitialSignalAt(newCompactAt, SIGNAL_SEGMENT_COMPACT);
+                            }
+                        }
+                    }
+                    break ancestor;
+                }
+
+                Node previousNode = head.previous();
+                while (!previousNode.sentinel())
+                {
+                    final KafkaCacheSegment previousSegment = previousNode.segment();
+                    final KafkaCacheIndexFile previousKeys = previousSegment.keysFile();
+
+                    long keyCursor = previousKeys.last(keyHash);
+                    while (!cursorNextValue(keyCursor) && !cursorRetryValue(keyCursor))
+                    {
+                        final int keyBaseOffsetDelta = cursorValue(keyCursor);
+                        assert keyBaseOffsetDelta <= 0;
+                        final long keyBaseOffset = previousSegment.baseOffset() + keyBaseOffsetDelta;
+                        final Node ancestorNode = previousNode.seekAncestor(keyBaseOffset);
+                        if (!ancestorNode.sentinel())
+                        {
+                            final KafkaCacheSegment segment = ancestorNode.segment();
+                            final long ancestorBase = segment.baseOffset();
+                            assert ancestorBase == keyBaseOffset : String.format("%d == %d", ancestorBase, keyBaseOffset);
+                            ancestorEntry = ancestorNode.findAndMarkAncestor(key, keyHash, descendantOffset, ancestorEntryRO);
+                            if (ancestorEntry != null)
+                            {
+                                if (partition.cleanupPolicy().compact())
+                                {
+                                    final long newCompactAt = partition.compactAt(segment);
+                                    if (newCompactAt != Long.MAX_VALUE)
+                                    {
+                                        if (compactId != NO_CANCEL_ID && newCompactAt < compactAt)
+                                        {
+                                            signaler.cancel(compactId);
+                                            this.compactId = NO_CANCEL_ID;
+                                        }
+
+                                        if (compactId == NO_CANCEL_ID)
+                                        {
+                                            this.compactAt = newCompactAt;
+                                            this.compactId = doServerFanoutInitialSignalAt(newCompactAt, SIGNAL_SEGMENT_COMPACT);
+                                        }
+                                    }
+                                }
+                                break ancestor;
+                            }
+                        }
+
+                        final long nextKeyCursor = previousKeys.lower(keyHash, keyCursor);
+                        if (cursorNextValue(nextKeyCursor) || cursorRetryValue(nextKeyCursor))
+                        {
+                            break;
+                        }
+
+                        keyCursor = nextKeyCursor;
+                    }
+
+                    previousNode = previousNode.previous();
+                }
+            }
+            return ancestorEntry;
+        }
+
+        private void onServerFanoutReplyEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = KafkaState.closedReply(state);
+
+            doServerFanoutInitialEndIfNecessary(traceId);
+
+            if (reconnectDelay != 0 && !members.isEmpty())
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[0x%016x] %s FETCH reconnect in %ds\n", initialId, partition, reconnectDelay);
+                }
+
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                }
+
+                this.reconnectAt = signaler.signalAt(
+                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    SIGNAL_RECONNECT,
+                    this::onServerFanoutSignal);
+            }
+            else
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[0x%016x] %s FETCH disconnect\n", initialId, partition);
+                }
+
+                members.forEach(s -> s.doServerReplyEndIfNecessary(traceId));
+            }
+        }
+
+        private void onServerFanoutReplyAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = KafkaState.closedReply(state);
+
+            doServerFanoutInitialAbortIfNecessary(traceId);
+
+            if (reconnectDelay != 0 && !members.isEmpty())
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[0x%016x] %s FETCH reconnect in %ds\n", initialId, partition, reconnectDelay);
+                }
+
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                }
+
+                this.reconnectAt = signaler.signalAt(
+                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    SIGNAL_RECONNECT,
+                    this::onServerFanoutSignal);
+            }
+            else
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[0x%016x] %s FETCH disconnect\n", initialId, partition);
+                }
+
+                members.forEach(s -> s.doServerReplyAbortIfNecessary(traceId));
+            }
+        }
+
+        private void onServerFanoutInitialReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+            final OctetsFW extension = reset.extension();
+
+            state = KafkaState.closedInitial(state);
+
+            doServerFanoutReplyResetIfNecessary(traceId);
+
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
+
+            if (reconnectDelay != 0 && !members.isEmpty() &&
+                error != ERROR_NOT_LEADER_FOR_PARTITION)
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[0x%016x] %s FETCH reconnect in %ds, error %d \n", initialId, partition, reconnectDelay,
+                        error);
+                }
+
+                if (reconnectAt != NO_CANCEL_ID)
+                {
+                    signaler.cancel(reconnectAt);
+                }
+
+                this.reconnectAt = signaler.signalAt(
+                    currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                    SIGNAL_RECONNECT,
+                    this::onServerFanoutSignal);
+            }
+            else
+            {
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[0x%016x] %s FETCH disconnect, error %d\n", initialId, partition, error);
+                }
+
+                members.forEach(s -> s.doServerInitialResetIfNecessary(traceId, extension));
+            }
+        }
+
+        private void onServerFanoutInitialWindow(
+            WindowFW window)
+        {
+            if (!KafkaState.initialOpened(state))
+            {
+                this.reconnectAttempt = 0;
+
+                final long traceId = window.traceId();
+
+                state = KafkaState.openedInitial(state);
+
+                members.forEach(s -> s.doServerInitialWindow(traceId, 0L, 0, 0, 0));
+            }
+        }
+
+        private void onServerFanoutSignal(
+            int signalId)
+        {
+            assert signalId == SIGNAL_RECONNECT;
+
+            this.reconnectAt = NO_CANCEL_ID;
+
+            final long traceId = supplyTraceId.getAsLong();
+
+            doServerFanoutInitialBeginIfNecessary(traceId);
+        }
+
+        private void onServerFanoutInitialSignal(
+            SignalFW signal)
+        {
+            final int signalId = signal.signalId();
+
+            switch (signalId)
+            {
+            case SIGNAL_SEGMENT_RETAIN:
+                onServerFanoutInitialSignalSegmentRetain(signal);
+                break;
+            case SIGNAL_SEGMENT_DELETE:
+                onServerFanoutInitialSignalSegmentDelete(signal);
+                break;
+            case SIGNAL_SEGMENT_COMPACT:
+                onServerFanoutInitialSignalSegmentCompact(signal);
+                break;
+            }
+        }
+
+        private void onServerFanoutInitialSignalSegmentRetain(
+            SignalFW signal)
+        {
+            partition.append(partitionOffset + 1);
+        }
+
+        private void onServerFanoutInitialSignalSegmentDelete(
+            SignalFW signal)
+        {
+            final long now = currentTimeMillis();
+
+            Node segmentNode = partition.sentinel().next();
+            while (segmentNode != partition.head() &&
+                    partition.deleteAt(segmentNode.segment(), retentionMillisMax) <= now)
+            {
+                segmentNode.remove();
+                segmentNode = segmentNode.next();
+            }
+            assert segmentNode != null;
+
+            if (segmentNode != partition.head())
+            {
+                final long deleteAt = partition.deleteAt(segmentNode.segment(), retentionMillisMax);
+                this.deleteId = doServerFanoutInitialSignalAt(deleteAt, SIGNAL_SEGMENT_DELETE);
+            }
+            else
+            {
+                this.deleteId = NO_CANCEL_ID;
+            }
+        }
+
+        private void onServerFanoutInitialSignalSegmentCompact(
+            SignalFW signal)
+        {
+            final long now = currentTimeMillis();
+
+            Node segmentNode = partition.sentinel().next();
+            while (!segmentNode.next().sentinel()) // avoid cleaning head
+            {
+                segmentNode.clean(now);
+                segmentNode = segmentNode.next();
+            }
+
+            this.compactAt = Long.MAX_VALUE;
+            this.compactId = NO_CANCEL_ID;
+        }
+
+        private void doServerFanoutReplyResetIfNecessary(
+            long traceId)
+        {
+            if (!KafkaState.replyClosed(state))
+            {
+                doServerFanoutReplyReset(traceId);
+            }
+        }
+
+        private void doServerFanoutReplyReset(
+            long traceId)
+        {
+            state = KafkaState.closedReply(state);
+
+            doReset(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
+        }
+
+        private void doServerFanoutReplyWindow(
+            long traceId,
+            int minReplyNoAck,
+            int minReplyMax)
+        {
+            final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
+
+            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+            {
+                replyAck = newReplyAck;
+                assert replyAck <= replySeq;
+
+                replyMax = minReplyMax;
+
+                state = KafkaState.openedReply(state);
+
+                doWindow(receiver, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization, 0L, 0);
+            }
+        }
+
+        private long doServerFanoutInitialSignalAt(
+            long timeMillis,
+            int signalId)
+        {
+            long timerId = NO_CANCEL_ID;
+
+            if (timeMillis <= System.currentTimeMillis())
+            {
+                signaler.signalNow(routeId, initialId, signalId);
+            }
+            else
+            {
+                timerId = signaler.signalAt(timeMillis, routeId, initialId, signalId);
+            }
+
+            return timerId;
+        }
+    }
+
+    private final class KafkaCacheServerFetchStream
+    {
+        private final KafkaCacheServerFetchFanout group;
+        private final MessageConsumer sender;
+        private final long routeId;
+        private final long initialId;
+        private final long replyId;
+        private final long leaderId;
+        private final long authorization;
+
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+
+        private long partitionOffset;
+        private long latestOffset;
+
+        KafkaCacheServerFetchStream(
+            KafkaCacheServerFetchFanout group,
+            MessageConsumer sender,
+            long routeId,
+            long initialId,
+            long leaderId,
+            long authorization,
+            long partitionOffset)
+        {
+            this.group = group;
+            this.sender = sender;
+            this.routeId = routeId;
+            this.initialId = initialId;
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.leaderId = leaderId;
+            this.authorization = authorization;
+            this.partitionOffset = partitionOffset;
+        }
+
+        private void onServerMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onServerInitialBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onServerInitialData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onServerInitialEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onServerInitialAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onServerReplyWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onServerReplyReset(reset);
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void onServerInitialBegin(
+            BeginFW begin)
+        {
+            final long traceId = begin.traceId();
+            final long affinity = begin.affinity();
+
+            if (affinity != leaderId)
+            {
+                cleanupServer(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
+            }
+            else
+            {
+                state = KafkaState.openingInitial(state);
+                group.onServerFanoutMemberOpening(traceId, this);
+            }
+        }
+
+        private void onServerInitialData(
+            DataFW data)
+        {
+            final long traceId = data.traceId();
+
+            doServerInitialResetIfNecessary(traceId, EMPTY_OCTETS);
+            doServerReplyAbortIfNecessary(traceId);
+
+            group.onServerFanoutMemberClosed(traceId, this);
+        }
+
+        private void onServerInitialEnd(
+            EndFW end)
+        {
+            final long traceId = end.traceId();
+
+            state = KafkaState.closedInitial(state);
+
+            group.onServerFanoutMemberClosed(traceId, this);
+
+            doServerReplyEndIfNecessary(traceId);
+        }
+
+        private void onServerInitialAbort(
+            AbortFW abort)
+        {
+            final long traceId = abort.traceId();
+
+            state = KafkaState.closedInitial(state);
+
+            group.onServerFanoutMemberClosed(traceId, this);
+
+            doServerReplyAbortIfNecessary(traceId);
+        }
+
+        private void doServerInitialResetIfNecessary(
+            long traceId,
+            Flyweight extension)
+        {
+            if (KafkaState.initialOpening(state) && !KafkaState.initialClosed(state))
+            {
+                doServerInitialReset(traceId, extension);
+            }
+
+            state = KafkaState.closedInitial(state);
+        }
+
+        private void doServerInitialReset(
+            long traceId,
+            Flyweight extension)
+        {
+            state = KafkaState.closedInitial(state);
+
+            doReset(sender, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, extension);
+        }
+
+        private void doServerInitialWindow(
+            long traceId,
+            long budgetId,
+            int minInitialWin,
+            int minInitialPad,
+            int minInitialMax)
+        {
+            final long newInitialAck = Math.max(initialSeq - minInitialWin, initialAck);
+
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
+            {
+                initialAck = newInitialAck;
+                assert initialAck <= initialSeq;
+
+                initialMax = minInitialMax;
+
+                state = KafkaState.openedInitial(state);
+
+                doWindow(sender, routeId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, budgetId, minInitialPad);
+            }
+        }
+
+        private void doServerReplyBeginIfNecessary(
+            long traceId)
+        {
+            if (!KafkaState.replyOpening(state))
+            {
+                doServerReplyBegin(traceId);
+            }
+        }
+
+        private void doServerReplyBegin(
+            long traceId)
+        {
+            state = KafkaState.openingReply(state);
+
+            this.partitionOffset = Math.max(partitionOffset, group.partitionOffset);
+
+            doBegin(sender, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, leaderId,
+                ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .fetch(f -> f.topic(group.partition.topic())
+                                     .partition(p -> p.partitionId(group.partition.id())
+                                                      .partitionOffset(partitionOffset)
+                                                      .latestOffset(group.latestOffset)))
+                        .build()
+                        .sizeof()));
+        }
+
+        private void doServerReplyFlushIfNecessary(
+            long traceId)
+        {
+            if ((partitionOffset <= group.partitionOffset || latestOffset <= group.latestOffset) &&
+                replyMax - (int)(replySeq - replyAck) >= SIZE_OF_FLUSH_WITH_EXTENSION)
+            {
+                doServerReplyFlush(traceId, SIZE_OF_FLUSH_WITH_EXTENSION);
+            }
+        }
+
+        private void doServerReplyFlush(
+            long traceId,
+            int reserved)
+        {
+            assert partitionOffset <= group.partitionOffset || latestOffset <= group.latestOffset;
+
+            doFlush(sender, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, 0L, reserved,
+                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                        .typeId(kafkaTypeId)
+                        .fetch(f -> f.partition(p -> p.partitionId(group.partition.id())
+                                                      .partitionOffset(group.partitionOffset)
+                                                      .latestOffset(group.latestOffset)))
+                        .build()
+                        .sizeof()));
+
+            replySeq += reserved;
+
+            assert replyAck <= replySeq;
+
+            this.partitionOffset = group.partitionOffset + 1;
+            this.latestOffset = group.latestOffset + 1;
+        }
+
+        private void doServerReplyEndIfNecessary(
+            long traceId)
+        {
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            {
+                doServerReplyEnd(traceId);
+            }
+
+            state = KafkaState.closedReply(state);
+        }
+
+        private void doServerReplyEnd(
+                long traceId)
+        {
+            state = KafkaState.closedReply(state);
+            doEnd(sender, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+        }
+
+        private void doServerReplyAbortIfNecessary(
+            long traceId)
+        {
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            {
+                doServerReplyAbort(traceId);
+            }
+
+            state = KafkaState.closedReply(state);
+        }
+
+        private void doServerReplyAbort(
+                long traceId)
+        {
+            state = KafkaState.closedReply(state);
+            doAbort(sender, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_EXTENSION);
+        }
+
+        private void onServerReplyWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+
+            assert budgetId == 0L;
+            assert padding == 0;
+
+            state = KafkaState.openedReply(state);
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            this.replyAck = acknowledge;
+            this.replyMax = maximum;
+
+            assert replyAck <= replySeq;
+
+            doServerReplyFlushIfNecessary(traceId);
+        }
+
+        private void onServerReplyReset(
+            ResetFW reset)
+        {
+            final long traceId = reset.traceId();
+
+            state = KafkaState.closedReply(state);
+
+            group.onServerFanoutMemberClosed(traceId, this);
+
+            doServerInitialResetIfNecessary(traceId, EMPTY_OCTETS);
+        }
+
+        private void cleanupServer(
+            long traceId,
+            int error)
+        {
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                                              .typeId(kafkaTypeId)
+                                                              .error(error)
+                                                              .build();
+
+            cleanupServer(traceId, kafkaResetEx);
+        }
+
+        private void cleanupServer(
+            long traceId,
+            Flyweight extension)
+        {
+            doServerInitialReset(traceId, extension);
+            doServerReplyAbortIfNecessary(traceId);
+        }
+    }
+}

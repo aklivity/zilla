@@ -266,7 +266,8 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
             case DataFW.TYPE_ID:
-                supplyLoadEntry.apply(routeId).replyBytesWritten(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH));
+                int bytesWritten = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
+                supplyLoadEntry.apply(routeId).replyBytesWritten(bytesWritten);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
             case EndFW.TYPE_ID:
