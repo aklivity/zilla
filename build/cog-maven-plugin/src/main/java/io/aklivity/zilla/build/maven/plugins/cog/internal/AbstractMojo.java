@@ -34,10 +34,10 @@ public abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo
     @Parameter(defaultValue = "${project}", readonly = true)
     protected MavenProject project;
 
-    @Parameter(defaultValue = "src/main/aklivity")
+    @Parameter(defaultValue = "src/main/zilla")
     protected File inputDirectory;
 
-    @Parameter(defaultValue = "src/main/resources/META-INF/aklivity")
+    @Parameter(defaultValue = "src/main/resources/META-INF/zilla")
     protected File metaDirectory;
 
     @Parameter(required = true)
@@ -69,7 +69,7 @@ public abstract class AbstractMojo extends org.apache.maven.plugin.AbstractMojo
             {
                 File resourcePathFile = new File(resourcePathEntry.toString());
                 URI resourcePathURI = resourcePathFile.getAbsoluteFile().toURI();
-                resourcePath.add(URI.create(String.format("jar:%s!/META-INF/aklivity/", resourcePathURI)).toURL());
+                resourcePath.add(URI.create(String.format("jar:%s!/META-INF/zilla/", resourcePathURI)).toURL());
             }
         }
         catch (DependencyResolutionRequiredException e)

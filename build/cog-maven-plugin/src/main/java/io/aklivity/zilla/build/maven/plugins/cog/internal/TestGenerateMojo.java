@@ -35,7 +35,7 @@ public final class TestGenerateMojo extends AbstractMojo
     @Parameter(defaultValue = "")
     protected String testPackageName;
 
-    @Parameter(defaultValue = "${project.build.directory}/generated-test-sources/aklivity")
+    @Parameter(defaultValue = "${project.build.directory}/generated-test-sources/zilla")
     protected File testOutputDirectory;
 
     @Override

@@ -35,7 +35,7 @@ public final class GenerateMojo extends AbstractMojo
     @Parameter(defaultValue = "")
     protected String packageName;
 
-    @Parameter(defaultValue = "${project.build.directory}/generated-sources/aklivity")
+    @Parameter(defaultValue = "${project.build.directory}/generated-sources/zilla")
     protected File outputDirectory;
 
     @Override
