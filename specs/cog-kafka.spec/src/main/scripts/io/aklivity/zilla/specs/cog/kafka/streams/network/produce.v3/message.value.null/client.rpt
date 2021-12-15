@@ -1,0 +1,124 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkConnectWindow 8192
+
+property newRequestId ${kafka:newRequestId()}
+property produceWaitMax 500
+
+connect "zilla://streams/net#0"
+  option zilla:window ${networkConnectWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+connected
+
+write 21                                # size
+      3s                                # metadata
+      5s                                # v5
+      ${newRequestId}
+      -1s                               # no client id
+      1                                 # topics
+        4s "test"                       #   "test" topic
+      [0x00]                            # allow_auto_topic_creation
+
+read 97                                 # size
+     ${newRequestId}
+     [0..4]
+     1                                  # brokers
+       0xb1                                 # broker id
+       19s "broker1.example.com"            # host name
+       9092                                 # port
+       -1s                                  # no rack
+     9s "cluster 1"                     # cluster id
+     1                                  # controller id
+     1                                  # topics
+       0s                                 # no error
+       4s "test"                          #   "test" topic
+       [0x00]                             # not internal
+       1                                  # partitions
+         0s                                 # no error
+         0                                  # partition
+         0xb1                               # leader
+         0                                  # no replicas
+         -1                                 # no in-sync replicas
+         0                                  # offline replicas
+
+read notify ROUTED_BROKER_SERVER
+
+connect await ROUTED_BROKER_SERVER
+        "zilla://streams/net#0"
+  option zilla:window ${networkConnectWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+write zilla:begin.ext ${proxy:beginEx()
+                               .typeId(zilla:id("proxy"))
+                               .addressInet()
+                                 .protocol("stream")
+                                 .source("0.0.0.0")
+                                 .destination("broker1.example.com")
+                                 .sourcePort(0)
+                                 .destinationPort(9092)
+                                 .build()
+                               .build()}
+
+connected
+
+write 108                               # size
+      0s                                # produce
+      3s                                # v3
+      ${newRequestId}
+      -1s                               # client id
+      -1s                               # transactional id
+      0s                                # acks
+      ${produceWaitMax}
+      1
+      4s "test"
+      1
+      0                                 # partition
+      68                                # record set size
+      0L                                # first offset
+      56                                # length
+      -1
+      [0x02]
+      0x4e8723aa
+      0s
+      0                                 # last offset delta
+      ${newTimestamp}                   # first timestamp
+      ${newTimestamp}                   # last timestamp
+      -1L
+      -1s
+      -1
+      1                                 # records
+      ${kafka:varint(6)}
+      [0x00]
+      ${kafka:varint(0)}
+      ${kafka:varint(0)}
+      ${kafka:varint(-1)}               # key
+      ${kafka:varint(-1)}               # value
+      ${kafka:varint(0)}                # headers
+
+read 44
+     ${newRequestId}
+     1                                  # topics
+     4s "test"
+     1                                  # partitions
+     0                                  # partition
+     0s                                 # no error
+     20L                                # base offset
+     [0..8]                             # log append time
+     [0..4]                             # throttle ms

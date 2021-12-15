@@ -1,0 +1,86 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
+accept "zilla://streams/app#0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("FETCH_ONLY")
+                                  .topic("test")
+                                  .partition(0, 1)
+                                  .partition(1, 1)
+                                  .filter()
+                                      .headers("header3")
+                                          .sequence("one")
+                                          .skipMany()
+                                          .build()
+                                      .build()
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 5, 6)
+                                  .progress(0, 6)
+                                  .progress(1, 6)
+                                  .header("header3", "one")
+                                  .header("header3", "")
+                                  .build()
+                              .build()}
+write "Hello, world #B5"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 6, 6)
+                                  .progress(0, 7)
+                                  .progress(1, 6)
+                                  .header("header3", "one")
+                                  .header("header3", "")
+                                  .header("header3", "three")
+                                  .header("header3", "")
+                                  .build()
+                              .build()}
+write "Hello, world #A6"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 6, 6)
+                                  .progress(0, 7)
+                                  .progress(1, 7)
+                                  .header("header3", "one")
+                                  .header("header3", "two")
+                                  .header("header3", "three")
+                                  .header("header3", "four")
+                                  .build()
+                              .build()}
+write "Hello, world #B6"
+write flush

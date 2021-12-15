@@ -1,0 +1,11 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "app#0",
+            "type" : "kafka",
+            "kind": "client",
+            "exit": "net#0"
+        }
+    ]
+}

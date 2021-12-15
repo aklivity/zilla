@@ -1,0 +1,276 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+scope kafka
+{
+    struct KafkaConfig
+    {
+        string16 name;
+        string16 value;
+    }
+
+    struct KafkaPartition
+    {
+        int32 partitionId;
+        int32 leaderId;
+    }
+
+    struct KafkaOffset
+    {
+        int32 partitionId;
+        int64 partitionOffset;
+        int64 latestOffset = -1;
+    }
+
+    enum KafkaConditionType (uint8)
+    {
+        KEY (0),
+        HEADER (1),
+        NOT (2),
+        HEADERS (3)
+    }
+
+    union KafkaCondition switch (uint8)
+    {
+        case 0: kafka::KafkaKey key;
+        case 1: kafka::KafkaHeader header;
+        case 2: kafka::KafkaNot not;
+        case 3: kafka::KafkaHeaders headers;
+    }
+
+    struct KafkaFilter
+    {
+        KafkaCondition[] conditions; // ANDed
+    }
+
+    struct KafkaKey
+    {
+        varint32 length;
+        octets[length] value = null;
+    }
+
+    struct KafkaHeader
+    {
+        varint32 nameLen;
+        octets[nameLen] name;  // UTF-8
+        varint32 valueLen;
+        octets[valueLen] value = null;
+    }
+
+    struct KafkaNot
+    {
+        KafkaCondition condition;
+    }
+
+    struct KafkaValue
+    {
+        varint32 length;
+        octets[length] value = null;
+    }
+
+    enum KafkaSkip (uint8)
+    {
+        SKIP (0),
+        SKIP_MANY (1)
+    }
+
+    enum KafkaValueMatchType (uint8)
+    {
+        VALUE (0),
+        SKIP (1)
+    }
+
+    union KafkaValueMatch switch (uint8)
+    {
+        case 0: kafka::KafkaValue value;
+        case 1: kafka::KafkaSkip skip;
+    }
+
+    struct KafkaHeaders
+    {
+        varint32 nameLen;
+        octets[nameLen] name;  // UTF-8
+        KafkaValueMatch[] values;
+    }
+
+    enum KafkaDeltaType
+    {
+        NONE,
+        JSON_PATCH
+    }
+
+    enum KafkaOffsetType (int8)
+    {
+        LIVE(-1),
+        HISTORICAL(-2)
+    }
+
+    struct KafkaDelta
+    {
+        KafkaDeltaType type = NONE;
+        int64 ancestorOffset = -1;
+    }
+
+    enum KafkaCapabilities (uint8)
+    {
+        PRODUCE_ONLY(1),
+        FETCH_ONLY(2),
+        PRODUCE_AND_FETCH(3)
+    }
+
+    scope stream
+    {
+        enum KafkaApi (uint8)
+        {
+            BOOTSTRAP (254),
+            MERGED (255),
+            META (3),
+            DESCRIBE (32),
+            FETCH (1),
+            PRODUCE (0)
+        }
+
+        union KafkaBeginEx switch (uint8) extends core::stream::Extension
+        {
+            case 254: kafka::stream::KafkaBootstrapBeginEx bootstrap;
+            case 255: kafka::stream::KafkaMergedBeginEx merged;
+            case 3: kafka::stream::KafkaMetaBeginEx meta;
+            case 32: kafka::stream::KafkaDescribeBeginEx describe;
+            case 1: kafka::stream::KafkaFetchBeginEx fetch;
+            case 0: kafka::stream::KafkaProduceBeginEx produce;
+        }
+
+        union KafkaDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 255: kafka::stream::KafkaMergedDataEx merged;
+            case 3: kafka::stream::KafkaMetaDataEx meta;
+            case 32: kafka::stream::KafkaDescribeDataEx describe;
+            case 1: kafka::stream::KafkaFetchDataEx fetch;
+            case 0: kafka::stream::KafkaProduceDataEx produce;
+        }
+
+        union KafkaFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 255: kafka::stream::KafkaMergedFlushEx merged;
+            case 1: kafka::stream::KafkaFetchFlushEx fetch;
+            case 0: kafka::stream::KafkaProduceFlushEx produce;
+        }
+
+        struct KafkaResetEx extends core::stream::Extension
+        {
+            int32 error = 0;
+        }
+
+        struct KafkaBootstrapBeginEx
+        {
+            string16 topic;
+        }
+
+        struct KafkaMergedBeginEx
+        {
+            KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
+            string16 topic;
+            KafkaOffset[] partitions;
+            KafkaFilter[] filters; // ORed
+            KafkaDeltaType deltaType = NONE;
+        }
+
+        struct KafkaMergedDataEx
+        {
+            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;        // INIT only
+            KafkaOffset partition;      // INIT only
+            KafkaOffset[] progress;     // INIT only
+            KafkaKey key;               // INIT only
+            KafkaDelta delta;           // INIT + FIN
+            KafkaHeader[] headers;      // FIN only
+        }
+
+        struct KafkaMergedFlushEx
+        {
+            KafkaOffset[] progress;
+            KafkaCapabilities capabilities = PRODUCE_AND_FETCH;
+            KafkaFilter[] filters;
+        }
+
+        struct KafkaMetaBeginEx
+        {
+            string16 topic;
+        }
+
+        struct KafkaMetaDataEx
+        {
+            KafkaPartition[] partitions;
+        }
+
+        struct KafkaDescribeBeginEx
+        {
+            string16 topic;
+            string16[] configs;
+        }
+
+        struct KafkaDescribeDataEx
+        {
+            KafkaConfig[] configs;
+        }
+
+        struct KafkaFetchBeginEx
+        {
+            string16 topic;
+            KafkaOffset partition;
+            KafkaFilter[] filters; // ORed
+            KafkaDeltaType deltaType = NONE;
+        }
+
+        struct KafkaFetchDataEx
+        {
+            int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
+            int64 timestamp = 0;        // INIT only
+            int32 headersSizeMax = 4;   // INIT only
+            KafkaOffset partition;      // INIT only
+            KafkaKey key;               // INIT only
+            KafkaDelta delta;           // INIT + FIN
+            KafkaHeader[] headers;      // FIN only
+        }
+
+        struct KafkaFetchFlushEx
+        {
+            KafkaOffset partition;
+        }
+
+        struct KafkaProduceFlushEx
+        {
+            KafkaOffset partition;
+        }
+
+        struct KafkaProduceBeginEx
+        {
+            string8 transaction; // = null;
+            int64 producerId = 0;
+            string16 topic;
+            KafkaOffset partition;
+        }
+
+        struct KafkaProduceDataEx
+        {
+            int32 deferred = 0;
+            int64 timestamp = 0;
+            int32 sequence = -1;
+            uint32 crc32c = 0;
+            KafkaKey key;
+            KafkaHeader[] headers;
+        }
+    }
+}
