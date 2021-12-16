@@ -1,0 +1,83 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/net#0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+
+connected
+
+# header exchange
+write "AMQP" [0x00 0x01 0x00 0x00]
+read "AMQP" [0x00 0x01 0x00 0x00]
+
+# open frame exchange
+write [0x00 0x00 0x00 0x16]                                      # size = 22
+      [0x02]                                                     # doff = 2
+      [0x00]                                                     # type = AMQP (0)
+      [0x00 0x00]                                                # channel = 0
+      [0x00 0x53 0x10]                                           # performative = open (16)
+      [0xc0 0x09 0x01]                                           # list type (LIST1), length = 9, fields = 1
+      [0xa1 0x06] "client"                                       # container-id = "client"
+
+read [0x00 0x00 0x00 0x16]                                       # size = 22
+     [0x02]                                                      # doff = 2
+     [0x00]                                                      # type = AMQP (0)
+     [0x00 0x00]                                                 # channel = 0
+     [0x00 0x53 0x10]                                            # performative = open (16)
+     [0xc0 0x09 0x01]                                            # list type (LIST1), length = 9, fields = 1
+     [0xa1 0x06] "server"                                        # container-id = "server"
+
+# begin frame exchange
+write [0x00 0x00 0x00 0x1b]                                      # size = 27
+      [0x02]                                                     # doff = 2
+      [0x00]                                                     # type = AMQP (0)
+      [0x00 0x00]                                                # channel = 0
+      [0x00 0x53 0x11]                                           # performative = begin (17)
+      [0xc0 0x0e 0x04]                                           # list type (list8), length = 14, fields = 4
+      [0x40]                                                     # remote-channel = null
+      [0x52 0x01]                                                # next-outgoing-id = 1
+      [0x70 0x00 0x00 0x07 0xff]                                 # incoming-window = 2047
+      [0x70 0x7f 0xff 0xff 0xff]                                 # outgoing-window = 2147483647
+
+read [0x00 0x00 0x00 0x1d]                                       # size = 29
+     [0x02]                                                      # doff = 2
+     [0x00]                                                      # type = AMQP (0)
+     [0x00 0x00]                                                 # channel = 0
+     [0x00 0x53 0x11]                                            # performative = begin (17)
+     [0xc0 0x10 0x04]                                            # list type (list8), length = 16, fields = 4
+     [0x60 0x00 0x00]                                            # remote-channel = 0
+     [0x52 0x01]                                                 # next-outgoing-id = 1
+     [0x70 0x00 0x01 0x00 0x00]                                  # incoming-window = 65536
+     [0x70 0x7f 0xff 0xff 0xff]                                  # outgoing-window = 2147483647
+
+# close frame exchange
+write [0x00 0x00 0x00 0x2c]                                      # size = 44
+      [0x02]                                                     # doff = 2
+      [0x00]                                                     # type = AMQP (0)
+      [0x00 0x00]                                                # channel = 0
+      [0x00 0x53 0x18]                                           # performative = close (24)
+      [0xc0 0x1f 0x01]                                           # list type (list8), length = 31, fields = 1
+      [0x00 0x53 0x1d]                                           # error header
+      [0xc0 0x19 0x01]                                           # list type (list8), length = 25, fields = 1
+      [0xa3 0x16] "amqp:connection:forced"                       # condition = "amqp:connection:forced"
+
+read [0x00 0x00 0x00 0x0c]                                       # size = 12
+     [0x02]                                                      # doff = 2
+     [0x00]                                                      # type = AMQP (0)
+     [0x00 0x00]                                                 # channel = 0
+     [0x00 0x53 0x18]                                            # performative = close (24)
+     [0x45]                                                      # list type (list0)

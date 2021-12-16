@@ -1,0 +1,51 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+accept "zilla://streams/net#0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+
+accepted
+connected
+
+# header exchange
+read "AMQP" [0x00 0x01 0x00 0x00]
+write "AMQP" [0x00 0x01 0x00 0x00]
+
+# open frame exchange
+read [0x00 0x00 0x00 0x27]                                      # size = 39
+     [0x02]                                                     # doff = 2
+     [0x00]                                                     # type = AMQP (0)
+     [0x00 0x00]                                                # channel = 0
+     [0x00 0x53 0x10]                                           # performative = open (16)
+     [0xc0 0x1a 0x06]                                           # list type (LIST1), length = 26, fields = 6
+     [0xa1 0x06] "client"                                       # container-id = "client"
+     [0x40]                                                     # hostname
+     [0x40]                                                     # max-frame-size
+     [0x40]                                                     # channel-max
+     [0x40]                                                     # idle-time-out
+     [0xe0 0x0b 0x02]                                           # outgoing-locales, array type (array8), length = 11, fields = 2
+     [0xa3]                                                     # array item type = ietf-language-tag
+     [0x05] "en-US"                                             # array item = "en-US"
+     [0x02] "jp"                                                # array item = "jp"
+
+write [0x00 0x00 0x00 0x16]                                     # size = 22
+      [0x02]                                                    # doff = 2
+      [0x00]                                                    # type = AMQP (0)
+      [0x00 0x00]                                               # channel = 0
+      [0x00 0x53 0x10]                                          # performative = open (16)
+      [0xc0 0x09 0x01]                                          # list type (LIST1), length = 9, fields = 1
+      [0xa1 0x06] "server"                                      # container-id = "server"

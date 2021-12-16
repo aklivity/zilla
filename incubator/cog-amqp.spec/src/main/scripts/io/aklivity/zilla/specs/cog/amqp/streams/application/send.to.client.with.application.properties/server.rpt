@@ -1,0 +1,76 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+accept "zilla://streams/app#0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${amqp:beginEx()
+                             .typeId(zilla:id("amqp"))
+                             .address("clients")
+                             .capabilities("RECEIVE_ONLY")
+                             .senderSettleMode("SETTLED")
+                             .receiverSettleMode("FIRST")
+                             .build()}
+
+write zilla:begin.ext ${amqp:beginEx()
+                              .typeId(zilla:id("amqp"))
+                              .address("clients")
+                              .capabilities("RECEIVE_ONLY")
+                              .senderSettleMode("SETTLED")
+                              .receiverSettleMode("FIRST")
+                              .build()}
+connected
+
+write zilla:data.ext ${amqp:dataEx()
+                             .typeId(zilla:id("amqp"))
+                             .deliveryTag("")
+                             .messageFormat(0)
+                             .flags("SETTLED")
+                             .property("null", amqp:_null())
+                             .property("boolean", amqp:boolean(true))
+                             .property("true", amqp:_true())
+                             .property("false", amqp:_false())
+                             .property("ubyte", amqp:ubyte(1))
+                             .property("ushort", amqp:ushort(1))
+                             .property("uint", amqp:uint(1))
+                             .property("smalluint", amqp:smalluint(1))
+                             .property("uint0", amqp:uint0())
+                             .property("ulong", amqp:ulong(1))
+                             .property("smallulong", amqp:smallulong(1))
+                             .property("ulong0", amqp:ulong0())
+                             .property("byte", amqp:byte(1))
+                             .property("short", amqp:short(1))
+                             .property("int", amqp:int(1))
+                             .property("smallint", amqp:smallint(1))
+                             .property("long", amqp:long(1))
+                             .property("smalllong", amqp:smalllong(1))
+                             .property("char", amqp:char("1"))
+                             .property("timestamp", amqp:timestamp(1))
+                             .property("vbin8", amqp:binary8("vbin8"))
+                             .property("vbin32", amqp:binary32("vbin32"))
+                             .property("str8-utf8", amqp:string8("str8-utf8"))
+                             .property("str32-utf8", amqp:string32("str32-utf8"))
+                             .property("sym8", amqp:symbol8("sym8"))
+                             .property("sym32", amqp:symbol32("sym32"))
+                             .bodyKind("VALUE_STRING8")
+                             .build()}
+
+write "Text!"
+
+write close
