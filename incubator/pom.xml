@@ -19,6 +19,8 @@
   <modules>
     <module>cog-amqp.spec</module>
     <module>cog-mqtt.spec</module>
+
+    <module>cog-amqp</module>
     <module>cog-mqtt</module>
   </modules>
 
