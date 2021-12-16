@@ -6,7 +6,7 @@
 
   "imports":
   [
-    "io.aklivity.zilla:runtime:${project.version}"
+    "io.aklivity.zilla:runtime:0.1.0"
   ],
 
   "dependencies":
