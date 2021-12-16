@@ -1,0 +1,78 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/net#0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+
+connected
+
+# sasl protocol header exchange
+write "AMQP" [0x03 0x01 0x00 0x00]
+
+read "AMQP" [0x03 0x01 0x00 0x00]
+
+# sasl-mechanisms
+read [0x00 0x00 0x00 0x1c]                                      # size = 28
+     [0x02]                                                     # doff = 2
+     [0x01]                                                     # type = SASL (1)
+     [0x00 0x00]                                                # channel = 0
+     [0x00 0x53 0x40]                                           # SASL method = sasl-mechanisms (64)
+     [0xc0 0x0f 0x01]                                           # list type (LIST1), length = 15, fields = 1
+     [0xe0 0x0c 0x01]                                           # array type (array8), length = 12, fields = 1
+     [0xa3 0x09] "ANONYMOUS"                                    # mechanism = "ANONYMOUS"
+
+# sasl-init
+write [0x00 0x00 0x00 0x19]                                      # size = 25
+      [0x02]                                                     # doff = 2
+      [0x01]                                                     # type = SASL (1)
+      [0x00 0x00]                                                # channel = 0
+      [0x00 0x53 0x41]                                           # SASL method = sasl.init (65)
+      [0xc0 0x0c 0x01]                                           # list type (LIST1), length = 12, fields = 1
+      [0xa3 0x09] "ANONYMOUS"                                    # mechanism = "ANONYMOUS"
+
+#sasl-outcome
+read [0x00 0x00 0x00 0x10]                                       # size = 16
+     [0x02]                                                      # doff = 2
+     [0x01]                                                      # type = SASL (1)
+     [0x00 0x00]                                                 # channel = 0
+     [0x00 0x53 0x44]                                            # SASL method = sasl.outcome (68)
+     [0xc0 0x03 0x01]                                            # list type (LIST1), length = 3, fields = 1
+     [0x50 0x00]                                                 # code = okay (0)
+
+# plain protocol header
+read "AMQP" [0x00 0x01 0x00 0x00]
+
+# open frame
+read [0x00 0x00 0x00 0x16]                                       # size = 22
+     [0x02]                                                      # doff = 2
+     [0x00]                                                      # type = AMQP (0)
+     [0x00 0x00]                                                 # channel = 0
+     [0x00 0x53 0x10]                                            # performative = open (16)
+     [0xc0 0x09 0x01]                                            # list type (LIST1), length = 9, fields = 1
+     [0xa1 0x06] "server"                                        # container-id = "server"
+
+# plain protocol header
+write "AMQP" [0x00 0x01 0x00 0x00]
+
+# open frame
+write [0x00 0x00 0x00 0x16]                                      # size = 22
+      [0x02]                                                     # doff = 2
+      [0x00]                                                     # type = AMQP (0)
+      [0x00 0x00]                                                # channel = 0
+      [0x00 0x53 0x10]                                           # performative = open (16)
+      [0xc0 0x09 0x01]                                           # list type (LIST1), length = 9, fields = 1
+      [0xa1 0x06] "client"                                       # container-id = "client"

@@ -1,0 +1,18 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "app#0",
+            "type" : "http2",
+            "kind": "client",
+            "options":
+            {
+                "overrides":
+                {
+                    ":authority": "localhost:8080"
+                }
+            },
+            "exit": "net#0"
+        }
+    ]
+}

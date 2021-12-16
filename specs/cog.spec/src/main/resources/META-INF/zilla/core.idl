@@ -1,0 +1,100 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+scope core
+{
+    scope stream
+    {
+        enum Capability
+        {
+            CHALLENGE
+        }
+
+        struct Extension
+        {
+            int32 typeId;
+        }
+
+        struct Frame
+        {
+            int64 routeId;
+            int64 streamId;
+            int64 sequence;
+            int64 acknowledge;
+            int32 maximum;
+            int64 timestamp = 0;
+            int64 traceId = 0;
+            int64 authorization = 0;
+        }
+
+        struct Begin extends Frame [0x00000001]
+        {
+            int64 affinity;
+            octets extension;
+        }
+
+        struct Data extends Frame [0x00000002]
+        {
+            uint8 flags = 3;            // 0x01 FIN, 0x02 INIT, 0x04 INCOMPLETE
+            int64 budgetId;
+            int32 reserved;
+            int32 length;
+            octets[length] payload = null;
+            octets extension;
+        }
+
+        struct End extends Frame [0x00000003]
+        {
+            octets extension;
+        }
+
+        struct Abort extends Frame [0x00000004]
+        {
+            octets extension;
+        }
+
+        struct Flush extends Frame [0x00000005]
+        {
+            int64 budgetId;
+            int32 reserved = 0;
+            octets extension;
+        }
+
+        struct Reset extends Frame [0x40000001]
+        {
+            octets extension;
+        }
+
+        struct Window extends Frame [0x40000002]
+        {
+            int64 budgetId;
+            int32 padding;
+            int32 minimum = 0;
+            uint8 capabilities = 0;
+        }
+
+        struct Signal extends Frame [0x40000003]
+        {
+            int64 cancelId;
+            int32 signalId;
+            octets extension;
+        }
+
+        struct Challenge extends Frame [0x40000004]
+        {
+            octets extension;
+        }
+    }
+}

@@ -1,0 +1,888 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+scope protocol
+{
+    option byteorder network;
+
+    scope codec
+    {
+        struct AmqpProtocolHeader
+        {
+            octets[4] name;
+            uint8 id;
+            uint8 major;
+            uint8 minor;
+            uint8 revision;
+        }
+
+        enum AmqpType (uint8)
+        {
+            DESCRIBED (0x00),
+            NULL (0x40),
+            BOOLEAN (0x56),
+            TRUE (0x41),
+            FALSE (0x42),
+            UBYTE (0x50),
+            USHORT (0x60),
+            UINT4 (0x70),
+            UINT1 (0x52),
+            UINT0 (0x43),
+            ULONG8 (0x80),
+            ULONG1 (0x53),
+            ULONG0 (0x44),
+            BYTE (0x51),
+            SHORT (0x61),
+            INT4 (0x71),
+            INT1 (0x54),
+            LONG8 (0x81),
+            LONG1 (0x55),
+            FLOAT (0x72),
+            DOUBLE (0x82),
+            DECIMAL32 (0x74),
+            DECIMAL64 (0x84),
+            DECIMAL128 (0x94),
+            CHAR (0x73),
+            TIMESTAMP (0x83),
+            UUID (0x98),
+            BINARY1 (0xa0),
+            BINARY4 (0xb0),
+            STRING1 (0xa1),
+            STRING4 (0xb1),
+            SYMBOL1 (0xa3),
+            SYMBOL4 (0xb3),
+            LIST0 (0x45),
+            LIST1 (0xc0),
+            LIST4 (0xd0),
+            MAP1 (0xc1),
+            MAP4 (0xd1),
+            ARRAY1 (0xe0),
+            ARRAY4 (0xf0)
+        }
+
+        struct AmqpVariableLength8
+        {
+            AmqpType constructor;
+            uint8 length;
+        }
+
+        struct AmqpVariableLength32
+        {
+            AmqpType constructor;
+            uint32 length;
+        }
+
+        enum AmqpFrameType (uint8)
+        {
+            OPEN (0x10),
+            BEGIN (0x11),
+            ATTACH (0x12),
+            FLOW (0x13),
+            TRANSFER (0x14),
+            DISPOSITION (0x15),
+            DETACH (0x16),
+            END (0x17),
+            CLOSE (0x18)
+        }
+
+        variant AmqpNull switch (AmqpType) of uint8
+        {
+            case NULL: 0;
+        }
+
+        variant AmqpBoolean switch (AmqpType) of uint8
+        {
+            case BOOLEAN: uint8;
+            case TRUE: 1;
+            case FALSE: 0;
+        }
+
+        variant AmqpUByte switch (AmqpType) of uint8
+        {
+            case UBYTE: uint8;
+        }
+
+        variant AmqpUShort switch (AmqpType) of uint16
+        {
+            case USHORT: uint16;
+        }
+
+        variant AmqpUInt switch (AmqpType) of uint32
+        {
+            case UINT4: uint32;
+            case UINT1: uint8;
+            case UINT0: 0;
+        }
+
+        variant AmqpULong switch (AmqpType) of uint64
+        {
+            case ULONG8: uint64;
+            case ULONG1: uint8;
+            case ULONG0: 0;
+        }
+
+        variant AmqpByte switch (AmqpType) of int8
+        {
+            case BYTE: int8;
+        }
+
+        variant AmqpShort switch (AmqpType) of int16
+        {
+            case SHORT: int16;
+        }
+
+        variant AmqpInt switch (AmqpType) of int32
+        {
+            case INT4: int32;
+            case INT1: int8;
+        }
+
+        variant AmqpLong switch (AmqpType) of int64
+        {
+            case LONG8: int64;
+            case LONG1: int8;
+        }
+
+//        TODO: will be implemented later
+//        variant AmqpFloat switch (AmqpType)
+//        {
+//            case FLOAT: octets[4];
+//        }
+//
+//        variant AmqpDouble switch (AmqpType)
+//        {
+//            case DOUBLE: octets[8];
+//        }
+//
+//        variant AmqpDecimal32 switch (AmqpType)
+//        {
+//            case DECIMAL32: octets[4];
+//        }
+//
+//        variant AmqpDecimal64 switch (AmqpType)
+//        {
+//            case DECIMAL64: octets[8];
+//        }
+//
+//        variant AmqpDecimal128 switch (AmqpType)
+//        {
+//            case DECIMAL128: octets[16];
+//        }
+//
+        variant AmqpChar switch (AmqpType) of uint32
+        {
+            case CHAR: uint32;
+        }
+
+        variant AmqpTimestamp switch (AmqpType) of int64
+        {
+            case TIMESTAMP: int64;
+        }
+
+        variant AmqpUUId switch (AmqpType) of string
+        {
+            case UUID: string16;
+        }
+
+        variant AmqpBinary switch (AmqpType) of octets[]
+        {
+            case BINARY1: octets[uint8];
+            case BINARY4: octets[uint32];
+        }
+
+        variant AmqpString switch (AmqpType) of string
+        {
+            case STRING1: string8;
+            case STRING4: string32;
+        }
+
+        variant AmqpSymbol switch (AmqpType) of string
+        {
+            case SYMBOL1: string8;
+            case SYMBOL4: string32;
+        }
+
+        variant AmqpList switch (AmqpType) of list
+        {
+            case LIST4: list<uint32, uint32, 0x40>;
+            case LIST1: list<uint8, uint8, 0x40>;
+            case LIST0: list<0, 0>;
+        }
+
+        variant AmqpMap switch (AmqpType) of map
+        {
+            case MAP4: map<uint32>;
+            case MAP1: map<uint8>;
+        }
+
+        variant AmqpArray switch (AmqpType) of array
+        {
+            case ARRAY4: array<uint32, uint32>;
+            case ARRAY1: array<uint8, uint8>;
+        }
+
+        variant AmqpDescriptor switch (AmqpType) of uint64
+        {
+            case DESCRIBED: AmqpULong;
+        }
+
+        enum AmqpDescribedType (AmqpDescriptor)
+        {
+            OPEN (0x10L),
+            BEGIN (0x11L),
+            ATTACH (0x12L),
+            FLOW (0x13L),
+            TRANSFER (0x14L),
+            DISPOSITION (0x15L),
+            DETACH (0x16L),
+            END (0x17L),
+            CLOSE (0x18L),
+            ERROR (0x1dL),
+            HEADER (0x70L),
+            DELIVERY_ANNOTATIONS (0x71L),
+            MESSAGE_ANNOTATIONS (0x72L),
+            PROPERTIES (0x73L),
+            APPLICATION_PROPERTIES (0x74L),
+            DATA (0x75L),
+            SEQUENCE (0x76L),
+            VALUE (0x77L),
+            FOOTER (0x78L),
+            RECEIVED (0x23L),
+            ACCEPTED (0x24L),
+            REJECTED (0x25L),
+            RELEASED (0x26L),
+            MODIFIED (0x27L),
+            SOURCE (0x28L),
+            TARGET (0x29L),
+            DELETE_ON_CLOSE (0x2bL),
+            DELETE_ON_NO_LINKS (0x2cL),
+            DELETE_ON_NO_MESSAGES (0x2dL),
+            DELETE_ON_NO_LINKS_OR_MESSAGES (0x2eL),
+            COORDINATOR (0x30L),
+            DECLARE (0x31L),
+            DISCHARGE (0x32L),
+            DECLARED (0x33L),
+            TRANSACTIONAL_STATE (0x34L),
+            SASL_MECHANISMS (0x40L),
+            SASL_INIT (0x41L),
+            SASL_CHALLENGE (0x42L),
+            SASL_RESPONSE (0x43L),
+            SASL_OUTCOME (0x44L)
+        }
+
+        enum AmqpSectionType (AmqpDescriptor)
+        {
+            HEADER (0x70L),
+            DELIVERY_ANNOTATIONS (0x71L),
+            MESSAGE_ANNOTATIONS (0x72L),
+            PROPERTIES (0x73L),
+            APPLICATION_PROPERTIES (0x74L),
+            DATA (0x75L),
+            SEQUENCE (0x76L),
+            VALUE (0x77L),
+            FOOTER (0x78L)
+        }
+
+        variant AmqpValue switch (AmqpType)
+        {
+            case NULL:
+                AmqpNull;
+            case BOOLEAN:
+            case TRUE:
+            case FALSE:
+                AmqpBoolean;
+            case UBYTE:
+                AmqpUByte;
+            case USHORT:
+                AmqpUShort;
+            case UINT4:
+            case UINT1:
+            case UINT0:
+                AmqpUInt;
+            case ULONG8:
+            case ULONG1:
+            case ULONG0:
+                AmqpULong;
+            case BYTE:
+                AmqpByte;
+            case SHORT:
+                AmqpShort;
+            case INT4:
+            case INT1:
+                AmqpInt;
+            case LONG8:
+            case LONG1:
+                AmqpLong;
+            case CHAR:
+                AmqpChar;
+            case TIMESTAMP:
+                AmqpTimestamp;
+            case UUID:
+                AmqpUUId;
+            case BINARY1:
+            case BINARY4:
+                AmqpBinary;
+            case STRING1:
+            case STRING4:
+                AmqpString;
+            case SYMBOL1:
+            case SYMBOL4:
+                AmqpSymbol;
+            case LIST0:
+            case LIST1:
+            case LIST4:
+                AmqpList;
+            case MAP1:
+            case MAP4:
+                AmqpMap<AmqpValue, AmqpValue>;
+//            case ARRAY1:
+//            case ARRAY4:
+//                AmqpArray<AmqpValue>;
+        }
+
+        variant AmqpSimpleType switch (AmqpType)
+        {
+            case NULL:
+                AmqpNull;
+            case BOOLEAN:
+            case TRUE:
+            case FALSE:
+                AmqpBoolean;
+            case UBYTE:
+                AmqpUByte;
+            case USHORT:
+                AmqpUShort;
+            case UINT4:
+            case UINT1:
+            case UINT0:
+                AmqpUInt;
+            case ULONG8:
+            case ULONG1:
+            case ULONG0:
+                AmqpULong;
+            case BYTE:
+                AmqpByte;
+            case SHORT:
+                AmqpShort;
+            case INT4:
+            case INT1:
+                AmqpInt;
+            case LONG8:
+            case LONG1:
+                AmqpLong;
+            case CHAR:
+                AmqpChar;
+            case TIMESTAMP:
+                AmqpTimestamp;
+            case UUID:
+                AmqpUUId;
+            case BINARY1:
+            case BINARY4:
+                AmqpBinary;
+            case STRING1:
+            case STRING4:
+                AmqpString;
+            case SYMBOL1:
+            case SYMBOL4:
+                AmqpSymbol;
+        }
+
+        map AmqpFields<AmqpSymbol, V> using AmqpMap;
+
+        typedef AmqpUInt as AmqpHandle;
+        typedef AmqpUInt as AmqpSeconds;
+        typedef AmqpUInt as AmqpMilliseconds;
+        typedef AmqpUInt as AmqpSequenceNo;
+        typedef AmqpBinary as AmqpDeliveryTag;
+        typedef AmqpSequenceNo as AmqpDeliveryNumber;
+        typedef AmqpSequenceNo as AmqpTransferNumber;
+        typedef AmqpUInt as AmqpMessageFormat;
+        typedef AmqpSymbol as AmqpIETFLanguageTag;
+        typedef AmqpString as AmqpAddress;
+        typedef AmqpMap as AmqpFilterSet;
+//        typedef AmqpFields as AmqpNodeProperties;
+        typedef AmqpBinary as AmqpTxnId;
+
+        enum AmqpRole (uint8)
+        {
+            SENDER (0x42),
+            RECEIVER (0x41)
+        }
+
+        enum AmqpSenderSettleMode (AmqpUByte)
+        {
+            UNSETTLED (0),
+            SETTLED (1),
+            MIXED (2)
+        }
+
+        enum AmqpReceiverSettleMode (AmqpUByte)
+        {
+            FIRST (0),
+            SECOND (1)
+        }
+
+        enum AmqpTerminusDurability (AmqpUInt)
+        {
+            NONE (0),
+            CONFIGURATION (1),
+            UNSETTLED_STATE (2)
+        }
+
+        enum AmqpTerminusExpiryPolicy (AmqpSymbol)
+        {
+            LINK_DETACH ("link-detach"),
+            SESSION_END ("session-end"),
+            CONNECTION_CLOSE ("connection-close"),
+            NEVER ("never")
+        }
+
+        enum AmqpStandardDistributionMode (AmqpSymbol)
+        {
+            MOVE ("move"),
+            COPY ("copy")
+        }
+
+        enum AmqpErrorType (AmqpSymbol)
+        {
+            INTERNAL_ERROR ("amqp:internal-error"),
+            NOT_FOUND ("amqp:not-found"),
+            UNAUTHORIZED_ACCESS ("amqp:unauthorized-access"),
+            DECODE_ERROR ("amqp:decode-error"),
+            RESOURCE_LIMIT_EXCEEDED ("amqp:resource-limit-exceeded"),
+            NOT_ALLOWED ("amqp:not-allowed"),
+            INVALID_FIELD ("amqp:invalid-field"),
+            NOT_IMPLEMENTED ("amqp:not-implemented"),
+            RESOURCE_LOCKED ("amqp:resource-locked"),
+            PRECONDITION_FAILED ("amqp:precondition-failed"),
+            RESOURCE_DELETED ("amqp:resource-deleted"),
+            ILLEGAL_STATE ("amqp:illegal-state"),
+            FRAME_SIZE_TOO_SMALL ("amqp:frame-size-too-small"),
+
+            CONNECTION_FORCED ("amqp:connection:forced"),
+            CONNECTION_FRAMING_ERROR ("amqp:connection:framing-error"),
+            CONNECTION_REDIRECT ("amqp:connection:redirect"),
+
+            SESSION_WINDOW_VIOLATION ("amqp:session:window-violation"),
+            SESSION_ERRANT_LINK ("amqp:session:errant-link"),
+            SESSION_HANDLE_IN_USE ("amqp:session:handle-in-use"),
+            SESSION_UNATTACHED_HANDLE ("amqp:session:unattached-handle"),
+
+            LINK_DETACH_FORCED ("amqp:link:detach-forced"),
+            LINK_TRANSFER_LIMIT_EXCEEDED ("amqp:link:transfer-limit-exceeded"),
+            LINK_MESSAGE_SIZE_EXCEEDED ("amqp:link:message-size-exceeded"),
+            LINK_REDIRECT ("amqp:link:redirect"),
+            LINK_STOLEN ("amqp:link:stolen"),
+
+            TRANSACTION_UNKNOWN_ID ("amqp:transaction:unknown-id"),
+            TRANSACTION_ROLLBACK ("amqp:transaction:rollback"),
+            TRANSACTION_TIMEOUT ("amqp:transaction:timeout")
+        }
+
+        list AmqpErrorList using AmqpList
+        {
+            required AmqpErrorType condition;
+            AmqpString description;
+            AmqpFields<AmqpValue> info;
+        }
+
+        union AmqpError switch (AmqpDescribedType)
+        {
+            case ERROR: AmqpErrorList errorList;
+        }
+
+        list AmqpReceived using AmqpList
+        {
+            required AmqpUInt sectionNumber;
+            required AmqpULong sectionOffset;
+        }
+
+        list AmqpRejected using AmqpList
+        {
+            AmqpErrorList error;
+        }
+
+        list AmqpModified using AmqpList
+        {
+            AmqpBoolean deliveryFailed;
+            AmqpBoolean undeliverableHere;
+            AmqpFields<AmqpValue> messageAnnotations;
+        }
+
+        list AmqpDeclared using AmqpList
+        {
+            required AmqpTxnId txnId;
+        }
+
+        union AmqpOutcome switch (AmqpDescribedType)
+        {
+            case ACCEPTED: AmqpList accepted;
+            case REJECTED: AmqpRejected rejected;
+            case RELEASED: AmqpList released;
+            case MODIFIED: AmqpModified modified;
+            case DECLARED: AmqpDeclared declared;
+        }
+
+        list AmqpSourceList using AmqpList
+        {
+            AmqpAddress address;
+            AmqpTerminusDurability durable;
+            AmqpTerminusExpiryPolicy expiryPolicy;
+            AmqpSeconds timeout;
+            AmqpBoolean dynamic;
+            AmqpFields<AmqpValue> dynamicNodeProperties;
+            AmqpStandardDistributionMode distributionMode;
+            AmqpMap<AmqpSymbol, AmqpSymbol> filter; // value type?
+            AmqpOutcome defaultOutcome;
+            AmqpArray<AmqpSymbol> outcomes;
+            AmqpArray<AmqpSymbol> capabilities;
+        }
+
+        union AmqpSource switch (AmqpDescribedType)
+        {
+            case SOURCE: AmqpSourceList sourceList;
+        }
+
+        list AmqpTargetList using AmqpList
+        {
+            AmqpAddress address;
+            AmqpTerminusDurability durable;
+            AmqpTerminusExpiryPolicy expiryPolicy;
+            AmqpSeconds timeout;
+            AmqpBoolean dynamic;
+            AmqpFields<AmqpValue> dynamicNodeProperties;
+            AmqpArray<AmqpSymbol> capabilities;
+        }
+
+        enum AmqpTransactionCapability (AmqpSymbol)
+        {
+            LOCAL_TRANSACTIONS ("amqp:local-transactions"),
+            DISTRIBUTED_TRANSACTIONS ("amqp:distributed-transactions"),
+            PROMOTABLE_TRANSACTIONS ("amqp:promotable-transactions"),
+            MULTI_TXNS_PER_SSN ("amqp:multi-txns-per-ssn"),
+            MULTI_SSNS_PER_TXN ("amqp:multi-ssns-per-txn")
+        }
+
+        list AmqpCoordinator using AmqpList
+        {
+            AmqpArray<AmqpTransactionCapability> capabilities;
+        }
+
+        union AmqpTarget switch (AmqpDescribedType)
+        {
+            case TARGET: AmqpTargetList targetList;
+            case COORDINATOR: AmqpCoordinator coordinatorList;
+        }
+
+        list AmqpTransactionalState using AmqpList
+        {
+            required AmqpBinary txnId;
+            AmqpOutcome outcome;
+        }
+
+        union AmqpDeliveryState switch (AmqpDescribedType)
+        {
+            case RECEIVED: AmqpReceived received;
+            case ACCEPTED: AmqpList accepted;
+            case REJECTED: AmqpRejected rejected;
+            case RELEASED: AmqpList AmqpList;
+            case MODIFIED: AmqpModified modified;
+            case DECLARED: AmqpDeclared declared;
+            case TRANSACTIONAL_STATE: AmqpTransactionalState transactionalState;
+        }
+
+        list AmqpOpen using AmqpList
+        {
+            required AmqpString containerId;
+            AmqpString hostname;
+            AmqpUInt maxFrameSize = 4294967295L;
+            AmqpUShort channelMax = 65535;
+            AmqpMilliseconds idleTimeOut;
+            AmqpArray<AmqpIETFLanguageTag> outgoingLocales;
+            AmqpArray<AmqpIETFLanguageTag> incomingLocales;
+            AmqpArray<AmqpSymbol> offeredCapabilities;
+            AmqpArray<AmqpSymbol> desiredCapabilities;
+            AmqpFields<AmqpValue> properties;
+        }
+
+        list AmqpBegin using AmqpList
+        {
+            AmqpUShort remoteChannel;
+            required AmqpTransferNumber nextOutgoingId;
+            required AmqpUInt incomingWindow;
+            required AmqpUInt outgoingWindow;
+            AmqpHandle handleMax = 4294967295L;
+            AmqpArray<AmqpSymbol> offeredCapabilities;
+            AmqpArray<AmqpSymbol> desiredCapabilities;
+            AmqpFields<AmqpValue> properties;
+        }
+
+        list AmqpAttach using AmqpList
+        {
+            required AmqpString name;
+            required AmqpHandle handle;
+            required AmqpRole role;
+            AmqpSenderSettleMode sndSettleMode = MIXED;
+            AmqpReceiverSettleMode rcvSettleMode = FIRST;
+            AmqpSource source;
+            AmqpTarget target;
+            AmqpMap<AmqpDeliveryTag, AmqpSymbol> unsettled;
+            AmqpBoolean incompleteUnsettled = 0;
+            AmqpSequenceNo initialDeliveryCount;
+            AmqpULong maxMessageSize;
+            AmqpArray<AmqpSymbol> offeredCapabilities;
+            AmqpArray<AmqpSymbol> desiredCapabilities;
+            AmqpFields<AmqpValue> properties;
+        }
+
+        list AmqpFlow using AmqpList
+        {
+            AmqpTransferNumber nextIncomingId;
+            required AmqpUInt incomingWindow;
+            required AmqpTransferNumber nextOutgoingId;
+            required AmqpUInt outgoingWindow;
+            AmqpHandle handle;
+            AmqpSequenceNo deliveryCount;
+            AmqpUInt linkCredit;
+            AmqpUInt available;
+            AmqpBoolean drain = 0;
+            AmqpBoolean echo = 0;
+            AmqpFields<AmqpValue> properties;
+        }
+
+        list AmqpTransfer using AmqpList
+        {
+            required AmqpHandle handle;
+            AmqpDeliveryNumber deliveryId;
+            AmqpDeliveryTag deliveryTag;
+            AmqpMessageFormat messageFormat;
+            AmqpBoolean settled;
+            AmqpBoolean more = 0;
+            AmqpReceiverSettleMode rcvSettleMode;
+            AmqpDeliveryState state;
+            AmqpBoolean resume = 0;
+            AmqpBoolean aborted = 0;
+            AmqpBoolean batchable = 0;
+        }
+
+        list AmqpDisposition using AmqpList
+        {
+            required AmqpRole role;
+            required AmqpDeliveryNumber first;
+            AmqpDeliveryNumber last;
+            AmqpBoolean settled = 0;
+            AmqpDeliveryState state;
+            AmqpBoolean batchable = 0;
+        }
+
+        list AmqpDetach using AmqpList
+        {
+            required AmqpHandle handle;
+            AmqpBoolean closed = 0;
+            AmqpError error;
+        }
+
+        list AmqpEnd using AmqpList
+        {
+            AmqpError error;
+        }
+
+        list AmqpClose using AmqpList
+        {
+            AmqpError error;
+        }
+
+        list AmqpSaslMechanisms using AmqpList
+        {
+            required AmqpArray<AmqpSymbol> mechanisms;
+        }
+
+        list AmqpSaslInit using AmqpList
+        {
+            required AmqpSymbol mechanism;
+            AmqpBinary initialResponse;
+            AmqpString hostname;
+        }
+
+        list AmqpSaslChallenge using AmqpList
+        {
+            required AmqpBinary challenge;
+        }
+
+        list AmqpSaslResponse using AmqpList
+        {
+            required AmqpBinary response;
+        }
+
+        enum AmqpSaslCode (AmqpUByte)
+        {
+            OK (0),
+            AUTH (1),
+            SYS (2),
+            SYS_PERM (3),
+            SYS_TEMP (4)
+        }
+
+        list AmqpSaslOutcome using AmqpList
+        {
+            required AmqpSaslCode code;
+            AmqpBinary additionalData;
+        }
+
+        enum AmqpPerformativeType (AmqpDescriptor)
+        {
+            OPEN (0x10L),
+            BEGIN (0x11L),
+            ATTACH (0x12L),
+            FLOW (0x13L),
+            TRANSFER (0x14L),
+            DISPOSITION (0x15L),
+            DETACH (0x16L),
+            END (0x17L),
+            CLOSE (0x18L)
+        }
+
+        union AmqpSecurity switch (AmqpDescribedType)
+        {
+            case SASL_MECHANISMS: AmqpSaslMechanisms saslMechanisms;
+            case SASL_INIT: AmqpSaslInit saslInit;
+            case SASL_CHALLENGE: AmqpSaslChallenge saslChallenge;
+            case SASL_RESPONSE: AmqpSaslResponse saslResponse;
+            case SASL_OUTCOME: AmqpSaslOutcome saslOutcome;
+        }
+
+        struct AmqpFrameHeader
+        {
+            uint32 size;
+            uint8 doff;
+            uint8 type;
+            uint16 channel;
+        }
+
+        struct AmqpSaslFrameHeader
+        {
+            uint32 size;
+            uint8 doff = 2;
+            uint8 type = 1;
+            uint16 ignored = 0;
+            AmqpSecurity security;
+        }
+
+        list AmqpHeader using AmqpList
+        {
+            AmqpBoolean durable;
+            AmqpUByte priority;
+            AmqpMilliseconds ttl;
+            AmqpBoolean firstAcquirer;
+            AmqpUInt deliveryCount;
+        }
+
+//        // 3.2 Message Format
+        union AmqpSection switch (AmqpDescribedType)
+        {
+//            case HEADER: AmqpHeader header;
+//            case DELIVERY_ANNOTATIONS: AmqpMap deliveryAnnotations;
+//            case MESSAGE_ANNOTATIONS: AmqpMap messageAnnotations;
+//            case PROPERTIES: AmqpProperties properties;
+//            case APPLICATION_PROPERTIES: AmqpMap applicationProperties;
+            case DATA: AmqpBinary data; // -> octets
+            case SEQUENCE: AmqpList amqpSequence; // -> octets
+            case VALUE: AmqpValue amqpValue; // -> octets
+//            case FOOTER: AmqpMap footer;
+        }
+
+        struct AmqpValueHeader
+        {
+            AmqpDescribedType sectionType;
+            AmqpType valueType;
+            uint32 valueLength;
+        }
+
+//        variant AmqpMessageId switch (AmqpType)
+//        {
+//            case ULONG8:
+//            case ULONG1:
+//            case ULONG0:
+//                AmqpULong;
+//            case UUID:
+//                AmqpUUId;
+//            case BINARY1:
+//            case BINARY4:
+//                AmqpBinary;
+//            case STRING1:
+//            case STRING4:
+//                AmqpString;
+//        }
+
+        list AmqpMessageProperties using AmqpList
+        {
+            AmqpString messageId; // TODO: AmqpMessageId messageId
+            AmqpBinary userId;
+            AmqpAddress to;
+            AmqpString subject;
+            AmqpAddress replyTo;
+            AmqpString correlationId; // TODO: AmqpMessageId messageId
+            AmqpSymbol contentType;
+            AmqpSymbol contentEncoding;
+            AmqpTimestamp absoluteExpiryTime;
+            AmqpTimestamp creationTime;
+            AmqpString groupId;
+            AmqpSequenceNo groupSequence;
+            AmqpString replyToGroupId;
+        }
+
+        map AmqpApplicationProperties<AmqpString, V> using AmqpMap;
+
+//
+//        union AmqpLifetimePolicy switch (AmqpDescribedType)
+//        {
+//            case DELETE_ON_CLOSE: AmqpList deleteOnClose;
+//            case DELETE_ON_NO_LINKS: AmqpList deleteOnNoLinks;
+//            case DELETE_ON_NO_MESSAGES: AmqpList deleteOnNoMessages;
+//            case DELETE_ON_NO_LINKS_OR_MESSAGES: AmqpList deleteOnNoLinksOrMessages;
+//        }
+//
+//        list AmqpDeclareList (AmqpList)
+//        {
+//            AmqpTxnId globalId;
+//        }
+//
+//        union AmqpDeclare switch (AmqpDescribedType)
+//        {
+//            case DECLARE: AmqpDeclareList value;
+//        }
+//
+//        list AmqpDischargeList (AmqpList)
+//        {
+//            required AmqpTxnId txnId;
+//            AmqpBoolean fail;
+//        }
+//
+//        union AmqpDischarge switch (AmqpDescribedType)
+//        {
+//            case DISCHARGE: AmqpDischargeList value;
+//        }
+//
+//        // 5.3 Security Frame Bodies
+//        union AmqpSaslFrame switch (AmqpDescribedType)
+//        {
+//            case SASL_MECHANISMS: AmqpSaslMechanisms saslMechanisms;
+//            case SASL_INIT: AmqpSaslInit saslInit;
+//            case SASL_CHALLENGE: AmqpSaslChallenge saslChallenge;
+//            case SASL_RESPONSE: AmqpSaslResponse saslResponse;
+//            case SASL_OUTCOME: AmqpSaslOutcome saslOutcome;
+//        }
+    }
+}

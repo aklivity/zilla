@@ -1,0 +1,121 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
+accept "zilla://streams/net#0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read 21                                 # size
+     3s                                 # metadata
+     5s                                 # v5
+     (int:requestId)
+     -1s                                # no client id
+     1                                  # topics
+       4s "test"                        #   "test" topic
+     [0x00]                             # allow_auto_topic_creation
+
+write 97                                # size
+      ${requestId}
+      0
+      1                                 # brokers
+        0xb1                                # broker id
+        19s "broker1.example.com"           # host name
+        9092                                # port
+        -1s                                 # no rack
+      9s "cluster 1"                    # cluster id
+      1                                 # controller id
+      1                                 # topics
+        0s                                # no error
+        4s "test"                         #   "test" topic
+        [0x00]                            # not internal
+        1                                 # partitions
+          0s                                # no error
+          0                                 # partition
+          0xb1                              # leader
+          0                                 # no replicas
+          -1                                # no in-sync replicas
+          0                                 # offline replicas
+
+accepted
+
+read zilla:begin.ext ${proxy:beginEx()
+                              .typeId(zilla:id("proxy"))
+                              .addressInet()
+                                .protocol("stream")
+                                .source("0.0.0.0")
+                                .destination("broker1.example.com")
+                                .sourcePort(0)
+                                .destinationPort(9092)
+                                .build()
+                              .build()}
+
+connected
+
+read 120
+     0s
+     3s
+     (int:requestId)
+     -1s
+     -1s
+     [0..2]
+     [0..4]
+     1
+     4s "test"
+     1
+     0
+     80                                 # record set size
+     0L                                 # first offset
+     68                                 # length
+     -1
+     [0x02]
+     [0..4]
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     1                                  # records
+     ${kafka:varint(18)}
+     [0x00]
+     ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(-1)}                # key
+     ${kafka:varint(12)}                # value
+     "Hello, world"
+     ${kafka:varint(0)}                 # headers
+
+write 44
+      ${requestId}
+      1                                 # topics
+      4s "test"
+      1                                 # partitions
+      0                                 # partition 0
+      0s                                # no error
+      20L                               # base offset
+      0L                                # log append time
+      0                                 # throttle

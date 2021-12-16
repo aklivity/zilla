@@ -1,0 +1,17 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "app#0",
+            "type" : "kafka",
+            "kind": "cache_client",
+            "exit": "cache#0"
+        },
+        {
+            "entry": "cache#0",
+            "type" : "kafka",
+            "kind": "cache_server",
+            "exit": "app#1"
+        }
+    ]
+}

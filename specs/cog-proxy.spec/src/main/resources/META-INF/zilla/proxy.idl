@@ -1,0 +1,130 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+scope proxy
+{
+    enum ProxyAddressFamily
+    {
+        INET,
+        INET4,
+        INET6,
+        UNIX,
+        NONE
+    }
+
+    enum ProxyAddressProtocol
+    {
+        STREAM,
+        DATAGRAM
+    }
+
+    struct ProxyAddressInet
+    {
+        ProxyAddressProtocol protocol;
+        string16 source;
+        string16 destination;
+        uint16 sourcePort;
+        uint16 destinationPort;
+    }
+
+    struct ProxyAddressInet4
+    {
+        ProxyAddressProtocol protocol;
+        octets[4] source;
+        octets[4] destination;
+        uint16 sourcePort;
+        uint16 destinationPort;
+    }
+
+    struct ProxyAddressInet6
+    {
+        ProxyAddressProtocol protocol;
+        octets[16] source;
+        octets[16] destination;
+        uint16 sourcePort;
+        uint16 destinationPort;
+    }
+
+    struct ProxyAddressUnix
+    {
+        ProxyAddressProtocol protocol;
+        octets[108] source;
+        octets[108] destination;
+    }
+
+    struct ProxyAddressNone
+    {
+    }
+
+    union ProxyAddress switch (ProxyAddressFamily)
+    {
+        case INET: ProxyAddressInet inet;
+        case INET4: ProxyAddressInet4 inet4;
+        case INET6: ProxyAddressInet6 inet6;
+        case UNIX: ProxyAddressUnix unix;
+        case NONE: ProxyAddressNone none;
+    }
+
+    struct ProxyIdentity
+    {
+        uint16 length;
+        octets[length] value;
+    }
+
+    enum ProxyInfoType (uint8)
+    {
+        ALPN (0x01),
+        AUTHORITY (0x02),
+        IDENTITY (0x05),
+        SECURE (0x20),
+        NAMESPACE (0x30)
+    }
+
+    enum ProxySecureInfoType (uint8)
+    {
+        PROTOCOL (0x21),
+        NAME (0x22),
+        CIPHER (0x23),
+        SIGNATURE (0x24),
+        KEY (0x25)
+    }
+
+    union ProxySecureInfo switch (ProxySecureInfoType)
+    {
+        case PROTOCOL: string8 protocol;
+        case NAME: string16 name;
+        case CIPHER: string8 cipher;
+        case SIGNATURE: string8 signature;
+        case KEY: string8 key;
+    }
+
+    union ProxyInfo switch (ProxyInfoType)
+    {
+        case ALPN: string8 alpn;
+        case AUTHORITY: string16 authority;
+        case IDENTITY: ProxyIdentity identity;  // TODO: use octets[uint16] instead
+        case NAMESPACE: string16 namespace;
+        case SECURE: ProxySecureInfo secure;
+    }
+
+    scope stream
+    {
+        struct ProxyBeginEx extends core::stream::Extension
+        {
+            ProxyAddress address;
+            ProxyInfo[] infos;
+        }
+    }
+}

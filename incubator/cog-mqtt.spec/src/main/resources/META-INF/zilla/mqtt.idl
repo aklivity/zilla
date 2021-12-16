@@ -1,0 +1,91 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+scope mqtt
+{
+    enum MqttSubscribeFlags (uint8)
+    {
+        SEND_RETAINED(0),
+        RETAIN_AS_PUBLISHED(1),
+        NO_LOCAL(2)
+    }
+
+    enum MqttPublishFlags (uint8)
+    {
+        RETAIN(0)
+    }
+
+    enum MqttCapabilities (uint8)
+    {
+        PUBLISH_ONLY(1),
+        SUBSCRIBE_ONLY(2),
+        PUBLISH_AND_SUBSCRIBE(3)
+    }
+
+    enum MqttPayloadFormat
+    {
+        BINARY,
+        TEXT
+    }
+
+    struct MqttBinary
+    {
+        int32 length;
+        octets[length] bytes = null;
+    }
+
+    struct MqttUserProperty
+    {
+        string16 key;
+        string16 value;
+    }
+
+    scope stream
+    {
+        struct MqttBeginEx extends core::stream::Extension
+        {
+            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
+            string16 clientId;
+            string16 topic;
+            uint8 flags = 0;
+            varuint32 subscriptionId = 0;
+            MqttUserProperty[] properties;
+        }
+
+        struct MqttDataEx extends core::stream::Extension
+        {
+            int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
+            string16 topic = null;
+            uint8 flags = 0;
+            int32 expiryInterval = -1;
+            string16 contentType = null;
+            MqttPayloadFormat format = BINARY;
+            string16 responseTopic = null;
+            MqttBinary correlation;
+            MqttUserProperty[] properties;
+        }
+
+        struct MqttAbortEx extends core::stream::Extension
+        {
+            uint8 reason;
+        }
+
+        struct MqttFlushEx extends core::stream::Extension
+        {
+            uint8 flags = 0;
+            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
+        }
+    }
+}

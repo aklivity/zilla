@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.aklivity.zilla</groupId>
+    <artifactId>parent</artifactId>
+    <version>0.1.0</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>specs</artifactId>
+  <packaging>pom</packaging>
+  <name>zilla::specs</name>
+
+  <modules>
+    <module>cog.spec</module>
+    <module>cog-echo.spec</module>
+    <module>cog-fan.spec</module>
+    <module>cog-proxy.spec</module>
+    <module>cog-tcp.spec</module>
+    <module>cog-tls.spec</module>
+    <module>cog-http.spec</module>
+    <module>cog-sse.spec</module>
+    <module>cog-ws.spec</module>
+    <module>cog-kafka.spec</module>
+  </modules>
+</project>

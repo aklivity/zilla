@@ -1,0 +1,16 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "app#0",
+            "type" : "tcp",
+            "kind": "client",
+            "options":
+            {
+                "host": "localhost",
+                "port": 8080
+            },
+            "exit": "net#0"
+        }
+    ]
+}

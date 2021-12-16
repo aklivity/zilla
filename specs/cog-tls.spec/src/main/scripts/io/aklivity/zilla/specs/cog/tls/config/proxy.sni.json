@@ -1,0 +1,20 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "tls",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "when":
+                    [
+                        { "authority": "localhost" }
+                    ],
+                    "exit": "net#1"
+                }
+            ]
+        }
+    ]
+}

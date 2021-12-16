@@ -1,0 +1,53 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property clientInitialWindow 8192
+
+connect "zilla://streams/net#0"
+  option zilla:window ${clientInitialWindow}
+  option zilla:transmission "duplex"
+connected
+
+write "GET /request1 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
+write "\r\n"
+
+write "GET /request2 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
+write "\r\n"
+
+write "GET /request3 HTTP/1.1" "\r\n"
+write "Host: localhost:8080" "\r\n"
+write "\r\n"
+
+
+read "HTTP/1.1 200 OK\r\n"
+read "Content-Length: 9\r\n"
+read "\r\n"
+read "response1"
+
+read "HTTP/1.1 200 OK\r\n"
+read "Content-Length: 9\r\n"
+read "\r\n"
+read "response2"
+
+read "HTTP/1.1 200 OK\r\n"
+read "Content-Length: 9\r\n"
+read "\r\n"
+read "response3"
+
+close 
+closed

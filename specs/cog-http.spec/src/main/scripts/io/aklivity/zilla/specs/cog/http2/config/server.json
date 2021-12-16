@@ -1,0 +1,25 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "http2",
+            "kind": "server",
+            "routes":
+            [
+                {
+                    "exit": "app#0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":authority": "localhost:8080"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

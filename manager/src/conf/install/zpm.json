@@ -1,0 +1,18 @@
+{
+  "repositories":
+  [ 
+    "https://repo1.maven.org/maven2/"
+  ],
+
+  "imports":
+  [
+    "io.aklivity.zilla:runtime:0.1.0"
+  ],
+
+  "dependencies":
+  [
+    "io.aklivity.zilla:engine",
+    "io.aklivity.zilla:cog-tcp",
+    "io.aklivity.zilla:cog-tls"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "amqp",
+            "kind": "server",
+            "routes":
+            [
+                {
+                    "exit": "app#0",
+                    "when":
+                    [
+                        {
+                            "address": "clients",
+                            "capabilities": "send_only"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,46 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property writeMaskA ${http:randomBytes(4)}
+property client25a ${http:randomBytes(25)}
+
+accept "http://localhost:8080/echo"
+accepted
+connected
+
+read http:method "GET"
+read http:version "HTTP/1.1"
+read http:header "Host" "localhost:8080"
+read http:header "Upgrade" /(?i:websocket)/
+read http:header "Connection" /(?i:Upgrade)/
+read http:header "Sec-WebSocket-Key" /(?<key>[a-zA-Z0-9+\/=]{24})/
+read http:header "Sec-WebSocket-Version" "13"
+
+write http:status "101" "Switching Protocols"
+write http:version "HTTP/1.1"
+write http:header "Upgrade" "websocket"
+write http:header "Connection" "Upgrade"
+write http:header "Sec-WebSocket-Accept" ${ws:handshakeHash(key)}
+
+write [0xda 0x99] ${writeMaskA}
+write option mask ${writeMaskA}
+write ${client25a}
+write option mask [0x00 0x00 0x00 0x00]
+
+read [0x88 0x82] ([0..4] :readMask)
+read option mask ${readMask}
+read [0x03 0xea]
+read option mask [0x00 0x00 0x00 0x00]

@@ -1,0 +1,33 @@
+{
+    "vaults":
+    [
+        {
+            "name": "client",
+            "type": "filesystem",
+            "options":
+            {
+                "trust":
+                {
+                    "store": "stores/client/trust",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        }
+    ],
+    "bindings":
+    [
+        {
+            "entry": "app#0",
+            "type" : "tls",
+            "kind": "client",
+            "vault": "client",
+            "options":
+            {
+                "trust": [ "serverca" ],
+                "alpn": [ "protocol2" ]
+            },
+            "exit": "net#0"
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "sse",
+            "kind": "server",
+            "routes":
+            [
+                {
+                    "exit": "app#0",
+                    "when":
+                    [
+                        {
+                            "path": "/events/*"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

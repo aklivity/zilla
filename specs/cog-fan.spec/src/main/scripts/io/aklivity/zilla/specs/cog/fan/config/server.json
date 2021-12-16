@@ -1,0 +1,11 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "fan",
+            "kind": "server",
+            "exit": "app#0"
+        }
+    ]
+}

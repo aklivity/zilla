@@ -1,0 +1,22 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "mqtt",
+            "kind": "server",
+            "routes":
+            [
+                {
+                    "exit": "app#0",
+                    "when":
+                    [
+                        {
+                            "topic": "sensor/one"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

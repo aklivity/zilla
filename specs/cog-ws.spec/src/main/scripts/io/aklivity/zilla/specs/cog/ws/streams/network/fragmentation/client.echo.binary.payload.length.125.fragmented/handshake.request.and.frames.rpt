@@ -1,0 +1,169 @@
+#
+# Copyright 2021-2021 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property key ${ws:handshakeKey()}
+property writeMaskA ${http:randomBytes(4)}
+property writeMaskB ${http:randomBytes(4)}
+property writeMaskC ${http:randomBytes(4)}
+property writeMaskD ${http:randomBytes(4)}
+property writeMaskE ${http:randomBytes(4)}
+property client25a ${http:randomBytes(25)}
+property client25b ${http:randomBytes(25)}
+property client25c ${http:randomBytes(25)}
+property client25d ${http:randomBytes(25)}
+property client25e ${http:randomBytes(25)}
+
+property location "http://localhost:8080/echo"
+
+connect "zilla://streams/net#0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/echo")
+                              .header(":authority", "localhost:8080")
+                              .header("upgrade", "websocket")
+                              .header("connection", "upgrade")
+                              .header("sec-websocket-key", key)
+                              .header("sec-websocket-version", "13")
+                              .build()}
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "101")
+                             .header("upgrade", "websocket")
+                             .header("connection", "upgrade")
+                             .header("sec-websocket-accept", ws:handshakeHash(key))
+                             .build()}
+
+connected
+
+#
+# frame#1 of length 25
+#
+write [0x02]
+write [0x99]
+write ${writeMaskA[0]}
+write ${writeMaskA[1]}
+write ${writeMaskA[2]}
+write ${writeMaskA[3]}
+write option mask ${writeMaskA}
+write ${client25a[0]}
+write ${client25a[1]}
+write ${client25a[2]}
+write ${client25a[3]}
+write ${client25a[4]}
+write ${client25a[5]}
+write ${client25a[6]}
+write ${client25a[7]}
+write ${client25a[8]}
+write ${client25a[9]}
+write ${client25a[10]}
+write ${client25a[11]}
+write ${client25a[12]}
+write ${client25a[13]}
+write ${client25a[14]}
+write ${client25a[15]}
+write ${client25a[16]}
+write ${client25a[17]}
+write ${client25a[18]}
+write ${client25a[19]}
+write ${client25a[20]}
+write ${client25a[21]}
+write ${client25a[22]}
+write ${client25a[23]}
+write ${client25a[24]}
+write option mask [0x00 0x00 0x00 0x00]
+write flush
+
+#
+# frame#2 of length 25
+#
+write [0x00 0x99]
+write ${writeMaskB[0]} ${writeMaskB[1]}
+write ${writeMaskB[2]} ${writeMaskB[3]}
+write option mask ${writeMaskB}
+write ${client25b[0]} ${client25b[1]}
+write ${client25b[2]} ${client25b[3]}
+write ${client25b[4]} ${client25b[5]}
+write ${client25b[6]} ${client25b[7]}
+write ${client25b[8]} ${client25b[9]}
+write ${client25b[10]} ${client25b[11]}
+write ${client25b[12]} ${client25b[13]}
+write ${client25b[14]} ${client25b[15]}
+write ${client25b[16]} ${client25b[17]}
+write ${client25b[18]} ${client25b[19]}
+write ${client25b[20]} ${client25b[21]}
+write ${client25b[22]} ${client25b[23]}
+write ${client25b[24]}
+write option mask [0x00 0x00 0x00 0x00]
+
+#
+# frame#3 of length 25
+#
+write [0x00]
+write [0x99]
+write ${writeMaskC[0]} ${writeMaskC[1]} ${writeMaskC[2]}
+write ${writeMaskC[3]}
+write option mask ${writeMaskC}
+write ${client25c[0]} ${client25c[1]} ${client25c[2]}
+write ${client25c[3]} ${client25c[4]} ${client25c[5]}
+write ${client25c[6]} ${client25c[7]} ${client25c[8]}
+write ${client25c[9]} ${client25c[10]} ${client25c[11]}
+write ${client25c[12]} ${client25c[13]} ${client25c[14]}
+write ${client25c[15]} ${client25c[16]} ${client25c[17]}
+write ${client25c[18]} ${client25c[19]} ${client25c[20]}
+write ${client25c[21]} ${client25c[22]} ${client25c[23]}
+write ${client25c[24]}
+write option mask [0x00 0x00 0x00 0x00]
+
+#
+# frame#4 of length 25
+#
+write [0x00 0x99] ${writeMaskD}
+write option mask ${writeMaskD}
+write ${client25d[0]} ${client25d[1]} ${client25d[2]} ${client25d[3]}
+write ${client25d[4]} ${client25d[5]} ${client25d[6]} ${client25d[7]}
+write ${client25d[8]} ${client25d[9]} ${client25d[10]} ${client25d[11]}
+write ${client25d[12]} ${client25d[13]} ${client25d[14]} ${client25d[15]}
+write ${client25d[16]} ${client25d[17]} ${client25d[18]} ${client25d[19]}
+write ${client25d[20]} ${client25d[21]} ${client25d[22]} ${client25d[23]}
+write ${client25d[24]}
+write option mask [0x00 0x00 0x00 0x00]
+
+#
+# frame#5 of length 25
+#
+write [0x80]
+write [0x99]
+write ${writeMaskE}
+write option mask ${writeMaskE}
+write ${client25e[0]} ${client25e[1]} ${client25e[2]} ${client25e[3]} ${client25e[4]}
+write ${client25e[5]} ${client25e[6]} ${client25e[7]} ${client25e[8]} ${client25e[9]}
+write ${client25e[10]} ${client25e[11]} ${client25e[12]} ${client25e[13]} ${client25e[14]}
+write ${client25e[15]} ${client25e[16]} ${client25e[17]} ${client25e[18]} ${client25e[19]}
+write ${client25e[20]} ${client25e[21]} ${client25e[22]} ${client25e[23]} ${client25e[24]}
+write option mask [0x00 0x00 0x00 0x00]
+
+read [0x82 0x7d]
+read ${client25a}
+read ${client25b}
+read ${client25c}
+read ${client25d}
+read ${client25e}

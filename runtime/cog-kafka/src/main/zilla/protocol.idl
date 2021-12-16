@@ -1,0 +1,338 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+scope protocol
+{
+    option byteorder network;
+
+    scope codec
+    {
+        struct RequestHeader
+        {
+            int32 length;
+            int16 apiKey;
+            int16 apiVersion;
+            int32 correlationId;
+            string16 clientId /* = null */;
+        }
+
+        struct ResponseHeader
+        {
+            int32 length;
+        }
+
+        scope message
+        {
+            struct RecordSet
+            {
+                int32 length;
+            }
+
+            struct RecordBatch
+            {
+                int64 baseOffset;
+                int32 length;
+                int32 leaderEpoch;
+                int8  magic;
+                int32 crc;
+                int16 attributes;
+                int32 lastOffsetDelta;
+                int64 firstTimestamp;
+                int64 maxTimestamp;
+                int64 producerId;
+                int16 producerEpoch;
+                int32 baseSequence;
+                int32 recordCount;
+            }
+
+            struct RecordHeader
+            {
+                varint32 length;
+                int8   attributes;
+                varint32 timestampDelta;
+                varint32 offsetDelta;
+                varint32 keyLength;
+                octets[keyLength] key = null;
+                varint32 valueLength;
+            }
+
+            struct RecordTrailer
+            {
+                varint32 headerCount;
+            }
+
+            struct MessageHeader
+            {
+                varint32 keyLength;
+                octets[keyLength] key; // UTF-8 bytes
+                varint32 valueLength;
+                octets[valueLength] value = null;
+            }
+        }
+
+        scope config
+        {
+            struct DescribeConfigsRequest
+            {
+              int32 resourceCount;
+            }
+
+            struct ResourceRequest
+            {
+                int8 type;
+                string16 name;
+                int32 configNamesCount;
+            }
+
+            struct DescribeConfigsResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int32 resourceCount;
+            }
+
+            struct ResourceResponse
+            {
+                int16 errorCode;
+                string16 errorMessage;
+                int8 type;
+                string16 name;
+                int32 configCount;
+            }
+
+            struct ConfigResponse
+            {
+                string16 name;
+                string16 value;
+                int8 isReadOnly;
+                int8 isDefault;
+                int8 isSensitive;
+            }
+        }
+
+        scope fetch
+        {
+            struct FetchRequest
+            {
+                int32 replicaId = -1;
+                int32 maxWaitTimeMillis;
+                int32 minBytes;
+                int32 maxBytes;
+                int8 isolationLevel;
+                int32 topicCount;
+            }
+
+            struct TopicRequest
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct PartitionRequest
+            {
+                int32 partitionId;
+                int64 fetchOffset;
+                int64 logStartOffset = -1;
+                int32 maxBytes;
+            }
+
+            struct FetchResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int32 topicCount;
+            }
+
+            struct TopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct PartitionResponse
+            {
+                int32 partitionId;
+                int16 errorCode;
+                int64 highWatermark;
+                int64 lastStableOffset;
+                int64 logStartOffset;
+                int32 abortedTransactionCount;
+            }
+
+            struct TransactionResponse
+            {
+                int64 producerId;
+                int64 firstOffset;
+            }
+        }
+
+        scope offsets
+        {
+            enum IsolationLevel
+            {
+                READ_UNCOMMITTED,
+                READ_COMMITTED
+            }
+
+            struct OffsetsRequest // version 2
+            {
+                int32 replicaId = -1;
+                IsolationLevel isolationLevel;
+                int32 topicCount;
+            }
+
+            struct OffsetsTopicRequest
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetsPartitionRequest
+            {
+                int32 partitionId;
+                int64 timestamp = -2;
+            }
+
+            struct OffsetsResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int32 topicCount;
+            }
+
+            struct OffsetsTopicResponse
+            {
+                string16 name;
+                int32 partitionCount;
+            }
+
+            struct OffsetsPartitionResponse
+            {
+                int32 partitionId;
+                int16 errorCode;
+                int64 timestamp;
+                int64 offset;
+            }
+        }
+
+        scope metadata
+        {
+            struct MetadataRequest
+            {
+                int32 topicCount = 1;
+                string16 topicName;   // TODO: string array
+                int8 allow_auto_topic_creation = 0;
+            }
+
+            struct MetadataResponse
+            {
+                int32 correlationId;
+                int32 throttleTimeMillis;
+                int32 brokerCount;
+            }
+
+            struct BrokerMetadata
+            {
+                int32 nodeId;
+                string16 host;
+                int32 port;
+                string16 rack; // = null
+            }
+
+            struct MetadataResponsePart2
+            {
+                string16 clusterId;
+                int32 controllerId;
+                int32 topicCount;
+            }
+
+            struct TopicMetadata
+            {
+                int16 errorCode;
+                string16 topic;
+                int8 isInternal;
+                int32 partitionCount;
+            }
+
+            struct PartitionMetadata
+            {
+                int16 errorCode;
+                int32 partitionId;
+                int32 leader;
+                int32 replicaCount;
+                int32[replicaCount] replicas = null;
+                int32 inSyncReplicasCount;
+                int32[inSyncReplicasCount] inSyncReplicas = null;
+                int32 offlineReplicasCount;
+                int32[offlineReplicasCount] offlineReplicas = null;
+            }
+        }
+
+        scope produce
+        {
+            enum ProduceAck (int16)
+            {
+                NONE(0),
+                LEADER_ONLY(1),
+                IN_SYNC_REPLICAS(-1)
+            }
+
+            struct ProduceRequest // v3
+            {
+                string16 transactionalId;
+                ProduceAck acks;
+                int32 timeout;
+                int32 topicCount;
+            }
+
+            struct ProduceTopicRequest
+            {
+                string16 topic;
+                int32 partitionCount;
+            }
+
+            struct ProducePartitionRequest
+            {
+                int32 partitionId;
+                int32 recordSetLength;
+            }
+
+            struct ProduceResponse // v3
+            {
+                int32 correlationId;
+                int32 topicCount;
+            }
+
+            struct ProduceTopicResponse
+            {
+                string16 topic;
+                int32 partitionCount;
+            }
+
+            struct ProducePartitionResponse
+            {
+                int32 partitionId;
+                int16 errorCode;
+                int64 baseOffset;
+                int64 logAppendTime;
+            }
+
+            struct ProduceResponseTrailer
+            {
+                int32 thottleTimeMillis;
+            }
+        }
+    }
+}
