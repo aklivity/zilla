@@ -1,0 +1,213 @@
+/*
+ * Copyright 2021-2021 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+ scope protocol
+ {
+    option byteorder network;
+
+    scope codec
+    {
+        enum MqttPacketType
+        {
+            RESERVED,
+            CONNECT,
+            CONNACK,
+            PUBLISH,
+            PUBACK,
+            PUBREC,
+            PUBREL,
+            PUBCOMP,
+            SUBSCRIBE,
+            SUBACK,
+            UNSUBSCRIBE,
+            UNSUBACK,
+            PINGREQ,
+            PINGRESP,
+            DISCONNECT,
+            AUTH
+        }
+
+        struct Binary
+        {
+            uint16 length;
+            octets[length] bytes;
+        }
+
+        struct MqttPacketHeader
+        {
+            uint8 typeAndFlags;
+            varuint32 remainingLength;
+        }
+
+        struct MqttProperties
+        {
+            varuint32 length;
+            octets[length] value;
+        }
+
+        struct MqttUserProperty
+        {
+            string16 key;
+            string16 value;
+        }
+
+        union MqttProperty switch (uint8)
+        {
+            case 0x01: uint8 payloadFormat;
+            case 0x02: int32 expiryInterval;
+            case 0x03: string16 contentType;
+            case 0x08: string16 responseTopic;
+            case 0x09: Binary correlationData;
+            case 0x0b: varuint32 subscriptionId;
+            case 0x11: uint32 sessionExpiry;
+            case 0x12: string16 assignedClientId;
+            case 0x13: uint16 serverKeepAlive;
+            case 0x15: string16 authenticationMethod;
+            case 0x16: Binary authenticationData;
+            case 0x17: uint8 requestProblemInformation;
+            case 0x18: int32 willDelayInterval;
+            case 0x19: uint8 requestResponseInformation;
+            case 0x1A: string16 responseInformation;
+            case 0x1C: string16 serverReference;
+            case 0x1F: string16 reasonString;
+            case 0x21: uint16 receiveMaximum;
+            case 0x22: uint16 topicAliasMaximum;
+            case 0x23: uint16 topicAlias;
+            case 0x24: uint8 maximumQoS;
+            case 0x25: uint8 retainAvailable;
+            case 0x26: MqttUserProperty userProperty;
+            case 0x27: uint32 maximumPacketSize;
+            case 0x28: uint8 wildcardSubscriptionAvailable;
+            case 0x29: uint8 subscriptionIdsAvailable;
+            case 0x2A: uint8 sharedSubscriptionAvailable;
+        }
+
+        struct MqttConnect extends MqttPacketHeader
+        {
+            string16 protocolName;
+            uint8 protocolVersion;
+            uint8 flags;
+            uint16 keepAlive;
+            MqttProperties properties;
+            string16 clientId;
+            octets payload;
+        }
+
+        struct MqttConnack extends MqttPacketHeader
+        {
+            uint8 flags;
+            uint8 reasonCode;
+            MqttProperties properties;
+        }
+
+        struct MqttPublish extends MqttPacketHeader
+        {
+            string16 topicName;
+            MqttProperties properties;
+            octets payload;
+        }
+
+        struct MqttPuback extends MqttPacketHeader
+        {
+            uint16 packetId;
+            uint8 reasonCode;
+            MqttProperties properties;
+        }
+
+        struct MqttPubrec extends MqttPacketHeader
+        {
+            uint16 packetId;
+            uint8 reasonCode;
+            MqttProperties properties;
+        }
+
+        struct MqttPubrel extends MqttPacketHeader
+        {
+            uint16 packetId;
+            uint8 reasonCode;
+            MqttProperties properties;
+        }
+
+        struct MqttPubcomp extends MqttPacketHeader
+        {
+            uint16 packetId;
+            uint8 reasonCode;
+            MqttProperties properties;
+        }
+
+        struct MqttSubscribe extends MqttPacketHeader
+        {
+            uint16 packetId;
+            MqttProperties properties;
+            octets payload;
+        }
+
+        struct MqttSubscribePayload
+        {
+            string16 filter;
+            uint8 options;
+        }
+
+        struct MqttSuback extends MqttPacketHeader
+        {
+            uint16 packetId;
+            MqttProperties properties;
+            octets payload;
+        }
+
+        struct MqttSubackPayload
+        {
+            uint8 reasonCode;
+        }
+
+        struct MqttUnsubscribe extends MqttPacketHeader
+        {
+            uint16 packetId;
+            MqttProperties properties;
+            octets payload;
+        }
+
+        struct MqttUnsubscribePayload
+        {
+            string16 filter;
+        }
+
+        struct MqttUnsuback extends MqttPacketHeader
+        {
+            uint16 packetId;
+            MqttProperties properties;
+            octets payload;
+        }
+
+        struct MqttUnsubackPayload
+        {
+            uint8 reasonCode;
+        }
+
+        struct MqttPingReq extends MqttPacketHeader
+        {
+        }
+
+        struct MqttPingResp extends MqttPacketHeader
+        {
+        }
+
+        struct MqttDisconnect extends MqttPacketHeader
+        {
+            uint8 reasonCode;
+            MqttProperties properties;
+        }
+    }
+ }

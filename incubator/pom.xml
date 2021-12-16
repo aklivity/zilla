@@ -18,6 +18,7 @@
 
   <modules>
     <module>cog-mqtt.spec</module>
+    <module>cog-mqtt</module>
   </modules>
 
 </project>
