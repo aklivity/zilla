@@ -36,7 +36,7 @@ public class ZpmInstallTest
         String[] args =
         {
             "install",
-            "--config-directory", "src/test/conf/install",
+            "--config-directory", "target/test-classes/install",
             "--lock-directory", "target/test-locks/install",
             "--output-directory", "target/zpm",
             "--launcher-directory", "target",
@@ -49,7 +49,7 @@ public class ZpmInstallTest
         install.run();
 
         assertThat(install, instanceOf(ZpmInstall.class));
-        assertThat(new File("src/test/conf/install/zpm.json"), anExistingFile());
+        assertThat(new File("target/test-classes/install/zpm.json"), anExistingFile());
         assertThat(new File("target/test-locks/install/zpm-lock.json"), anExistingFile());
         assertThat(new File("target/zpm/cache/io.aklivity.zilla/engine/jars/engine-develop-SNAPSHOT.jar"), anExistingFile());
         assertThat(new File("target/zpm/cache/io.aklivity.zilla/cog-tcp/jars/cog-tcp-develop-SNAPSHOT.jar"), anExistingFile());

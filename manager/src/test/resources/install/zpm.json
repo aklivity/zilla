@@ -6,7 +6,7 @@
 
   "imports":
   [
-    "io.aklivity.zilla:runtime:develop-SNAPSHOT"
+    "io.aklivity.zilla:runtime:${project.version}"
   ],
 
   "dependencies":
