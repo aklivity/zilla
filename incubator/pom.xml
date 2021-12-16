@@ -22,6 +22,8 @@
 
     <module>cog-amqp</module>
     <module>cog-mqtt</module>
+
+    <module>cmd-log</module>
   </modules>
 
 </project>
