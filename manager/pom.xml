@@ -18,9 +18,8 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <!-- TODO: 0.61,0 -->
-    <jacoco.coverage.ratio>0.21</jacoco.coverage.ratio>
-    <jacoco.missed.count>5</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.61</jacoco.coverage.ratio>
+    <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -81,9 +80,17 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>src/main/java/org/apache/ivy/**</exclude>
+          </excludes>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <excludes>org/apache/ivy/**</excludes>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
