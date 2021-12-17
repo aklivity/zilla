@@ -22,7 +22,6 @@ import static org.hamcrest.io.FileMatchers.anExistingFile;
 import java.io.File;
 import java.io.IOException;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.rvesse.airline.Cli;
@@ -31,14 +30,13 @@ import io.aklivity.zilla.manager.internal.ZpmCli;
 
 public class ZpmInstallTest
 {
-    @Ignore("TODO: release 0.1.0")
     @Test
     public void shouldInstallEngine() throws IOException
     {
         String[] args =
         {
             "install",
-            "--config-directory", "target/test-classes/install",
+            "--config-directory", "src/conf/install",
             "--lock-directory", "target/test-locks/install",
             "--output-directory", "target/zpm",
             "--launcher-directory", "target",
@@ -51,7 +49,7 @@ public class ZpmInstallTest
         install.run();
 
         assertThat(install, instanceOf(ZpmInstall.class));
-        assertThat(new File("target/test/conf/install/zpm.json"), anExistingFile());
+        assertThat(new File("src/conf/install/zpm.json"), anExistingFile());
         assertThat(new File("target/test-locks/install/zpm-lock.json"), anExistingFile());
         assertThat(new File("target/zpm/cache/io.aklivity.zilla/engine/jars/engine-0.1.0.jar"), anExistingFile());
         assertThat(new File("target/zpm/cache/io.aklivity.zilla/cog-tcp/jars/cog-tcp-0.1.0.jar"), anExistingFile());
