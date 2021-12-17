@@ -13,11 +13,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runime.cli
+module io.aklivity.zilla.runtime.cli
 {
     requires transitive com.github.rvesse.airline;
 
-    exports io.aklivity.zilla.runime.cli;
+    exports io.aklivity.zilla.runtime.cli;
 
-    uses io.aklivity.zilla.runime.cli.ZillaCommandSpi;
+    uses io.aklivity.zilla.runtime.cli.ZillaCommandSpi;
 }
