@@ -75,7 +75,6 @@ public final class Engine implements AutoCloseable
         Collection<Cog> cogs,
         ErrorHandler errorHandler,
         URL configURL,
-        int coreCount,
         Collection<EngineAffinity> affinities)
     {
         this.nextTaskId = new AtomicInteger();
@@ -86,6 +85,8 @@ public final class Engine implements AutoCloseable
         {
             tasks = newFixedThreadPool(config.taskParallelism(), this::newTaskThread);
         }
+
+        int coreCount = config.workers();
 
         Info info = new Info(config.directory(), coreCount);
         info.reset();

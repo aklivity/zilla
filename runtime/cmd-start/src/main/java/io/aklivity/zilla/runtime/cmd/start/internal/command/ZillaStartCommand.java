@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.cmd.start.internal.command;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.lang.Runtime.getRuntime;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -47,7 +48,7 @@ public final class ZillaStartCommand extends ZillaCommand
     public URI configURI = Paths.get("zilla.json").toUri();
 
     @Option(name = "-w", description = "workers")
-    public int workers = Runtime.getRuntime().availableProcessors();
+    public int workers = -1;
 
     @Option(name = "-p", description = "properties")
     public String properties = "zilla.props";
@@ -72,12 +73,16 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
+        if (workers >= 0)
+        {
+            props.setProperty(ENGINE_WORKERS.name(), Integer.toString(workers));
+        }
+
         EngineConfiguration config = new EngineConfiguration(props);
 
         try (Engine engine = Engine.builder()
             .config(config)
             .configURL(configURI.toURL())
-            .threads(workers)
             .errorHandler(this::onError)
             .build())
         {
