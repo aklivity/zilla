@@ -46,7 +46,7 @@
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.7</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
-    <junit.version>5.6.2</junit.version>
+    <junit.version>5.8.2</junit.version>
     <byteman.version>4.0.13</byteman.version>
     <jmock.version>2.6.0</jmock.version>
     <mockito.version>3.4.6</mockito.version>
@@ -77,7 +77,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>4.13.1</version>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
