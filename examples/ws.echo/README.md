@@ -18,6 +18,11 @@ $ ./zilla start
 started
 ```
 
+### Install wscat
+```bash
+$ npm install wscat -g
+```
+
 ### Verify behavior
 ```bash
 $ wscat -c ws://localhost:8080/

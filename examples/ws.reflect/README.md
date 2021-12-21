@@ -18,6 +18,11 @@ $ ./zilla start
 started
 ```
 
+### Install wscat
+```bash
+$ npm install wscat -g
+```
+
 ### Verify behavior
 Connect each client first, then send `Hello, one` from first client, then send `Hello, two` from second client.
 ```bash
