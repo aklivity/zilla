@@ -1,5 +1,5 @@
-# tcp.echo
-Listens on tcp port `12345` and will echo back whatever is sent to the server.
+# tls.echo
+Listens on tls port `23456` and will echo back whatever is sent to the server.
 
 ### Requirements
  - JDK 11 or higher.
