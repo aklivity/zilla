@@ -1,0 +1,2 @@
+zilla.engine.verbose=true
+zilla.engine.workers=1

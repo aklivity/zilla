@@ -1,0 +1,26 @@
+{
+  "repositories":
+  [
+    "https://maven.packages.aklivity.io/"
+  ],
+
+  "imports":
+  [
+    "io.aklivity.zilla:runtime:develop-SNAPSHOT"
+  ],
+
+  "dependencies":
+  [
+    "io.aklivity.zilla:engine",
+    "io.aklivity.zilla:cog-echo",
+    "io.aklivity.zilla:cog-fan",
+    "io.aklivity.zilla:cog-ws",
+    "io.aklivity.zilla:cog-http",
+    "io.aklivity.zilla:cog-tcp",
+    "io.aklivity.zilla:cli",
+    "io.aklivity.zilla:cmd-start",
+    "io.aklivity.zilla:cmd-tune",
+    "io.aklivity.zilla:cmd-load",
+    "io.aklivity.zilla:cmd-stop"
+  ]
+}
