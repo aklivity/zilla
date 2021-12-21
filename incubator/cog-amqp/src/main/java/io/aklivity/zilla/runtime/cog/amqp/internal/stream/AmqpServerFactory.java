@@ -58,6 +58,7 @@ import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerfor
 import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerformativeType.BEGIN;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerformativeType.CLOSE;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerformativeType.DETACH;
+import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerformativeType.DISPOSITION;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerformativeType.END;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerformativeType.FLOW;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpPerformativeType.OPEN;
@@ -409,6 +410,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final AmqpServerDecoder decodeAttach = this::decodeAttach;
     private final AmqpServerDecoder decodeFlow = this::decodeFlow;
     private final AmqpServerDecoder decodeTransfer = this::decodeTransfer;
+    private final AmqpServerDecoder decodeDisposition = this::decodeIgnoreFrameBody; // TODO
     private final AmqpServerDecoder decodeDetach = this::decodeDetach;
     private final AmqpServerDecoder decodeEnd = this::decodeEnd;
     private final AmqpServerDecoder decodeClose = this::decodeClose;
@@ -425,7 +427,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         decodersByPerformativeType.put(ATTACH, decodeAttach);
         decodersByPerformativeType.put(FLOW, decodeFlow);
         decodersByPerformativeType.put(TRANSFER, decodeTransfer);
-        // decodersByPerformative.put(AmqpDescribedType.DISPOSITION, decodeDisposition);
+        decodersByPerformativeType.put(DISPOSITION, decodeDisposition);
         decodersByPerformativeType.put(DETACH, decodeDetach);
         decodersByPerformativeType.put(END, decodeEnd);
         decodersByPerformativeType.put(CLOSE, decodeClose);
