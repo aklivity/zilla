@@ -2,14 +2,16 @@
 
 [![Build Status][build-status-image]][build-status]
 
-#### Build
+## Build
 ```bash
 ./mvnw clean install
 ```
-#### Build on Windows
+## Build on Windows
 ```bash
 mvnw.cmd clean install
 ```
+## Enjoy
+Try the [examples](examples).
 
 ## License
 
