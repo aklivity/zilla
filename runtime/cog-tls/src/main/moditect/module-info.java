@@ -15,6 +15,8 @@
  */
 module io.aklivity.zilla.runtime.cog.tls
 {
+    requires jdk.crypto.ec;
+
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
