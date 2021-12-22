@@ -16,6 +16,7 @@
     "io.aklivity.zilla:cog-echo",
     "io.aklivity.zilla:cog-fan",
     "io.aklivity.zilla:cog-mqtt",
+    "io.aklivity.zilla:cog-tls",
     "io.aklivity.zilla:cog-tcp",
     "io.aklivity.zilla:cli",
     "io.aklivity.zilla:cmd-start",

@@ -1,5 +1,6 @@
 # mqtt.reflect (incubator)
 Listens on mqtt port `1883` and will echo back whatever is published to the server, broadcasting to all subscribed clients.
+Listens on mqtts port `8883` and will echo back whatever is published to the server, broadcasting to all subscribed clients.
 
 ### Requirements
  - JDK 11 or higher.
@@ -38,7 +39,7 @@ Client 43516069-9fa3-493d-9ab1-17e5e891e5be received PUBLISH (d0, q0, r0, m0, 'z
 Hello, world
 ```
 ```bash
-$ mosquitto_sub -V '5' -t 'zilla' -d
+$ mosquitto_sub -V '5' -t 'zilla' --cafile test-ca.crt -d
 Client null sending CONNECT
 Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318  received CONNACK (0)
 Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318  sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)
