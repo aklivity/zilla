@@ -1,5 +1,6 @@
 # amqp.reflect (incubator)
-Listens on amqp port `5678` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
+Listens on amqp port `5672` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
+Listens on amqps port `5671` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
 
 ### Requirements
  - JDK 11 or higher.
@@ -28,7 +29,7 @@ $ npm install cli-rhea -g
 ### Verify behavior
 Connect two receiving clients first, then send `Hello, world` from sending client.
 ```bash
-$ cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body'
+$ cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body' --broker localhost:5671 --conn-ssl-trust-store test-ca.crt
   rhea:events [connection-1] Connection got event: connection_open +0ms
   rhea:events [5c6a67c4-7e0b-fa4e-916c-b8e78ac6ba2e] Container got event: connection_open +0ms
   rhea:events [connection-1] Session got event: session_open +0ms
