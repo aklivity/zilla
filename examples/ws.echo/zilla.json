@@ -1,4 +1,20 @@
 {
+    "vaults":
+    [
+        {
+            "name": "server",
+            "type": "filesystem",
+            "options":
+            {
+                "keys":
+                {
+                    "store": "localhost.p12",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        }
+    ],
     "bindings":
     [
         {
@@ -9,6 +25,29 @@
             {
                 "host": "0.0.0.0",
                 "port": 8080
+            },
+            "exit": "http0"
+        },
+        {
+            "entry": "tcp1",
+            "type" : "tcp",
+            "kind": "SERVER",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 9090
+            },
+            "exit": "tls0"
+        },
+        {
+            "entry": "tls0",
+            "type" : "tls",
+            "kind": "SERVER",
+            "vault": "server",
+            "options":
+            {
+                "keys": [ "localhost" ],
+                "serverNames": [ "localhost" ]
             },
             "exit": "http0"
         },

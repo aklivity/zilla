@@ -1,5 +1,6 @@
 # ws.reflect
-Listens on websocket port `8080` and will echo back whatever is sent to the server, broadcasting to all clients.
+Listens on ws port `8080` and will echo back whatever is sent to the server, broadcasting to all clients.
+Listens on wss port `9090` and will echo back whatever is sent to the server, broadcasting to all clients.
 
 ### Requirements
  - JDK 11 or higher.
@@ -33,7 +34,7 @@ Connected (press CTRL+C to quit)
 < Hello, two
 ```
 ```bash
-$ wscat -c ws://localhost:8080/
+$ wscat -c wss://localhost:9090/ --ca test-ca.crt
 Connected (press CTRL+C to quit)
 < Hello, one
 > Hello, two

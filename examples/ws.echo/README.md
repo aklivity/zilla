@@ -1,5 +1,6 @@
 # ws.echo
-Listens on websocket port `8080` and will echo back whatever is sent to the server.
+Listens on ws port `8080` and will echo back whatever is sent to the server.
+Listens on wss port `9090` and will echo back whatever is sent to the server.
 
 ### Requirements
  - JDK 11 or higher.
@@ -26,6 +27,12 @@ $ npm install wscat -g
 ### Verify behavior
 ```bash
 $ wscat -c ws://localhost:8080/
+Connected (press CTRL+C to quit)
+> Hello, world
+< Hello, world
+```
+```bash
+$ wscat -c wss://localhost:8080/
 Connected (press CTRL+C to quit)
 > Hello, world
 < Hello, world

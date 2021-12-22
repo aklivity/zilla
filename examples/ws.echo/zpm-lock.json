@@ -5,6 +5,7 @@
         "io.aklivity.zilla:cog-echo:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-ws:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-http:develop-SNAPSHOT",
+        "io.aklivity.zilla:cog-tls:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-tcp:develop-SNAPSHOT",
         "io.aklivity.zilla:cli:develop-SNAPSHOT",
         "io.aklivity.zilla:cmd-start:develop-SNAPSHOT",
