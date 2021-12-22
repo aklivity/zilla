@@ -219,6 +219,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Matcher connectionClose;
     private final int maximumHeadersSize;
     private final int decodeMax;
+    private final int encodeMax;
 
     public HttpServerFactory(
         HttpConfiguration config,
@@ -239,6 +240,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
         this.maximumHeadersSize = bufferPool.slotCapacity();
         this.decodeMax = bufferPool.slotCapacity();
+        this.encodeMax = bufferPool.slotCapacity();
     }
 
     @Override
@@ -1592,7 +1594,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             exchange.responseClosing |= upgrade != null;
 
             final HttpHeaderFW contentLength = headers.matchFirst(h -> HEADER_CONTENT_LENGTH.equals(h.name()));
-            exchange.responseRemaining = contentLength != null ? parseInt(contentLength.value().asString()) : Integer.MAX_VALUE;
+            exchange.responseRemaining = contentLength != null
+                    ? parseInt(contentLength.value().asString())
+                    : Integer.MAX_VALUE - encodeMax; // avoids responseRemaining overflow
 
             final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
             final String16FW statusValue = status != null ? status.value() : STATUS_200;
