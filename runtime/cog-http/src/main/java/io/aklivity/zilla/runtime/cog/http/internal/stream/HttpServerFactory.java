@@ -107,12 +107,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     ? options.versions
                     : DEFAULT_SUPPORTED_VERSIONS;
 
-            StreamFactory factory = null;
-
-            if (!supportedVersions.isEmpty())
-            {
-                factory = factories.get(supportedVersions.first());
-            }
+            HttpVersion version = null;
 
             ProxyBeginExFW beginEx = begin.extension().get(proxyBeginExRO::tryWrap);
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
@@ -123,16 +118,21 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (tlsVersion != null && alpn != null)
                 {
-                    HttpVersion version = HttpVersion.of(alpn.alpn().asString());
-                    if (version != null && supportedVersions.contains(version))
-                    {
-                        factory = factories.get(version);
-                    }
+                    version = HttpVersion.of(alpn.alpn().asString());
                 }
             }
 
-            if (factory != null)
+            if (version == null && !supportedVersions.isEmpty())
             {
+                // defaults to HTTP/1.1 if supported
+                version = supportedVersions.first();
+            }
+
+            if (supportedVersions.contains(version))
+            {
+                StreamFactory factory = factories.get(version);
+                assert factory != null;
+
                 newStream = factory.newStream(msgTypeId, buffer, index, length, network);
             }
         }
