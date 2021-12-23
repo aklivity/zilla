@@ -54,7 +54,7 @@ public class StartingIT
     @Configuration("server.json")
     @Specification({
         "${net}/upgrade.h2c.with.tls.and.alpn.h2/client" })
-    public void shouldRejectUpgradeViaH2CWithTlsAndAlpnH2() throws Exception
+    public void shouldRejectUpgradeViaCleartextWithTlsAndAlpnH2() throws Exception
     {
         k3po.finish();
     }
@@ -63,8 +63,8 @@ public class StartingIT
     @Configuration("server.json")
     @Specification({
         "${net}/upgrade.h2c.with.tls.and.alpn.http1.1/client",
-        "${app}/upgrade.h2c/server" })
-    public void shouldNotUpgradeViaH2CWithTlsAndAlpnHttp11() throws Exception
+        "${app}/upgrade.https/server" })
+    public void shouldNotUpgradeViaCleartextWithTlsAndAlpnHttp11() throws Exception
     {
         k3po.finish();
     }
@@ -73,8 +73,8 @@ public class StartingIT
     @Configuration("server.json")
     @Specification({
         "${net}/upgrade.h2c.with.tls.and.no.alpn/client",
-        "${app}/upgrade.h2c/server" })
-    public void shouldNotUpgradeViaH2CWithTlsAndNoAlpn() throws Exception
+        "${app}/upgrade.https/server" })
+    public void shouldNotUpgradeViaCleartextWithTlsAndNoAlpn() throws Exception
     {
         k3po.finish();
     }
@@ -84,8 +84,8 @@ public class StartingIT
     @Configuration("server.json")
     @Specification({
         "${net}/upgrade.h2c.with.no.tls/client",
-        "${app}/upgrade.h2c/server" })
-    public void shouldUpgradeViaH2CWithNoTls() throws Exception
+        "${app}/upgrade.http/server" })
+    public void shouldUpgradeViaCleartextWithNoTls() throws Exception
     {
         k3po.finish();
     }
@@ -95,7 +95,7 @@ public class StartingIT
     @Configuration("server.json")
     @Specification({
         "${net}/upgrade.pri.with.no.tls/client",
-        "${app}/upgrade.h2c/server" })
+        "${app}/upgrade.http/server" })
     public void shouldUpgradeViaPriorKnowledgeWithNoTls() throws Exception
     {
         k3po.finish();

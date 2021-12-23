@@ -19,7 +19,14 @@ accept "zilla://streams/net#0"
   option zilla:transmission "duplex"
 accepted
 
-read zilla:begin.ext ${zilla:id("tls")}
+read zilla:begin.ext ${proxy:matchBeginEx()
+                            .typeId(zilla:id("proxy"))
+                            .info()
+                              .secure()
+                                .version("TLSv1.3")
+                                .build()
+                              .build()
+                            .build()}
 
 connected
 

@@ -18,7 +18,16 @@ connect "zilla://streams/net#0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 
-write zilla:begin.ext ${zilla:id("tls")}
+write zilla:begin.ext ${proxy:beginEx()
+                             .typeId(zilla:id("proxy"))
+                             .addressNone()
+                               .build()
+                             .info()
+                               .secure()
+                                 .version("TLSv1.3")
+                                 .build()
+                               .build()
+                             .build()}
 
 connected
 

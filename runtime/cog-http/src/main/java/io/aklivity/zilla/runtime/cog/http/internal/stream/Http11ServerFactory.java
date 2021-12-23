@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.stream;
 
+import static io.aklivity.zilla.runtime.cog.http.internal.types.ProxyInfoType.SECURE;
+import static io.aklivity.zilla.runtime.cog.http.internal.types.ProxySecureInfoType.VERSION;
 import static io.aklivity.zilla.runtime.cog.http.internal.util.BufferUtil.indexOfByte;
 import static io.aklivity.zilla.runtime.cog.http.internal.util.BufferUtil.limitOfBytes;
 import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
@@ -58,10 +60,10 @@ import io.aklivity.zilla.runtime.cog.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.cog.http.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.cog.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
@@ -182,7 +184,7 @@ public final class Http11ServerFactory implements HttpStreamFactory
     private AbortFW.Builder abortRW = new AbortFW.Builder();
     private FlushFW.Builder flushRW = new FlushFW.Builder();
 
-    private final ExtensionFW extensionRO = new ExtensionFW();
+    private final ProxyBeginExFW proxyBeginExRO = new ProxyBeginExFW();
 
     private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
     private final HttpBeginExFW.Builder newBeginExRW = new HttpBeginExFW.Builder();
@@ -213,7 +215,7 @@ public final class Http11ServerFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
-    private final int tlsTypeId;
+    private final int proxyTypeId;
     private final Long2ObjectHashMap<HttpBinding> bindings;
     private final Matcher requestLine;
     private final Matcher versionPart;
@@ -234,7 +236,7 @@ public final class Http11ServerFactory implements HttpStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.httpTypeId = context.supplyTypeId(HttpCog.NAME);
-        this.tlsTypeId = context.supplyTypeId("tls");
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.bindings = new Long2ObjectHashMap<>();
         this.requestLine = REQUEST_LINE_PATTERN.matcher("");
         this.headerLine = HEADER_LINE_PATTERN.matcher("");
@@ -1147,13 +1149,19 @@ public final class Http11ServerFactory implements HttpStreamFactory
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
-            final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+            final ProxyBeginExFW extension = begin.extension().get(proxyBeginExRO::tryWrap);
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
             assert acknowledge >= initialAck;
 
-            decodeScheme = extension != null && extension.typeId() == tlsTypeId ? SCHEME_HTTPS : SCHEME_HTTP;
+            decodeScheme =
+                extension != null &&
+                extension.typeId() == proxyTypeId &&
+                extension.infos()
+                         .matchFirst(i -> i.kind() == SECURE && i.secure().kind() == VERSION) != null
+                    ? SCHEME_HTTPS
+                    : SCHEME_HTTP;
             initialSeq = sequence;
             initialAck = acknowledge;
 

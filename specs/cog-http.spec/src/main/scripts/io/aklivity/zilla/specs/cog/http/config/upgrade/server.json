@@ -5,21 +5,7 @@
             "entry": "net#0",
             "type" : "http",
             "kind": "server",
-            "routes":
-            [
-                {
-                    "exit": "app#0",
-                    "when":
-                    [
-                        {
-                            "headers":
-                            {
-                                ":authority": "localhost:8080"
-                            }
-                        }
-                    ]
-                }
-            ]
+            "exit": "app#0"
         }
     ]
 }

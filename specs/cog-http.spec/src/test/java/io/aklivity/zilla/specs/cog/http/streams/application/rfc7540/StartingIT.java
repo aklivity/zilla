@@ -38,10 +38,20 @@ public class StartingIT
 
     @Test
     @Specification({
-        "${app}/upgrade.h2c/client",
-        "${app}/upgrade.h2c/server",
+        "${app}/upgrade.http/client",
+        "${app}/upgrade.http/server",
     })
-    public void shouldProcessRequestWithUpgradeViaH2C() throws Exception
+    public void shouldRequestWithoutUpgradeViaHttp() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/upgrade.https/client",
+        "${app}/upgrade.https/server",
+    })
+    public void shouldRequestWithoutUpgradeViaHttps() throws Exception
     {
         k3po.finish();
     }
