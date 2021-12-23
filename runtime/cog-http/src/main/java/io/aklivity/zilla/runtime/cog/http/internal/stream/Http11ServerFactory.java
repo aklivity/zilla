@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,7 +41,6 @@ import java.util.regex.Pattern;
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 import org.agrona.collections.MutableReference;
@@ -70,9 +70,8 @@ import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
 
-public final class Http11ServerFactory implements HttpStreamFactory
+public final class Http11ServerFactory implements StreamFactory
 {
     private static final Pattern REQUEST_LINE_PATTERN =
             Pattern.compile("(?<method>[A-Z]+)\\s+(?<target>[^\\s]+)\\s+(?<version>HTTP/\\d\\.\\d)\r\n");
@@ -216,7 +215,6 @@ public final class Http11ServerFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int httpTypeId;
     private final int proxyTypeId;
-    private final Long2ObjectHashMap<HttpBinding> bindings;
     private final Matcher requestLine;
     private final Matcher versionPart;
     private final Matcher headerLine;
@@ -224,10 +222,12 @@ public final class Http11ServerFactory implements HttpStreamFactory
     private final int maximumHeadersSize;
     private final int decodeMax;
     private final int encodeMax;
+    private final LongFunction<HttpBinding> lookupBinding;
 
     public Http11ServerFactory(
         HttpConfiguration config,
-        AxleContext context)
+        AxleContext context,
+        LongFunction<HttpBinding> lookupBinding)
     {
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -237,7 +237,6 @@ public final class Http11ServerFactory implements HttpStreamFactory
         this.supplyReplyId = context::supplyReplyId;
         this.httpTypeId = context.supplyTypeId(HttpCog.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
-        this.bindings = new Long2ObjectHashMap<>();
         this.requestLine = REQUEST_LINE_PATTERN.matcher("");
         this.headerLine = HEADER_LINE_PATTERN.matcher("");
         this.versionPart = VERSION_PATTERN.matcher("");
@@ -245,21 +244,7 @@ public final class Http11ServerFactory implements HttpStreamFactory
         this.maximumHeadersSize = bufferPool.slotCapacity();
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
-    }
-
-    @Override
-    public void attach(
-        Binding binding)
-    {
-        HttpBinding httpBinding = new HttpBinding(binding);
-        bindings.put(binding.id, httpBinding);
-    }
-
-    @Override
-    public void detach(
-        long bindingId)
-    {
-        bindings.remove(bindingId);
+        this.lookupBinding = lookupBinding;
     }
 
     @Override
@@ -273,7 +258,7 @@ public final class Http11ServerFactory implements HttpStreamFactory
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long routeId = begin.routeId();
 
-        HttpBinding binding = bindings.get(routeId);
+        HttpBinding binding = lookupBinding.apply(routeId);
 
         MessageConsumer newStream = null;
 
@@ -582,7 +567,7 @@ public final class Http11ServerFactory implements HttpStreamFactory
                 final Map<String, String> headers = new LinkedHashMap<>();
                 beginEx.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-                HttpBinding binding = bindings.get(server.routeId);
+                HttpBinding binding = lookupBinding.apply(server.routeId);
                 HttpRoute route = binding.resolve(authorization, headers::get);
                 if (route != null)
                 {

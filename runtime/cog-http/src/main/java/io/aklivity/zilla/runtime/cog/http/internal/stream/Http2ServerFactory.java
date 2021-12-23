@@ -46,7 +46,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.collections.MutableBoolean;
@@ -104,9 +103,8 @@ import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
 
-public final class Http2ServerFactory implements HttpStreamFactory
+public final class Http2ServerFactory implements StreamFactory
 {
     private static final int CLIENT_INITIATED = 1;
     private static final int SERVER_INITIATED = 0;
@@ -243,11 +241,12 @@ public final class Http2ServerFactory implements HttpStreamFactory
     private final int httpTypeId;
     private final MutableDirectBuffer extensionBuffer;
     private final int decodeMax;
-    private final Long2ObjectHashMap<HttpBinding> bindings;
+    private final LongFunction<HttpBinding> lookupBinding;
 
     public Http2ServerFactory(
         HttpConfiguration config,
-        AxleContext context)
+        AxleContext context,
+        LongFunction<HttpBinding> lookupBinding)
     {
         this.config = config;
         this.writeBuffer = context.writeBuffer();
@@ -266,22 +265,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extensionBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.decodeMax = bufferPool.slotCapacity();
-        this.bindings = new Long2ObjectHashMap<>();
-    }
-
-    @Override
-    public void attach(
-        Binding binding)
-    {
-        HttpBinding httpBinding = new HttpBinding(binding);
-        bindings.put(binding.id, httpBinding);
-    }
-
-    @Override
-    public void detach(
-        long bindingId)
-    {
-        bindings.remove(bindingId);
+        this.lookupBinding = lookupBinding;
     }
 
     @Override
@@ -295,7 +279,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long routeId = begin.routeId();
 
-        HttpBinding binding = bindings.get(routeId);
+        HttpBinding binding = lookupBinding.apply(routeId);
 
         MessageConsumer newStream = null;
 
@@ -2196,7 +2180,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                     headers.put(":authority", authority + defaultPort);
                 }
 
-                final HttpBinding binding = bindings.get(routeId);
+                final HttpBinding binding = lookupBinding.apply(routeId);
                 final HttpRoute route = binding.resolve(authorization, headers::get);
                 if (route == null)
                 {
@@ -2463,7 +2447,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
             headers.clear();
             promise.forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-            final HttpBinding binding = bindings.get(routeId);
+            final HttpBinding binding = lookupBinding.apply(routeId);
             final HttpRoute route = binding.resolve(authorization, headers::get);
             if (route != null)
             {

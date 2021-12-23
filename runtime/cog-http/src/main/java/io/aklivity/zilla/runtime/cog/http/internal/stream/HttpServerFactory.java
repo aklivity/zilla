@@ -51,7 +51,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final int proxyTypeId;
     private final Long2ObjectHashMap<HttpBinding> bindings;
-    private final EnumMap<HttpVersion, HttpStreamFactory> factories;
+    private final EnumMap<HttpVersion, StreamFactory> factories;
 
     public HttpServerFactory(
         HttpConfiguration config,
@@ -60,9 +60,9 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.bindings = new Long2ObjectHashMap<>();
 
-        EnumMap<HttpVersion, HttpStreamFactory> factories = new EnumMap<>(HttpVersion.class);
-        factories.put(HTTP_1_1, new Http11ServerFactory(config, context));
-        factories.put(HTTP_2, new Http2ServerFactory(config, context));
+        EnumMap<HttpVersion, StreamFactory> factories = new EnumMap<>(HttpVersion.class);
+        factories.put(HTTP_1_1, new Http11ServerFactory(config, context, bindings::get));
+        factories.put(HTTP_2, new Http2ServerFactory(config, context, bindings::get));
         this.factories = factories;
     }
 
@@ -72,16 +72,12 @@ public final class HttpServerFactory implements HttpStreamFactory
     {
         HttpBinding httpBinding = new HttpBinding(binding);
         bindings.put(binding.id, httpBinding);
-
-        factories.values().forEach(f -> f.attach(binding));
     }
 
     @Override
     public void detach(
         long bindingId)
     {
-        factories.values().forEach(f -> f.detach(bindingId));
-
         bindings.remove(bindingId);
     }
 
