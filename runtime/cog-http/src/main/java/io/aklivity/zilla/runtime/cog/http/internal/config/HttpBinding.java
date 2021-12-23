@@ -15,9 +15,12 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.config;
 
+import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.Binding;
@@ -25,6 +28,8 @@ import io.aklivity.zilla.runtime.engine.config.Role;
 
 public final class HttpBinding
 {
+    public static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
+
     public final long id;
     public final long vaultId;
     public final String entry;
@@ -53,5 +58,10 @@ public final class HttpBinding
             .filter(r -> r.when.stream().allMatch(m -> m.matches(headerByName)))
             .findFirst()
             .orElse(exit);
+    }
+
+    public SortedSet<HttpVersion>  versions()
+    {
+        return options != null && options.versions != null ? options.versions : DEFAULT_VERSIONS;
     }
 }
