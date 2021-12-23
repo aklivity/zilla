@@ -380,7 +380,7 @@ public class ProxyMatcherTest
                         .destination(d -> d.set(resolveHost("192.168.0.254")))
                         .sourcePort(32768)
                         .destinationPort(443)))
-                .infosItem(i -> i.secure(s -> s.protocol("TLSv1.3")))
+                .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
                 .build();
 
         assertTrue(matcher.matches(beginEx));
@@ -401,7 +401,7 @@ public class ProxyMatcherTest
                         .destination(d -> d.set(resolveHost("192.168.0.254")))
                         .sourcePort(32768)
                         .destinationPort(443)))
-                .infosItem(i -> i.secure(s -> s.protocol("TLSv1.3")))
+                .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
                 .build();
 
         assertFalse(matcher.matches(beginEx));

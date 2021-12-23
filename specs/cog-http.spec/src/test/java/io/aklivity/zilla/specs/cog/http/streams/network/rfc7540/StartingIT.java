@@ -38,20 +38,30 @@ public class StartingIT
 
     @Test
     @Specification({
-        "${net}/upgrade.h2c.with.alpn.h2/client",
-        "${net}/upgrade.h2c.with.alpn.h2/server",
+        "${net}/upgrade.h2c.with.tls.and.alpn.h2/client",
+        "${net}/upgrade.h2c.with.tls.and.alpn.h2/server",
     })
-    public void shouldRejectHttp11UpgradeViaH2CWithAlpnH2() throws Exception
+    public void shouldRejectUpgradeViaH2CWithTlsAndAlpnH2() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/upgrade.h2c.with.alpn.http1.1/client",
-        "${net}/upgrade.h2c.with.alpn.http1.1/server",
+        "${net}/upgrade.h2c.with.tls.and.alpn.http1.1/client",
+        "${net}/upgrade.h2c.with.tls.and.alpn.http1.1/server",
     })
-    public void shouldNotUpgradeHttp11ViaH2CWithAlpnHttp11() throws Exception
+    public void shouldNotUpgradeViaH2CWithTlsAndAlpnHttp11() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.tls.and.no.alpn/client",
+        "${net}/upgrade.h2c.with.tls.and.no.alpn/server",
+    })
+    public void shouldNotUpgradeViaH2CWithTlsAndNoAlpn() throws Exception
     {
         k3po.finish();
     }
@@ -61,7 +71,7 @@ public class StartingIT
         "${net}/upgrade.h2c.with.extra.settings/client",
         "${net}/upgrade.h2c.with.extra.settings/server",
     })
-    public void shouldNotUpgradeHttp11ViaH2CWithExtraSettings() throws Exception
+    public void shouldNotUpgradeViaH2CWithExtraSettings() throws Exception
     {
         k3po.finish();
     }
@@ -71,17 +81,37 @@ public class StartingIT
         "${net}/upgrade.h2c.with.no.settings/client",
         "${net}/upgrade.h2c.with.no.settings/server",
     })
-    public void shouldNotUpgradeHttp11ViaH2CWithNoSettings() throws Exception
+    public void shouldNotUpgradeViaH2CWithNoSettings() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/upgrade.h2c.with.no.alpn/client",
-        "${net}/upgrade.h2c.with.no.alpn/server",
+        "${net}/upgrade.h2c.with.no.tls/client",
+        "${net}/upgrade.h2c.with.no.tls/server",
     })
-    public void shouldUpgradeHttp11ViaH2CWithNoAlpn() throws Exception
+    public void shouldUpgradeViaH2CWithNoTls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.pri.with.no.tls/client",
+        "${net}/upgrade.pri.with.no.tls/server",
+    })
+    public void shouldUpgradeViaPriorKnowledgeWithNoTls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.pri.with.tls.and.alpn.http1.1/client",
+        "${net}/upgrade.pri.with.tls.and.alpn.http1.1/server",
+    })
+    public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndAlpnHttp11() throws Exception
     {
         k3po.finish();
     }

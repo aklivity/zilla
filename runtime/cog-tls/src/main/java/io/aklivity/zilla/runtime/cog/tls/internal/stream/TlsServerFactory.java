@@ -2053,10 +2053,17 @@ public final class TlsServerFactory implements TlsStreamFactory
                                                                   is.item(i -> i.authority(hostname));
                                                               }
 
+                                                              SSLSession session = tlsEngine.getSession();
+                                                              String version = session.getProtocol();
+                                                              is.item(i -> i.secure(s -> s.version(version)));
+
                                                               if (name != null)
                                                               {
                                                                   is.item(i -> i.secure(s -> s.name(name)));
                                                               }
+
+                                                              String cipher = session.getCipherSuite();
+                                                              is.item(i -> i.secure(s -> s.cipher(cipher)));
                                                           })
                                                           .build()
                                                           .sizeof()));

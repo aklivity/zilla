@@ -22,7 +22,9 @@ accepted
 read zilla:begin.ext ${proxy:matchBeginEx()
                             .typeId(zilla:id("proxy"))
                             .info()
-                              .alpn("h2")
+                              .secure()
+                                .version("TLSv1.3")
+                                .build()
                               .build()
                             .build()}
 
@@ -39,10 +41,12 @@ read "POST / HTTP/1.1\r\n"
 
 read "Hello, world"
 
-write [0x00 0x00 0x08]                          # length = 8
-      [0x07]                                    # HTTP2 GO_AWAY frame
-      [0x00]                                    # no flags
-      [0x00 0x00 0x00 0x00]                     # stream_id=0
-      [0x00 0x00 0x00 0x00]                     # Last-Stream_ID
-      [0x00 0x00 0x00 0x01]                     # PROTOCOL_ERROR
+write "HTTP/1.1 200 OK\r\n"
+      "Server: CERN/3.0 libwww/2.17\r\n"
+      "Date: Wed, 01 Feb 2017 19:12:46 GMT\r\n"
+      "Content-Type: text/plain;charset=UTF-8\r\n"
+      "Content-Length: 17\r\n"
+      "\r\n"
+
+write "Hello from Zilla!"
 write flush

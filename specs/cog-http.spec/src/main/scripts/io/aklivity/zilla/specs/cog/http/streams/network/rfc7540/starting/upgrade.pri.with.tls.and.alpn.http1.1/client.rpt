@@ -24,27 +24,20 @@ write zilla:begin.ext ${proxy:beginEx()
                                .build()
                              .info()
                                .alpn("http/1.1")
+                               .secure()
+                                 .version("TLSv1.3")
+                                 .build()
                                .build()
                              .build()}
 
 connected
 
-write "POST / HTTP/1.1\r\n"
-      "Host: localhost:8080\r\n"
-      "Connection: Upgrade, HTTP2-Settings\r\n"
-      "Upgrade: h2c\r\n"
-      "HTTP2-Settings: \r\n"
-      "Content-Type: text/plain;charset=UTF-8\r\n"
-      "Content-Length: 12\r\n"
+write "PRI * HTTP/2.0\r\n"
       "\r\n"
+      "SM\r\n"
+      "\r\n"
+write flush
 
-write "Hello, world"
-
-read "HTTP/1.1 200 OK\r\n"
-     "Server: CERN/3.0 libwww/2.17\r\n"
-     "Date: Wed, 01 Feb 2017 19:12:46 GMT\r\n"
-     "Content-Type: text/plain;charset=UTF-8\r\n"
-     "Content-Length: 17\r\n"
+read "HTTP/1.1 505 HTTP Version Not Supported\r\n"
+     "Connection: close\r\n"
      "\r\n"
-
-read "Hello from Zilla!"

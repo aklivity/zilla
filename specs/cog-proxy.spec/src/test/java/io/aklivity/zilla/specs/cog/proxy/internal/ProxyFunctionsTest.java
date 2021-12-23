@@ -29,8 +29,8 @@ import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxyInfoType.SEC
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.CIPHER;
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.KEY;
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.NAME;
-import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.PROTOCOL;
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.SIGNATURE;
+import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.VERSION;
 import static org.agrona.BitUtil.fromHex;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -79,7 +79,7 @@ public class ProxyFunctionsTest
                                          .identity(fromHex("12345678"))
                                          .namespace("example")
                                          .secure()
-                                             .protocol("TLSv1.3")
+                                             .version("TLSv1.3")
                                              .cipher("ECDHE-RSA-AES128-GCM-SHA256")
                                              .signature("SHA256")
                                              .name("name@domain")
@@ -118,8 +118,8 @@ public class ProxyFunctionsTest
                 break;
             case 4:
                 assertEquals(SECURE, info.kind());
-                assertEquals(PROTOCOL, info.secure().kind());
-                assertEquals("TLSv1.3", info.secure().protocol().asString());
+                assertEquals(VERSION, info.secure().kind());
+                assertEquals("TLSv1.3", info.secure().version().asString());
                 break;
             case 5:
                 assertEquals(SECURE, info.kind());
@@ -164,7 +164,7 @@ public class ProxyFunctionsTest
                                          .identity(fromHex("12345678"))
                                          .namespace("example")
                                          .secure()
-                                             .protocol("TLSv1.3")
+                                             .version("TLSv1.3")
                                              .cipher("ECDHE-RSA-AES128-GCM-SHA256")
                                              .signature("SHA256")
                                              .name("name@domain")
@@ -208,8 +208,8 @@ public class ProxyFunctionsTest
                 break;
             case 4:
                 assertEquals(SECURE, info.kind());
-                assertEquals(PROTOCOL, info.secure().kind());
-                assertEquals("TLSv1.3", info.secure().protocol().asString());
+                assertEquals(VERSION, info.secure().kind());
+                assertEquals("TLSv1.3", info.secure().version().asString());
                 break;
             case 5:
                 assertEquals(SECURE, info.kind());
@@ -254,7 +254,7 @@ public class ProxyFunctionsTest
                                          .identity(fromHex("12345678"))
                                          .namespace("example")
                                          .secure()
-                                             .protocol("TLSv1.3")
+                                             .version("TLSv1.3")
                                              .cipher("ECDHE-RSA-AES128-GCM-SHA256")
                                              .signature("SHA256")
                                              .name("name@domain")
@@ -298,8 +298,8 @@ public class ProxyFunctionsTest
                 break;
             case 4:
                 assertEquals(SECURE, info.kind());
-                assertEquals(PROTOCOL, info.secure().kind());
-                assertEquals("TLSv1.3", info.secure().protocol().asString());
+                assertEquals(VERSION, info.secure().kind());
+                assertEquals("TLSv1.3", info.secure().version().asString());
                 break;
             case 5:
                 assertEquals(SECURE, info.kind());
@@ -343,7 +343,7 @@ public class ProxyFunctionsTest
                                                  .identity(fromHex("12345678"))
                                                  .namespace("example")
                                                  .secure()
-                                                     .protocol("TLSv1.3")
+                                                     .version("TLSv1.3")
                                                      .cipher("ECDHE-RSA-AES128-GCM-SHA256")
                                                      .signature("SHA256")
                                                      .name("name@domain")
@@ -365,7 +365,7 @@ public class ProxyFunctionsTest
             .infosItem(i -> i.authority("example.com"))
             .infosItem(i -> i.identity(id -> id.value(v -> v.set(fromHex("12345678")))))
             .infosItem(i -> i.namespace("example"))
-            .infosItem(i -> i.secure(s -> s.protocol("TLSv1.3")))
+            .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
             .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
             .infosItem(i -> i.secure(s -> s.signature("SHA256")))
             .infosItem(i -> i.secure(s -> s.name("name@domain")))
@@ -388,7 +388,7 @@ public class ProxyFunctionsTest
                                                  .identity(fromHex("12345678"))
                                                  .namespace("example")
                                                  .secure()
-                                                     .protocol("TLSv1.3")
+                                                     .version("TLSv1.3")
                                                      .cipher("ECDHE-RSA-AES128-GCM-SHA256")
                                                      .signature("SHA256")
                                                      .name("name@domain")
@@ -406,7 +406,7 @@ public class ProxyFunctionsTest
             .infosItem(i -> i.authority("example.com"))
             .infosItem(i -> i.identity(id -> id.value(v -> v.set(fromHex("12345678")))))
             .infosItem(i -> i.namespace("example"))
-            .infosItem(i -> i.secure(s -> s.protocol("TLSv1.3")))
+            .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
             .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
             .infosItem(i -> i.secure(s -> s.signature("SHA256")))
             .infosItem(i -> i.secure(s -> s.name("name@domain")))
@@ -737,7 +737,7 @@ public class ProxyFunctionsTest
                                              .typeId(0x01)
                                              .info()
                                                  .secure()
-                                                     .protocol("TLSv1.2")
+                                                     .version("TLSv1.2")
                                                      .build()
                                                  .build()
                                              .build();
@@ -751,7 +751,7 @@ public class ProxyFunctionsTest
                                        .destination("example.com")
                                        .sourcePort(32768)
                                        .destinationPort(443)))
-            .infosItem(i -> i.secure(s -> s.protocol("TLSv1.3")))
+            .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
             .build();
 
         assertNull(matcher.match(byteBuf));
@@ -882,7 +882,7 @@ public class ProxyFunctionsTest
                                                  .identity(fromHex("12345678"))
                                                  .namespace("example")
                                                  .secure()
-                                                     .protocol("TLSv1.3")
+                                                     .version("TLSv1.3")
                                                      .cipher("ECDHE-RSA-AES128-GCM-SHA256")
                                                      .signature("SHA256")
                                                      .name("name@domain")
@@ -904,7 +904,7 @@ public class ProxyFunctionsTest
             .infosItem(i -> i.authority("example.com"))
             .infosItem(i -> i.identity(id -> id.value(v -> v.set(fromHex("12345678")))))
             .infosItem(i -> i.namespace("example"))
-            .infosItem(i -> i.secure(s -> s.protocol("TLSv1.3")))
+            .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
             .infosItem(i -> i.secure(s -> s.cipher("ECDHE-RSA-AES128-GCM-SHA256")))
             .infosItem(i -> i.secure(s -> s.signature("SHA256")))
             .infosItem(i -> i.secure(s -> s.name("name@domain")))
@@ -1257,7 +1257,7 @@ public class ProxyFunctionsTest
                                              .typeId(0x01)
                                              .info()
                                                  .secure()
-                                                     .protocol("TLSv1.2")
+                                                     .version("TLSv1.2")
                                                      .build()
                                                  .build()
                                              .build();
@@ -1271,7 +1271,7 @@ public class ProxyFunctionsTest
                                         .destination(new UnsafeBuffer(fromHex("c0a800fe")), 0, 4)
                                         .sourcePort(32768)
                                         .destinationPort(443)))
-            .infosItem(i -> i.secure(s -> s.protocol("TLSv1.3")))
+            .infosItem(i -> i.secure(s -> s.version("TLSv1.3")))
             .build();
 
         assertNull(matcher.match(byteBuf));

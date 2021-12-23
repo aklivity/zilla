@@ -2123,7 +2123,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             OctetsFW tlvBounded = tlvBoundedRO.wrap(tlv.buffer(), tlv.offset() + ProxyTlvFW.FIELD_OFFSET_LENGTH, tlv.limit());
             String16FW version = tlvBounded.get(tlvStringRO::wrap);
             ProxyInfoFW info = infoRW.wrap(decodeBuf, net.decodeOffset + size - Integer.BYTES, decodePool.slotCapacity())
-                    .secure(s -> s.protocol(version))
+                    .secure(s -> s.version(version))
                     .build();
 
             size += info.sizeof();

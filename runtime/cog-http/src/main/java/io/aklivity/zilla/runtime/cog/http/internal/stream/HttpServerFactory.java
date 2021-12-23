@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.cog.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.cog.http.internal.config.HttpVersion.HTTP_1_1;
 import static io.aklivity.zilla.runtime.cog.http.internal.config.HttpVersion.HTTP_2;
+import static io.aklivity.zilla.runtime.cog.http.internal.types.ProxyInfoType.ALPN;
+import static io.aklivity.zilla.runtime.cog.http.internal.types.ProxyInfoType.SECURE;
+import static io.aklivity.zilla.runtime.cog.http.internal.types.ProxySecureInfoType.VERSION;
 
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -30,8 +33,8 @@ import io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.cog.http.internal.config.HttpBinding;
 import io.aklivity.zilla.runtime.cog.http.internal.config.HttpOptions;
 import io.aklivity.zilla.runtime.cog.http.internal.config.HttpVersion;
+import io.aklivity.zilla.runtime.cog.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.ProxyInfoFW;
-import io.aklivity.zilla.runtime.cog.http.internal.types.ProxyInfoType;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
@@ -114,12 +117,17 @@ public final class HttpServerFactory implements HttpStreamFactory
             ProxyBeginExFW beginEx = begin.extension().get(proxyBeginExRO::tryWrap);
             if (beginEx != null && beginEx.typeId() == proxyTypeId)
             {
-                ProxyInfoFW info = beginEx.infos().matchFirst(i -> i.kind() == ProxyInfoType.ALPN);
-                HttpVersion version = info != null ? HttpVersion.of(info.alpn().asString()) : null;
+                Array32FW<ProxyInfoFW> infos = beginEx.infos();
+                ProxyInfoFW tlsVersion = infos.matchFirst(i -> i.kind() == SECURE && i.secure().kind() == VERSION);
+                ProxyInfoFW alpn = infos.matchFirst(i -> i.kind() == ALPN);
 
-                if (version != null && supportedVersions.contains(version))
+                if (tlsVersion != null && alpn != null)
                 {
-                    factory = factories.get(version);
+                    HttpVersion version = HttpVersion.of(alpn.alpn().asString());
+                    if (version != null && supportedVersions.contains(version))
+                    {
+                        factory = factories.get(version);
+                    }
                 }
             }
 

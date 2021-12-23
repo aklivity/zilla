@@ -94,7 +94,7 @@ scope proxy
 
     enum ProxySecureInfoType (uint8)
     {
-        PROTOCOL (0x21),
+        VERSION (0x21),
         NAME (0x22),
         CIPHER (0x23),
         SIGNATURE (0x24),
@@ -103,7 +103,7 @@ scope proxy
 
     union ProxySecureInfo switch (ProxySecureInfoType)
     {
-        case PROTOCOL: string8 protocol;
+        case VERSION: string8 version;
         case NAME: string16 name;
         case CIPHER: string8 cipher;
         case SIGNATURE: string8 signature;

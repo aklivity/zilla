@@ -43,7 +43,7 @@ public class StartingIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configurationRoot("io/aklivity/zilla/specs/cog/http/config/h2c")
+        .configurationRoot("io/aklivity/zilla/specs/cog/http/config/upgrade")
         .external("app#0")
         .clean();
 
@@ -53,8 +53,8 @@ public class StartingIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/upgrade.h2c.with.alpn.h2/client" })
-    public void shouldRejectHttp11UpgradeViaH2CWithAlpnH2() throws Exception
+        "${net}/upgrade.h2c.with.tls.and.alpn.h2/client" })
+    public void shouldRejectUpgradeViaH2CWithTlsAndAlpnH2() throws Exception
     {
         k3po.finish();
     }
@@ -62,9 +62,19 @@ public class StartingIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/upgrade.h2c.with.alpn.http1.1/client",
+        "${net}/upgrade.h2c.with.tls.and.alpn.http1.1/client",
         "${app}/upgrade.h2c/server" })
-    public void shouldNotUpgradeHttp11ViaH2CWithAlpnHttp11() throws Exception
+    public void shouldNotUpgradeViaH2CWithTlsAndAlpnHttp11() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/upgrade.h2c.with.tls.and.no.alpn/client",
+        "${app}/upgrade.h2c/server" })
+    public void shouldNotUpgradeViaH2CWithTlsAndNoAlpn() throws Exception
     {
         k3po.finish();
     }
@@ -73,9 +83,29 @@ public class StartingIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/upgrade.h2c.with.no.alpn/client",
+        "${net}/upgrade.h2c.with.no.tls/client",
         "${app}/upgrade.h2c/server" })
-    public void shouldUpgradeHttp11ViaH2CWithNoAlpn() throws Exception
+    public void shouldUpgradeViaH2CWithNoTls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("TODO")
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/upgrade.pri.with.no.tls/client",
+        "${app}/upgrade.h2c/server" })
+    public void shouldUpgradeViaPriorKnowledgeWithNoTls() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/upgrade.pri.with.tls.and.alpn.http1.1/client" })
+    public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndAlpnHttp11() throws Exception
     {
         k3po.finish();
     }
