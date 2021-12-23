@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.config;
 
-import java.util.Collection;
 import java.util.Map;
+import java.util.SortedSet;
 
 import io.aklivity.zilla.runtime.cog.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.String8FW;
@@ -24,11 +24,11 @@ import io.aklivity.zilla.runtime.engine.config.Options;
 
 public final class HttpOptions extends Options
 {
-    public final Collection<HttpVersion>  versions;
+    public final SortedSet<HttpVersion>  versions;
     public final Map<String8FW, String16FW>  overrides;
 
     public HttpOptions(
-        Collection<HttpVersion>  versions,
+        SortedSet<HttpVersion>  versions,
         Map<String8FW, String16FW> overrides)
     {
         this.versions = versions;

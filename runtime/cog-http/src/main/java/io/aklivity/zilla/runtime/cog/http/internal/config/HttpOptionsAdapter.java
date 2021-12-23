@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.config;
 
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -82,11 +82,11 @@ public final class HttpOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter
                 ? object.getJsonArray(VERSIONS_NAME)
                 : null;
 
-        Collection<HttpVersion> newVersions = null;
+        SortedSet<HttpVersion> newVersions = null;
 
         if (versions != null)
         {
-            Collection<HttpVersion> newVersions0 = EnumSet.noneOf(HttpVersion.class);
+            SortedSet<HttpVersion> newVersions0 = new TreeSet<HttpVersion>();
             versions.forEach(v ->
                 newVersions0.add(HttpVersion.of(JsonString.class.cast(v).getString())));
             newVersions = newVersions0;

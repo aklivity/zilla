@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -30,11 +30,11 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class AbortIT
+public class StartingIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http2/streams/network/rfc7540/connection.abort")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/connection.abort");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http2/streams/network/rfc7540/starting/")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/starting/");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -43,8 +43,7 @@ public class AbortIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
-        .configurationRoot("io/aklivity/zilla/specs/cog/http2/config")
+        .configurationRoot("io/aklivity/zilla/specs/cog/http/config")
         .external("app#0")
         .clean();
 
@@ -54,9 +53,8 @@ public class AbortIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/client.sent.write.abort.on.open.request.response/client",
-        "${app}/client.sent.write.abort.on.open.request.response/server" })
-    public void clientSentWriteAbortOnOpenRequestResponse() throws Exception
+        "${net}/upgrade.h2c.with.alpn.h2/client" })
+    public void shouldRejectHttp11UpgradeViaH2CWithAlpnH2() throws Exception
     {
         k3po.finish();
     }
@@ -64,29 +62,20 @@ public class AbortIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/client.sent.read.abort.on.open.request.response/client",
-        "${app}/client.sent.read.abort.on.open.request.response/server" })
-    public void clientSentReadAbortOnOpenRequestResponse() throws Exception
+        "${net}/upgrade.h2c.with.alpn.http1.1/client",
+        "${app}/upgrade.h2c/server" })
+    public void shouldNotUpgradeHttp11ViaH2CWithAlpnHttp11() throws Exception
     {
         k3po.finish();
     }
 
+    @Ignore("TODO")
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/server.sent.write.abort.on.open.request.response/client",
-        "${app}/server.sent.write.abort.on.open.request.response/server" })
-    public void serverSentWriteAbortOnOpenRequestResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/server.sent.read.abort.on.open.request.response/client",
-        "${app}/server.sent.read.abort.on.open.request.response/server" })
-    public void serverSentReadAbortOnOpenRequestResponse() throws Exception
+        "${net}/upgrade.h2c.with.no.alpn/client",
+        "${app}/upgrade.h2c/server" })
+    public void shouldUpgradeHttp11ViaH2CWithNoAlpn() throws Exception
     {
         k3po.finish();
     }

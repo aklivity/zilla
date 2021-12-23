@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.stream;
 
-import io.aklivity.zilla.runtime.cog.http.internal.Http2Configuration;
+import io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2ErrorCode;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 
@@ -36,7 +36,7 @@ public class Http2Settings
     public long maxHeaderListSize = DEFAULT_MAX_HEADER_LIST_SIZE;
 
     public Http2Settings(
-        Http2Configuration config,
+        HttpConfiguration config,
         BufferPool bufferPool)
     {
         this.maxConcurrentStreams = config.serverConcurrentStreams();

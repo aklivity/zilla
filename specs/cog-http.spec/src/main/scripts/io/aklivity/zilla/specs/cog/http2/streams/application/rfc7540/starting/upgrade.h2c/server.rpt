@@ -21,11 +21,11 @@ accepted
 
 read zilla:begin.ext ${http:beginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "POST")
                            .header(":scheme", "http")
-                           .header(":authority", "localhost:8080")
+                           .header(":method", "POST")
                            .header(":path", "/")
-                           .header("content-type", "text/plain; charset=UTF-8")
+                           .header(":authority", "localhost:8080")
+                           .header("content-type", "text/plain;charset=UTF-8")
                            .header("content-length", "12")
                            .build()}
 
@@ -39,7 +39,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":status", "200")
                             .header("server", "CERN/3.0 libwww/2.17")
                             .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
-                            .header("content-type", "text/plain; charset=UTF-8")
+                            .header("content-type", "text/plain;charset=UTF-8")
                             .header("content-length", "17")
                             .build()}
 

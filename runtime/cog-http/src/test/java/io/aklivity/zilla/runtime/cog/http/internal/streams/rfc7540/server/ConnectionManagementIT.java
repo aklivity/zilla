@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2Configuration.HTTP2_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2ConfigurationTest.HTTP2_MAX_CONCURRENT_STREAMS_CLEANUP_NAME;
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2ConfigurationTest.HTTP2_STREAMS_CLEANUP_DELAY_NAME;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfigurationTest.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfigurationTest.HTTP_STREAMS_CLEANUP_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -47,7 +47,7 @@ public class ConnectionManagementIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP2_SERVER_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/cog/http2/config")
         .external("app#0")
         .clean();
@@ -365,8 +365,8 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configure(name = HTTP2_MAX_CONCURRENT_STREAMS_CLEANUP_NAME, value = "1")
-    @Configure(name = HTTP2_STREAMS_CLEANUP_DELAY_NAME, value = "10")
+    @Configure(name = HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME, value = "1")
+    @Configure(name = HTTP_STREAMS_CLEANUP_DELAY_NAME, value = "10")
     @Configuration("server.json")
     @Specification({
         "${net}/client.sent.write.abort.then.read.abort.on.open.request/client",

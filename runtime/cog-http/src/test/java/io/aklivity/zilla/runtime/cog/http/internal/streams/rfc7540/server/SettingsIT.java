@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2ConfigurationTest.HTTP2_SERVER_CONCURRENT_STREAMS_NAME;
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2ConfigurationTest.HTTP2_SERVER_MAX_HEADER_LIST_SIZE_NAME;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfigurationTest.HTTP_SERVER_CONCURRENT_STREAMS_NAME;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfigurationTest.HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -55,7 +55,7 @@ public class SettingsIT
     @Configuration("server.json")
     @Specification({
         "${net}/max.concurrent.streams/client" })
-    @Configure(name = HTTP2_SERVER_CONCURRENT_STREAMS_NAME, value = "250")
+    @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "250")
     public void maxConcurrentStreams() throws Exception
     {
         k3po.finish();
@@ -65,7 +65,7 @@ public class SettingsIT
     @Configuration("server.json")
     @Specification({
         "${net}/max.header.list.size/client" })
-    @Configure(name = HTTP2_SERVER_MAX_HEADER_LIST_SIZE_NAME, value = "4096")
+    @Configure(name = HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME, value = "4096")
     public void maxHeaderListSize() throws Exception
     {
         k3po.finish();

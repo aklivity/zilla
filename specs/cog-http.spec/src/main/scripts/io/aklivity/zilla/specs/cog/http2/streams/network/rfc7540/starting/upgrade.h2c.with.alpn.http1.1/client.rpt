@@ -41,6 +41,8 @@ write "POST / HTTP/1.1\r\n"
 write "Hello, world"
 
 read "HTTP/1.1 200 OK\r\n"
+     "Server: CERN/3.0 libwww/2.17\r\n"
+     "Date: Wed, 01 Feb 2017 19:12:46 GMT\r\n"
      "Content-Type: text/plain;charset=UTF-8\r\n"
      "Content-Length: 17\r\n"
      "\r\n"

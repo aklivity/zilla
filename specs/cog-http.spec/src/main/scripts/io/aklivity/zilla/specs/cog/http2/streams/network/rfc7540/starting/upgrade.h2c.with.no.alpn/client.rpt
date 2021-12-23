@@ -24,7 +24,7 @@ write "POST / HTTP/1.1\r\n"
       "Connection: Upgrade, HTTP2-Settings\r\n"
       "Upgrade: h2c\r\n"
       "HTTP2-Settings: \r\n"
-      "Content-Type: text/plain; charset=UTF-8\r\n"
+      "Content-Type: text/plain;charset=UTF-8\r\n"
       "Content-Length: 12\r\n"
       "\r\n"
 
@@ -82,14 +82,14 @@ read [0x00 0x00 0x04]                                      # length
      [0x00 0x00 0x00 0x01]                                 # stream_id=1
      [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
 
-read [0x00 0x00 0x59]                                      # length
+read [0x00 0x00 0x58]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
      [0x04]                                                # END_HEADERS
      [0x00 0x00 0x00 0x01]                                 # stream_id=1
      [0x88]                                                # :status: 200
      [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
      [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
-     [0x0f 0x10] [0x19] "text/plain; charset=UTF-8"        # content-type
+     [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
      [0x0f 0x0d] [0x02] "17"                               # content-length
 
 read [0x00 0x00 0x11]                          # length = 17

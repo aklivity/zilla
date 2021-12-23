@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.util.EnumSet;
+import java.util.TreeSet;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
@@ -72,7 +73,7 @@ public class HttpOptionsAdapterTest
     public void shouldWriteOptions()
     {
         HttpOptions options = new HttpOptions(
-                EnumSet.allOf(HttpVersion.class),
+                new TreeSet<>(EnumSet.allOf(HttpVersion.class)),
                 singletonMap(new String8FW(":authority"), new String16FW("example.com:443")));
 
         String text = jsonb.toJson(options);

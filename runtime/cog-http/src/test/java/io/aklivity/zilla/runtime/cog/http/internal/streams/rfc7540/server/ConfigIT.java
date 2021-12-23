@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2Configuration.HTTP2_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2ConfigurationTest.HTTP2_ACCESS_CONTROL_ALLOW_ORIGIN_NAME;
-import static io.aklivity.zilla.runtime.cog.http.internal.Http2ConfigurationTest.HTTP2_SERVER_HEADER_NAME;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfigurationTest.HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfigurationTest.HTTP_SERVER_HEADER_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -46,7 +46,7 @@ public class ConfigIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP2_SERVER_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/cog/http2/config")
         .external("app#0")
         .clean();
@@ -55,7 +55,7 @@ public class ConfigIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configure(name = HTTP2_ACCESS_CONTROL_ALLOW_ORIGIN_NAME, value = "true")
+    @Configure(name = HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME, value = "true")
     @Configuration("server.json")
     @Specification({
         "${net}/access.control.allow.origin/client",
@@ -66,7 +66,7 @@ public class ConfigIT
     }
 
     @Test
-    @Configure(name = HTTP2_SERVER_HEADER_NAME, value = "zilla")
+    @Configure(name = HTTP_SERVER_HEADER_NAME, value = "zilla")
     @Configuration("server.json")
     @Specification({
         "${net}/server.header/client",

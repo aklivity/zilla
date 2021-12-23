@@ -3,10 +3,11 @@
     [
         {
             "entry": "net#0",
-            "type" : "http2",
+            "type" : "http",
             "kind": "server",
             "options":
             {
+                "versions": [ "h2" ],
                 "overrides":
                 {
                     ":authority": "otherhost:8181"

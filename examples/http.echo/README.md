@@ -25,10 +25,10 @@ $ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhos
 Hello, world
 ```
 ```bash
-$ curl --cacert test-ca.cr -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http1.1
+$ curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http1.1
 Hello, world
 ```
 ```bash
-$ curl --cacert test-ca.cr -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http2
+$ curl --cacert test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http2
 Hello, world
 ```

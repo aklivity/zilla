@@ -54,9 +54,9 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.http.internal.Http2Configuration;
 import io.aklivity.zilla.runtime.cog.http.internal.Http2Counters;
 import io.aklivity.zilla.runtime.cog.http.internal.HttpCog;
+import io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2ContinuationFW;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2DataFW;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2ErrorCode;
@@ -226,7 +226,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
     private final Http2HeadersDecoder headersDecoder = new Http2HeadersDecoder();
     private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
-    private final Http2Configuration config;
+    private final HttpConfiguration config;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer frameBuffer;
     private final BufferPool bufferPool;
@@ -246,7 +246,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
     private final Long2ObjectHashMap<HttpBinding> bindings;
 
     public Http2ServerFactory(
-        Http2Configuration config,
+        HttpConfiguration config,
         AxleContext context)
     {
         this.config = config;
@@ -1441,7 +1441,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
             assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
-            if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+            if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
             {
                 System.out.format("[%d] [onNetworkWindow] [0x%016x] [0x%016x] replyBudget %d + %d => %d\n",
                         System.nanoTime(), encodeReservedSlotTraceId, budgetId,
@@ -1515,7 +1515,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                 encodeSlotOffset += limit - offset;
                 encodeSlotReserved += reserved;
 
-                if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                 {
                     System.out.format("[%d] [doNetworkData] [0x%016x] [0x%016x] encodeSlotOffset %d => %d " +
                                       "encodeSlotReserved=%d\n",
@@ -1665,7 +1665,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                     final int encodeReserved = encodeLength + replyPad;
                     final int encodeReservedMin = (int) (((long) encodeSlotReserved * encodeLength) / encodeSlotOffset);
 
-                    if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                    if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                     {
                         System.out.format("[%d] [encodeNetworkData] [0x%016x] [0x%016x] replyBudget %d - %d => %d\n",
                             System.nanoTime(), traceId, budgetId,
@@ -1738,7 +1738,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                 {
                     final int encodeReserved = encodeLength + replyPad;
 
-                    if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                    if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                     {
                         System.out.format("[%d] [encodeNetworkHeaders] [0x%016x] [0x%016x] replyBudget %d - %d => %d\n",
                                 System.nanoTime(), encodeHeadersSlotTraceId, budgetId,
@@ -1793,7 +1793,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                 {
                     final int encodeReserved = encodeLength + replyPad;
 
-                    if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                    if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                     {
                         System.out.format("[%d] [encodeNetworkReserved] [0x%016x] [0x%016x] replyBudget %d - %d => %d\n",
                                 System.nanoTime(), encodeReservedSlotTraceId, budgetId,
@@ -2039,7 +2039,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
 
             if (streamId == 0)
             {
-                if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                 {
                     System.out.format("[%d] [onDecodeWindowUpdate] [0x%016x] [0x%016x] %d + %d => %d \n",
                         System.nanoTime(), traceId, budgetId, remoteSharedBudget, credit, remoteSharedBudget + credit);
@@ -2430,7 +2430,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                 final long responseSharedPrevious =
                     creditor.credit(traceId, responseSharedBudgetIndex, replySharedCredit);
 
-                if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                 {
                     System.out.format("[%d] [flushResponseSharedBudget] [0x%016x] [0x%016x] " +
                                       "responseSharedBudget %d + %d => %d\n",
@@ -2759,7 +2759,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                 encodeSlot = NO_SLOT;
                 encodeSlotOffset = 0;
 
-                if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                 {
                     System.out.format("[%d] [cleanupEncodeSlotIfNecessary] [0x%016x] [0x%016x] encode encodeSlotOffset => %d\n",
                         System.nanoTime(), 0, budgetId, encodeSlotOffset);
@@ -3100,7 +3100,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                 assert sequence >= responseSeq;
                 assert acknowledge <= responseAck;
 
-                if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                 {
                     System.out.format("[%d] [onResponseData] [0x%016x] [0x%016x] responseSharedBudget %d - %d => %d\n",
                             System.nanoTime(), traceId, budgetId,
@@ -3138,7 +3138,7 @@ public final class Http2ServerFactory implements HttpStreamFactory
                         final long budgetId = data.budgetId();
                         final int length = data.length();
 
-                        if (Http2Configuration.DEBUG_HTTP2_BUDGETS)
+                        if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                         {
                             System.out.format("[%d] [onResponseData] [0x%016x] [0x%016x] remoteBudget %d - %d => %d \n",
                                 System.nanoTime(), traceId, budgetId, remoteBudget, length, remoteBudget - length);
