@@ -45,7 +45,7 @@ public class FlowControlIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configurationRoot("io/aklivity/zilla/specs/cog/http/config")
+        .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v1.1")
         .external("net#0")
         .clean();
 

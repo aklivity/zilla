@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.cog.http2.streams.application.rfc7540;
+package io.aklivity.zilla.specs.cog.http.streams.application.rfc7540;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class AbortIT
+public class ConfigIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/connection.abort");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http/streams/application/rfc7540/config");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,40 +38,20 @@ public class AbortIT
 
     @Test
     @Specification({
-        "${app}/client.sent.read.abort.on.open.request.response/client",
-        "${app}/client.sent.read.abort.on.open.request.response/server"
+        "${app}/access.control.allow.origin/client",
+        "${app}/access.control.allow.origin/server"
     })
-    public void clientSentReadAbortOnOpenRequestResponse() throws Exception
+    public void accessControlAllowOrigin() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/client.sent.write.abort.on.open.request.response/client",
-        "${app}/client.sent.write.abort.on.open.request.response/server"
+        "${app}/server.header/client",
+        "${app}/server.header/server"
     })
-    public void clientSentWriteAbortOnOpenRequestResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/server.sent.read.abort.on.open.request.response/client",
-        "${app}/server.sent.read.abort.on.open.request.response/server"
-    })
-    public void serverSentReadAbortOnOpenRequestResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/server.sent.write.abort.on.open.request.response/client",
-        "${app}/server.sent.write.abort.on.open.request.response/server"
-    })
-    public void serverSentWriteAbortOnOpenRequestResponse() throws Exception
+    public void serverHeader() throws Exception
     {
         k3po.finish();
     }

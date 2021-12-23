@@ -46,7 +46,7 @@ public class MessageFormatIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
-        .configurationRoot("io/aklivity/zilla/specs/cog/http/config")
+        .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v1.1")
         .external("app#0")
         .clean();
 

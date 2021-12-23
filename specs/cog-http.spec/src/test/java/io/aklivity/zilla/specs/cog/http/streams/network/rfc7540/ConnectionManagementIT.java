@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.cog.http2.streams.application.rfc7540;
+package io.aklivity.zilla.specs.cog.http.streams.network.rfc7540;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class ConnectionManagementIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/connection.management");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http/streams/network/rfc7540/connection.management");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,8 +38,18 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.get.exchange/client",
-        "${app}/http.get.exchange/server"
+        "${net}/connection.established/client",
+        "${net}/connection.established/server",
+    })
+    public void connectionEstablished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/http.get.exchange/client",
+        "${net}/http.get.exchange/server",
     })
     public void httpGetExchange() throws Exception
     {
@@ -48,8 +58,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.get.exchange.with.header.override/client",
-        "${app}/http.get.exchange.with.header.override/server"
+        "${net}/http.get.exchange.with.header.override/client",
+        "${net}/http.get.exchange.with.header.override/server"
     })
     public void shouldSendRequestWithHeaderOverride() throws Exception
     {
@@ -58,8 +68,28 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.post.exchange/client",
-        "${app}/http.post.exchange/server"
+        "${net}/http.unknown.authority/client",
+        "${net}/http.unknown.authority/server",
+    })
+    public void httpUnknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/http.unknown.path/client",
+        "${net}/http.unknown.path/server",
+    })
+    public void httpUnknownPath() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/http.post.exchange/client",
+        "${net}/http.post.exchange/server",
     })
     public void httpPostExchange() throws Exception
     {
@@ -68,18 +98,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.post.exchange.streaming/client",
-        "${app}/http.post.exchange.streaming/server"
-    })
-    public void httpPostExchangeWhenStreaming() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/http.post.exchange.before.settings.exchange/client",
-        "${app}/http.post.exchange.before.settings.exchange/server"
+        "${net}/http.post.exchange.before.settings.exchange/client",
+        "${net}/http.post.exchange.before.settings.exchange/server"
     })
     public void httpPostExchangeBeforeSettingsExchange() throws Exception
     {
@@ -88,8 +108,18 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/multiple.data.frames/client",
-        "${app}/multiple.data.frames/server"
+        "${net}/http.post.exchange.streaming/client",
+        "${net}/http.post.exchange.streaming/server"
+    })
+    public void httpPostExchangeWhenStreaming() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/multiple.data.frames/client",
+        "${net}/multiple.data.frames/server",
     })
     public void multipleDataFrames() throws Exception
     {
@@ -98,8 +128,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/connection.has.two.streams/client",
-        "${app}/connection.has.two.streams/server"
+        "${net}/connection.has.two.streams/client",
+        "${net}/connection.has.two.streams/server",
     })
     public void connectionHasTwoStreams() throws Exception
     {
@@ -108,8 +138,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.push.promise/client",
-        "${app}/http.push.promise/server"
+        "${net}/http.push.promise/client",
+        "${net}/http.push.promise/server",
     })
     public void pushResources() throws Exception
     {
@@ -118,8 +148,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/push.promise.on.different.stream/client",
-        "${app}/push.promise.on.different.stream/server"
+        "${net}/push.promise.on.different.stream/client",
+        "${net}/push.promise.on.different.stream/server",
     })
     public void pushPromiseOnDifferentStream() throws Exception
     {
@@ -128,8 +158,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/reset.http2.stream/client",
-        "${app}/reset.http2.stream/server"
+        "${net}/reset.http2.stream/client",
+        "${net}/reset.http2.stream/server",
     })
     public void resetHttp2Stream() throws Exception
     {
@@ -138,8 +168,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/ignore.rst.stream/client",
-        "${app}/ignore.rst.stream/server"
+        "${net}/ignore.rst.stream/client",
+        "${net}/ignore.rst.stream/server",
     })
     public void ignoreRstStream() throws Exception
     {
@@ -148,8 +178,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/client.sent.read.abort.on.open.request/client",
-        "${app}/client.sent.read.abort.on.open.request/server"
+        "${net}/client.sent.read.abort.on.open.request/client",
+        "${net}/client.sent.read.abort.on.open.request/server"
     })
     public void clientSentReadAbortOnOpenRequest() throws Exception
     {
@@ -158,8 +188,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/rst.stream.last.frame/client",
-        "${app}/rst.stream.last.frame/server"
+        "${net}/rst.stream.last.frame/client",
+        "${net}/rst.stream.last.frame/server"
     })
     public void rstStreamLastFrame() throws Exception
     {
@@ -168,8 +198,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/client.sent.read.abort.on.closed.request/client",
-        "${app}/client.sent.read.abort.on.closed.request/server"
+        "${net}/client.sent.read.abort.on.closed.request/client",
+        "${net}/client.sent.read.abort.on.closed.request/server"
     })
     public void clientSentReadAbortOnClosedRequest() throws Exception
     {
@@ -178,8 +208,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/client.sent.write.abort.on.open.request/client",
-        "${app}/client.sent.write.abort.on.open.request/server"
+        "${net}/client.sent.write.abort.on.open.request/client",
+        "${net}/client.sent.write.abort.on.open.request/server"
     })
     public void clientSentWriteAbortOnOpenRequest() throws Exception
     {
@@ -188,8 +218,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/client.sent.write.abort.on.closed.request/client",
-        "${app}/client.sent.write.abort.on.closed.request/server"
+        "${net}/client.sent.write.abort.on.closed.request/client",
+        "${net}/client.sent.write.abort.on.closed.request/server"
     })
     public void clientSentWriteAbortOnClosedRequest() throws Exception
     {
@@ -198,8 +228,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/client.sent.write.close/client",
-        "${app}/client.sent.write.close/server"
+        "${net}/client.sent.write.close/client",
+        "${net}/client.sent.write.close/server"
     })
     public void clientSentWriteClose() throws Exception
     {
@@ -208,8 +238,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.read.abort.on.open.request/client",
-        "${app}/server.sent.read.abort.on.open.request/server"
+        "${net}/server.sent.read.abort.on.open.request/client",
+        "${net}/server.sent.read.abort.on.open.request/server"
     })
     public void serverSentReadAbortOnOpenRequest() throws Exception
     {
@@ -218,8 +248,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.read.abort.before.correlated/client",
-        "${app}/server.sent.read.abort.before.correlated/server"
+        "${net}/server.sent.read.abort.before.correlated/client",
+        "${net}/server.sent.read.abort.before.correlated/server"
     })
     public void serverSentReadAbortBeforeCorrelated() throws Exception
     {
@@ -228,8 +258,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.write.abort.on.open.request/client",
-        "${app}/server.sent.write.abort.on.open.request/server"
+        "${net}/server.sent.write.abort.on.open.request/client",
+        "${net}/server.sent.write.abort.on.open.request/server"
     })
     public void serverSentWriteAbortOnOpenRequest() throws Exception
     {
@@ -238,8 +268,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.write.abort.on.closed.request/client",
-        "${app}/server.sent.write.abort.on.closed.request/server"
+        "${net}/server.sent.write.abort.on.closed.request/client",
+        "${net}/server.sent.write.abort.on.closed.request/server"
     })
     public void serverSentWriteAbortOnClosedRequest() throws Exception
     {
@@ -248,8 +278,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.write.close/client",
-        "${app}/server.sent.write.close/server"
+        "${net}/server.sent.write.close/client",
+        "${net}/server.sent.write.close/server"
     })
     public void serverSentWriteClose() throws Exception
     {
@@ -258,8 +288,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.authority.default.port/client",
-        "${app}/http.authority.default.port/server"
+        "${net}/http.authority.default.port/client",
+        "${net}/http.authority.default.port/server",
     })
     public void authorityWithoutPort() throws Exception
     {
@@ -268,8 +298,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.path.prefix/client",
-        "${app}/http.path.prefix/server"
+        "${net}/http.path.prefix/client",
+        "${net}/http.path.prefix/server",
     })
     public void pathPrefix() throws Exception
     {
@@ -278,8 +308,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.response.trailer/client",
-        "${app}/http.response.trailer/server"
+        "${net}/http.response.trailer/client",
+        "${net}/http.response.trailer/server",
     })
     public void shouldProxyResponseTrailer() throws Exception
     {
@@ -288,8 +318,18 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/http.push.promise.header.override/client",
-        "${app}/http.push.promise.header.override/server"
+        "${net}/client.sent.end.before.response.received/client",
+        "${net}/client.sent.end.before.response.received/server",
+    })
+    public void shouldSendResetOnIncompleteResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/http.push.promise.header.override/client",
+        "${net}/http.push.promise.header.override/server",
     })
     public void pushResourcesWithOverrideHeader() throws Exception
     {
@@ -298,8 +338,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/client.sent.write.abort.then.read.abort.on.open.request/client",
-        "${app}/client.sent.write.abort.then.read.abort.on.open.request/server"
+        "${net}/client.sent.write.abort.then.read.abort.on.open.request/client",
+        "${net}/client.sent.write.abort.then.read.abort.on.open.request/server",
     })
     public void clientSentWriteAbortThenReadAbortOnOpenRequest() throws Exception
     {

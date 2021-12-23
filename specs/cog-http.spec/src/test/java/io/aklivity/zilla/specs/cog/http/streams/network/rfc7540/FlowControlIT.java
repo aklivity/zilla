@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.cog.http2.streams.application.rfc7540;
+package io.aklivity.zilla.specs.cog.http.streams.network.rfc7540;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class FlowControlIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/flow.control");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http/streams/network/rfc7540/flow.control");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,11 +38,12 @@ public class FlowControlIT
 
     @Test
     @Specification({
-        "${app}/stream.flow/client",
-        "${app}/stream.flow/server"
+        "${net}/stream.flow/client",
+        "${net}/stream.flow/server",
     })
     public void streamFlow() throws Exception
     {
         k3po.finish();
     }
+
 }

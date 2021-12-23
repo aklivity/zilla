@@ -36,8 +36,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class ConfigIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http2/streams/network/rfc7540/config")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/config");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http/streams/network/rfc7540/config")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http/streams/application/rfc7540/config");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -47,7 +47,7 @@ public class ConfigIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
-        .configurationRoot("io/aklivity/zilla/specs/cog/http2/config")
+        .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v2")
         .external("app#0")
         .clean();
 

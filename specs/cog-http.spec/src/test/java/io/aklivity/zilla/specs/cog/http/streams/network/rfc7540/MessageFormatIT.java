@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.cog.http2.streams.application.rfc7540;
+package io.aklivity.zilla.specs.cog.http.streams.network.rfc7540;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class MessageFormatIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/message.format");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http/streams/network/rfc7540/message.format");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,8 +38,8 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/continuation.frames/client",
-        "${app}/continuation.frames/server"
+        "${net}/continuation.frames/client",
+        "${net}/continuation.frames/server",
     })
     public void continuationFrames() throws Exception
     {
@@ -48,8 +48,8 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/dynamic.table.requests/client",
-        "${app}/dynamic.table.requests/server"
+        "${net}/dynamic.table.requests/client",
+        "${net}/dynamic.table.requests/server",
     })
     public void dynamicTableRequests() throws Exception
     {
@@ -58,8 +58,8 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/max.frame.size/client",
-        "${app}/max.frame.size/server"
+        "${net}/max.frame.size/client",
+        "${net}/max.frame.size/server",
     })
     public void maxFrameSize() throws Exception
     {
@@ -68,8 +68,8 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/max.frame.size.error/client",
-        "${app}/max.frame.size.error/server"
+        "${net}/max.frame.size.error/client",
+        "${net}/max.frame.size.error/server",
     })
     public void maxFrameSizeError() throws Exception
     {
@@ -78,28 +78,28 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/priority.frame.size.error/client",
-        "${app}/priority.frame.size.error/server"
+        "${net}/ping.frame.size.error/client",
+        "${net}/ping.frame.size.error/server"
     })
-    public void priorityFrameSizeError() throws Exception
+    public void pingFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/rst.stream.frame.size.error/client",
-        "${app}/rst.stream.frame.size.error/server"
+        "${net}/connection.window.frame.size.error/client",
+        "${net}/connection.window.frame.size.error/server"
     })
-    public void rstStreamFrameSizeError() throws Exception
+    public void connectionWindowFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/window.frame.size.error/client",
-        "${app}/window.frame.size.error/server"
+        "${net}/window.frame.size.error/client",
+        "${net}/window.frame.size.error/server"
     })
     public void windowFrameSizeError() throws Exception
     {
@@ -108,8 +108,28 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/max.zilla.data.frame.size/client",
-        "${app}/max.zilla.data.frame.size/server"
+        "${net}/rst.stream.frame.size.error/client",
+        "${net}/rst.stream.frame.size.error/server"
+    })
+    public void rstStreanFrameSizeError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/priority.frame.size.error/client",
+        "${net}/priority.frame.size.error/server"
+    })
+    public void priorityFrameSizeError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/max.zilla.data.frame.size/client",
+        "${net}/max.zilla.data.frame.size/server",
     })
     public void maxZillaDataFrameSize() throws Exception
     {
@@ -118,8 +138,8 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/connection.headers/client",
-        "${app}/connection.headers/server"
+        "${net}/connection.headers/client",
+        "${net}/connection.headers/server",
     })
     public void connectionHeaders() throws Exception
     {
@@ -128,10 +148,20 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/stream.id.order/client",
-        "${app}/stream.id.order/server"
+        "${net}/stream.id.order/client",
+        "${net}/stream.id.order/server",
     })
     public void streamIdOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/invalid.hpack.index/client",
+        "${net}/invalid.hpack.index/server",
+    })
+    public void invalidHpackIndex() throws Exception
     {
         k3po.finish();
     }

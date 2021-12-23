@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.cog.http2.streams.application.rfc7540;
+package io.aklivity.zilla.specs.cog.http.streams.network.rfc7540;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class StartingIT
+public class ConfigIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/http2/streams/application/rfc7540/starting");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http/streams/network/rfc7540/config");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,10 +38,20 @@ public class StartingIT
 
     @Test
     @Specification({
-        "${app}/upgrade.h2c/client",
-        "${app}/upgrade.h2c/server",
+        "${net}/access.control.allow.origin/client",
+        "${net}/access.control.allow.origin/server",
     })
-    public void shouldProcessRequestWithUpgradeViaH2C() throws Exception
+    public void accessControlAllowLoging() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.header/client",
+        "${net}/server.header/server",
+    })
+    public void serverHeader() throws Exception
     {
         k3po.finish();
     }

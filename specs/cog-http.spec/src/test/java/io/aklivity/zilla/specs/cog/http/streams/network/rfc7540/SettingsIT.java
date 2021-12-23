@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.cog.http2.streams.network.rfc7540;
+package io.aklivity.zilla.specs.cog.http.streams.network.rfc7540;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class SettingsIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http2/streams/network/rfc7540/settings");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/http/streams/network/rfc7540/settings");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 

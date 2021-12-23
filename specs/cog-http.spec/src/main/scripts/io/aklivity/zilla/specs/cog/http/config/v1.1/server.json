@@ -5,6 +5,10 @@
             "entry": "net#0",
             "type" : "http",
             "kind": "server",
+            "options":
+            {
+                "versions": [ "http/1.1" ]
+            },
             "routes":
             [
                 {
@@ -14,8 +18,7 @@
                         {
                             "headers":
                             {
-                                ":scheme": "https",
-                                ":authority": "localhost:443"
+                                ":authority": "localhost:8080"
                             }
                         }
                     ]
