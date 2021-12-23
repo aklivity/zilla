@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.EnumSet;
+
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import javax.json.bind.JsonbConfig;
@@ -48,6 +50,11 @@ public class HttpOptionsAdapterTest
     {
         String text =
                 "{" +
+                    "\"versions\":" +
+                    "[" +
+                        "\"http/1.1\"," +
+                        "\"h2\"" +
+                    "]," +
                     "\"overrides\":" +
                     "{" +
                         "\":authority\": \"example.com:443\"" +
@@ -57,17 +64,20 @@ public class HttpOptionsAdapterTest
         HttpOptions options = jsonb.fromJson(text, HttpOptions.class);
 
         assertThat(options, not(nullValue()));
+        assertThat(options.versions, equalTo(EnumSet.allOf(HttpVersion.class)));
         assertThat(options.overrides, equalTo(singletonMap(new String8FW(":authority"), new String16FW("example.com:443"))));
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        HttpOptions options = new HttpOptions(singletonMap(new String8FW(":authority"), new String16FW("example.com:443")));
+        HttpOptions options = new HttpOptions(
+                EnumSet.allOf(HttpVersion.class),
+                singletonMap(new String8FW(":authority"), new String16FW("example.com:443")));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"overrides\":{\":authority\":\"example.com:443\"}}"));
+        assertThat(text, equalTo("{\"versions\":[\"http/1.1\",\"h2\"],\"overrides\":{\":authority\":\"example.com:443\"}}"));
     }
 }

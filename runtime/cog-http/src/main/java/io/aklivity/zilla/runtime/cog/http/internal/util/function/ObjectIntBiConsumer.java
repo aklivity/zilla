@@ -13,25 +13,31 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.http.internal.config;
+package io.aklivity.zilla.runtime.cog.http.internal.util.function;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 
-import io.aklivity.zilla.runtime.cog.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.cog.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.Options;
-
-public final class HttpOptions extends Options
+@FunctionalInterface
+public interface ObjectIntBiConsumer<T> extends BiConsumer<T, Integer>
 {
-    public final Collection<HttpVersion>  versions;
-    public final Map<String8FW, String16FW>  overrides;
+    void accept(T t, int value);
 
-    public HttpOptions(
-        Collection<HttpVersion>  versions,
-        Map<String8FW, String16FW> overrides)
+    @Override
+    default void accept(T t, Integer value)
     {
-        this.versions = versions;
-        this.overrides = overrides;
+        this.accept(t, value.intValue());
+    }
+
+    default ObjectIntBiConsumer<T> andThen(
+        ObjectIntBiConsumer<? super T> after)
+    {
+        Objects.requireNonNull(after);
+
+        return (r, l) ->
+        {
+            accept(r, l);
+            after.accept(r, l);
+        };
     }
 }

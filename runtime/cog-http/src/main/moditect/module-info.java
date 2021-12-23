@@ -19,13 +19,13 @@ module io.aklivity.zilla.runtime.cog.http
 
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
         with io.aklivity.zilla.runtime.cog.http.internal.HttpCogFactorySpi,
-             io.aklivity.zilla.runtime.cog.http2.internal.Http2CogFactorySpi;
+             io.aklivity.zilla.runtime.cog.http.internal.Http2CogFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi
         with io.aklivity.zilla.runtime.cog.http.internal.config.HttpOptionsAdapter,
-             io.aklivity.zilla.runtime.cog.http2.internal.config.Http2OptionsAdapter;
+             io.aklivity.zilla.runtime.cog.http.internal.config.Http2OptionsAdapter;
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi
         with io.aklivity.zilla.runtime.cog.http.internal.config.HttpConditionAdapter,
-             io.aklivity.zilla.runtime.cog.http2.internal.config.Http2ConditionAdapter;
+             io.aklivity.zilla.runtime.cog.http.internal.config.Http2ConditionAdapter;
 }

@@ -98,7 +98,7 @@
         <artifactId>cog-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http</scopeNames>
+          <scopeNames>core proxy http</scopeNames>
           <packageName>io.aklivity.zilla.runtime.cog.http.internal.types</packageName>
         </configuration>
         <executions>

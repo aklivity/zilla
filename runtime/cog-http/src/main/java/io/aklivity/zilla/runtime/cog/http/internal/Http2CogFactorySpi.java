@@ -13,25 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.http.internal.config;
+package io.aklivity.zilla.runtime.cog.http.internal;
 
-import java.util.Collection;
-import java.util.Map;
+import io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
+import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
-import io.aklivity.zilla.runtime.cog.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.cog.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.Options;
-
-public final class HttpOptions extends Options
+public final class Http2CogFactorySpi implements CogFactorySpi
 {
-    public final Collection<HttpVersion>  versions;
-    public final Map<String8FW, String16FW>  overrides;
-
-    public HttpOptions(
-        Collection<HttpVersion>  versions,
-        Map<String8FW, String16FW> overrides)
+    @Override
+    public String name()
     {
-        this.versions = versions;
-        this.overrides = overrides;
+        return Http2Cog.NAME;
+    }
+
+    @Override
+    public Http2Cog create(
+        Configuration config)
+    {
+        return new Http2Cog(new Http2Configuration(config));
     }
 }

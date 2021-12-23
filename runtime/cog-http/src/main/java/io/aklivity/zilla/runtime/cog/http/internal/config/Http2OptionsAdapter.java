@@ -15,23 +15,34 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.config;
 
-import java.util.Collection;
-import java.util.Map;
+import javax.json.JsonObject;
+import javax.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.cog.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.cog.http.internal.Http2Cog;
 import io.aklivity.zilla.runtime.engine.config.Options;
+import io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi;
 
-public final class HttpOptions extends Options
+public final class Http2OptionsAdapter implements OptionsAdapterSpi, JsonbAdapter<Options, JsonObject>
 {
-    public final Collection<HttpVersion>  versions;
-    public final Map<String8FW, String16FW>  overrides;
+    private final HttpOptionsAdapter delegate = new HttpOptionsAdapter();
 
-    public HttpOptions(
-        Collection<HttpVersion>  versions,
-        Map<String8FW, String16FW> overrides)
+    @Override
+    public String type()
     {
-        this.versions = versions;
-        this.overrides = overrides;
+        return Http2Cog.NAME;
+    }
+
+    @Override
+    public JsonObject adaptToJson(
+        Options options)
+    {
+        return delegate.adaptToJson(options);
+    }
+
+    @Override
+    public Options adaptFromJson(
+        JsonObject object)
+    {
+        return delegate.adaptFromJson(object);
     }
 }

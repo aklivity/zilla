@@ -15,23 +15,35 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.config;
 
-import java.util.Collection;
-import java.util.Map;
-
-import io.aklivity.zilla.runtime.cog.http.internal.types.String16FW;
-import io.aklivity.zilla.runtime.cog.http.internal.types.String8FW;
-import io.aklivity.zilla.runtime.engine.config.Options;
-
-public final class HttpOptions extends Options
+public enum HttpVersion
 {
-    public final Collection<HttpVersion>  versions;
-    public final Map<String8FW, String16FW>  overrides;
+    HTTP_1_1("http/1.1"),
+    HTTP_2("h2");
 
-    public HttpOptions(
-        Collection<HttpVersion>  versions,
-        Map<String8FW, String16FW> overrides)
+    private final String name;
+
+    HttpVersion(
+        String name)
     {
-        this.versions = versions;
-        this.overrides = overrides;
+        this.name = name;
+    }
+
+    public String asString()
+    {
+        return name;
+    }
+
+    public static HttpVersion of(
+        String name)
+    {
+        switch (name)
+        {
+        case "http/1.1":
+            return HTTP_1_1;
+        case "h2":
+            return HTTP_2;
+        default:
+            return null;
+        }
     }
 }

@@ -15,10 +15,14 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.config;
 
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
@@ -32,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi;
 
 public final class HttpOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter<Options, JsonObject>
 {
+    private static final String VERSIONS_NAME = "versions";
     private static final String OVERRIDES_NAME = "overrides";
 
     @Override
@@ -47,6 +52,15 @@ public final class HttpOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter
         HttpOptions httpOptions = (HttpOptions) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (httpOptions.versions != null &&
+            !httpOptions.versions.isEmpty())
+        {
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            httpOptions.versions.forEach(v -> entries.add(v.asString()));
+
+            object.add(VERSIONS_NAME, entries);
+        }
 
         if (httpOptions.overrides != null &&
             !httpOptions.overrides.isEmpty())
@@ -64,6 +78,20 @@ public final class HttpOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter
     public Options adaptFromJson(
         JsonObject object)
     {
+        JsonArray versions = object.containsKey(VERSIONS_NAME)
+                ? object.getJsonArray(VERSIONS_NAME)
+                : null;
+
+        Collection<HttpVersion> newVersions = null;
+
+        if (versions != null)
+        {
+            Collection<HttpVersion> newVersions0 = EnumSet.noneOf(HttpVersion.class);
+            versions.forEach(v ->
+                newVersions0.add(HttpVersion.of(JsonString.class.cast(v).getString())));
+            newVersions = newVersions0;
+        }
+
         JsonObject overrides = object.containsKey(OVERRIDES_NAME)
                 ? object.getJsonObject(OVERRIDES_NAME)
                 : null;
@@ -78,6 +106,6 @@ public final class HttpOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter
             newOverrides = newOverrides0;
         }
 
-        return new HttpOptions(newOverrides);
+        return new HttpOptions(newVersions, newOverrides);
     }
 }
