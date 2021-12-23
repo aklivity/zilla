@@ -104,6 +104,15 @@ public class StartingIT
     @Test
     @Configuration("server.json")
     @Specification({
+        "${net}/upgrade.pri.with.tls.and.no.alpn/client" })
+    public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndNoAlpn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
         "${net}/upgrade.pri.with.tls.and.alpn.http1.1/client" })
     public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndAlpnHttp11() throws Exception
     {

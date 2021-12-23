@@ -115,4 +115,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.pri.with.tls.and.no.alpn/client",
+        "${net}/upgrade.pri.with.tls.and.no.alpn/server",
+    })
+    public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndNoAlpn() throws Exception
+    {
+        k3po.finish();
+    }
 }
