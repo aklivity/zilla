@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal.streams.rfc7540.server;
 
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -44,6 +45,7 @@ public class StartingIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/cog/http/config/upgrade")
+        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
         .external("app#0")
         .clean();
 
@@ -90,7 +92,6 @@ public class StartingIT
         k3po.finish();
     }
 
-    @Ignore("TODO")
     @Test
     @Configuration("server.json")
     @Specification({
