@@ -1606,7 +1606,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void onNetworkSignal(
-                SignalFW signal)
+            SignalFW signal)
         {
             long traceId = signal.traceId();
             int signalId = signal.signalId();
