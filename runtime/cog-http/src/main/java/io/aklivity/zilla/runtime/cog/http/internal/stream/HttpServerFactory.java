@@ -118,6 +118,7 @@ import io.aklivity.zilla.runtime.cog.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.cog.http.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.cog.http.internal.util.HttpUtil;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
@@ -128,7 +129,6 @@ import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.specs.cog.http.internal.types.stream.SignalFW;
 
 public final class HttpServerFactory implements HttpStreamFactory
 {
