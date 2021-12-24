@@ -2143,7 +2143,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                         awaitSyncCloseMillis > 0L)
                     {
                         final long signalAt = currentTimeMillis() + awaitSyncCloseMillis;
-                        resetLaterAt = signaler.signalAt(signalAt, routeId, replyId, APP_SIGNAL_RESET_LATER);
+                        resetLaterAt = signaler.signalAt(signalAt, routeId, initialId, APP_SIGNAL_RESET_LATER);
                     }
                     else
                     {
