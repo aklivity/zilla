@@ -35,7 +35,7 @@ info: found 0 asset files
 info: >> generation finished with success in 0.4s ! 
 ```
 
-## Preview via GitBook CL
+## Preview via GitBook CLI
 ```
 gitbook serve .
 ```
