@@ -32,7 +32,7 @@ Connected (press CTRL+C to quit)
 < Hello, world
 ```
 ```bash
-$ wscat -c wss://localhost:8080/
+$ wscat -c wss://localhost:9090/ --ca test-ca.crt
 Connected (press CTRL+C to quit)
 > Hello, world
 < Hello, world
