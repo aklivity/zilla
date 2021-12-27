@@ -38,7 +38,7 @@ info: >> generation finished with success in 0.4s !
 ## Preview via GitBook CL
 ```
 gitbook serve .
-```I
+```
 ```
 Live reload server started on port: 35729
 Press CTRL+C to quit ...
