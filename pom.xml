@@ -49,7 +49,7 @@
     <junit.version>5.8.2</junit.version>
     <byteman.version>4.0.18</byteman.version>
     <jmock.version>2.6.0</jmock.version>
-    <mockito.version>3.4.6</mockito.version>
+    <mockito.version>4.2.0</mockito.version>
     <k3po.version>3.1.0</k3po.version>
     <jmh.version>1.12</jmh.version>
   </properties>
