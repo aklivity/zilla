@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.cog.http.internal.util.function;
 
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Random;
 
@@ -47,6 +48,8 @@ public class ObjectIntBiConsumerTest
 
         final Object object = new Object();
         final int value = new Random().nextInt();
+
+        when(before.andThen(after)).thenCallRealMethod();
 
         before.andThen(after).accept(object, value);
 
