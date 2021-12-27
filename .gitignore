@@ -19,3 +19,4 @@ buildNumber.properties
 .DS_Store
 .zpm/
 .zilla/
+_book/
