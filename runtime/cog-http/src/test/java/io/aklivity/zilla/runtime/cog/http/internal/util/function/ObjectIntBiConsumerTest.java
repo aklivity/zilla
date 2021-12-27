@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Random;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ObjectIntBiConsumerTest
@@ -39,6 +40,7 @@ public class ObjectIntBiConsumerTest
         verify(consumer).accept(object, value.intValue());
     }
 
+    @Ignore("See https://github.com/aklivity/zilla/issues/3")
     @Test
     @SuppressWarnings("unchecked")
     public void shouldInvokeBeforeAndThenAfter()
