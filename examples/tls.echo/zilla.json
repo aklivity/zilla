@@ -36,9 +36,21 @@
             "options":
             {
                 "keys": [ "localhost" ],
-                "serverNames": [ "localhost" ]
+                "serverNames": [ "localhost" ],
+                "alpn": [ "echo" ]
             },
-            "exit": "echo0"
+            "routes":
+            [
+                {
+                    "exit": "echo0",
+                    "when":
+                    [
+                        {
+                            "alpn": "echo"
+                        }
+                    ]
+                }
+            ]
         },
         {
             "entry": "echo0",

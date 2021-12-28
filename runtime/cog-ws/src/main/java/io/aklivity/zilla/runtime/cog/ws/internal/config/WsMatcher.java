@@ -49,25 +49,25 @@ public final class WsMatcher
     private boolean matchProtocol(
         String protocol)
     {
-        return this.protocol == null || this.protocol.reset(protocol).matches();
+        return this.protocol == null || (protocol != null && this.protocol.reset(protocol).matches());
     }
 
     private boolean matchScheme(
         String scheme)
     {
-        return this.scheme == null || this.scheme.reset(scheme).matches();
+        return this.scheme == null || (scheme != null && this.scheme.reset(scheme).matches());
     }
 
     private boolean matchAuthority(
         String authority)
     {
-        return this.authority == null || this.authority.reset(authority).matches();
+        return this.authority == null || (authority != null && this.authority.reset(authority).matches());
     }
 
     private boolean matchPath(
         String path)
     {
-        return this.path == null || this.path.reset(path).matches();
+        return this.path == null || (path != null && this.path.reset(path).matches());
     }
 
     private static Matcher asMatcher(

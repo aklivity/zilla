@@ -20,7 +20,7 @@ started
 
 ### Verify behavior
 ```bash
-$ openssl s_client -connect localhost:23456 -CAfile test-ca.crt -quiet
+$ openssl s_client -connect localhost:23456 -CAfile test-ca.crt -quiet -alpn echo
 depth=1 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = Test CA
 verify return:1
 depth=0 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = localhost

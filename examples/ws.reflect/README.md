@@ -27,14 +27,14 @@ $ npm install wscat -g
 ### Verify behavior
 Connect each client first, then send `Hello, one` from first client, then send `Hello, two` from second client.
 ```bash
-$ wscat -c ws://localhost:8080/
+$ wscat -c ws://localhost:8080/ -s echo
 Connected (press CTRL+C to quit)
 > Hello, one
 < Hello, one
 < Hello, two
 ```
 ```bash
-$ wscat -c wss://localhost:9090/ --ca test-ca.crt
+$ wscat -c wss://localhost:9090/ --ca test-ca.crt -s echo
 Connected (press CTRL+C to quit)
 < Hello, one
 > Hello, two

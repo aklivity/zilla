@@ -52,7 +52,7 @@ public final class WsBinding
         String path)
     {
         return routes.stream()
-            .filter(r -> r.when.stream().allMatch(m -> m.matches(protocol, scheme, authority, path)))
+            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(protocol, scheme, authority, path)))
             .findFirst()
             .orElse(exit);
     }

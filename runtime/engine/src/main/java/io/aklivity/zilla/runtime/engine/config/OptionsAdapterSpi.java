@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import javax.json.JsonObject;
-import javax.json.bind.adapter.JsonbAdapter;
+import jakarta.json.JsonObject;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 public interface OptionsAdapterSpi extends JsonbAdapter<Options, JsonObject>
 {

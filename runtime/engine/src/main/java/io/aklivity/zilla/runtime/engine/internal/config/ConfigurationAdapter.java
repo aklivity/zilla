@@ -20,12 +20,12 @@ import static java.util.Collections.emptyList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
-import javax.json.bind.adapter.JsonbAdapter;
+import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.Binding;
 import io.aklivity.zilla.runtime.engine.config.Vault;
@@ -78,10 +78,10 @@ public class ConfigurationAdapter implements JsonbAdapter<Configuration, JsonObj
             object.add(BINDINGS_NAME, bindings);
         }
 
-        if (!NAMESPACES_DEFAULT.equals(root.namespaces))
+        if (!NAMESPACES_DEFAULT.equals(root.namespaces()))
         {
             JsonArrayBuilder references = Json.createArrayBuilder();
-            root.namespaces.forEach(r -> references.add(namespace.adaptToJson(r)));
+            root.namespaces().forEach(r -> references.add(namespace.adaptToJson(r)));
             object.add(NAMESPACES_NAME, references);
         }
 

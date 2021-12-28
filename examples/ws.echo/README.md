@@ -26,13 +26,13 @@ $ npm install wscat -g
 
 ### Verify behavior
 ```bash
-$ wscat -c ws://localhost:8080/
+$ wscat -c ws://localhost:8080/ -s echo
 Connected (press CTRL+C to quit)
 > Hello, world
 < Hello, world
 ```
 ```bash
-$ wscat -c wss://localhost:9090/ --ca test-ca.crt
+$ wscat -c wss://localhost:9090/ --ca test-ca.crt -s echo
 Connected (press CTRL+C to quit)
 > Hello, world
 < Hello, world

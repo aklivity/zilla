@@ -55,13 +55,46 @@
             "entry": "http0",
             "type" : "http",
             "kind": "SERVER",
-            "exit": "ws0"
+            "routes":
+            [
+                {
+                    "exit": "ws0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "http",
+                                ":authority": "localhost:8080"
+                            }
+                        },
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "localhost:9090"
+                            }
+                        }
+                    ]
+                }
+            ]
         },
         {
             "entry": "ws0",
             "type" : "ws",
             "kind": "SERVER",
-            "exit": "fan0"
+            "routes":
+            [
+                {
+                    "exit": "fan0",
+                    "when":
+                    [
+                        {
+                            "protocol": "echo"
+                        }
+                    ]
+                }
+            ]
         },
         {
             "entry": "fan0",

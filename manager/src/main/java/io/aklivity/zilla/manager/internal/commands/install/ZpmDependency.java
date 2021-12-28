@@ -17,7 +17,7 @@ package io.aklivity.zilla.manager.internal.commands.install;
 
 import java.util.Objects;
 
-import javax.json.bind.annotation.JsonbTypeAdapter;
+import jakarta.json.bind.annotation.JsonbTypeAdapter;
 
 import io.aklivity.zilla.manager.internal.commands.install.adapters.ZpmDependencyAdapter;
 

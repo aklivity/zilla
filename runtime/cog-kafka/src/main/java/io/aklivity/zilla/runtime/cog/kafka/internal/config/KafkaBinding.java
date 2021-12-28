@@ -49,7 +49,7 @@ public final class KafkaBinding
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.when.stream().allMatch(m -> m.matches(topic)))
+            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(topic)))
             .findFirst()
             .orElse(exit);
     }

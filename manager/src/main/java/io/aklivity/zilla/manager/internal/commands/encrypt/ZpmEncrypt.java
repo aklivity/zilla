@@ -31,9 +31,9 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.Scanner;
 
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 import org.sonatype.plexus.components.cipher.PlexusCipherException;
 

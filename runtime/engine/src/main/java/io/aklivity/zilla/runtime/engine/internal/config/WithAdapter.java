@@ -22,8 +22,8 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
-import javax.json.JsonObject;
-import javax.json.bind.adapter.JsonbAdapter;
+import jakarta.json.JsonObject;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.With;
 import io.aklivity.zilla.runtime.engine.config.WithAdapterSpi;

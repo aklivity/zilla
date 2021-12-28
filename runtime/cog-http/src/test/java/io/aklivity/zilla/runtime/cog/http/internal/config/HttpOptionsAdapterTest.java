@@ -24,9 +24,9 @@ import static org.hamcrest.Matchers.nullValue;
 import java.util.EnumSet;
 import java.util.TreeSet;
 
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;

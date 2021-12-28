@@ -1829,8 +1829,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             long authorization,
             DirectBuffer error)
         {
+            replyCloseOnFlush = true;
+
             doNetworkData(traceId, authorization, 0L, error.capacity() + replyPad, error, 0, error.capacity());
-            doNetworkEnd(traceId, authorization);
 
             assert exchange == null;
         }

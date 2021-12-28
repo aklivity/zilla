@@ -35,12 +35,12 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.zip.CRC32C;
 
-import javax.json.JsonArray;
-import javax.json.JsonPatch;
-import javax.json.JsonReader;
-import javax.json.JsonStructure;
-import javax.json.JsonWriter;
-import javax.json.spi.JsonProvider;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonPatch;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonStructure;
+import jakarta.json.JsonWriter;
+import jakarta.json.spi.JsonProvider;
 
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;

@@ -55,7 +55,7 @@ public final class HttpBinding
         Function<String, String> headerByName)
     {
         return routes.stream()
-            .filter(r -> r.when.stream().allMatch(m -> m.matches(headerByName)))
+            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(headerByName)))
             .findFirst()
             .orElse(exit);
     }

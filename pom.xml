@@ -67,12 +67,22 @@
       <dependency>
         <groupId>jakarta.json</groupId>
         <artifactId>jakarta.json-api</artifactId>
-        <version>1.1.6</version>
+        <version>2.0.1</version>
       </dependency>
       <dependency>
         <groupId>jakarta.json.bind</groupId>
         <artifactId>jakarta.json.bind-api</artifactId>
-        <version>1.0.2</version>
+        <version>2.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse</groupId>
+        <artifactId>yasson</artifactId>
+        <version>2.0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.leadpony.justify</groupId>
+        <artifactId>justify</artifactId>
+        <version>3.1.0</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>

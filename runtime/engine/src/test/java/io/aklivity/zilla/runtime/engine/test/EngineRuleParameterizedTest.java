@@ -24,7 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class DriveRuleParameterizedTest
+public class EngineRuleParameterizedTest
 {
 
     @Parameterized.Parameters
@@ -33,7 +33,7 @@ public class DriveRuleParameterizedTest
         return Arrays.asList(new Object[][] {{1}, {2}, {3}, {4}});
     }
 
-    public DriveRuleParameterizedTest(int value)
+    public EngineRuleParameterizedTest(int value)
     {
         drive = new EngineRule()
             .directory("target/drive-itests")

@@ -48,7 +48,7 @@ public final class ProxyBinding
         ProxyBeginExFW beginEx)
     {
         return routes.stream()
-                .filter(r -> r.when.stream().allMatch(c -> c.matches(beginEx)))
+                .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(c -> c.matches(beginEx)))
                 .findFirst()
                 .orElse(exit);
     }
