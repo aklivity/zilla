@@ -23,7 +23,7 @@ import io.aklivity.zilla.runtime.engine.config.Vault;
 
 public class Configuration extends Namespace
 {
-    public final List<NamespaceRef> namespaces;
+    private final List<NamespaceRef> namespaces;
 
     public Configuration(
         String name,
@@ -33,5 +33,10 @@ public class Configuration extends Namespace
     {
         super(name, vaults, bindings);
         this.namespaces = namespaces;
+    }
+
+    public final List<NamespaceRef> namespaces()
+    {
+        return namespaces;
     }
 }

@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_RESPON
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTED_DELAY_MILLIS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_SYNTHETIC_ABORT;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 import static java.nio.file.Files.exists;
 import static java.util.Objects.requireNonNull;
@@ -81,6 +82,7 @@ public final class EngineRule implements TestRule
         configure(ENGINE_DRAIN_ON_CLOSE, true);
         configure(ENGINE_SYNTHETIC_ABORT, true);
         configure(ENGINE_ROUTED_DELAY_MILLIS, 500L);
+        configure(ENGINE_WORKERS, 1);
     }
 
     public EngineRule directory(String directory)

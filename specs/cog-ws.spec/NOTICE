@@ -14,6 +14,7 @@ under the License.
 This project includes:
   agrona under The Apache License, Version 2.0
   zilla::specs::cog-http.spec under The Apache Software License, Version 2.0
+  zilla::specs::cog-proxy.spec under The Apache Software License, Version 2.0
   zilla::specs::cog.spec under The Apache Software License, Version 2.0
 
 

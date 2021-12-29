@@ -703,9 +703,9 @@ public final class LoggableStream implements AutoCloseable
             out.printf(verboseFormat, index, offset, timestamp,
                        format("name: %s", info.name().asString()));
             break;
-        case PROTOCOL:
+        case VERSION:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("version: %s", info.protocol().asString()));
+                       format("version: %s", info.version().asString()));
             break;
         case SIGNATURE:
             out.printf(verboseFormat, index, offset, timestamp,

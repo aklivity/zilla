@@ -1,0 +1,67 @@
+{
+    "vaults":
+    [
+        {
+            "name": "server",
+            "type": "filesystem",
+            "options":
+            {
+                "keys":
+                {
+                    "store": "localhost.p12",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        }
+    ],
+    "bindings":
+    [
+        {
+            "entry": "tcp0",
+            "type" : "tcp",
+            "kind": "SERVER",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 23456
+            },
+            "exit": "tls0"
+        },
+        {
+            "entry": "tls0",
+            "type" : "tls",
+            "kind": "SERVER",
+            "vault": "server",
+            "options":
+            {
+                "keys": [ "localhost" ],
+                "serverNames": [ "localhost" ],
+                "alpn": [ "echo" ]
+            },
+            "routes":
+            [
+                {
+                    "exit": "fan0",
+                    "when":
+                    [
+                        {
+                            "alpn": "echo"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "entry": "fan0",
+            "type" : "fan",
+            "kind": "SERVER",
+            "exit": "echo0"
+        },
+        {
+            "entry": "echo0",
+            "type" : "echo",
+            "kind": "SERVER"
+        }
+    ]
+}

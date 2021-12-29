@@ -1,0 +1,20 @@
+#!/bin/sh
+mkdir .vault
+cd .vault
+openssl genrsa -aes256 -out test-ca.key 4096
+
+openssl req -new -key test-ca.key -x509 -out test-ca.crt -days 3650 -subj "/C=US/ST=California/L=Palo Alto/O=Aklivity/OU=Development/CN=Test CA"
+
+openssl req -new -nodes -newkey rsa:4096 -keyout localhost.key -out localhost.req -batch -subj "/C=US/ST=California/L=Palo Alto/O=Aklivity/OU=Development/CN=localhost"
+
+openssl x509 -req -in localhost.req -CA test-ca.crt -CAkey test-ca.key -CAcreateserial -out localhost.crt -days 3650 -sha256 
+
+cat localhost.key > localhost.chain.pem 
+cat localhost.crt >> localhost.chain.pem 
+cat test-ca.crt >> localhost.chain.pem 
+
+echo "Export password: generated"
+openssl pkcs12 -export -in localhost.chain.pem -name localhost -out localhost.p12
+
+cp test-ca.crt ..
+cp localhost.p12 ..

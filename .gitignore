@@ -17,3 +17,6 @@ buildNumber.properties
 *.ipr
 *.iws
 .DS_Store
+.zpm/
+.zilla/
+_book/

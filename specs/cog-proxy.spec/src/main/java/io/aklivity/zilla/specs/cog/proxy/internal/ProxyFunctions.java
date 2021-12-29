@@ -28,8 +28,8 @@ import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxyInfoType.SEC
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.CIPHER;
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.KEY;
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.NAME;
-import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.PROTOCOL;
 import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.SIGNATURE;
+import static io.aklivity.zilla.specs.cog.proxy.internal.types.ProxySecureInfoType.VERSION;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -426,10 +426,10 @@ public final class ProxyFunctions
                 {
                 }
 
-                public ProxySecureInfoBuilder protocol(
-                    String protocol)
+                public ProxySecureInfoBuilder version(
+                    String version)
                 {
-                    infosRW.item(i -> i.secure(s -> s.protocol(protocol)));
+                    infosRW.item(i -> i.secure(s -> s.version(version)));
                     return this;
                 }
 
@@ -1059,11 +1059,11 @@ public final class ProxyFunctions
                     matchers = new EnumMap<>(ProxySecureInfoType.class);
                 }
 
-                public ProxySecureInfoMatcherBuilder protocol(
-                    String protocol)
+                public ProxySecureInfoMatcherBuilder version(
+                    String version)
                 {
-                    final String8FW protocol8 = new String8FW(protocol);
-                    matchers.put(PROTOCOL, info -> protocol8.equals(info.protocol()));
+                    final String8FW version8 = new String8FW(version);
+                    matchers.put(VERSION, info -> version8.equals(info.version()));
                     return this;
                 }
 

@@ -1,0 +1,112 @@
+{
+    "vaults":
+    [
+        {
+            "name": "server",
+            "type": "filesystem",
+            "options":
+            {
+                "keys":
+                {
+                    "store": "localhost.p12",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        }
+    ],
+    "bindings":
+    [
+        {
+            "entry": "tcp0",
+            "type" : "tcp",
+            "kind": "SERVER",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 8080
+            },
+            "exit": "http0"
+        },
+        {
+            "entry": "tcp1",
+            "type" : "tcp",
+            "kind": "SERVER",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 9090
+            },
+            "exit": "tls0"
+        },
+        {
+            "entry": "tls0",
+            "type" : "tls",
+            "kind": "SERVER",
+            "vault": "server",
+            "options":
+            {
+                "keys": [ "localhost" ],
+                "serverNames": [ "localhost" ]
+            },
+            "exit": "http0"
+        },
+        {
+            "entry": "http0",
+            "type" : "http",
+            "kind": "SERVER",
+            "routes":
+            [
+                {
+                    "exit": "ws0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "http",
+                                ":authority": "localhost:8080"
+                            }
+                        },
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "localhost:9090"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "entry": "ws0",
+            "type" : "ws",
+            "kind": "SERVER",
+            "routes":
+            [
+                {
+                    "exit": "fan0",
+                    "when":
+                    [
+                        {
+                            "protocol": "echo"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "entry": "fan0",
+            "type" : "fan",
+            "kind": "SERVER",
+            "exit": "echo0"
+        },
+        {
+            "entry": "echo0",
+            "type" : "echo",
+            "kind": "SERVER"
+        }
+    ]
+}
+

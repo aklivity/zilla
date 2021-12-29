@@ -2053,10 +2053,17 @@ public final class TlsServerFactory implements TlsStreamFactory
                                                                   is.item(i -> i.authority(hostname));
                                                               }
 
+                                                              SSLSession session = tlsEngine.getSession();
+                                                              String version = session.getProtocol();
+                                                              is.item(i -> i.secure(s -> s.version(version)));
+
                                                               if (name != null)
                                                               {
                                                                   is.item(i -> i.secure(s -> s.name(name)));
                                                               }
+
+                                                              String cipher = session.getCipherSuite();
+                                                              is.item(i -> i.secure(s -> s.cipher(cipher)));
                                                           })
                                                           .build()
                                                           .sizeof()));
@@ -2136,7 +2143,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                         awaitSyncCloseMillis > 0L)
                     {
                         final long signalAt = currentTimeMillis() + awaitSyncCloseMillis;
-                        resetLaterAt = signaler.signalAt(signalAt, routeId, replyId, APP_SIGNAL_RESET_LATER);
+                        resetLaterAt = signaler.signalAt(signalAt, routeId, initialId, APP_SIGNAL_RESET_LATER);
                     }
                     else
                     {

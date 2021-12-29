@@ -18,10 +18,10 @@ package io.aklivity.zilla.runtime.cog.proxy.internal.config;
 import static org.agrona.BitUtil.fromHex;
 import static org.agrona.BitUtil.toHex;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.bind.adapter.JsonbAdapter;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
 public final class ProxyInfoAdapter implements JsonbAdapter<ProxyInfo, JsonObject>
 {

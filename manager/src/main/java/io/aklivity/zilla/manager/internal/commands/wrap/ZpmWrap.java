@@ -46,10 +46,6 @@ public class ZpmWrap extends ZpmCommand
             typeConverterProvider = ZpmPathConverterProvider.class)
     public Path zpmwDir = Paths.get(".zpmw");
 
-    private Path wrappedPath;
-    private Path localPath;
-    private String wrappedURL;
-
     @Override
     public void invoke()
     {
@@ -62,10 +58,6 @@ public class ZpmWrap extends ZpmCommand
                 break task;
             }
 
-            wrappedPath = outputDir.resolve("wrapper").resolve(String.format("manager-%s.jar", version));
-            localPath = localRepoDir.resolve(String.format("io/aklivity/zilla/manager/%s/manager-%s.jar", version, version));
-            wrappedURL = String.format("%s/io/aklivity/zilla/manager/%s/manager-%s.jar", repoURL, version, version);
-
             generateWrapper();
         }
         catch (Exception ex)
@@ -77,8 +69,14 @@ public class ZpmWrap extends ZpmCommand
     private void generateWrapper() throws IOException
     {
         Path zpmwPath = launcherDir.resolve("zpmw");
+
+        Path localPath = localRepoDir.resolve("io/aklivity/zilla/manager/$version/manager-$version.jar");
+        Path wrappedPath = outputDir.resolve("wrapper").resolve("manager-$version.jar");
+        String wrappedURL = String.format("%s/io/aklivity/zilla/manager/$version/manager-$version.jar", repoURL);
+
         Files.write(zpmwPath, Arrays.asList(
                 "#!/bin/sh",
+                String.format("version=\"%s\"", version),
                 String.format("localPath=\"%s\"", localPath),
                 String.format("wrappedPath=\"%s\"", wrappedPath),
                 String.format("wrappedURL=\"%s\"", wrappedURL),

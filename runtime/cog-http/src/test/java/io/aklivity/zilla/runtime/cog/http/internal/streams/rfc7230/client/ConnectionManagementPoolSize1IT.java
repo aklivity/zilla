@@ -51,7 +51,7 @@ public class ConnectionManagementPoolSize1IT
         .counterValuesBufferCapacity(8192)
         .configure(HTTP_MAXIMUM_CONNECTIONS, 1)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configurationRoot("io/aklivity/zilla/specs/cog/http/config")
+        .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v1.1")
         .external("net#0")
         .clean();
 

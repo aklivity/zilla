@@ -49,7 +49,7 @@ public final class SseBinding
         String path)
     {
         return routes.stream()
-            .filter(r -> r.when.stream().allMatch(m -> m.matches(path)))
+            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(path)))
             .findFirst()
             .orElse(exit);
     }

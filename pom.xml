@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>parent</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -46,10 +46,10 @@
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <antlr4.version>4.7</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
-    <junit.version>5.6.2</junit.version>
-    <byteman.version>4.0.13</byteman.version>
+    <junit.version>5.8.2</junit.version>
+    <byteman.version>4.0.18</byteman.version>
     <jmock.version>2.6.0</jmock.version>
-    <mockito.version>3.4.6</mockito.version>
+    <mockito.version>4.2.0</mockito.version>
     <k3po.version>3.1.0</k3po.version>
     <jmh.version>1.12</jmh.version>
   </properties>
@@ -67,17 +67,27 @@
       <dependency>
         <groupId>jakarta.json</groupId>
         <artifactId>jakarta.json-api</artifactId>
-        <version>1.1.6</version>
+        <version>2.0.1</version>
       </dependency>
       <dependency>
         <groupId>jakarta.json.bind</groupId>
         <artifactId>jakarta.json.bind-api</artifactId>
-        <version>1.0.2</version>
+        <version>2.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse</groupId>
+        <artifactId>yasson</artifactId>
+        <version>2.0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.leadpony.justify</groupId>
+        <artifactId>justify</artifactId>
+        <version>3.1.0</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>4.13.1</version>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
@@ -211,14 +221,14 @@
           <version>1.1.0</version>
           <dependencies>
             <dependency>
-              <groupId>javax.xml.bind</groupId>
-              <artifactId>jaxb-api</artifactId>
-              <version>2.1</version>
+              <groupId>jakarta.xml.bind</groupId>
+              <artifactId>jakarta.xml.bind-api</artifactId>
+              <version>2.3.3</version>
             </dependency>
             <dependency>
-              <groupId>com.sun.xml.bind</groupId>
-              <artifactId>jaxb-impl</artifactId>
-              <version>2.2.5</version>
+              <groupId>org.glassfish.jaxb</groupId>
+              <artifactId>jaxb-runtime</artifactId>
+              <version>2.3.3</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -362,7 +372,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
           <configuration>
-            <argLine>@{jacoco.java.option}</argLine>
+            <argLine>@{jacoco.java.option} --add-opens java.base/sun.nio.ch=ALL-UNNAMED</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -375,7 +385,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M4</version>
           <configuration>
-            <argLine>@{jacoco.java.option} -Djdk.attach.allowAttachSelf=true</argLine>
+            <argLine>@{jacoco.java.option} --add-opens java.base/sun.nio.ch=ALL-UNNAMED -Djdk.attach.allowAttachSelf=true</argLine>
           </configuration>
           <executions>
             <execution>
@@ -521,6 +531,11 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.0.0-M1</version>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -528,6 +543,34 @@
   <profiles>
     <profile>
       <id>incubator</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-snapshot</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireSnapshotVersion>
+                      <message>Snapshot version only!</message>
+                    </requireSnapshotVersion>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
 
       <modules>
         <module>incubator</module>
@@ -554,7 +597,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-enforcer-plugin</artifactId>
-            <version>3.0.0-M1</version>
             <executions>
               <execution>
                 <id>enforce-no-snapshots</id>

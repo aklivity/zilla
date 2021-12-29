@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -46,13 +46,16 @@
       <artifactId>jakarta.json.bind-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.leadpony.justify</groupId>
+      <artifactId>justify</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.agrona</groupId>
       <artifactId>agrona</artifactId>
     </dependency>
     <dependency>
       <groupId>org.eclipse</groupId>
       <artifactId>yasson</artifactId>
-      <version>1.0.8</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>

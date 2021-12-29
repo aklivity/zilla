@@ -33,7 +33,6 @@ public class EngineBuilder
     private Configuration config;
     private ErrorHandler errorHandler;
 
-    private int threads = 1;
     private URL configURL;
     private Collection<EngineAffinity> affinities;
 
@@ -53,13 +52,6 @@ public class EngineBuilder
         URL configURL)
     {
         this.configURL = configURL;
-        return this;
-    }
-
-    public EngineBuilder threads(
-        int threads)
-    {
-        this.threads = threads;
         return this;
     }
 
@@ -93,6 +85,6 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, cogs, errorHandler, configURL, threads, affinities);
+        return new Engine(config, cogs, errorHandler, configURL, affinities);
     }
 }

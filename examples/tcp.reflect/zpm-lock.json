@@ -1,0 +1,17 @@
+
+{
+    "dependencies": [
+        "io.aklivity.zilla:engine:develop-SNAPSHOT",
+        "io.aklivity.zilla:cog-echo:develop-SNAPSHOT",
+        "io.aklivity.zilla:cog-fan:develop-SNAPSHOT",
+        "io.aklivity.zilla:cog-tcp:develop-SNAPSHOT",
+        "io.aklivity.zilla:cli:develop-SNAPSHOT",
+        "io.aklivity.zilla:cmd-start:develop-SNAPSHOT",
+        "io.aklivity.zilla:cmd-tune:develop-SNAPSHOT",
+        "io.aklivity.zilla:cmd-load:develop-SNAPSHOT",
+        "io.aklivity.zilla:cmd-stop:develop-SNAPSHOT"
+    ],
+    "repositories": [
+        "https://maven.packages.aklivity.io/"
+    ]
+}

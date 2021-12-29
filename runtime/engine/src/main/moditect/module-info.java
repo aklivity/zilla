@@ -27,9 +27,10 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.config;
     exports io.aklivity.zilla.runtime.engine.ext;
 
-    requires transitive java.json;
-    requires transitive java.json.bind;
+    requires transitive jakarta.json;
+    requires transitive jakarta.json.bind;
     requires transitive org.agrona.core;
+    requires org.leadpony.justify;
     requires jdk.unsupported;
     requires java.net.http;
 

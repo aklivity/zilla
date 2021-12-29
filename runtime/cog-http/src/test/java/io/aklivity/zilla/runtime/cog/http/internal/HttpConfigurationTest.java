@@ -15,7 +15,13 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal;
 
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_ACCESS_CONTROL_ALLOW_ORIGIN;
 import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_MAXIMUM_QUEUED_REQUESTS;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_SERVER_MAX_HEADER_LIST_SIZE;
+import static io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration.HTTP_STREAMS_CLEANUP_DELAY;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -24,10 +30,22 @@ public class HttpConfigurationTest
 {
     // needed by test annotations
     public static final String HTTP_MAXIMUM_QUEUED_REQUESTS_NAME = "zilla.cog.http.maximum.requests.queued";
+    public static final String HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME = "zilla.cog.http.server.access.control.allow.origin";
+    public static final String HTTP_SERVER_HEADER_NAME = "zilla.cog.http.server.header";
+    public static final String HTTP_SERVER_CONCURRENT_STREAMS_NAME = "zilla.cog.http.server.concurrent.streams";
+    public static final String HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME = "zilla.cog.http.server.max.header.list.size";
+    public static final String HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME = "zilla.cog.http.max.concurrent.streams.cleanup";
+    public static final String HTTP_STREAMS_CLEANUP_DELAY_NAME = "zilla.cog.http.streams.cleanup.delay";
 
     @Test
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(HTTP_MAXIMUM_QUEUED_REQUESTS.name(), HTTP_MAXIMUM_QUEUED_REQUESTS_NAME);
+        assertEquals(HTTP_ACCESS_CONTROL_ALLOW_ORIGIN.name(), HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME);
+        assertEquals(HTTP_SERVER_HEADER.name(), HTTP_SERVER_HEADER_NAME);
+        assertEquals(HTTP_SERVER_CONCURRENT_STREAMS.name(), HTTP_SERVER_CONCURRENT_STREAMS_NAME);
+        assertEquals(HTTP_SERVER_MAX_HEADER_LIST_SIZE.name(), HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME);
+        assertEquals(HTTP_MAX_CONCURRENT_STREAMS_CLEANUP.name(), HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME);
+        assertEquals(HTTP_STREAMS_CLEANUP_DELAY.name(), HTTP_STREAMS_CLEANUP_DELAY_NAME);
     }
 }

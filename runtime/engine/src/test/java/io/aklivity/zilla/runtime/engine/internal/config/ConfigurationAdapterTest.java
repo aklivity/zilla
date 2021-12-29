@@ -26,9 +26,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +60,7 @@ public class ConfigurationAdapterTest
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("default"));
         assertThat(config.bindings, emptyCollectionOf(Binding.class));
-        assertThat(config.namespaces, emptyCollectionOf(NamespaceRef.class));
+        assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
@@ -96,7 +96,7 @@ public class ConfigurationAdapterTest
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("test"));
         assertThat(config.bindings, emptyCollectionOf(Binding.class));
-        assertThat(config.namespaces, emptyCollectionOf(NamespaceRef.class));
+        assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
@@ -138,7 +138,7 @@ public class ConfigurationAdapterTest
         assertThat(config.bindings, hasSize(1));
         assertThat(config.bindings.get(0).type, equalTo("test"));
         assertThat(config.bindings.get(0).kind, equalTo(SERVER));
-        assertThat(config.namespaces, emptyCollectionOf(NamespaceRef.class));
+        assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
@@ -181,7 +181,7 @@ public class ConfigurationAdapterTest
         assertThat(config.vaults, hasSize(1));
         assertThat(config.vaults.get(0).name, equalTo("default"));
         assertThat(config.vaults.get(0).type, equalTo("test"));
-        assertThat(config.namespaces, emptyCollectionOf(NamespaceRef.class));
+        assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
@@ -218,9 +218,9 @@ public class ConfigurationAdapterTest
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("test"));
         assertThat(config.bindings, emptyCollectionOf(Binding.class));
-        assertThat(config.namespaces, hasSize(1));
-        assertThat(config.namespaces.get(0).name, equalTo("test"));
-        assertThat(config.namespaces.get(0).links, equalTo(emptyMap()));
+        assertThat(config.namespaces(), hasSize(1));
+        assertThat(config.namespaces().get(0).name, equalTo("test"));
+        assertThat(config.namespaces().get(0).links, equalTo(emptyMap()));
     }
 
     @Test

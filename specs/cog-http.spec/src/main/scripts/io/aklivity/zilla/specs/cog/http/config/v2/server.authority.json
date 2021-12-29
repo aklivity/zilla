@@ -1,0 +1,30 @@
+{
+    "bindings":
+    [
+        {
+            "entry": "net#0",
+            "type" : "http",
+            "kind": "server",
+            "options":
+            {
+                "versions": [ "h2" ]
+            },
+            "routes":
+            [
+                {
+                    "exit": "app#0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "localhost:443"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

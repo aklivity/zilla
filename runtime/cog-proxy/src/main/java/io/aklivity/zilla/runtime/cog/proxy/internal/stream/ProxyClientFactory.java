@@ -946,7 +946,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
                         ProxySecureInfoFW secureInfo = info.secure();
                         switch (secureInfo.kind())
                         {
-                        case PROTOCOL:
+                        case VERSION:
                             progress = encodeProxyTlvSslVersion(buffer, progress, secureInfo);
                             break;
                         case NAME:
@@ -1083,7 +1083,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             int progress,
             ProxySecureInfoFW secureInfo)
         {
-            DirectBuffer version = secureInfo.protocol().value();
+            DirectBuffer version = secureInfo.version().value();
             ProxyTlvFW versionTlv = tlvRW.wrap(buffer, progress, buffer.capacity())
                 .type(0x21)
                 .value(version, 0, version.capacity())

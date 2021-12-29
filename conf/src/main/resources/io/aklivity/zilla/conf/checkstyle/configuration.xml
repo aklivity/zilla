@@ -81,7 +81,7 @@
         </module>
 
         <module name="ImportOrder">
-            <property name="groups" value="java,javax,org,com"/>
+            <property name="groups" value="java,javax,jakarta,org,com"/>
             <property name="useContainerOrderingForStatic" value="true"/>
             <property name="ordered" value="true"/>
             <property name="separated" value="true"/>
@@ -111,7 +111,7 @@
 
         <module name="MethodLength">
             <property name="tokens" value="METHOD_DEF"/>
-            <property name="max" value="120"/>
+            <property name="max" value="200"/>
         </module>
 
         <module name="MethodParamPad"/>

@@ -33,11 +33,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
+import jakarta.json.JsonException;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
+import jakarta.json.spi.JsonProvider;
 
 import org.agrona.ErrorHandler;
+import org.leadpony.justify.api.InstanceType;
+import org.leadpony.justify.api.JsonSchema;
+import org.leadpony.justify.api.JsonSchemaBuilderFactory;
+import org.leadpony.justify.api.JsonValidationService;
+import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.config.Binding;
 import io.aklivity.zilla.runtime.engine.config.Route;
@@ -124,9 +131,21 @@ public class ConfigureTask implements Callable<Void>
 
         try
         {
+            JsonValidationService service = JsonValidationService.newInstance();
+            ProblemHandler handler = service.createProblemPrinter(msg -> errorHandler.onError(new JsonException(msg)));
+            JsonSchemaBuilderFactory f = service.createSchemaBuilderFactory();
+            JsonSchema schema = f.createBuilder()
+                    .withType(InstanceType.OBJECT)
+                    .withProperty("vaults", JsonSchema.EMPTY)
+                    .withProperty("bindings", JsonSchema.EMPTY)
+                    .build();
+            JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
             JsonbConfig config = new JsonbConfig()
                     .withAdapters(new ConfigurationAdapter());
-            Jsonb jsonb = JsonbBuilder.create(config);
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                    .withProvider(provider)
+                    .withConfig(config)
+                    .build();
 
             Configuration configuration = jsonb.fromJson(configText, Configuration.class);
 

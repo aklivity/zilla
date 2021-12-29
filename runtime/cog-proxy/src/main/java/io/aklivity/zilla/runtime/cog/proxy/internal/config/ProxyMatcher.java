@@ -27,8 +27,8 @@ import static io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxyInfoType.S
 import static io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxySecureInfoType.CIPHER;
 import static io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxySecureInfoType.KEY;
 import static io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxySecureInfoType.NAME;
-import static io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxySecureInfoType.PROTOCOL;
 import static io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxySecureInfoType.SIGNATURE;
+import static io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxySecureInfoType.VERSION;
 import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -393,7 +393,7 @@ public final class ProxyMatcher
             if (info.secure.version != null)
             {
                 String8FW version = new String8FW(info.secure.version);
-                matchers.put(PROTOCOL.value(), i -> version.equals(i.secure().protocol()));
+                matchers.put(VERSION.value(), i -> version.equals(i.secure().version()));
             }
 
             if (info.secure.cipher != null)
