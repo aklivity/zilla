@@ -33,7 +33,7 @@ import io.aklivity.zilla.manager.internal.types.ZpmPathConverterProvider;
 public class ZpmWrap extends ZpmCommand
 {
     @Option(name = { "--repository" })
-    public String repoURL = "https://repo.maven.apache.org/maven2";
+    public String repoURL = "https://maven.packages.aklivity.io";
 
     @Option(name = { "--local-repository" })
     public Path localRepoDir = Paths.get("$HOME/.m2/repository");
