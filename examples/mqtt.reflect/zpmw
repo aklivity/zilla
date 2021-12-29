@@ -1,7 +1,8 @@
 #!/bin/sh
-localPath="$HOME/.m2/repository/io/aklivity/zilla/manager/0.3.0/manager-0.3.0.jar"
-wrappedPath=".zpm/wrapper/manager-0.3.0.jar"
-wrappedURL="https://maven.packages.aklivity.io/io/aklivity/zilla/manager/0.3.0/manager-0.3.0.jar"
+version="develop-SNAPSHOT"
+localPath="$HOME/.m2/repository/io/aklivity/zilla/manager/$version/manager-$version.jar"
+wrappedPath=".zpm/wrapper/manager-$version.jar"
+wrappedURL="https://repo.maven.apache.org/maven2/io/aklivity/zilla/manager/$version/manager-$version.jar"
 if [ ! -r "$wrappedPath" ]; then
 mkdir -p `dirname $wrappedPath`
 if [ -r "$localPath" ]; then
@@ -10,7 +11,7 @@ cp $localPath $wrappedPath
 else
 echo $wrappedPath not found, downloading from $wrappedURL
 if command -v wget > /dev/null; then
-wget -O "$wrappedPath" "$wrappedURL" -q
+wget -O "$wrappedPath" "$wrappedURL" -nv
 else
 echo wget missing, download failed
 fi
