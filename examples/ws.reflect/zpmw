@@ -2,7 +2,7 @@
 version="develop-SNAPSHOT"
 localPath="$HOME/.m2/repository/io/aklivity/zilla/manager/$version/manager-$version.jar"
 wrappedPath=".zpm/wrapper/manager-$version.jar"
-wrappedURL="https://repo.maven.apache.org/maven2/io/aklivity/zilla/manager/$version/manager-$version.jar"
+wrappedURL="https://maven.packages.aklivity.io/io/aklivity/zilla/manager/$version/manager-$version.jar"
 if [ ! -r "$wrappedPath" ]; then
 mkdir -p `dirname $wrappedPath`
 if [ -r "$localPath" ]; then
