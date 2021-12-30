@@ -23,6 +23,7 @@
     <module>cog-amqp</module>
     <module>cog-mqtt</module>
 
+    <module>cmd-load</module>
     <module>cmd-log</module>
   </modules>
 
@@ -36,6 +37,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>cog-mqtt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>cmd-load</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
