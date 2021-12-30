@@ -1,12 +1,14 @@
 {
   "repositories":
   [
-    "https://maven.packages.aklivity.io/"
+    "https://maven.packages.aklivity.io/",
+    "https://repo.maven.apache.org/maven2/"
   ],
 
   "imports":
   [
-    "io.aklivity.zilla:runtime:develop-SNAPSHOT"
+    "io.aklivity.zilla:runtime:develop-SNAPSHOT",
+    "io.aklivity.zilla:incubator:develop-SNAPSHOT"
   ],
 
   "dependencies":
@@ -20,6 +22,7 @@
     "io.aklivity.zilla:cmd-start",
     "io.aklivity.zilla:cmd-tune",
     "io.aklivity.zilla:cmd-load",
+    "io.aklivity.zilla:cmd-log",
     "io.aklivity.zilla:cmd-stop"
   ]
 }
