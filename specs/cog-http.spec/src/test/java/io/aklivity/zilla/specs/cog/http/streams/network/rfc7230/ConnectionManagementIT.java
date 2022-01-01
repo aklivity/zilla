@@ -297,6 +297,15 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/request.authority.mismatch/client",
+        "${net}/request.authority.mismatch/server" })
+    public void shouldRejectRequestAuthorityMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.send.abort.after.response.received/client",
         "${net}/request.send.abort.after.response.received/server" })
     public void shouldSendAbortAndResetOnAbortedRequestAfterResponseHeaderReceived() throws Exception

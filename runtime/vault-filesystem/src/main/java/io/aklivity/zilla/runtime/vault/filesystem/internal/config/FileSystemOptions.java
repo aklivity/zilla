@@ -13,21 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.tls.internal.vault.config;
+package io.aklivity.zilla.runtime.vault.filesystem.internal.config;
 
-public class FileSystemStore
+import io.aklivity.zilla.runtime.engine.config.Options;
+
+public class FileSystemOptions extends Options
 {
-    public final String store;
-    public final String type;
-    public final String password;
+    public final FileSystemStore keys;
+    public final FileSystemStore trust;
+    public final FileSystemStore signers;
 
-    public FileSystemStore(
-        String store,
-        String type,
-        String password)
+    public FileSystemOptions(
+        FileSystemStore keys,
+        FileSystemStore trust,
+        FileSystemStore signers)
     {
-        this.store = store;
-        this.type = type;
-        this.password = password;
+        this.keys = keys;
+        this.trust = trust;
+        this.signers = signers;
     }
 }

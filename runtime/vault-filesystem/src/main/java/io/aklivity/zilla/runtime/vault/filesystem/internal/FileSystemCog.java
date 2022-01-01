@@ -13,15 +13,24 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.tls.internal.vault;
+package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
-import io.aklivity.zilla.runtime.cog.tls.internal.TlsConfiguration;
+import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
 import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
-public final class FileSystemCogFactorySpi implements CogFactorySpi
+public final class FileSystemCog implements Cog
 {
+    public static final String NAME = "filesystem";
+
+    private final Configuration config;
+
+    FileSystemCog(
+        Configuration config)
+    {
+        this.config = config;
+    }
+
     @Override
     public String name()
     {
@@ -29,9 +38,15 @@ public final class FileSystemCogFactorySpi implements CogFactorySpi
     }
 
     @Override
-    public Cog create(
-        Configuration config)
+    public Configuration config()
     {
-        return new FileSystemCog(new TlsConfiguration(config));
+        return config;
+    }
+
+    @Override
+    public FileSystemAxle supplyAxle(
+        AxleContext context)
+    {
+        return new FileSystemAxle(config, context);
     }
 }

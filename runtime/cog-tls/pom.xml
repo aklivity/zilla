@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.5.2</version>
+    <version>0.6.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -47,6 +47,12 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>vault-filesystem</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

@@ -13,16 +13,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.tls.internal.vault.config;
+package io.aklivity.zilla.runtime.vault.filesystem.internal.config;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.tls.internal.vault.FileSystemCog;
 import io.aklivity.zilla.runtime.engine.config.Options;
 import io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemCog;
 
 public final class FileSystemOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter<Options, JsonObject>
 {

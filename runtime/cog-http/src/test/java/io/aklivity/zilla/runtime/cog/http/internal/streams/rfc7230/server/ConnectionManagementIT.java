@@ -157,6 +157,15 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
+        "${net}/request.authority.mismatch/client" })
+    public void shouldRejectRequestAuthorityMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
         "${net}/send.end.after.upgrade.request.completed/client",
         "${app}/send.end.after.upgrade.request.completed/server" })
     public void shouldSendEndWhenEndReceivedAfterUpgradeRequestCompleted() throws Exception

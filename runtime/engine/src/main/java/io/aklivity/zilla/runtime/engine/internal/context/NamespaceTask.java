@@ -48,7 +48,7 @@ public final class NamespaceTask implements Runnable
             configurable.accept(namespace);
             future.complete(null);
         }
-        catch (Exception ex)
+        catch (Throwable ex)
         {
             future.completeExceptionally(ex);
         }

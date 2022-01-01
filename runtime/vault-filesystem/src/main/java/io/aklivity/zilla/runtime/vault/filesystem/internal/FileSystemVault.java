@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.tls.internal.vault;
+package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
 import java.io.InputStream;
 import java.net.URL;
@@ -35,9 +35,9 @@ import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.cog.tls.internal.vault.config.FileSystemOptions;
-import io.aklivity.zilla.runtime.cog.tls.internal.vault.config.FileSystemStore;
 import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptions;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemStore;
 
 public class FileSystemVault implements BindingVault
 {
