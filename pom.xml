@@ -265,7 +265,7 @@
           <configuration>
             <header>COPYRIGHT</header>
             <properties>
-              <copyrightYears>${project.inceptionYear}-2021</copyrightYears>
+              <copyrightYears>${project.inceptionYear}-2022</copyrightYears>
             </properties>
             <includes>
               <include>src/**</include>
