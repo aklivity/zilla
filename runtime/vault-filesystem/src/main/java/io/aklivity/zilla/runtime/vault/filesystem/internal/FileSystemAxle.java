@@ -13,17 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.tls.internal.vault;
+package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
 import java.net.URL;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.cog.tls.internal.vault.config.FileSystemOptions;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Configuration;
 import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
 import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptions;
 
 final class FileSystemAxle implements Axle
 {
@@ -40,7 +40,7 @@ final class FileSystemAxle implements Axle
     public BindingVault attach(
         Vault vault)
     {
-        FileSystemOptions fsOptions = (FileSystemOptions) vault.options;
-        return new FileSystemVault(fsOptions, resolvePath);
+        FileSystemOptions options = (FileSystemOptions) vault.options;
+        return new FileSystemVault(options, resolvePath);
     }
 }

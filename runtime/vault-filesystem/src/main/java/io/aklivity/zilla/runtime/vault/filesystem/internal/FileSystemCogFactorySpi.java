@@ -13,23 +13,24 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.tls.internal.vault.config;
+package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
-import io.aklivity.zilla.runtime.engine.config.Options;
+import io.aklivity.zilla.runtime.engine.cog.Cog;
+import io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
+import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
-public class FileSystemOptions extends Options
+public final class FileSystemCogFactorySpi implements CogFactorySpi
 {
-    public final FileSystemStore keys;
-    public final FileSystemStore trust;
-    public final FileSystemStore signers;
-
-    public FileSystemOptions(
-        FileSystemStore keys,
-        FileSystemStore trust,
-        FileSystemStore signers)
+    @Override
+    public String name()
     {
-        this.keys = keys;
-        this.trust = trust;
-        this.signers = signers;
+        return FileSystemCog.NAME;
+    }
+
+    @Override
+    public Cog create(
+        Configuration config)
+    {
+        return new FileSystemCog(config);
     }
 }

@@ -18,6 +18,7 @@
 
   <modules>
     <module>engine</module>
+    <module>vault-filesystem</module>
     <module>cog-echo</module>
     <module>cog-fan</module>
     <module>cog-proxy</module>
@@ -38,6 +39,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>engine</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>vault-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

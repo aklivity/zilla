@@ -72,14 +72,13 @@ public class NamespaceContext
         Binding binding)
     {
         Axle axle = lookupAxle.apply(binding.type);
-        if (axle != null)
-        {
-            int bindingId = supplyLabelId.applyAsInt(binding.entry);
-            BindingContext context = new BindingContext(binding, axle);
-            bindingsById.put(bindingId, context);
-            context.attach();
-            supplyLoadEntry.accept(binding.id);
-        }
+        assert axle != null : "Missing cog kind: " + binding.type;
+
+        int bindingId = supplyLabelId.applyAsInt(binding.entry);
+        BindingContext context = new BindingContext(binding, axle);
+        bindingsById.put(bindingId, context);
+        context.attach();
+        supplyLoadEntry.accept(binding.id);
     }
 
     private void detachBinding(
@@ -97,13 +96,12 @@ public class NamespaceContext
         Vault vault)
     {
         Axle axle = lookupAxle.apply(vault.type);
-        if (axle != null)
-        {
-            int vaultId = supplyLabelId.applyAsInt(vault.name);
-            VaultContext context = new VaultContext(vault, axle);
-            vaultsById.put(vaultId, context);
-            context.attach();
-        }
+        assert axle != null : "Missing vault kind: " + vault.type;
+
+        int vaultId = supplyLabelId.applyAsInt(vault.name);
+        VaultContext context = new VaultContext(vault, axle);
+        vaultsById.put(vaultId, context);
+        context.attach();
     }
 
     private void detachVault(

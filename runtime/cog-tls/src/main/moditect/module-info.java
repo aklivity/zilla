@@ -20,12 +20,10 @@ module io.aklivity.zilla.runtime.cog.tls
     requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
-        with io.aklivity.zilla.runtime.cog.tls.internal.TlsCogFactorySpi,
-             io.aklivity.zilla.runtime.cog.tls.internal.vault.FileSystemCogFactorySpi;
+        with io.aklivity.zilla.runtime.cog.tls.internal.TlsCogFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi
-        with io.aklivity.zilla.runtime.cog.tls.internal.config.TlsOptionsAdapter,
-             io.aklivity.zilla.runtime.cog.tls.internal.vault.config.FileSystemOptionsAdapter;
+        with io.aklivity.zilla.runtime.cog.tls.internal.config.TlsOptionsAdapter;
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi
         with io.aklivity.zilla.runtime.cog.tls.internal.config.TlsConditionAdapter;
