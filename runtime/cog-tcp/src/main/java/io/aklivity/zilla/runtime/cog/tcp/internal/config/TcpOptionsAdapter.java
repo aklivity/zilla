@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2021 Aklivity Inc.
+ * Copyright 2021-2022 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -15,10 +15,20 @@
  */
 package io.aklivity.zilla.runtime.cog.tcp.internal.config;
 
+import java.util.stream.IntStream;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
+
+import org.agrona.collections.IntHashSet;
+import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.cog.tcp.internal.TcpCog;
 import io.aklivity.zilla.runtime.engine.config.Options;
@@ -49,7 +59,24 @@ public final class TcpOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter<
         JsonObjectBuilder object = Json.createObjectBuilder();
 
         object.add(HOST_NAME, tcpOptions.host);
-        object.add(PORT_NAME, tcpOptions.port);
+
+        if (tcpOptions.ports != null)
+        {
+            if (tcpOptions.ports.length == 1)
+            {
+                object.add(PORT_NAME, tcpOptions.ports[0]);
+            }
+            else
+            {
+                JsonArrayBuilder ports = Json.createArrayBuilder();
+                for (int port : tcpOptions.ports)
+                {
+                    ports.add(port);
+                }
+
+                object.add(PORT_NAME, ports);
+            }
+        }
 
         if (tcpOptions.backlog != BACKLOG_DEFAULT)
         {
@@ -67,11 +94,56 @@ public final class TcpOptionsAdapter implements OptionsAdapterSpi, JsonbAdapter<
         JsonObject object)
     {
         String host = object.getString(HOST_NAME);
-        int port = object.getJsonNumber(PORT_NAME).intValue();
+        JsonValue portsValue = object.get(PORT_NAME);
         int backlog = object.containsKey(BACKLOG_NAME) ? object.getJsonNumber(BACKLOG_NAME).intValue() : BACKLOG_DEFAULT;
         boolean nodelay = NODELAY_DEFAULT;
         boolean keepalive = KEEPALIVE_DEFAULT;
 
-        return new TcpOptions(host, port, backlog, nodelay, keepalive);
+        IntHashSet portsSet = new IntHashSet();
+
+        switch (portsValue.getValueType())
+        {
+        case ARRAY:
+            JsonArray portsArray = portsValue.asJsonArray();
+            portsArray.forEach(value -> adaptPortsValueFromJson(value, portsSet));
+            break;
+        default:
+            adaptPortsValueFromJson(portsValue, portsSet);
+            break;
+        }
+
+        int[] ports = new int[portsSet.size()];
+        MutableInteger index = new MutableInteger();
+        portsSet.forEach(i -> ports[index.value++] = i);
+
+        return new TcpOptions(host, ports, backlog, nodelay, keepalive);
+    }
+
+    private void adaptPortsValueFromJson(
+        JsonValue value,
+        IntHashSet ports)
+    {
+        switch (value.getValueType())
+        {
+        case STRING:
+        {
+            String port = ((JsonString) value).getString();
+            int dashAt = port.indexOf('-');
+            if (dashAt != -1)
+            {
+                int portRangeLow = Integer.parseInt(port.substring(0, dashAt));
+                int portRangeHigh = Integer.parseInt(port.substring(dashAt + 1));
+                IntStream.range(portRangeLow, portRangeHigh + 1).forEach(ports::add);
+            }
+            break;
+        }
+        case NUMBER:
+        default:
+        {
+            int port = ((JsonNumber) value).intValue();
+            ports.add(port);
+            break;
+        }
+        }
     }
 }

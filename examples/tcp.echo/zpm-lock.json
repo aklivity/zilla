@@ -1,4 +1,3 @@
-
 {
     "dependencies": [
         "io.aklivity.zilla:engine:develop-SNAPSHOT",
@@ -11,6 +10,7 @@
         "io.aklivity.zilla:cmd-stop:develop-SNAPSHOT"
     ],
     "repositories": [
-        "https://maven.packages.aklivity.io/"
+        "https://maven.packages.aklivity.io/",
+        "https://repo.maven.apache.org/maven2/"
     ]
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2021 Aklivity Inc.
+ * Copyright 2021-2022 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -35,7 +35,7 @@ public final class TcpServerBinding
 
     private final Lock lock = new ReentrantLock();
     private final AtomicInteger binds;
-    private volatile ServerSocketChannel channel;
+    private volatile ServerSocketChannel[] channels;
 
     public TcpServerBinding(
         long routeId)
@@ -44,29 +44,34 @@ public final class TcpServerBinding
         this.binds = new AtomicInteger();
     }
 
-    public ServerSocketChannel bind(
+    public ServerSocketChannel[] bind(
         TcpOptions options)
     {
         try
         {
             lock.lock();
 
-            ServerSocketChannel channel = this.channel;
-
             if (binds.getAndIncrement() == 0L)
             {
-                assert channel == null;
-                channel = ServerSocketChannel.open();
+                assert channels == null;
 
-                InetAddress address = InetAddress.getByName(options.host);
-                InetSocketAddress local = new InetSocketAddress(address, options.port);
+                int size = options.ports != null ? options.ports.length : 0;
+                channels = new ServerSocketChannel[size];
 
-                channel.setOption(SO_REUSEADDR, true);
-                channel.setOption(SO_REUSEPORT, true);
-                channel.bind(local, options.backlog);
-                channel.configureBlocking(false);
+                for (int i = 0; i < size; i++)
+                {
+                    ServerSocketChannel channel = ServerSocketChannel.open();
 
-                this.channel = channel;
+                    InetAddress address = InetAddress.getByName(options.host);
+                    InetSocketAddress local = new InetSocketAddress(address, options.ports[i]);
+
+                    channel.setOption(SO_REUSEADDR, true);
+                    channel.setOption(SO_REUSEPORT, true);
+                    channel.bind(local, options.backlog);
+                    channel.configureBlocking(false);
+
+                    channels[i] = channel;
+                }
             }
         }
         catch (IOException ex)
@@ -78,7 +83,7 @@ public final class TcpServerBinding
             lock.unlock();
         }
 
-        return channel;
+        return channels;
     }
 
     public void unbind()
@@ -89,9 +94,12 @@ public final class TcpServerBinding
 
             if (binds.decrementAndGet() == 0L)
             {
-                assert channel != null;
-                quietClose(channel);
-                channel = null;
+                assert channels != null;
+                for (ServerSocketChannel channel : channels)
+                {
+                    quietClose(channel);
+                }
+                channels = null;
             }
         }
         finally

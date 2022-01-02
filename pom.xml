@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>parent</artifactId>
-  <version>0.6.0</version>
+  <version>0.7.0</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -265,7 +265,7 @@
           <configuration>
             <header>COPYRIGHT</header>
             <properties>
-              <copyrightYears>${project.inceptionYear}-2021</copyrightYears>
+              <copyrightYears>${project.inceptionYear}-2022</copyrightYears>
             </properties>
             <includes>
               <include>src/**</include>

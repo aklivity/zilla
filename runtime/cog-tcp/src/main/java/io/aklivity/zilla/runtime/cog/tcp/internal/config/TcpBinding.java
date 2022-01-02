@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2021 Aklivity Inc.
+ * Copyright 2021-2022 Aklivity Inc.
  *
  * Aklivity licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -32,7 +32,7 @@ public final class TcpBinding
     public final List<TcpRoute> routes;
     public final TcpRoute exit;
 
-    private PollerKey attached;
+    private PollerKey[] attached;
 
     public TcpBinding(
         Binding binding)
@@ -45,10 +45,10 @@ public final class TcpBinding
         this.exit = binding.exit != null ? new TcpRoute(binding.exit) : null;
     }
 
-    public PollerKey attach(
-        PollerKey attachment)
+    public PollerKey[] attach(
+        PollerKey[] attachment)
     {
-        PollerKey detached = attached;
+        PollerKey[] detached = attached;
         attached = attachment;
         return detached;
     }
