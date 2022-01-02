@@ -160,7 +160,7 @@ public class ManyToOneRingBuffer implements RingBuffer
 
         try
         {
-            while ((bytesRead < maxBlockLength) && (messagesRead < messageCountLimit))
+            while (bytesRead < maxBlockLength && messagesRead < messageCountLimit)
             {
                 final int recordIndex = headIndex + bytesRead;
                 final int recordLength = buffer.getIntVolatile(lengthOffset(recordIndex));

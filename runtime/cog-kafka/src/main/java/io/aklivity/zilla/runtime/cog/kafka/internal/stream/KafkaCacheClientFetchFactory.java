@@ -1066,7 +1066,7 @@ public final class KafkaCacheClientFetchFactory implements StreamFactory
                 doClientReplyData(traceId, nextEntry);
 
                 if (replySeq == replySeqSnapshot ||
-                    (maximumOffset == HISTORICAL && cursor.offset > initialGroupLatestOffset))
+                    maximumOffset == HISTORICAL && cursor.offset > initialGroupLatestOffset)
                 {
                     break;
                 }
@@ -1102,7 +1102,7 @@ public final class KafkaCacheClientFetchFactory implements StreamFactory
 
             flush:
             if (replyBudget >= reservedMin &&
-                (reservedMin > replyPad || (reservedMin == replyPad && remaining == 0)))
+                (reservedMin > replyPad || reservedMin == replyPad && remaining == 0))
             {
                 int reserved = reservedMax;
                 boolean claimed = false;
@@ -1114,7 +1114,7 @@ public final class KafkaCacheClientFetchFactory implements StreamFactory
                     claimed = reserved > 0;
                 }
 
-                if (reserved < replyPad || (reserved == replyPad && value != null && remaining > 0))
+                if (reserved < replyPad || reserved == replyPad && value != null && remaining > 0)
                 {
                     assert !claimed : String.format("reserved=%d replyBudget=%d replyPadg=%d messageOffset=%d " +
                                                     "reservedMin=%d reservedMax=%d %s",

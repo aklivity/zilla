@@ -3287,8 +3287,8 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                 Consumer<CodeBlock.Builder> defaultPriorField)
             {
 
-                if ((usedAsSize && !isVarintType(type) && !isVaruintType(type) && !isVaruintnType(type)) ||
-                    (type.isPrimitive() && (size != -1 || sizeName != null)))
+                if (usedAsSize && !isVarintType(type) && !isVaruintType(type) && !isVaruintnType(type) ||
+                    type.isPrimitive() && (size != -1 || sizeName != null))
                 {
                     builder.addStatement("$L = -1", dynamicOffset(name));
                 }
@@ -3335,8 +3335,8 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                 String sizeName)
             {
 
-                if ((usedAsSize && !isVarintType(type) && !isVaruintType(type) && !isVaruintnType(type)) ||
-                    (type.isPrimitive() && (size != -1 || sizeName != null)))
+                if (usedAsSize && !isVarintType(type) && !isVaruintType(type) && !isVaruintnType(type) ||
+                    type.isPrimitive() && (size != -1 || sizeName != null))
                 {
                     builder.addStatement("$L = -1", dynamicOffset(name));
                 }

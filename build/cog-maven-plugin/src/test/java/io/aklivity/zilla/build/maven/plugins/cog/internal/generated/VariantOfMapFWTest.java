@@ -47,10 +47,16 @@ public class VariantOfMapFWTest
     };
 
     private final VariantOfMapFW.Builder<VariantEnumKindOfStringFW, TypedefStringFW, VariantEnumKindOfStringFW.Builder,
-        TypedefStringFW.Builder> flyweightRW = new VariantOfMapFW.Builder<>(new VariantEnumKindOfStringFW(),
-        new TypedefStringFW(), new VariantEnumKindOfStringFW.Builder(), new TypedefStringFW.Builder());
+        TypedefStringFW.Builder> flyweightRW =
+        new VariantOfMapFW.Builder<>(
+            new VariantEnumKindOfStringFW(),
+            new TypedefStringFW(),
+            new VariantEnumKindOfStringFW.Builder(),
+            new TypedefStringFW.Builder());
+
     private final VariantOfMapFW<VariantEnumKindOfStringFW, TypedefStringFW> flyweightRO =
         new VariantOfMapFW<>(new VariantEnumKindOfStringFW(), new TypedefStringFW());
+
     private static final EnumWithInt8 KIND_MAP8 = EnumWithInt8.SIX;
     private final int kindSize = Byte.BYTES;
     private final int lengthSize = Byte.BYTES;

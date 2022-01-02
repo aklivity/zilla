@@ -2466,7 +2466,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 int minResponseMax = Math.min(responseRemaining - responseNoAckMin + replyPad, replyMax);
 
                 if (responseAckMax > responseAck ||
-                    (minResponseMax > responseMax && encodeSlotOffset == 0))
+                    minResponseMax > responseMax && encodeSlotOffset == 0)
                 {
                     responseAck = responseAckMax;
                     assert responseAck <= responseSeq;
@@ -3607,7 +3607,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long budgetId)
         {
             if (encodeSlotOffset != 0 &&
-                (encodeSlotMarkOffset != 0 || (encodeHeadersSlotOffset == 0 && encodeReservedSlotMarkOffset == 0)))
+                (encodeSlotMarkOffset != 0 || encodeHeadersSlotOffset == 0 && encodeReservedSlotMarkOffset == 0))
             {
                 final int replyWin = replyMax - replyPendingAck();
                 final int encodeLengthMax = encodeSlotMarkOffset != 0 ? encodeSlotMarkOffset : encodeSlotOffset;
@@ -3735,7 +3735,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             long budgetId)
         {
             if (encodeReservedSlotOffset != 0 &&
-                (encodeReservedSlotMarkOffset != 0 || (encodeHeadersSlotOffset == 0 && encodeSlotOffset == 0)))
+                (encodeReservedSlotMarkOffset != 0 || encodeHeadersSlotOffset == 0 && encodeSlotOffset == 0))
             {
                 final int replyWin = replyMax - replyPendingAck();
                 final int maxEncodeLength =

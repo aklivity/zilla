@@ -2085,8 +2085,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             int minRequestMax = Math.min(requestRemaining - requestNoAckMin + client.initialPad, client.initialMax);
 
             if (requestAckMax > requestAck ||
-                (minRequestMax > requestMax && client.encodeSlotOffset == 0) ||
-                (minRequestMax == 0 && requestRemaining == 0 && !HttpState.initialOpened(state)))
+                minRequestMax > requestMax && client.encodeSlotOffset == 0 ||
+                minRequestMax == 0 && requestRemaining == 0 && !HttpState.initialOpened(state))
             {
                 requestAck = requestAckMax;
                 assert requestAck <= requestSeq;

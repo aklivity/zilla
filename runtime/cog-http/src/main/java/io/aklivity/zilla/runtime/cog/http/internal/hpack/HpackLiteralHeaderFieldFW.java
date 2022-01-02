@@ -40,7 +40,7 @@ public class HpackLiteralHeaderFieldFW extends Flyweight
 
     public boolean error()
     {
-        return literalType() == LiteralType.UNKNOWN || (nameType() == NameType.NEW && nameRO.error()) || valueRO.error();
+        return literalType() == LiteralType.UNKNOWN || nameType() == NameType.NEW && nameRO.error() || valueRO.error();
     }
 
     public enum LiteralType

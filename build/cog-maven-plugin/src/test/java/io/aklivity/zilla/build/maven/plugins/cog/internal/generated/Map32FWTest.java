@@ -48,8 +48,12 @@ public class Map32FWTest
     };
 
     private final Map32FW.Builder<TypedefStringFW, VariantEnumKindOfStringFW, TypedefStringFW.Builder,
-        VariantEnumKindOfStringFW.Builder> flyweightRW = new Map32FW.Builder<>(new TypedefStringFW(),
-        new VariantEnumKindOfStringFW(), new TypedefStringFW.Builder(), new VariantEnumKindOfStringFW.Builder());
+        VariantEnumKindOfStringFW.Builder> flyweightRW =
+        new Map32FW.Builder<>(
+            new TypedefStringFW(),
+            new VariantEnumKindOfStringFW(),
+            new TypedefStringFW.Builder(),
+            new VariantEnumKindOfStringFW.Builder());
 
     private final Map32FW<TypedefStringFW, VariantEnumKindOfStringFW> flyweightRO =
         new Map32FW<>(new TypedefStringFW(), new VariantEnumKindOfStringFW());
