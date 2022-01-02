@@ -52,13 +52,15 @@ public class TcpOptionsAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.host, equalTo("localhost"));
-        assertThat(options.port, equalTo(8080));
+        assertThat(options.ports, not(nullValue()));
+        assertThat(options.ports.length, equalTo(1));
+        assertThat(options.ports[0], equalTo(8080));
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        TcpOptions options = new TcpOptions("localhost", 8080, 0, true, false);
+        TcpOptions options = new TcpOptions("localhost", new int[] { 8080 }, 0, true, false);
 
         String text = jsonb.toJson(options);
 
@@ -80,14 +82,16 @@ public class TcpOptionsAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.host, equalTo("localhost"));
-        assertThat(options.port, equalTo(8080));
+        assertThat(options.ports, not(nullValue()));
+        assertThat(options.ports.length, equalTo(1));
+        assertThat(options.ports[0], equalTo(8080));
         assertThat(options.backlog, equalTo(1000));
     }
 
     @Test
     public void shouldWriteOptionsWithBacklog()
     {
-        TcpOptions options = new TcpOptions("localhost", 8080, 1000, true, false);
+        TcpOptions options = new TcpOptions("localhost", new int[] { 8080 }, 1000, true, false);
 
         String text = jsonb.toJson(options);
 

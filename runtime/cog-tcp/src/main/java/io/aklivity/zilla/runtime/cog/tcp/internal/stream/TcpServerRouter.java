@@ -131,27 +131,34 @@ public final class TcpServerRouter
         TcpBinding binding)
     {
         TcpServerBinding server = lookupServer.apply(binding.routeId);
+        ServerSocketChannel[] channels = server.bind(binding.options);
 
-        ServerSocketChannel channel = server.bind(binding.options);
+        PollerKey[] acceptKeys = new PollerKey[channels.length];
+        for (int i = 0; i < channels.length; i++)
+        {
+            acceptKeys[i] = supplyPollerKey.apply(channels[i]);
+            acceptKeys[i].handler(OP_ACCEPT, acceptHandler);
+            acceptKeys[i].register(OP_ACCEPT);
 
-        PollerKey acceptKey = supplyPollerKey.apply(channel);
-        acceptKey.handler(OP_ACCEPT, acceptHandler);
-        acceptKey.register(OP_ACCEPT);
+            acceptKeys[i].attach(binding);
+        }
 
-        binding.attach(acceptKey);
-        acceptKey.attach(binding);
+        binding.attach(acceptKeys);
     }
 
     private void unregister(
         TcpBinding binding)
     {
-        PollerKey acceptKey = binding.attach(null);
-        if (acceptKey != null)
+        PollerKey[] acceptKeys = binding.attach(null);
+        if (acceptKeys != null)
         {
-            TcpServerBinding server = lookupServer.apply(binding.routeId);
-
-            acceptKey.cancel();
-            server.unbind();
+            for (PollerKey acceptKey : acceptKeys)
+            {
+                acceptKey.cancel();
+            }
         }
+
+        TcpServerBinding server = lookupServer.apply(binding.routeId);
+        server.unbind();
     }
 }

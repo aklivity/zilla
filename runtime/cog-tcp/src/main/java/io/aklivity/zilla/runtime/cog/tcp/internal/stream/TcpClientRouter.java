@@ -74,12 +74,13 @@ public final class TcpClientRouter
         ProxyBeginExFW beginEx)
     {
         final TcpOptions options = binding.options;
+        final int port = options.ports != null && options.ports.length > 0 ? options.ports[0] : 0;
 
         InetSocketAddress resolved = null;
 
         if (beginEx == null)
         {
-            resolved = new InetSocketAddress(options.host, options.port);
+            resolved = new InetSocketAddress(options.host, port);
         }
         else
         {
@@ -95,7 +96,7 @@ public final class TcpClientRouter
                     for (InetAddress authority : authorities)
                     {
                         resolved = route.when.stream().anyMatch(m -> m.matches(authority))
-                                ? new InetSocketAddress(authority, options.port)
+                                ? new InetSocketAddress(authority, port)
                                 : null;
 
                         if (resolved != null)

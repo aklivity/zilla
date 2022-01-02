@@ -20,20 +20,20 @@ import io.aklivity.zilla.runtime.engine.config.Options;
 public final class TcpOptions extends Options
 {
     public final String host;
-    public final int port;
+    public final int[] ports;
     public final int backlog;
     public final boolean nodelay;
     public final boolean keepalive;
 
     public TcpOptions(
         String host,
-        int port,
+        int[] ports,
         int backlog,
         boolean nodelay,
         boolean keepalive)
     {
         this.host = host;
-        this.port = port;
+        this.ports = ports;
         this.backlog = backlog;
         this.nodelay = nodelay;
         this.keepalive = keepalive;
