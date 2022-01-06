@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.cog;
+package io.aklivity.zilla.specs.cog.internal;
 
 import static java.lang.Long.highestOneBit;
 import static java.lang.Long.numberOfTrailingZeros;

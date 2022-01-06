@@ -1,0 +1,148 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$defs":
+    {
+        "namedRef":
+        {
+            "type": "string"
+        }
+    },
+    "title": "Config",
+    "type": "object",
+    "properties":
+    {
+        "vaults":
+        {
+            "title": "Vaults",
+            "type": "array",
+            "items":
+            {
+                "title": "Items",
+                "type": "object",
+                "required":
+                [
+                    "name",
+                    "type"
+                ],
+                "properties":
+                {
+                    "name":
+                    {
+                        "title": "Name",
+                        "type": "string"
+                    },
+                    "type":
+                    {
+                        "title": "Type",
+                        "type": "string"
+                    },
+                    "options":
+                    {
+                        "title": "Options",
+                        "type": "object"
+                    }
+                }
+            }
+        },
+        "bindings":
+        {
+            "title": "Bindings",
+            "type": "array",
+            "items":{
+                "title": "Items",
+                "type": "object",
+                "properties":
+                {
+                    "vault": { "$ref": "#/$defs/namedRef" },
+                    "entry":
+                    {
+                        "title": "Entry",
+                        "type": "string"
+                    },
+                    "type":
+                    {
+                        "title": "Type",
+                        "type": "string"
+                    },
+                    "kind":
+                    {
+                        "title": "Kind",
+                        "type": "string"
+                    },
+                    "options":
+                    {
+                        "title": "Options",
+                        "type": "object"
+                    },
+                    "routes":
+                    {
+                        "title": "Routes",
+                        "type": "array",
+                        "items":
+                        {
+                            "title": "Route",
+                            "properties":
+                            {
+                                "exit": { "$ref": "#/$defs/namedRef" },
+                                "when":
+                                {
+                                    "title": "Conditions",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "title": "Condition",
+                                        "type": "object"
+                                    }
+                                },
+                                "with":
+                                {
+                                    "title": "Overrides",
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "title": "Override",
+                                        "type": "object"
+                                    }
+                                }
+                            },
+                            "required":
+                            [
+                                "exit"
+                            ]
+                        }
+                    },
+                    "exit":
+                    {
+                        "title": "Exit",
+                        "type": "string"
+                    }
+                },
+                "required":
+                [
+                    "entry",
+                    "type",
+                    "kind"
+                ],
+                "anyOf":
+                [
+                    {
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    },
+                    {
+                        "required":
+                        [
+                            "routes"
+                        ]
+                    }
+                ],
+                "allOf":
+                [
+                    true
+                ]
+            }
+        }
+    }
+}

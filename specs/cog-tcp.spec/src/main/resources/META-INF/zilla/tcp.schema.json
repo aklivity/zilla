@@ -1,0 +1,95 @@
+[
+    {
+        "op": "add",
+        "path": "/properties/bindings/items/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "tcp"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "kind":
+                    {
+                        "enum": [ "server", "client" ]
+                    },
+                    "options":
+                    {
+                        "properties":
+                        {
+                            "host":
+                            {
+                                "title": "Host",
+                                "type": "string"
+                            },
+                            "port":
+                            {
+                                "title": "Port",
+                                "oneOf":
+                                [
+                                    {
+                                        "type": "integer"
+                                    },
+                                    {
+                                        "type": "string"
+                                    },
+                                    {
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "oneOf":
+                                            [
+                                                {
+                                                    "type": "integer"
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "properties":
+                                        {
+                                            "authority":
+                                            {
+                                                "type": "string"
+                                            },
+                                            "cidr":
+                                            {
+                                                "type": "string",
+                                                "pattern": "[0-9a-fA-F:.]+/(\\d{1,3})"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]
