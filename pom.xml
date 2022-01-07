@@ -345,6 +345,11 @@
           <version>3.8.0</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
           <version>1.6.0</version>
@@ -521,6 +526,19 @@
                     <versionRange>[3.0.6,)</versionRange>
                     <goals>
                       <goal>rulecheck</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore></ignore>
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <versionRange>[2,)</versionRange>
+                    <goals>
+                      <goal>unpack</goal>
                     </goals>
                   </pluginExecutionFilter>
                   <action>

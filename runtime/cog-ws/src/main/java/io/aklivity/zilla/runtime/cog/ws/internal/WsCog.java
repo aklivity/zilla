@@ -37,12 +37,6 @@ public final class WsCog implements Cog
     }
 
     @Override
-    public WsConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public WsAxle supplyAxle(
         AxleContext context)
     {

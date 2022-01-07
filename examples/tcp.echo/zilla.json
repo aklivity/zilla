@@ -4,7 +4,7 @@
         {
             "entry": "tcp0",
             "type" : "tcp",
-            "kind": "SERVER",
+            "kind": "server",
             "options":
             {
                 "host": "0.0.0.0",
@@ -15,7 +15,7 @@
         {
             "entry": "echo0",
             "type" : "echo",
-            "kind": "SERVER"
+            "kind": "server"
         }
     ]
 }

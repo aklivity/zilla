@@ -37,12 +37,6 @@ public final class TlsCog implements Cog
     }
 
     @Override
-    public TlsConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public TlsAxle supplyAxle(
         AxleContext context)
     {

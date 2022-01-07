@@ -30,8 +30,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schema("core.schema.json")
-        .schemaPatch("tcp.schema.json")
+        .schemaPatch("io/aklivity/zilla/specs/cog/tcp/schema/tcp.json")
         .configurationRoot("io/aklivity/zilla/specs/cog/tcp/config");
 
     @Test

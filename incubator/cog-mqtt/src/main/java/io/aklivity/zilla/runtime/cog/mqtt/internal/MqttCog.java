@@ -37,12 +37,6 @@ public final class MqttCog implements Cog
     }
 
     @Override
-    public MqttConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public MqttAxle supplyAxle(
         AxleContext context)
     {

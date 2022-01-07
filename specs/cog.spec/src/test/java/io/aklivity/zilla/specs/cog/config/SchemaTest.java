@@ -29,7 +29,6 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schema("core.schema.json")
         .configurationRoot("io/aklivity/zilla/specs/cog/config");
 
     @Test

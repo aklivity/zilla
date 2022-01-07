@@ -44,19 +44,12 @@ public final class ConfigSchemaRule implements TestRule
 {
     private JsonProvider provider;
 
-    private String schemaRoot = "META-INF/zilla";
-    private String schemaName;
+    private String schemaName = "io/aklivity/zilla/specs/cog/schema/core.json";
     private List<String> schemaPatchNames = new ArrayList<>();
+
     private String configurationRoot;
 
     private Function<String, InputStream> findConfig;
-
-    public ConfigSchemaRule schemaRoot(
-        String schemaRoot)
-    {
-        this.schemaRoot = schemaRoot;
-        return this;
-    }
 
     public ConfigSchemaRule schema(
         String schemaName)
@@ -66,9 +59,9 @@ public final class ConfigSchemaRule implements TestRule
     }
 
     public ConfigSchemaRule schemaPatch(
-            String schemaPatch)
+        String schemaPatchName)
     {
-        this.schemaPatchNames.add(schemaPatch);
+        this.schemaPatchNames.add(schemaPatchName);
         return this;
     }
 
@@ -84,14 +77,12 @@ public final class ConfigSchemaRule implements TestRule
         Statement base,
         Description description)
     {
-        Objects.requireNonNull(schemaRoot, "schemaRoot");
         Objects.requireNonNull(schemaName, "schema");
         schemaPatchNames.forEach(n -> Objects.requireNonNull(n, "schemaPatch"));
 
         Function<String, InputStream> findResource = description.getTestClass().getClassLoader()::getResourceAsStream;
 
-        String schemaResource = String.format("%s/%s", schemaRoot, schemaName);
-        InputStream schemaInput = findResource.apply(schemaResource);
+        InputStream schemaInput = findResource.apply(schemaName);
 
         JsonProvider schemaProvider = JsonProvider.provider();
         JsonReader schemaReader = schemaProvider.createReader(schemaInput);
@@ -99,8 +90,7 @@ public final class ConfigSchemaRule implements TestRule
 
         for (String schemaPatchName : schemaPatchNames)
         {
-            String schemaPatchResource = String.format("%s/%s", schemaRoot, schemaPatchName);
-            InputStream schemaPatchInput = findResource.apply(schemaPatchResource);
+            InputStream schemaPatchInput = findResource.apply(schemaPatchName);
 
             Objects.requireNonNull(schemaPatchInput, "schemaPatch");
 

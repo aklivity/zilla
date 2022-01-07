@@ -15,12 +15,17 @@
  */
 package io.aklivity.zilla.runtime.engine.cog;
 
+import java.net.URL;
+
 public interface Cog
 {
     String name();
 
-    Configuration config();
-
     Axle supplyAxle(
         AxleContext context);
+
+    default URL type()
+    {
+        return null;
+    }
 }

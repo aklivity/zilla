@@ -20,6 +20,7 @@ import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.InputStream;
+import java.io.StringReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.http.HttpClient;
@@ -33,19 +34,24 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 
+import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonPatch;
+import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
+import jakarta.json.stream.JsonParser;
 
 import org.agrona.ErrorHandler;
-import org.leadpony.justify.api.InstanceType;
 import org.leadpony.justify.api.JsonSchema;
-import org.leadpony.justify.api.JsonSchemaBuilderFactory;
+import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
+import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.config.Binding;
 import io.aklivity.zilla.runtime.engine.config.Route;
 import io.aklivity.zilla.runtime.engine.config.Vault;
@@ -60,6 +66,7 @@ import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
 public class ConfigureTask implements Callable<Void>
 {
     private final URL configURL;
+    private final Collection<URL> cogTypes;
     private final ToIntFunction<String> supplyId;
     private final Tuning tuning;
     private final Collection<DispatchAgent> dispatchers;
@@ -70,6 +77,7 @@ public class ConfigureTask implements Callable<Void>
 
     public ConfigureTask(
         URL configURL,
+        Collection<URL> cogTypes,
         ToIntFunction<String> supplyId,
         Tuning tuning,
         Collection<DispatchAgent> dispatchers,
@@ -79,6 +87,7 @@ public class ConfigureTask implements Callable<Void>
         List<EngineExtSpi> extensions)
     {
         this.configURL = configURL;
+        this.cogTypes = cogTypes;
         this.supplyId = supplyId;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
@@ -131,14 +140,30 @@ public class ConfigureTask implements Callable<Void>
 
         try
         {
+            InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/core.json");
+
+            JsonProvider schemaProvider = JsonProvider.provider();
+            JsonReader schemaReader = schemaProvider.createReader(schemaInput);
+            JsonObject schemaObject = schemaReader.readObject();
+
+            for (URL cogType : cogTypes)
+            {
+                InputStream schemaPatchInput = cogType.openStream();
+                JsonReader schemaPatchReader = schemaProvider.createReader(schemaPatchInput);
+                JsonArray schemaPatchArray = schemaPatchReader.readArray();
+                JsonPatch schemaPatch = schemaProvider.createPatch(schemaPatchArray);
+
+                schemaObject = schemaPatch.apply(schemaObject);
+            }
+
+            JsonParser schemaParser = schemaProvider.createParserFactory(null)
+                .createParser(new StringReader(schemaObject.toString()));
+
             JsonValidationService service = JsonValidationService.newInstance();
             ProblemHandler handler = service.createProblemPrinter(msg -> errorHandler.onError(new JsonException(msg)));
-            JsonSchemaBuilderFactory f = service.createSchemaBuilderFactory();
-            JsonSchema schema = f.createBuilder()
-                    .withType(InstanceType.OBJECT)
-                    .withProperty("vaults", JsonSchema.EMPTY)
-                    .withProperty("bindings", JsonSchema.EMPTY)
-                    .build();
+            JsonSchemaReader reader = service.createSchemaReader(schemaParser);
+            JsonSchema schema = reader.read();
+
             JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
             JsonbConfig config = new JsonbConfig()
                     .withAdapters(new ConfigurationAdapter());

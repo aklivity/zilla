@@ -37,12 +37,6 @@ public final class ProxyCog implements Cog
     }
 
     @Override
-    public ProxyConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public ProxyAxle supplyAxle(
         AxleContext context)
     {

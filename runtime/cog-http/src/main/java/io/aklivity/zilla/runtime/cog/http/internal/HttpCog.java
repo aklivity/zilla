@@ -37,12 +37,6 @@ public final class HttpCog implements Cog
     }
 
     @Override
-    public HttpConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public HttpAxle supplyAxle(
         AxleContext context)
     {

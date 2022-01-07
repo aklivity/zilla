@@ -21,24 +21,15 @@ import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public final class TestCog implements Cog
 {
-    private final Configuration config;
-
     TestCog(
         Configuration config)
     {
-        this.config = config;
     }
 
     @Override
     public String name()
     {
         return "test";
-    }
-
-    @Override
-    public Configuration config()
-    {
-        return config;
     }
 
     @Override

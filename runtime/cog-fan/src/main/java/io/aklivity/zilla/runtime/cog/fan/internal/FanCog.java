@@ -37,12 +37,6 @@ final class FanCog implements Cog
     }
 
     @Override
-    public FanConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public FanAxle supplyAxle(
         AxleContext context)
     {

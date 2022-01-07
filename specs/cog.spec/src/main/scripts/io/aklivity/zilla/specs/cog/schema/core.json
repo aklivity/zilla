@@ -5,6 +5,10 @@
         "namedRef":
         {
             "type": "string"
+        },
+        "terminal":
+        {
+            "enum": [ null ]
         }
     },
     "title": "Config",
@@ -125,6 +129,9 @@
                 ],
                 "anyOf":
                 [
+                    {
+                        "properties": { "type": { "$ref": "#/$defs/terminal" } }
+                    },
                     {
                         "required":
                         [

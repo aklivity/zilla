@@ -37,12 +37,6 @@ public final class SseCog implements Cog
     }
 
     @Override
-    public SseConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public SseAxle supplyAxle(
         AxleContext context)
     {

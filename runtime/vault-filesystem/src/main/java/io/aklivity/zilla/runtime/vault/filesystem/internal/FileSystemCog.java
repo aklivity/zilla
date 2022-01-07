@@ -38,12 +38,6 @@ public final class FileSystemCog implements Cog
     }
 
     @Override
-    public Configuration config()
-    {
-        return config;
-    }
-
-    @Override
     public FileSystemAxle supplyAxle(
         AxleContext context)
     {

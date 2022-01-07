@@ -37,12 +37,6 @@ public final class AmqpCog implements Cog
     }
 
     @Override
-    public AmqpConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public AmqpAxle supplyAxle(
         AxleContext context)
     {

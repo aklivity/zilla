@@ -43,12 +43,6 @@ public final class KafkaCog implements Cog
     }
 
     @Override
-    public KafkaConfiguration config()
-    {
-        return config;
-    }
-
-    @Override
     public KafkaAxle supplyAxle(
         AxleContext context)
     {
