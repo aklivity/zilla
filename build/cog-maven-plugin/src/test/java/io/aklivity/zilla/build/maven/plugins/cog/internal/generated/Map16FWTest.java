@@ -48,8 +48,12 @@ public class Map16FWTest
     };
 
     private final Map16FW.Builder<TypedefStringFW, VariantEnumKindOfStringFW, TypedefStringFW.Builder,
-        VariantEnumKindOfStringFW.Builder> flyweightRW = new Map16FW.Builder<>(new TypedefStringFW(),
-        new VariantEnumKindOfStringFW(), new TypedefStringFW.Builder(), new VariantEnumKindOfStringFW.Builder());
+        VariantEnumKindOfStringFW.Builder> flyweightRW =
+        new Map16FW.Builder<>(
+            new TypedefStringFW(),
+            new VariantEnumKindOfStringFW(),
+            new TypedefStringFW.Builder(),
+            new VariantEnumKindOfStringFW.Builder());
 
     private final Map16FW<TypedefStringFW, VariantEnumKindOfStringFW> flyweightRO =
         new Map16FW<>(new TypedefStringFW(), new VariantEnumKindOfStringFW());

@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.echo.internal;
 
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
@@ -37,9 +39,9 @@ final class EchoCog implements Cog
     }
 
     @Override
-    public EchoConfiguration config()
+    public URL type()
     {
-        return config;
+        return getClass().getResource("schema/echo.json");
     }
 
     @Override

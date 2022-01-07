@@ -1,0 +1,126 @@
+[
+    {
+        "op": "add",
+        "path": "/properties/bindings/items/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "tls"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "kind":
+                    {
+                        "enum": [ "client", "server", "proxy" ]
+                    },
+                    "options":
+                    {
+                        "additionalProperties": false,
+                        "properties":
+                        {
+                            "version":
+                            {
+                                "title": "Version",
+                                "type": "string"
+                            },
+                            "keys":
+                            {
+                                "title": "Vault Keys",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "trust":
+                            {
+                                "title": "Vault Certificates",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "trustcacerts":
+                            {
+                                "title": "Trust CA Certificates",
+                                "type": "boolean"
+                            },
+                            "sni":
+                            {
+                                "title": "Server Names",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "alpn":
+                            {
+                                "title": "Application Protocols",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": [ "string", "null" ]
+                                }
+                            },
+                            "mutual":
+                            {
+                                "title": "Mutual Authentication",
+                                "type": "string",
+                                "enum": [ "required", "requested", "none" ]
+                            },
+                            "signers":
+                            {
+                                "title": "Vault Signer Certificates",
+                                "type": "array",
+                                "items":
+                                {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "authority":
+                                            {
+                                                "title": "Authority",
+                                                "type": "string"
+                                            },
+                                            "alpn":
+                                            {
+                                                "title": "Application Protocol",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]

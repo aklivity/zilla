@@ -25,7 +25,7 @@
             "options":
             {
                 "keys": [ "localhost" ],
-                "serverNames": [ "localhost" ]
+                "sni": [ "localhost" ]
             },
             "exit": "app#0"
         }

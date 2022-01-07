@@ -37,7 +37,7 @@ public class FileSystemVaultIT
             .commandBufferCapacity(1024)
             .responseBufferCapacity(1024)
             .counterValuesBufferCapacity(8192)
-            .configurationRoot("io/aklivity/zilla/runtime/vault/filesystem/internal")
+            .configurationRoot("io/aklivity/zilla/specs/vault/filesystem/config")
             .configure(ENGINE_DRAIN_ON_CLOSE, false)
             .clean();
 

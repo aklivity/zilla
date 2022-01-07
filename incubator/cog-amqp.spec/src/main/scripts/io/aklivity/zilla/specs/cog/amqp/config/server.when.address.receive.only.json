@@ -12,7 +12,7 @@
                     "when":
                     [
                         {
-                            "topic": "clients",
+                            "address": "clients",
                             "capabilities": "receive_only"
                         }
                     ]

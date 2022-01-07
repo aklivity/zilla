@@ -33,10 +33,11 @@ public class EngineRuleParameterizedTest
         return Arrays.asList(new Object[][] {{1}, {2}, {3}, {4}});
     }
 
-    public EngineRuleParameterizedTest(int value)
+    public EngineRuleParameterizedTest(
+        int value)
     {
         drive = new EngineRule()
-            .directory("target/drive-itests")
+            .directory("target/engine-itests")
             .clean();
     }
 

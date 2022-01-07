@@ -44,12 +44,15 @@ public class VariantOfArrayFWTest
             setMemory(0, capacity(), (byte) 0xab);
         }
     };
-    private final VariantOfArrayFW.Builder
-        <VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW>
-        flyweightRW = new VariantOfArrayFW.Builder<>(new VariantEnumKindOfStringFW.Builder(),
-        new VariantEnumKindOfStringFW());
+
+    private final VariantOfArrayFW.Builder<VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW> flyweightRW =
+        new VariantOfArrayFW.Builder<>(
+            new VariantEnumKindOfStringFW.Builder(),
+            new VariantEnumKindOfStringFW());
+
     private final VariantOfArrayFW<VariantEnumKindOfStringFW> flyweightRO =
         new VariantOfArrayFW<>(new VariantEnumKindOfStringFW());
+
     private final int kindSize = Byte.BYTES;
     private final int lengthSize = Byte.BYTES;
     private final int fieldCountSize = Byte.BYTES;

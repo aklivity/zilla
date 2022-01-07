@@ -199,10 +199,10 @@ public class Array16FWTest
     @Test
     public void shouldSetVariantItemsUsingItemMethod() throws Exception
     {
-        Array16FW.Builder
-            <VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW>
-            flyweightRW = new Array16FW.Builder<>(new VariantEnumKindOfStringFW.Builder(),
-            new VariantEnumKindOfStringFW());
+        Array16FW.Builder<VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW> flyweightRW =
+            new Array16FW.Builder<>(
+                new VariantEnumKindOfStringFW.Builder(),
+                new VariantEnumKindOfStringFW());
 
         Array16FW<VariantEnumKindOfStringFW> flyweightRO = new Array16FW<>(new VariantEnumKindOfStringFW());
 

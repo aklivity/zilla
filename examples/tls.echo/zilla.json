@@ -20,7 +20,7 @@
         {
             "entry": "tcp0",
             "type" : "tcp",
-            "kind": "SERVER",
+            "kind": "server",
             "options":
             {
                 "host": "0.0.0.0",
@@ -31,12 +31,12 @@
         {
             "entry": "tls0",
             "type" : "tls",
-            "kind": "SERVER",
+            "kind": "server",
             "vault": "server",
             "options":
             {
                 "keys": [ "localhost" ],
-                "serverNames": [ "localhost" ],
+                "sni": [ "localhost" ],
                 "alpn": [ "echo" ]
             },
             "routes":
@@ -55,7 +55,7 @@
         {
             "entry": "echo0",
             "type" : "echo",
-            "kind": "SERVER"
+            "kind": "server"
         }
     ]
 }

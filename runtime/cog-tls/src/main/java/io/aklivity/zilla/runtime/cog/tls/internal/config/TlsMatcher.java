@@ -41,13 +41,13 @@ public final class TlsMatcher
     private boolean matchesAuthority(
         String sni)
     {
-        return authorityMatch == null || (sni != null && authorityMatch.reset(sni).matches());
+        return authorityMatch == null || sni != null && authorityMatch.reset(sni).matches();
     }
 
     private boolean matchesAlpn(
         String alpn)
     {
-        return alpnMatch == null || (alpn != null && alpnMatch.reset(alpn).matches());
+        return alpnMatch == null || alpn != null && alpnMatch.reset(alpn).matches();
     }
 
     private static Matcher asMatcher(

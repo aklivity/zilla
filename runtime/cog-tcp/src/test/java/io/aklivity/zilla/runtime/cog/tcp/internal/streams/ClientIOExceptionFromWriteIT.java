@@ -65,7 +65,8 @@ public class ClientIOExceptionFromWriteIT
     @Specification({
         "${client}/client.sent.data.received.abort.and.reset/client"
     })
-    @BMRule(name = "onApplicationData",
+    @BMRule(
+        name = "onApplicationData",
         targetClass = "^java.nio.channels.SocketChannel",
         targetMethod = "write(java.nio.ByteBuffer)",
         condition = "callerEquals(\"TcpClientFactory$TcpClient.onAppData\", true, 2)",
@@ -93,19 +94,19 @@ public class ClientIOExceptionFromWriteIT
         "${client}/client.sent.data.received.abort.and.reset/client"
     })
     @BMRules(rules = {
-        @BMRule(name = "onData",
-        helper = "io.aklivity.zilla.runtime.cog.tcp.internal.SocketChannelHelper$OnDataHelper",
-        targetClass = "^java.nio.channels.SocketChannel",
-        targetMethod = "write(java.nio.ByteBuffer)",
-        condition = "callerEquals(\"TcpClientFactory$TcpClient.onAppData\", true, 2)",
-        action = "return doWrite($0, $1);"
-        ),
-        @BMRule(name = "handleWrite",
-        targetClass = "^java.nio.channels.SocketChannel",
-        targetMethod = "write(java.nio.ByteBuffer)",
-        condition = "callerEquals(\"TcpClientFactory$TcpClient.onNetWritable\", true, 2)",
-        action = "throw new IOException(\"Simulating an IOException from write\")"
-        )
+        @BMRule(
+            name = "onData",
+            helper = "io.aklivity.zilla.runtime.cog.tcp.internal.SocketChannelHelper$OnDataHelper",
+            targetClass = "^java.nio.channels.SocketChannel",
+            targetMethod = "write(java.nio.ByteBuffer)",
+            condition = "callerEquals(\"TcpClientFactory$TcpClient.onAppData\", true, 2)",
+            action = "return doWrite($0, $1);"),
+        @BMRule(
+            name = "handleWrite",
+            targetClass = "^java.nio.channels.SocketChannel",
+            targetMethod = "write(java.nio.ByteBuffer)",
+            condition = "callerEquals(\"TcpClientFactory$TcpClient.onNetWritable\", true, 2)",
+            action = "throw new IOException(\"Simulating an IOException from write\")")
     })
     public void shouldAbortAndResetWhenDeferredWriteThrowsIOException() throws Exception
     {

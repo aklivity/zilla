@@ -20,4 +20,5 @@ buildNumber.properties
 .zpm/
 .zilla/
 zilla
+!zilla/
 _book/

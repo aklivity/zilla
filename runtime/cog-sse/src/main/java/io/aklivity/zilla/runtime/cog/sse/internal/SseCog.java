@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.sse.internal;
 
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
@@ -37,9 +39,9 @@ public final class SseCog implements Cog
     }
 
     @Override
-    public SseConfiguration config()
+    public URL type()
     {
-        return config;
+        return getClass().getResource("schema/sse.json");
     }
 
     @Override

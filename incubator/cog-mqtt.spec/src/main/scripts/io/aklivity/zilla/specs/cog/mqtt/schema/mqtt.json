@@ -1,0 +1,64 @@
+[
+    {
+        "op": "add",
+        "path": "/properties/bindings/items/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "mqtt"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    },
+                    "options":
+                    {
+                        "additionalProperties": false
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "capabilities":
+                                            {
+                                                "title": "Capabilities",
+                                                "type": "string",
+                                                "enum": [ "publish_only", "subscribe_only", "publish_and_subscribe" ],
+                                                "default": "publish_and_subscribe"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]

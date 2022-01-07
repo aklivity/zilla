@@ -396,7 +396,7 @@ public final class VariantFlyweightGenerator extends ClassSpecGenerator
         {
             FieldSpec field;
             String kindName = name;
-            if ((memberTypeName != null && memberType.isDynamicType()) || ofType == null)
+            if (memberTypeName != null && memberType.isDynamicType() || ofType == null)
             {
                 kindName = kindValue.toString();
             }

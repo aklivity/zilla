@@ -53,8 +53,8 @@ public final class IpUtil
                 InetSocketAddress inet1 = (InetSocketAddress) address1;
                 InetSocketAddress inet2 = (InetSocketAddress) address2;
                 same = inet1.getPort() == inet2.getPort() &&
-                         ((inet1.getAddress() != null && inet1.getAddress().isAnyLocalAddress()) ||
-                         (inet2.getAddress() != null && inet2.getAddress().isAnyLocalAddress()));
+                         (inet1.getAddress() != null && inet1.getAddress().isAnyLocalAddress() ||
+                          inet2.getAddress() != null && inet2.getAddress().isAnyLocalAddress());
             }
 
         }

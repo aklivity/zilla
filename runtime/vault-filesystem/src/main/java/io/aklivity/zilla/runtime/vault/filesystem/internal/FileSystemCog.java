@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 import io.aklivity.zilla.runtime.engine.cog.Configuration;
@@ -38,9 +40,9 @@ public final class FileSystemCog implements Cog
     }
 
     @Override
-    public Configuration config()
+    public URL type()
     {
-        return config;
+        return getClass().getResource("schema/filesystem.json");
     }
 
     @Override

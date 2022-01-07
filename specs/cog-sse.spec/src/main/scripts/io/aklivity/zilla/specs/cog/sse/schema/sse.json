@@ -1,0 +1,65 @@
+[
+    {
+        "op": "add",
+        "path": "/properties/bindings/items/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "sse"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "kind":
+                    {
+                        "enum": [ "client", "server" ]
+                    },
+                    "options":
+                    {
+                        "additionalProperties": false,
+                        "properties":
+                        {
+                            "retry":
+                            {
+                                "type": "integer",
+                                "default": 2000
+                            }
+                        }
+                    },
+                    "routes":
+                    {
+                        "items":
+                        {
+                            "properties":
+                            {
+                                "when":
+                                {
+                                    "items":
+                                    {
+                                        "additionalProperties": false,
+                                        "properties":
+                                        {
+                                            "path":
+                                            {
+                                                "title": "Path",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]

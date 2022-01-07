@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.cmd.start.internal.command;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.lang.Runtime.getRuntime;
 import static org.agrona.LangUtil.rethrowUnchecked;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -52,6 +54,9 @@ public final class ZillaStartCommand extends ZillaCommand
 
     @Option(name = "-p", description = "properties")
     public String properties = "zilla.props";
+
+    @Option(name = "-e", description = "Show exception traces", hidden = true)
+    public boolean exceptions;
 
     @Override
     public void run()
@@ -78,7 +83,15 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_WORKERS.name(), Integer.toString(workers));
         }
 
+        if (verbose)
+        {
+            props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
+        }
+
         EngineConfiguration config = new EngineConfiguration(props);
+        Consumer<Throwable> report = exceptions
+                ? e -> e.printStackTrace(System.err)
+                : e -> System.err.println(e.getMessage());
 
         try (Engine engine = Engine.builder()
             .config(config)
@@ -94,7 +107,7 @@ public final class ZillaStartCommand extends ZillaCommand
 
             stop.await();
 
-            errors.forEach(e -> e.printStackTrace(System.err));
+            errors.forEach(report);
 
             System.out.println("stopped");
 

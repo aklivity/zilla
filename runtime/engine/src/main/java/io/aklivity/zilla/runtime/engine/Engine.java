@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.concurrent.Callable;
@@ -119,8 +120,9 @@ public final class Engine implements AutoCloseable
                 .collect(toList());
 
         final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers);
+        final Collection<URL> cogTypes = cogs.stream().map(Cog::type).filter(Objects::nonNull).collect(toList());
         final Callable<Void> configure =
-                new ConfigureTask(configURL, labels::supplyLabelId, tuning, dispatchers,
+                new ConfigureTask(configURL, cogTypes, labels::supplyLabelId, tuning, dispatchers,
                         errorHandler, logger, context, extensions);
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());

@@ -198,10 +198,10 @@ public class Array32FWTest
     @Test
     public void shouldSetVariantItemsUsingItemMethod() throws Exception
     {
-        Array32FW.Builder
-            <VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW>
-            flyweightRW = new Array32FW.Builder<>(new VariantEnumKindOfStringFW.Builder(),
-            new VariantEnumKindOfStringFW());
+        Array32FW.Builder<VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW> flyweightRW =
+            new Array32FW.Builder<>(
+                new VariantEnumKindOfStringFW.Builder(),
+                new VariantEnumKindOfStringFW());
 
         Array32FW<VariantEnumKindOfStringFW> flyweightRO = new Array32FW<>(new VariantEnumKindOfStringFW());
 

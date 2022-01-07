@@ -24,12 +24,7 @@
             "vault": "server",
             "options":
             {
-                "certificate":
-                {
-                    "validity": 10,
-                    "subject": "CN=localhost",
-                    "signers": [ "serverca" ]
-                }
+                "signers": [ "serverca" ]
             },
             "exit": "app#0"
         }

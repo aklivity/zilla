@@ -20,7 +20,7 @@
         {
             "entry": "tcp0",
             "type" : "tcp",
-            "kind": "SERVER",
+            "kind": "server",
             "options":
             {
                 "host": "0.0.0.0",
@@ -31,7 +31,7 @@
         {
             "entry": "tcp1",
             "type" : "tcp",
-            "kind": "SERVER",
+            "kind": "server",
             "options":
             {
                 "host": "0.0.0.0",
@@ -42,19 +42,19 @@
         {
             "entry": "tls0",
             "type" : "tls",
-            "kind": "SERVER",
+            "kind": "server",
             "vault": "server",
             "options":
             {
                 "keys": [ "localhost" ],
-                "serverNames": [ "localhost" ]
+                "sni": [ "localhost" ]
             },
             "exit": "http0"
         },
         {
             "entry": "http0",
             "type" : "http",
-            "kind": "SERVER",
+            "kind": "server",
             "routes":
             [
                 {
@@ -82,7 +82,7 @@
         {
             "entry": "ws0",
             "type" : "ws",
-            "kind": "SERVER",
+            "kind": "server",
             "routes":
             [
                 {
@@ -99,13 +99,13 @@
         {
             "entry": "fan0",
             "type" : "fan",
-            "kind": "SERVER",
+            "kind": "server",
             "exit": "echo0"
         },
         {
             "entry": "echo0",
             "type" : "echo",
-            "kind": "SERVER"
+            "kind": "server"
         }
     ]
 }

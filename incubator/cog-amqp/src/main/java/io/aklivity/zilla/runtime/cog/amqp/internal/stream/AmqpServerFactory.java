@@ -3465,8 +3465,9 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     {
                         onDecodeError(traceId, authorization, LINK_MESSAGE_SIZE_EXCEEDED);
                     }
-                    else if (fragmented && ((deliveryTag != null && !this.deliveryTag.equals(deliveryTag)) ||
-                        this.messageFormat != messageFormat))
+                    else if (fragmented &&
+                             (deliveryTag != null && !this.deliveryTag.equals(deliveryTag) ||
+                              this.messageFormat != messageFormat))
                     {
                         AmqpServer.this.onDecodeError(traceId, authorization, INVALID_FIELD, null);
                     }
@@ -4139,11 +4140,18 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final class AmqpMessageEncoder
     {
         private final AmqpMapFW.Builder<AmqpValueFW, AmqpValueFW, AmqpValueFW.Builder, AmqpValueFW.Builder> annotationsRW =
-            new AmqpMapFW.Builder<>(new AmqpValueFW(), new AmqpValueFW(), new AmqpValueFW.Builder(),
+            new AmqpMapFW.Builder<>(
+                new AmqpValueFW(),
+                new AmqpValueFW(),
+                new AmqpValueFW.Builder(),
                 new AmqpValueFW.Builder());
-        private final AmqpApplicationPropertiesFW.Builder<AmqpSimpleTypeFW, AmqpSimpleTypeFW.Builder>
-            applicationPropertiesRW = new AmqpApplicationPropertiesFW.Builder<>(new AmqpStringFW(), new AmqpSimpleTypeFW(),
-            new AmqpStringFW.Builder(), new AmqpSimpleTypeFW.Builder());
+
+        private final AmqpApplicationPropertiesFW.Builder<AmqpSimpleTypeFW, AmqpSimpleTypeFW.Builder> applicationPropertiesRW =
+            new AmqpApplicationPropertiesFW.Builder<>(
+                new AmqpStringFW(),
+                new AmqpSimpleTypeFW(),
+                new AmqpStringFW.Builder(),
+                new AmqpSimpleTypeFW.Builder());
 
         private AmqpSectionEncoder sectionEncoder;
         private int encodableBytes;

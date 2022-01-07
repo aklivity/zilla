@@ -1,0 +1,10 @@
+{
+    "bindings":
+    [
+        {
+            "type" : "test",
+            "kind": "server",
+            "exit": "app#0"
+        }
+    ]
+}

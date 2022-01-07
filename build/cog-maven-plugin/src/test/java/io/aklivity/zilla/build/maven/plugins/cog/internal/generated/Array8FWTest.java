@@ -185,10 +185,10 @@ public class Array8FWTest
     @Test
     public void shouldSetVariantItemsUsingItemMethod() throws Exception
     {
-        Array8FW.Builder
-            <VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW>
-            flyweightRW = new Array8FW.Builder<>(new VariantEnumKindOfStringFW.Builder(),
-            new VariantEnumKindOfStringFW());
+        Array8FW.Builder<VariantEnumKindOfStringFW.Builder, VariantEnumKindOfStringFW> flyweightRW =
+            new Array8FW.Builder<>(
+                new VariantEnumKindOfStringFW.Builder(),
+                new VariantEnumKindOfStringFW());
 
         Array8FW<VariantEnumKindOfStringFW> flyweightRO = new Array8FW<>(new VariantEnumKindOfStringFW());
 

@@ -20,7 +20,7 @@
         {
             "entry": "tcp0",
             "type" : "tcp",
-            "kind": "SERVER",
+            "kind": "server",
             "options":
             {
                 "host": "0.0.0.0",
@@ -31,7 +31,7 @@
         {
             "entry": "tcp1",
             "type" : "tcp",
-            "kind": "SERVER",
+            "kind": "server",
             "options":
             {
                 "host": "0.0.0.0",
@@ -42,12 +42,12 @@
         {
             "entry": "tls0",
             "type" : "tls",
-            "kind": "SERVER",
+            "kind": "server",
             "vault": "server",
             "options":
             {
                 "keys": [ "localhost" ],
-                "serverNames": [ "localhost" ],
+                "sni": [ "localhost" ],
                 "alpn": [ "http/1.1", "h2" ]
             },
             "exit": "http0"
@@ -55,7 +55,7 @@
         {
             "entry": "http0",
             "type" : "http",
-            "kind": "SERVER",
+            "kind": "server",
             "routes":
             [
                 {
@@ -83,7 +83,7 @@
         {
             "entry": "echo0",
             "type" : "echo",
-            "kind": "SERVER"
+            "kind": "server"
         }
     ]
 }

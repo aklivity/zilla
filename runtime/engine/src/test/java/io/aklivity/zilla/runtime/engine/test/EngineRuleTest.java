@@ -22,7 +22,7 @@ public class EngineRuleTest
 {
     @Rule
     public final EngineRule engine = new EngineRule()
-        .directory("target/drive-itests")
+        .directory("target/engine-itests")
         .clean();
 
     @Test

@@ -94,7 +94,7 @@ final class KafkaMergedBudget
             claimed = debitor.claim(traceId, debitorIndex, mergedWatcherId, minimum, claimed, deferred);
         }
 
-        assert claimed == 0 || (minimum <= claimed && claimed <= maximum) :
+        assert claimed == 0 || minimum <= claimed && claimed <= maximum :
             String.format("%d == 0 || (%d <= %d && %d <= %d)", claimed, minimum, claimed, claimed, maximum);
 
         if (claimed >= minimum)

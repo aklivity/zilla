@@ -536,8 +536,8 @@ public class DuplexIT
 
     @Test
     @Specification({
-            "server.sent.overflow.padding/client",
-            "server.sent.overflow.padding/server"
+        "server.sent.overflow.padding/client",
+        "server.sent.overflow.padding/server"
     })
     public void shouldOverflowClientSentDataPadding() throws Exception
     {

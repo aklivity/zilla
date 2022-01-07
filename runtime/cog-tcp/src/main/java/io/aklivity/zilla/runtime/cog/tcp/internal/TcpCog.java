@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.tcp.internal;
 
+import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -22,7 +23,6 @@ import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBinding;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public final class TcpCog implements Cog
 {
@@ -47,9 +47,9 @@ public final class TcpCog implements Cog
     }
 
     @Override
-    public Configuration config()
+    public URL type()
     {
-        return config;
+        return getClass().getResource("schema/tcp.json");
     }
 
     @Override
