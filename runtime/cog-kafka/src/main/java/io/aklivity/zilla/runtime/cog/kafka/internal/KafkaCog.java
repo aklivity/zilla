@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.kafka.internal;
 
+import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,6 +41,12 @@ public final class KafkaCog implements Cog
     public String name()
     {
         return KafkaCog.NAME;
+    }
+
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("schema/kafka.json");
     }
 
     @Override

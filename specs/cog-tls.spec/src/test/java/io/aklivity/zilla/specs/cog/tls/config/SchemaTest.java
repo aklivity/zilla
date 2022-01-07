@@ -83,7 +83,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientServerName()
+    public void shouldValidateClientSni()
     {
         JsonObject config = schema.validate("client.sni.json");
 
@@ -156,7 +156,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateServerServerName()
+    public void shouldValidateServerSni()
     {
         JsonObject config = schema.validate("server.sni.json");
 

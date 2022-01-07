@@ -36,7 +36,7 @@
             "options":
             {
                 "keys": [ "localhost" ],
-                "serverNames": [ "localhost" ],
+                "sni": [ "localhost" ],
                 "alpn": [ "echo" ]
             },
             "routes":

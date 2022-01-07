@@ -47,7 +47,7 @@
             "options":
             {
                 "keys": [ "localhost" ],
-                "serverNames": [ "localhost" ]
+                "sni": [ "localhost" ]
             },
             "exit": "mqtt0"
         },

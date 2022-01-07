@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.proxy.internal;
 
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
@@ -34,6 +36,12 @@ public final class ProxyCog implements Cog
     public String name()
     {
         return ProxyCog.NAME;
+    }
+
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("schema/proxy.json");
     }
 
     @Override

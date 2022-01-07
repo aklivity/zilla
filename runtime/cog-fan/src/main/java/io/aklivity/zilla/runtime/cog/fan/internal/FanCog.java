@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.fan.internal;
 
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
@@ -34,6 +36,12 @@ final class FanCog implements Cog
     public String name()
     {
         return FanCog.NAME;
+    }
+
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("schema/fan.json");
     }
 
     @Override

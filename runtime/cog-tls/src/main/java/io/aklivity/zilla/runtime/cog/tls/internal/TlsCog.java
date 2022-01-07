@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.tls.internal;
 
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
@@ -34,6 +36,12 @@ public final class TlsCog implements Cog
     public String name()
     {
         return TlsCog.NAME;
+    }
+
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("schema/tls.json");
     }
 
     @Override
