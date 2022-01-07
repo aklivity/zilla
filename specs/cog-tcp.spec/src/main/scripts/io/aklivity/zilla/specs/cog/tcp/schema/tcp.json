@@ -24,6 +24,7 @@
                     },
                     "options":
                     {
+                        "additionalProperties": false,
                         "properties":
                         {
                             "host":
@@ -71,6 +72,7 @@
                                 {
                                     "items":
                                     {
+                                        "additionalProperties": false,
                                         "properties":
                                         {
                                             "authority":

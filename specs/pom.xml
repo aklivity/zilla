@@ -27,6 +27,7 @@
     <module>cog-sse.spec</module>
     <module>cog-ws.spec</module>
     <module>cog-kafka.spec</module>
+    <module>vault-filesystem.spec</module>
   </modules>
 
   <dependencyManagement>
@@ -79,6 +80,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>cog-kafka.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>vault-filesystem.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

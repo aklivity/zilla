@@ -13,6 +13,7 @@
     },
     "title": "Config",
     "type": "object",
+    "additionalProperties": false,
     "properties":
     {
         "vaults":
@@ -23,11 +24,7 @@
             {
                 "title": "Items",
                 "type": "object",
-                "required":
-                [
-                    "name",
-                    "type"
-                ],
+                "additionalProperties": false,
                 "properties":
                 {
                     "name":
@@ -45,16 +42,27 @@
                         "title": "Options",
                         "type": "object"
                     }
-                }
+                },
+                "required":
+                [
+                    "name",
+                    "type"
+                ],
+                "allOf":
+                [
+                    true
+                ]
             }
         },
         "bindings":
         {
             "title": "Bindings",
             "type": "array",
-            "items":{
+            "items":
+            {
                 "title": "Items",
                 "type": "object",
+                "additionalProperties": false,
                 "properties":
                 {
                     "vault": { "$ref": "#/$defs/namedRef" },
@@ -85,6 +93,7 @@
                         "items":
                         {
                             "title": "Route",
+                            "additionalProperties": false,
                             "properties":
                             {
                                 "exit": { "$ref": "#/$defs/namedRef" },

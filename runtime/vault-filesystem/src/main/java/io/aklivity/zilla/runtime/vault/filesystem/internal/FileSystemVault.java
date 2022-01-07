@@ -41,7 +41,7 @@ import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemStor
 
 public class FileSystemVault implements BindingVault
 {
-    private static final String TYPE_DEFAULT = "PKCS12";
+    private static final String TYPE_DEFAULT = "pkcs12";
 
     private final Function<String, KeyStore.PrivateKeyEntry> lookupKey;
     private final Function<String, KeyStore.TrustedCertificateEntry> lookupTrust;

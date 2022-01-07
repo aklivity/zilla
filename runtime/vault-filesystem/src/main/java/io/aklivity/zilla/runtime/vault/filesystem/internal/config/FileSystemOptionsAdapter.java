@@ -62,6 +62,11 @@ public final class FileSystemOptionsAdapter implements OptionsAdapterSpi, JsonbA
             object.add(TRUST_NAME, store.adaptToJson(fsOptions.trust));
         }
 
+        if (fsOptions.signers != null)
+        {
+            object.add(SIGNERS_NAME, store.adaptToJson(fsOptions.signers));
+        }
+
         return object.build();
     }
 
