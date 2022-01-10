@@ -405,7 +405,7 @@ public final class ZpmInstall extends ZpmCommand
                 jdeps.run(
                     System.out,
                     System.err,
-                    "--generate-module-info", generatedModulesDir.toString(),
+                    "--generate-open-module", generatedModulesDir.toString(),
                     artifactPath.toString());
 
                 Path generatedModuleInfo = generatedModuleDir.resolve(MODULE_INFO_JAVA_FILENAME);
