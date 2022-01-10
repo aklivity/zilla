@@ -52,12 +52,12 @@ public class EngineTest
     public void shouldConfigureEmpty() throws Exception
     {
         List<Throwable> errors = new LinkedList<>();
-        try (Engine drive = Engine.builder()
+        try (Engine engine = Engine.builder()
                 .config(config)
                 .errorHandler(errors::add)
                 .build())
         {
-            drive.start().get();
+            engine.start().get();
         }
         catch (Throwable ex)
         {
@@ -75,15 +75,15 @@ public class EngineTest
         String resource = String.format("%s-%s.json", getClass().getSimpleName(), "configure");
         URL configURL = getClass().getResource(resource);
         List<Throwable> errors = new LinkedList<>();
-        try (Engine drive = Engine.builder()
+        try (Engine engine = Engine.builder()
                 .config(config)
                 .configURL(configURL)
                 .errorHandler(errors::add)
                 .build())
         {
-            drive.start().get();
+            engine.start().get();
 
-            EngineStats stats = drive.stats("default", "test0");
+            EngineStats stats = engine.stats("default", "test0");
             assertEquals(0L, stats.initialOpens());
             assertEquals(0L, stats.initialCloses());
             assertEquals(0L, stats.initialErrors());
@@ -107,13 +107,13 @@ public class EngineTest
     public void shouldNotConfigureUnknownScheme() throws Exception
     {
         List<Throwable> errors = new LinkedList<>();
-        try (Engine drive = Engine.builder()
+        try (Engine engine = Engine.builder()
                 .config(config)
                 .configURL(URI.create("unknown://path").toURL())
                 .errorHandler(errors::add)
                 .build())
         {
-            drive.start().get();
+            engine.start().get();
         }
         catch (Throwable ex)
         {
