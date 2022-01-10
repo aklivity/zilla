@@ -4,7 +4,7 @@
         {
             "entry": "test0",
             "type" : "test",
-            "kind": "SERVER",
+            "kind": "server",
             "routes":
             [
                 {

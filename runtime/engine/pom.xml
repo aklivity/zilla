@@ -165,6 +165,29 @@
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
+          <execution>
+            <id>unpack-test-resources</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>cog.spec</artifactId>
+                  <fileMappers>
+                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                       <pattern>^\Qio/aklivity/zilla/specs/cog/\E</pattern>
+                       <replacement>io/aklivity/zilla/runtime/engine/test/internal/cog/</replacement>
+                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                  </fileMappers>
+                </artifactItem>
+              </artifactItems>
+              <includes>io/aklivity/zilla/specs/cog/schema/test.json</includes>
+              <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>

@@ -1,11 +1,6 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/bindings/enum/-",
-        "value": "echo"
-    },
-    {
-        "op": "add",
         "path": "/properties/bindings/items/allOf/-",
         "value":
         {
@@ -15,7 +10,7 @@
                 {
                     "type":
                     {
-                        "const": "echo"
+                        "const": "test"
                     }
                 }
             },
@@ -33,7 +28,12 @@
     },
     {
         "op": "add",
-        "path": "/$defs/terminal/enum/-",
-        "value": "echo"
+        "path": "/$defs/types/bindings/enum/-",
+        "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/types/vaults/enum/-",
+        "value": "test"
     }
 ]
