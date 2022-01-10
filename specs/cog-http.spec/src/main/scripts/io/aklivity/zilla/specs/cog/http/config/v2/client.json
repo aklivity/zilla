@@ -3,8 +3,12 @@
     [
         {
             "entry": "app#0",
-            "type" : "http2",
+            "type" : "http",
             "kind": "client",
+            "options":
+            {
+                "versions": [ "h2" ]
+            },
             "routes":
             [
                 {

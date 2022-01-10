@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
-    <version>0.8.0</version>
+    <version>0.8.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -39,6 +39,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>cog-proxy.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>vault-filesystem.spec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

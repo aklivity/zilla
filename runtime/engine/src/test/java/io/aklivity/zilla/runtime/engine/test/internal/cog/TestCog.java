@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.cog;
 
+import java.net.URL;
+
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 import io.aklivity.zilla.runtime.engine.cog.Configuration;
@@ -30,6 +32,12 @@ public final class TestCog implements Cog
     public String name()
     {
         return "test";
+    }
+
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("schema/test.json");
     }
 
     @Override

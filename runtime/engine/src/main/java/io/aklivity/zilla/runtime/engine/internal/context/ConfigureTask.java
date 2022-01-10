@@ -28,6 +28,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -138,6 +139,7 @@ public class ConfigureTask implements Callable<Void>
 
         logger.accept(configText);
 
+        parse:
         try
         {
             InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/core.json");
@@ -160,7 +162,8 @@ public class ConfigureTask implements Callable<Void>
                 .createParser(new StringReader(schemaObject.toString()));
 
             JsonValidationService service = JsonValidationService.newInstance();
-            ProblemHandler handler = service.createProblemPrinter(msg -> errorHandler.onError(new JsonException(msg)));
+            List<String> errors = new LinkedList<>();
+            ProblemHandler handler = service.createProblemPrinter(errors::add);
             JsonSchemaReader reader = service.createSchemaReader(schemaParser);
             JsonSchema schema = reader.read();
 
@@ -173,6 +176,12 @@ public class ConfigureTask implements Callable<Void>
                     .build();
 
             Configuration configuration = jsonb.fromJson(configText, Configuration.class);
+
+            if (!errors.isEmpty())
+            {
+                errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
+                break parse;
+            }
 
             configuration.id = supplyId.applyAsInt(configuration.name);
             for (Binding binding : configuration.bindings)

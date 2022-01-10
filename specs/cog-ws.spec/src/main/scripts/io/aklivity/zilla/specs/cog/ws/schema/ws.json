@@ -1,6 +1,11 @@
 [
     {
         "op": "add",
+        "path": "/$defs/types/bindings/enum/-",
+        "value": "ws"
+    },
+    {
+        "op": "add",
         "path": "/properties/bindings/items/allOf/-",
         "value":
         {

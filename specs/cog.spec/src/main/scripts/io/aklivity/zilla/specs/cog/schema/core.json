@@ -8,7 +8,20 @@
         },
         "terminal":
         {
-            "enum": [ null ]
+            "enum": [ ]
+        },
+        "types":
+        {
+            "bindings":
+            {
+                "type": "string",
+                "enum": [ ]
+            },
+            "vaults":
+            {
+                "type": "string",
+                "enum": [ ]
+            }
         }
     },
     "title": "Config",
@@ -35,7 +48,7 @@
                     "type":
                     {
                         "title": "Type",
-                        "type": "string"
+                        "$ref": "#/$defs/types/vaults"
                     },
                     "options":
                     {
@@ -74,7 +87,7 @@
                     "type":
                     {
                         "title": "Type",
-                        "type": "string"
+                        "$ref": "#/$defs/types/bindings"
                     },
                     "kind":
                     {
@@ -136,27 +149,35 @@
                     "type",
                     "kind"
                 ],
-                "anyOf":
-                [
-                    {
-                        "properties": { "type": { "$ref": "#/$defs/terminal" } }
-                    },
-                    {
-                        "required":
-                        [
-                            "exit"
-                        ]
-                    },
-                    {
-                        "required":
-                        [
-                            "routes"
-                        ]
-                    }
-                ],
                 "allOf":
                 [
-                    true
+                    {
+                        "if":
+                        {
+                            "not":
+                            {
+                                "properties": { "type": { "$ref": "#/$defs/terminal" } }
+                            }
+                        },
+                        "then":
+                        {
+                            "anyOf":
+                            [
+                                {
+                                    "required":
+                                    [
+                                        "exit"
+                                    ]
+                                },
+                                {
+                                    "required":
+                                    [
+                                        "routes"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
                 ]
             }
         }
