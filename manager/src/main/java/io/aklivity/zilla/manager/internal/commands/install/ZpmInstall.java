@@ -105,6 +105,9 @@ public final class ZpmInstall extends ZpmCommand
     @Option(name = { "--exclude-local-repository" })
     public boolean excludeLocalRepo;
 
+    @Option(name = { "--exclude-remote-repositories" })
+    public boolean excludeRemoteRepos;
+
     @Option(name = { "--ignore-missing-dependencies" })
     public boolean ignoreMissingDependencies;
 
@@ -137,6 +140,12 @@ public final class ZpmInstall extends ZpmCommand
                 String localRepo = String.format("file://%s/.m2/repository", System.getProperty("user.home"));
                 repositories.add(0, new ZpmRepository(localRepo));
             }
+
+            if (excludeRemoteRepos)
+            {
+                repositories.removeIf(r -> !r.location.startsWith("file:"));
+            }
+
             ZpmCache cache = new ZpmCache(repositories, cacheDir);
             Collection<ZpmArtifact> artifacts = cache.resolve(config.imports, config.dependencies);
             Map<ZpmDependency, ZpmDependency> resolvables = artifacts.stream()
