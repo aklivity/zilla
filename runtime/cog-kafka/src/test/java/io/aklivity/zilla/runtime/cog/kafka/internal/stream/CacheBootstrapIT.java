@@ -50,7 +50,7 @@ public class CacheBootstrapIT
         .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("app#1")
+        .external("app1")
         .clean();
 
     @Rule

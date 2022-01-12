@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "tcp0":
         {
-            "entry": "tcp0",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -12,11 +12,10 @@
             },
             "exit": "echo0"
         },
+        "echo0":
         {
-            "entry": "echo0",
             "type" : "echo",
             "kind": "server"
         }
-    ]
+    }
 }
-

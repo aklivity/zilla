@@ -16,7 +16,7 @@
 
 property serverWindow 65536
 
-accept "zilla://streams/app#0"
+accept "zilla://streams/app0"
   option zilla:window ${serverWindow}
   option zilla:transmission "duplex"
   option zilla:throttle "message"

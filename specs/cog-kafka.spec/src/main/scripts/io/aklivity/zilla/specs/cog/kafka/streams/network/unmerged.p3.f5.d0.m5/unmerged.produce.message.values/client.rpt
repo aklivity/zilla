@@ -19,7 +19,7 @@ property newRequestId2 ${kafka:newRequestId()}
 
 property produceWaitMax 500
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -115,7 +115,7 @@ read 365                                # size
 read notify RECEIVED_CONFIG
 
 connect await RECEIVED_CONFIG
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -176,7 +176,7 @@ read 203                                # size
 read notify PARTITION_COUNT_3
 
 connect await PARTITION_COUNT_3
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -287,7 +287,7 @@ read 44
      [0..4]                             # throttle ms
 
 connect await PARTITION_COUNT_3
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -398,7 +398,7 @@ read 44
      [0..4]                             # throttle ms
 
 connect await PARTITION_COUNT_3
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

@@ -49,12 +49,6 @@ public class SchemaTest
     }
 
     @Test(expected = JsonException.class)
-    public void shouldRejectServerBindingWithNoEntry()
-    {
-        schema.validate("server.binding.with.no.entry.json");
-    }
-
-    @Test(expected = JsonException.class)
     public void shouldRejectServerBindingWithNoType()
     {
         schema.validate("server.binding.with.no.type.json");

@@ -16,7 +16,7 @@
 
 property serverInitialWindow 8192
 
-accept "zilla://streams/app#0"
+accept "zilla://streams/app0"
        option zilla:window ${serverInitialWindow}
        option zilla:transmission "half-duplex"
 accepted

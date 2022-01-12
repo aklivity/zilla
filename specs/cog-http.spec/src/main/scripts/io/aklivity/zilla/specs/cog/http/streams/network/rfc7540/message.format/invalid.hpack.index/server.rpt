@@ -17,7 +17,7 @@
 property data20k ${http:randomBytes(20000)}
 property data15k ${http:randomBytes(15000)}
 
-accept "zilla://streams/net#0"
+accept "zilla://streams/net0"
        option zilla:window 40000
        option zilla:transmission "duplex"
 accepted

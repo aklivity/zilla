@@ -50,7 +50,7 @@ public class ClientProduceIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     @Rule

@@ -1,8 +1,8 @@
 {
     "vaults":
-    [
+    {
+        "server":
         {
-            "name": "server",
             "type": "filesystem",
             "options":
             {
@@ -26,8 +26,8 @@
                 }
             }
         },
+        "client":
         {
-            "name": "client",
             "type": "filesystem",
             "options":
             {
@@ -51,5 +51,5 @@
                 }
             }
         }
-    ]
+    }
 }

@@ -18,7 +18,7 @@ property location 'http://localhost:8080/echo'
 property newHandshakeKey ${ws:handshakeKey()}
 property writeMask ${http:randomBytes(4)}
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 

@@ -16,7 +16,7 @@
 
 property clientInitialWindow 8192
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window ${clientInitialWindow}
     option zilla:transmission "half-duplex"
 
@@ -41,7 +41,7 @@ read abort
 
 # Check connection pool is not exhausted
 connect await FIRST_REQUEST_COMPLETED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 

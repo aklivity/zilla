@@ -48,7 +48,7 @@ public class ServerIT
             .responseBufferCapacity(1024)
             .counterValuesBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/cog/tls/config")
-            .external("app#0")
+            .external("app0")
             .configure(ENGINE_DRAIN_ON_CLOSE, false)
             .clean();
 

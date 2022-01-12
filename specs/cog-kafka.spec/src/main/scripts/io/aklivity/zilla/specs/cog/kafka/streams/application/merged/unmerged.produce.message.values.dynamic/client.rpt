@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#1"
+connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -76,7 +76,7 @@ read zilla:data.ext ${kafka:dataEx()
 read notify RECEIVED_CONFIG
 
 connect await RECEIVED_CONFIG
-        "zilla://streams/app#1"
+        "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -107,7 +107,7 @@ read zilla:data.ext ${kafka:dataEx()
 read notify PARTITION_COUNT_3
 
 connect await PARTITION_COUNT_3
-        "zilla://streams/app#1"
+        "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 1
@@ -149,7 +149,7 @@ write "Hello, world #A2"
 write flush
 
 connect await PARTITION_COUNT_3
-        "zilla://streams/app#1"
+        "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 2
@@ -191,7 +191,7 @@ write "Hello, world #B2"
 write flush
 
 connect await PARTITION_COUNT_3
-        "zilla://streams/app#1"
+        "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 3

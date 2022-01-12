@@ -45,7 +45,7 @@ public class AbortIT
         .counterValuesBufferCapacity(8192)
         .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v2")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

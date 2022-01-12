@@ -17,7 +17,7 @@
 property serverInitialWindow 8192
 
 accept "http://localhost:8080/"
-  option http:transport "zilla://streams/net#0"
+  option http:transport "zilla://streams/net0"
   option zilla:window ${serverInitialWindow} 
   option zilla:transmission "duplex"
 accepted

@@ -16,7 +16,7 @@
 
 property clientAddress "zilla://streams/kafka#0"
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 16
     option zilla:transmission "half-duplex"
 

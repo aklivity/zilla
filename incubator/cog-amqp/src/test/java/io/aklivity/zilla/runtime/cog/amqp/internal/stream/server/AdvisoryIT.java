@@ -49,7 +49,7 @@ public class AdvisoryIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configure(AMQP_CLOSE_EXCHANGE_TIMEOUT, 500)
         .configurationRoot("io/aklivity/zilla/specs/cog/amqp/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

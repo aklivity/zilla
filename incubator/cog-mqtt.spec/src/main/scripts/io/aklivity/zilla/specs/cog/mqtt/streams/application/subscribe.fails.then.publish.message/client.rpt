@@ -14,13 +14,13 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
 connect aborted
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 

@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.engine.EngineStats;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ServerRouteCountersIT
+public class ServerStatsIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/cog/sse/streams/network/data")
@@ -45,7 +45,7 @@ public class ServerRouteCountersIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/cog/sse/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule
@@ -60,7 +60,7 @@ public class ServerRouteCountersIT
     {
         k3po.finish();
 
-        EngineStats stats = engine.stats("default", "net#0");
+        EngineStats stats = engine.stats("default", "net0");
 
         assertEquals(0, stats.initialBytes());
         assertEquals(19, stats.replyBytes());

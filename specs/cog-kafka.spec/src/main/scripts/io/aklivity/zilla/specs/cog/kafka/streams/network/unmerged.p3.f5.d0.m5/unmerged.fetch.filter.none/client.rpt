@@ -20,7 +20,7 @@ property fetchWaitMax 500
 property fetchBytesMax 65535
 property partitionBytesMax 8192
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -116,7 +116,7 @@ read 365                                # size
 read notify RECEIVED_CONFIG
 
 connect await RECEIVED_CONFIG
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -167,7 +167,7 @@ read 150                                # size
 read notify PARTITION_COUNT_2
 
 connect await PARTITION_COUNT_2
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -416,7 +416,7 @@ read 502
        ${kafka:varint(0)}                   # value (empty)
 
 connect await PARTITION_COUNT_2
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

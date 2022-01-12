@@ -17,7 +17,7 @@
 property client100k ${tls:randomBytes(102400)}
 property clientWindow 65536
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
   option zilla:window ${clientWindow}
   option zilla:transmission "duplex"
   option zilla:throttle "message"

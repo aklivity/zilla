@@ -50,7 +50,7 @@ public class FlowControlLimitsIT
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 64)
         .configure(ENGINE_BUFFER_POOL_CAPACITY, 64)
         .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v1.1")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     @Rule

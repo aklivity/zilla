@@ -17,7 +17,7 @@
 property authorization 0L
 
 connect "tls://localhost:9090"
-  option tls:transport "zilla://streams/net#0"
+  option tls:transport "zilla://streams/net0"
   option tls:trustStoreFile ${core:file('src/test/democa/client/trust')}
   option tls:trustStorePassword "generated"
   option zilla:authorization ${authorization}

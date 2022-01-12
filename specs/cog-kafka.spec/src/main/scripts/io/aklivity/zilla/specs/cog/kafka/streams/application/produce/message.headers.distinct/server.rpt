@@ -14,7 +14,7 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app#0"
+property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
     option zilla:window 8192

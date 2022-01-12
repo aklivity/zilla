@@ -1,8 +1,8 @@
 {
     "vaults":
-    [
+    {
+        "server":
         {
-            "name": "server",
             "type": "filesystem",
             "options":
             {
@@ -14,11 +14,11 @@
                 }
             }
         }
-    ],
+    },
     "bindings":
-    [
+    {
+        "tcp0":
         {
-            "entry": "tcp0",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -28,8 +28,8 @@
             },
             "exit": "http0"
         },
+        "tcp1":
         {
-            "entry": "tcp1",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -39,8 +39,8 @@
             },
             "exit": "tls0"
         },
+        "tls0":
         {
-            "entry": "tls0",
             "type" : "tls",
             "kind": "server",
             "vault": "server",
@@ -51,8 +51,8 @@
             },
             "exit": "http0"
         },
+        "http0":
         {
-            "entry": "http0",
             "type" : "http",
             "kind": "server",
             "routes":
@@ -79,8 +79,8 @@
                 }
             ]
         },
+        "ws0":
         {
-            "entry": "ws0",
             "type" : "ws",
             "kind": "server",
             "routes":
@@ -96,11 +96,11 @@
                 }
             ]
         },
+        "echo0":
         {
-            "entry": "echo0",
             "type" : "echo",
             "kind": "server"
         }
-    ]
+    }
 }
 

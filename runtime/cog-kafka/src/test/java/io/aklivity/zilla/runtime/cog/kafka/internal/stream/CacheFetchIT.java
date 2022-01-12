@@ -61,7 +61,7 @@ public class CacheFetchIT
         .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("app#1")
+        .external("app1")
         .clean();
 
     @Rule
@@ -73,7 +73,7 @@ public class CacheFetchIT
     public void initPartition()
     {
         final KafkaCog cog = engine.cog(KafkaCog.class);
-        final KafkaCache cache = cog.supplyCache("default.cache#0");
+        final KafkaCache cache = cog.supplyCache("default.cache0");
         final KafkaCacheTopic topic = cache.supplyTopic("test");
         this.partition = topic.supplyFetchPartition(0);
     }
@@ -101,7 +101,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/partition.unknown/client",
         "${app}/partition.unknown/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRejectWhenPartitionUnknown() throws Exception
     {
         k3po.finish();
@@ -112,7 +112,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/partition.not.leader/client",
         "${app}/partition.not.leader/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRejectPartitionNotLeader() throws Exception
     {
         k3po.finish();
@@ -123,7 +123,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/partition.offset/client",
         "${app}/partition.offset/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRequestPartitionOffset() throws Exception
     {
         partition.append(1L);
@@ -135,7 +135,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/partition.offset.earliest/client",
         "${app}/partition.offset.earliest/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRequestPartitionOffsetEarliest() throws Exception
     {
         k3po.finish();
@@ -147,7 +147,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/partition.offset.latest/client",
         "${app}/partition.offset.latest/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRequestPartitionOffsetLatest() throws Exception
     {
         k3po.finish();
@@ -158,7 +158,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.key/client",
         "${app}/message.key/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageKey() throws Exception
     {
         partition.append(1L);
@@ -170,7 +170,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.key.null/client",
         "${app}/message.key.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageKeyNull() throws Exception
     {
         partition.append(1L);
@@ -182,7 +182,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.key.with.value.null/client",
         "${app}/message.key.with.value.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageKeyWithValueNull() throws Exception
     {
         partition.append(3L);
@@ -194,7 +194,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.key.with.value.distinct/client",
         "${app}/message.key.with.value.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageKeyWithValueDistinct() throws Exception
     {
         partition.append(4L);
@@ -206,7 +206,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.key.with.header/client",
         "${app}/message.key.with.header/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageKeyWithHeader() throws Exception
     {
         partition.append(5L);
@@ -218,7 +218,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.key.distinct/client",
         "${app}/message.key.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageKeyDistinct() throws Exception
     {
         partition.append(6L);
@@ -230,7 +230,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value/client",
         "${app}/message.value/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValue() throws Exception
     {
         partition.append(10L);
@@ -242,7 +242,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueEmpty() throws Exception
     {
         partition.append(10L);
@@ -254,7 +254,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.null/client",
         "${app}/message.value.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueNull() throws Exception
     {
         partition.append(11L);
@@ -267,7 +267,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.10k/client",
         "${app}/message.value.10k/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValue10k() throws Exception
     {
         partition.append(12L);
@@ -280,7 +280,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.100k/client",
         "${app}/message.value.100k/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValue100k() throws Exception
     {
         partition.append(12L);
@@ -293,7 +293,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.gzip/client",
         "${app}/message.value.gzip/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueGzip() throws Exception
     {
         k3po.finish();
@@ -305,7 +305,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.snappy/client",
         "${app}/message.value.snappy/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueSnappy() throws Exception
     {
         k3po.finish();
@@ -317,7 +317,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.lz4/client",
         "${app}/message.value.lz4/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueLz4() throws Exception
     {
         k3po.finish();
@@ -328,7 +328,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.value.distinct/client",
         "${app}/message.value.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageValueDistinct() throws Exception
     {
         partition.append(16L);
@@ -340,7 +340,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.header/client",
         "${app}/message.header/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageHeader() throws Exception
     {
         partition.append(20L);
@@ -352,7 +352,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.header.null/client",
         "${app}/message.header.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageHeaderNull() throws Exception
     {
         partition.append(21L);
@@ -364,7 +364,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.headers.distinct/client",
         "${app}/message.headers.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageHeadersDistinct() throws Exception
     {
         partition.append(22L);
@@ -376,7 +376,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/message.headers.repeated/client",
         "${app}/message.headers.repeated/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessageHeadersRepeated() throws Exception
     {
         partition.append(23L);
@@ -388,7 +388,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.none/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithNoFilter() throws Exception
     {
         partition.append(1L);
@@ -403,7 +403,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.key/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithKeyFilter() throws Exception
     {
         partition.append(1L);
@@ -418,7 +418,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.key.and.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithKeyAndHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -432,7 +432,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.key.or.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithKeyOrHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -447,7 +447,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -462,7 +462,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.header.and.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeaderAndHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -477,7 +477,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.header.or.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeaderOrHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -492,7 +492,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.key.and.header.or.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithKeyAndHeaderOrHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -507,7 +507,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.key.or.header.and.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithKeyOrHeaderAndHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -522,7 +522,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.none.json.patch/client",
         "${app}/filter.none.json/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveJsonPatchMessagesWithNoFilter() throws Exception
     {
         partition.append(1L);
@@ -534,7 +534,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.header.json.patch/client",
         "${app}/filter.none.json/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveJsonPatchMessagesWithHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -546,7 +546,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.key.and.header.json.patch/client",
         "${app}/filter.none.json/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveJsonPatchMessagesWithKeyAndHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -558,7 +558,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.not.key/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithNotKeyFilter() throws Exception
     {
         partition.append(1L);
@@ -573,7 +573,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.not.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithNotHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -588,7 +588,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.key.and.not.header/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithKeyAndNotHeaderFilter() throws Exception
     {
         partition.append(1L);
@@ -603,7 +603,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.headers.one/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeadersOneFilter() throws Exception
     {
         partition.append(1L);
@@ -618,7 +618,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.headers.one.empty/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeadersOneEmptyFilter() throws Exception
     {
         partition.append(1L);
@@ -633,7 +633,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.headers.many/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeadersManyFilter() throws Exception
     {
         partition.append(1L);
@@ -648,7 +648,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.headers.many.empty/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeadersManyEmptyFilter() throws Exception
     {
         partition.append(1L);
@@ -663,7 +663,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.headers.skip.one/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeadersSkipOneFilter() throws Exception
     {
         partition.append(1L);
@@ -678,7 +678,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.headers.skip.two/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeadersSkipTwoFilter() throws Exception
     {
         partition.append(1L);
@@ -693,7 +693,7 @@ public class CacheFetchIT
     @Specification({
         "${app}/filter.headers.skip.many/client",
         "${app}/filter.none/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveMessagesWithHeadersSkipManyFilter() throws Exception
     {
         partition.append(1L);

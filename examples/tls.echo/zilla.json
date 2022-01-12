@@ -1,8 +1,21 @@
 {
     "vaults":
-    [
+    {
+        "server":
         {
-            "name": "server",
+            "type": "filesystem",
+            "options":
+            {
+                "keys":
+                {
+                    "store": "localhost.p12",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        },
+        "server":
+        {
             "type": "filesystem",
             "options":
             {
@@ -14,11 +27,11 @@
                 }
             }
         }
-    ],
+    },
     "bindings":
-    [
+    {
+        "tcp0":
         {
-            "entry": "tcp0",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -28,8 +41,8 @@
             },
             "exit": "tls0"
         },
+        "tls0":
         {
-            "entry": "tls0",
             "type" : "tls",
             "kind": "server",
             "vault": "server",
@@ -52,11 +65,11 @@
                 }
             ]
         },
+        "echo0":
         {
-            "entry": "echo0",
             "type" : "echo",
             "kind": "server"
         }
-    ]
+    }
 }
 

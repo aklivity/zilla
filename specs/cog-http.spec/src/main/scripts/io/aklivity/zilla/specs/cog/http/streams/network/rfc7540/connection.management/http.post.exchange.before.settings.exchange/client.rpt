@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
         option zilla:window 32768
         option zilla:transmission "duplex"
 connected

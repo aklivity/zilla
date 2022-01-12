@@ -46,7 +46,7 @@ public class StartingIT
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/cog/http/config/upgrade")
         .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

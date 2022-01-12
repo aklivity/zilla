@@ -17,7 +17,7 @@
 #
 # First client-initiated stream
 #
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -71,7 +71,7 @@ read "<html>"
 #
 # Second client-initiated stream
 #
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -97,7 +97,7 @@ read zilla:begin.ext ${http:beginEx()
 # First promised request
 #
 connect await FIRST_PUSH_PROMISE_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
@@ -138,7 +138,7 @@ read "h1 {"
 # Second promised request
 #
 connect await SECOND_PUSH_PROMISE_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 

@@ -1,14 +1,14 @@
 {
     "bindings":
-    [
+    {
+        "app0":
         {
-            "entry": "app#0",
             "type" : "sse",
             "kind": "client",
             "routes":
             [
                 {
-                    "exit": "net#0",
+                    "exit": "net0",
                     "when":
                     [
                         {
@@ -18,5 +18,5 @@
                 }
             ]
         }
-    ]
+    }
 }

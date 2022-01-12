@@ -18,7 +18,7 @@ property authorization 0L
 
 property client10k ${tls:randomBytes(10240)}
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
   option zilla:authorization ${authorization}
   option zilla:window 65536
   option zilla:transmission "duplex"

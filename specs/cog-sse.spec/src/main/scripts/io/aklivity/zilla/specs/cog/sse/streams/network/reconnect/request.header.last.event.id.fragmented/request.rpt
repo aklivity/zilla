@@ -16,7 +16,7 @@
 
 property padding 288
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window ${18 + padding}
   option zilla:transmission "half-duplex"
 
@@ -54,7 +54,7 @@ read notify RECONNECT_EVENT_STREAM
 read closed
 
 connect await RECONNECT_EVENT_STREAM
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 

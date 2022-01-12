@@ -16,7 +16,7 @@
 
 property ip "192.168.0.1"
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
 
 write zilla:begin.ext ${proxy:beginEx()

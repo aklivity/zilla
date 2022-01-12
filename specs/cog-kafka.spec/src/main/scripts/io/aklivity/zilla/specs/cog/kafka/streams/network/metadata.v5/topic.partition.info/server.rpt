@@ -16,7 +16,7 @@
 
 property networkAcceptWindow 8192
 
-accept "zilla://streams/net#0"
+accept "zilla://streams/net0"
   option zilla:window ${networkAcceptWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

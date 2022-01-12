@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "app0":
         {
-            "entry": "app#0",
             "type" : "kafka",
             "kind": "cache_client",
             "options":
@@ -15,7 +15,7 @@
             "routes":
             [
                 {
-                    "exit": "cache#0",
+                    "exit": "cache0",
                     "when":
                     [
                         {
@@ -25,14 +25,14 @@
                 }
             ]
         },
+        "cache0":
         {
-            "entry": "cache#0",
             "type" : "kafka",
             "kind": "cache_server",
             "routes":
             [
                 {
-                    "exit": "app#1",
+                    "exit": "app1",
                     "when":
                     [
                         {
@@ -42,5 +42,5 @@
                 }
             ]
         }
-    ]
+    }
 }

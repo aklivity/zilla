@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -42,7 +42,7 @@ read "request one data from server"
 read notify REQUEST_ONE_UPGRADED
 
 connect await REQUEST_ONE_UPGRADED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 

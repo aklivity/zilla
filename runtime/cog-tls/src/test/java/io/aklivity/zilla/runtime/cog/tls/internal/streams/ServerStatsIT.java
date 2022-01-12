@@ -46,7 +46,7 @@ public class ServerStatsIT
             .responseBufferCapacity(1024)
             .counterValuesBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/cog/tls/config")
-            .external("app#0")
+            .external("app0")
             .clean();
 
     @Rule
@@ -61,7 +61,7 @@ public class ServerStatsIT
     {
         k3po.finish();
 
-        EngineStats stats = engine.stats("default", "net#0");
+        EngineStats stats = engine.stats("default", "net0");
 
         assertThat(stats.initialBytes(), greaterThan(10240L));
         assertThat(stats.replyBytes(), greaterThan(10240L));

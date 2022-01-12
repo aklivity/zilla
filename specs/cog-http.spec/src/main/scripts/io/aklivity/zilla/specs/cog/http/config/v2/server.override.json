@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "net0":
         {
-            "entry": "net#0",
             "type" : "http",
             "kind": "server",
             "options":
@@ -13,7 +13,7 @@
                     ":authority": "otherhost:8181"
                 }
             },
-            "exit": "app#0"
+            "exit": "app0"
         }
-    ]
+    }
 }

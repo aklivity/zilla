@@ -19,7 +19,7 @@ property networkConnectWindow 8192
 property newRequestId ${kafka:newRequestId()}
 property produceWaitMax 500
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -60,7 +60,7 @@ read 97                                 # size
 read notify ROUTED_BROKER_SERVER
 
 connect await ROUTED_BROKER_SERVER
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

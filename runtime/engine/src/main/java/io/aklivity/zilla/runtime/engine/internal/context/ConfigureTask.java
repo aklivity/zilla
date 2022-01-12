@@ -168,6 +168,9 @@ public class ConfigureTask implements Callable<Void>
             JsonSchema schema = reader.read();
 
             JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
+
+            // requires upgrade to jakarta.json 2.1.0 to enforce unique object keys
+            // see javax.json.JsonConfig.KEY_STRATEGY
             JsonbConfig config = new JsonbConfig()
                     .withAdapters(new ConfigurationAdapter());
             Jsonb jsonb = JsonbBuilder.newBuilder()

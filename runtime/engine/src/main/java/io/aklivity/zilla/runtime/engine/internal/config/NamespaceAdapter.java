@@ -17,14 +17,13 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 
 import static java.util.Collections.emptyList;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import jakarta.json.Json;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.Binding;
@@ -42,12 +41,12 @@ public class NamespaceAdapter implements JsonbAdapter<Namespace, JsonObject>
     private static final List<Vault> VAULTS_DEFAULT = emptyList();
 
     private final VaultAdapter vault;
-    private final BindingAdapter binding;
+    private final BindingsAdapter binding;
 
     public NamespaceAdapter()
     {
         vault = new VaultAdapter();
-        binding = new BindingAdapter();
+        binding = new BindingsAdapter();
     }
 
     @Override
@@ -63,16 +62,14 @@ public class NamespaceAdapter implements JsonbAdapter<Namespace, JsonObject>
 
         if (!VAULTS_DEFAULT.equals(namespace.vaults))
         {
-            JsonArrayBuilder vaults = Json.createArrayBuilder();
-            namespace.vaults.forEach(b -> vaults.add(vault.adaptToJson(b)));
+            JsonObjectBuilder vaults = Json.createObjectBuilder();
+            namespace.vaults.forEach(v -> vaults.add(v.name, vault.adaptToJson(v)));
             object.add(VAULTS_NAME, vaults);
         }
 
         if (!BINDINGS_DEFAULT.equals(namespace.bindings))
         {
-            JsonArrayBuilder bindings = Json.createArrayBuilder();
-            namespace.bindings.forEach(b -> bindings.add(binding.adaptToJson(b)));
-            object.add(BINDINGS_NAME, bindings);
+            object.add(BINDINGS_NAME, binding.adaptToJson(namespace.bindings.toArray(Binding[]::new)));
         }
 
         return object.build();
@@ -84,15 +81,13 @@ public class NamespaceAdapter implements JsonbAdapter<Namespace, JsonObject>
     {
         String name = object.getString(NAME_NAME, NAME_DEFAULT);
         List<Binding> bindings = object.containsKey(BINDINGS_NAME)
-            ? object.getJsonArray(BINDINGS_NAME)
-                .stream().map(JsonValue::asJsonObject)
-                .map(binding::adaptFromJson)
-                .collect(Collectors.toList())
-            : BINDINGS_DEFAULT;
+                ? Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME)))
+                : BINDINGS_DEFAULT;
         List<Vault> vaults = object.containsKey(VAULTS_NAME)
-                ? object.getJsonArray(VAULTS_NAME)
-                    .stream().map(JsonValue::asJsonObject)
-                    .map(vault::adaptFromJson)
+                ? object.getJsonObject(VAULTS_NAME)
+                    .entrySet()
+                    .stream()
+                    .map(e -> vault.adaptFromJson(e.getKey(), e.getValue().asJsonObject()))
                     .collect(Collectors.toList())
                 : VAULTS_DEFAULT;
 

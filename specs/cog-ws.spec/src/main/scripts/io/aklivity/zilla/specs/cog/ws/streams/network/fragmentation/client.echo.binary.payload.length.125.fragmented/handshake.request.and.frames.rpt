@@ -28,7 +28,7 @@ property client25e ${http:randomBytes(25)}
 
 property location "http://localhost:8080/echo"
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 

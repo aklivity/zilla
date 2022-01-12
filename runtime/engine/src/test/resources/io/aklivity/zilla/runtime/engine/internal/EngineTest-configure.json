@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "test0":
         {
-            "entry": "test0",
             "type" : "test",
             "kind": "server",
             "routes":
@@ -13,5 +13,5 @@
             ],
             "exit": "test2"
         }
-    ]
+    }
 }

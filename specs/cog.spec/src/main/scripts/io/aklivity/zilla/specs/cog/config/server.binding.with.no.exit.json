@@ -1,10 +1,10 @@
 {
     "bindings":
-    [
+    {
+        "test":
         {
-            "entry" : "test",
             "type" : "test",
             "kind": "server"
         }
-    ]
+    }
 }

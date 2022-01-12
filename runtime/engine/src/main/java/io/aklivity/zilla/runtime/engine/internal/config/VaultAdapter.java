@@ -18,15 +18,13 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.Options;
 import io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.Vault;
 
-public class VaultAdapter implements JsonbAdapter<Vault, JsonObject>
+public class VaultAdapter
 {
-    private static final String NAME_NAME = "name";
     private static final String TYPE_NAME = "type";
     private static final String OPTIONS_NAME = "options";
 
@@ -37,7 +35,6 @@ public class VaultAdapter implements JsonbAdapter<Vault, JsonObject>
         this.options = new OptionsAdapter(OptionsAdapterSpi.Kind.VAULT);
     }
 
-    @Override
     public JsonObject adaptToJson(
         Vault vault)
     {
@@ -45,7 +42,6 @@ public class VaultAdapter implements JsonbAdapter<Vault, JsonObject>
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(NAME_NAME, vault.name);
         object.add(TYPE_NAME, vault.type);
 
         if (vault.options != null)
@@ -56,11 +52,10 @@ public class VaultAdapter implements JsonbAdapter<Vault, JsonObject>
         return object.build();
     }
 
-    @Override
     public Vault adaptFromJson(
+        String name,
         JsonObject object)
     {
-        String name = object.getString(NAME_NAME);
         String type = object.getString(TYPE_NAME);
 
         options.adaptType(type);
