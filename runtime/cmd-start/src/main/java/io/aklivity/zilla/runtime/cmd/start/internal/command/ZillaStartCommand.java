@@ -53,7 +53,7 @@ public final class ZillaStartCommand extends ZillaCommand
     public int workers = -1;
 
     @Option(name = "-p", description = "properties")
-    public String properties = "zilla.props";
+    public String properties = ".zilla/zilla.properties";
 
     @Option(name = "-e", description = "Show exception traces", hidden = true)
     public boolean exceptions;
