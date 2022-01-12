@@ -1,0 +1,18 @@
+{
+    "bindings":
+    {
+        "test0":
+        {
+            "type" : "test",
+            "kind": "server",
+            "routes":
+            [
+                {
+                    "exit": "test1"
+                }
+            ],
+            "exit": "test2",
+            "exit": "test2"
+        }
+    }
+}

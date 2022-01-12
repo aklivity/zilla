@@ -61,6 +61,7 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.Configuration;
 import io.aklivity.zilla.runtime.engine.internal.config.ConfigurationAdapter;
+import io.aklivity.zilla.runtime.engine.internal.context.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
 
@@ -139,6 +140,8 @@ public class ConfigureTask implements Callable<Void>
 
         logger.accept(configText);
 
+        List<String> errors = new LinkedList<>();
+
         parse:
         try
         {
@@ -162,15 +165,18 @@ public class ConfigureTask implements Callable<Void>
                 .createParser(new StringReader(schemaObject.toString()));
 
             JsonValidationService service = JsonValidationService.newInstance();
-            List<String> errors = new LinkedList<>();
             ProblemHandler handler = service.createProblemPrinter(errors::add);
             JsonSchemaReader reader = service.createSchemaReader(schemaParser);
-            JsonSchema schema = reader.read();
+            JsonSchema schema = new UniquePropertyKeysSchema(reader.read());
 
             JsonProvider provider = service.createJsonProvider(schema, parser -> handler);
+            provider.createReader(new StringReader(configText)).read();
 
-            // requires upgrade to jakarta.json 2.1.0 to enforce unique object keys
-            // see javax.json.JsonConfig.KEY_STRATEGY
+            if (!errors.isEmpty())
+            {
+                break parse;
+            }
+
             JsonbConfig config = new JsonbConfig()
                     .withAdapters(new ConfigurationAdapter());
             Jsonb jsonb = JsonbBuilder.newBuilder()
@@ -182,7 +188,6 @@ public class ConfigureTask implements Callable<Void>
 
             if (!errors.isEmpty())
             {
-                errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
                 break parse;
             }
 
@@ -230,6 +235,11 @@ public class ConfigureTask implements Callable<Void>
         catch (Throwable ex)
         {
             errorHandler.onError(ex);
+        }
+
+        if (!errors.isEmpty())
+        {
+            errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
         }
 
         // TODO: repeat to detect and apply changes
