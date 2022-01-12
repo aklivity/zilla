@@ -8,7 +8,8 @@ Listens on mqtts port `8883` and will echo back whatever is published to the ser
 
 ### Install modular Java runtime
 ```bash
-$ ./zpmw install
+$ ./zpmw clean
+$ ./zpmw install --exclude-remote-repositories
 ...
 linked modules
 generated launcher
