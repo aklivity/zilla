@@ -13,19 +13,6 @@
                     "password": "generated"
                 }
             }
-        },
-        "server":
-        {
-            "type": "filesystem",
-            "options":
-            {
-                "keys":
-                {
-                    "store": "localhost.p12",
-                    "type": "pkcs12",
-                    "password": "generated"
-                }
-            }
         }
     },
     "bindings":
