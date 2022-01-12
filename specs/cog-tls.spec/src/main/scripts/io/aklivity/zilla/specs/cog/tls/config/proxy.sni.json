@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "net0":
         {
-            "entry": "net#0",
             "type" : "tls",
             "kind": "proxy",
             "routes":
@@ -12,9 +12,9 @@
                     [
                         { "authority": "localhost" }
                     ],
-                    "exit": "net#1"
+                    "exit": "net1"
                 }
             ]
         }
-    ]
+    }
 }

@@ -57,7 +57,7 @@ public class ConnectionIT
         .configure(PUBLISH_TIMEOUT, 1L)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/mqtt/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

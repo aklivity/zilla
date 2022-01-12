@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "tcp0":
         {
-            "entry": "tcp0",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -12,17 +12,17 @@
             },
             "exit": "fan0"
         },
+        "fan0":
         {
-            "entry": "fan0",
             "type" : "fan",
             "kind": "server",
             "exit": "echo0"
         },
+        "echo0":
         {
-            "entry": "echo0",
             "type" : "echo",
             "kind": "server"
         }
-    ]
+    }
 }
 

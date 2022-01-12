@@ -8,7 +8,8 @@ Listens on amqps port `5671` and will echo back whatever is sent to the server, 
 
 ### Install modular Java runtime
 ```bash
-$ ./zpmw install
+$ ./zpmw clean
+$ ./zpmw install --exclude-remote-repositories
 ...
 linked modules
 generated launcher

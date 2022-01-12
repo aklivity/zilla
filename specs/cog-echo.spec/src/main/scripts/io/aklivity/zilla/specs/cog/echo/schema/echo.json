@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/bindings/enum/-",
+        "path": "/$defs/binding/properties/type/enum/-",
         "value": "echo"
     },
     {
         "op": "add",
-        "path": "/properties/bindings/items/allOf/-",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
             "if":
@@ -33,7 +33,7 @@
     },
     {
         "op": "add",
-        "path": "/$defs/terminal/enum/-",
+        "path": "/$defs/internal/terminal/enum/-",
         "value": "echo"
     }
 ]

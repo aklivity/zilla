@@ -1,8 +1,8 @@
 {
     "vaults":
-    [
+    {
+        "server":
         {
-            "name": "server",
             "type": "filesystem",
             "options":
             {
@@ -20,7 +20,7 @@
                 }
             }
         }
-    ],
+    },
     "realms":
     [
         {
@@ -29,9 +29,9 @@
         }
     ],
     "bindings":
-    [
+    {
+        "net0":
         {
-            "entry": "net#0",
             "type" : "tls",
             "kind": "server",
             "vault": "server",
@@ -44,7 +44,7 @@
             "routes":
             [
                 {
-                    "exit": "app#0",
+                    "exit": "app0",
                     "allow":
                     {
                         "realm": "clients",
@@ -53,5 +53,5 @@
                 }
             ]
         }
-    ]
+    }
 }

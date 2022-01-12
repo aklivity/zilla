@@ -70,7 +70,7 @@ public class ServerPartialWriteLimitsIT
         // Overall buffer pool size same as slot size so maximum concurrent streams with partial writes = 1
         .configure(ENGINE_BUFFER_POOL_CAPACITY, 16)
         .configurationRoot("io/aklivity/zilla/specs/cog/tcp/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

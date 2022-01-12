@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
@@ -41,7 +41,7 @@ read closed
 read notify CONNECT_SENDER_COMPLETED
 
 connect await CONNECT_SENDER_COMPLETED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 

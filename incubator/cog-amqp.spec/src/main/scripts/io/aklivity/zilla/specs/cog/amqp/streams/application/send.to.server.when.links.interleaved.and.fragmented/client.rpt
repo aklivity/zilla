@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
@@ -46,7 +46,7 @@ write zilla:data.ext ${amqp:dataEx()
 
 write ${amqp:randomBytes(8000)}
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 

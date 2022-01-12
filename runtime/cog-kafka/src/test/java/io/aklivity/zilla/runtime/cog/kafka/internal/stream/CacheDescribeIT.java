@@ -51,7 +51,7 @@ public class CacheDescribeIT
         .configure(KAFKA_CACHE_SEGMENT_BYTES, 1 * 1024 * 1024)
         .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("app#1")
+        .external("app1")
         .clean();
 
     @Rule
@@ -71,7 +71,7 @@ public class CacheDescribeIT
     @Specification({
         "${app}/topic.config.info/client",
         "${app}/topic.config.info/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveTopicConfigInfo() throws Exception
     {
         k3po.finish();
@@ -82,7 +82,7 @@ public class CacheDescribeIT
     @Specification({
         "${app}/topic.config.info.changed/client",
         "${app}/topic.config.info.changed/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveTopicConfigInfoChanged() throws Exception
     {
         k3po.start();

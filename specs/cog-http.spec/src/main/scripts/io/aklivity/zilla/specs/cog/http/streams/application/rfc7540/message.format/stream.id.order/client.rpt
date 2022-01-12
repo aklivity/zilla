@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()
@@ -46,7 +46,7 @@ read zilla:data.ext ${http:dataEx()
 read notify PUSH_PROMISE_ONE_RECEIVED
 
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()
@@ -78,7 +78,7 @@ read zilla:data.ext ${http:dataEx()
 read notify PUSH_PROMISE_TWO_RECEIVED
 
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()
@@ -111,7 +111,7 @@ read notify PUSH_PROMISE_THREE_RECEIVED
 
 
 connect await PUSH_PROMISE_ONE_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()
@@ -126,7 +126,7 @@ write close
 
 
 connect await PUSH_PROMISE_TWO_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()
@@ -141,7 +141,7 @@ write close
 
 
 connect await PUSH_PROMISE_THREE_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()

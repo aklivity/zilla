@@ -43,7 +43,7 @@ public class ArchitectureIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v1.1")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     @Rule

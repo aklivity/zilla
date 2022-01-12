@@ -43,7 +43,7 @@ public class ProxyIT
             .responseBufferCapacity(1024)
             .counterValuesBufferCapacity(8192)
             .configurationRoot("io/aklivity/zilla/specs/cog/tls/config")
-            .external("net#1")
+            .external("net1")
             .configure(ENGINE_DRAIN_ON_CLOSE, false)
             .clean();
 

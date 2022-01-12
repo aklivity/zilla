@@ -21,7 +21,7 @@ property fetchWaitMax 500
 property fetchBytesMax 65535
 property partitionBytesMax 8192
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"
@@ -71,7 +71,7 @@ write 21                                # size
       [0x00]                            # allow_auto_topic_creation
 
 connect await ROUTED_BROKER_SERVER
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window ${networkConnectWindow}
   option zilla:transmission "duplex"
   option zilla:byteorder "network"

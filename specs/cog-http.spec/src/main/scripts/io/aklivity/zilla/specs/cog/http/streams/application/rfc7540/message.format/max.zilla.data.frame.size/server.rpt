@@ -16,7 +16,7 @@
 
 property data ${http:randomBytes(65527)}
 
-accept "zilla://streams/app#0"
+accept "zilla://streams/app0"
         option zilla:window 65536
         option zilla:transmission "half-duplex"
 accepted

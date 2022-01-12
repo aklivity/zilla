@@ -16,7 +16,7 @@
 
 property initialWindow 82000
 
-accept "zilla://streams/app#0"
+accept "zilla://streams/app0"
   option zilla:window ${initialWindow}
   option zilla:transmission "duplex"
 accepted

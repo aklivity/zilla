@@ -20,7 +20,7 @@ property writeMask ${http:randomBytes(4)}
 property client65535 ${http:randomBytes(65535)}
 property initialWindow 82000
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window ${initialWindow}
   option zilla:transmission "duplex"
 

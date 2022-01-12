@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 connected
@@ -35,7 +35,7 @@ read abort
 read notify REPLAY_REQUESTS
 
 connect await REPLAY_REQUESTS
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 connected

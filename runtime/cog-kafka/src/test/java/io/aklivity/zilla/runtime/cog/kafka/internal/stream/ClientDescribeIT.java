@@ -45,7 +45,7 @@ public class ClientDescribeIT
         .counterValuesBufferCapacity(8192)
         .configure(KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS, 0)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     @Rule

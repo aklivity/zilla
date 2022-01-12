@@ -50,7 +50,7 @@ public class ClientMergedIT
         .configure(KAFKA_CLIENT_META_MAX_AGE_MILLIS, 1000)
         .configure(KAFKA_CLIENT_PRODUCE_MAX_BYTES, 116)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     @Rule

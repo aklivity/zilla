@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected
@@ -27,7 +27,7 @@ read "Goodbye"
 write close
 read closed
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected
@@ -40,7 +40,7 @@ read "Goodbye"
 write close
 read closed
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected

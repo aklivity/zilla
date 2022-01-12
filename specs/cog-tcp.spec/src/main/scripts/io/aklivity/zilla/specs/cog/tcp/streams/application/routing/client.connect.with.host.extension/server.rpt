@@ -16,7 +16,7 @@
 
 property host "localhost"
 
-accept "zilla://streams/app#0"
+accept "zilla://streams/app0"
        option zilla:window 8192
        option zilla:transmission "duplex"
 

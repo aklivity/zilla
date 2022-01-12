@@ -16,7 +16,7 @@
 
 property authorization 0L
 
-accept "zilla://streams/app#0"
+accept "zilla://streams/app0"
   option zilla:authorization ${authorization}
   option zilla:window 65536
   option zilla:transmission "duplex"

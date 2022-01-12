@@ -51,7 +51,7 @@ public class CacheMetaIT
         .configure(KAFKA_CACHE_SEGMENT_BYTES, 1 * 1024 * 1024)
         .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("app#1")
+        .external("app1")
         .clean();
 
     @Rule
@@ -80,7 +80,7 @@ public class CacheMetaIT
     @Specification({
         "${app}/topic.partition.info/client",
         "${app}/topic.partition.info/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveTopicPartitionInfo() throws Exception
     {
         k3po.finish();
@@ -92,7 +92,7 @@ public class CacheMetaIT
         "${app}/topic.partition.info.changed/client",
         "${app}/topic.partition.info.changed/server"
         })
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldReceiveTopicPartitionInfoChanged() throws Exception
     {
         k3po.start();

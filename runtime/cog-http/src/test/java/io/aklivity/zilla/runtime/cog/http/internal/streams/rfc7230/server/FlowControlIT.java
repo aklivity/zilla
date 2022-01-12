@@ -45,7 +45,7 @@ public class FlowControlIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v1.1")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

@@ -59,7 +59,7 @@ public class ServerIT
         .configure(TCP_MAX_CONNECTIONS, 3)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/tcp/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule
@@ -400,7 +400,7 @@ public class ServerIT
         k3po.awaitBarrier("CONNECTION_ACCEPTED_2");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
 
-        EngineStats stats = engine.stats("default", "net#0");
+        EngineStats stats = engine.stats("default", "net0");
 
         assertEquals(3, stats.initialOpens());
         assertEquals(0, stats.initialCloses());

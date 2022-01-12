@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "app0":
         {
-            "entry": "app#0",
             "type" : "http",
             "kind": "client",
             "options":
@@ -12,7 +12,7 @@
                     ":authority": "localhost:8080"
                 }
             },
-            "exit": "net#0"
+            "exit": "net0"
         }
-    ]
+    }
 }

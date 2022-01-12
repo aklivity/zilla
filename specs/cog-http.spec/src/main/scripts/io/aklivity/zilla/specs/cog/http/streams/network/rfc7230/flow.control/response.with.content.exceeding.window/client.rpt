@@ -17,7 +17,7 @@
 property clientInitialWindow 8192
 
 connect "http://localhost:8080/"
-  option http:transport "zilla://streams/net#0"
+  option http:transport "zilla://streams/net0"
   option zilla:window ${clientInitialWindow}
   option zilla:transmission "half-duplex"
 connected

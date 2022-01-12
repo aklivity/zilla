@@ -52,7 +52,7 @@ public class CacheProduceIT
         .configure(KAFKA_CACHE_SERVER_RECONNECT_DELAY, 0)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("app#1")
+        .external("app1")
         .clean();
 
     @Rule
@@ -81,7 +81,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/partition.unknown/client",
         "${app}/partition.unknown/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRejectWhenPartitionUnknown() throws Exception
     {
         k3po.finish();
@@ -92,7 +92,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/partition.not.leader/client",
         "${app}/partition.not.leader/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldRejectPartitionNotLeader() throws Exception
     {
         k3po.finish();
@@ -103,7 +103,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.key/client",
         "${app}/message.key/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageKey() throws Exception
     {
         k3po.finish();
@@ -114,7 +114,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.key.null/client",
         "${app}/message.key.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageKeyNull() throws Exception
     {
         k3po.finish();
@@ -125,7 +125,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.key.with.value.null/client",
         "${app}/message.key.with.value.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageKeyWithValueNull() throws Exception
     {
         k3po.finish();
@@ -136,7 +136,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.key.with.value.distinct/client",
         "${app}/message.key.with.value.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageKeyWithValueDistinct() throws Exception
     {
         k3po.finish();
@@ -147,7 +147,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.key.with.header/client",
         "${app}/message.key.with.header/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageKeyWithHeader() throws Exception
     {
         k3po.finish();
@@ -158,7 +158,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.key.distinct/client",
         "${app}/message.key.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageKeyDistinct() throws Exception
     {
         k3po.finish();
@@ -169,7 +169,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value/client",
         "${app}/message.value/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValue() throws Exception
     {
         k3po.finish();
@@ -180,7 +180,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.null/client",
         "${app}/message.value.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueNull() throws Exception
     {
         k3po.finish();
@@ -191,7 +191,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.10k/client",
         "${app}/message.value.10k/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValue10k() throws Exception
     {
         k3po.finish();
@@ -202,7 +202,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.100k/client",
         "${app}/message.value.100k/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValue100k() throws Exception
     {
         k3po.finish();
@@ -214,7 +214,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.gzip/client",
         "${app}/message.value.gzip/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueGzip() throws Exception
     {
         k3po.finish();
@@ -226,7 +226,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.snappy/client",
         "${app}/message.value.snappy/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueSnappy() throws Exception
     {
         k3po.finish();
@@ -238,7 +238,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.lz4/client",
         "${app}/message.value.lz4/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueLz4() throws Exception
     {
         k3po.finish();
@@ -249,7 +249,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.distinct/client",
         "${app}/message.value.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueDistinct() throws Exception
     {
         k3po.finish();
@@ -260,7 +260,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.header/client",
         "${app}/message.header/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageHeader() throws Exception
     {
         k3po.finish();
@@ -271,7 +271,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.header.null/client",
         "${app}/message.header.null/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageHeaderNull() throws Exception
     {
         k3po.finish();
@@ -282,7 +282,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.headers.distinct/client",
         "${app}/message.headers.distinct/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageHeadersDistinct() throws Exception
     {
         k3po.finish();
@@ -293,7 +293,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.headers.repeated/client",
         "${app}/message.headers.repeated/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageHeadersRepeated() throws Exception
     {
         k3po.finish();
@@ -304,7 +304,7 @@ public class CacheProduceIT
     @Specification({
         "${app}/message.value.repeated/client",
         "${app}/message.value.repeated/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app#1\"")
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueRepeated() throws Exception
     {
         k3po.finish();

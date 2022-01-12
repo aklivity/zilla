@@ -16,7 +16,7 @@
 
 property key ${ws:handshakeKey()}
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 

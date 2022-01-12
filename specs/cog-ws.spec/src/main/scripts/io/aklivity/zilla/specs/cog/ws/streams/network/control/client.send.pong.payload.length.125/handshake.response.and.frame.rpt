@@ -17,7 +17,7 @@
 # TODO: revert this script to use k3po http transport as in k3po http specification once k3po
 #       is enhanced to support manifesting this as high-level http
 
-accept "zilla://streams/net#0"
+accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 accepted

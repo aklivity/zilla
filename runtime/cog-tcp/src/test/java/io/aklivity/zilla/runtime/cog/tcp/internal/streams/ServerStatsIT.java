@@ -48,7 +48,7 @@ public class ServerStatsIT
         .counterValuesBufferCapacity(8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/tcp/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule
@@ -64,7 +64,7 @@ public class ServerStatsIT
     {
         k3po.finish();
 
-        EngineStats stats = engine.stats("default", "net#0");
+        EngineStats stats = engine.stats("default", "net0");
 
         assertThat(stats.initialOpens(), equalTo(1L));
         assertThat(stats.replyOpens(), equalTo(1L));

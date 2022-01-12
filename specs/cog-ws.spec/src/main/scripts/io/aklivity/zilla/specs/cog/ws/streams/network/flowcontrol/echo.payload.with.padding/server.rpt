@@ -20,7 +20,7 @@
 property location 'http://localhost:8080/echo'
 property initialWindow 82000
 
-accept "zilla://streams/net#0"
+accept "zilla://streams/net0"
   option zilla:window ${initialWindow}
   option zilla:transmission "duplex"
 accepted

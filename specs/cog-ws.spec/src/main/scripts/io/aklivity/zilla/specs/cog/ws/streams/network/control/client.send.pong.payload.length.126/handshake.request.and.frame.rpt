@@ -21,7 +21,7 @@ property newHandshakeKey ${ws:handshakeKey()}
 property writeMask ${http:randomBytes(4)}
 property client124 ${http:randomBytesUTF8(124)}
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 

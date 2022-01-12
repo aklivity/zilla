@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 
@@ -47,7 +47,7 @@ write [0x30 0x1b]                    # PUBLISH
 
 write abort
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 

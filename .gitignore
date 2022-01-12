@@ -18,7 +18,7 @@ buildNumber.properties
 *.iws
 .DS_Store
 .zpm/
-.zilla/
+**/.zilla/engine
 zilla
 !zilla/
 _book/

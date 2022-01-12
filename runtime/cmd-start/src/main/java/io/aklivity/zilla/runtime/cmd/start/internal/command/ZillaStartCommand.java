@@ -42,6 +42,8 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 @Command(name = "start", description = "Start engine")
 public final class ZillaStartCommand extends ZillaCommand
 {
+    private static final String OPTION_PROPERTIES_DEFAULT = ".zilla/zilla.properties";
+
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
     private final Collection<Throwable> errors = new LinkedHashSet<>();
@@ -53,7 +55,7 @@ public final class ZillaStartCommand extends ZillaCommand
     public int workers = -1;
 
     @Option(name = "-p", description = "properties")
-    public String properties = "zilla.props";
+    public String properties;
 
     @Option(name = "-e", description = "Show exception traces", hidden = true)
     public boolean exceptions;
@@ -65,8 +67,8 @@ public final class ZillaStartCommand extends ZillaCommand
         Properties props = new Properties();
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
 
-        Path path = Paths.get(properties);
-        if (Files.exists(path))
+        Path path = Paths.get(properties != null ? properties : OPTION_PROPERTIES_DEFAULT);
+        if (Files.exists(path) || properties != null)
         {
             try
             {
@@ -74,7 +76,8 @@ public final class ZillaStartCommand extends ZillaCommand
             }
             catch (IOException ex)
             {
-                System.out.println("Failed to load properties: " + properties);
+                System.out.println("Failed to load properties: " + path);
+                rethrowUnchecked(ex);
             }
         }
 

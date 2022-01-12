@@ -55,7 +55,7 @@ public class ClientFetchIT
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/kafka/config")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     @Rule

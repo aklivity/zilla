@@ -37,17 +37,17 @@ public class EngineIT
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
-    private final EngineRule drive = new EngineRule()
+    private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/cog/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule
-    public final TestRule chain = outerRule(drive).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
     @Configuration("server.json")

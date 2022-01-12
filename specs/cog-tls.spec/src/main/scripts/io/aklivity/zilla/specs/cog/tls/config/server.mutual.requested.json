@@ -1,8 +1,8 @@
 {
     "vaults":
-    [
+    {
+        "server":
         {
-            "name": "server",
             "type": "filesystem",
             "options":
             {
@@ -20,11 +20,11 @@
                 }
             }
         }
-    ],
+    },
     "bindings":
-    [
+    {
+        "net0":
         {
-            "entry": "net#0",
             "type" : "tls",
             "kind": "server",
             "vault": "server",
@@ -34,7 +34,7 @@
                 "trust": [ "clientca" ],
                 "mutual": "requested"
             },
-            "exit": "app#0"
+            "exit": "app0"
         }
-    ]
+    }
 }

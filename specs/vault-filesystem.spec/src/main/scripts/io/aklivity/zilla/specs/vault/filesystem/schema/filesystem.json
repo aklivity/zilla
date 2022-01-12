@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/vaults/enum/-",
+        "path": "/$defs/vault/properties/type/enum/-",
         "value": "filesystem"
     },
     {
         "op": "add",
-        "path": "/properties/vaults/items/allOf/-",
+        "path": "/$defs/vault/allOf/-",
         "value":
         {
             "if":

@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected
@@ -22,7 +22,7 @@ write await CONNECTION_ACCEPTED_1
 write close
 read closed
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected
@@ -30,7 +30,7 @@ write await CONNECTION_ACCEPTED_2
 write close
 read closed
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected
@@ -38,7 +38,7 @@ write await CONNECTION_ACCEPTED_3
 write close
 read closed
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected

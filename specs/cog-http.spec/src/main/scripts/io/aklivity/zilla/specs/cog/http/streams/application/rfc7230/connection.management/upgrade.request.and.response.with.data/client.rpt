@@ -16,7 +16,7 @@
 
 property clientInitialWindow 8192
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window ${clientInitialWindow}
     option zilla:transmission "duplex"
 

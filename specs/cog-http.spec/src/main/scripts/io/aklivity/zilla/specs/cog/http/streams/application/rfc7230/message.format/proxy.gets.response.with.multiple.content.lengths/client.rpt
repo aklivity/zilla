@@ -15,7 +15,7 @@
 #
 
 connect "http://localhost:8080/"
-  option http:transport "zilla://streams/app#0"
+  option http:transport "zilla://streams/app0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 connected

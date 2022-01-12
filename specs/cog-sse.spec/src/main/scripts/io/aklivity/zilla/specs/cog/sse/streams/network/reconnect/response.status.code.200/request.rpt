@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 
@@ -41,7 +41,7 @@ read notify RECEIVED_STATUS_500
 read closed
 
 connect await RECEIVED_STATUS_500
-        "zilla://streams/net#0"
+        "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 

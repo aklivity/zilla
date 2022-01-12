@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()
@@ -36,7 +36,7 @@ read notify RESPONSE_ONE_RECEIVED
 
 
 connect await REQUEST_ONE_SENT
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()
@@ -51,7 +51,7 @@ write notify REQUEST_TWO_ABORTED
 
 # Check connection pool is not exhausted
 connect await RESPONSE_ONE_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 write zilla:begin.ext ${http:beginEx()

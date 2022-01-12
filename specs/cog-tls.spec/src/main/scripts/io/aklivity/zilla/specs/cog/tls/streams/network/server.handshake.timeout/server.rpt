@@ -14,7 +14,7 @@
 # under the License.
 #
 
-property serverAccept "zilla://streams/net#0"
+property serverAccept "zilla://streams/net0"
 
 accept ${serverAccept}
   option zilla:window 65536

@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -42,7 +42,7 @@ read closed
 read notify RESPONSE_ONE_RECEIVED
 
 connect await RESPONSE_ONE_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -69,7 +69,7 @@ read closed
 read notify RESPONSE_TWO_RECEIVED
 
 connect await RESPONSE_TWO_RECEIVED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 

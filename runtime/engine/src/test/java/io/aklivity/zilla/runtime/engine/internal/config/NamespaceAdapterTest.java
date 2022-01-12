@@ -80,11 +80,11 @@ public class NamespaceAdapterTest
                 "{" +
                     "\"name\": \"test\"," +
                     "\"vaults\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"bindings\":" +
-                    "[" +
-                    "]" +
+                    "{" +
+                    "}" +
                 "}";
 
         Namespace namespace = jsonb.fromJson(text, Namespace.class);
@@ -92,6 +92,7 @@ public class NamespaceAdapterTest
         assertThat(namespace, not(nullValue()));
         assertThat(namespace.name, equalTo("test"));
         assertThat(namespace.bindings, emptyCollectionOf(Binding.class));
+        assertThat(namespace.vaults, emptyCollectionOf(Vault.class));
     }
 
     @Test
@@ -112,15 +113,16 @@ public class NamespaceAdapterTest
                 "{" +
                     "\"name\": \"test\"," +
                     "\"vaults\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"bindings\":" +
-                    "[" +
+                    "{" +
+                        "\"test\":" +
                         "{" +
                             "\"type\": \"test\"," +
                             "\"kind\": \"server\"" +
                         "}" +
-                    "]" +
+                    "}" +
                 "}";
 
         Namespace namespace = jsonb.fromJson(text, Namespace.class);
@@ -128,20 +130,22 @@ public class NamespaceAdapterTest
         assertThat(namespace, not(nullValue()));
         assertThat(namespace.name, equalTo("test"));
         assertThat(namespace.bindings, hasSize(1));
+        assertThat(namespace.bindings.get(0).entry, equalTo("test"));
         assertThat(namespace.bindings.get(0).type, equalTo("test"));
         assertThat(namespace.bindings.get(0).kind, equalTo(SERVER));
+        assertThat(namespace.vaults, emptyCollectionOf(Vault.class));
     }
 
     @Test
     public void shouldWriteNamespaceWithBinding()
     {
-        Binding binding = new Binding(null, null, "test", SERVER, null, emptyList(), null);
+        Binding binding = new Binding(null, "test", "test", SERVER, null, emptyList(), null);
         Namespace namespace = new Namespace("test", emptyList(), singletonList(binding));
 
         String text = jsonb.toJson(namespace);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"bindings\":[{\"type\":\"test\",\"kind\":\"server\"}]}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"bindings\":{\"test\":{\"type\":\"test\",\"kind\":\"server\"}}}"));
     }
 
     @Test
@@ -151,15 +155,15 @@ public class NamespaceAdapterTest
                 "{" +
                     "\"name\": \"test\"," +
                     "\"bindings\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"vaults\":" +
-                    "[" +
+                    "{" +
+                        "\"default\":" +
                         "{" +
-                            "\"name\": \"default\"," +
                             "\"type\": \"test\"" +
                         "}" +
-                    "]" +
+                    "}" +
                 "}";
 
         Namespace namespace = jsonb.fromJson(text, Namespace.class);
@@ -180,6 +184,6 @@ public class NamespaceAdapterTest
         String text = jsonb.toJson(namespace);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":[{\"name\":\"default\",\"type\":\"test\"}]}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"}}}"));
     }
 }

@@ -1,8 +1,8 @@
 {
     "vaults":
-    [
+    {
+        "server":
         {
-            "name": "server",
             "type": "filesystem",
             "options":
             {
@@ -14,11 +14,11 @@
                 }
             }
         }
-    ],
+    },
     "bindings":
-    [
+    {
+        "tcp0":
         {
-            "entry": "tcp0",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -28,8 +28,8 @@
             },
             "exit": "amqp0"
         },
+        "tcp1":
         {
-            "entry": "tcp1",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -39,8 +39,8 @@
             },
             "exit": "tls0"
         },
+        "tls0":
         {
-            "entry": "tls0",
             "type" : "tls",
             "kind": "server",
             "vault": "server",
@@ -51,8 +51,8 @@
             },
             "exit": "amqp0"
         },
+        "amqp0":
         {
-            "entry": "amqp0",
             "type" : "amqp",
             "kind": "server",
             "routes":
@@ -68,17 +68,16 @@
                 }   
             ]
         },
+        "fan0":
         {
-            "entry": "fan0",
             "type" : "fan",
             "kind": "server",
             "exit": "echo0"
         },
+        "echo0":
         {
-            "entry": "echo0",
             "type" : "echo",
             "kind": "server"
         }
-    ]
+    }
 }
-

@@ -15,7 +15,7 @@
 #
 
 accept "http://localhost:8080/Some%20%2f%20Path"
-  option http:transport "zilla://streams/net#0"
+  option http:transport "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 accepted

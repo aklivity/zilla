@@ -1,8 +1,8 @@
 {
     "bindings":
-    [
+    {
+        "net0":
         {
-            "entry": "net#0",
             "type" : "tcp",
             "kind": "server",
             "options":
@@ -10,7 +10,7 @@
                 "host": "::0",
                 "port": 8080
             },
-            "exit": "app#0"
+            "exit": "app0"
         }
-    ]
+    }
 }

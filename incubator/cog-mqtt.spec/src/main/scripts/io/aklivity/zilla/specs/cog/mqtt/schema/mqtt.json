@@ -1,12 +1,12 @@
 [
     {
         "op": "add",
-        "path": "/$defs/types/bindings/enum/-",
+        "path": "/$defs/binding/properties/type/enum/-",
         "value": "mqtt"
     },
     {
         "op": "add",
-        "path": "/properties/bindings/items/allOf/-",
+        "path": "/$defs/binding/allOf/-",
         "value":
         {
             "if":

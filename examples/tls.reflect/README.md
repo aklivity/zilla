@@ -6,7 +6,8 @@ Listens on tls port `23456` and will echo back whatever is sent to the server, b
 
 ### Install modular Java runtime
 ```bash
-$ ./zpmw install
+$ ./zpmw clean
+$ ./zpmw install --exclude-remote-repositories
 ...
 linked modules
 generated launcher

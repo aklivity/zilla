@@ -16,7 +16,7 @@
 
 property padding 0
 
-connect "zilla://streams/net#0"
+connect "zilla://streams/net0"
   option zilla:window ${5 + padding}
   option zilla:transmission "half-duplex"
   option zilla:alignment "message"

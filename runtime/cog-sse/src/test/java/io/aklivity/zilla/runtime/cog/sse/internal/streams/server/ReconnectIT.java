@@ -43,7 +43,7 @@ public class ReconnectIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/cog/sse/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

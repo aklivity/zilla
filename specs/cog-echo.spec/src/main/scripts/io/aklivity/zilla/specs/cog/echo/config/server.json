@@ -1,10 +1,10 @@
 {
     "bindings":
-    [
+    {
+        "echo0":
         {
-            "entry": "echo#0",
             "type" : "echo",
             "kind": "server"
         }
-    ]
+    }
 }

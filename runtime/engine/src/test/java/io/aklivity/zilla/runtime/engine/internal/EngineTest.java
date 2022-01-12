@@ -104,6 +104,30 @@ public class EngineTest
     }
 
     @Test
+    public void shouldNotConfigureDuplicateKey() throws Exception
+    {
+        String resource = String.format("%s-%s.json.broken", getClass().getSimpleName(), "duplicate-key");
+        URL configURL = getClass().getResource(resource);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .configURL(configURL)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start().get();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, not(empty()));
+        }
+    }
+
+    @Test
     public void shouldNotConfigureUnknownScheme() throws Exception
     {
         List<Throwable> errors = new LinkedList<>();

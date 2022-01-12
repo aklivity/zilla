@@ -47,7 +47,7 @@ public class OpeningHandshakeIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/cog/ws/config")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     @Rule

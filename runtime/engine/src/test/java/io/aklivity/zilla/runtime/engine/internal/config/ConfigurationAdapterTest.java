@@ -81,11 +81,11 @@ public class ConfigurationAdapterTest
                 "{" +
                     "\"name\": \"test\"," +
                     "\"bindings\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"vaults\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"namespaces\":" +
                     "[" +
                     "]" +
@@ -96,6 +96,7 @@ public class ConfigurationAdapterTest
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("test"));
         assertThat(config.bindings, emptyCollectionOf(Binding.class));
+        assertThat(config.vaults, emptyCollectionOf(Vault.class));
         assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
@@ -117,15 +118,16 @@ public class ConfigurationAdapterTest
                 "{" +
                     "\"name\": \"test\"," +
                     "\"bindings\":" +
-                    "[" +
+                    "{" +
+                        "\"test\":" +
                         "{" +
                             "\"type\": \"test\"," +
                             "\"kind\": \"server\"" +
                         "}" +
-                    "]," +
+                    "}," +
                     "\"vaults\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"namespaces\":" +
                     "[" +
                     "]" +
@@ -136,21 +138,23 @@ public class ConfigurationAdapterTest
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("test"));
         assertThat(config.bindings, hasSize(1));
+        assertThat(config.bindings.get(0).entry, equalTo("test"));
         assertThat(config.bindings.get(0).type, equalTo("test"));
         assertThat(config.bindings.get(0).kind, equalTo(SERVER));
+        assertThat(config.vaults, emptyCollectionOf(Vault.class));
         assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
     public void shouldWriteConfigurationWithBinding()
     {
-        Binding binding = new Binding(null, null, "test", SERVER, null, emptyList(), null);
+        Binding binding = new Binding(null, "test", "test", SERVER, null, emptyList(), null);
         Configuration config = new Configuration("test", emptyList(), emptyList(), singletonList(binding));
 
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"bindings\":[{\"type\":\"test\",\"kind\":\"server\"}]}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"bindings\":{\"test\":{\"type\":\"test\",\"kind\":\"server\"}}}"));
     }
 
     @Test
@@ -160,15 +164,15 @@ public class ConfigurationAdapterTest
                 "{" +
                     "\"name\": \"test\"," +
                     "\"bindings\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"vaults\":" +
-                    "[" +
+                    "{" +
+                        "\"default\":" +
                         "{" +
-                            "\"name\": \"default\"," +
                             "\"type\": \"test\"" +
                         "}" +
-                    "]," +
+                    "}," +
                     "\"namespaces\":" +
                     "[" +
                     "]" +
@@ -193,7 +197,7 @@ public class ConfigurationAdapterTest
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":[{\"name\":\"default\",\"type\":\"test\"}]}"));
+        assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"}}}"));
     }
 
     @Test
@@ -203,8 +207,8 @@ public class ConfigurationAdapterTest
                 "{" +
                     "\"name\": \"test\"," +
                     "\"bindings\":" +
-                    "[" +
-                    "]," +
+                    "{" +
+                    "}," +
                     "\"namespaces\":" +
                     "[" +
                         "{" +

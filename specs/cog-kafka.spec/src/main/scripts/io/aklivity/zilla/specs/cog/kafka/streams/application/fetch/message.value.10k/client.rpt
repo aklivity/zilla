@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -44,7 +44,7 @@ read zilla:data.ext ${kafka:dataEx()
 read notify ROUTED_BROKER_CLIENT
 
 connect await ROUTED_BROKER_CLIENT
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 6144
     option zilla:transmission "half-duplex"
     option zilla:affinity 0xb1

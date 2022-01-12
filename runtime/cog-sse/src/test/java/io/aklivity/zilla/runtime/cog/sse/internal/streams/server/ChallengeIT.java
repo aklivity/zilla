@@ -43,7 +43,7 @@ public class ChallengeIT
         .responseBufferCapacity(2048)
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/cog/sse/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

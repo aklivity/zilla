@@ -1,8 +1,8 @@
 {
     "vaults":
-    [
+    {
+        "client":
         {
-            "name": "client",
             "type": "filesystem",
             "options":
             {
@@ -14,11 +14,11 @@
                 }
             }
         }
-    ],
+    },
     "bindings":
-    [
+    {
+        "app0":
         {
-            "entry": "app#0",
             "type" : "tls",
             "kind": "client",
             "vault": "client",
@@ -27,7 +27,7 @@
                 "trust": [ "serverca" ],
                 "alpn": [ "protocol2" ]
             },
-            "exit": "net#0"
+            "exit": "net0"
         }
-    ]
+    }
 }

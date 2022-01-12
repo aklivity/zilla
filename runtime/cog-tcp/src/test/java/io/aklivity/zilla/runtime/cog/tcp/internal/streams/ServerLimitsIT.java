@@ -51,7 +51,7 @@ public class ServerLimitsIT
         // Initial window size for output to network:
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 16)
         .configurationRoot("io/aklivity/zilla/specs/cog/tcp/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

@@ -66,7 +66,7 @@ public class ServerPartialWriteIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/cog/tcp/config")
-        .external("app#0")
+        .external("app0")
         .clean();
 
     @Rule

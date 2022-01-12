@@ -52,7 +52,7 @@ public class ConnectionManagementPoolSize1IT
         .configure(HTTP_MAXIMUM_CONNECTIONS, 1)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/cog/http/config/v1.1")
-        .external("net#0")
+        .external("net0")
         .clean();
 
     private final HttpCountersRule counters = new HttpCountersRule(engine);

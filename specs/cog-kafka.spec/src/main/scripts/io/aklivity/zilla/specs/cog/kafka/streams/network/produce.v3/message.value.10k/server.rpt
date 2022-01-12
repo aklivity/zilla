@@ -19,7 +19,7 @@ property networkAcceptWindow 8192
 property deltaMillis 0L
 property newTimestamp ${kafka:timestamp() + deltaMillis}
 
-accept "zilla://streams/net#0"
+accept "zilla://streams/net0"
   option zilla:window ${networkAcceptWindow}
   option zilla:padding 512
   option zilla:transmission "duplex"

@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app#0"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected
@@ -24,7 +24,7 @@ write notify CLIENT_CONNECTION_ONE_ESTABLISHED
 read "server data 1"
 
 connect await CLIENT_CONNECTION_ONE_ESTABLISHED
-        "zilla://streams/app#0"
+        "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 connected

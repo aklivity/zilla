@@ -2,184 +2,183 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$defs":
     {
-        "namedRef":
+        "vault":
         {
-            "type": "string"
-        },
-        "terminal":
-        {
-            "enum": [ ]
-        },
-        "types":
-        {
-            "bindings":
+            "type": "object",
+            "properties":
             {
-                "type": "string",
-                "enum": [ ]
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": [ ]
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                }
             },
-            "vaults":
+            "additionalProperties": false,
+            "required":
+            [
+                "type"
+            ],
+            "allOf":
+            [
+                true
+            ]
+        },
+        "binding":
+        {
+            "title": "Binding",
+            "type": "object",
+            "properties":
             {
-                "type": "string",
+                "vault":
+                {
+                    "title": "Vault",
+                    "type": "string"
+                },
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string",
+                    "enum": [ ]
+                },
+                "kind":
+                {
+                    "title": "Kind",
+                    "type": "string"
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                },
+                "routes":
+                {
+                    "title": "Routes",
+                    "type": "array",
+                    "items":
+                    {
+                        "title": "Route",
+                        "additionalProperties": false,
+                        "properties":
+                        {
+                            "exit":
+                            {
+                                "title": "Exit",
+                                "type": "string"
+                            },
+                            "when":
+                            {
+                                "title": "Conditions",
+                                "type": "array",
+                                "items":
+                                {
+                                    "title": "Condition",
+                                    "type": "object"
+                                }
+                            },
+                            "with":
+                            {
+                                "title": "Overrides",
+                                "type": "array",
+                                "items":
+                                {
+                                    "title": "Override",
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    }
+                },
+                "exit":
+                {
+                    "title": "Exit",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "required":
+            [
+                "type",
+                "kind"
+            ],
+            "allOf":
+            [
+                {
+                    "if":
+                    {
+                        "not":
+                        {
+                            "properties": { "type": { "$ref": "#/$defs/internal/terminal" } }
+                        }
+                    },
+                    "then":
+                    {
+                        "anyOf":
+                        [
+                            {
+                                "required":
+                                [
+                                    "exit"
+                                ]
+                            },
+                            {
+                                "required":
+                                [
+                                    "routes"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "internal":
+        {
+            "terminal":
+            {
                 "enum": [ ]
             }
         }
     },
     "title": "Config",
     "type": "object",
-    "additionalProperties": false,
     "properties":
     {
         "vaults":
         {
             "title": "Vaults",
-            "type": "array",
-            "items":
+            "type": "object",
+            "patternProperties":
             {
-                "title": "Items",
-                "type": "object",
-                "additionalProperties": false,
-                "properties":
+                "^[a-z0-9]+$":
                 {
-                    "name":
-                    {
-                        "title": "Name",
-                        "type": "string"
-                    },
-                    "type":
-                    {
-                        "title": "Type",
-                        "$ref": "#/$defs/types/vaults"
-                    },
-                    "options":
-                    {
-                        "title": "Options",
-                        "type": "object"
-                    }
-                },
-                "required":
-                [
-                    "name",
-                    "type"
-                ],
-                "allOf":
-                [
-                    true
-                ]
-            }
+                    "$ref": "#/$defs/vault"
+                }
+            },
+            "additionalProperties": false
         },
         "bindings":
         {
             "title": "Bindings",
-            "type": "array",
-            "items":
+            "type": "object",
+            "patternProperties":
             {
-                "title": "Items",
-                "type": "object",
-                "additionalProperties": false,
-                "properties":
+                "^[a-z0-9]+$":
                 {
-                    "vault": { "$ref": "#/$defs/namedRef" },
-                    "entry":
-                    {
-                        "title": "Entry",
-                        "type": "string"
-                    },
-                    "type":
-                    {
-                        "title": "Type",
-                        "$ref": "#/$defs/types/bindings"
-                    },
-                    "kind":
-                    {
-                        "title": "Kind",
-                        "type": "string"
-                    },
-                    "options":
-                    {
-                        "title": "Options",
-                        "type": "object"
-                    },
-                    "routes":
-                    {
-                        "title": "Routes",
-                        "type": "array",
-                        "items":
-                        {
-                            "title": "Route",
-                            "additionalProperties": false,
-                            "properties":
-                            {
-                                "exit": { "$ref": "#/$defs/namedRef" },
-                                "when":
-                                {
-                                    "title": "Conditions",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "title": "Condition",
-                                        "type": "object"
-                                    }
-                                },
-                                "with":
-                                {
-                                    "title": "Overrides",
-                                    "type": "array",
-                                    "items":
-                                    {
-                                        "title": "Override",
-                                        "type": "object"
-                                    }
-                                }
-                            },
-                            "required":
-                            [
-                                "exit"
-                            ]
-                        }
-                    },
-                    "exit":
-                    {
-                        "title": "Exit",
-                        "type": "string"
-                    }
-                },
-                "required":
-                [
-                    "entry",
-                    "type",
-                    "kind"
-                ],
-                "allOf":
-                [
-                    {
-                        "if":
-                        {
-                            "not":
-                            {
-                                "properties": { "type": { "$ref": "#/$defs/terminal" } }
-                            }
-                        },
-                        "then":
-                        {
-                            "anyOf":
-                            [
-                                {
-                                    "required":
-                                    [
-                                        "exit"
-                                    ]
-                                },
-                                {
-                                    "required":
-                                    [
-                                        "routes"
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
+                    "$ref": "#/$defs/binding"
+                }
+            },
+            "additionalProperties": false
         }
-    }
+    },
+    "additionalProperties": false
 }
