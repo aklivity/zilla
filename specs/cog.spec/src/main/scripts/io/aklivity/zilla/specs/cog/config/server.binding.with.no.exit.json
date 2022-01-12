@@ -1,7 +1,7 @@
 {
     "bindings":
     {
-        "test":
+        "test-_.123":
         {
             "type" : "test",
             "kind": "server"

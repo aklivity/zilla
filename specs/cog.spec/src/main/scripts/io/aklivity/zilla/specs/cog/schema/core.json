@@ -159,7 +159,7 @@
             "type": "object",
             "patternProperties":
             {
-                "^[a-z0-9]+$":
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                 {
                     "$ref": "#/$defs/vault"
                 }
@@ -172,7 +172,7 @@
             "type": "object",
             "patternProperties":
             {
-                "^[a-z0-9]+$":
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
                 {
                     "$ref": "#/$defs/binding"
                 }
