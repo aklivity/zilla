@@ -83,9 +83,8 @@ import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Namespace;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.internal.Counters;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
@@ -111,6 +110,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public class DispatchAgent implements AxleContext, Agent
 {
@@ -449,8 +449,8 @@ public class DispatchAgent implements AxleContext, Agent
 
     @Override
     public long supplyRouteId(
-        Namespace namespace,
-        Binding binding)
+        NamespaceConfig namespace,
+        BindingConfig binding)
     {
         final int namespaceId = labels.supplyLabelId(namespace.name);
         final int bindingId = labels.supplyLabelId(binding.entry);
@@ -464,7 +464,7 @@ public class DispatchAgent implements AxleContext, Agent
     }
 
     @Override
-    public BindingVault supplyVault(
+    public Vault supplyVault(
         long vaultId)
     {
         VaultContext vault = configuration.resolveVault(vaultId);
@@ -648,7 +648,7 @@ public class DispatchAgent implements AxleContext, Agent
     }
 
     public CompletableFuture<Void> attach(
-        Namespace namespace)
+        NamespaceConfig namespace)
     {
         NamespaceTask attachTask = configuration.attach(namespace);
         taskQueue.offer(attachTask);
@@ -657,7 +657,7 @@ public class DispatchAgent implements AxleContext, Agent
     }
 
     public CompletableFuture<Void> detach(
-        Namespace namespace)
+        NamespaceConfig namespace)
     {
         NamespaceTask detachTask = configuration.detach(namespace);
         taskQueue.offer(detachTask);

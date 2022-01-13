@@ -43,8 +43,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.ws.internal.WsCog;
 import io.aklivity.zilla.runtime.cog.ws.internal.WsConfiguration;
-import io.aklivity.zilla.runtime.cog.ws.internal.config.WsBinding;
-import io.aklivity.zilla.runtime.cog.ws.internal.config.WsRoute;
+import io.aklivity.zilla.runtime.cog.ws.internal.config.WsBindingConfig;
+import io.aklivity.zilla.runtime.cog.ws.internal.config.WsRouteConfig;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.HttpHeaderFW;
@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsEndExFW;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class WsClientFactory implements WsStreamFactory
 {
@@ -122,7 +122,7 @@ public final class WsClientFactory implements WsStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
 
-    private final Long2ObjectHashMap<WsBinding> bindings;
+    private final Long2ObjectHashMap<WsBindingConfig> bindings;
     private final int wsTypeId;
     private final int httpTypeId;
 
@@ -141,9 +141,9 @@ public final class WsClientFactory implements WsStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        WsBinding wsBinding = new WsBinding(binding);
+        WsBindingConfig wsBinding = new WsBindingConfig(binding);
         bindings.put(binding.id, wsBinding);
     }
 
@@ -171,7 +171,7 @@ public final class WsClientFactory implements WsStreamFactory
 
         MessageConsumer newStream = null;
 
-        final WsBinding binding = bindings.get(routeId);
+        final WsBindingConfig binding = bindings.get(routeId);
         if (binding != null)
         {
             String protocol = wsBeginEx != null ? wsBeginEx.protocol().asString() : binding.options.protocol;
@@ -179,7 +179,7 @@ public final class WsClientFactory implements WsStreamFactory
             String authority = wsBeginEx != null ? wsBeginEx.authority().asString() : binding.options.authority;
             String path = wsBeginEx != null ? wsBeginEx.path().asString() : binding.options.path;
 
-            WsRoute route = binding.resolve(authorization, protocol, scheme, authority, path);
+            WsRouteConfig route = binding.resolve(authorization, protocol, scheme, authority, path);
 
             if (route != null)
             {

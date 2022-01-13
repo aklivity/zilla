@@ -45,9 +45,9 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCachePartition.Node;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheTopic;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRoute;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaTopic;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaDeltaFW;
@@ -133,7 +133,7 @@ public final class KafkaCacheServerFetchFactory implements StreamFactory
     private final LongSupplier supplyTraceId;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
-    private final LongFunction<KafkaBinding> supplyBinding;
+    private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final Function<String, KafkaCache> supplyCache;
     private final LongFunction<KafkaCacheRoute> supplyCacheRoute;
     private final int reconnectDelay;
@@ -141,7 +141,7 @@ public final class KafkaCacheServerFetchFactory implements StreamFactory
     public KafkaCacheServerFetchFactory(
         KafkaConfiguration config,
         AxleContext context,
-        LongFunction<KafkaBinding> supplyBinding,
+        LongFunction<KafkaBindingConfig> supplyBinding,
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
@@ -193,8 +193,8 @@ public final class KafkaCacheServerFetchFactory implements StreamFactory
 
         MessageConsumer newStream = null;
 
-        final KafkaBinding binding = supplyBinding.apply(routeId);
-        final KafkaRoute resolved = binding != null ? binding.resolve(authorization, topicName) : null;
+        final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
         if (resolved != null)
         {
@@ -205,7 +205,7 @@ public final class KafkaCacheServerFetchFactory implements StreamFactory
             KafkaCacheServerFetchFanout fanout = cacheRoute.serverFetchFanoutsByTopicPartition.get(partitionKey);
             if (fanout == null)
             {
-                final KafkaTopic topic = binding.topic(topicName);
+                final KafkaTopicConfig topic = binding.topic(topicName);
                 final KafkaDeltaType routeDeltaType = topic != null ? topic.deltaType : deltaType;
                 final KafkaOffsetType defaultOffset = topic != null ? topic.defaultOffset : HISTORICAL;
                 final String cacheName = String.format("%s.%s", supplyNamespace.apply(routeId), supplyLocalName.apply(routeId));

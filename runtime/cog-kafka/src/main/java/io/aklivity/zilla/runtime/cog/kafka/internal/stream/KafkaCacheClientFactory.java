@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.budget.KafkaMergedBudgetAccountant;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCache;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ExtensionFW;
@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaCacheClientFactory implements KafkaStreamFactory
 {
@@ -46,7 +46,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
 
     private final int kafkaTypeId;
     private final Int2ObjectHashMap<StreamFactory> factories;
-    private final Long2ObjectHashMap<KafkaBinding> bindings;
+    private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
 
     public KafkaCacheClientFactory(
         KafkaConfiguration config,
@@ -54,7 +54,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
-        final Long2ObjectHashMap<KafkaBinding> bindings = new Long2ObjectHashMap<>();
+        final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
         final KafkaCacheMetaFactory cacheMetaFactory = new KafkaCacheMetaFactory(
@@ -87,9 +87,9 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        KafkaBinding kafkaBinding = new KafkaBinding(binding);
+        KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding);
         bindings.put(binding.id, kafkaBinding);
     }
 

@@ -16,31 +16,31 @@
 package io.aklivity.zilla.runtime.engine.cog;
 
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public interface Axle
 {
     default StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         return null;
     }
 
     default void detach(
-        Binding binding)
+        BindingConfig binding)
     {
     }
 
-    default BindingVault attach(
-        Vault vault)
+    default Vault attach(
+        VaultConfig vault)
     {
         return null;
     }
 
     default void detach(
-        Vault vault)
+        VaultConfig vault)
     {
     }
 }

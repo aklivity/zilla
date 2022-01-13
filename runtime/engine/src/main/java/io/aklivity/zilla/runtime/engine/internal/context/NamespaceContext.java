@@ -22,13 +22,13 @@ import java.util.function.ToIntFunction;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Namespace;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
 public class NamespaceContext
 {
-    private final Namespace namespace;
+    private final NamespaceConfig namespace;
     private final Function<String, Axle> lookupAxle;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
@@ -37,7 +37,7 @@ public class NamespaceContext
     private final Int2ObjectHashMap<VaultContext> vaultsById;
 
     public NamespaceContext(
-        Namespace namespace,
+        NamespaceConfig namespace,
         Function<String, Axle> lookupAxle,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
@@ -69,7 +69,7 @@ public class NamespaceContext
     }
 
     private void attachBinding(
-        Binding binding)
+        BindingConfig binding)
     {
         Axle axle = lookupAxle.apply(binding.type);
         assert axle != null : "Missing cog kind: " + binding.type;
@@ -82,7 +82,7 @@ public class NamespaceContext
     }
 
     private void detachBinding(
-        Binding binding)
+        BindingConfig binding)
     {
         int bindingId = supplyLabelId.applyAsInt(binding.entry);
         BindingContext context = bindingsById.remove(bindingId);
@@ -93,7 +93,7 @@ public class NamespaceContext
     }
 
     private void attachVault(
-        Vault vault)
+        VaultConfig vault)
     {
         Axle axle = lookupAxle.apply(vault.type);
         assert axle != null : "Missing vault kind: " + vault.type;
@@ -105,7 +105,7 @@ public class NamespaceContext
     }
 
     private void detachVault(
-        Vault vault)
+        VaultConfig vault)
     {
         int vaultId = supplyLabelId.applyAsInt(vault.name);
         VaultContext context = vaultsById.remove(vaultId);

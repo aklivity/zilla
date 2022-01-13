@@ -25,24 +25,24 @@ import java.util.function.Supplier;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.Options;
-import io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
-public class OptionsAdapter implements JsonbAdapter<Options, JsonObject>
+public class OptionsAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private final Map<String, OptionsAdapterSpi> delegatesByName;
+    private final Map<String, OptionsConfigAdapterSpi> delegatesByName;
 
-    private OptionsAdapterSpi delegate;
+    private OptionsConfigAdapterSpi delegate;
 
     public OptionsAdapter(
-        OptionsAdapterSpi.Kind kind)
+        OptionsConfigAdapterSpi.Kind kind)
     {
         delegatesByName = ServiceLoader
-            .load(OptionsAdapterSpi.class)
+            .load(OptionsConfigAdapterSpi.class)
             .stream()
             .map(Supplier::get)
             .filter(s -> s.kind() == kind)
-            .collect(toMap(OptionsAdapterSpi::type, identity()));
+            .collect(toMap(OptionsConfigAdapterSpi::type, identity()));
     }
 
     public void adaptType(
@@ -53,13 +53,13 @@ public class OptionsAdapter implements JsonbAdapter<Options, JsonObject>
 
     @Override
     public JsonObject adaptToJson(
-        Options options)
+        OptionsConfig options)
     {
         return delegate != null ? delegate.adaptToJson(options) : null;
     }
 
     @Override
-    public Options adaptFromJson(
+    public OptionsConfig adaptFromJson(
         JsonObject object)
     {
         return delegate != null ? delegate.adaptFromJson(object) : null;

@@ -29,7 +29,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.BeginFW;
@@ -58,14 +58,14 @@ public class KafkaCacheServerAddressFactory
     private final LongUnaryOperator supplyReplyId;
     private final MutableDirectBuffer writeBuffer;
     private final StreamFactory streamFactory;
-    private final LongFunction<KafkaBinding> supplyBinding;
+    private final LongFunction<KafkaBindingConfig> supplyBinding;
 
     private final Long2ObjectHashMap<List<KafkaAddressStream>> streams;
 
     public KafkaCacheServerAddressFactory(
         KafkaConfiguration config,
         AxleContext context,
-        LongFunction<KafkaBinding> supplyBinding)
+        LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
         this.writeBuffer = context.writeBuffer();
@@ -80,7 +80,7 @@ public class KafkaCacheServerAddressFactory
     void onAttached(
         long bindingId)
     {
-        final KafkaBinding binding = supplyBinding.apply(bindingId);
+        final KafkaBindingConfig binding = supplyBinding.apply(bindingId);
         final List<String> bootstrap = binding.options != null ? binding.options.bootstrap : null;
 
         if (bootstrap != null)

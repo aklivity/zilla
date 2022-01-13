@@ -20,6 +20,6 @@ module io.aklivity.zilla.runtime.cog.mqtt
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
         with io.aklivity.zilla.runtime.cog.mqtt.internal.MqttCogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi
-        with io.aklivity.zilla.runtime.cog.mqtt.internal.config.MqttConditionAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.mqtt.internal.config.MqttConditionConfigAdapter;
 }

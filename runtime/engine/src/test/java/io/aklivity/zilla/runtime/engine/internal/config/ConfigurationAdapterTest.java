@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -33,8 +33,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
 public class ConfigurationAdapterTest
 {
@@ -59,7 +59,7 @@ public class ConfigurationAdapterTest
 
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("default"));
-        assertThat(config.bindings, emptyCollectionOf(Binding.class));
+        assertThat(config.bindings, emptyCollectionOf(BindingConfig.class));
         assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
@@ -95,8 +95,8 @@ public class ConfigurationAdapterTest
 
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("test"));
-        assertThat(config.bindings, emptyCollectionOf(Binding.class));
-        assertThat(config.vaults, emptyCollectionOf(Vault.class));
+        assertThat(config.bindings, emptyCollectionOf(BindingConfig.class));
+        assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
         assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
@@ -141,14 +141,14 @@ public class ConfigurationAdapterTest
         assertThat(config.bindings.get(0).entry, equalTo("test"));
         assertThat(config.bindings.get(0).type, equalTo("test"));
         assertThat(config.bindings.get(0).kind, equalTo(SERVER));
-        assertThat(config.vaults, emptyCollectionOf(Vault.class));
+        assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
         assertThat(config.namespaces(), emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
     public void shouldWriteConfigurationWithBinding()
     {
-        Binding binding = new Binding(null, "test", "test", SERVER, null, emptyList(), null);
+        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null);
         Configuration config = new Configuration("test", emptyList(), emptyList(), singletonList(binding));
 
         String text = jsonb.toJson(config);
@@ -191,7 +191,7 @@ public class ConfigurationAdapterTest
     @Test
     public void shouldWriteConfigurationWithVault()
     {
-        Vault vault = new Vault("default", "test", null);
+        VaultConfig vault = new VaultConfig("default", "test", null);
         Configuration config = new Configuration("test", emptyList(), singletonList(vault), emptyList());
 
         String text = jsonb.toJson(config);
@@ -221,7 +221,7 @@ public class ConfigurationAdapterTest
 
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("test"));
-        assertThat(config.bindings, emptyCollectionOf(Binding.class));
+        assertThat(config.bindings, emptyCollectionOf(BindingConfig.class));
         assertThat(config.namespaces(), hasSize(1));
         assertThat(config.namespaces().get(0).name, equalTo("test"));
         assertThat(config.namespaces().get(0).links, equalTo(emptyMap()));

@@ -44,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class FanServerFactory implements FanStreamFactory
 {
@@ -66,7 +66,7 @@ public final class FanServerFactory implements FanStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
 
-    private final Long2ObjectHashMap<Binding> bindings;
+    private final Long2ObjectHashMap<BindingConfig> bindings;
 
     private final MutableDirectBuffer writeBuffer;
     private final StreamFactory streamFactory;
@@ -97,7 +97,7 @@ public final class FanServerFactory implements FanStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
         bindings.put(binding.id, binding);
     }
@@ -119,7 +119,7 @@ public final class FanServerFactory implements FanStreamFactory
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long routeId = begin.routeId();
-        final Binding binding = bindings.get(routeId);
+        final BindingConfig binding = bindings.get(routeId);
 
         MessageConsumer newStream = null;
 

@@ -25,22 +25,22 @@ import java.util.function.Supplier;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.With;
-import io.aklivity.zilla.runtime.engine.config.WithAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
-public class WithAdapter implements JsonbAdapter<With, JsonObject>
+public class WithAdapter implements JsonbAdapter<WithConfig, JsonObject>
 {
-    private final Map<String, WithAdapterSpi> delegatesByName;
+    private final Map<String, WithConfigAdapterSpi> delegatesByName;
 
-    private WithAdapterSpi delegate;
+    private WithConfigAdapterSpi delegate;
 
     public WithAdapter()
     {
         delegatesByName = ServiceLoader
-            .load(WithAdapterSpi.class)
+            .load(WithConfigAdapterSpi.class)
             .stream()
             .map(Supplier::get)
-            .collect(toMap(WithAdapterSpi::type, identity()));
+            .collect(toMap(WithConfigAdapterSpi::type, identity()));
     }
 
     public void adaptType(
@@ -51,13 +51,13 @@ public class WithAdapter implements JsonbAdapter<With, JsonObject>
 
     @Override
     public JsonObject adaptToJson(
-        With with)
+        WithConfig with)
     {
         return delegate != null ? delegate.adaptToJson(with) : null;
     }
 
     @Override
-    public With adaptFromJson(
+    public WithConfig adaptFromJson(
         JsonObject object)
     {
         return delegate != null ? delegate.adaptFromJson(object) : null;

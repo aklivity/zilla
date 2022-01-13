@@ -46,8 +46,8 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchCondition()
     {
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -64,8 +64,8 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithTransport()
     {
-        ProxyCondition condition = new ProxyCondition("stream", null, null, null, null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition = new ProxyConditionConfig("stream", null, null, null, null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -82,8 +82,8 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithTransport()
     {
-        ProxyCondition condition = new ProxyCondition("datagram", null, null, null, null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition = new ProxyConditionConfig("datagram", null, null, null, null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -100,8 +100,8 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithFamily()
     {
-        ProxyCondition condition = new ProxyCondition(null, "inet4", null, null, null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, "inet4", null, null, null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -118,8 +118,8 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithFamily()
     {
-        ProxyCondition condition = new ProxyCondition(null, "inet6", null, null, null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, "inet6", null, null, null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -136,8 +136,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithSource()
     {
-        ProxyCondition condition = new ProxyCondition(null, null, new ProxyAddress("192.168.0.0/24", 32768), null, null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition =
+                new ProxyConditionConfig(null, null, new ProxyAddressConfig("192.168.0.0/24", 32768), null, null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -154,8 +155,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithSource()
     {
-        ProxyCondition condition = new ProxyCondition(null, null, new ProxyAddress("127.0.0.0/24", 32768), null, null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition =
+                new ProxyConditionConfig(null, null, new ProxyAddressConfig("127.0.0.0/24", 32768), null, null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -172,8 +174,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithDestination()
     {
-        ProxyCondition condition = new ProxyCondition(null, null, null, new ProxyAddress("192.168.0.0/24", 443), null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition =
+                new ProxyConditionConfig(null, null, null, new ProxyAddressConfig("192.168.0.0/24", 443), null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -190,8 +193,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithDestination()
     {
-        ProxyCondition condition = new ProxyCondition(null, null, null, new ProxyAddress("127.0.0.0/24", 443), null);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyConditionConfig condition =
+                new ProxyConditionConfig(null, null, null, new ProxyAddressConfig("127.0.0.0/24", 443), null);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -208,9 +212,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithAlpn()
     {
-        ProxyInfo info = new ProxyInfo("echo", null, null, null, null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig("echo", null, null, null, null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -228,9 +232,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithAlpn()
     {
-        ProxyInfo info = new ProxyInfo("http/1.1", null, null, null, null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig("http/1.1", null, null, null, null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -248,9 +252,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithAuthority()
     {
-        ProxyInfo info = new ProxyInfo(null, "example.com", null, null, null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, "example.com", null, null, null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -268,9 +272,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithAuthority()
     {
-        ProxyInfo info = new ProxyInfo(null, "example.net", null, null, null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, "example.net", null, null, null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -288,9 +292,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithIdentity()
     {
-        ProxyInfo info = new ProxyInfo(null, null, fromHex("12345678"), null, null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, fromHex("12345678"), null, null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -308,9 +312,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithIdentity()
     {
-        ProxyInfo info = new ProxyInfo(null, null, fromHex("87654321"), null, null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, fromHex("87654321"), null, null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -328,9 +332,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithNamespace()
     {
-        ProxyInfo info = new ProxyInfo(null, null, null, "example", null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, "example", null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -348,9 +352,9 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithNamespace()
     {
-        ProxyInfo info = new ProxyInfo(null, null, null, "mismatch", null);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, "mismatch", null);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -368,10 +372,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithSecureVersion()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo("TLSv1.3", null, null, null, null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig("TLSv1.3", null, null, null, null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -389,10 +393,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithSecureVersion()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo("TLSv1.2", null, null, null, null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig("TLSv1.2", null, null, null, null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -410,10 +414,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithSecureCipher()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, "ECDHE-RSA-AES128-GCM-SHA256", null, null, null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, "ECDHE-RSA-AES128-GCM-SHA256", null, null, null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -431,10 +435,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithSecureCipher()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, "ECDH-ECDSA-AES256-GCM-SHA384", null, null, null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, "ECDH-ECDSA-AES256-GCM-SHA384", null, null, null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -452,10 +456,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithSecureKey()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, null, "RSA2048", null, null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, "RSA2048", null, null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -473,10 +477,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithSecureKey()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, null, "RSA1024", null, null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, "RSA1024", null, null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -494,10 +498,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithSecureName()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, null, null, "name@domain", null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, null, "name@domain", null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -515,10 +519,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithSecureName()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, null, null, "other@domain", null);
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, null, "other@domain", null);
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -536,10 +540,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldMatchConditionWithSecureSignature()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, null, null, null, "SHA256");
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, null, null, "SHA256");
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i
@@ -557,10 +561,10 @@ public class ProxyMatcherTest
     @Test
     public void shouldNotMatchConditionWithSecureSignature()
     {
-        ProxySecureInfo secureInfo = new ProxySecureInfo(null, null, null, null, "SHA384");
-        ProxyInfo info = new ProxyInfo(null, null, null, null, secureInfo);
-        ProxyCondition condition = new ProxyCondition(null, null, null, null, info);
-        ProxyMatcher matcher = new ProxyMatcher(condition);
+        ProxySecureInfoConfig secureInfo = new ProxySecureInfoConfig(null, null, null, null, "SHA384");
+        ProxyInfoConfig info = new ProxyInfoConfig(null, null, null, null, secureInfo);
+        ProxyConditionConfig condition = new ProxyConditionConfig(null, null, null, null, info);
+        ProxyConditionMatcher matcher = new ProxyConditionMatcher(condition);
 
         ProxyBeginExFW beginEx = builder
                 .address(a -> a.inet4(i -> i

@@ -30,9 +30,9 @@ import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Namespace;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public interface AxleContext
 {
@@ -86,8 +86,8 @@ public interface AxleContext
         SelectableChannel channel);
 
     long supplyRouteId(
-        Namespace namespace,
-        Binding binding);
+        NamespaceConfig namespace,
+        BindingConfig binding);
 
     String supplyNamespace(
         long routeId);
@@ -97,7 +97,7 @@ public interface AxleContext
 
     StreamFactory streamFactory();
 
-    BindingVault supplyVault(
+    Vault supplyVault(
         long vaultId);
 
     URL resolvePath(

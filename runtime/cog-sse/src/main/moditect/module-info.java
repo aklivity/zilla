@@ -20,9 +20,9 @@ module io.aklivity.zilla.runtime.cog.sse
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
         with io.aklivity.zilla.runtime.cog.sse.internal.SseCogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi
-        with io.aklivity.zilla.runtime.cog.sse.internal.config.SseOptionsAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.sse.internal.config.SseOptionsConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi
-        with io.aklivity.zilla.runtime.cog.sse.internal.config.SseConditionAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.sse.internal.config.SseConditionConfigAdapter;
 }

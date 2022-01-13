@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>parent</artifactId>
-    <version>0.9.1</version>
+    <version>0.9.2</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -17,7 +17,7 @@
   <name>zilla::specs</name>
 
   <modules>
-    <module>cog.spec</module>
+    <module>engine.spec</module>
     <module>cog-echo.spec</module>
     <module>cog-fan.spec</module>
     <module>cog-proxy.spec</module>
@@ -34,7 +34,7 @@
     <dependencies>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog.spec</artifactId>
+        <artifactId>engine.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

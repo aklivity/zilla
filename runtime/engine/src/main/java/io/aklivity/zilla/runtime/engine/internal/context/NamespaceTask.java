@@ -18,17 +18,17 @@ package io.aklivity.zilla.runtime.engine.internal.context;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import io.aklivity.zilla.runtime.engine.config.Namespace;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public final class NamespaceTask implements Runnable
 {
     private final CompletableFuture<Void> future;
-    private final Namespace namespace;
-    private final Consumer<Namespace> configurable;
+    private final NamespaceConfig namespace;
+    private final Consumer<NamespaceConfig> configurable;
 
     NamespaceTask(
-        Namespace namespace,
-        Consumer<Namespace> configurable)
+        NamespaceConfig namespace,
+        Consumer<NamespaceConfig> configurable)
     {
         this.future = new CompletableFuture<Void>();
         this.namespace = namespace;

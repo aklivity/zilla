@@ -44,8 +44,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.http.internal.HttpCog;
 import io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration;
-import io.aklivity.zilla.runtime.cog.http.internal.config.HttpBinding;
-import io.aklivity.zilla.runtime.cog.http.internal.config.HttpRoute;
+import io.aklivity.zilla.runtime.cog.http.internal.config.HttpBindingConfig;
+import io.aklivity.zilla.runtime.cog.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.cog.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.http.internal.types.HttpHeaderFW;
@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class HttpClientFactory implements HttpStreamFactory
 {
@@ -169,7 +169,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final LongSupplier supplyTraceId;
     private final int httpTypeId;
     private final Long2ObjectHashMap<HttpClientPool> clientPools;
-    private final Long2ObjectHashMap<HttpBinding> bindings;
+    private final Long2ObjectHashMap<HttpBindingConfig> bindings;
     private final Matcher responseLine;
     private final Matcher versionPart;
     private final Matcher headerLine;
@@ -223,9 +223,9 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        HttpBinding httpBinding = new HttpBinding(binding);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -249,9 +249,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         final long authorization = begin.authorization();
         final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
 
-        final HttpBinding binding = bindings.get(routeId);
+        final HttpBindingConfig binding = bindings.get(routeId);
 
-        HttpRoute route = null;
+        HttpRouteConfig route = null;
 
         if (binding != null)
         {

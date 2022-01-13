@@ -35,11 +35,11 @@ import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptions;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemStore;
 
-public class FileSystemVault implements BindingVault
+public class FileSystemVault implements Vault
 {
     private static final String TYPE_DEFAULT = "pkcs12";
 
@@ -49,7 +49,7 @@ public class FileSystemVault implements BindingVault
     private final Function<Predicate<X500Principal>, KeyStore.PrivateKeyEntry[]> lookupKeys;
 
     public FileSystemVault(
-        FileSystemOptions options,
+        FileSystemOptionsConfig options,
         Function<String, URL> resolvePath)
     {
         lookupKey = supplyLookupPrivateKeyEntry(resolvePath, options.keys);

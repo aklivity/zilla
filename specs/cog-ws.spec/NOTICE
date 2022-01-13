@@ -18,7 +18,7 @@ This project includes:
   org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::specs::cog-http.spec under The Apache Software License, Version 2.0
   zilla::specs::cog-proxy.spec under The Apache Software License, Version 2.0
-  zilla::specs::cog.spec under The Apache Software License, Version 2.0
+  zilla::specs::engine.spec under The Apache Software License, Version 2.0
 
 
 This project also includes code under copyright of the following entities:

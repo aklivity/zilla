@@ -29,8 +29,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaTopic;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaTopicConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaConfigFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetFW;
@@ -105,12 +105,12 @@ public final class KafkaCacheServerBootstrapFactory implements StreamFactory
     private final StreamFactory streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongFunction<KafkaBinding> supplyBinding;
+    private final LongFunction<KafkaBindingConfig> supplyBinding;
 
     public KafkaCacheServerBootstrapFactory(
         KafkaConfiguration config,
         AxleContext context,
-        LongFunction<KafkaBinding> supplyBinding)
+        LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
@@ -149,11 +149,11 @@ public final class KafkaCacheServerBootstrapFactory implements StreamFactory
 
         MessageConsumer newStream = null;
 
-        final KafkaBinding binding = supplyBinding.apply(routeId);
+        final KafkaBindingConfig binding = supplyBinding.apply(routeId);
 
         if (binding != null && binding.bootstrap(topicName))
         {
-            final KafkaTopic topic = binding.topic(topicName);
+            final KafkaTopicConfig topic = binding.topic(topicName);
             final long resolvedId = routeId;
             final long defaultOffset = topic != null && topic.defaultOffset != null
                     ? topic.defaultOffset.value()

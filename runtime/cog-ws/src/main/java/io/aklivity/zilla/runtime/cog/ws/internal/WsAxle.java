@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.ws.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -27,18 +27,18 @@ import io.aklivity.zilla.runtime.cog.ws.internal.stream.WsStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class WsAxle implements Axle
 {
-    private final Map<Role, WsStreamFactory> factories;
+    private final Map<RoleConfig, WsStreamFactory> factories;
 
     WsAxle(
         WsConfiguration config,
         AxleContext context)
     {
-        final Map<Role, WsStreamFactory> factories = new EnumMap<>(Role.class);
+        final Map<RoleConfig, WsStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(SERVER, new WsServerFactory(config, context));
         factories.put(CLIENT, new WsClientFactory(config, context));
         this.factories = factories;
@@ -46,7 +46,7 @@ final class WsAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         WsStreamFactory factory = factories.get(binding.kind);
 
@@ -60,7 +60,7 @@ final class WsAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         WsStreamFactory factory = factories.get(binding.kind);
 

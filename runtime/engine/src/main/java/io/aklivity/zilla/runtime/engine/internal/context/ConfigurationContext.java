@@ -22,7 +22,7 @@ import java.util.function.ToIntFunction;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.config.Namespace;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public class ConfigurationContext
@@ -45,13 +45,13 @@ public class ConfigurationContext
     }
 
     public NamespaceTask attach(
-        Namespace namespace)
+        NamespaceConfig namespace)
     {
         return new NamespaceTask(namespace, this::attachNamespace);
     }
 
     public NamespaceTask detach(
-        Namespace namespace)
+        NamespaceConfig namespace)
     {
         return new NamespaceTask(namespace, this::detachNamespace);
     }
@@ -89,7 +89,7 @@ public class ConfigurationContext
     }
 
     private void attachNamespace(
-        Namespace namespace)
+        NamespaceConfig namespace)
     {
         NamespaceContext context = new NamespaceContext(namespace, axlesByName, supplyLabelId, supplyLoadEntry);
         namespacesById.put(context.namespaceId(), context);
@@ -97,7 +97,7 @@ public class ConfigurationContext
     }
 
     protected void detachNamespace(
-        Namespace namespace)
+        NamespaceConfig namespace)
     {
         int namespaceId = supplyLabelId.applyAsInt(namespace.name);
         NamespaceContext context = namespacesById.remove(namespaceId);

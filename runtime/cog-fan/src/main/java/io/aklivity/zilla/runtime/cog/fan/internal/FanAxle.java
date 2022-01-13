@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.fan.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
@@ -25,12 +25,12 @@ import io.aklivity.zilla.runtime.cog.fan.internal.stream.FanStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class FanAxle implements Axle
 {
-    private final Map<Role, FanStreamFactory> factories;
+    private final Map<RoleConfig, FanStreamFactory> factories;
 
     FanAxle(
         FanConfiguration config,
@@ -41,7 +41,7 @@ final class FanAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         FanStreamFactory factory = factories.get(binding.kind);
         if (factory != null)
@@ -53,7 +53,7 @@ final class FanAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         FanStreamFactory factory = factories.get(binding.kind);
         if (factory != null)

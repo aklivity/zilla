@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.cog.kafka.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.CACHE_CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.Role.CACHE_SERVER;
-import static io.aklivity.zilla.runtime.engine.config.Role.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CACHE_CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CACHE_SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -35,14 +35,14 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.stream.KafkaStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class KafkaAxle implements Axle
 {
     private final Long2ObjectHashMap<KafkaClientRoute> clientRoutesById;
     private final Long2ObjectHashMap<KafkaCacheRoute> cacheRoutesById;
-    private final Map<Role, KafkaStreamFactory> factories;
+    private final Map<RoleConfig, KafkaStreamFactory> factories;
 
     KafkaAxle(
         KafkaConfiguration config,
@@ -52,7 +52,7 @@ final class KafkaAxle implements Axle
         this.clientRoutesById = new Long2ObjectHashMap<>();
         this.cacheRoutesById = new Long2ObjectHashMap<>();
 
-        Map<Role, KafkaStreamFactory> factories = new EnumMap<>(Role.class);
+        Map<RoleConfig, KafkaStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(CLIENT, new KafkaClientFactory(config, context, this::supplyClientRoute));
         factories.put(CACHE_SERVER, new KafkaCacheServerFactory(config, context, supplyCache,
             this::supplyCacheRoute));
@@ -63,7 +63,7 @@ final class KafkaAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         final KafkaStreamFactory factory = factories.get(binding.kind);
 
@@ -77,7 +77,7 @@ final class KafkaAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         final KafkaStreamFactory factory = factories.get(binding.kind);
 

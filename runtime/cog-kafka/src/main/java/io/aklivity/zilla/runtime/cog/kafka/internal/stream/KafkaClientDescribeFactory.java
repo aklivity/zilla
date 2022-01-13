@@ -37,8 +37,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRoute;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.String16FW;
@@ -128,12 +128,12 @@ public final class KafkaClientDescribeFactory implements StreamFactory
     private final StreamFactory streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final LongFunction<KafkaBinding> supplyBinding;
+    private final LongFunction<KafkaBindingConfig> supplyBinding;
 
     public KafkaClientDescribeFactory(
         KafkaConfiguration config,
         AxleContext context,
-        LongFunction<KafkaBinding> supplyBinding,
+        LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor)
     {
         this.maxAgeMillis = Math.min(config.clientDescribeMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
@@ -174,8 +174,8 @@ public final class KafkaClientDescribeFactory implements StreamFactory
 
         MessageConsumer newStream = null;
 
-        final KafkaBinding binding = supplyBinding.apply(routeId);
-        final KafkaRoute resolved = binding != null ? binding.resolve(authorization, topicName) : null;
+        final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
         if (resolved != null)
         {

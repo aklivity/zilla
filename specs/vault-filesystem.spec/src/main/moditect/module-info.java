@@ -15,5 +15,5 @@
  */
 open module io.aklivity.zilla.specs.vault.filesystem
 {
-    requires transitive io.aklivity.zilla.specs.cog;
+    requires transitive io.aklivity.zilla.specs.engine;
 }

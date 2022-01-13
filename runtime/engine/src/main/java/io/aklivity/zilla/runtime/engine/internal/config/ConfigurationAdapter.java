@@ -28,8 +28,8 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
 public class ConfigurationAdapter implements JsonbAdapter<Configuration, JsonObject>
 {
@@ -40,18 +40,18 @@ public class ConfigurationAdapter implements JsonbAdapter<Configuration, JsonObj
 
     private static final String NAME_DEFAULT = "default";
     private static final List<NamespaceRef> NAMESPACES_DEFAULT = emptyList();
-    private static final List<Binding> BINDINGS_DEFAULT = emptyList();
-    private static final List<Vault> VAULTS_DEFAULT = emptyList();
+    private static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
+    private static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
 
     private final NamspaceRefAdapter namespace;
     private final VaultAdapter vault;
-    private final BindingsAdapter binding;
+    private final BindingConfigsAdapter binding;
 
     public ConfigurationAdapter()
     {
         namespace = new NamspaceRefAdapter();
         vault = new VaultAdapter();
-        binding = new BindingsAdapter();
+        binding = new BindingConfigsAdapter();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class ConfigurationAdapter implements JsonbAdapter<Configuration, JsonObj
 
         if (!BINDINGS_DEFAULT.equals(root.bindings))
         {
-            object.add(BINDINGS_NAME, binding.adaptToJson(root.bindings.toArray(Binding[]::new)));
+            object.add(BINDINGS_NAME, binding.adaptToJson(root.bindings.toArray(BindingConfig[]::new)));
         }
 
         if (!NAMESPACES_DEFAULT.equals(root.namespaces()))
@@ -100,10 +100,10 @@ public class ConfigurationAdapter implements JsonbAdapter<Configuration, JsonObj
                     .map(namespace::adaptFromJson)
                     .collect(Collectors.toList())
                 : NAMESPACES_DEFAULT;
-        List<Binding> bindings = object.containsKey(BINDINGS_NAME)
+        List<BindingConfig> bindings = object.containsKey(BINDINGS_NAME)
                 ? Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME)))
                 : BINDINGS_DEFAULT;
-        List<Vault> vaults = object.containsKey(VAULTS_NAME)
+        List<VaultConfig> vaults = object.containsKey(VAULTS_NAME)
                 ? object.getJsonObject(VAULTS_NAME)
                     .entrySet()
                     .stream()

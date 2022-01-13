@@ -44,10 +44,10 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.tcp.internal.TcpConfiguration;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBinding;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpOptions;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpRoute;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBinding;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBindingConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpRouteConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.AbortFW;
@@ -62,7 +62,7 @@ import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public class TcpServerFactory implements TcpStreamFactory
 {
@@ -105,7 +105,7 @@ public class TcpServerFactory implements TcpStreamFactory
     public TcpServerFactory(
         TcpConfiguration config,
         AxleContext context,
-        LongFunction<TcpServerBinding> servers)
+        LongFunction<TcpServerBindingConfig> servers)
     {
         this.context = context;
         this.router = new TcpServerRouter(config, context, this::handleAccept, servers);
@@ -139,9 +139,9 @@ public class TcpServerFactory implements TcpStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        TcpBinding tcpBinding = new TcpBinding(binding);
+        TcpBindingConfig tcpBinding = new TcpBindingConfig(binding);
         router.attach(tcpBinding);
     }
 
@@ -157,8 +157,8 @@ public class TcpServerFactory implements TcpStreamFactory
     {
         try
         {
-            TcpBinding binding = (TcpBinding) acceptKey.attachment();
-            TcpOptions options = binding.options;
+            TcpBindingConfig binding = (TcpBindingConfig) acceptKey.attachment();
+            TcpOptionsConfig options = binding.options;
 
             ServerSocketChannel server = (ServerSocketChannel) acceptKey.channel();
 
@@ -182,11 +182,11 @@ public class TcpServerFactory implements TcpStreamFactory
     }
 
     private void onAccepted(
-        TcpBinding binding,
+        TcpBindingConfig binding,
         SocketChannel network,
         InetSocketAddress remote)
     {
-        final TcpRoute route = binding.routes.stream()
+        final TcpRouteConfig route = binding.routes.stream()
             .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(c -> c.matches(remote.getAddress())))
             .findFirst()
             .orElse(binding.exit);

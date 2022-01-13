@@ -41,7 +41,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.budget.MergedBudgetCreditor;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.Flyweight;
@@ -149,13 +149,13 @@ public final class KafkaMergedFactory implements StreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongConsumer detachSender;
     private final StreamFactory streamFactory;
-    private final LongFunction<KafkaBinding> supplyBinding;
+    private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final MergedBudgetCreditor creditor;
 
     public KafkaMergedFactory(
         KafkaConfiguration config,
         AxleContext context,
-        LongFunction<KafkaBinding> supplyBinding,
+        LongFunction<KafkaBindingConfig> supplyBinding,
         MergedBudgetCreditor creditor)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
@@ -200,7 +200,7 @@ public final class KafkaMergedFactory implements StreamFactory
 
         MessageConsumer newStream = null;
 
-        final KafkaBinding binding = supplyBinding.apply(routeId);
+        final KafkaBindingConfig binding = supplyBinding.apply(routeId);
 
         if (binding != null && binding.merged(topicName))
         {

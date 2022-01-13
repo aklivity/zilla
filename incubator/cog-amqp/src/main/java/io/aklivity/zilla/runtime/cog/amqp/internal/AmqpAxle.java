@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.amqp.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -25,25 +25,25 @@ import io.aklivity.zilla.runtime.cog.amqp.internal.stream.AmqpStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class AmqpAxle implements Axle
 {
-    private final Map<Role, AmqpStreamFactory> factories;
+    private final Map<RoleConfig, AmqpStreamFactory> factories;
 
     AmqpAxle(
         AmqpConfiguration config,
         AxleContext context)
     {
-        Map<Role, AmqpStreamFactory> factories = new EnumMap<>(Role.class);
+        Map<RoleConfig, AmqpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(SERVER, new AmqpServerFactory(config, context));
         this.factories = factories;
     }
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         AmqpStreamFactory factory = factories.get(binding.kind);
 
@@ -57,7 +57,7 @@ final class AmqpAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         AmqpStreamFactory factory = factories.get(binding.kind);
 

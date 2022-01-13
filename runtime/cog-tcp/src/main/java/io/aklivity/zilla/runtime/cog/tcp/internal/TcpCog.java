@@ -19,7 +19,7 @@ import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBinding;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
@@ -31,7 +31,7 @@ public final class TcpCog implements Cog
     public static final int WRITE_SPIN_COUNT = 16;
 
     private final TcpConfiguration config;
-    private final ConcurrentMap<Long, TcpServerBinding> servers;
+    private final ConcurrentMap<Long, TcpServerBindingConfig> servers;
 
     TcpCog(
         TcpConfiguration config)
@@ -59,9 +59,9 @@ public final class TcpCog implements Cog
         return new TcpAxle(config, context, this::supplyServer);
     }
 
-    private TcpServerBinding supplyServer(
+    private TcpServerBindingConfig supplyServer(
         long routeId)
     {
-        return servers.computeIfAbsent(routeId, TcpServerBinding::new);
+        return servers.computeIfAbsent(routeId, TcpServerBindingConfig::new);
     }
 }

@@ -16,12 +16,12 @@
 package io.aklivity.zilla.runtime.cog.tcp.internal.stream;
 
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public interface TcpStreamFactory extends StreamFactory
 {
     void attach(
-        Binding binding);
+        BindingConfig binding);
 
     void detach(
         long bindingId);

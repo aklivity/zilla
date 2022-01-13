@@ -45,8 +45,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.cog.tls.internal.TlsCounters;
-import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsBinding;
-import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsRoute;
+import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsBindingConfig;
+import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsRouteConfig;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.OctetsFW.Builder;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.codec.TlsRecordInfoFW;
@@ -68,8 +68,8 @@ import io.aklivity.zilla.runtime.engine.cog.buffer.CountingBufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class TlsClientFactory implements TlsStreamFactory
 {
@@ -127,11 +127,11 @@ public final class TlsClientFactory implements TlsStreamFactory
     private final BufferPool encodePool;
     private final String keyManagerAlgorithm;
     private final boolean ignoreEmptyVaultRefs;
-    private final LongFunction<BindingVault> supplyVault;
+    private final LongFunction<Vault> supplyVault;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int initialPadAdjust;
-    private final Long2ObjectHashMap<TlsBinding> bindings;
+    private final Long2ObjectHashMap<TlsBindingConfig> bindings;
 
     private final int decodeMax;
     private final int handshakeMax;
@@ -189,11 +189,11 @@ public final class TlsClientFactory implements TlsStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        TlsBinding tlsBinding = new TlsBinding(binding);
+        TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
 
-        BindingVault vault = supplyVault.apply(tlsBinding.vaultId);
+        Vault vault = supplyVault.apply(tlsBinding.vaultId);
 
         if (vault != null)
         {
@@ -228,8 +228,8 @@ public final class TlsClientFactory implements TlsStreamFactory
 
         MessageConsumer newStream = null;
 
-        TlsBinding binding = bindings.get(routeId);
-        TlsRoute route = binding != null ? binding.resolve(authorization, beginEx) : null;
+        TlsBindingConfig binding = bindings.get(routeId);
+        TlsRouteConfig route = binding != null ? binding.resolve(authorization, beginEx) : null;
         if (route != null)
         {
             final SSLEngine tlsEngine = binding.newClientEngine(beginEx);
@@ -1903,8 +1903,8 @@ public final class TlsClientFactory implements TlsStreamFactory
                         .findFirst()
                         .orElse(null);
 
-                TlsBinding binding = bindings.get(TlsStream.this.routeId);
-                TlsRoute route = binding.resolve(initialAuth, hostname, protocol);
+                TlsBindingConfig binding = bindings.get(TlsStream.this.routeId);
+                TlsRouteConfig route = binding.resolve(initialAuth, hostname, protocol);
 
                 if (route == null || route.id != client.routeId)
                 {
