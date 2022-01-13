@@ -17,8 +17,8 @@ module io.aklivity.zilla.runtime.cog.amqp
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
-        with io.aklivity.zilla.runtime.cog.amqp.internal.AmqpCogFactorySpi;
+    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
+        with io.aklivity.zilla.runtime.cog.amqp.internal.AmqpBindingFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
         with io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpConditionConfigAdapter;

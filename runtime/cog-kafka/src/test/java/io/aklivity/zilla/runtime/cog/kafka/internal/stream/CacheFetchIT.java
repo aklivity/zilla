@@ -35,7 +35,7 @@ import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheTopic;
@@ -72,7 +72,7 @@ public class CacheFetchIT
     @Before
     public void initPartition()
     {
-        final KafkaCog cog = engine.cog(KafkaCog.class);
+        final KafkaBinding cog = engine.cog(KafkaBinding.class);
         final KafkaCache cache = cog.supplyCache("default.cache0");
         final KafkaCacheTopic topic = cache.supplyTopic("test");
         this.partition = topic.supplyFetchPartition(0);

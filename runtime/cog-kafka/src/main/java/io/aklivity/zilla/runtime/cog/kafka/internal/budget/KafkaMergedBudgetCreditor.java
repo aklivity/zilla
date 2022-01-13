@@ -19,7 +19,7 @@ import java.util.function.LongSupplier;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 
 public final class KafkaMergedBudgetCreditor implements MergedBudgetCreditor
 {

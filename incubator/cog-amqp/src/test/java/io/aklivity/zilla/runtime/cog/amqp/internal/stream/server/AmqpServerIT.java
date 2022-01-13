@@ -17,6 +17,11 @@ package io.aklivity.zilla.runtime.cog.amqp.internal.stream.server;
 
 import static io.aklivity.zilla.runtime.cog.amqp.internal.AmqpConfiguration.AMQP_CLOSE_EXCHANGE_TIMEOUT;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.AmqpConfiguration.AMQP_CONTAINER_ID;
+import static io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpConfigurationTest.AMQP_HANDLE_MAX_NAME;
+import static io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpConfigurationTest.AMQP_IDLE_TIMEOUT_NAME;
+import static io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpConfigurationTest.AMQP_INCOMING_LOCALES_NAME;
+import static io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpConfigurationTest.AMQP_MAX_FRAME_SIZE_NAME;
+import static io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpConfigurationTest.AMQP_MAX_MESSAGE_SIZE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -107,7 +112,7 @@ public class AmqpServerIT
     @Configuration("server.json")
     @Specification({
         "${net}/connection/close.exchange.server.abandoned/client" })
-    @Configure(name = "zilla.cog.amqp.idle.timeout", value = "1000")
+    @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
     public void shouldCloseStreamWhenServerAbandoned() throws Exception
     {
         k3po.finish();
@@ -598,7 +603,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.array8/client",
         "${app}/send.to.server.with.array8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithArray8() throws Exception
     {
         k3po.finish();
@@ -609,7 +614,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.array32/client",
         "${app}/send.to.server.with.array32/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithArray32() throws Exception
     {
         k3po.finish();
@@ -620,7 +625,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.boolean/client",
         "${app}/send.to.server.with.boolean/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithBoolean() throws Exception
     {
         k3po.finish();
@@ -631,7 +636,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.byte/client",
         "${app}/send.to.server.with.byte/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithByte() throws Exception
     {
         k3po.finish();
@@ -642,7 +647,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.char/client",
         "${app}/send.to.server.with.char/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithChar() throws Exception
     {
         k3po.finish();
@@ -653,7 +658,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.false/client",
         "${app}/send.to.server.with.false/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithFalse() throws Exception
     {
         k3po.finish();
@@ -664,7 +669,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.int/client",
         "${app}/send.to.server.with.int/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithInt() throws Exception
     {
         k3po.finish();
@@ -675,7 +680,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.list0/client",
         "${app}/send.to.server.with.list0/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithList0() throws Exception
     {
         k3po.finish();
@@ -686,7 +691,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.list8/client",
         "${app}/send.to.server.with.list8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithlist8() throws Exception
     {
         k3po.finish();
@@ -697,7 +702,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.list32/client",
         "${app}/send.to.server.with.list32/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithList32() throws Exception
     {
         k3po.finish();
@@ -708,7 +713,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.long/client",
         "${app}/send.to.server.with.long/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithLong() throws Exception
     {
         k3po.finish();
@@ -719,7 +724,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.map8/client",
         "${app}/send.to.server.with.map8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithMap8() throws Exception
     {
         k3po.finish();
@@ -730,7 +735,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.map32/client",
         "${app}/send.to.server.with.map32/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithMap32() throws Exception
     {
         k3po.finish();
@@ -741,7 +746,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.multiple.data/client",
         "${app}/send.to.server.with.multiple.data/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithMultipleData() throws Exception
     {
         k3po.finish();
@@ -752,7 +757,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.multiple.sequence/client",
         "${app}/send.to.server.with.multiple.sequence/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithMultipleSequence() throws Exception
     {
         k3po.finish();
@@ -763,7 +768,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.null/client",
         "${app}/send.to.server.with.null/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithNull() throws Exception
     {
         k3po.finish();
@@ -774,7 +779,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.properties/client",
         "${app}/send.to.server.with.properties/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithProperties() throws Exception
     {
         k3po.finish();
@@ -785,7 +790,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.short/client",
         "${app}/send.to.server.with.short/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithShort() throws Exception
     {
         k3po.finish();
@@ -796,7 +801,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.single.data/client",
         "${app}/send.to.server.with.single.data/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSingleData() throws Exception
     {
         k3po.finish();
@@ -807,7 +812,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.single.sequence/client",
         "${app}/send.to.server.with.single.sequence/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSingleSequence() throws Exception
     {
         k3po.finish();
@@ -818,7 +823,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.smallint/client",
         "${app}/send.to.server.with.smallint/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSmallInt() throws Exception
     {
         k3po.finish();
@@ -829,7 +834,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.smalllong/client",
         "${app}/send.to.server.with.smalllong/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSmallLong() throws Exception
     {
         k3po.finish();
@@ -840,7 +845,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.smalluint/client",
         "${app}/send.to.server.with.smalluint/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSmallUint() throws Exception
     {
         k3po.finish();
@@ -851,7 +856,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.smallulong/client",
         "${app}/send.to.server.with.smallulong/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSmallUlong() throws Exception
     {
         k3po.finish();
@@ -862,7 +867,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.str8utf8/client",
         "${app}/send.to.server.with.str8utf8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithStr8utf8() throws Exception
     {
         k3po.finish();
@@ -873,7 +878,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.str32utf8/client",
         "${app}/send.to.server.with.str32utf8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithStr32utf8() throws Exception
     {
         k3po.finish();
@@ -884,7 +889,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.sym8/client",
         "${app}/send.to.server.with.sym8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSym8() throws Exception
     {
         k3po.finish();
@@ -895,7 +900,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.sym32/client",
         "${app}/send.to.server.with.sym32/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithSym32() throws Exception
     {
         k3po.finish();
@@ -906,7 +911,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.timestamp/client",
         "${app}/send.to.server.with.timestamp/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithTimestamp() throws Exception
     {
         k3po.finish();
@@ -917,7 +922,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.true/client",
         "${app}/send.to.server.with.true/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithTrue() throws Exception
     {
         k3po.finish();
@@ -928,7 +933,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.ubyte/client",
         "${app}/send.to.server.with.ubyte/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithUbyte() throws Exception
     {
         k3po.finish();
@@ -939,7 +944,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.uint/client",
         "${app}/send.to.server.with.uint/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithUint() throws Exception
     {
         k3po.finish();
@@ -950,7 +955,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.uint0/client",
         "${app}/send.to.server.with.uint0/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithUint0() throws Exception
     {
         k3po.finish();
@@ -961,7 +966,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.ulong/client",
         "${app}/send.to.server.with.ulong/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithUlong() throws Exception
     {
         k3po.finish();
@@ -972,7 +977,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.ulong0/client",
         "${app}/send.to.server.with.ulong0/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithUlong0() throws Exception
     {
         k3po.finish();
@@ -983,7 +988,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.ushort/client",
         "${app}/send.to.server.with.ushort/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithUshort() throws Exception
     {
         k3po.finish();
@@ -994,7 +999,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.vbin8/client",
         "${app}/send.to.server.with.vbin8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithVbin8() throws Exception
     {
         k3po.finish();
@@ -1005,7 +1010,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.vbin32/client",
         "${app}/send.to.server.with.vbin32/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithVbin32() throws Exception
     {
         k3po.finish();
@@ -1027,7 +1032,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.headers/client",
         "${app}/send.to.server.with.headers/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithHeaders() throws Exception
     {
         k3po.finish();
@@ -1038,7 +1043,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.delivery.annotations/client",
         "${app}/send.to.server.with.delivery.annotations/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithDeliveryAnnotations() throws Exception
     {
         k3po.finish();
@@ -1049,7 +1054,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.annotations/client",
         "${app}/send.to.server.with.annotations/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithAnnotations() throws Exception
     {
         k3po.finish();
@@ -1060,7 +1065,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.footer/client",
         "${app}/send.to.server.with.footer/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithFooter() throws Exception
     {
         k3po.finish();
@@ -1071,7 +1076,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.when.max.frame.size.exceeded/client",
         "${app}/send.to.server.when.max.frame.size.exceeded/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWhenMaxFrameSizeExceeded() throws Exception
     {
         k3po.finish();
@@ -1082,7 +1087,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.when.fragmented/client",
         "${app}/send.to.server.when.fragmented/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8000")
     public void shouldSendToServerWhenFragmented() throws Exception
     {
         k3po.finish();
@@ -1093,7 +1098,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.when.links.interleaved/client",
         "${app}/send.to.server.when.links.interleaved/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8000")
     public void shouldSendToServerWhenLinksInterleaved() throws Exception
     {
         k3po.finish();
@@ -1104,7 +1109,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.when.links.interleaved.and.fragmented/client",
         "${app}/send.to.server.when.links.interleaved.and.fragmented/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8000")
     public void shouldSendToServerWhenLinksInterleavedAndFragmented() throws Exception
     {
         k3po.finish();
@@ -1115,7 +1120,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/session/transfer.to.server.when.sessions.interleaved/client",
         "${app}/send.to.server.when.sessions.interleaved/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8000")
     public void shouldSendToServerWhenSessionsInterleaved() throws Exception
     {
         k3po.finish();
@@ -1126,7 +1131,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/session/transfer.to.server.when.sessions.interleaved.and.fragmented/client",
         "${app}/send.to.server.when.sessions.interleaved.and.fragmented/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8000")
     public void shouldSendToServerWhenSessionsInterleavedAndFragmented() throws Exception
     {
         k3po.finish();
@@ -1137,7 +1142,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/session/incoming.window.exceeded/client",
         "${app}/incoming.window.exceeded/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8192")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8192")
     public void shouldEndSessionWhenIncomingWindowExceeded() throws Exception
     {
         k3po.finish();
@@ -1259,7 +1264,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/link.credit.exceeded/client",
         "${app}/link.credit.exceeded/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8192")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8192")
     public void shouldDetachLinkWhenLinkCreditExceeded() throws Exception
     {
         k3po.finish();
@@ -1270,7 +1275,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/max.frame.size.exceeded.with.multiple.sessions.and.links/client",
         "${app}/max.frame.size.exceeded.with.multiple.sessions.and.links/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8000")
     public void shouldCloseConnectionWhenMaxFrameSizeExceededWithMultipleSessions() throws Exception
     {
         k3po.finish();
@@ -1280,7 +1285,7 @@ public class AmqpServerIT
     @Configuration("server.json")
     @Specification({
         "${net}/connection/server.idle.timeout.expires/client" })
-    @Configure(name = "zilla.cog.amqp.idle.timeout", value = "1000")
+    @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
     public void shouldCloseConnectionWithTimeout() throws Exception
     {
         k3po.finish();
@@ -1290,7 +1295,7 @@ public class AmqpServerIT
     @Configuration("server.json")
     @Specification({
         "${net}/connection/server.idle.timeout.does.not.expire/client" })
-    @Configure(name = "zilla.cog.amqp.idle.timeout", value = "1000")
+    @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
     public void shouldPreventTimeoutSentByServer() throws Exception
     {
         k3po.finish();
@@ -1337,7 +1342,7 @@ public class AmqpServerIT
     @Configuration("server.json")
     @Specification({
         "${net}/connection/close.exchange.simultaneous/client" })
-    @Configure(name = "zilla.cog.amqp.idle.timeout", value = "1000")
+    @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
     public void shouldExchangeCloseSimultaneously() throws Exception
     {
         k3po.finish();
@@ -1348,7 +1353,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/session/end.exchange.simultaneous/client",
         "${app}/incoming.window.exceeded/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8192")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8192")
     public void shouldEndSessionSimultaneously() throws Exception
     {
         k3po.finish();
@@ -1359,7 +1364,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/session/discard.after.end/client",
         "${app}/incoming.window.exceeded/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8192")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8192")
     public void shouldDiscardInboundAfterOutboundEnd() throws Exception
     {
         k3po.finish();
@@ -1370,7 +1375,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/session/reject.errant.link/client",
         "${app}/link.credit.exceeded/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "8192")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "8192")
     public void shouldRejectErrantLinks() throws Exception
     {
         k3po.finish();
@@ -1381,7 +1386,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.when.first.fragment.aborted/client",
         "${app}/send.to.server.when.first.fragment.aborted/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWhenFirstFragmentAborted() throws Exception
     {
         k3po.finish();
@@ -1400,7 +1405,7 @@ public class AmqpServerIT
     @Configuration("server.json")
     @Specification({
         "${net}/connection/open.with.outgoing.locales.negotiated.non.default/client" })
-    @Configure(name = "zilla.cog.amqp.incoming.locales", value = "jp")
+    @Configure(name = AMQP_INCOMING_LOCALES_NAME, value = "jp")
     public void shouldOpenWithOutgoingLocakesNegotiatedNonDefault() throws Exception
     {
         k3po.finish();
@@ -1420,7 +1425,7 @@ public class AmqpServerIT
     @Configuration("server.json")
     @Specification({
         "${net}/link/handle.max.exceeded/client" })
-    @Configure(name = "zilla.cog.amqp.handle.max", value = "10")
+    @Configure(name = AMQP_HANDLE_MAX_NAME, value = "10")
     public void shouldCloseConnectionWhenHandleMaxExceeded() throws Exception
     {
         k3po.finish();
@@ -1451,8 +1456,8 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.max.message.size.exceeded/client",
         "${app}/connect.as.sender.then.abort/server" })
-    @Configure(name = "zilla.cog.amqp.max.message.size", value = "100")
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_MESSAGE_SIZE_NAME, value = "100")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerAndHandleMaxMessageSize() throws Exception
     {
         k3po.finish();
@@ -1463,7 +1468,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.then.flow.with.echo.on.link/client",
         "${app}/send.to.server.then.flow.with.echo/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerThenFlowWithEchoOnLink() throws Exception
     {
         k3po.finish();
@@ -1474,7 +1479,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.then.flow.with.echo.on.session/client",
         "${app}/send.to.server.then.flow.with.echo/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerThenFlowWithEchoOnSession() throws Exception
     {
         k3po.finish();
@@ -1515,7 +1520,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.large.delivery.count/client",
         "${app}/send.to.server.with.large.delivery.count/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithLargeDeliveryCount() throws Exception
     {
         k3po.finish();
@@ -1526,7 +1531,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/reject.transfer.with.more.inconsistent.fields/client",
         "${app}/abort.after.sending.first.fragment/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldCloseConnectionWhenTransferWithMoreAndInconsistentFields() throws Exception
     {
         k3po.finish();
@@ -1537,7 +1542,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.when.middle.fragment.aborted/client",
         "${app}/send.to.server.when.middle.fragment.aborted/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWhenMiddleFragmentAborted() throws Exception
     {
         k3po.finish();
@@ -1548,7 +1553,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.large.next.incoming.id/client",
         "${app}/send.to.server.with.str8utf8/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithLargeNextIncomingId() throws Exception
     {
         k3po.finish();
@@ -1559,7 +1564,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.when.last.fragment.aborted/client",
         "${app}/send.to.server.when.last.fragment.aborted/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWhenLastFragmentAborted() throws Exception
     {
         k3po.finish();
@@ -1570,7 +1575,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.invalid.delivery.id/client",
         "${app}/send.to.server.with.invalid.delivery.id/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithInvalidDeliveryId() throws Exception
     {
         k3po.finish();
@@ -1630,7 +1635,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/transfer.to.server.with.application.properties/client",
         "${app}/send.to.server.with.application.properties/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldSendToServerWithApplicationProperties() throws Exception
     {
         k3po.finish();
@@ -1641,7 +1646,7 @@ public class AmqpServerIT
     @Specification({
         "${net}/link/reject.durable.message.when.durable.not.supported/client",
         "${app}/connect.as.sender.then.abort/server" })
-    @Configure(name = "zilla.cog.amqp.max.frame.size", value = "1000")
+    @Configure(name = AMQP_MAX_FRAME_SIZE_NAME, value = "1000")
     public void shouldRejectDurableMessageWhenDurableNotSupported() throws Exception
     {
         k3po.finish();

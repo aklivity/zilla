@@ -24,7 +24,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.http.internal.HttpCog;
+import io.aklivity.zilla.runtime.cog.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
@@ -35,7 +35,7 @@ public final class HttpConditionConfigAdapter implements ConditionConfigAdapterS
     @Override
     public String type()
     {
-        return HttpCog.NAME;
+        return HttpBinding.NAME;
     }
 
     @Override

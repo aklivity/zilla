@@ -27,7 +27,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.OctetsFW;
@@ -38,8 +38,8 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class KafkaCacheServerAddressFactory
 {
@@ -57,7 +57,7 @@ public class KafkaCacheServerAddressFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final MutableDirectBuffer writeBuffer;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
     private final Long2ObjectHashMap<List<KafkaAddressStream>> streams;
@@ -67,7 +67,7 @@ public class KafkaCacheServerAddressFactory
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
-        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
         this.streamFactory = context.streamFactory();
         this.supplyTraceId = context::supplyTraceId;

@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.cog.fan.internal.stream;
 
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public interface FanStreamFactory extends StreamFactory
+public interface FanStreamFactory extends BindingHandler
 {
     void attach(
         BindingConfig binding);

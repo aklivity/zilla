@@ -29,7 +29,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.tls.internal.TlsCog;
+import io.aklivity.zilla.runtime.cog.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -47,7 +47,7 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     @Override
     public String type()
     {
-        return TlsCog.NAME;
+        return TlsBinding.NAME;
     }
 
     @Override

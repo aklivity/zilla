@@ -94,7 +94,7 @@ import io.aklivity.zilla.runtime.cmd.log.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cmd.log.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cmd.log.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cmd.log.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class LoggableStream implements AutoCloseable
 {

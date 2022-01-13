@@ -25,11 +25,12 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class KafkaConfiguration extends Configuration
 {
-    public static final boolean DEBUG = Boolean.getBoolean("zilla.cog.kafka.debug");
-    public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.cog.kafka.debug.produce");
+    public static final boolean DEBUG = Boolean.getBoolean("zilla.binding.kafka.debug");
+    public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
 
-    public static final String KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME = "zilla.cog.kafka.client.produce.max.request.millis";
-    public static final String KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME = "zilla.cog.kafka.cache.server.reconnect";
+    public static final String KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME =
+            "zilla.binding.kafka.client.produce.max.request.millis";
+    public static final String KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME = "zilla.binding.kafka.cache.server.reconnect";
 
     public static final IntPropertyDef KAFKA_CLIENT_MAX_IDLE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_META_MAX_AGE_MILLIS;
@@ -63,7 +64,7 @@ public class KafkaConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.cog.kafka");
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.kafka");
         KAFKA_CLIENT_MAX_IDLE_MILLIS = config.property("client.max.idle.ms", 1 * 60 * 1000);
         KAFKA_CLIENT_META_MAX_AGE_MILLIS = config.property("client.meta.max.age.ms", 5 * 60 * 1000);
         KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS = config.property("client.describe.max.age.ms", 5 * 60 * 1000);
@@ -75,7 +76,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
         KAFKA_CLIENT_PRODUCE_ACKS = config.property("client.produce.acks", ProduceAck.IN_SYNC_REPLICAS.value());
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
-            KafkaConfiguration::cacheDirectory, KafkaCog.NAME);
+            KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
         KAFKA_CACHE_PRODUCE_CAPACITY = config.property("cache.produce.capacity", Long.MAX_VALUE);
         KAFKA_CACHE_SERVER_RECONNECT_DELAY = config.property("cache.server.reconnect", 5);

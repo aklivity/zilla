@@ -21,7 +21,7 @@ import static io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheCurso
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType.LIVE;
-import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -37,7 +37,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheIndexFile;
@@ -75,12 +75,12 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheServerFetchFactory implements StreamFactory
+public final class KafkaCacheServerFetchFactory implements BindingHandler
 {
     static final int SIZE_OF_FLUSH_WITH_EXTENSION = 64;
 
@@ -127,7 +127,7 @@ public final class KafkaCacheServerFetchFactory implements StreamFactory
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -145,7 +145,7 @@ public final class KafkaCacheServerFetchFactory implements StreamFactory
         Function<String, KafkaCache> supplyCache,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {
-        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();

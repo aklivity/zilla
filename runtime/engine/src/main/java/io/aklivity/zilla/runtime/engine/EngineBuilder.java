@@ -24,8 +24,8 @@ import java.util.Set;
 
 import org.agrona.ErrorHandler;
 
-import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.CogFactory;
+import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -76,11 +76,11 @@ public class EngineBuilder
     {
         final EngineConfiguration config = new EngineConfiguration(this.config != null ? this.config : new Configuration());
 
-        final Set<Cog> cogs = new LinkedHashSet<>();
-        final CogFactory cogFactory = CogFactory.instantiate();
+        final Set<Binding> cogs = new LinkedHashSet<>();
+        final BindingFactory cogFactory = BindingFactory.instantiate();
         for (String name : cogFactory.names())
         {
-            Cog cog = cogFactory.create(name, config);
+            Binding cog = cogFactory.create(name, config);
             cogs.add(cog);
         }
 

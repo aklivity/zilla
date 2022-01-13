@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttCog;
+import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -33,7 +33,7 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
     @Override
     public String type()
     {
-        return MqttCog.NAME;
+        return MqttBinding.NAME;
     }
 
     @Override

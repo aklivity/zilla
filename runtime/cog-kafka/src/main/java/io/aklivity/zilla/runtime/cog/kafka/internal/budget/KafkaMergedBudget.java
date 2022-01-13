@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.kafka.internal.budget;
 
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
@@ -23,7 +23,7 @@ import java.util.function.LongFunction;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongArrayList;
 
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 
 final class KafkaMergedBudget
 {

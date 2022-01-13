@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class SseConfiguration extends Configuration
 {
-    public static final String CHALLENGE_EVENT_TYPE_NAME = "zilla.cog.sse.challenge.event.type";
+    public static final String CHALLENGE_EVENT_TYPE_NAME = "zilla.binding.sse.challenge.event.type";
 
     public static final BooleanPropertyDef INITIAL_COMMENT_ENABLED;
 
@@ -34,7 +34,7 @@ public class SseConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.cog.sse");
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse");
         INITIAL_COMMENT_ENABLED = config.property("initial.comment.enabled", false);
         CHALLENGE_EVENT_TYPE = config.property("challenge.event.type", "challenge");
         SSE_CONFIG = config;

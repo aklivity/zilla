@@ -26,7 +26,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -40,7 +40,7 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     @Override
     public String type()
     {
-        return KafkaCog.NAME;
+        return KafkaBinding.NAME;
     }
 
     @Override

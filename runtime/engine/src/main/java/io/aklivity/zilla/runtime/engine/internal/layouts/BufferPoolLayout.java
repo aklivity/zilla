@@ -25,7 +25,7 @@ import java.nio.file.Path;
 
 import org.agrona.CloseHelper;
 
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.internal.buffer.DefaultBufferPool;
 
 public final class BufferPoolLayout extends Layout

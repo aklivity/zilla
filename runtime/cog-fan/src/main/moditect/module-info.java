@@ -17,7 +17,7 @@ module io.aklivity.zilla.runtime.cog.fan
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
-        with io.aklivity.zilla.runtime.cog.fan.internal.FanCogFactorySpi;
+    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
+        with io.aklivity.zilla.runtime.cog.fan.internal.FanBindingFactorySpi;
 
 }

@@ -75,10 +75,10 @@ import static io.aklivity.zilla.runtime.cog.amqp.internal.types.codec.AmqpType.S
 import static io.aklivity.zilla.runtime.cog.amqp.internal.util.AmqpTypeUtil.amqpCapabilities;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.util.AmqpTypeUtil.amqpReceiverSettleMode;
 import static io.aklivity.zilla.runtime.cog.amqp.internal.util.AmqpTypeUtil.amqpSenderSettleMode;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor.NO_DEBITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -100,7 +100,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.amqp.internal.AmqpCog;
+import io.aklivity.zilla.runtime.cog.amqp.internal.AmqpBinding;
 import io.aklivity.zilla.runtime.cog.amqp.internal.AmqpConfiguration;
 import io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpBindingConfig;
 import io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpRouteConfig;
@@ -172,12 +172,12 @@ import io.aklivity.zilla.runtime.cog.amqp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AmqpServerFactory implements AmqpStreamFactory
@@ -460,7 +460,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
     private final Signaler signaler;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
 
     private final Long2ObjectHashMap<AmqpBindingConfig> bindings;
     private final int amqpTypeId;
@@ -493,7 +493,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyTraceId = context::supplyTraceId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.amqpTypeId = context.supplyTypeId(AmqpCog.NAME);
+        this.amqpTypeId = context.supplyTypeId(AmqpBinding.NAME);
 
         this.containerId = new String8FW(config.containerId());
         this.outgoingWindow = config.outgoingWindow();

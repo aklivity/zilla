@@ -41,7 +41,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.ws.internal.WsCog;
+import io.aklivity.zilla.runtime.cog.ws.internal.WsBinding;
 import io.aklivity.zilla.runtime.cog.ws.internal.WsConfiguration;
 import io.aklivity.zilla.runtime.cog.ws.internal.config.WsBindingConfig;
 import io.aklivity.zilla.runtime.cog.ws.internal.config.WsRouteConfig;
@@ -63,8 +63,8 @@ import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsBeginExFW;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsDataExFW;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsEndExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class WsClientFactory implements WsStreamFactory
@@ -118,7 +118,7 @@ public final class WsClientFactory implements WsStreamFactory
     private final WsHeaderFW.Builder wsHeaderRW = new WsHeaderFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
 
@@ -135,7 +135,7 @@ public final class WsClientFactory implements WsStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.wsTypeId = context.supplyTypeId(WsCog.NAME);
+        this.wsTypeId = context.supplyTypeId(WsBinding.NAME);
         this.httpTypeId = context.supplyTypeId("http");
     }
 

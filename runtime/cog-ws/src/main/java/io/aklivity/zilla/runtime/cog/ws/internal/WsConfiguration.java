@@ -23,7 +23,7 @@ public class WsConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.cog.ws");
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.ws");
         WS_CONFIG = config;
     }
 

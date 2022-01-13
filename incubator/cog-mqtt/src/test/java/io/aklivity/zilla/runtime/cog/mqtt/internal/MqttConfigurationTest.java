@@ -33,18 +33,18 @@ import org.junit.Test;
 
 public class MqttConfigurationTest
 {
-    public static final String PUBLISH_TIMEOUT_NAME = "zilla.cog.mqtt.publish.timeout";
-    public static final String CONNECT_TIMEOUT_NAME = "zilla.cog.mqtt.connect.timeout";
-    public static final String SESSION_EXPIRY_INTERVAL_NAME = "zilla.cog.mqtt.session.expiry.interval";
-    public static final String MAXIMUM_QOS_NAME = "zilla.cog.mqtt.maximum.qos";
-    public static final String RETAIN_AVAILABLE_NAME = "zilla.cog.mqtt.retain.available";
-    public static final String TOPIC_ALIAS_MAXIMUM_NAME = "zilla.cog.mqtt.topic.alias.maximum";
-    public static final String WILDCARD_SUBSCRIPTION_AVAILABLE_NAME = "zilla.cog.mqtt.wildcard.subscription.available";
-    public static final String SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME = "zilla.cog.mqtt.subscription.identifiers.available";
-    public static final String SHARED_SUBSCRIPTION_AVAILABLE_NAME = "zilla.cog.mqtt.shared.subscription.available";
-    public static final String NO_LOCAL_NAME = "zilla.cog.mqtt.no.local";
-    public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.cog.mqtt.session.expiry.grace.period";
-    public static final String CLIENT_ID_NAME = "zilla.cog.mqtt.client.id";
+    public static final String PUBLISH_TIMEOUT_NAME = "zilla.binding.mqtt.publish.timeout";
+    public static final String CONNECT_TIMEOUT_NAME = "zilla.binding.mqtt.connect.timeout";
+    public static final String SESSION_EXPIRY_INTERVAL_NAME = "zilla.binding.mqtt.session.expiry.interval";
+    public static final String MAXIMUM_QOS_NAME = "zilla.binding.mqtt.maximum.qos";
+    public static final String RETAIN_AVAILABLE_NAME = "zilla.binding.mqtt.retain.available";
+    public static final String TOPIC_ALIAS_MAXIMUM_NAME = "zilla.binding.mqtt.topic.alias.maximum";
+    public static final String WILDCARD_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.wildcard.subscription.available";
+    public static final String SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME = "zilla.binding.mqtt.subscription.identifiers.available";
+    public static final String SHARED_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.shared.subscription.available";
+    public static final String NO_LOCAL_NAME = "zilla.binding.mqtt.no.local";
+    public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.binding.mqtt.session.expiry.grace.period";
+    public static final String CLIENT_ID_NAME = "zilla.binding.mqtt.client.id";
 
     @Test
     public void shouldVerifyConstants() throws Exception

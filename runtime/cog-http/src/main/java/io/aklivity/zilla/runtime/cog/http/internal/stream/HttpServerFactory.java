@@ -30,9 +30,9 @@ import static io.aklivity.zilla.runtime.cog.http.internal.types.ProxyInfoType.SE
 import static io.aklivity.zilla.runtime.cog.http.internal.types.ProxySecureInfoType.VERSION;
 import static io.aklivity.zilla.runtime.cog.http.internal.util.BufferUtil.indexOfByte;
 import static io.aklivity.zilla.runtime.cog.http.internal.util.BufferUtil.limitOfBytes;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor.NO_DEBITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
@@ -75,7 +75,7 @@ import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.http.internal.Http2Counters;
-import io.aklivity.zilla.runtime.cog.http.internal.HttpCog;
+import io.aklivity.zilla.runtime.cog.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2ContinuationFW;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2DataFW;
@@ -122,12 +122,12 @@ import io.aklivity.zilla.runtime.cog.http.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.cog.http.internal.util.HttpUtil;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class HttpServerFactory implements HttpStreamFactory
@@ -367,7 +367,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final MutableDirectBuffer frameBuffer;
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -408,7 +408,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extensionBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.httpTypeId = context.supplyTypeId(HttpCog.NAME);
+        this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.requestLine = REQUEST_LINE_PATTERN.matcher("");
         this.headerLine = HEADER_LINE_PATTERN.matcher("");

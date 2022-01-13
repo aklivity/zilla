@@ -21,7 +21,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.budget.KafkaMergedBudgetAccountant;
 import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
@@ -30,8 +30,8 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class KafkaClientFactory implements KafkaStreamFactory
@@ -42,7 +42,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
 
     private final int kafkaTypeId;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
-    private final Int2ObjectHashMap<StreamFactory> factories;
+    private final Int2ObjectHashMap<BindingHandler> factories;
 
     public KafkaClientFactory(
         KafkaConfiguration config,
@@ -67,14 +67,14 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaMergedFactory clientMergedFactory = new KafkaMergedFactory(
                 config, context, bindings::get, accountant.creditor());
 
-        final Int2ObjectHashMap<StreamFactory> factories = new Int2ObjectHashMap<>();
+        final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
         factories.put(KafkaBeginExFW.KIND_META, clientMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, clientDescribeFactory);
         factories.put(KafkaBeginExFW.KIND_FETCH, clientFetchFactory);
         factories.put(KafkaBeginExFW.KIND_PRODUCE, clientProduceFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, clientMergedFactory);
 
-        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
         this.bindings = bindings;
     }
@@ -112,7 +112,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
 
         if (kafkaBeginEx != null)
         {
-            final StreamFactory factory = factories.get(kafkaBeginEx.kind());
+            final BindingHandler factory = factories.get(kafkaBeginEx.kind());
             if (factory != null)
             {
                 newStream = factory.newStream(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof(), application);

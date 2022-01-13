@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_BUDGET_ID;
-import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
@@ -74,15 +74,14 @@ import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.CogContext;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.binding.BindingContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.internal.Counters;
@@ -110,6 +109,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -192,7 +192,7 @@ public class DispatchAgent implements EngineContext, Agent
         LabelManager labels,
         ErrorHandler errorHandler,
         LongUnaryOperator affinityMask,
-        Collection<Cog> cogs,
+        Collection<Binding> bindings,
         Collection<Vault> vaults,
         int index)
     {
@@ -294,11 +294,11 @@ public class DispatchAgent implements EngineContext, Agent
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
         this.countersByName = new HashMap<>();
 
-        Map<String, CogContext> bindingsByName = new LinkedHashMap<>();
-        for (Cog cog : cogs)
+        Map<String, BindingContext> bindingsByName = new LinkedHashMap<>();
+        for (Binding binding : bindings)
         {
-            String name = cog.name();
-            bindingsByName.put(name, cog.supply(this));
+            String name = binding.name();
+            bindingsByName.put(name, binding.supply(this));
         }
 
         Map<String, VaultContext> vaultsByName = new LinkedHashMap<>();
@@ -470,7 +470,7 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public StreamFactory streamFactory()
+    public BindingHandler streamFactory()
     {
         return this::newStream;
     }
@@ -1229,7 +1229,7 @@ public class DispatchAgent implements EngineContext, Agent
         MessageConsumer newStream = null;
 
         BindingRegistry binding = configuration.resolveBinding(routeId);
-        final StreamFactory streamFactory = binding != null ? binding.streamFactory() : null;
+        final BindingHandler streamFactory = binding != null ? binding.streamFactory() : null;
         if (streamFactory != null)
         {
             final MessageConsumer replyTo = supplyReplyTo(initialId);

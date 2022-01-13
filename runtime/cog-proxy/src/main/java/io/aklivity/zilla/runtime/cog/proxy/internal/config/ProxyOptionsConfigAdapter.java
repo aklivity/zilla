@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.proxy.internal.ProxyCog;
+import io.aklivity.zilla.runtime.cog.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -29,7 +29,7 @@ public final class ProxyOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     @Override
     public String type()
     {
-        return ProxyCog.NAME;
+        return ProxyBinding.NAME;
     }
 
     @Override

@@ -178,13 +178,16 @@
                   <artifactId>engine.spec</artifactId>
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/engine/\E</pattern>
-                       <replacement>io/aklivity/zilla/runtime/engine/test/internal/cog/</replacement>
+                       <pattern>^\Qio/aklivity/zilla/specs/engine/schema/\E</pattern>
+                       <replacement>io/aklivity/zilla/runtime/engine/test/internal/</replacement>
                      </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/engine/schema/test.json</includes>
+              <includes>
+                io/aklivity/zilla/specs/engine/schema/binding/test.json,
+                io/aklivity/zilla/specs/engine/schema/vault/test.json
+              </includes>
               <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
             </configuration>
           </execution>

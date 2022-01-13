@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.cog.fan.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_BUDGET_ID;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -40,10 +40,10 @@ import io.aklivity.zilla.runtime.cog.fan.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.cog.fan.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.fan.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class FanServerFactory implements FanStreamFactory
@@ -69,7 +69,7 @@ public final class FanServerFactory implements FanStreamFactory
     private final Long2ObjectHashMap<BindingConfig> bindings;
 
     private final MutableDirectBuffer writeBuffer;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final BudgetCreditor creditor;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyInitialId;

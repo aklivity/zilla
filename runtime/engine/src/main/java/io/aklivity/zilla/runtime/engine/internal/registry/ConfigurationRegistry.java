@@ -21,14 +21,14 @@ import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.cog.CogContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
 {
-    private final Function<String, CogContext> bindingsByName;
+    private final Function<String, BindingContext> bindingsByName;
     private final Function<String, VaultContext> vaultsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
@@ -36,7 +36,7 @@ public class ConfigurationRegistry
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
 
     public ConfigurationRegistry(
-        Function<String, CogContext> bindingsByName,
+        Function<String, BindingContext> bindingsByName,
         Function<String, VaultContext> vaultsByName,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)

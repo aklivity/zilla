@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.cog.amqp.internal.stream;
 
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public interface AmqpStreamFactory extends StreamFactory
+public interface AmqpStreamFactory extends BindingHandler
 {
     void attach(
         BindingConfig binding);

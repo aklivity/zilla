@@ -1,0 +1,7 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/vault/properties/type/enum/-",
+        "value": "test"
+    }
+]

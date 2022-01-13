@@ -16,13 +16,12 @@
 module io.aklivity.zilla.runtime.engine
 {
     exports io.aklivity.zilla.runtime.engine;
-    exports io.aklivity.zilla.runtime.engine.cog;
-    exports io.aklivity.zilla.runtime.engine.cog.budget;
-    exports io.aklivity.zilla.runtime.engine.cog.buffer;
-    exports io.aklivity.zilla.runtime.engine.cog.concurrent;
-    exports io.aklivity.zilla.runtime.engine.cog.function;
-    exports io.aklivity.zilla.runtime.engine.cog.poller;
-    exports io.aklivity.zilla.runtime.engine.cog.stream;
+    exports io.aklivity.zilla.runtime.engine.binding;
+    exports io.aklivity.zilla.runtime.engine.binding.function;
+    exports io.aklivity.zilla.runtime.engine.budget;
+    exports io.aklivity.zilla.runtime.engine.buffer;
+    exports io.aklivity.zilla.runtime.engine.concurrent;
+    exports io.aklivity.zilla.runtime.engine.poller;
     exports io.aklivity.zilla.runtime.engine.config;
     exports io.aklivity.zilla.runtime.engine.ext;
     exports io.aklivity.zilla.runtime.engine.vault;
@@ -38,7 +37,7 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
-    uses io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 }

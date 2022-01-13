@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
-import io.aklivity.zilla.runtime.engine.cog.function.MessagePredicate;
+import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 
 public class OneToOneRingBufferSpy implements RingBufferSpy
 {

@@ -43,7 +43,7 @@ import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
 import org.agrona.concurrent.AgentRunner;
 
-import io.aklivity.zilla.runtime.engine.cog.Cog;
+import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.Info;
@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable
 {
-    private final Collection<Cog> cogs;
+    private final Collection<Binding> cogs;
     private final ExecutorService tasks;
     private final Callable<Void> configure;
     private final Collection<AgentRunner> runners;
@@ -74,7 +74,7 @@ public final class Engine implements AutoCloseable
 
     Engine(
         EngineConfiguration config,
-        Collection<Cog> cogs,
+        Collection<Binding> bindings,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
         URL configURL,
@@ -111,7 +111,7 @@ public final class Engine implements AutoCloseable
         for (int coreIndex = 0; coreIndex < coreCount; coreIndex++)
         {
             DispatchAgent agent =
-                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity, cogs, vaults, coreIndex);
+                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity, bindings, vaults, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -122,9 +122,9 @@ public final class Engine implements AutoCloseable
                 .collect(toList());
 
         final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers);
-        final Stream<URL> cogTypes = cogs.stream().map(Cog::type).filter(Objects::nonNull);
+        final Stream<URL> bindingTypes = bindings.stream().map(Binding::type).filter(Objects::nonNull);
         final Stream<URL> vaultTypes = vaults.stream().map(Vault::type).filter(Objects::nonNull);
-        final Collection<URL> schemaTypes = Stream.concat(cogTypes, vaultTypes).collect(toList());
+        final Collection<URL> schemaTypes = Stream.concat(bindingTypes, vaultTypes).collect(toList());
         final Callable<Void> configure =
                 new ConfigureTask(configURL, schemaTypes, labels::supplyLabelId, tuning, dispatchers,
                         errorHandler, logger, context, extensions);
@@ -137,7 +137,7 @@ public final class Engine implements AutoCloseable
 
         this.supplyLabelId = labels::supplyLabelId;
 
-        this.cogs = cogs;
+        this.cogs = bindings;
         this.tasks = tasks;
         this.configure = configure;
         this.extensions = extensions;

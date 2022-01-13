@@ -23,7 +23,7 @@ public class FanConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef(String.format("zilla.cog.%s", FanCog.NAME));
+        final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", FanBinding.NAME));
         FAN_CONFIG = config;
     }
 

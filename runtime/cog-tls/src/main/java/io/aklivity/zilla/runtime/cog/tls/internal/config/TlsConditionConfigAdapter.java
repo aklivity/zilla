@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.tls.internal.TlsCog;
+import io.aklivity.zilla.runtime.cog.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
@@ -32,7 +32,7 @@ public final class TlsConditionConfigAdapter implements ConditionConfigAdapterSp
     @Override
     public String type()
     {
-        return TlsCog.NAME;
+        return TlsBinding.NAME;
     }
 
     @Override

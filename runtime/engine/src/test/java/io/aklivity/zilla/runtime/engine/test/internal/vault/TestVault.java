@@ -40,7 +40,7 @@ public final class TestVault implements Vault
     @Override
     public URL type()
     {
-        return null;
+        return getClass().getResource("test.json");
     }
 
     @Override

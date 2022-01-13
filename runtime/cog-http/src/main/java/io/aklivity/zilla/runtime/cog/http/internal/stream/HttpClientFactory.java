@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.cog.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.cog.http.internal.util.BufferUtil.limitOfBytes;
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
@@ -42,7 +42,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.http.internal.HttpCog;
+import io.aklivity.zilla.runtime.cog.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.cog.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.cog.http.internal.config.HttpRouteConfig;
@@ -62,9 +62,9 @@ import io.aklivity.zilla.runtime.cog.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class HttpClientFactory implements HttpStreamFactory
@@ -163,7 +163,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BufferPool bufferPool;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -199,7 +199,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
-        this.httpTypeId = context.supplyTypeId(HttpCog.NAME);
+        this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
         this.responseLine = RESPONSE_LINE_PATTERN.matcher("");
         this.headerLine = HEADER_LINE_PATTERN.matcher("");

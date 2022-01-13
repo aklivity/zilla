@@ -1,0 +1,34 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/properties/type/enum/-",
+        "value": "test"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/binding/allOf/-",
+        "value":
+        {
+            "if":
+            {
+                "properties":
+                {
+                    "type":
+                    {
+                        "const": "test"
+                    }
+                }
+            },
+            "then":
+            {
+                "properties":
+                {
+                    "kind":
+                    {
+                        "enum": [ "server" ]
+                    }
+                }
+            }
+        }
+    }
+]

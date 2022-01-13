@@ -23,7 +23,7 @@ public class EchoConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef(String.format("zilla.cog.%s", EchoCog.NAME));
+        final ConfigurationDef config = new ConfigurationDef(String.format("zilla.binding.%s", EchoBinding.NAME));
         ECHO_CONFIG = config;
     }
 

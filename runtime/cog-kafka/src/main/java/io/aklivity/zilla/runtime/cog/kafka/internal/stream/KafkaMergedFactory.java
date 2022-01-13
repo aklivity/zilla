@@ -20,7 +20,7 @@ import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaCapabiliti
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW.Builder.DEFAULT_MINIMUM;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,7 +38,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.budget.MergedBudgetCreditor;
 import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
@@ -80,10 +80,10 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
-public final class KafkaMergedFactory implements StreamFactory
+public final class KafkaMergedFactory implements BindingHandler
 {
     private static final String16FW CONFIG_NAME_CLEANUP_POLICY = new String16FW("cleanup.policy");
     private static final String16FW CONFIG_NAME_MAX_MESSAGE_BYTES = new String16FW("max.message.bytes");
@@ -148,7 +148,7 @@ public final class KafkaMergedFactory implements StreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongConsumer detachSender;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final MergedBudgetCreditor creditor;
 
@@ -158,7 +158,7 @@ public final class KafkaMergedFactory implements StreamFactory
         LongFunction<KafkaBindingConfig> supplyBinding,
         MergedBudgetCreditor creditor)
     {
-        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.supplyInitialId = context::supplyInitialId;

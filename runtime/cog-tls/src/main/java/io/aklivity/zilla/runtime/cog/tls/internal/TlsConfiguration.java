@@ -30,7 +30,7 @@ public class TlsConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.cog.tls");
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.tls");
         TLS_HANDSHAKE_WINDOW_BYTES = config.property("handshake.window.bytes", 65536);
         TLS_HANDSHAKE_TIMEOUT = config.property("handshake.timeout", 10);
         TLS_KEY_MANAGER_ALGORITHM = config.property("handshake.key.manager.algorithm", "PKIX");

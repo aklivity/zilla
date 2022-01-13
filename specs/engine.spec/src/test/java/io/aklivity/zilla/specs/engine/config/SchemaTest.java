@@ -29,7 +29,8 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/engine/schema/test.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.json")
         .configurationRoot("io/aklivity/zilla/specs/engine/config");
 
     @Test

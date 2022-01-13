@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.amqp.internal.AmqpCog;
+import io.aklivity.zilla.runtime.cog.amqp.internal.AmqpBinding;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.AmqpCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
@@ -33,7 +33,7 @@ public final class AmqpConditionConfigAdapter implements ConditionConfigAdapterS
     @Override
     public String type()
     {
-        return AmqpCog.NAME;
+        return AmqpBinding.NAME;
     }
 
     @Override

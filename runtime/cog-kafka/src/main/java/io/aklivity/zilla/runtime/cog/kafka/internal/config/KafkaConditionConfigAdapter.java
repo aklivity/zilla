@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
@@ -31,7 +31,7 @@ public final class KafkaConditionConfigAdapter implements ConditionConfigAdapter
     @Override
     public String type()
     {
-        return KafkaCog.NAME;
+        return KafkaBinding.NAME;
     }
 
     @Override
