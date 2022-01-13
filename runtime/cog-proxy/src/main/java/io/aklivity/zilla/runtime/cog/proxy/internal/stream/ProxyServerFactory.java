@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.proxy.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
@@ -27,7 +27,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.proxy.internal.ProxyCog;
+import io.aklivity.zilla.runtime.cog.proxy.internal.ProxyBinding;
 import io.aklivity.zilla.runtime.cog.proxy.internal.ProxyConfiguration;
 import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyBindingConfig;
 import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyRouteConfig;
@@ -54,9 +54,9 @@ import io.aklivity.zilla.runtime.cog.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class ProxyServerFactory implements ProxyStreamFactory
@@ -135,7 +135,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
     private final ProxyRouter router;
     private final MutableDirectBuffer writeBuffer;
     private final BufferPool decodePool;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
 
@@ -145,7 +145,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
         ProxyConfiguration config,
         EngineContext context)
     {
-        this.router = new ProxyRouter(context.supplyTypeId(ProxyCog.NAME));
+        this.router = new ProxyRouter(context.supplyTypeId(ProxyBinding.NAME));
         this.writeBuffer = context.writeBuffer();
         this.decodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();

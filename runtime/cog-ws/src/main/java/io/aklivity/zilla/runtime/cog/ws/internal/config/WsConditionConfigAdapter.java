@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.ws.internal.WsCog;
+import io.aklivity.zilla.runtime.cog.ws.internal.WsBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
@@ -34,7 +34,7 @@ public final class WsConditionConfigAdapter implements ConditionConfigAdapterSpi
     @Override
     public String type()
     {
-        return WsCog.NAME;
+        return WsBinding.NAME;
     }
 
     @Override

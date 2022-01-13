@@ -55,10 +55,10 @@ import static io.aklivity.zilla.runtime.cog.mqtt.internal.types.codec.MqttProper
 import static io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.DataFW.FIELD_OFFSET_PAYLOAD;
 import static io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.MqttDataExFW.Builder.DEFAULT_EXPIRY_INTERVAL;
 import static io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.MqttDataExFW.Builder.DEFAULT_FORMAT;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_CREDITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor.NO_DEBITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -89,7 +89,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttCog;
+import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttBinding;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttValidator;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.config.MqttBindingConfig;
@@ -133,12 +133,12 @@ import io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class MqttServerFactory implements MqttStreamFactory
@@ -319,7 +319,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final BudgetCreditor creditor;
     private final Signaler signaler;
     private final MessageConsumer droppedHandler;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -372,7 +372,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyTraceId = context::supplyTraceId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.mqttTypeId = context.supplyTypeId(MqttCog.NAME);
+        this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
         this.connectTimeoutMillis = SECONDS.toMillis(config.connectTimeout());
         this.sessionExpiryIntervalLimit = config.sessionExpiryInterval();

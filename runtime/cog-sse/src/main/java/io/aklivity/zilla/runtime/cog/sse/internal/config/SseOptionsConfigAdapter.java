@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.sse.internal.SseCog;
+import io.aklivity.zilla.runtime.cog.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -31,7 +31,7 @@ public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     @Override
     public String type()
     {
-        return SseCog.NAME;
+        return SseBinding.NAME;
     }
 
     @Override

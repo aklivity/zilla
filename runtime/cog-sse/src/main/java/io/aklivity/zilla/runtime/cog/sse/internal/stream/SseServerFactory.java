@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.cog.sse.internal.stream;
 
 import static io.aklivity.zilla.runtime.cog.sse.internal.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.cog.sse.internal.util.Flags.INIT;
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor.NO_DEBITOR_INDEX;
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.BitUtil.SIZE_OF_BYTE;
 import static org.agrona.LangUtil.rethrowUnchecked;
@@ -41,7 +41,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.sse.internal.SseCog;
+import io.aklivity.zilla.runtime.cog.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.cog.sse.internal.SseConfiguration;
 import io.aklivity.zilla.runtime.cog.sse.internal.config.SseBindingConfig;
 import io.aklivity.zilla.runtime.cog.sse.internal.config.SseRouteConfig;
@@ -68,10 +68,10 @@ import io.aklivity.zilla.runtime.cog.sse.internal.types.stream.SseEndExFW;
 import io.aklivity.zilla.runtime.cog.sse.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.cog.sse.internal.util.Flags;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class SseServerFactory implements SseStreamFactory
@@ -155,7 +155,7 @@ public final class SseServerFactory implements SseStreamFactory
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer challengeBuffer;
     private final BufferPool bufferPool;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -183,7 +183,7 @@ public final class SseServerFactory implements SseStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.initialComment = config.initialComment();
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
-        this.sseTypeId = context.supplyTypeId(SseCog.NAME);
+        this.sseTypeId = context.supplyTypeId(SseBinding.NAME);
         this.setHttpResponseHeaders = this::setHttpResponseHeaders;
         this.setHttpResponseHeadersWithTimestampExt = this::setHttpResponseHeadersWithTimestampExt;
         this.challengeEventType = new String8FW(config.getChallengeEventType());

@@ -15,11 +15,11 @@
  */
 package io.aklivity.zilla.runtime.cog.kafka.internal.budget;
 
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 
 import org.agrona.collections.LongHashSet;
 
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 
 public final class KafkaCacheClientBudget
 {

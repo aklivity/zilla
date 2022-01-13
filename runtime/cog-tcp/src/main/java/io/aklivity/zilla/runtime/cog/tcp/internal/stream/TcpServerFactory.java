@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.cog.tcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.cog.tcp.internal.TcpCog.WRITE_SPIN_COUNT;
+import static io.aklivity.zilla.runtime.cog.tcp.internal.TcpBinding.WRITE_SPIN_COUNT;
 import static io.aklivity.zilla.runtime.cog.tcp.internal.util.IpUtil.proxyAddress;
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.net.StandardSocketOptions.SO_KEEPALIVE;
 import static java.net.StandardSocketOptions.TCP_NODELAY;
 import static java.nio.ByteOrder.nativeOrder;
@@ -58,11 +58,11 @@ import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public class TcpServerFactory implements TcpStreamFactory
 {
@@ -100,7 +100,7 @@ public class TcpServerFactory implements TcpStreamFactory
     private final int replyMax;
     private final int windowThreshold;
     private final int proxyTypeId;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
 
     public TcpServerFactory(
         TcpConfiguration config,

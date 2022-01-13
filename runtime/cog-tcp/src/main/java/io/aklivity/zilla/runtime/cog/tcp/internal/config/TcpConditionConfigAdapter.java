@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.tcp.internal.TcpCog;
+import io.aklivity.zilla.runtime.cog.tcp.internal.TcpBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
@@ -32,7 +32,7 @@ public final class TcpConditionConfigAdapter implements ConditionConfigAdapterSp
     @Override
     public String type()
     {
-        return TcpCog.NAME;
+        return TcpBinding.NAME;
     }
 
     @Override

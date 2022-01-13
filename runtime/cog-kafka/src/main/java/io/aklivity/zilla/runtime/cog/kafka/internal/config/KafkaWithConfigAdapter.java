@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
@@ -34,7 +34,7 @@ public final class KafkaWithConfigAdapter implements WithConfigAdapterSpi, Jsonb
     @Override
     public String type()
     {
-        return KafkaCog.NAME;
+        return KafkaBinding.NAME;
     }
 
     @Override

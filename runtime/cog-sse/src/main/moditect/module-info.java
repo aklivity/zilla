@@ -17,8 +17,8 @@ module io.aklivity.zilla.runtime.cog.sse
 {
     requires io.aklivity.zilla.runtime.cog.engine;
 
-    provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
-        with io.aklivity.zilla.runtime.cog.sse.internal.SseCogFactorySpi;
+    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
+        with io.aklivity.zilla.runtime.cog.sse.internal.SseBindingFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.cog.sse.internal.config.SseOptionsConfigAdapter;

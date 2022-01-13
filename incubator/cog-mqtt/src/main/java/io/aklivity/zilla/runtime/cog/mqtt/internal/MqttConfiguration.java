@@ -37,7 +37,7 @@ public class MqttConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.cog.mqtt");
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt");
         PUBLISH_TIMEOUT = config.property("publish.timeout", TimeUnit.SECONDS.toSeconds(30));
         CONNECT_TIMEOUT = config.property("connect.timeout", TimeUnit.SECONDS.toSeconds(3));
         SESSION_EXPIRY_INTERVAL = config.property("session.expiry.interval", Integer.MAX_VALUE);

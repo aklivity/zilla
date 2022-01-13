@@ -25,7 +25,7 @@ import org.junit.Test;
 public class SseConfigurationTest
 {
     // needed by test annotations
-    public static final String SSE_INITIAL_COMMENT_ENABLED_NAME = "zilla.cog.sse.initial.comment.enabled";
+    public static final String SSE_INITIAL_COMMENT_ENABLED_NAME = "zilla.binding.sse.initial.comment.enabled";
 
     @Test
     public void shouldVerifyConstants() throws Exception

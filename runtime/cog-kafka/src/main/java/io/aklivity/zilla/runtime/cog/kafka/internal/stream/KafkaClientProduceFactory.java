@@ -21,7 +21,7 @@ import static io.aklivity.zilla.runtime.cog.kafka.internal.types.ProxyAddressPro
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.codec.RequestHeaderFW.FIELD_OFFSET_API_KEY;
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.codec.message.RecordBatchFW.FIELD_OFFSET_LENGTH;
 import static io.aklivity.zilla.runtime.cog.kafka.internal.types.codec.message.RecordBatchFW.FIELD_OFFSET_RECORD_COUNT;
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.nio.ByteOrder.BIG_ENDIAN;
@@ -38,7 +38,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRouteConfig;
@@ -76,12 +76,12 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaClientProduceFactory implements StreamFactory
+public final class KafkaClientProduceFactory implements BindingHandler
 {
     private static final int PRODUCE_REQUEST_RECORDS_OFFSET_MAX = 512;
 
@@ -178,7 +178,7 @@ public final class KafkaClientProduceFactory implements StreamFactory
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final Signaler signaler;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
@@ -196,7 +196,7 @@ public final class KafkaClientProduceFactory implements StreamFactory
         this.produceMaxWaitMillis = config.clientProduceMaxResponseMillis();
         this.produceRequestMaxDelay = config.clientProduceMaxRequestMillis();
         this.produceAcks = ProduceAck.valueOf(config.clientProduceAcks());
-        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();

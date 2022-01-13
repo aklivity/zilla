@@ -20,7 +20,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.sse.internal.SseCog;
+import io.aklivity.zilla.runtime.cog.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
@@ -31,7 +31,7 @@ public final class SseConditionConfigAdapter implements ConditionConfigAdapterSp
     @Override
     public String type()
     {
-        return SseCog.NAME;
+        return SseBinding.NAME;
     }
 
     @Override

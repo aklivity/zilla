@@ -30,7 +30,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.IntHashSet;
 import org.agrona.collections.MutableInteger;
 
-import io.aklivity.zilla.runtime.cog.tcp.internal.TcpCog;
+import io.aklivity.zilla.runtime.cog.tcp.internal.TcpBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -47,7 +47,7 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     @Override
     public String type()
     {
-        return TcpCog.NAME;
+        return TcpBinding.NAME;
     }
 
     @Override

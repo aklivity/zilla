@@ -29,13 +29,13 @@ import org.junit.Test;
 public class HttpConfigurationTest
 {
     // needed by test annotations
-    public static final String HTTP_MAXIMUM_QUEUED_REQUESTS_NAME = "zilla.cog.http.maximum.requests.queued";
-    public static final String HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME = "zilla.cog.http.server.access.control.allow.origin";
-    public static final String HTTP_SERVER_HEADER_NAME = "zilla.cog.http.server.header";
-    public static final String HTTP_SERVER_CONCURRENT_STREAMS_NAME = "zilla.cog.http.server.concurrent.streams";
-    public static final String HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME = "zilla.cog.http.server.max.header.list.size";
-    public static final String HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME = "zilla.cog.http.max.concurrent.streams.cleanup";
-    public static final String HTTP_STREAMS_CLEANUP_DELAY_NAME = "zilla.cog.http.streams.cleanup.delay";
+    public static final String HTTP_MAXIMUM_QUEUED_REQUESTS_NAME = "zilla.binding.http.maximum.requests.queued";
+    public static final String HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME = "zilla.binding.http.server.access.control.allow.origin";
+    public static final String HTTP_SERVER_HEADER_NAME = "zilla.binding.http.server.header";
+    public static final String HTTP_SERVER_CONCURRENT_STREAMS_NAME = "zilla.binding.http.server.concurrent.streams";
+    public static final String HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME = "zilla.binding.http.server.max.header.list.size";
+    public static final String HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME = "zilla.binding.http.max.concurrent.streams.cleanup";
+    public static final String HTTP_STREAMS_CLEANUP_DELAY_NAME = "zilla.binding.http.streams.cleanup.delay";
 
     @Test
     public void shouldVerifyConstants() throws Exception

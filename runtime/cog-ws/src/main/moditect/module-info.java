@@ -17,8 +17,8 @@ module io.aklivity.zilla.runtime.cog.ws
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
-        with io.aklivity.zilla.runtime.cog.ws.internal.WsCogFactorySpi;
+    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
+        with io.aklivity.zilla.runtime.cog.ws.internal.WsBindingFactorySpi;
 
     provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
         with io.aklivity.zilla.runtime.cog.ws.internal.config.WsOptionsConfigAdapter;

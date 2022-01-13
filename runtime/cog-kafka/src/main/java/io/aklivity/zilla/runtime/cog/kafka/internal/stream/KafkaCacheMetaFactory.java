@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -33,7 +33,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheTopic;
@@ -58,12 +58,12 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.Configuration.IntPropertyDef;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaCacheMetaFactory implements StreamFactory
+public final class KafkaCacheMetaFactory implements BindingHandler
 {
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
 
@@ -94,7 +94,7 @@ public final class KafkaCacheMetaFactory implements StreamFactory
     private final MutableDirectBuffer extBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -115,7 +115,7 @@ public final class KafkaCacheMetaFactory implements StreamFactory
         LongBinaryOperator supplyCacheId,
         IntPropertyDef reconnectDelay)
     {
-        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.bufferPool = context.bufferPool();

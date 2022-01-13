@@ -35,7 +35,7 @@ public class AmqpConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.cog.amqp");
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.amqp");
         AMQP_CONTAINER_ID = config.property("container.id", "zilla");
         AMQP_CHANNEL_MAX = config.property("channel.max", 65535);
         AMQP_MAX_FRAME_SIZE = config.property("max.frame.size", 4294967295L);

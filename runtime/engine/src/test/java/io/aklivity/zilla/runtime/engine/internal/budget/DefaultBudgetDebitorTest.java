@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.budget;
 
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor.NO_DEBITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout.budgetIdOffset;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout.budgetRemainingOffset;
 import static org.junit.Assert.assertEquals;

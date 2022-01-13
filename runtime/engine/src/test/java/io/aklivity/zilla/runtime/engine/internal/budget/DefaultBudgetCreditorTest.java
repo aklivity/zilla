@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.budget;
 
-import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.verify;

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.kafka.internal.budget;
 
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 
 public interface MergedBudgetCreditor extends BudgetCreditor
 {

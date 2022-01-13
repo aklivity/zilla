@@ -28,7 +28,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.cog.http.internal.HttpCog;
+import io.aklivity.zilla.runtime.cog.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.cog.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.cog.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -42,7 +42,7 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     @Override
     public String type()
     {
-        return HttpCog.NAME;
+        return HttpBinding.NAME;
     }
 
     @Override

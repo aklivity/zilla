@@ -26,7 +26,7 @@ public class TcpConfiguration extends Configuration
 
     static
     {
-        ConfigurationDef config = new ConfigurationDef("zilla.cog.tcp");
+        ConfigurationDef config = new ConfigurationDef("zilla.binding.tcp");
         TCP_WINDOW_THRESHOLD = config.property("window.threshold", 0);
         TCP_MAX_CONNECTIONS = config.property("max.connections", Integer.MAX_VALUE);
         TCP_CONFIG = config;

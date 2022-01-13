@@ -24,8 +24,8 @@ import org.junit.Test;
 
 public class TlsConfigurationTest
 {
-    public static final String TLS_HANDSHAKE_WINDOW_BYTES_NAME = "zilla.cog.tls.handshake.window.bytes";
-    public static final String TLS_HANDSHAKE_TIMEOUT_NAME = "zilla.cog.tls.handshake.timeout";
+    public static final String TLS_HANDSHAKE_WINDOW_BYTES_NAME = "zilla.binding.tls.handshake.window.bytes";
+    public static final String TLS_HANDSHAKE_TIMEOUT_NAME = "zilla.binding.tls.handshake.timeout";
     public static final String ENGINE_TASK_PARALLELISM_NAME = "zilla.engine.task.parallelism";
 
     @Test

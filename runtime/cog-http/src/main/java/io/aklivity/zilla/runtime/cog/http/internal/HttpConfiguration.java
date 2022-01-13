@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 public class HttpConfiguration extends Configuration
 {
     public static final boolean DEBUG_HTTP2_BUDGETS =
-            EngineConfiguration.DEBUG_BUDGETS || Boolean.getBoolean("zilla.cog.http.debug.budgets");
+            EngineConfiguration.DEBUG_BUDGETS || Boolean.getBoolean("zilla.binding.http.debug.budgets");
 
     public static final IntPropertyDef HTTP_MAXIMUM_CONNECTIONS;
     public static final IntPropertyDef HTTP_MAXIMUM_QUEUED_REQUESTS;
@@ -42,7 +42,7 @@ public class HttpConfiguration extends Configuration
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.cog.http");
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.http");
         HTTP_MAXIMUM_CONNECTIONS = config.property("maximum.connections", 10);
         HTTP_MAXIMUM_QUEUED_REQUESTS = config.property("maximum.requests.queued", 10000);
         HTTP_SERVER_CONCURRENT_STREAMS = config.property("server.concurrent.streams", Integer.MAX_VALUE);

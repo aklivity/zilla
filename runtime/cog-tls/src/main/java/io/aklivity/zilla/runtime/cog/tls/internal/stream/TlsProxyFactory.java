@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.tls.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool.NO_SLOT;
-import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -48,11 +48,11 @@ import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.cog.buffer.CountingBufferPool;
-import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.buffer.CountingBufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class TlsProxyFactory implements TlsStreamFactory
@@ -99,7 +99,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
     private final int proxyTypeId;
     private final Signaler signaler;
     private final MutableDirectBuffer writeBuffer;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final LongUnaryOperator supplyInitialId;

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cmd.log.internal.spy;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.cog.function.MessagePredicate;
+import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 
 public interface RingBufferSpy
 {

@@ -28,7 +28,7 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 /**
  * A chunk of shared memory for temporary storage of data. This is logically segmented into a set of

@@ -27,7 +27,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
+import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaTopicConfig;
@@ -55,10 +55,10 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
-public final class KafkaCacheServerBootstrapFactory implements StreamFactory
+public final class KafkaCacheServerBootstrapFactory implements BindingHandler
 {
     private static final String16FW CONFIG_NAME_CLEANUP_POLICY = new String16FW("cleanup.policy");
     private static final String16FW CONFIG_NAME_MAX_MESSAGE_BYTES = new String16FW("max.message.bytes");
@@ -102,7 +102,7 @@ public final class KafkaCacheServerBootstrapFactory implements StreamFactory
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
-    private final StreamFactory streamFactory;
+    private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
@@ -112,7 +112,7 @@ public final class KafkaCacheServerBootstrapFactory implements StreamFactory
         EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
-        this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);
+        this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;

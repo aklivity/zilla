@@ -24,7 +24,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.function.ToIntFunction;
 
-import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public final class PollerKeyImpl implements PollerKey
 {

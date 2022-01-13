@@ -51,7 +51,7 @@ import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineBuilder;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineStats;
-import io.aklivity.zilla.runtime.engine.cog.Cog;
+import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
@@ -160,7 +160,7 @@ public final class EngineRule implements TestRule
         return this;
     }
 
-    public <T extends Cog> T cog(
+    public <T extends Binding> T cog(
         Class<T> kind)
     {
         ensureDriveStarted();

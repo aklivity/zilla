@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.http.internal.stream;
 
 import io.aklivity.zilla.runtime.cog.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2ErrorCode;
-import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 public class Http2Settings
 {

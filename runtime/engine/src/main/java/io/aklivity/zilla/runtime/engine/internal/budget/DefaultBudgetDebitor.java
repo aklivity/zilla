@@ -30,7 +30,7 @@ import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 
 public final class DefaultBudgetDebitor implements BudgetDebitor, AutoCloseable

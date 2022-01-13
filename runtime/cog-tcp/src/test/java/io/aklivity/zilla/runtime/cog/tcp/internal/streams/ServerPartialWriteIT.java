@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.cog.tcp.internal.streams;
 
 import static io.aklivity.zilla.runtime.cog.tcp.internal.SocketChannelHelper.ALL;
-import static io.aklivity.zilla.runtime.cog.tcp.internal.TcpCog.WRITE_SPIN_COUNT;
+import static io.aklivity.zilla.runtime.cog.tcp.internal.TcpBinding.WRITE_SPIN_COUNT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.IntStream.concat;

@@ -23,7 +23,7 @@ public class ProxyConfiguration extends Configuration
 
     static
     {
-        final String prefix = String.format("zilla.cog.%s", ProxyCog.NAME);
+        final String prefix = String.format("zilla.binding.%s", ProxyBinding.NAME);
         final ConfigurationDef config = new ConfigurationDef(prefix);
         CONFIG_DEF = config;
     }

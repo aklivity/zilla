@@ -15,10 +15,10 @@
  */
 package io.aklivity.zilla.runtime.cog.kafka.internal.stream;
 
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public interface KafkaStreamFactory extends StreamFactory
+public interface KafkaStreamFactory extends BindingHandler
 {
     void attach(
         BindingConfig binding);

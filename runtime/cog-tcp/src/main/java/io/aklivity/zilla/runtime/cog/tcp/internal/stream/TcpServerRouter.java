@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.cog.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public final class TcpServerRouter
 {

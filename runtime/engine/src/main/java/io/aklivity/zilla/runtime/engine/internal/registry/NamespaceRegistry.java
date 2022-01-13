@@ -21,7 +21,7 @@ import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.cog.CogContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 public class NamespaceRegistry
 {
     private final NamespaceConfig namespace;
-    private final Function<String, CogContext> bindingsByName;
+    private final Function<String, BindingContext> bindingsByName;
     private final Function<String, VaultContext> vaultsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
@@ -40,7 +40,7 @@ public class NamespaceRegistry
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
-        Function<String, CogContext> bindingsByName,
+        Function<String, BindingContext> bindingsByName,
         Function<String, VaultContext> vaultsByName,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
@@ -75,13 +75,13 @@ public class NamespaceRegistry
     private void attachBinding(
         BindingConfig binding)
     {
-        CogContext axle = bindingsByName.apply(binding.type);
-        assert axle != null : "Missing cog kind: " + binding.type;
+        BindingContext context = bindingsByName.apply(binding.type);
+        assert context != null : "Missing cog kind: " + binding.type;
 
         int bindingId = supplyLabelId.applyAsInt(binding.entry);
-        BindingRegistry context = new BindingRegistry(binding, axle);
-        bindingsById.put(bindingId, context);
-        context.attach();
+        BindingRegistry registry = new BindingRegistry(binding, context);
+        bindingsById.put(bindingId, registry);
+        registry.attach();
         supplyLoadEntry.accept(binding.id);
     }
 

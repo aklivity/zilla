@@ -15,37 +15,37 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import io.aklivity.zilla.runtime.engine.cog.CogContext;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
+import io.aklivity.zilla.runtime.engine.binding.BindingContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 final class BindingRegistry
 {
     private final BindingConfig binding;
-    private final CogContext axle;
+    private final BindingContext context;
 
-    private StreamFactory attached;
+    private BindingHandler attached;
 
     BindingRegistry(
         BindingConfig binding,
-        CogContext axle)
+        BindingContext context)
     {
         this.binding = binding;
-        this.axle = axle;
+        this.context = context;
     }
 
     public void attach()
     {
-        attached = axle.attach(binding);
+        attached = context.attach(binding);
     }
 
     public void detach()
     {
-        axle.detach(binding);
+        context.detach(binding);
         attached = null;
     }
 
-    public StreamFactory streamFactory()
+    public BindingHandler streamFactory()
     {
         return attached;
     }
