@@ -102,8 +102,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.amqp.internal.AmqpCog;
 import io.aklivity.zilla.runtime.cog.amqp.internal.AmqpConfiguration;
-import io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpBinding;
-import io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpRoute;
+import io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpBindingConfig;
+import io.aklivity.zilla.runtime.cog.amqp.internal.config.AmqpRouteConfig;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.AmqpAnnotationFW;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.AmqpAnnotationKeyFW;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.AmqpApplicationPropertyFW;
@@ -178,7 +178,7 @@ import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class AmqpServerFactory implements AmqpStreamFactory
 {
@@ -462,7 +462,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     private final Signaler signaler;
     private final StreamFactory streamFactory;
 
-    private final Long2ObjectHashMap<AmqpBinding> bindings;
+    private final Long2ObjectHashMap<AmqpBindingConfig> bindings;
     private final int amqpTypeId;
 
     private final int outgoingWindow;
@@ -507,9 +507,9 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        AmqpBinding amqpBinding = new AmqpBinding(binding);
+        AmqpBindingConfig amqpBinding = new AmqpBindingConfig(binding);
         bindings.put(binding.id, amqpBinding);
     }
 
@@ -533,7 +533,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
         MessageConsumer newStream = null;
 
-        final AmqpBinding binding = bindings.get(routeId);
+        final AmqpBindingConfig binding = bindings.get(routeId);
         if (binding != null)
         {
             final long initialId = begin.streamId();
@@ -545,13 +545,13 @@ public final class AmqpServerFactory implements AmqpStreamFactory
         return newStream;
     }
 
-    private AmqpRoute resolveRoute(
+    private AmqpRouteConfig resolveRoute(
         long routeId,
         long authorization,
         StringFW address,
         AmqpCapabilities capabilities)
     {
-        final AmqpBinding binding = bindings.get(routeId);
+        final AmqpBindingConfig binding = bindings.get(routeId);
         return binding.resolve(authorization, address.asString(), capabilities);
     }
 
@@ -3103,7 +3103,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     AmqpTargetListFW targetList = target != null ? target.targetList() : null;
                     StringFW targetAddress = targetList != null && targetList.hasAddress() ? targetList.address() : null;
 
-                    final AmqpRoute route;
+                    final AmqpRouteConfig route;
                     switch (role)
                     {
                     case RECEIVER:

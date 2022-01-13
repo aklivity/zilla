@@ -92,8 +92,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttCog;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttConfiguration;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.MqttValidator;
-import io.aklivity.zilla.runtime.cog.mqtt.internal.config.MqttBinding;
-import io.aklivity.zilla.runtime.cog.mqtt.internal.config.MqttRoute;
+import io.aklivity.zilla.runtime.cog.mqtt.internal.config.MqttBindingConfig;
+import io.aklivity.zilla.runtime.cog.mqtt.internal.config.MqttRouteConfig;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.MqttBinaryFW;
@@ -139,7 +139,7 @@ import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class MqttServerFactory implements MqttStreamFactory
 {
@@ -325,7 +325,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<BudgetDebitor> supplyDebitor;
-    private final Long2ObjectHashMap<MqttBinding> bindings;
+    private final Long2ObjectHashMap<MqttBindingConfig> bindings;
     private final int mqttTypeId;
 
     private final long publishTimeoutMillis;
@@ -393,9 +393,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        MqttBinding mqttBinding = new MqttBinding(binding);
+        MqttBindingConfig mqttBinding = new MqttBindingConfig(binding);
         bindings.put(binding.id, mqttBinding);
     }
 
@@ -417,7 +417,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long routeId = begin.routeId();
 
-        MqttBinding binding = bindings.get(routeId);
+        MqttBindingConfig binding = bindings.get(routeId);
 
         MessageConsumer newStream = null;
 
@@ -1585,8 +1585,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int flags = connect.flags();
             final String topic = String.format(SESSION_WILDCARD_TOPIC_FORMAT, clientId.asString());
             final int topicKey = topicKey(topic);
-            final MqttBinding binding = bindings.get(routeId);
-            final MqttRoute resolved = binding != null ? binding.resolve(authorization, topic, PUBLISH_ONLY) : null;
+            final MqttBindingConfig binding = bindings.get(routeId);
+            final MqttRouteConfig resolved = binding != null ? binding.resolve(authorization, topic, PUBLISH_ONLY) : null;
 
             if (resolved != null)
             {
@@ -1709,8 +1709,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             MqttServerStream stream = null;
 
-            final MqttBinding binding = bindings.get(routeId);
-            final MqttRoute resolved = binding != null ? binding.resolve(authorization, topic, PUBLISH_ONLY) : null;
+            final MqttBindingConfig binding = bindings.get(routeId);
+            final MqttRouteConfig resolved = binding != null ? binding.resolve(authorization, topic, PUBLISH_ONLY) : null;
 
             if (resolved != null)
             {
@@ -1866,8 +1866,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     }
 
-                    final MqttBinding binding = bindings.get(routeId);
-                    final MqttRoute resolved = binding != null ? binding.resolve(authorization, filter, SUBSCRIBE_ONLY) : null;
+                    final MqttBindingConfig binding = bindings.get(routeId);
+                    final MqttRouteConfig resolved =
+                            binding != null ? binding.resolve(authorization, filter, SUBSCRIBE_ONLY) : null;
 
                     if (resolved != null)
                     {

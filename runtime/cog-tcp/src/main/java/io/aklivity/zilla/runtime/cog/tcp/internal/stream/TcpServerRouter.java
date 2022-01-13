@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.tcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
 
 import java.io.IOException;
@@ -30,17 +30,17 @@ import org.agrona.CloseHelper;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.cog.tcp.internal.TcpConfiguration;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBinding;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBinding;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBindingConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
 
 public final class TcpServerRouter
 {
-    private final Long2ObjectHashMap<TcpBinding> bindings;
+    private final Long2ObjectHashMap<TcpBindingConfig> bindings;
     private final ToIntFunction<PollerKey> acceptHandler;
     private final Function<SelectableChannel, PollerKey> supplyPollerKey;
-    private final LongFunction<TcpServerBinding> lookupServer;
+    private final LongFunction<TcpServerBindingConfig> lookupServer;
 
     private int remainingConnections;
     private boolean unbound;
@@ -49,7 +49,7 @@ public final class TcpServerRouter
         TcpConfiguration config,
         AxleContext context,
         ToIntFunction<PollerKey> acceptHandler,
-        LongFunction<TcpServerBinding> lookupServer)
+        LongFunction<TcpServerBindingConfig> lookupServer)
     {
         this.remainingConnections = config.maxConnections();
         this.bindings = new Long2ObjectHashMap<>();
@@ -59,14 +59,14 @@ public final class TcpServerRouter
     }
 
     public void attach(
-        TcpBinding binding)
+        TcpBindingConfig binding)
     {
         bindings.put(binding.routeId, binding);
 
         register(binding);
     }
 
-    public TcpBinding resolve(
+    public TcpBindingConfig resolve(
         long routeId,
         long authorization)
     {
@@ -76,7 +76,7 @@ public final class TcpServerRouter
     public void detach(
         long routeId)
     {
-        TcpBinding binding = bindings.remove(routeId);
+        TcpBindingConfig binding = bindings.remove(routeId);
         unregister(binding);
     }
 
@@ -128,9 +128,9 @@ public final class TcpServerRouter
     }
 
     private void register(
-        TcpBinding binding)
+        TcpBindingConfig binding)
     {
-        TcpServerBinding server = lookupServer.apply(binding.routeId);
+        TcpServerBindingConfig server = lookupServer.apply(binding.routeId);
         ServerSocketChannel[] channels = server.bind(binding.options);
 
         PollerKey[] acceptKeys = new PollerKey[channels.length];
@@ -147,7 +147,7 @@ public final class TcpServerRouter
     }
 
     private void unregister(
-        TcpBinding binding)
+        TcpBindingConfig binding)
     {
         PollerKey[] acceptKeys = binding.attach(null);
         if (acceptKeys != null)
@@ -158,7 +158,7 @@ public final class TcpServerRouter
             }
         }
 
-        TcpServerBinding server = lookupServer.apply(binding.routeId);
+        TcpServerBindingConfig server = lookupServer.apply(binding.routeId);
         server.unbind();
     }
 }

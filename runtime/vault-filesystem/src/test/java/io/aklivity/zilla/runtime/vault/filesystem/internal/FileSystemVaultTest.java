@@ -25,7 +25,7 @@ import java.security.KeyStore.TrustedCertificateEntry;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptions;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemStore;
 
 public class FileSystemVaultTest
@@ -35,7 +35,7 @@ public class FileSystemVaultTest
     {
         FileSystemStore keys = new FileSystemStore("stores/server/keys", "pkcs12", "generated");
         FileSystemStore trust = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
-        FileSystemOptions options = new FileSystemOptions(keys, trust, null);
+        FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, trust, null);
 
         FileSystemVault vault = new FileSystemVault(options, FileSystemVaultTest.class::getResource);
 
@@ -51,7 +51,7 @@ public class FileSystemVaultTest
     {
         FileSystemStore keys = new FileSystemStore("stores/client/keys", "pkcs12", "generated");
         FileSystemStore signers = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
-        FileSystemOptions options = new FileSystemOptions(keys, null, signers);
+        FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, null, signers);
 
         FileSystemVault vault = new FileSystemVault(options, FileSystemVaultTest.class::getResource);
 

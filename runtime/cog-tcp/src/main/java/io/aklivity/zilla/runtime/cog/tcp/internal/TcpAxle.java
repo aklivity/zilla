@@ -15,33 +15,33 @@
  */
 package io.aklivity.zilla.runtime.cog.tcp.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBinding;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpClientFactory;
 import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpServerFactory;
 import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class TcpAxle implements Axle
 {
-    private final Map<Role, TcpStreamFactory> factories;
+    private final Map<RoleConfig, TcpStreamFactory> factories;
 
     TcpAxle(
         TcpConfiguration config,
         AxleContext context,
-        LongFunction<TcpServerBinding> servers)
+        LongFunction<TcpServerBindingConfig> servers)
     {
-        Map<Role, TcpStreamFactory> factories = new EnumMap<>(Role.class);
+        Map<RoleConfig, TcpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(SERVER, new TcpServerFactory(config, context, servers));
         factories.put(CLIENT, new TcpClientFactory(config, context));
 
@@ -50,7 +50,7 @@ final class TcpAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         TcpStreamFactory tcpFactory = factories.get(binding.kind);
         if (tcpFactory != null)
@@ -63,7 +63,7 @@ final class TcpAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         TcpStreamFactory tcpFactory = factories.get(binding.kind);
         if (tcpFactory != null)

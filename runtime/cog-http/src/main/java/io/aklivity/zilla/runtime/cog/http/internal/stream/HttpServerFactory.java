@@ -92,8 +92,8 @@ import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.cog.http.internal.codec.Http2WindowUpdateFW;
-import io.aklivity.zilla.runtime.cog.http.internal.config.HttpBinding;
-import io.aklivity.zilla.runtime.cog.http.internal.config.HttpRoute;
+import io.aklivity.zilla.runtime.cog.http.internal.config.HttpBindingConfig;
+import io.aklivity.zilla.runtime.cog.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.cog.http.internal.config.HttpVersion;
 import io.aklivity.zilla.runtime.cog.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.cog.http.internal.hpack.HpackHeaderBlockFW;
@@ -128,7 +128,7 @@ import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class HttpServerFactory implements HttpStreamFactory
 {
@@ -386,7 +386,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Matcher headerLine;
     private final Matcher connectionClose;
     private final int maximumHeadersSize;
-    private final Long2ObjectHashMap<HttpBinding> bindings;
+    private final Long2ObjectHashMap<HttpBindingConfig> bindings;
 
     public HttpServerFactory(
         HttpConfiguration config,
@@ -422,9 +422,9 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        HttpBinding httpBinding = new HttpBinding(binding);
+        HttpBindingConfig httpBinding = new HttpBindingConfig(binding);
         bindings.put(binding.id, httpBinding);
     }
 
@@ -446,7 +446,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long routeId = begin.routeId();
 
-        HttpBinding binding = bindings.get(routeId);
+        HttpBindingConfig binding = bindings.get(routeId);
 
         MessageConsumer newStream = null;
 
@@ -803,8 +803,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Map<String, String> headers = new LinkedHashMap<>();
                 beginEx.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-                HttpBinding binding = bindings.get(server.routeId);
-                HttpRoute route = binding.resolve(authorization, headers::get);
+                HttpBindingConfig binding = bindings.get(server.routeId);
+                HttpRouteConfig route = binding.resolve(authorization, headers::get);
                 if (route != null)
                 {
                     if (binding.options != null && binding.options.overrides != null)
@@ -4149,8 +4149,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                     headers.put(":authority", authority + defaultPort);
                 }
 
-                final HttpBinding binding = bindings.get(routeId);
-                final HttpRoute route = binding.resolve(authorization, headers::get);
+                final HttpBindingConfig binding = bindings.get(routeId);
+                final HttpRouteConfig route = binding.resolve(authorization, headers::get);
                 if (route == null)
                 {
                     doEncodeHeaders(traceId, authorization, streamId, HEADERS_404_NOT_FOUND, true);
@@ -4416,8 +4416,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             headers.clear();
             promise.forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-            final HttpBinding binding = bindings.get(routeId);
-            final HttpRoute route = binding.resolve(authorization, headers::get);
+            final HttpBindingConfig binding = bindings.get(routeId);
+            final HttpRouteConfig route = binding.resolve(authorization, headers::get);
             if (route != null)
             {
                 final int pushId =

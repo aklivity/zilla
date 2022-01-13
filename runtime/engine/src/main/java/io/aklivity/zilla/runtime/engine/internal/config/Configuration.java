@@ -17,19 +17,19 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Namespace;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
-public class Configuration extends Namespace
+public class Configuration extends NamespaceConfig
 {
     private final List<NamespaceRef> namespaces;
 
     public Configuration(
         String name,
         List<NamespaceRef> namespaces,
-        List<Vault> vaults,
-        List<Binding> bindings)
+        List<VaultConfig> vaults,
+        List<BindingConfig> bindings)
     {
         super(name, vaults, bindings);
         this.namespaces = namespaces;

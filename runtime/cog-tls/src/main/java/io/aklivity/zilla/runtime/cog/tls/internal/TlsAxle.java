@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.cog.tls.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.Role.PROXY;
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.PROXY;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -29,19 +29,19 @@ import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class TlsAxle implements Axle
 {
-    private final Map<Role, TlsStreamFactory> factories;
+    private final Map<RoleConfig, TlsStreamFactory> factories;
 
     TlsAxle(
         TlsConfiguration config,
         AxleContext context)
     {
         TlsCounters counters = new TlsCounters(context::supplyCounter, context::supplyAccumulator);
-        Map<Role, TlsStreamFactory> factories = new EnumMap<>(Role.class);
+        Map<RoleConfig, TlsStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(SERVER, new TlsServerFactory(config, context, counters));
         factories.put(PROXY, new TlsProxyFactory(config, context, counters));
         factories.put(CLIENT, new TlsClientFactory(config, context, counters));
@@ -50,7 +50,7 @@ final class TlsAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         TlsStreamFactory factory = factories.get(binding.kind);
         if (factory != null)
@@ -62,7 +62,7 @@ final class TlsAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         TlsStreamFactory factory = factories.get(binding.kind);
         if (factory != null)

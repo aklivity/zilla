@@ -23,9 +23,9 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.cog.function;
     exports io.aklivity.zilla.runtime.engine.cog.poller;
     exports io.aklivity.zilla.runtime.engine.cog.stream;
-    exports io.aklivity.zilla.runtime.engine.cog.vault;
     exports io.aklivity.zilla.runtime.engine.config;
     exports io.aklivity.zilla.runtime.engine.ext;
+    exports io.aklivity.zilla.runtime.engine.vault;
 
     requires transitive jakarta.json;
     requires transitive jakarta.json.bind;
@@ -35,9 +35,9 @@ module io.aklivity.zilla.runtime.engine
     requires java.net.http;
 
     uses io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
-    uses io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-    uses io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi;
-    uses io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi;
-    uses io.aklivity.zilla.runtime.engine.config.WithAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+    uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
+    uses io.aklivity.zilla.runtime.engine.vault.Vault;
 }

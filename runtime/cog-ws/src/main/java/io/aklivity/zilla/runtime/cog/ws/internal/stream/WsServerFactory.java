@@ -41,8 +41,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.ws.internal.WsCog;
 import io.aklivity.zilla.runtime.cog.ws.internal.WsConfiguration;
-import io.aklivity.zilla.runtime.cog.ws.internal.config.WsBinding;
-import io.aklivity.zilla.runtime.cog.ws.internal.config.WsRoute;
+import io.aklivity.zilla.runtime.cog.ws.internal.config.WsBindingConfig;
+import io.aklivity.zilla.runtime.cog.ws.internal.config.WsRouteConfig;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.HttpHeaderFW;
@@ -63,7 +63,7 @@ import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsEndExFW;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class WsServerFactory implements WsStreamFactory
 {
@@ -117,7 +117,7 @@ public final class WsServerFactory implements WsStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
 
-    private final Long2ObjectHashMap<WsBinding> bindings;
+    private final Long2ObjectHashMap<WsBindingConfig> bindings;
     private final int wsTypeId;
     private final int httpTypeId;
 
@@ -136,9 +136,9 @@ public final class WsServerFactory implements WsStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        WsBinding wsBinding = new WsBinding(binding);
+        WsBindingConfig wsBinding = new WsBindingConfig(binding);
         bindings.put(binding.id, wsBinding);
     }
 
@@ -199,17 +199,17 @@ public final class WsServerFactory implements WsStreamFactory
                 WEBSOCKET_UPGRADE.equalsIgnoreCase(upgrade) &&
                 WEBSOCKET_VERSION_13.equals(version))
         {
-            WsBinding binding = bindings.get(routeId);
+            WsBindingConfig binding = bindings.get(routeId);
 
             if (binding != null)
             {
-                WsRoute route = null;
+                WsRouteConfig route = null;
                 String protocol = null;
 
                 for (int i = 0; i < (protocols != null ? protocols.length : 1); i++)
                 {
                     String newProtocol = protocols != null ? protocols[i] : null;
-                    WsRoute newRoute = binding.resolve(authorization, newProtocol, scheme, authority, path);
+                    WsRouteConfig newRoute = binding.resolve(authorization, newProtocol, scheme, authority, path);
 
                     if (newRoute != null && (route == null || newRoute.order < route.order))
                     {

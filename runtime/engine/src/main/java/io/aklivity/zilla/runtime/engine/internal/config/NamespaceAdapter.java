@@ -26,32 +26,32 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Namespace;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
-public class NamespaceAdapter implements JsonbAdapter<Namespace, JsonObject>
+public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String VAULTS_NAME = "vaults";
     private static final String BINDINGS_NAME = "bindings";
 
     private static final String NAME_DEFAULT = "default";
-    private static final List<Binding> BINDINGS_DEFAULT = emptyList();
-    private static final List<Vault> VAULTS_DEFAULT = emptyList();
+    private static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
+    private static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
 
     private final VaultAdapter vault;
-    private final BindingsAdapter binding;
+    private final BindingConfigsAdapter binding;
 
     public NamespaceAdapter()
     {
         vault = new VaultAdapter();
-        binding = new BindingsAdapter();
+        binding = new BindingConfigsAdapter();
     }
 
     @Override
     public JsonObject adaptToJson(
-        Namespace namespace) throws Exception
+        NamespaceConfig namespace) throws Exception
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -69,21 +69,21 @@ public class NamespaceAdapter implements JsonbAdapter<Namespace, JsonObject>
 
         if (!BINDINGS_DEFAULT.equals(namespace.bindings))
         {
-            object.add(BINDINGS_NAME, binding.adaptToJson(namespace.bindings.toArray(Binding[]::new)));
+            object.add(BINDINGS_NAME, binding.adaptToJson(namespace.bindings.toArray(BindingConfig[]::new)));
         }
 
         return object.build();
     }
 
     @Override
-    public Namespace adaptFromJson(
+    public NamespaceConfig adaptFromJson(
         JsonObject object)
     {
         String name = object.getString(NAME_NAME, NAME_DEFAULT);
-        List<Binding> bindings = object.containsKey(BINDINGS_NAME)
+        List<BindingConfig> bindings = object.containsKey(BINDINGS_NAME)
                 ? Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME)))
                 : BINDINGS_DEFAULT;
-        List<Vault> vaults = object.containsKey(VAULTS_NAME)
+        List<VaultConfig> vaults = object.containsKey(VAULTS_NAME)
                 ? object.getJsonObject(VAULTS_NAME)
                     .entrySet()
                     .stream()
@@ -91,6 +91,6 @@ public class NamespaceAdapter implements JsonbAdapter<Namespace, JsonObject>
                     .collect(Collectors.toList())
                 : VAULTS_DEFAULT;
 
-        return new Namespace(name, vaults, bindings);
+        return new NamespaceConfig(name, vaults, bindings);
     }
 }

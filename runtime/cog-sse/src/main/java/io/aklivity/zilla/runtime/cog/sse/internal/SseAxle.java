@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.sse.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
@@ -25,12 +25,12 @@ import io.aklivity.zilla.runtime.cog.sse.internal.stream.SseStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class SseAxle implements Axle
 {
-    private final Map<Role, SseStreamFactory> factories;
+    private final Map<RoleConfig, SseStreamFactory> factories;
 
     SseAxle(
         SseConfiguration config,
@@ -41,7 +41,7 @@ final class SseAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         final SseStreamFactory factory = factories.get(binding.kind);
 
@@ -55,7 +55,7 @@ final class SseAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         final SseStreamFactory factory = factories.get(binding.kind);
 

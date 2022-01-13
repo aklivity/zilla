@@ -17,12 +17,12 @@ package io.aklivity.zilla.runtime.cog.proxy.internal.stream;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyBinding;
+import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyBindingConfig;
 
 public final class ProxyRouter
 {
     private final int typeId;
-    private final Long2ObjectHashMap<ProxyBinding> bindings;
+    private final Long2ObjectHashMap<ProxyBindingConfig> bindings;
 
     public ProxyRouter(
         int typeId)
@@ -37,7 +37,7 @@ public final class ProxyRouter
     }
 
     public void attach(
-        ProxyBinding binding)
+        ProxyBindingConfig binding)
     {
         bindings.put(binding.routeId, binding);
     }
@@ -48,7 +48,7 @@ public final class ProxyRouter
         bindings.remove(bindingId);
     }
 
-    public ProxyBinding lookup(
+    public ProxyBindingConfig lookup(
         long routeId)
     {
         return bindings.get(routeId);

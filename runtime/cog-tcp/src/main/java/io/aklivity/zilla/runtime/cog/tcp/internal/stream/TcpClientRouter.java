@@ -28,9 +28,9 @@ import java.util.function.Predicate;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBinding;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpOptions;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpRoute;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBindingConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpOptionsConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpRouteConfig;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.ProxyAddressFW;
@@ -47,7 +47,7 @@ public final class TcpClientRouter
     private final byte[] ipv6ros = new byte[16];
 
     private final Function<String, InetAddress[]> resolveHost;
-    private final Long2ObjectHashMap<TcpBinding> bindings;
+    private final Long2ObjectHashMap<TcpBindingConfig> bindings;
 
     public TcpClientRouter(
         AxleContext context)
@@ -57,23 +57,23 @@ public final class TcpClientRouter
     }
 
     public void attach(
-        TcpBinding binding)
+        TcpBindingConfig binding)
     {
         bindings.put(binding.routeId, binding);
     }
 
-    public TcpBinding lookup(
+    public TcpBindingConfig lookup(
         long routeId)
     {
         return bindings.get(routeId);
     }
 
     public InetSocketAddress resolve(
-        TcpBinding binding,
+        TcpBindingConfig binding,
         long authorization,
         ProxyBeginExFW beginEx)
     {
-        final TcpOptions options = binding.options;
+        final TcpOptionsConfig options = binding.options;
         final int port = options.ports != null && options.ports.length > 0 ? options.ports[0] : 0;
 
         InetSocketAddress resolved = null;
@@ -86,7 +86,7 @@ public final class TcpClientRouter
         {
             final ProxyAddressFW address = beginEx.address();
 
-            for (TcpRoute route : binding.routes)
+            for (TcpRouteConfig route : binding.routes)
             {
                 Array32FW<ProxyInfoFW> infos = beginEx.infos();
                 ProxyInfoFW authorityInfo = infos.matchFirst(i -> i.kind() == AUTHORITY);

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.echo.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
@@ -24,13 +24,13 @@ import io.aklivity.zilla.runtime.cog.echo.internal.stream.EchoServerFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class EchoAxle implements Axle
 {
     private final EchoRouter router;
-    private final Map<Role, StreamFactory> factories;
+    private final Map<RoleConfig, StreamFactory> factories;
 
     EchoAxle(
         EchoConfiguration config,
@@ -42,7 +42,7 @@ final class EchoAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         router.attach(binding);
         return factories.get(binding.kind);
@@ -50,7 +50,7 @@ final class EchoAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         router.detach(binding.id);
     }

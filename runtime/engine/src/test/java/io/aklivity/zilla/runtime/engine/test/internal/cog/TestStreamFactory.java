@@ -22,7 +22,7 @@ import org.agrona.collections.Long2LongHashMap;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
@@ -70,7 +70,7 @@ final class TestStreamFactory implements StreamFactory
     }
 
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
         if (binding.exit != null)
         {
@@ -79,7 +79,7 @@ final class TestStreamFactory implements StreamFactory
     }
 
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         router.remove(binding.id);
     }

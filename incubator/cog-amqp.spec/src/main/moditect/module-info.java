@@ -15,5 +15,5 @@
  */
 open module io.aklivity.zilla.specs.cog.amqp
 {
-    requires transitive io.aklivity.zilla.specs.cog;
+    requires transitive io.aklivity.zilla.specs.engine;
 }

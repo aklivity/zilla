@@ -17,17 +17,17 @@ package io.aklivity.zilla.runtime.engine.internal.context;
 
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 final class BindingContext
 {
-    private final Binding binding;
+    private final BindingConfig binding;
     private final Axle axle;
 
     private StreamFactory attached;
 
     BindingContext(
-        Binding binding,
+        BindingConfig binding,
         Axle axle)
     {
         this.binding = binding;

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.cog
+open module io.aklivity.zilla.specs.engine
 {
     requires transitive org.agrona.core;
 

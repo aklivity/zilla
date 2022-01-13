@@ -32,8 +32,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCog;
 import io.aklivity.zilla.runtime.cog.kafka.internal.KafkaConfiguration;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBinding;
-import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRoute;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaBindingConfig;
+import io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.KafkaKeyFW;
@@ -193,7 +193,7 @@ public final class KafkaClientFetchFactory implements StreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongFunction<MessageConsumer> supplyReceiver;
-    private final LongFunction<KafkaBinding> supplyBinding;
+    private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final int decodeMaxBytes;
@@ -201,7 +201,7 @@ public final class KafkaClientFetchFactory implements StreamFactory
     public KafkaClientFetchFactory(
         KafkaConfiguration config,
         AxleContext context,
-        LongFunction<KafkaBinding> supplyBinding,
+        LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
@@ -252,8 +252,8 @@ public final class KafkaClientFetchFactory implements StreamFactory
             final String16FW beginTopic = kafkaFetchBeginEx.topic();
             final String topicName = beginTopic.asString();
 
-            final KafkaBinding binding = supplyBinding.apply(routeId);
-            final KafkaRoute resolved = binding != null ? binding.resolve(authorization, topicName) : null;
+            final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+            final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
             if (resolved != null)
             {

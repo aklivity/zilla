@@ -18,18 +18,18 @@ package io.aklivity.zilla.runtime.engine.internal.context;
 import static java.util.Objects.requireNonNull;
 
 import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 final class VaultContext
 {
-    private final Vault vault;
+    private final VaultConfig vault;
     private final Axle axle;
 
-    private BindingVault attached;
+    private Vault attached;
 
     VaultContext(
-        Vault vault,
+        VaultConfig vault,
         Axle axle)
     {
         this.vault = requireNonNull(vault);
@@ -47,7 +47,7 @@ final class VaultContext
         attached = null;
     }
 
-    public BindingVault vaultFactory()
+    public Vault vaultFactory()
     {
         return attached;
     }

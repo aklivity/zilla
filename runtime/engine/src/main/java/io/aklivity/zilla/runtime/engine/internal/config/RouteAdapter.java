@@ -27,17 +27,17 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.Condition;
-import io.aklivity.zilla.runtime.engine.config.Route;
-import io.aklivity.zilla.runtime.engine.config.With;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
-public class RouteAdapter implements JsonbAdapter<Route, JsonObject>
+public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
 {
     private static final String EXIT_NAME = "exit";
     private static final String WHEN_NAME = "when";
     private static final String WITH_NAME = "with";
 
-    private static final List<Condition> WHEN_DEFAULT = emptyList();
+    private static final List<ConditionConfig> WHEN_DEFAULT = emptyList();
 
     private int index;
     private final ConditionAdapter condition;
@@ -65,7 +65,7 @@ public class RouteAdapter implements JsonbAdapter<Route, JsonObject>
 
     @Override
     public JsonObject adaptToJson(
-        Route route)
+        RouteConfig route)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
@@ -87,20 +87,20 @@ public class RouteAdapter implements JsonbAdapter<Route, JsonObject>
     }
 
     @Override
-    public Route adaptFromJson(
+    public RouteConfig adaptFromJson(
         JsonObject object)
     {
         String exit = object.getString(EXIT_NAME);
-        List<Condition> when = object.containsKey(WHEN_NAME)
+        List<ConditionConfig> when = object.containsKey(WHEN_NAME)
                 ? object.getJsonArray(WHEN_NAME)
                     .stream().map(JsonValue::asJsonObject)
                     .map(condition::adaptFromJson)
                     .collect(Collectors.toList())
                 : WHEN_DEFAULT;
-        With wth = object.containsKey(WITH_NAME)
+        WithConfig wth = object.containsKey(WITH_NAME)
                 ? with.adaptFromJson(object.getJsonObject(WITH_NAME))
                 : null;
 
-        return new Route(index, exit, when, wth);
+        return new RouteConfig(index, exit, when, wth);
     }
 }

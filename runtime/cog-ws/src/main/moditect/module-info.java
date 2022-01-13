@@ -20,9 +20,9 @@ module io.aklivity.zilla.runtime.cog.ws
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
         with io.aklivity.zilla.runtime.cog.ws.internal.WsCogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi
-        with io.aklivity.zilla.runtime.cog.ws.internal.config.WsOptionsAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.ws.internal.config.WsOptionsConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi
-        with io.aklivity.zilla.runtime.cog.ws.internal.config.WsConditionAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.ws.internal.config.WsConditionConfigAdapter;
 }

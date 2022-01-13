@@ -34,8 +34,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.cog.tls.internal.TlsCounters;
-import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsBinding;
-import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsRoute;
+import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsBindingConfig;
+import io.aklivity.zilla.runtime.cog.tls.internal.config.TlsRouteConfig;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.codec.TlsRecordFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.AbortFW;
@@ -53,7 +53,7 @@ import io.aklivity.zilla.runtime.engine.cog.buffer.CountingBufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class TlsProxyFactory implements TlsStreamFactory
 {
@@ -104,7 +104,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
     private final BufferPool encodePool;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
-    private final Long2ObjectHashMap<TlsBinding> bindings;
+    private final Long2ObjectHashMap<TlsBindingConfig> bindings;
 
     private final int decodeMax;
     private final int handshakeMax;
@@ -134,9 +134,9 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        TlsBinding tlsBinding = new TlsBinding(binding);
+        TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
         bindings.put(binding.id, tlsBinding);
     }
 
@@ -160,7 +160,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
 
-        TlsBinding binding = bindings.get(routeId);
+        TlsBindingConfig binding = bindings.get(routeId);
 
         MessageConsumer newStream = null;
 
@@ -1201,8 +1201,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
             String tlsProtocol,
             long traceId)
         {
-            final TlsBinding binding = bindings.get(routeId);
-            final TlsRoute route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol) : null;
+            final TlsBindingConfig binding = bindings.get(routeId);
+            final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol) : null;
 
             if (route != null)
             {

@@ -20,9 +20,9 @@ module io.aklivity.zilla.runtime.cog.proxy
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
         with io.aklivity.zilla.runtime.cog.proxy.internal.ProxyCogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi
-        with io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyOptionsAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyOptionsConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi
-        with io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyConditionAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyConditionConfigAdapter;
 }

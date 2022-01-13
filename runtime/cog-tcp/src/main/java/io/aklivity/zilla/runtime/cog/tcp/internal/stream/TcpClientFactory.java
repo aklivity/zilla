@@ -43,8 +43,8 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.tcp.internal.TcpConfiguration;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBinding;
-import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpOptions;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBindingConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpOptionsConfig;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.AbortFW;
@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public class TcpClientFactory implements TcpStreamFactory
 {
@@ -131,7 +131,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         InetSocketAddress route = null;
 
-        TcpBinding binding = router.lookup(routeId);
+        TcpBindingConfig binding = router.lookup(routeId);
         if (binding != null)
         {
             route = router.resolve(binding, authorization, beginEx);
@@ -154,9 +154,9 @@ public class TcpClientFactory implements TcpStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        TcpBinding tcpBinding = new TcpBinding(binding);
+        TcpBindingConfig tcpBinding = new TcpBindingConfig(binding);
         router.attach(tcpBinding);
     }
 
@@ -230,7 +230,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         private void doNetConnect(
             InetSocketAddress remoteAddress,
-            TcpOptions options)
+            TcpOptionsConfig options)
         {
             try
             {

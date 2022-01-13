@@ -17,11 +17,11 @@ package io.aklivity.zilla.runtime.cog.echo.internal;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class EchoRouter
 {
-    private final Long2ObjectHashMap<Binding> bindings;
+    private final Long2ObjectHashMap<BindingConfig> bindings;
 
     EchoRouter()
     {
@@ -29,12 +29,12 @@ public final class EchoRouter
     }
 
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
         bindings.put(binding.id, binding);
     }
 
-    public Binding resolve(
+    public BindingConfig resolve(
         long routeId,
         long authorization)
     {

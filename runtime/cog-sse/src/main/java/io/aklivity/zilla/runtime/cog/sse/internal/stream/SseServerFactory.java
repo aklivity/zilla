@@ -43,8 +43,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.sse.internal.SseCog;
 import io.aklivity.zilla.runtime.cog.sse.internal.SseConfiguration;
-import io.aklivity.zilla.runtime.cog.sse.internal.config.SseBinding;
-import io.aklivity.zilla.runtime.cog.sse.internal.config.SseRoute;
+import io.aklivity.zilla.runtime.cog.sse.internal.config.SseBindingConfig;
+import io.aklivity.zilla.runtime.cog.sse.internal.config.SseRouteConfig;
 import io.aklivity.zilla.runtime.cog.sse.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.sse.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.cog.sse.internal.types.HttpHeaderFW;
@@ -72,7 +72,7 @@ import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class SseServerFactory implements SseStreamFactory
 {
@@ -164,7 +164,7 @@ public final class SseServerFactory implements SseStreamFactory
     private final int httpTypeId;
     private final int sseTypeId;
 
-    private final Long2ObjectHashMap<SseBinding> bindings;
+    private final Long2ObjectHashMap<SseBindingConfig> bindings;
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeaders;
     private final Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> setHttpResponseHeadersWithTimestampExt;
 
@@ -191,9 +191,9 @@ public final class SseServerFactory implements SseStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        SseBinding sseBinding = new SseBinding(binding);
+        SseBindingConfig sseBinding = new SseBindingConfig(binding);
         bindings.put(binding.id, sseBinding);
     }
 
@@ -295,8 +295,8 @@ public final class SseServerFactory implements SseStreamFactory
 
         if (lastEventId == null || lastEventId.length() <= MAXIMUM_LAST_EVENT_ID_SIZE)
         {
-            final SseBinding binding = bindings.get(routeId);
-            final SseRoute resolved = binding != null ?  binding.resolve(authorization, pathInfo.asString()) : null;
+            final SseBindingConfig binding = bindings.get(routeId);
+            final SseRouteConfig resolved = binding != null ?  binding.resolve(authorization, pathInfo.asString()) : null;
 
             if (resolved != null)
             {

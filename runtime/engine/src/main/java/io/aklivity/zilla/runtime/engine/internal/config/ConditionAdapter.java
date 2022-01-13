@@ -25,22 +25,22 @@ import java.util.function.Supplier;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.Condition;
-import io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
-public class ConditionAdapter implements JsonbAdapter<Condition, JsonObject>
+public class ConditionAdapter implements JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private final Map<String, ConditionAdapterSpi> delegatesByName;
+    private final Map<String, ConditionConfigAdapterSpi> delegatesByName;
 
-    private ConditionAdapterSpi delegate;
+    private ConditionConfigAdapterSpi delegate;
 
     public ConditionAdapter()
     {
         delegatesByName = ServiceLoader
-            .load(ConditionAdapterSpi.class)
+            .load(ConditionConfigAdapterSpi.class)
             .stream()
             .map(Supplier::get)
-            .collect(toMap(ConditionAdapterSpi::type, identity()));
+            .collect(toMap(ConditionConfigAdapterSpi::type, identity()));
     }
 
     public void adaptType(
@@ -51,13 +51,13 @@ public class ConditionAdapter implements JsonbAdapter<Condition, JsonObject>
 
     @Override
     public JsonObject adaptToJson(
-        Condition condition)
+        ConditionConfig condition)
     {
         return delegate != null ? delegate.adaptToJson(condition) : null;
     }
 
     @Override
-    public Condition adaptFromJson(
+    public ConditionConfig adaptFromJson(
         JsonObject object)
     {
         return delegate != null ? delegate.adaptFromJson(object) : null;

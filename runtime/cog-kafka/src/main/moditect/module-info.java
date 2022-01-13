@@ -20,9 +20,9 @@ module io.aklivity.zilla.runtime.cog.kafka
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
         with io.aklivity.zilla.runtime.cog.kafka.internal.KafkaCogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi
-        with io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaOptionsAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaOptionsConfigAdapter;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionAdapterSpi
-        with io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaConditionAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.cog.kafka.internal.config.KafkaConditionConfigAdapter;
 }

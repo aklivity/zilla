@@ -18,9 +18,10 @@ package io.aklivity.zilla.runtime.engine.test.internal.cog;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.vault.TestVault;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 final class TestAxle implements Axle
 {
@@ -34,7 +35,7 @@ final class TestAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         factory.attach(binding);
         return factory;
@@ -42,21 +43,21 @@ final class TestAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         factory.detach(binding);
     }
 
     @Override
-    public BindingVault attach(
-        Vault vault)
+    public Vault attach(
+        VaultConfig vault)
     {
         return new TestVault(vault);
     }
 
     @Override
     public void detach(
-        Vault vault)
+        VaultConfig vault)
     {
     }
 }

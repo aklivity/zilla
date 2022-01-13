@@ -53,9 +53,9 @@ import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.Engine;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Route;
-import io.aklivity.zilla.runtime.engine.config.Vault;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
@@ -192,7 +192,7 @@ public class ConfigureTask implements Callable<Void>
             }
 
             configuration.id = supplyId.applyAsInt(configuration.name);
-            for (Binding binding : configuration.bindings)
+            for (BindingConfig binding : configuration.bindings)
             {
                 binding.id = NamespacedId.id(configuration.id, supplyId.applyAsInt(binding.entry));
 
@@ -204,7 +204,7 @@ public class ConfigureTask implements Callable<Void>
                 }
 
                 // TODO: consider route exit namespace
-                for (Route route : binding.routes)
+                for (RouteConfig route : binding.routes)
                 {
                     route.id = NamespacedId.id(configuration.id, supplyId.applyAsInt(route.exit));
                 }
@@ -218,7 +218,7 @@ public class ConfigureTask implements Callable<Void>
                 tuning.affinity(binding.id, tuning.affinity(binding.id));
             }
 
-            for (Vault vault : configuration.vaults)
+            for (VaultConfig vault : configuration.vaults)
             {
                 vault.id = NamespacedId.id(configuration.id, supplyId.applyAsInt(vault.name));
             }

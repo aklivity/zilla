@@ -19,21 +19,21 @@ import jakarta.json.Json;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-public class RoleAdapter implements JsonbAdapter<Role, JsonString>
+public class RoleAdapter implements JsonbAdapter<RoleConfig, JsonString>
 {
     @Override
     public JsonString adaptToJson(
-        Role role)
+        RoleConfig role)
     {
         return Json.createValue(role.name().toLowerCase());
     }
 
     @Override
-    public Role adaptFromJson(
+    public RoleConfig adaptFromJson(
         JsonString object)
     {
-        return Role.valueOf(object.getString().toUpperCase());
+        return RoleConfig.valueOf(object.getString().toUpperCase());
     }
 }

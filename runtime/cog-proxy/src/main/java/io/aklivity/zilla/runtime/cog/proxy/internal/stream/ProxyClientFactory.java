@@ -37,8 +37,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.cog.proxy.internal.ProxyCog;
 import io.aklivity.zilla.runtime.cog.proxy.internal.ProxyConfiguration;
-import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyBinding;
-import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyRoute;
+import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyBindingConfig;
+import io.aklivity.zilla.runtime.cog.proxy.internal.config.ProxyRouteConfig;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.ProxyAddressFW;
@@ -63,7 +63,7 @@ import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class ProxyClientFactory implements ProxyStreamFactory
 {
@@ -122,9 +122,9 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     @Override
     public void attach(
-        Binding binding)
+        BindingConfig binding)
     {
-        ProxyBinding proxyBinding = new ProxyBinding(binding);
+        ProxyBindingConfig proxyBinding = new ProxyBindingConfig(binding);
         router.attach(proxyBinding);
     }
 
@@ -151,8 +151,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
         MessageConsumer newStream = null;
 
-        final ProxyBinding binding = router.lookup(routeId);
-        final ProxyRoute resolved = binding != null ? binding.resolve(authorization, beginEx) : null;
+        final ProxyBindingConfig binding = router.lookup(routeId);
+        final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx) : null;
         if (resolved != null)
         {
             newStream = new ProxyAppClient(routeId, initialId, sender, resolved.id)::onAppMessage;

@@ -20,6 +20,6 @@ module io.aklivity.zilla.runtime.vault.filesystem
     provides io.aklivity.zilla.runtime.engine.cog.CogFactorySpi
         with io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemCogFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsAdapterSpi
-        with io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsAdapter;
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfigAdapter;
 }

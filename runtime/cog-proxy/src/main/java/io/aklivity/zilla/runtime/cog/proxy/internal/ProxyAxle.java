@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.proxy.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -27,18 +27,18 @@ import io.aklivity.zilla.runtime.cog.proxy.internal.stream.ProxyStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class ProxyAxle implements Axle
 {
-    private final Map<Role, ProxyStreamFactory> factories;
+    private final Map<RoleConfig, ProxyStreamFactory> factories;
 
     ProxyAxle(
         ProxyConfiguration config,
         AxleContext context)
     {
-        final EnumMap<Role, ProxyStreamFactory> factories = new EnumMap<>(Role.class);
+        final EnumMap<RoleConfig, ProxyStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(SERVER, new ProxyServerFactory(config, context));
         factories.put(CLIENT, new ProxyClientFactory(config, context));
         this.factories = factories;
@@ -46,7 +46,7 @@ final class ProxyAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         ProxyStreamFactory factory = factories.get(binding.kind);
         if (factory != null)
@@ -58,7 +58,7 @@ final class ProxyAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         ProxyStreamFactory factory = factories.get(binding.kind);
         if (factory != null)

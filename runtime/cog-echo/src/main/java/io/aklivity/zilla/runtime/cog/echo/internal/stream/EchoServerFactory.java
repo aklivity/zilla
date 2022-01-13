@@ -36,7 +36,7 @@ import io.aklivity.zilla.runtime.cog.echo.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class EchoServerFactory implements StreamFactory
 {
@@ -87,7 +87,7 @@ public final class EchoServerFactory implements StreamFactory
         final long routeId = begin.routeId();
         final long authorization = begin.authorization();
 
-        final Binding binding = router.resolve(routeId, authorization);
+        final BindingConfig binding = router.resolve(routeId, authorization);
 
         MessageConsumer newStream = null;
 

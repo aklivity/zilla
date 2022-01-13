@@ -21,9 +21,9 @@ import java.util.function.Function;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.Configuration;
-import io.aklivity.zilla.runtime.engine.cog.vault.BindingVault;
-import io.aklivity.zilla.runtime.engine.config.Vault;
-import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptions;
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfig;
 
 final class FileSystemAxle implements Axle
 {
@@ -37,10 +37,10 @@ final class FileSystemAxle implements Axle
     }
 
     @Override
-    public BindingVault attach(
-        Vault vault)
+    public Vault attach(
+        VaultConfig vault)
     {
-        FileSystemOptions options = (FileSystemOptions) vault.options;
+        FileSystemOptionsConfig options = (FileSystemOptionsConfig) vault.options;
         return new FileSystemVault(options, resolvePath);
     }
 }

@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.Role.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.Role.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -27,18 +27,18 @@ import io.aklivity.zilla.runtime.cog.http.internal.stream.HttpStreamFactory;
 import io.aklivity.zilla.runtime.engine.cog.Axle;
 import io.aklivity.zilla.runtime.engine.cog.AxleContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.Binding;
-import io.aklivity.zilla.runtime.engine.config.Role;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
 final class HttpAxle implements Axle
 {
-    private final Map<Role, HttpStreamFactory> factories;
+    private final Map<RoleConfig, HttpStreamFactory> factories;
 
     HttpAxle(
         HttpConfiguration config,
         AxleContext context)
     {
-        Map<Role, HttpStreamFactory> factories = new EnumMap<>(Role.class);
+        Map<RoleConfig, HttpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(CLIENT, new HttpClientFactory(config, context));
         factories.put(SERVER, new HttpServerFactory(config, context));
         this.factories = factories;
@@ -46,7 +46,7 @@ final class HttpAxle implements Axle
 
     @Override
     public StreamFactory attach(
-        Binding binding)
+        BindingConfig binding)
     {
         HttpStreamFactory factory = factories.get(binding.kind);
 
@@ -60,7 +60,7 @@ final class HttpAxle implements Axle
 
     @Override
     public void detach(
-        Binding binding)
+        BindingConfig binding)
     {
         HttpStreamFactory factory = factories.get(binding.kind);
 
