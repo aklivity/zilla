@@ -32,13 +32,13 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.stream.KafkaCacheServerFacto
 import io.aklivity.zilla.runtime.cog.kafka.internal.stream.KafkaClientFactory;
 import io.aklivity.zilla.runtime.cog.kafka.internal.stream.KafkaClientRoute;
 import io.aklivity.zilla.runtime.cog.kafka.internal.stream.KafkaStreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class KafkaAxle implements Axle
+final class KafkaAxle implements CogContext
 {
     private final Long2ObjectHashMap<KafkaClientRoute> clientRoutesById;
     private final Long2ObjectHashMap<KafkaCacheRoute> cacheRoutesById;
@@ -46,7 +46,7 @@ final class KafkaAxle implements Axle
 
     KafkaAxle(
         KafkaConfiguration config,
-        AxleContext context,
+        EngineContext context,
         Function<String, KafkaCache> supplyCache)
     {
         this.clientRoutesById = new Long2ObjectHashMap<>();

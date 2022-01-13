@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.test.internal.cog.TestCog;
 
 public final class CogFactoryTest

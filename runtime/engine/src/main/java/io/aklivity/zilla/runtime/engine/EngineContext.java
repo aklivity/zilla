@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.cog;
+package io.aklivity.zilla.runtime.engine;
 
 import java.net.InetAddress;
 import java.net.URL;
@@ -32,9 +32,9 @@ import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
-public interface AxleContext
+public interface EngineContext
 {
     int index();
 
@@ -97,7 +97,7 @@ public interface AxleContext
 
     StreamFactory streamFactory();
 
-    Vault supplyVault(
+    VaultHandler supplyVault(
         long vaultId);
 
     URL resolvePath(

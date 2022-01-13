@@ -18,29 +18,34 @@ package io.aklivity.zilla.runtime.vault.filesystem.internal;
 import java.net.URL;
 import java.util.function.Function;
 
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
-import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.vault.filesystem.internal.config.FileSystemOptionsConfig;
 
-final class FileSystemAxle implements Axle
+final class FileSystemContext implements VaultContext
 {
     private final Function<String, URL> resolvePath;
 
-    FileSystemAxle(
+    FileSystemContext(
         Configuration config,
-        AxleContext context)
+        EngineContext context)
     {
         this.resolvePath = context::resolvePath;
     }
 
     @Override
-    public Vault attach(
+    public FileSystemVaultHandler attach(
         VaultConfig vault)
     {
         FileSystemOptionsConfig options = (FileSystemOptionsConfig) vault.options;
-        return new FileSystemVault(options, resolvePath);
+        return new FileSystemVaultHandler(options, resolvePath);
+    }
+
+    @Override
+    public void detach(
+        VaultConfig vault)
+    {
     }
 }

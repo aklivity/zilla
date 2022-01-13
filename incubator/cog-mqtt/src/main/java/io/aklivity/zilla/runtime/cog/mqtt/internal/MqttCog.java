@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.mqtt.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
 public final class MqttCog implements Cog
@@ -45,8 +45,8 @@ public final class MqttCog implements Cog
     }
 
     @Override
-    public MqttAxle supplyAxle(
-        AxleContext context)
+    public MqttAxle supply(
+        EngineContext context)
     {
         return new MqttAxle(config, context);
     }

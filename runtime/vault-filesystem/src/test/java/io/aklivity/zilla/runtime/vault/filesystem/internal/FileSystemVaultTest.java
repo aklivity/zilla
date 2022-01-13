@@ -37,7 +37,7 @@ public class FileSystemVaultTest
         FileSystemStore trust = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
         FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, trust, null);
 
-        FileSystemVault vault = new FileSystemVault(options, FileSystemVaultTest.class::getResource);
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest.class::getResource);
 
         PrivateKeyEntry key = vault.key("localhost");
         TrustedCertificateEntry certificate = vault.certificate("clientca");
@@ -53,7 +53,7 @@ public class FileSystemVaultTest
         FileSystemStore signers = new FileSystemStore("stores/server/trust", "pkcs12", "generated");
         FileSystemOptionsConfig options = new FileSystemOptionsConfig(keys, null, signers);
 
-        FileSystemVault vault = new FileSystemVault(options, FileSystemVaultTest.class::getResource);
+        FileSystemVaultHandler vault = new FileSystemVaultHandler(options, FileSystemVaultTest.class::getResource);
 
         PrivateKeyEntry key = vault.key("client1");
         PrivateKeyEntry[] signedKeys = vault.keys("clientca");

@@ -15,40 +15,21 @@
  */
 package io.aklivity.zilla.runtime.vault.filesystem.internal;
 
-import java.net.URL;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
-import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
-
-public final class FileSystemCog implements Cog
+public final class FileSystemVaultFactorySpi implements VaultFactorySpi
 {
-    public static final String NAME = "filesystem";
-
-    private final Configuration config;
-
-    FileSystemCog(
-        Configuration config)
-    {
-        this.config = config;
-    }
-
     @Override
     public String name()
     {
-        return FileSystemCog.NAME;
+        return FileSystemVault.NAME;
     }
 
     @Override
-    public URL type()
+    public FileSystemVault create(
+        Configuration config)
     {
-        return getClass().getResource("schema/filesystem.json");
-    }
-
-    @Override
-    public FileSystemAxle supplyAxle(
-        AxleContext context)
-    {
-        return new FileSystemAxle(config, context);
+        return new FileSystemVault(config);
     }
 }

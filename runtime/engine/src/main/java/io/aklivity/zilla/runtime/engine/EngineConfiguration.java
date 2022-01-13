@@ -31,8 +31,6 @@ import java.util.function.Function;
 
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
-
 public class EngineConfiguration extends Configuration
 {
     public static final boolean DEBUG_BUDGETS = Boolean.getBoolean("zilla.engine.debug.budgets");

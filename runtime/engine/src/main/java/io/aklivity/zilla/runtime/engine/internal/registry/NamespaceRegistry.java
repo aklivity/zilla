@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.context;
+package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.util.function.Function;
 import java.util.function.LongConsumer;
@@ -21,29 +21,33 @@ import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.cog.Axle;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
-public class NamespaceContext
+public class NamespaceRegistry
 {
     private final NamespaceConfig namespace;
-    private final Function<String, Axle> lookupAxle;
+    private final Function<String, CogContext> bindingsByName;
+    private final Function<String, VaultContext> vaultsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
-    private final Int2ObjectHashMap<BindingContext> bindingsById;
-    private final Int2ObjectHashMap<VaultContext> vaultsById;
+    private final Int2ObjectHashMap<BindingRegistry> bindingsById;
+    private final Int2ObjectHashMap<VaultRegistry> vaultsById;
 
-    public NamespaceContext(
+    public NamespaceRegistry(
         NamespaceConfig namespace,
-        Function<String, Axle> lookupAxle,
+        Function<String, CogContext> bindingsByName,
+        Function<String, VaultContext> vaultsByName,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
         this.namespace = namespace;
-        this.lookupAxle = lookupAxle;
+        this.bindingsByName = bindingsByName;
+        this.vaultsByName = vaultsByName;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
@@ -71,11 +75,11 @@ public class NamespaceContext
     private void attachBinding(
         BindingConfig binding)
     {
-        Axle axle = lookupAxle.apply(binding.type);
+        CogContext axle = bindingsByName.apply(binding.type);
         assert axle != null : "Missing cog kind: " + binding.type;
 
         int bindingId = supplyLabelId.applyAsInt(binding.entry);
-        BindingContext context = new BindingContext(binding, axle);
+        BindingRegistry context = new BindingRegistry(binding, axle);
         bindingsById.put(bindingId, context);
         context.attach();
         supplyLoadEntry.accept(binding.id);
@@ -85,7 +89,7 @@ public class NamespaceContext
         BindingConfig binding)
     {
         int bindingId = supplyLabelId.applyAsInt(binding.entry);
-        BindingContext context = bindingsById.remove(bindingId);
+        BindingRegistry context = bindingsById.remove(bindingId);
         if (context != null)
         {
             context.detach();
@@ -95,33 +99,33 @@ public class NamespaceContext
     private void attachVault(
         VaultConfig vault)
     {
-        Axle axle = lookupAxle.apply(vault.type);
-        assert axle != null : "Missing vault kind: " + vault.type;
+        VaultContext context = vaultsByName.apply(vault.type);
+        assert context != null : "Missing vault kind: " + vault.type;
 
         int vaultId = supplyLabelId.applyAsInt(vault.name);
-        VaultContext context = new VaultContext(vault, axle);
-        vaultsById.put(vaultId, context);
-        context.attach();
+        VaultRegistry registry = new VaultRegistry(vault, context);
+        vaultsById.put(vaultId, registry);
+        registry.attach();
     }
 
     private void detachVault(
         VaultConfig vault)
     {
         int vaultId = supplyLabelId.applyAsInt(vault.name);
-        VaultContext context = vaultsById.remove(vaultId);
+        VaultRegistry context = vaultsById.remove(vaultId);
         if (context != null)
         {
             context.detach();
         }
     }
 
-    BindingContext findBinding(
+    BindingRegistry findBinding(
         int bindingId)
     {
         return bindingsById.get(bindingId);
     }
 
-    VaultContext findVault(
+    VaultRegistry findVault(
         int vaultId)
     {
         return vaultsById.get(vaultId);

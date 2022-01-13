@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.amqp.internal;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public final class AmqpCogFactorySpi implements CogFactorySpi
 {

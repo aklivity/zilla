@@ -67,7 +67,7 @@ import io.aklivity.zilla.runtime.cog.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.cog.sse.internal.types.stream.SseEndExFW;
 import io.aklivity.zilla.runtime.cog.sse.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.cog.sse.internal.util.Flags;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
@@ -170,7 +170,7 @@ public final class SseServerFactory implements SseStreamFactory
 
     public SseServerFactory(
         SseConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
         this.challengeBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);

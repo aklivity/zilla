@@ -13,39 +13,41 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.context;
+package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import static java.util.Objects.requireNonNull;
 
-final class BindingContext
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
+
+final class VaultRegistry
 {
-    private final BindingConfig binding;
-    private final Axle axle;
+    private final VaultConfig config;
+    private final VaultContext context;
 
-    private StreamFactory attached;
+    private VaultHandler attached;
 
-    BindingContext(
-        BindingConfig binding,
-        Axle axle)
+    VaultRegistry(
+        VaultConfig vault,
+        VaultContext context)
     {
-        this.binding = binding;
-        this.axle = axle;
+        this.config = requireNonNull(vault);
+        this.context = requireNonNull(context);
     }
 
     public void attach()
     {
-        attached = axle.attach(binding);
+        attached = context.attach(config);
     }
 
     public void detach()
     {
-        axle.detach(binding);
+        context.detach(config);
         attached = null;
     }
 
-    public StreamFactory streamFactory()
+    public VaultHandler handler()
     {
         return attached;
     }

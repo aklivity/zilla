@@ -47,7 +47,7 @@ import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.buffer.CountingBufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
@@ -112,7 +112,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     public TlsProxyFactory(
         TlsConfiguration config,
-        AxleContext context,
+        EngineContext context,
         TlsCounters counters)
     {
         this.proxyTypeId = context.supplyTypeId("proxy");

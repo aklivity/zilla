@@ -13,34 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.cog;
+package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
-import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
-import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
 
-public interface Axle
+public final class TestVaultFactorySpi implements VaultFactorySpi
 {
-    default StreamFactory attach(
-        BindingConfig binding)
+    @Override
+    public String name()
     {
-        return null;
+        return TestVault.NAME;
     }
 
-    default void detach(
-        BindingConfig binding)
+    @Override
+    public TestVault create(
+        Configuration config)
     {
-    }
-
-    default Vault attach(
-        VaultConfig vault)
-    {
-        return null;
-    }
-
-    default void detach(
-        VaultConfig vault)
-    {
+        return new TestVault(config);
     }
 }

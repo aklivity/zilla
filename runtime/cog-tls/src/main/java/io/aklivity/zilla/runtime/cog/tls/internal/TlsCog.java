@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.tls.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
 public final class TlsCog implements Cog
@@ -45,8 +45,8 @@ public final class TlsCog implements Cog
     }
 
     @Override
-    public TlsAxle supplyAxle(
-        AxleContext context)
+    public TlsAxle supply(
+        EngineContext context)
     {
         return new TlsAxle(config, context);
     }

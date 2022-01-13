@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.ws.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
 public final class WsCog implements Cog
@@ -45,8 +45,8 @@ public final class WsCog implements Cog
     }
 
     @Override
-    public WsAxle supplyAxle(
-        AxleContext context)
+    public WsAxle supply(
+        EngineContext context)
     {
         return new WsAxle(config, context);
     }

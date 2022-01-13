@@ -15,19 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.vault;
 
-import java.security.KeyStore;
+import java.net.URL;
+
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public interface Vault
 {
-    KeyStore.PrivateKeyEntry key(
-        String ref);
+    String name();
 
-    KeyStore.TrustedCertificateEntry certificate(
-        String ref);
+    VaultContext supply(
+        EngineContext context);
 
-    default KeyStore.PrivateKeyEntry[] keys(
-        String signerRef)
-    {
-        return null;
-    }
+    URL type();
 }

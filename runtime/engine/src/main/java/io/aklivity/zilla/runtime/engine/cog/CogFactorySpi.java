@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.cog;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
+
 public interface CogFactorySpi
 {
     String name();

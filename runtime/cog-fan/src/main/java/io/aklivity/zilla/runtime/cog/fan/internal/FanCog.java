@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.fan.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
 final class FanCog implements Cog
@@ -45,8 +45,8 @@ final class FanCog implements Cog
     }
 
     @Override
-    public FanAxle supplyAxle(
-        AxleContext context)
+    public FanAxle supply(
+        EngineContext context)
     {
         return new FanAxle(config, context);
     }

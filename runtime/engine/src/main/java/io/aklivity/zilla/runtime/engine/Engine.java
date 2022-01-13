@@ -37,21 +37,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
+import java.util.stream.Stream;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
 import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.context.ConfigureTask;
-import io.aklivity.zilla.runtime.engine.internal.context.DispatchAgent;
+import io.aklivity.zilla.runtime.engine.internal.registry.ConfigureTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable
 {
@@ -74,6 +75,7 @@ public final class Engine implements AutoCloseable
     Engine(
         EngineConfiguration config,
         Collection<Cog> cogs,
+        Collection<Vault> vaults,
         ErrorHandler errorHandler,
         URL configURL,
         Collection<EngineAffinity> affinities)
@@ -109,7 +111,7 @@ public final class Engine implements AutoCloseable
         for (int coreIndex = 0; coreIndex < coreCount; coreIndex++)
         {
             DispatchAgent agent =
-                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity, cogs, coreIndex);
+                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity, cogs, vaults, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -120,9 +122,11 @@ public final class Engine implements AutoCloseable
                 .collect(toList());
 
         final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers);
-        final Collection<URL> cogTypes = cogs.stream().map(Cog::type).filter(Objects::nonNull).collect(toList());
+        final Stream<URL> cogTypes = cogs.stream().map(Cog::type).filter(Objects::nonNull);
+        final Stream<URL> vaultTypes = vaults.stream().map(Vault::type).filter(Objects::nonNull);
+        final Collection<URL> schemaTypes = Stream.concat(cogTypes, vaultTypes).collect(toList());
         final Callable<Void> configure =
-                new ConfigureTask(configURL, cogTypes, labels::supplyLabelId, tuning, dispatchers,
+                new ConfigureTask(configURL, schemaTypes, labels::supplyLabelId, tuning, dispatchers,
                         errorHandler, logger, context, extensions);
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());

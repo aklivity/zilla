@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.cog.sse.internal;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class SseConfiguration extends Configuration
 {

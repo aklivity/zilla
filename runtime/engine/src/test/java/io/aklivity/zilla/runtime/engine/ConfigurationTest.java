@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.cog;
+package io.aklivity.zilla.runtime.engine;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -26,20 +26,20 @@ import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.cog.Configuration.BooleanPropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.BytePropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.CharPropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.ConfigurationDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.DoublePropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.FloatPropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.IntPropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.LongPropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.PropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.ShortPropertyDef;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.ToByteFunction;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.ToCharFunction;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.ToFloatFunction;
-import io.aklivity.zilla.runtime.engine.cog.Configuration.ToShortFunction;
+import io.aklivity.zilla.runtime.engine.Configuration.BooleanPropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.BytePropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.CharPropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.ConfigurationDef;
+import io.aklivity.zilla.runtime.engine.Configuration.DoublePropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.FloatPropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.IntPropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.LongPropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.PropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.ShortPropertyDef;
+import io.aklivity.zilla.runtime.engine.Configuration.ToByteFunction;
+import io.aklivity.zilla.runtime.engine.Configuration.ToCharFunction;
+import io.aklivity.zilla.runtime.engine.Configuration.ToFloatFunction;
+import io.aklivity.zilla.runtime.engine.Configuration.ToShortFunction;
 
 public final class ConfigurationTest
 {

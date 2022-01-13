@@ -34,10 +34,11 @@ module io.aklivity.zilla.runtime.engine
     requires jdk.unsupported;
     requires java.net.http;
 
-    uses io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
     uses io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
+
+    uses io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
-    uses io.aklivity.zilla.runtime.engine.vault.Vault;
 }

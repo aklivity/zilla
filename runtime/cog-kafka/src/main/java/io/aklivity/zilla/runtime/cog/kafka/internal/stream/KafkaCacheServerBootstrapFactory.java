@@ -54,7 +54,7 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaMetaDataEx
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 
@@ -109,7 +109,7 @@ public final class KafkaCacheServerBootstrapFactory implements StreamFactory
 
     public KafkaCacheServerBootstrapFactory(
         KafkaConfiguration config,
-        AxleContext context,
+        EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding)
     {
         this.kafkaTypeId = context.supplyTypeId(KafkaCog.NAME);

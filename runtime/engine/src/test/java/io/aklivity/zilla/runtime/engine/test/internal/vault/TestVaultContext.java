@@ -13,42 +13,29 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.context;
+package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
-import static java.util.Objects.requireNonNull;
-
-import io.aklivity.zilla.runtime.engine.cog.Axle;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
-import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
-final class VaultContext
+public final class TestVaultContext implements VaultContext
 {
-    private final VaultConfig vault;
-    private final Axle axle;
-
-    private Vault attached;
-
-    VaultContext(
-        VaultConfig vault,
-        Axle axle)
+    public TestVaultContext(
+        EngineContext context)
     {
-        this.vault = requireNonNull(vault);
-        this.axle = requireNonNull(axle);
     }
 
-    public void attach()
+    @Override
+    public TestVaultHandler attach(
+        VaultConfig vault)
     {
-        attached = axle.attach(vault);
+        return new TestVaultHandler(vault);
     }
 
-    public void detach()
+    @Override
+    public void detach(
+        VaultConfig vault)
     {
-        axle.detach(vault);
-        attached = null;
-    }
-
-    public Vault vaultFactory()
-    {
-        return attached;
     }
 }

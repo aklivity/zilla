@@ -75,7 +75,7 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
@@ -189,7 +189,7 @@ public final class KafkaClientProduceFactory implements StreamFactory
 
     public KafkaClientProduceFactory(
         KafkaConfiguration config,
-        AxleContext context,
+        EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {

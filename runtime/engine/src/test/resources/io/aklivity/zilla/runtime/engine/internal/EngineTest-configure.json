@@ -1,4 +1,12 @@
 {
+    "vaults":
+    {
+        "secure":
+        {
+            "type" : "test"
+        }
+    },
+
     "bindings":
     {
         "test0":

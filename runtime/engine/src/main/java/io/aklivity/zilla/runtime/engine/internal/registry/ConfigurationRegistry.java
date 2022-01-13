@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.context;
+package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.util.function.Function;
 import java.util.function.LongConsumer;
@@ -21,24 +21,28 @@ import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.cog.Axle;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
-public class ConfigurationContext
+public class ConfigurationRegistry
 {
-    private final Function<String, Axle> axlesByName;
+    private final Function<String, CogContext> bindingsByName;
+    private final Function<String, VaultContext> vaultsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
 
-    private final Int2ObjectHashMap<NamespaceContext> namespacesById;
+    private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
 
-    public ConfigurationContext(
-        Function<String, Axle> axlesByName,
+    public ConfigurationRegistry(
+        Function<String, CogContext> bindingsByName,
+        Function<String, VaultContext> vaultsByName,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
-        this.axlesByName = axlesByName;
+        this.bindingsByName = bindingsByName;
+        this.vaultsByName = vaultsByName;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespacesById = new Int2ObjectHashMap<>();
@@ -56,23 +60,23 @@ public class ConfigurationContext
         return new NamespaceTask(namespace, this::detachNamespace);
     }
 
-    public BindingContext resolveBinding(
+    public BindingRegistry resolveBinding(
         long bindingId)
     {
         int namespaceId = NamespacedId.namespaceId(bindingId);
         int localId = NamespacedId.localId(bindingId);
 
-        NamespaceContext namespace = findNamespace(namespaceId);
+        NamespaceRegistry namespace = findNamespace(namespaceId);
         return namespace != null ? namespace.findBinding(localId) : null;
     }
 
-    public VaultContext resolveVault(
+    public VaultRegistry resolveVault(
         long vaultId)
     {
         int namespaceId = NamespacedId.namespaceId(vaultId);
         int localId = NamespacedId.localId(vaultId);
 
-        NamespaceContext namespace = findNamespace(namespaceId);
+        NamespaceRegistry namespace = findNamespace(namespaceId);
         return namespace != null ? namespace.findVault(localId) : null;
     }
 
@@ -82,7 +86,7 @@ public class ConfigurationContext
         namespacesById.clear();
     }
 
-    private NamespaceContext findNamespace(
+    private NamespaceRegistry findNamespace(
         int namespaceId)
     {
         return namespacesById.get(namespaceId);
@@ -91,16 +95,17 @@ public class ConfigurationContext
     private void attachNamespace(
         NamespaceConfig namespace)
     {
-        NamespaceContext context = new NamespaceContext(namespace, axlesByName, supplyLabelId, supplyLoadEntry);
-        namespacesById.put(context.namespaceId(), context);
-        context.attach();
+        NamespaceRegistry registry =
+                new NamespaceRegistry(namespace, bindingsByName, vaultsByName, supplyLabelId, supplyLoadEntry);
+        namespacesById.put(registry.namespaceId(), registry);
+        registry.attach();
     }
 
     protected void detachNamespace(
         NamespaceConfig namespace)
     {
         int namespaceId = supplyLabelId.applyAsInt(namespace.name);
-        NamespaceContext context = namespacesById.remove(namespaceId);
-        context.detach();
+        NamespaceRegistry registry = namespacesById.remove(namespaceId);
+        registry.detach();
     }
 }

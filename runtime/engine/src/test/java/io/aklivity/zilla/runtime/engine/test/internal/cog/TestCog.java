@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.engine.test.internal.cog;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public final class TestCog implements Cog
 {
@@ -41,9 +41,9 @@ public final class TestCog implements Cog
     }
 
     @Override
-    public TestAxle supplyAxle(
-        AxleContext context)
+    public TestContext supply(
+        EngineContext context)
     {
-        return new TestAxle(context);
+        return new TestContext(context);
     }
 }

@@ -13,24 +13,39 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.vault.filesystem.internal;
+package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
-import io.aklivity.zilla.runtime.engine.cog.Cog;
-import io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import java.security.KeyStore.PrivateKeyEntry;
+import java.security.KeyStore.TrustedCertificateEntry;
 
-public final class FileSystemCogFactorySpi implements CogFactorySpi
+import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
+
+public final class TestVaultHandler implements VaultHandler
 {
-    @Override
-    public String name()
+    public TestVaultHandler(
+        VaultConfig vault)
     {
-        return FileSystemCog.NAME;
     }
 
     @Override
-    public Cog create(
-        Configuration config)
+    public PrivateKeyEntry key(
+        String name)
     {
-        return new FileSystemCog(config);
+        return null;
+    }
+
+    @Override
+    public TrustedCertificateEntry certificate(
+        String name)
+    {
+        return null;
+    }
+
+    @Override
+    public PrivateKeyEntry[] keys(
+        String name)
+    {
+        return null;
     }
 }
