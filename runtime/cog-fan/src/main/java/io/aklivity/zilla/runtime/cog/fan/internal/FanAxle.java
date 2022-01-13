@@ -22,19 +22,19 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.cog.fan.internal.stream.FanServerFactory;
 import io.aklivity.zilla.runtime.cog.fan.internal.stream.FanStreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class FanAxle implements Axle
+final class FanAxle implements CogContext
 {
     private final Map<RoleConfig, FanStreamFactory> factories;
 
     FanAxle(
         FanConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         this.factories = singletonMap(SERVER, new FanServerFactory(config, context));
     }

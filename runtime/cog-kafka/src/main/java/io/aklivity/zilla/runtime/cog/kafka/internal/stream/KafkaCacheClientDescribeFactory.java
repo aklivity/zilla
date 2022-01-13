@@ -49,7 +49,7 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaDescribeBe
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaDescribeDataExFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
@@ -89,7 +89,7 @@ public final class KafkaCacheClientDescribeFactory implements StreamFactory
 
     public KafkaCacheClientDescribeFactory(
         KafkaConfiguration config,
-        AxleContext context,
+        EngineContext context,
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<KafkaCacheRoute> supplyCacheRoute)
     {

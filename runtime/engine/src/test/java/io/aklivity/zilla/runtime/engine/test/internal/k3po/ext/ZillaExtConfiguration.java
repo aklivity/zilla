@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public final class ZillaExtConfiguration extends Configuration
 {

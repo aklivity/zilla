@@ -39,7 +39,7 @@ import io.aklivity.zilla.runtime.cog.tcp.internal.types.ProxyAddressInet6FW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.ProxyAddressInetFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public final class TcpClientRouter
 {
@@ -50,7 +50,7 @@ public final class TcpClientRouter
     private final Long2ObjectHashMap<TcpBindingConfig> bindings;
 
     public TcpClientRouter(
-        AxleContext context)
+        EngineContext context)
     {
         this.resolveHost = context::resolveHost;
         this.bindings = new Long2ObjectHashMap<>();

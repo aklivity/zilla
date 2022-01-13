@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.tcp.internal;
 
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class TcpConfiguration extends Configuration
 {

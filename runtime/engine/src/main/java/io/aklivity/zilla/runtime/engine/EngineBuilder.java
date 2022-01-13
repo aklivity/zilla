@@ -26,7 +26,8 @@ import org.agrona.ErrorHandler;
 
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 import io.aklivity.zilla.runtime.engine.cog.CogFactory;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
 public class EngineBuilder
 {
@@ -76,15 +77,23 @@ public class EngineBuilder
         final EngineConfiguration config = new EngineConfiguration(this.config != null ? this.config : new Configuration());
 
         final Set<Cog> cogs = new LinkedHashSet<>();
-        final CogFactory factory = CogFactory.instantiate();
-        for (String name : factory.names())
+        final CogFactory cogFactory = CogFactory.instantiate();
+        for (String name : cogFactory.names())
         {
-            Cog cog = factory.create(name, config);
+            Cog cog = cogFactory.create(name, config);
             cogs.add(cog);
+        }
+
+        final Set<Vault> vaults = new LinkedHashSet<>();
+        final VaultFactory vaultFactory = VaultFactory.instantiate();
+        for (String name : vaultFactory.names())
+        {
+            Vault vault = vaultFactory.create(name, config);
+            vaults.add(vault);
         }
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, cogs, errorHandler, configURL, affinities);
+        return new Engine(config, cogs, vaults, errorHandler, configURL, affinities);
     }
 }

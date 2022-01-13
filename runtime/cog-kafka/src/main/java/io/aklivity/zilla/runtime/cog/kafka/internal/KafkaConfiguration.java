@@ -21,7 +21,7 @@ import java.nio.file.Path;
 
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCacheCleanupPolicy;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.codec.produce.ProduceAck;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class KafkaConfiguration extends Configuration
 {

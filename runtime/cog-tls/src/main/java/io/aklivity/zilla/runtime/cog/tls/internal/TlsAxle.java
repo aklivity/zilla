@@ -26,19 +26,19 @@ import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsClientFactory;
 import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsProxyFactory;
 import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsServerFactory;
 import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsStreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class TlsAxle implements Axle
+final class TlsAxle implements CogContext
 {
     private final Map<RoleConfig, TlsStreamFactory> factories;
 
     TlsAxle(
         TlsConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         TlsCounters counters = new TlsCounters(context::supplyCounter, context::supplyAccumulator);
         Map<RoleConfig, TlsStreamFactory> factories = new EnumMap<>(RoleConfig.class);

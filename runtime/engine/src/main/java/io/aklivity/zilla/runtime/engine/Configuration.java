@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.cog;
+package io.aklivity.zilla.runtime.engine;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.echo.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
 final class EchoCog implements Cog
@@ -45,8 +45,8 @@ final class EchoCog implements Cog
     }
 
     @Override
-    public EchoAxle supplyAxle(
-        AxleContext context)
+    public EchoAxle supply(
+        EngineContext context)
     {
         return new EchoAxle(config, context);
     }

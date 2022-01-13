@@ -132,7 +132,7 @@ import io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.mqtt.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
@@ -347,7 +347,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
     public MqttServerFactory(
         MqttConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);

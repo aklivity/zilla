@@ -46,8 +46,8 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.Engine;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

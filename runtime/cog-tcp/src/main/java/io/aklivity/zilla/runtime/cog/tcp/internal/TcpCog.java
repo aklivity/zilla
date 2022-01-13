@@ -20,9 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 
 public final class TcpCog implements Cog
 {
@@ -53,8 +53,8 @@ public final class TcpCog implements Cog
     }
 
     @Override
-    public Axle supplyAxle(
-        AxleContext context)
+    public CogContext supply(
+        EngineContext context)
     {
         return new TcpAxle(config, context, this::supplyServer);
     }

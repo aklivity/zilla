@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.aklivity.zilla.runtime.cog.kafka.internal.cache.KafkaCache;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
 public final class KafkaCog implements Cog
@@ -50,8 +50,8 @@ public final class KafkaCog implements Cog
     }
 
     @Override
-    public KafkaAxle supplyAxle(
-        AxleContext context)
+    public KafkaAxle supply(
+        EngineContext context)
     {
         return new KafkaAxle(config, context, this::supplyCache);
     }

@@ -57,7 +57,7 @@ import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.tcp.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
@@ -84,7 +84,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
     private final ProxyBeginExFW.Builder beginExRW = new ProxyBeginExFW.Builder();
 
-    private final AxleContext context;
+    private final EngineContext context;
     private final TcpServerRouter router;
 
     private final LongUnaryOperator supplyInitialId;
@@ -104,7 +104,7 @@ public class TcpServerFactory implements TcpStreamFactory
 
     public TcpServerFactory(
         TcpConfiguration config,
-        AxleContext context,
+        EngineContext context,
         LongFunction<TcpServerBindingConfig> servers)
     {
         this.context = context;

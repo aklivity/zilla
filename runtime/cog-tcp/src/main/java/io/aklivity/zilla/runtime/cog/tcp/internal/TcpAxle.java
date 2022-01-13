@@ -26,19 +26,19 @@ import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpClientFactory;
 import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpServerFactory;
 import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpStreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class TcpAxle implements Axle
+final class TcpAxle implements CogContext
 {
     private final Map<RoleConfig, TcpStreamFactory> factories;
 
     TcpAxle(
         TcpConfiguration config,
-        AxleContext context,
+        EngineContext context,
         LongFunction<TcpServerBindingConfig> servers)
     {
         Map<RoleConfig, TcpStreamFactory> factories = new EnumMap<>(RoleConfig.class);

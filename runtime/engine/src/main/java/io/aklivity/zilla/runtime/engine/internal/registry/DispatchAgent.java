@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.context;
+package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler.NO_CANCEL_ID;
@@ -73,9 +73,9 @@ import org.agrona.concurrent.status.CountersManager;
 import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
@@ -111,8 +111,10 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
-public class DispatchAgent implements AxleContext, Agent
+public class DispatchAgent implements EngineContext, Agent
 {
     private static final int SIGNAL_TASK_QUEUED = 1;
 
@@ -172,7 +174,7 @@ public class DispatchAgent implements AxleContext, Agent
     private final AxleSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
 
-    private final ConfigurationContext configuration;
+    private final ConfigurationRegistry configuration;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
@@ -191,6 +193,7 @@ public class DispatchAgent implements AxleContext, Agent
         ErrorHandler errorHandler,
         LongUnaryOperator affinityMask,
         Collection<Cog> cogs,
+        Collection<Vault> vaults,
         int index)
     {
         this.localIndex = index;
@@ -291,14 +294,23 @@ public class DispatchAgent implements AxleContext, Agent
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
         this.countersByName = new HashMap<>();
 
-        Map<String, Axle> axlesByName = new LinkedHashMap<>();
-        for (Cog cog: cogs)
+        Map<String, CogContext> bindingsByName = new LinkedHashMap<>();
+        for (Cog cog : cogs)
         {
             String name = cog.name();
-            axlesByName.put(name, cog.supplyAxle(this));
+            bindingsByName.put(name, cog.supply(this));
         }
 
-        this.configuration = new ConfigurationContext(axlesByName::get, labels::supplyLabelId, supplyLoadEntry::apply);
+        Map<String, VaultContext> vaultsByName = new LinkedHashMap<>();
+        for (Vault vault : vaults)
+        {
+            String name = vault.name();
+            vaultsByName.put(name, vault.supply(this));
+        }
+
+        this.configuration = new ConfigurationRegistry(
+                bindingsByName::get, vaultsByName::get,
+                labels::supplyLabelId, supplyLoadEntry::apply);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
@@ -464,11 +476,11 @@ public class DispatchAgent implements AxleContext, Agent
     }
 
     @Override
-    public Vault supplyVault(
+    public VaultHandler supplyVault(
         long vaultId)
     {
-        VaultContext vault = configuration.resolveVault(vaultId);
-        return vault != null ? vault.vaultFactory() : null;
+        VaultRegistry vault = configuration.resolveVault(vaultId);
+        return vault != null ? vault.handler() : null;
     }
 
     @Override
@@ -1216,7 +1228,7 @@ public class DispatchAgent implements AxleContext, Agent
 
         MessageConsumer newStream = null;
 
-        BindingContext binding = configuration.resolveBinding(routeId);
+        BindingRegistry binding = configuration.resolveBinding(routeId);
         final StreamFactory streamFactory = binding != null ? binding.streamFactory() : null;
         if (streamFactory != null)
         {

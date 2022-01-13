@@ -55,7 +55,7 @@ import io.aklivity.zilla.runtime.cog.tls.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
-import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsBindingConfig
 {
@@ -84,7 +84,7 @@ public final class TlsBindingConfig
     }
 
     public void init(
-        Vault vault,
+        VaultHandler vault,
         boolean ignoreEmptyVaultRefs,
         String keyManagerAlgorithm,
         SecureRandom random)
@@ -365,7 +365,7 @@ public final class TlsBindingConfig
     }
 
     private KeyStore newKeys(
-        Vault vault,
+        VaultHandler vault,
         boolean ignoreEmptyNames,
         char[] password,
         List<String> keyNames,
@@ -433,7 +433,7 @@ public final class TlsBindingConfig
     }
 
     private KeyStore newTrust(
-        Vault vault,
+        VaultHandler vault,
         boolean ignoreEmptyNames,
         List<String> trustNames,
         boolean trustcacerts)

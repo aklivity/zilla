@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
+
 public final class CogFactory
 {
     private final Map<String, CogFactorySpi> factorySpis;

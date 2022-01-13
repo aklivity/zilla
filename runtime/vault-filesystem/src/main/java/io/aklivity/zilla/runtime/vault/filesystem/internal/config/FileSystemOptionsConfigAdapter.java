@@ -22,7 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemCog;
+import io.aklivity.zilla.runtime.vault.filesystem.internal.FileSystemVault;
 
 public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -35,7 +35,7 @@ public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapte
     @Override
     public String type()
     {
-        return FileSystemCog.NAME;
+        return FileSystemVault.NAME;
     }
 
     @Override

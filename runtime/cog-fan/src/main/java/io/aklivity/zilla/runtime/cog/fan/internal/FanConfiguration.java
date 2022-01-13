@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.cog.fan.internal;
 
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class FanConfiguration extends Configuration
 {

@@ -24,19 +24,19 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.cog.http.internal.stream.HttpClientFactory;
 import io.aklivity.zilla.runtime.cog.http.internal.stream.HttpServerFactory;
 import io.aklivity.zilla.runtime.cog.http.internal.stream.HttpStreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class HttpAxle implements Axle
+final class HttpAxle implements CogContext
 {
     private final Map<RoleConfig, HttpStreamFactory> factories;
 
     HttpAxle(
         HttpConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         Map<RoleConfig, HttpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(CLIENT, new HttpClientFactory(config, context));

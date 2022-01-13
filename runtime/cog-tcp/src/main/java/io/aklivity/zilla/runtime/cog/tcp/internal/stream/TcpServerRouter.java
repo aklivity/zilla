@@ -32,7 +32,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.runtime.cog.tcp.internal.TcpConfiguration;
 import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpBindingConfig;
 import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.poller.PollerKey;
 
 public final class TcpServerRouter
@@ -47,7 +47,7 @@ public final class TcpServerRouter
 
     public TcpServerRouter(
         TcpConfiguration config,
-        AxleContext context,
+        EngineContext context,
         ToIntFunction<PollerKey> acceptHandler,
         LongFunction<TcpServerBindingConfig> lookupServer)
     {

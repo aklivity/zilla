@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.cog.tls.internal;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 import io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public final class TlsCogFactorySpi implements CogFactorySpi
 {

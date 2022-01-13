@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.cog.http.internal;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.cog.CogFactorySpi;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public final class HttpCogFactorySpi implements CogFactorySpi
 {

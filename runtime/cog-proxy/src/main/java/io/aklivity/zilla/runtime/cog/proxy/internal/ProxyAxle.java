@@ -24,19 +24,19 @@ import java.util.Map;
 import io.aklivity.zilla.runtime.cog.proxy.internal.stream.ProxyClientFactory;
 import io.aklivity.zilla.runtime.cog.proxy.internal.stream.ProxyServerFactory;
 import io.aklivity.zilla.runtime.cog.proxy.internal.stream.ProxyStreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class ProxyAxle implements Axle
+final class ProxyAxle implements CogContext
 {
     private final Map<RoleConfig, ProxyStreamFactory> factories;
 
     ProxyAxle(
         ProxyConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         final EnumMap<RoleConfig, ProxyStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(SERVER, new ProxyServerFactory(config, context));

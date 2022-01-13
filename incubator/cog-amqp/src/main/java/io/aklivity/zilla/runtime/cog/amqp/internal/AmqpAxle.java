@@ -22,19 +22,19 @@ import java.util.Map;
 
 import io.aklivity.zilla.runtime.cog.amqp.internal.stream.AmqpServerFactory;
 import io.aklivity.zilla.runtime.cog.amqp.internal.stream.AmqpStreamFactory;
-import io.aklivity.zilla.runtime.engine.cog.Axle;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class AmqpAxle implements Axle
+final class AmqpAxle implements CogContext
 {
     private final Map<RoleConfig, AmqpStreamFactory> factories;
 
     AmqpAxle(
         AmqpConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         Map<RoleConfig, AmqpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
         factories.put(SERVER, new AmqpServerFactory(config, context));

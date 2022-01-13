@@ -19,7 +19,7 @@ import java.util.function.LongFunction;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
 
 public final class KafkaMergedBudgetAccountant
@@ -30,7 +30,7 @@ public final class KafkaMergedBudgetAccountant
     private final Long2ObjectHashMap<KafkaMergedBudget> budgetsByMergedId;
 
     public KafkaMergedBudgetAccountant(
-        AxleContext context)
+        EngineContext context)
     {
         this.supplyDebitor = context::supplyDebitor;
         this.budgetsByMergedId = new Long2ObjectHashMap<>();

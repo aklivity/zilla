@@ -33,7 +33,7 @@ import io.aklivity.zilla.runtime.cog.echo.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.cog.echo.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.cog.echo.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.echo.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -67,7 +67,7 @@ public final class EchoServerFactory implements StreamFactory
 
     public EchoServerFactory(
         EchoConfiguration config,
-        AxleContext context,
+        EngineContext context,
         EchoRouter router)
     {
         this.writeBuffer = requireNonNull(context.writeBuffer());

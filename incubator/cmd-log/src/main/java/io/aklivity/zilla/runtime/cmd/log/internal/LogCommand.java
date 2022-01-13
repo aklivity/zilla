@@ -32,8 +32,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
 import io.aklivity.zilla.runtime.cmd.log.internal.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public final class LogCommand
 {

@@ -60,7 +60,7 @@ import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsBeginExFW;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsDataExFW;
 import io.aklivity.zilla.runtime.cog.ws.internal.types.stream.WsEndExFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -123,7 +123,7 @@ public final class WsServerFactory implements WsStreamFactory
 
     public WsServerFactory(
         WsConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
         this.streamFactory = context.streamFactory();

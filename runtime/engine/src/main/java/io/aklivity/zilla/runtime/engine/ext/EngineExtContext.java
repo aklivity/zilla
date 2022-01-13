@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.ext;
 
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineStats;
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
 
 public interface EngineExtContext
 {

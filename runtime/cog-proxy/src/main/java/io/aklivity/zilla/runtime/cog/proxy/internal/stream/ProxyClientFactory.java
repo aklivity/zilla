@@ -59,7 +59,7 @@ import io.aklivity.zilla.runtime.cog.proxy.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.proxy.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
@@ -109,7 +109,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     public ProxyClientFactory(
         ProxyConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         this.router = new ProxyRouter(context.supplyTypeId(ProxyCog.NAME));
         this.writeBuffer = context.writeBuffer();

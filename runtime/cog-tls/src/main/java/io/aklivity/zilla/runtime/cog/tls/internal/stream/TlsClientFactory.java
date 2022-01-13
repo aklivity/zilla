@@ -62,14 +62,14 @@ import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.tls.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.cog.buffer.CountingBufferPool;
 import io.aklivity.zilla.runtime.engine.cog.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsClientFactory implements TlsStreamFactory
 {
@@ -127,7 +127,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     private final BufferPool encodePool;
     private final String keyManagerAlgorithm;
     private final boolean ignoreEmptyVaultRefs;
-    private final LongFunction<Vault> supplyVault;
+    private final LongFunction<VaultHandler> supplyVault;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final int initialPadAdjust;
@@ -151,7 +151,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
     public TlsClientFactory(
         TlsConfiguration config,
-        AxleContext context,
+        EngineContext context,
         TlsCounters counters)
     {
         this.proxyTypeId = context.supplyTypeId("proxy");
@@ -193,7 +193,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     {
         TlsBindingConfig tlsBinding = new TlsBindingConfig(binding);
 
-        Vault vault = supplyVault.apply(tlsBinding.vaultId);
+        VaultHandler vault = supplyVault.apply(tlsBinding.vaultId);
 
         if (vault != null)
         {

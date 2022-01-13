@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.context;
+package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;

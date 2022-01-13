@@ -171,7 +171,7 @@ import io.aklivity.zilla.runtime.cog.amqp.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.cog.amqp.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.cog.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.cog.buffer.BufferPool;
@@ -476,7 +476,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
     public AmqpServerFactory(
         AmqpConfiguration config,
-        AxleContext context)
+        EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);

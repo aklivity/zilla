@@ -19,7 +19,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2LongHashMap;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -59,11 +59,11 @@ final class TestStreamFactory implements StreamFactory
     private final ChallengeFW challengeRO = new ChallengeFW();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
 
-    private final AxleContext context;
+    private final EngineContext context;
     private final Long2LongHashMap router;
 
     TestStreamFactory(
-        AxleContext context)
+        EngineContext context)
     {
         this.context = context;
         this.router = new Long2LongHashMap(-1L);

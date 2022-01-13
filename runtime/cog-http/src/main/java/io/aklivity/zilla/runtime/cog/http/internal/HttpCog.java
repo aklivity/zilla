@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.http.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.Cog;
 
 public final class HttpCog implements Cog
@@ -45,8 +45,8 @@ public final class HttpCog implements Cog
     }
 
     @Override
-    public HttpAxle supplyAxle(
-        AxleContext context)
+    public HttpAxle supply(
+        EngineContext context)
     {
         return new HttpAxle(config, context);
     }

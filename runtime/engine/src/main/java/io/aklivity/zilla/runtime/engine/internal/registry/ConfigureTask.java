@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.context;
+package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
@@ -61,14 +61,14 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.Configuration;
 import io.aklivity.zilla.runtime.engine.internal.config.ConfigurationAdapter;
-import io.aklivity.zilla.runtime.engine.internal.context.json.UniquePropertyKeysSchema;
+import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
 
 public class ConfigureTask implements Callable<Void>
 {
     private final URL configURL;
-    private final Collection<URL> cogTypes;
+    private final Collection<URL> schemaTypes;
     private final ToIntFunction<String> supplyId;
     private final Tuning tuning;
     private final Collection<DispatchAgent> dispatchers;
@@ -79,7 +79,7 @@ public class ConfigureTask implements Callable<Void>
 
     public ConfigureTask(
         URL configURL,
-        Collection<URL> cogTypes,
+        Collection<URL> schemaTypes,
         ToIntFunction<String> supplyId,
         Tuning tuning,
         Collection<DispatchAgent> dispatchers,
@@ -89,7 +89,7 @@ public class ConfigureTask implements Callable<Void>
         List<EngineExtSpi> extensions)
     {
         this.configURL = configURL;
-        this.cogTypes = cogTypes;
+        this.schemaTypes = schemaTypes;
         this.supplyId = supplyId;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
@@ -151,7 +151,7 @@ public class ConfigureTask implements Callable<Void>
             JsonReader schemaReader = schemaProvider.createReader(schemaInput);
             JsonObject schemaObject = schemaReader.readObject();
 
-            for (URL cogType : cogTypes)
+            for (URL cogType : schemaTypes)
             {
                 InputStream schemaPatchInput = cogType.openStream();
                 JsonReader schemaPatchReader = schemaProvider.createReader(schemaPatchInput);

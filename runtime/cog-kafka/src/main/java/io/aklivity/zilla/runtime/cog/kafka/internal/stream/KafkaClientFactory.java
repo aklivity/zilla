@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.cog.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.cog.kafka.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.engine.cog.AxleContext;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -46,7 +46,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
 
     public KafkaClientFactory(
         KafkaConfiguration config,
-        AxleContext context,
+        EngineContext context,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
         final Long2ObjectHashMap<KafkaBindingConfig> bindings = new Long2ObjectHashMap<>();

@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.cog.mqtt.internal;
 
 import java.util.concurrent.TimeUnit;
 
-import io.aklivity.zilla.runtime.engine.cog.Configuration;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MqttConfiguration extends Configuration
 {

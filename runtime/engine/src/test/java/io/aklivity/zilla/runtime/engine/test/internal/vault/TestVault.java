@@ -15,31 +15,38 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.vault;
 
-import java.security.KeyStore.PrivateKeyEntry;
-import java.security.KeyStore.TrustedCertificateEntry;
+import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
+import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public final class TestVault implements Vault
 {
+    public static final String NAME = "test";
+
     public TestVault(
-        VaultConfig vault)
+        Configuration config)
     {
     }
 
     @Override
-    public PrivateKeyEntry key(
-        String name)
+    public String name()
+    {
+        return NAME;
+    }
+
+    @Override
+    public URL type()
     {
         return null;
     }
 
     @Override
-    public TrustedCertificateEntry certificate(
-        String name)
+    public VaultContext supply(
+        EngineContext context)
     {
-        return null;
+        return new TestVaultContext(context);
     }
-
 }
