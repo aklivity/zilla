@@ -32,8 +32,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class EngineIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/cog/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/cog/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -42,7 +42,7 @@ public class EngineIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
-        .configurationRoot("io/aklivity/zilla/specs/cog/config")
+        .configurationRoot("io/aklivity/zilla/specs/engine/config")
         .external("app0")
         .clean();
 

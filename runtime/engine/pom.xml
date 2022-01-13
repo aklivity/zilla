@@ -33,7 +33,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>cog.spec</artifactId>
+      <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -152,16 +152,16 @@
               <artifactItems>
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>cog.spec</artifactId>
+                  <artifactId>engine.spec</artifactId>
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/cog/\E</pattern>
+                       <pattern>^\Qio/aklivity/zilla/specs/engine/\E</pattern>
                        <replacement>io/aklivity/zilla/runtime/engine/internal/</replacement>
                      </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/cog/schema/core.json</includes>
+              <includes>io/aklivity/zilla/specs/engine/schema/core.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>
@@ -175,16 +175,16 @@
               <artifactItems>
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>cog.spec</artifactId>
+                  <artifactId>engine.spec</artifactId>
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/cog/\E</pattern>
+                       <pattern>^\Qio/aklivity/zilla/specs/engine/\E</pattern>
                        <replacement>io/aklivity/zilla/runtime/engine/test/internal/cog/</replacement>
                      </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/cog/schema/test.json</includes>
+              <includes>io/aklivity/zilla/specs/engine/schema/test.json</includes>
               <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
             </configuration>
           </execution>

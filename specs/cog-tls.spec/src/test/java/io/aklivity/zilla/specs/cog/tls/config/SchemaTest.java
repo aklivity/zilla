@@ -25,7 +25,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
-import io.aklivity.zilla.specs.cog.config.ConfigSchemaRule;
+import io.aklivity.zilla.specs.engine.config.ConfigSchemaRule;
 
 public class SchemaTest
 {
