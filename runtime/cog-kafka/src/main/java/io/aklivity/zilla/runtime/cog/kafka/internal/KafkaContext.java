@@ -38,13 +38,13 @@ import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class KafkaAxle implements CogContext
+final class KafkaContext implements CogContext
 {
     private final Long2ObjectHashMap<KafkaClientRoute> clientRoutesById;
     private final Long2ObjectHashMap<KafkaCacheRoute> cacheRoutesById;
     private final Map<RoleConfig, KafkaStreamFactory> factories;
 
-    KafkaAxle(
+    KafkaContext(
         KafkaConfiguration config,
         EngineContext context,
         Function<String, KafkaCache> supplyCache)

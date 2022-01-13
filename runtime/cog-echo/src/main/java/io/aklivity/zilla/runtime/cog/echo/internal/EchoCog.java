@@ -45,9 +45,9 @@ final class EchoCog implements Cog
     }
 
     @Override
-    public EchoAxle supply(
+    public EchoContext supply(
         EngineContext context)
     {
-        return new EchoAxle(config, context);
+        return new EchoContext(config, context);
     }
 }

@@ -45,9 +45,9 @@ public final class WsCog implements Cog
     }
 
     @Override
-    public WsAxle supply(
+    public WsContext supply(
         EngineContext context)
     {
-        return new WsAxle(config, context);
+        return new WsContext(config, context);
     }
 }

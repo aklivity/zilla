@@ -75,13 +75,13 @@ public class NamespaceRegistry
     private void attachBinding(
         BindingConfig binding)
     {
-        CogContext axle = bindingsByName.apply(binding.type);
-        assert axle != null : "Missing cog kind: " + binding.type;
+        CogContext context = bindingsByName.apply(binding.type);
+        assert context != null : "Missing cog kind: " + binding.type;
 
         int bindingId = supplyLabelId.applyAsInt(binding.entry);
-        BindingRegistry context = new BindingRegistry(binding, axle);
-        bindingsById.put(bindingId, context);
-        context.attach();
+        BindingRegistry registry = new BindingRegistry(binding, context);
+        bindingsById.put(bindingId, registry);
+        registry.attach();
         supplyLoadEntry.accept(binding.id);
     }
 

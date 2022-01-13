@@ -45,9 +45,9 @@ public final class ProxyCog implements Cog
     }
 
     @Override
-    public ProxyAxle supply(
+    public ProxyContext supply(
         EngineContext context)
     {
-        return new ProxyAxle(config, context);
+        return new ProxyContext(config, context);
     }
 }

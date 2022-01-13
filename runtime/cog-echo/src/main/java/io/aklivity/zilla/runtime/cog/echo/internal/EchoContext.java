@@ -27,12 +27,12 @@ import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class EchoAxle implements CogContext
+final class EchoContext implements CogContext
 {
     private final EchoRouter router;
     private final Map<RoleConfig, StreamFactory> factories;
 
-    EchoAxle(
+    EchoContext(
         EchoConfiguration config,
         EngineContext context)
     {

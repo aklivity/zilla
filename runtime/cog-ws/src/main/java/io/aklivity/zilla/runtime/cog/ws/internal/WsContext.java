@@ -13,38 +13,34 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.tls.internal;
+package io.aklivity.zilla.runtime.cog.ws.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.PROXY;
 import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsClientFactory;
-import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsProxyFactory;
-import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsServerFactory;
-import io.aklivity.zilla.runtime.cog.tls.internal.stream.TlsStreamFactory;
+import io.aklivity.zilla.runtime.cog.ws.internal.stream.WsClientFactory;
+import io.aklivity.zilla.runtime.cog.ws.internal.stream.WsServerFactory;
+import io.aklivity.zilla.runtime.cog.ws.internal.stream.WsStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class TlsAxle implements CogContext
+final class WsContext implements CogContext
 {
-    private final Map<RoleConfig, TlsStreamFactory> factories;
+    private final Map<RoleConfig, WsStreamFactory> factories;
 
-    TlsAxle(
-        TlsConfiguration config,
+    WsContext(
+        WsConfiguration config,
         EngineContext context)
     {
-        TlsCounters counters = new TlsCounters(context::supplyCounter, context::supplyAccumulator);
-        Map<RoleConfig, TlsStreamFactory> factories = new EnumMap<>(RoleConfig.class);
-        factories.put(SERVER, new TlsServerFactory(config, context, counters));
-        factories.put(PROXY, new TlsProxyFactory(config, context, counters));
-        factories.put(CLIENT, new TlsClientFactory(config, context, counters));
+        final Map<RoleConfig, WsStreamFactory> factories = new EnumMap<>(RoleConfig.class);
+        factories.put(SERVER, new WsServerFactory(config, context));
+        factories.put(CLIENT, new WsClientFactory(config, context));
         this.factories = factories;
     }
 
@@ -52,11 +48,13 @@ final class TlsAxle implements CogContext
     public StreamFactory attach(
         BindingConfig binding)
     {
-        TlsStreamFactory factory = factories.get(binding.kind);
+        WsStreamFactory factory = factories.get(binding.kind);
+
         if (factory != null)
         {
             factory.attach(binding);
         }
+
         return factory;
     }
 
@@ -64,10 +62,17 @@ final class TlsAxle implements CogContext
     public void detach(
         BindingConfig binding)
     {
-        TlsStreamFactory factory = factories.get(binding.kind);
+        WsStreamFactory factory = factories.get(binding.kind);
+
         if (factory != null)
         {
             factory.detach(binding.id);
         }
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("%s %s", getClass().getSimpleName(), factories);
     }
 }

@@ -45,9 +45,9 @@ public final class AmqpCog implements Cog
     }
 
     @Override
-    public AmqpAxle supply(
+    public AmqpContext supply(
         EngineContext context)
     {
-        return new AmqpAxle(config, context);
+        return new AmqpContext(config, context);
     }
 }

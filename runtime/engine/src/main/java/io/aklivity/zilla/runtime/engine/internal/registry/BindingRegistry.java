@@ -22,26 +22,26 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 final class BindingRegistry
 {
     private final BindingConfig binding;
-    private final CogContext axle;
+    private final CogContext context;
 
     private StreamFactory attached;
 
     BindingRegistry(
         BindingConfig binding,
-        CogContext axle)
+        CogContext context)
     {
         this.binding = binding;
-        this.axle = axle;
+        this.context = context;
     }
 
     public void attach()
     {
-        attached = axle.attach(binding);
+        attached = context.attach(binding);
     }
 
     public void detach()
     {
-        axle.detach(binding);
+        context.detach(binding);
         attached = null;
     }
 

@@ -13,31 +13,32 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.amqp.internal;
+package io.aklivity.zilla.runtime.cog.mqtt.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.cog.amqp.internal.stream.AmqpServerFactory;
-import io.aklivity.zilla.runtime.cog.amqp.internal.stream.AmqpStreamFactory;
+import io.aklivity.zilla.runtime.cog.mqtt.internal.stream.MqttServerFactory;
+import io.aklivity.zilla.runtime.cog.mqtt.internal.stream.MqttStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class AmqpAxle implements CogContext
+final class MqttContext implements CogContext
 {
-    private final Map<RoleConfig, AmqpStreamFactory> factories;
+    private final Map<RoleConfig, MqttStreamFactory> factories;
 
-    AmqpAxle(
-        AmqpConfiguration config,
+    MqttContext(
+        MqttConfiguration config,
         EngineContext context)
     {
-        Map<RoleConfig, AmqpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
-        factories.put(SERVER, new AmqpServerFactory(config, context));
+        final EnumMap<RoleConfig, MqttStreamFactory> factories = new EnumMap<>(RoleConfig.class);
+        factories.put(SERVER, new MqttServerFactory(config, context));
+        //factories.put(CLIENT, new MqttClientFactory(config, context));
         this.factories = factories;
     }
 
@@ -45,7 +46,7 @@ final class AmqpAxle implements CogContext
     public StreamFactory attach(
         BindingConfig binding)
     {
-        AmqpStreamFactory factory = factories.get(binding.kind);
+        MqttStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {
@@ -59,7 +60,7 @@ final class AmqpAxle implements CogContext
     public void detach(
         BindingConfig binding)
     {
-        AmqpStreamFactory factory = factories.get(binding.kind);
+        MqttStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {

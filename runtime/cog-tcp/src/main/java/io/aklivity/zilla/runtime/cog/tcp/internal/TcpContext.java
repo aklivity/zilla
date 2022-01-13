@@ -13,34 +13,38 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.proxy.internal;
+package io.aklivity.zilla.runtime.cog.tcp.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.cog.proxy.internal.stream.ProxyClientFactory;
-import io.aklivity.zilla.runtime.cog.proxy.internal.stream.ProxyServerFactory;
-import io.aklivity.zilla.runtime.cog.proxy.internal.stream.ProxyStreamFactory;
+import io.aklivity.zilla.runtime.cog.tcp.internal.config.TcpServerBindingConfig;
+import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpClientFactory;
+import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpServerFactory;
+import io.aklivity.zilla.runtime.cog.tcp.internal.stream.TcpStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class ProxyAxle implements CogContext
+final class TcpContext implements CogContext
 {
-    private final Map<RoleConfig, ProxyStreamFactory> factories;
+    private final Map<RoleConfig, TcpStreamFactory> factories;
 
-    ProxyAxle(
-        ProxyConfiguration config,
-        EngineContext context)
+    TcpContext(
+        TcpConfiguration config,
+        EngineContext context,
+        LongFunction<TcpServerBindingConfig> servers)
     {
-        final EnumMap<RoleConfig, ProxyStreamFactory> factories = new EnumMap<>(RoleConfig.class);
-        factories.put(SERVER, new ProxyServerFactory(config, context));
-        factories.put(CLIENT, new ProxyClientFactory(config, context));
+        Map<RoleConfig, TcpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
+        factories.put(SERVER, new TcpServerFactory(config, context, servers));
+        factories.put(CLIENT, new TcpClientFactory(config, context));
+
         this.factories = factories;
     }
 
@@ -48,22 +52,23 @@ final class ProxyAxle implements CogContext
     public StreamFactory attach(
         BindingConfig binding)
     {
-        ProxyStreamFactory factory = factories.get(binding.kind);
-        if (factory != null)
+        TcpStreamFactory tcpFactory = factories.get(binding.kind);
+        if (tcpFactory != null)
         {
-            factory.attach(binding);
+            assert TcpCog.NAME.equals(binding.type);
+            tcpFactory.attach(binding);
         }
-        return factory;
+        return tcpFactory;
     }
 
     @Override
     public void detach(
         BindingConfig binding)
     {
-        ProxyStreamFactory factory = factories.get(binding.kind);
-        if (factory != null)
+        TcpStreamFactory tcpFactory = factories.get(binding.kind);
+        if (tcpFactory != null)
         {
-            factory.detach(binding.id);
+            tcpFactory.detach(binding.id);
         }
     }
 }

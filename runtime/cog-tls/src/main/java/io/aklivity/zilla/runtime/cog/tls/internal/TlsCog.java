@@ -45,9 +45,9 @@ public final class TlsCog implements Cog
     }
 
     @Override
-    public TlsAxle supply(
+    public TlsContext supply(
         EngineContext context)
     {
-        return new TlsAxle(config, context);
+        return new TlsContext(config, context);
     }
 }

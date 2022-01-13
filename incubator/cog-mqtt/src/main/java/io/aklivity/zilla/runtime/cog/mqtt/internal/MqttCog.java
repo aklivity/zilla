@@ -45,9 +45,9 @@ public final class MqttCog implements Cog
     }
 
     @Override
-    public MqttAxle supply(
+    public MqttContext supply(
         EngineContext context)
     {
-        return new MqttAxle(config, context);
+        return new MqttContext(config, context);
     }
 }

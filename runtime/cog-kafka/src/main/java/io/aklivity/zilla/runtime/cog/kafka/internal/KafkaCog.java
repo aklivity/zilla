@@ -50,10 +50,10 @@ public final class KafkaCog implements Cog
     }
 
     @Override
-    public KafkaAxle supply(
+    public KafkaContext supply(
         EngineContext context)
     {
-        return new KafkaAxle(config, context, this::supplyCache);
+        return new KafkaContext(config, context, this::supplyCache);
     }
 
     public KafkaCache supplyCache(

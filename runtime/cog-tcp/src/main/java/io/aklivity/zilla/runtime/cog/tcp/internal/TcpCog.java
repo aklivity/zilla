@@ -56,7 +56,7 @@ public final class TcpCog implements Cog
     public CogContext supply(
         EngineContext context)
     {
-        return new TcpAxle(config, context, this::supplyServer);
+        return new TcpContext(config, context, this::supplyServer);
     }
 
     private TcpServerBindingConfig supplyServer(

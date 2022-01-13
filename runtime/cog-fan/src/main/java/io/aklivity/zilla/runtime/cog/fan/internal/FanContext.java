@@ -28,11 +28,11 @@ import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class FanAxle implements CogContext
+final class FanContext implements CogContext
 {
     private final Map<RoleConfig, FanStreamFactory> factories;
 
-    FanAxle(
+    FanContext(
         FanConfiguration config,
         EngineContext context)
     {

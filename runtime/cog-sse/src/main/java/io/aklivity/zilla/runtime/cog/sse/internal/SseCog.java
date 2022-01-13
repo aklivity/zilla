@@ -45,9 +45,9 @@ public final class SseCog implements Cog
     }
 
     @Override
-    public SseAxle supply(
+    public SseContext supply(
         EngineContext context)
     {
-        return new SseAxle(config, context);
+        return new SseContext(config, context);
     }
 }

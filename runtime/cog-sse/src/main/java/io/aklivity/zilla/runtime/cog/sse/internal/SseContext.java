@@ -13,42 +13,37 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.cog.http.internal;
+package io.aklivity.zilla.runtime.cog.sse.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static java.util.Collections.singletonMap;
 
-import java.util.EnumMap;
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.cog.http.internal.stream.HttpClientFactory;
-import io.aklivity.zilla.runtime.cog.http.internal.stream.HttpServerFactory;
-import io.aklivity.zilla.runtime.cog.http.internal.stream.HttpStreamFactory;
+import io.aklivity.zilla.runtime.cog.sse.internal.stream.SseServerFactory;
+import io.aklivity.zilla.runtime.cog.sse.internal.stream.SseStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.cog.CogContext;
 import io.aklivity.zilla.runtime.engine.cog.stream.StreamFactory;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 
-final class HttpAxle implements CogContext
+final class SseContext implements CogContext
 {
-    private final Map<RoleConfig, HttpStreamFactory> factories;
+    private final Map<RoleConfig, SseStreamFactory> factories;
 
-    HttpAxle(
-        HttpConfiguration config,
+    SseContext(
+        SseConfiguration config,
         EngineContext context)
     {
-        Map<RoleConfig, HttpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
-        factories.put(CLIENT, new HttpClientFactory(config, context));
-        factories.put(SERVER, new HttpServerFactory(config, context));
-        this.factories = factories;
+        this.factories = singletonMap(SERVER, new SseServerFactory(config, context));
     }
 
     @Override
     public StreamFactory attach(
         BindingConfig binding)
     {
-        HttpStreamFactory factory = factories.get(binding.kind);
+        final SseStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {
@@ -62,7 +57,7 @@ final class HttpAxle implements CogContext
     public void detach(
         BindingConfig binding)
     {
-        HttpStreamFactory factory = factories.get(binding.kind);
+        final SseStreamFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {

@@ -45,9 +45,9 @@ public final class HttpCog implements Cog
     }
 
     @Override
-    public HttpAxle supply(
+    public HttpContext supply(
         EngineContext context)
     {
-        return new HttpAxle(config, context);
+        return new HttpContext(config, context);
     }
 }
