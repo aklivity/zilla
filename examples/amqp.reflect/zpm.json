@@ -19,7 +19,7 @@
     "io.aklivity.zilla:binding-fan",
     "io.aklivity.zilla:cog-amqp",
     "io.aklivity.zilla:cog-tls",
-    "io.aklivity.zilla:cog-tcp",
+    "io.aklivity.zilla:binding-tcp",
     "io.aklivity.zilla:cli",
     "io.aklivity.zilla:cmd-start",
     "io.aklivity.zilla:cmd-tune",

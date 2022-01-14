@@ -22,7 +22,7 @@
     <module>binding-echo</module>
     <module>binding-fan</module>
     <module>binding-proxy</module>
-    <module>cog-tcp</module>
+    <module>binding-tcp</module>
     <module>cog-tls</module>
     <module>binding-http</module>
     <module>cog-sse</module>
@@ -63,7 +63,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-tcp</artifactId>
+        <artifactId>binding-tcp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

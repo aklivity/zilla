@@ -16,7 +16,7 @@
     "io.aklivity.zilla:engine",
     "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:binding-fan",
-    "io.aklivity.zilla:cog-tcp",
+    "io.aklivity.zilla:binding-tcp",
     "io.aklivity.zilla:cli",
     "io.aklivity.zilla:cmd-start",
     "io.aklivity.zilla:cmd-tune",
