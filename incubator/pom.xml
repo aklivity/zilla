@@ -17,10 +17,10 @@
   <name>zilla::incubator</name>
 
   <modules>
-    <module>cog-amqp.spec</module>
+    <module>binding-amqp.spec</module>
     <module>cog-mqtt.spec</module>
 
-    <module>cog-amqp</module>
+    <module>binding-amqp</module>
     <module>cog-mqtt</module>
 
     <module>cmd-load</module>
@@ -31,7 +31,7 @@
     <dependencies>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-amqp</artifactId>
+        <artifactId>binding-amqp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
