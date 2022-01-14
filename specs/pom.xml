@@ -24,7 +24,7 @@
     <module>binding-tcp.spec</module>
     <module>binding-tls.spec</module>
     <module>binding-http.spec</module>
-    <module>cog-sse.spec</module>
+    <module>binding-sse.spec</module>
     <module>binding-ws.spec</module>
     <module>cog-kafka.spec</module>
     <module>vault-filesystem.spec</module>
@@ -69,7 +69,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-sse.spec</artifactId>
+        <artifactId>binding-sse.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

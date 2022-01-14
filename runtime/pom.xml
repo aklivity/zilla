@@ -25,7 +25,7 @@
     <module>binding-tcp</module>
     <module>binding-tls</module>
     <module>binding-http</module>
-    <module>cog-sse</module>
+    <module>binding-sse</module>
     <module>binding-ws</module>
     <module>cog-kafka</module>
     <module>cli</module>
@@ -78,7 +78,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-sse</artifactId>
+        <artifactId>binding-sse</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
