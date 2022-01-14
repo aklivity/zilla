@@ -20,7 +20,7 @@
     <module>engine.spec</module>
     <module>binding-echo.spec</module>
     <module>binding-fan.spec</module>
-    <module>cog-proxy.spec</module>
+    <module>binding-proxy.spec</module>
     <module>cog-tcp.spec</module>
     <module>cog-tls.spec</module>
     <module>cog-http.spec</module>
@@ -49,7 +49,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-proxy.spec</artifactId>
+        <artifactId>binding-proxy.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

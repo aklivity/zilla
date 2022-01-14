@@ -38,7 +38,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>cog-proxy.spec</artifactId>
+      <artifactId>binding-proxy.spec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
