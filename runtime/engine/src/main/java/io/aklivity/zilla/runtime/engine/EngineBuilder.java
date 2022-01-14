@@ -76,12 +76,12 @@ public class EngineBuilder
     {
         final EngineConfiguration config = new EngineConfiguration(this.config != null ? this.config : new Configuration());
 
-        final Set<Binding> cogs = new LinkedHashSet<>();
-        final BindingFactory cogFactory = BindingFactory.instantiate();
-        for (String name : cogFactory.names())
+        final Set<Binding> bindings = new LinkedHashSet<>();
+        final BindingFactory bindingFactory = BindingFactory.instantiate();
+        for (String name : bindingFactory.names())
         {
-            Binding cog = cogFactory.create(name, config);
-            cogs.add(cog);
+            Binding binding = bindingFactory.create(name, config);
+            bindings.add(binding);
         }
 
         final Set<Vault> vaults = new LinkedHashSet<>();
@@ -94,6 +94,6 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, cogs, vaults, errorHandler, configURL, affinities);
+        return new Engine(config, bindings, vaults, errorHandler, configURL, affinities);
     }
 }

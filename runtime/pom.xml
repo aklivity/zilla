@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>parent</artifactId>
-    <version>0.9.4</version>
+    <version>0.9.5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -19,19 +19,19 @@
   <modules>
     <module>engine</module>
     <module>vault-filesystem</module>
-    <module>cog-echo</module>
-    <module>cog-fan</module>
-    <module>cog-proxy</module>
-    <module>cog-tcp</module>
-    <module>cog-tls</module>
-    <module>cog-http</module>
-    <module>cog-sse</module>
-    <module>cog-ws</module>
-    <module>cog-kafka</module>
-    <module>cli</module>
-    <module>cmd-start</module>
-    <module>cmd-stop</module>
-    <module>cmd-tune</module>
+    <module>binding-echo</module>
+    <module>binding-fan</module>
+    <module>binding-proxy</module>
+    <module>binding-tcp</module>
+    <module>binding-tls</module>
+    <module>binding-http</module>
+    <module>binding-sse</module>
+    <module>binding-ws</module>
+    <module>binding-kafka</module>
+    <module>command</module>
+    <module>command-start</module>
+    <module>command-stop</module>
+    <module>command-tune</module>
   </modules>
 
   <dependencyManagement>
@@ -48,67 +48,67 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-echo</artifactId>
+        <artifactId>binding-echo</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-fan</artifactId>
+        <artifactId>binding-fan</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-proxy</artifactId>
+        <artifactId>binding-proxy</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-tcp</artifactId>
+        <artifactId>binding-tcp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-tls</artifactId>
+        <artifactId>binding-tls</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-http</artifactId>
+        <artifactId>binding-http</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-sse</artifactId>
+        <artifactId>binding-sse</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-ws</artifactId>
+        <artifactId>binding-ws</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-kafka</artifactId>
+        <artifactId>binding-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cli</artifactId>
+        <artifactId>command</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-start</artifactId>
+        <artifactId>command-start</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-stop</artifactId>
+        <artifactId>command-stop</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-tune</artifactId>
+        <artifactId>command-tune</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

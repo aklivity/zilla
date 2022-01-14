@@ -45,7 +45,7 @@ public final class BindingFactory
     {
         requireNonNull(name, "name");
 
-        BindingFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unregonized binding name: " + name);
+        BindingFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized binding name: " + name);
 
         return factorySpi.create(config);
     }

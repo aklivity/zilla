@@ -28,21 +28,21 @@ import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
 {
-    private final Function<String, BindingContext> bindingsByName;
-    private final Function<String, VaultContext> vaultsByName;
+    private final Function<String, BindingContext> bindingsByType;
+    private final Function<String, VaultContext> vaultsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
 
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
 
     public ConfigurationRegistry(
-        Function<String, BindingContext> bindingsByName,
-        Function<String, VaultContext> vaultsByName,
+        Function<String, BindingContext> bindingsByType,
+        Function<String, VaultContext> vaultsByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
-        this.bindingsByName = bindingsByName;
-        this.vaultsByName = vaultsByName;
+        this.bindingsByType = bindingsByType;
+        this.vaultsByType = vaultsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespacesById = new Int2ObjectHashMap<>();
@@ -96,7 +96,7 @@ public class ConfigurationRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, bindingsByName, vaultsByName, supplyLabelId, supplyLoadEntry);
+                new NamespaceRegistry(namespace, bindingsByType, vaultsByType, supplyLabelId, supplyLoadEntry);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

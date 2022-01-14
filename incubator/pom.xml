@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>parent</artifactId>
-    <version>0.9.4</version>
+    <version>0.9.5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -17,36 +17,36 @@
   <name>zilla::incubator</name>
 
   <modules>
-    <module>cog-amqp.spec</module>
-    <module>cog-mqtt.spec</module>
+    <module>binding-amqp.spec</module>
+    <module>binding-mqtt.spec</module>
 
-    <module>cog-amqp</module>
-    <module>cog-mqtt</module>
+    <module>binding-amqp</module>
+    <module>binding-mqtt</module>
 
-    <module>cmd-load</module>
-    <module>cmd-log</module>
+    <module>command-load</module>
+    <module>command-log</module>
   </modules>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-amqp</artifactId>
+        <artifactId>binding-amqp</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-mqtt</artifactId>
+        <artifactId>binding-mqtt</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-load</artifactId>
+        <artifactId>command-load</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-log</artifactId>
+        <artifactId>command-log</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

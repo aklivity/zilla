@@ -683,7 +683,7 @@ public final class ZpmInstall extends ZpmCommand
                     "exec %s/bin/java",
                     "--add-opens java.base/sun.nio.ch=org.agrona.core",
                     "$JAVA_OPTIONS",
-                    "-m io.aklivity.zilla.runtime.cli/io.aklivity.zilla.runtime.cli.internal.ZillaMain \"$@\"")),
+                    "-m io.aklivity.zilla.runtime.command/io.aklivity.zilla.runtime.command.internal.ZillaMain \"$@\"")),
                     imageDir)));
         zillaPath.toFile().setExecutable(true);
     }

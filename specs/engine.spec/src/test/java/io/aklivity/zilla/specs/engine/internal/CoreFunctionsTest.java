@@ -25,9 +25,9 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
-import io.aklivity.zilla.specs.cog.internal.types.String16FW;
-import io.aklivity.zilla.specs.cog.internal.types.String8FW;
-import io.aklivity.zilla.specs.cog.internal.types.Varuint32nFW;
+import io.aklivity.zilla.specs.engine.internal.types.String16FW;
+import io.aklivity.zilla.specs.engine.internal.types.String8FW;
+import io.aklivity.zilla.specs.engine.internal.types.Varuint32nFW;
 
 public class CoreFunctionsTest
 {

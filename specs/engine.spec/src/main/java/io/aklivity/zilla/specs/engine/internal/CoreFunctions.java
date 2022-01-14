@@ -36,9 +36,9 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
-import io.aklivity.zilla.specs.cog.internal.types.String16FW;
-import io.aklivity.zilla.specs.cog.internal.types.String8FW;
-import io.aklivity.zilla.specs.cog.internal.types.stream.Capability;
+import io.aklivity.zilla.specs.engine.internal.types.String16FW;
+import io.aklivity.zilla.specs.engine.internal.types.String8FW;
+import io.aklivity.zilla.specs.engine.internal.types.stream.Capability;
 
 public final class CoreFunctions
 {

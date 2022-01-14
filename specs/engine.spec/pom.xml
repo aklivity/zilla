@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>specs</artifactId>
-    <version>0.9.4</version>
+    <version>0.9.5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -84,11 +84,11 @@
       </plugin>
       <plugin>
         <groupId>io.aklivity.zilla</groupId>
-        <artifactId>cog-maven-plugin</artifactId>
+        <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core</scopeNames>
-          <packageName>io.aklivity.zilla.specs.cog.internal.types</packageName>
+          <packageName>io.aklivity.zilla.specs.engine.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -123,7 +123,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/specs/cog/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/specs/engine/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>

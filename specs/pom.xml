@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>parent</artifactId>
-    <version>0.9.4</version>
+    <version>0.9.5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -18,15 +18,15 @@
 
   <modules>
     <module>engine.spec</module>
-    <module>cog-echo.spec</module>
-    <module>cog-fan.spec</module>
-    <module>cog-proxy.spec</module>
-    <module>cog-tcp.spec</module>
-    <module>cog-tls.spec</module>
-    <module>cog-http.spec</module>
-    <module>cog-sse.spec</module>
-    <module>cog-ws.spec</module>
-    <module>cog-kafka.spec</module>
+    <module>binding-echo.spec</module>
+    <module>binding-fan.spec</module>
+    <module>binding-proxy.spec</module>
+    <module>binding-tcp.spec</module>
+    <module>binding-tls.spec</module>
+    <module>binding-http.spec</module>
+    <module>binding-sse.spec</module>
+    <module>binding-ws.spec</module>
+    <module>binding-kafka.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>
 
@@ -39,47 +39,47 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-echo.spec</artifactId>
+        <artifactId>binding-echo.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-fan.spec</artifactId>
+        <artifactId>binding-fan.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-proxy.spec</artifactId>
+        <artifactId>binding-proxy.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-tcp.spec</artifactId>
+        <artifactId>binding-tcp.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-tls.spec</artifactId>
+        <artifactId>binding-tls.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-http.spec</artifactId>
+        <artifactId>binding-http.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-sse.spec</artifactId>
+        <artifactId>binding-sse.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-ws.spec</artifactId>
+        <artifactId>binding-ws.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-kafka.spec</artifactId>
+        <artifactId>binding-kafka.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
