@@ -2,7 +2,7 @@
     "dependencies": [
         "io.aklivity.zilla:engine:develop-SNAPSHOT",
         "io.aklivity.zilla:vault-filesystem:develop-SNAPSHOT",
-        "io.aklivity.zilla:cog-echo:develop-SNAPSHOT",
+        "io.aklivity.zilla:binding-echo:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-fan:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-ws:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-http:develop-SNAPSHOT",

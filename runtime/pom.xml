@@ -19,7 +19,7 @@
   <modules>
     <module>engine</module>
     <module>vault-filesystem</module>
-    <module>cog-echo</module>
+    <module>binding-echo</module>
     <module>cog-fan</module>
     <module>cog-proxy</module>
     <module>cog-tcp</module>
@@ -48,7 +48,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-echo</artifactId>
+        <artifactId>binding-echo</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

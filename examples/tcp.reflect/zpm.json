@@ -14,7 +14,7 @@
   "dependencies":
   [
     "io.aklivity.zilla:engine",
-    "io.aklivity.zilla:cog-echo",
+    "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:cog-fan",
     "io.aklivity.zilla:cog-tcp",
     "io.aklivity.zilla:cli",

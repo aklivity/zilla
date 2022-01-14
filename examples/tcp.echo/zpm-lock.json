@@ -1,7 +1,7 @@
 {
     "dependencies": [
         "io.aklivity.zilla:engine:develop-SNAPSHOT",
-        "io.aklivity.zilla:cog-echo:develop-SNAPSHOT",
+        "io.aklivity.zilla:binding-echo:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-tcp:develop-SNAPSHOT",
         "io.aklivity.zilla:cli:develop-SNAPSHOT",
         "io.aklivity.zilla:cmd-start:develop-SNAPSHOT",

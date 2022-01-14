@@ -15,7 +15,7 @@
   [
     "io.aklivity.zilla:engine",
     "io.aklivity.zilla:vault-filesystem",
-    "io.aklivity.zilla:cog-echo",
+    "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:cog-fan",
     "io.aklivity.zilla:cog-tls",
     "io.aklivity.zilla:cog-tcp",

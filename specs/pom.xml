@@ -18,7 +18,7 @@
 
   <modules>
     <module>engine.spec</module>
-    <module>cog-echo.spec</module>
+    <module>binding-echo.spec</module>
     <module>cog-fan.spec</module>
     <module>cog-proxy.spec</module>
     <module>cog-tcp.spec</module>
@@ -39,7 +39,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-echo.spec</artifactId>
+        <artifactId>binding-echo.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
