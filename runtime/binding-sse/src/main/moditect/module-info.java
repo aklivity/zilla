@@ -13,9 +13,9 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.cog.sse
+module io.aklivity.zilla.runtime.binding.sse
 {
-    requires io.aklivity.zilla.runtime.cog.engine;
+    requires io.aklivity.zilla.runtime.engine;
 
     provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
         with io.aklivity.zilla.runtime.binding.sse.internal.SseBindingFactorySpi;

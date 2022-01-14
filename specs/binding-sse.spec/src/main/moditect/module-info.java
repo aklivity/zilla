@@ -15,5 +15,5 @@
  */
 open module io.aklivity.zilla.specs.binding.sse
 {
-    requires transitive io.aklivity.zilla.specs.cog.http;
+    requires transitive io.aklivity.zilla.specs.binding.http;
 }

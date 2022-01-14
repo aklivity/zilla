@@ -15,5 +15,5 @@
  */
 open module io.aklivity.zilla.specs.binding.tcp
 {
-    requires transitive io.aklivity.zilla.specs.cog.proxy;
+    requires transitive io.aklivity.zilla.specs.binding.proxy;
 }

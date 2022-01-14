@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.cog.proxy
+module io.aklivity.zilla.runtime.binding.proxy
 {
     requires io.aklivity.zilla.runtime.engine;
 

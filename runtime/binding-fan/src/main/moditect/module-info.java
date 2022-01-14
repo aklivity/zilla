@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.cog.fan
+module io.aklivity.zilla.runtime.binding.fan
 {
     requires io.aklivity.zilla.runtime.engine;
 
