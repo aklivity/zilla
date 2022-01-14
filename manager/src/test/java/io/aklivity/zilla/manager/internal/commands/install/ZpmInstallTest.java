@@ -51,9 +51,9 @@ public class ZpmInstallTest
         assertThat(install, instanceOf(ZpmInstall.class));
         assertThat(new File("src/conf/install/zpm.json"), anExistingFile());
         assertThat(new File("target/test-locks/install/zpm-lock.json"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io.aklivity.zilla/engine/jars/engine-0.1.0.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io.aklivity.zilla/cog-tcp/jars/cog-tcp-0.1.0.jar"), anExistingFile());
-        assertThat(new File("target/zpm/cache/io.aklivity.zilla/cog-tls/jars/cog-tls-0.1.0.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io.aklivity.zilla/engine/jars/engine-0.9.5.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io.aklivity.zilla/binding-tcp/jars/binding-tcp-0.9.5.jar"), anExistingFile());
+        assertThat(new File("target/zpm/cache/io.aklivity.zilla/binding-tls/jars/binding-tls-0.9.5.jar"), anExistingFile());
         assertThat(new File("target/zpm/cache/org.agrona/agrona/jars/agrona-1.6.0.jar"), anExistingFile());
     }
 }

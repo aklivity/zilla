@@ -7,13 +7,13 @@
 
   "imports":
   [
-    "io.aklivity.zilla:runtime:0.1.0"
+    "io.aklivity.zilla:runtime:0.9.5"
   ],
 
   "dependencies":
   [
     "io.aklivity.zilla:engine",
-    "io.aklivity.zilla:cog-tcp",
-    "io.aklivity.zilla:cog-tls"
+    "io.aklivity.zilla:binding-tcp",
+    "io.aklivity.zilla:binding-tls"
   ]
 }
