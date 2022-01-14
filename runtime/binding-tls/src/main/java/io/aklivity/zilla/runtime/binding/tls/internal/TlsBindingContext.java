@@ -40,11 +40,10 @@ final class TlsBindingContext implements BindingContext
         TlsConfiguration config,
         EngineContext context)
     {
-        TlsCounters counters = new TlsCounters(context::supplyCounter, context::supplyAccumulator);
         Map<RoleConfig, TlsStreamFactory> factories = new EnumMap<>(RoleConfig.class);
-        factories.put(SERVER, new TlsServerFactory(config, context, counters));
-        factories.put(PROXY, new TlsProxyFactory(config, context, counters));
-        factories.put(CLIENT, new TlsClientFactory(config, context, counters));
+        factories.put(SERVER, new TlsServerFactory(config, context));
+        factories.put(PROXY, new TlsProxyFactory(config, context));
+        factories.put(CLIENT, new TlsClientFactory(config, context));
         this.factories = factories;
     }
 
