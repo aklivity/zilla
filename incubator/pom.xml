@@ -18,10 +18,10 @@
 
   <modules>
     <module>binding-amqp.spec</module>
-    <module>cog-mqtt.spec</module>
+    <module>binding-mqtt.spec</module>
 
     <module>binding-amqp</module>
-    <module>cog-mqtt</module>
+    <module>binding-mqtt</module>
 
     <module>cmd-load</module>
     <module>cmd-log</module>
@@ -36,7 +36,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-mqtt</artifactId>
+        <artifactId>binding-mqtt</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
