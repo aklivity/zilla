@@ -3,7 +3,7 @@
         "io.aklivity.zilla:engine:develop-SNAPSHOT",
         "io.aklivity.zilla:vault-filesystem:develop-SNAPSHOT",
         "io.aklivity.zilla:binding-echo:develop-SNAPSHOT",
-        "io.aklivity.zilla:cog-fan:develop-SNAPSHOT",
+        "io.aklivity.zilla:binding-fan:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-tls:develop-SNAPSHOT",
         "io.aklivity.zilla:cog-tcp:develop-SNAPSHOT",
         "io.aklivity.zilla:cli:develop-SNAPSHOT",
