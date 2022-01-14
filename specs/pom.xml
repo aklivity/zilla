@@ -26,7 +26,7 @@
     <module>binding-http.spec</module>
     <module>binding-sse.spec</module>
     <module>binding-ws.spec</module>
-    <module>cog-kafka.spec</module>
+    <module>binding-kafka.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>
 
@@ -79,7 +79,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-kafka.spec</artifactId>
+        <artifactId>binding-kafka.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -27,7 +27,7 @@
     <module>binding-http</module>
     <module>binding-sse</module>
     <module>binding-ws</module>
-    <module>cog-kafka</module>
+    <module>binding-kafka</module>
     <module>cli</module>
     <module>cmd-start</module>
     <module>cmd-stop</module>
@@ -88,7 +88,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-kafka</artifactId>
+        <artifactId>binding-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
