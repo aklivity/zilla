@@ -18,10 +18,10 @@
     "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:binding-tls",
     "io.aklivity.zilla:binding-tcp",
-    "io.aklivity.zilla:cli",
-    "io.aklivity.zilla:cmd-start",
-    "io.aklivity.zilla:cmd-tune",
-    "io.aklivity.zilla:cmd-load",
-    "io.aklivity.zilla:cmd-stop"
+    "io.aklivity.zilla:command",
+    "io.aklivity.zilla:command-start",
+    "io.aklivity.zilla:command-tune",
+    "io.aklivity.zilla:command-load",
+    "io.aklivity.zilla:command-stop"
   ]
 }

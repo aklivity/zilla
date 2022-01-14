@@ -28,10 +28,10 @@
     <module>binding-sse</module>
     <module>binding-ws</module>
     <module>binding-kafka</module>
-    <module>cli</module>
-    <module>cmd-start</module>
-    <module>cmd-stop</module>
-    <module>cmd-tune</module>
+    <module>command</module>
+    <module>command-start</module>
+    <module>command-stop</module>
+    <module>command-tune</module>
   </modules>
 
   <dependencyManagement>
@@ -93,22 +93,22 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cli</artifactId>
+        <artifactId>command</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-start</artifactId>
+        <artifactId>command-start</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-stop</artifactId>
+        <artifactId>command-stop</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-tune</artifactId>
+        <artifactId>command-tune</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

@@ -23,8 +23,8 @@
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
 
-    <module>cmd-load</module>
-    <module>cmd-log</module>
+    <module>command-load</module>
+    <module>command-log</module>
   </modules>
 
   <dependencyManagement>
@@ -41,12 +41,12 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-load</artifactId>
+        <artifactId>command-load</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cmd-log</artifactId>
+        <artifactId>command-log</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
