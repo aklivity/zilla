@@ -34,7 +34,7 @@ public class GenerateMojoRule extends MojoRule
     public GenerateMojoRule() throws Exception
     {
         File pom = new File("src/test/resources/test-project/pom.xml");
-        configuration = extractPluginConfiguration("cog-maven-plugin", pom);
+        configuration = extractPluginConfiguration("flyweight-maven-plugin", pom);
     }
 
     GenerateMojoRule scopeNames(String scopeNames)

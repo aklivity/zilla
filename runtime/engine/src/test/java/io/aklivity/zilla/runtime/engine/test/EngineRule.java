@@ -67,7 +67,7 @@ public final class EngineRule implements TestRule
     private final Properties properties;
     private final EngineBuilder builder;
 
-    private Engine drive;
+    private Engine engine;
 
     private EngineConfiguration configuration;
     private URL configURL;
@@ -160,19 +160,19 @@ public final class EngineRule implements TestRule
         return this;
     }
 
-    public <T extends Binding> T cog(
+    public <T extends Binding> T binding(
         Class<T> kind)
     {
         ensureDriveStarted();
 
-        return requireNonNull(drive.cog(kind));
+        return requireNonNull(engine.binding(kind));
     }
 
     public EngineStats stats(
         String namespace,
         String binding)
     {
-        return drive.stats(namespace, binding);
+        return engine.stats(namespace, binding);
     }
 
     public long counter(
@@ -180,7 +180,7 @@ public final class EngineRule implements TestRule
     {
         ensureDriveStarted();
 
-        return drive.counter(name);
+        return engine.counter(name);
     }
 
     private EngineConfiguration configuration()
@@ -194,7 +194,7 @@ public final class EngineRule implements TestRule
 
     private void ensureDriveStarted()
     {
-        if (drive == null)
+        if (engine == null)
         {
             throw new IllegalStateException("Drive not started");
         }
@@ -253,14 +253,14 @@ public final class EngineRule implements TestRule
                     errors.add(ex);
                     baseThread.interrupt();
                 };
-                drive = builder.config(config)
+                engine = builder.config(config)
                                  .configURL(configURL)
                                  .errorHandler(errorHandler)
                                  .build();
 
                 try
                 {
-                    drive.start().get();
+                    engine.start().get();
 
                     base.evaluate();
                 }
@@ -272,7 +272,7 @@ public final class EngineRule implements TestRule
                 {
                     try
                     {
-                        drive.close();
+                        engine.close();
                     }
                     catch (Throwable t)
                     {

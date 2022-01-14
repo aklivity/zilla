@@ -294,22 +294,22 @@ public class DispatchAgent implements EngineContext, Agent
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
         this.countersByName = new HashMap<>();
 
-        Map<String, BindingContext> bindingsByName = new LinkedHashMap<>();
+        Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
         for (Binding binding : bindings)
         {
-            String name = binding.name();
-            bindingsByName.put(name, binding.supply(this));
+            String type = binding.name();
+            bindingsByType.put(type, binding.supply(this));
         }
 
-        Map<String, VaultContext> vaultsByName = new LinkedHashMap<>();
+        Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
         for (Vault vault : vaults)
         {
-            String name = vault.name();
-            vaultsByName.put(name, vault.supply(this));
+            String type = vault.name();
+            vaultsByType.put(type, vault.supply(this));
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByName::get, vaultsByName::get,
+                bindingsByType::get, vaultsByType::get,
                 labels::supplyLabelId, supplyLoadEntry::apply);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();

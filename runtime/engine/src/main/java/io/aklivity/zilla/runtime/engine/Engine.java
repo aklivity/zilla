@@ -56,7 +56,7 @@ import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable
 {
-    private final Collection<Binding> cogs;
+    private final Collection<Binding> bindings;
     private final ExecutorService tasks;
     private final Callable<Void> configure;
     private final Collection<AgentRunner> runners;
@@ -137,7 +137,7 @@ public final class Engine implements AutoCloseable
 
         this.supplyLabelId = labels::supplyLabelId;
 
-        this.cogs = bindings;
+        this.bindings = bindings;
         this.tasks = tasks;
         this.configure = configure;
         this.extensions = extensions;
@@ -146,10 +146,10 @@ public final class Engine implements AutoCloseable
         this.counter = counter;
     }
 
-    public <T> T cog(
+    public <T> T binding(
         Class<T> kind)
     {
-        return cogs.stream()
+        return bindings.stream()
                 .filter(kind::isInstance)
                 .map(kind::cast)
                 .findFirst()

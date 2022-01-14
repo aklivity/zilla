@@ -31,7 +31,7 @@
     <plugins>
       <plugin>
         <groupId>io.aklivity.zilla</groupId>
-        <artifactId>cog-maven-plugin</artifactId>
+        <artifactId>flyweight-maven-plugin</artifactId>
         <version>anything</version>
         <configuration>
           <scopeNames>test</scopeNames>

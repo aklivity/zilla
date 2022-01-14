@@ -25,15 +25,15 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.TestBinding;
 
-public final class CogFactoryTest
+public final class BindingFactoryTest
 {
     @Test
     public void shouldLoadAndCreate() throws IOException
     {
         Configuration config = new Configuration();
         BindingFactory factory = BindingFactory.instantiate();
-        Binding cog = factory.create("test", config);
+        Binding binding = factory.create("test", config);
 
-        assertThat(cog, instanceOf(TestBinding.class));
+        assertThat(binding, instanceOf(TestBinding.class));
     }
 }

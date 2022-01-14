@@ -72,8 +72,8 @@ public class CacheFetchIT
     @Before
     public void initPartition()
     {
-        final KafkaBinding cog = engine.cog(KafkaBinding.class);
-        final KafkaCache cache = cog.supplyCache("default.cache0");
+        final KafkaBinding binding = engine.binding(KafkaBinding.class);
+        final KafkaCache cache = binding.supplyCache("default.cache0");
         final KafkaCacheTopic topic = cache.supplyTopic("test");
         this.partition = topic.supplyFetchPartition(0);
     }

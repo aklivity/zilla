@@ -151,9 +151,9 @@ public class ConfigureTask implements Callable<Void>
             JsonReader schemaReader = schemaProvider.createReader(schemaInput);
             JsonObject schemaObject = schemaReader.readObject();
 
-            for (URL cogType : schemaTypes)
+            for (URL schemaType : schemaTypes)
             {
-                InputStream schemaPatchInput = cogType.openStream();
+                InputStream schemaPatchInput = schemaType.openStream();
                 JsonReader schemaPatchReader = schemaProvider.createReader(schemaPatchInput);
                 JsonArray schemaPatchArray = schemaPatchReader.readArray();
                 JsonPatch schemaPatch = schemaProvider.createPatch(schemaPatchArray);

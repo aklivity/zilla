@@ -45,7 +45,7 @@ public final class VaultFactory
     {
         requireNonNull(name, "name");
 
-        VaultFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unregonized cog name: " + name);
+        VaultFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized vault name: " + name);
 
         return factorySpi.create(config);
     }

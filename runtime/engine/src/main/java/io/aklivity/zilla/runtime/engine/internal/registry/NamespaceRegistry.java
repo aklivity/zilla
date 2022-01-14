@@ -30,8 +30,8 @@ import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 public class NamespaceRegistry
 {
     private final NamespaceConfig namespace;
-    private final Function<String, BindingContext> bindingsByName;
-    private final Function<String, VaultContext> vaultsByName;
+    private final Function<String, BindingContext> bindingsByType;
+    private final Function<String, VaultContext> vaultsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
@@ -40,14 +40,14 @@ public class NamespaceRegistry
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
-        Function<String, BindingContext> bindingsByName,
-        Function<String, VaultContext> vaultsByName,
+        Function<String, BindingContext> bindingsByType,
+        Function<String, VaultContext> vaultsByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
         this.namespace = namespace;
-        this.bindingsByName = bindingsByName;
-        this.vaultsByName = vaultsByName;
+        this.bindingsByType = bindingsByType;
+        this.vaultsByType = vaultsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
@@ -73,22 +73,22 @@ public class NamespaceRegistry
     }
 
     private void attachBinding(
-        BindingConfig binding)
+        BindingConfig config)
     {
-        BindingContext context = bindingsByName.apply(binding.type);
-        assert context != null : "Missing cog kind: " + binding.type;
+        BindingContext context = bindingsByType.apply(config.type);
+        assert context != null : "Missing binding type: " + config.type;
 
-        int bindingId = supplyLabelId.applyAsInt(binding.entry);
-        BindingRegistry registry = new BindingRegistry(binding, context);
+        int bindingId = supplyLabelId.applyAsInt(config.entry);
+        BindingRegistry registry = new BindingRegistry(config, context);
         bindingsById.put(bindingId, registry);
         registry.attach();
-        supplyLoadEntry.accept(binding.id);
+        supplyLoadEntry.accept(config.id);
     }
 
     private void detachBinding(
-        BindingConfig binding)
+        BindingConfig config)
     {
-        int bindingId = supplyLabelId.applyAsInt(binding.entry);
+        int bindingId = supplyLabelId.applyAsInt(config.entry);
         BindingRegistry context = bindingsById.remove(bindingId);
         if (context != null)
         {
@@ -97,21 +97,21 @@ public class NamespaceRegistry
     }
 
     private void attachVault(
-        VaultConfig vault)
+        VaultConfig config)
     {
-        VaultContext context = vaultsByName.apply(vault.type);
-        assert context != null : "Missing vault kind: " + vault.type;
+        VaultContext context = vaultsByType.apply(config.type);
+        assert context != null : "Missing vault type: " + config.type;
 
-        int vaultId = supplyLabelId.applyAsInt(vault.name);
-        VaultRegistry registry = new VaultRegistry(vault, context);
+        int vaultId = supplyLabelId.applyAsInt(config.name);
+        VaultRegistry registry = new VaultRegistry(config, context);
         vaultsById.put(vaultId, registry);
         registry.attach();
     }
 
     private void detachVault(
-        VaultConfig vault)
+        VaultConfig config)
     {
-        int vaultId = supplyLabelId.applyAsInt(vault.name);
+        int vaultId = supplyLabelId.applyAsInt(config.name);
         VaultRegistry context = vaultsById.remove(vaultId);
         if (context != null)
         {
