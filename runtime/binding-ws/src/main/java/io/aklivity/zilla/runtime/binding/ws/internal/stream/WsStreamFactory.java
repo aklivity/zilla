@@ -13,7 +13,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.binding.http
+package io.aklivity.zilla.runtime.binding.ws.internal.stream;
+
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
+public interface WsStreamFactory extends BindingHandler
 {
-    requires transitive io.aklivity.zilla.specs.binding.proxy;
+    void attach(
+        BindingConfig binding);
+
+    void detach(
+        long bindingId);
 }

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.binding.http
+open module io.aklivity.zilla.specs.binding.ws
 {
-    requires transitive io.aklivity.zilla.specs.binding.proxy;
+    requires transitive io.aklivity.zilla.specs.binding.http;
 }

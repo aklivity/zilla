@@ -13,7 +13,26 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.binding.http
+package io.aklivity.zilla.runtime.binding.ws.internal.config;
+
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+
+public final class WsOptionsConfig extends OptionsConfig
 {
-    requires transitive io.aklivity.zilla.specs.binding.proxy;
+    public String protocol;
+    public String scheme;
+    public String authority;
+    public String path;
+
+    public WsOptionsConfig(
+        String protocol,
+        String scheme,
+        String authority,
+        String path)
+    {
+        this.protocol = protocol;
+        this.scheme = scheme;
+        this.authority = authority;
+        this.path = path;
+    }
 }

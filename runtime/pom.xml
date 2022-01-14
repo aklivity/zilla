@@ -26,7 +26,7 @@
     <module>binding-tls</module>
     <module>binding-http</module>
     <module>cog-sse</module>
-    <module>cog-ws</module>
+    <module>binding-ws</module>
     <module>cog-kafka</module>
     <module>cli</module>
     <module>cmd-start</module>
@@ -83,7 +83,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-ws</artifactId>
+        <artifactId>binding-ws</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

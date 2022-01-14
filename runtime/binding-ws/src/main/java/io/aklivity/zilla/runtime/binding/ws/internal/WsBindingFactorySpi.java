@@ -13,7 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.binding.http
+package io.aklivity.zilla.runtime.binding.ws.internal;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
+
+public final class WsBindingFactorySpi implements BindingFactorySpi
 {
-    requires transitive io.aklivity.zilla.specs.binding.proxy;
+    @Override
+    public String name()
+    {
+        return WsBinding.NAME;
+    }
+
+    @Override
+    public WsBinding create(
+        Configuration config)
+    {
+        return new WsBinding(new WsConfiguration(config));
+    }
 }

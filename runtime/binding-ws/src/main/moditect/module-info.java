@@ -13,7 +13,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.binding.http
+module io.aklivity.zilla.runtime.cog.ws
 {
-    requires transitive io.aklivity.zilla.specs.binding.proxy;
+    requires io.aklivity.zilla.runtime.engine;
+
+    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
+        with io.aklivity.zilla.runtime.binding.ws.internal.WsBindingFactorySpi;
+
+    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.ws.internal.config.WsOptionsConfigAdapter;
+
+    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
+        with io.aklivity.zilla.runtime.binding.ws.internal.config.WsConditionConfigAdapter;
 }

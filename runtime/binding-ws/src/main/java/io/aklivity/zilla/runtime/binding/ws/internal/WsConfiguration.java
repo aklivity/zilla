@@ -13,7 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-open module io.aklivity.zilla.specs.binding.http
+package io.aklivity.zilla.runtime.binding.ws.internal;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
+
+public class WsConfiguration extends Configuration
 {
-    requires transitive io.aklivity.zilla.specs.binding.proxy;
+    private static final ConfigurationDef WS_CONFIG;
+
+    static
+    {
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.ws");
+        WS_CONFIG = config;
+    }
+
+    public WsConfiguration(
+        Configuration config)
+    {
+        super(WS_CONFIG, config);
+    }
 }
