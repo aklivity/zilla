@@ -81,7 +81,7 @@
       </plugin>
       <plugin>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-maven-plugin</artifactId>
+        <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream proxy::stream</scopeNames>

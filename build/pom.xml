@@ -17,6 +17,6 @@
   <name>zilla::build</name>
 
   <modules>
-    <module>cog-maven-plugin</module>
+    <module>flyweight-maven-plugin</module>
   </modules>
 </project>

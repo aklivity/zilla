@@ -121,7 +121,7 @@
       </plugin>
       <plugin>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-maven-plugin</artifactId>
+        <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core</scopeNames>
@@ -217,7 +217,6 @@
               <includes>
                 <include>META-INF/**/*</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineRule*.class</include>
-                <include>io/aklivity/zilla/runtime/engine/test/CogClassLoader*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/annotation/Configur*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/**/*.class</include>
               </includes>
