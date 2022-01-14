@@ -28,10 +28,6 @@ public class KafkaConfiguration extends Configuration
     public static final boolean DEBUG = Boolean.getBoolean("zilla.binding.kafka.debug");
     public static final boolean DEBUG_PRODUCE = DEBUG || Boolean.getBoolean("zilla.binding.kafka.debug.produce");
 
-    public static final String KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME =
-            "zilla.binding.kafka.client.produce.max.request.millis";
-    public static final String KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME = "zilla.binding.kafka.cache.server.reconnect";
-
     public static final IntPropertyDef KAFKA_CLIENT_MAX_IDLE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_META_MAX_AGE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_DESCRIBE_MAX_AGE_MILLIS;

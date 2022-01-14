@@ -16,15 +16,17 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public class KafkaConfigurationTest
 {
+    public static final String KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME =
+            "zilla.binding.kafka.client.produce.max.request.millis";
+    public static final String KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME = "zilla.binding.kafka.cache.server.reconnect";
+
     @Test
     public void shouldVerifyConstants() throws Exception
     {
