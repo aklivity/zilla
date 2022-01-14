@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
 
 import java.io.IOException;

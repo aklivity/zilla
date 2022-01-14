@@ -13,27 +13,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.config;
+package io.aklivity.zilla.runtime.engine.config;
 
-import jakarta.json.Json;
-import jakarta.json.JsonString;
-import jakarta.json.bind.adapter.JsonbAdapter;
-
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
-
-public class RoleAdapter implements JsonbAdapter<RoleConfig, JsonString>
+public enum KindConfig
 {
-    @Override
-    public JsonString adaptToJson(
-        RoleConfig role)
-    {
-        return Json.createValue(role.name().toLowerCase());
-    }
-
-    @Override
-    public RoleConfig adaptFromJson(
-        JsonString object)
-    {
-        return RoleConfig.valueOf(object.getString().toUpperCase());
-    }
+    SERVER,
+    CLIENT,
+    PROXY,
+    CACHE_CLIENT,
+    CACHE_SERVER
 }

@@ -20,7 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class SseBindingConfig
 {
@@ -29,7 +29,7 @@ public final class SseBindingConfig
     public final long id;
     public final String entry;
     public final SseOptionsConfig options;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final List<SseRouteConfig> routes;
     public final SseRouteConfig exit;
 

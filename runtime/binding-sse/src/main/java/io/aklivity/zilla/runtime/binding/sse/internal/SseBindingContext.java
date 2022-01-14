@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
@@ -26,11 +26,11 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class SseBindingContext implements BindingContext
 {
-    private final Map<RoleConfig, SseStreamFactory> factories;
+    private final Map<KindConfig, SseStreamFactory> factories;
 
     SseBindingContext(
         SseConfiguration config,

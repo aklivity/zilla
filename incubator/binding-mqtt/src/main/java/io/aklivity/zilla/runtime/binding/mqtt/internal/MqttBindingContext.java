@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -26,17 +26,17 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class MqttBindingContext implements BindingContext
 {
-    private final Map<RoleConfig, MqttStreamFactory> factories;
+    private final Map<KindConfig, MqttStreamFactory> factories;
 
     MqttBindingContext(
         MqttConfiguration config,
         EngineContext context)
     {
-        final EnumMap<RoleConfig, MqttStreamFactory> factories = new EnumMap<>(RoleConfig.class);
+        final EnumMap<KindConfig, MqttStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new MqttServerFactory(config, context));
         //factories.put(CLIENT, new MqttClientFactory(config, context));
         this.factories = factories;

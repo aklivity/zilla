@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.amqp.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -26,17 +26,17 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class AmqpBindingContext implements BindingContext
 {
-    private final Map<RoleConfig, AmqpStreamFactory> factories;
+    private final Map<KindConfig, AmqpStreamFactory> factories;
 
     AmqpBindingContext(
         AmqpConfiguration config,
         EngineContext context)
     {
-        Map<RoleConfig, AmqpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
+        Map<KindConfig, AmqpStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new AmqpServerFactory(config, context));
         this.factories = factories;
     }

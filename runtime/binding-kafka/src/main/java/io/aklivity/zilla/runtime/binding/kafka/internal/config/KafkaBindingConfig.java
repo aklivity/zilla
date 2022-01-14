@@ -20,7 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class KafkaBindingConfig
 {
@@ -28,7 +28,7 @@ public final class KafkaBindingConfig
     public final long vaultId;
     public final String entry;
     public final KafkaOptionsConfig options;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
     public final KafkaRouteConfig exit;
 

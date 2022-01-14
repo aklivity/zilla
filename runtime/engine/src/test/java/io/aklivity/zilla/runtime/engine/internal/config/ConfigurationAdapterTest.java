@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;

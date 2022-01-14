@@ -21,14 +21,14 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class AmqpBindingConfig
 {
     public final long id;
     public final long vaultId;
     public final String entry;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final List<AmqpRouteConfig> routes;
     public final AmqpRouteConfig exit;
 
