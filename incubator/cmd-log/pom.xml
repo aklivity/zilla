@@ -39,7 +39,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>cog-http.spec</artifactId>
+      <artifactId>binding-http.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>

@@ -23,7 +23,7 @@
     <module>binding-proxy.spec</module>
     <module>cog-tcp.spec</module>
     <module>cog-tls.spec</module>
-    <module>cog-http.spec</module>
+    <module>binding-http.spec</module>
     <module>cog-sse.spec</module>
     <module>cog-ws.spec</module>
     <module>cog-kafka.spec</module>
@@ -64,7 +64,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-http.spec</artifactId>
+        <artifactId>binding-http.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

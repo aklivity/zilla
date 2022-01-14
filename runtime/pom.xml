@@ -24,7 +24,7 @@
     <module>binding-proxy</module>
     <module>cog-tcp</module>
     <module>cog-tls</module>
-    <module>cog-http</module>
+    <module>binding-http</module>
     <module>cog-sse</module>
     <module>cog-ws</module>
     <module>cog-kafka</module>
@@ -73,7 +73,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-http</artifactId>
+        <artifactId>binding-http</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
