@@ -22,7 +22,7 @@
     <module>binding-fan.spec</module>
     <module>binding-proxy.spec</module>
     <module>binding-tcp.spec</module>
-    <module>cog-tls.spec</module>
+    <module>binding-tls.spec</module>
     <module>binding-http.spec</module>
     <module>cog-sse.spec</module>
     <module>cog-ws.spec</module>
@@ -59,7 +59,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>cog-tls.spec</artifactId>
+        <artifactId>binding-tls.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

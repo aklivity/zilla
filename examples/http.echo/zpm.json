@@ -17,7 +17,7 @@
     "io.aklivity.zilla:vault-filesystem",
     "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:binding-http",
-    "io.aklivity.zilla:cog-tls",
+    "io.aklivity.zilla:binding-tls",
     "io.aklivity.zilla:binding-tcp",
     "io.aklivity.zilla:cli",
     "io.aklivity.zilla:cmd-start",
