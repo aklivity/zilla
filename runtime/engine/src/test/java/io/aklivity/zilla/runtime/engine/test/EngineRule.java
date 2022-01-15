@@ -143,7 +143,7 @@ public final class EngineRule implements TestRule
     public EngineRule external(
         String binding)
     {
-        return external("default", binding);
+        return external("test", binding);
     }
 
     public EngineRule external(

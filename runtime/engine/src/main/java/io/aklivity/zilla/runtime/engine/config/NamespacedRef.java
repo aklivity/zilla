@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 public class NamespacedRef
 {
-    public final  String namespace;
+    public final String namespace;
     public final String name;
 
     public long id;
@@ -28,7 +28,7 @@ public class NamespacedRef
         String namespace,
         String name)
     {
-        this.namespace = requireNonNull(namespace);
+        this.namespace = namespace;
         this.name = requireNonNull(name);
     }
 
@@ -36,6 +36,6 @@ public class NamespacedRef
         String qname)
     {
         // TODO: qualified name format
-        return new NamespacedRef("default", qname);
+        return new NamespacedRef(null, qname);
     }
 }

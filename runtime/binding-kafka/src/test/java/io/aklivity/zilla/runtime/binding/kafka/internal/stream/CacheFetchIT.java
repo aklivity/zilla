@@ -73,7 +73,7 @@ public class CacheFetchIT
     public void initPartition()
     {
         final KafkaBinding binding = engine.binding(KafkaBinding.class);
-        final KafkaCache cache = binding.supplyCache("default.cache0");
+        final KafkaCache cache = binding.supplyCache("test.cache0");
         final KafkaCacheTopic topic = cache.supplyTopic("test");
         this.partition = topic.supplyFetchPartition(0);
     }

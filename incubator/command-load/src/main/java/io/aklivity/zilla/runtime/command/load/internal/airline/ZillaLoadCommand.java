@@ -47,7 +47,7 @@ public final class ZillaLoadCommand extends ZillaCommand
     private static final Pattern LOAD_PATTERN = Pattern.compile("load(\\d+)");
 
     @Option(name = { "--namespace" })
-    public String namespace = "default";
+    public String namespace;
 
     @Arguments(title = {"name"})
     public List<String> args;
@@ -180,14 +180,16 @@ public final class ZillaLoadCommand extends ZillaCommand
         String namespace,
         String name)
     {
-        int namespaceId = Math.max(labels.lookupLabelId(namespace), 0);
+        int namespaceId = namespace != null ? Math.max(labels.lookupLabelId(namespace), 0) : 0;
         int nameId = name != null ? Math.max(labels.lookupLabelId(name), 0) : 0;
 
         long namespacedId =
             (long) namespaceId << Integer.SIZE |
             (long) nameId << 0;
 
-        long mask = name != null ? 0xffff_ffff_ffff_ffffL : 0xffff_ffff_0000_0000L;
-        return id -> (id & namespacedId & mask) != 0L;
+        long mask =
+            (namespace != null ? 0xffff_ffff_0000_0000L : 0x0000_0000_0000_0000L) |
+            (name != null ? 0x0000_0000_ffff_ffffL : 0x0000_0000_0000_0000L);
+        return id -> (id & mask) == namespacedId;
     }
 }

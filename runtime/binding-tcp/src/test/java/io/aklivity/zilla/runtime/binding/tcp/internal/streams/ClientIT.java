@@ -216,7 +216,7 @@ public class ClientIT
     {
         k3po.finish();
         Thread.sleep(250); // TODO: engine quiesce instead of close
-        assertEquals(1, engine.stats("default", "app0").initialErrors());
+        assertEquals(1, engine.stats("test", "app0").initialErrors());
     }
 
     @Test

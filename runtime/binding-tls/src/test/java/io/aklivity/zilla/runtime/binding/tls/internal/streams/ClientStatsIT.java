@@ -61,7 +61,7 @@ public class ClientStatsIT
     {
         k3po.finish();
 
-        EngineStats stats = engine.stats("default", "app0");
+        EngineStats stats = engine.stats("test", "app0");
 
         assertThat(stats.initialBytes(), equalTo(10240L));
         assertThat(stats.replyBytes(), equalTo(10240L));

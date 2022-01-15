@@ -400,7 +400,7 @@ public class ServerIT
         k3po.awaitBarrier("CONNECTION_ACCEPTED_2");
         k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
 
-        EngineStats stats = engine.stats("default", "net0");
+        EngineStats stats = engine.stats("test", "net0");
 
         assertEquals(3, stats.initialOpens());
         assertEquals(0, stats.initialCloses());

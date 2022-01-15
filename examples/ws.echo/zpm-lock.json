@@ -7,11 +7,11 @@
         "io.aklivity.zilla:binding-http:develop-SNAPSHOT",
         "io.aklivity.zilla:binding-tls:develop-SNAPSHOT",
         "io.aklivity.zilla:binding-tcp:develop-SNAPSHOT",
-        "io.aklivity.zilla:cli:develop-SNAPSHOT",
-        "io.aklivity.zilla:cmd-start:develop-SNAPSHOT",
-        "io.aklivity.zilla:cmd-tune:develop-SNAPSHOT",
-        "io.aklivity.zilla:cmd-load:develop-SNAPSHOT",
-        "io.aklivity.zilla:cmd-stop:develop-SNAPSHOT"
+        "io.aklivity.zilla:command:develop-SNAPSHOT",
+        "io.aklivity.zilla:command-start:develop-SNAPSHOT",
+        "io.aklivity.zilla:command-tune:develop-SNAPSHOT",
+        "io.aklivity.zilla:command-load:develop-SNAPSHOT",
+        "io.aklivity.zilla:command-stop:develop-SNAPSHOT"
     ],
     "repositories": [
         "https://maven.packages.aklivity.io/",

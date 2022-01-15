@@ -19,20 +19,25 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.engine.internal.config.NamespaceRef;
+
 public class NamespaceConfig
 {
     public transient int id;
 
     public final String name;
+    public final List<NamespaceRef> references;
     public final List<VaultConfig> vaults;
     public final List<BindingConfig> bindings;
 
     public NamespaceConfig(
         String name,
+        List<NamespaceRef> references,
         List<VaultConfig> vaults,
         List<BindingConfig> bindings)
     {
         this.name = requireNonNull(name);
+        this.references = requireNonNull(references);
         this.vaults = requireNonNull(vaults);
         this.bindings = requireNonNull(bindings);
     }
