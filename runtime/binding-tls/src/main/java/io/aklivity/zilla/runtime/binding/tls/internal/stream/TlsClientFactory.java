@@ -44,7 +44,6 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
-import io.aklivity.zilla.runtime.binding.tls.internal.TlsCounters;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsBindingConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.config.TlsRouteConfig;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.OctetsFW;
@@ -66,7 +65,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.buffer.CountingBufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -151,17 +149,14 @@ public final class TlsClientFactory implements TlsStreamFactory
 
     public TlsClientFactory(
         TlsConfiguration config,
-        EngineContext context,
-        TlsCounters counters)
+        EngineContext context)
     {
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
         this.writeBuffer = context.writeBuffer();
         this.streamFactory = context.streamFactory();
-
-        BufferPool bufferPool = context.bufferPool();
-        this.decodePool = new CountingBufferPool(bufferPool, counters.clientDecodeAcquires, counters.clientDecodeReleases);
-        this.encodePool = new CountingBufferPool(bufferPool, counters.clientEncodeAcquires, counters.clientEncodeReleases);
+        this.decodePool = context.bufferPool();
+        this.encodePool = context.bufferPool();
 
         this.keyManagerAlgorithm = config.keyManagerAlgorithm();
         this.ignoreEmptyVaultRefs = config.ignoreEmptyVaultRefs();
@@ -172,7 +167,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         this.decodeMax = decodePool.slotCapacity();
         this.handshakeMax = Math.min(config.handshakeWindowBytes(), decodeMax);
         this.handshakeTimeoutMillis = SECONDS.toMillis(config.handshakeTimeout());
-        this.initialPadAdjust = Math.max(bufferPool.slotCapacity() >> 14, 1) * MAXIMUM_HEADER_SIZE;
+        this.initialPadAdjust = Math.max(context.bufferPool().slotCapacity() >> 14, 1) * MAXIMUM_HEADER_SIZE;
 
         this.bindings = new Long2ObjectHashMap<>();
         this.inNetByteBuffer = ByteBuffer.allocate(writeBuffer.capacity());

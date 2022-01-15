@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Optional.ofNullable;
 
 import java.io.InputStream;
 import java.io.StringReader;
@@ -54,13 +55,13 @@ import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.config.Configuration;
-import io.aklivity.zilla.runtime.engine.internal.config.ConfigurationAdapter;
+import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
@@ -106,7 +107,7 @@ public class ConfigureTask implements Callable<Void>
 
         if (configURL == null)
         {
-            configText = "{}";
+            configText = "{\"name\":\"default\"}";
         }
         else if ("https".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
         {
@@ -178,55 +179,55 @@ public class ConfigureTask implements Callable<Void>
             }
 
             JsonbConfig config = new JsonbConfig()
-                    .withAdapters(new ConfigurationAdapter());
+                    .withAdapters(new NamespaceAdapter());
             Jsonb jsonb = JsonbBuilder.newBuilder()
                     .withProvider(provider)
                     .withConfig(config)
                     .build();
 
-            Configuration configuration = jsonb.fromJson(configText, Configuration.class);
+            NamespaceConfig namespace = jsonb.fromJson(configText, NamespaceConfig.class);
 
             if (!errors.isEmpty())
             {
                 break parse;
             }
 
-            configuration.id = supplyId.applyAsInt(configuration.name);
-            for (BindingConfig binding : configuration.bindings)
+            namespace.id = supplyId.applyAsInt(namespace.name);
+            for (BindingConfig binding : namespace.bindings)
             {
-                binding.id = NamespacedId.id(configuration.id, supplyId.applyAsInt(binding.entry));
+                binding.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(binding.entry));
 
                 if (binding.vault != null)
                 {
                     binding.vault.id = NamespacedId.id(
-                            supplyId.applyAsInt(binding.vault.namespace),
+                            supplyId.applyAsInt(ofNullable(binding.vault.namespace).orElse(namespace.name)),
                             supplyId.applyAsInt(binding.vault.name));
                 }
 
                 // TODO: consider route exit namespace
                 for (RouteConfig route : binding.routes)
                 {
-                    route.id = NamespacedId.id(configuration.id, supplyId.applyAsInt(route.exit));
+                    route.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(route.exit));
                 }
 
                 // TODO: consider binding exit namespace
                 if (binding.exit != null)
                 {
-                    binding.exit.id = NamespacedId.id(configuration.id, supplyId.applyAsInt(binding.exit.exit));
+                    binding.exit.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(binding.exit.exit));
                 }
 
                 tuning.affinity(binding.id, tuning.affinity(binding.id));
             }
 
-            for (VaultConfig vault : configuration.vaults)
+            for (VaultConfig vault : namespace.vaults)
             {
-                vault.id = NamespacedId.id(configuration.id, supplyId.applyAsInt(vault.name));
+                vault.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(vault.name));
             }
 
             CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
             for (DispatchAgent dispatcher : dispatchers)
             {
-                future = CompletableFuture.allOf(future, dispatcher.attach(configuration));
+                future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
             }
             future.join();
 

@@ -15,28 +15,25 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.List;
+import jakarta.json.Json;
+import jakarta.json.JsonString;
+import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
-import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
-public class Configuration extends NamespaceConfig
+public class KindAdapter implements JsonbAdapter<KindConfig, JsonString>
 {
-    private final List<NamespaceRef> namespaces;
-
-    public Configuration(
-        String name,
-        List<NamespaceRef> namespaces,
-        List<VaultConfig> vaults,
-        List<BindingConfig> bindings)
+    @Override
+    public JsonString adaptToJson(
+        KindConfig role)
     {
-        super(name, vaults, bindings);
-        this.namespaces = namespaces;
+        return Json.createValue(role.name().toLowerCase());
     }
 
-    public final List<NamespaceRef> namespaces()
+    @Override
+    public KindConfig adaptFromJson(
+        JsonString object)
     {
-        return namespaces;
+        return KindConfig.valueOf(object.getString().toUpperCase());
     }
 }

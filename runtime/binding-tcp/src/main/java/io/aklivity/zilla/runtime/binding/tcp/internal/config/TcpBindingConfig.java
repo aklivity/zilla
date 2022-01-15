@@ -20,14 +20,14 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public final class TcpBindingConfig
 {
     public final long routeId;
     public final String entry;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final TcpOptionsConfig options;
     public final List<TcpRouteConfig> routes;
     public final TcpRouteConfig exit;

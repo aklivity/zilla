@@ -26,7 +26,7 @@ public class BindingConfig
     public final NamespacedRef vault;
     public final String entry;
     public final String type;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
     public final RouteConfig exit;
@@ -35,7 +35,7 @@ public class BindingConfig
         NamespacedRef vault,
         String entry,
         String type,
-        RoleConfig kind,
+        KindConfig kind,
         OptionsConfig options,
         List<RouteConfig> routes,
         RouteConfig exit)

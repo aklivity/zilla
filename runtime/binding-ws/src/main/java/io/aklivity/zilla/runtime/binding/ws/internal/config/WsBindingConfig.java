@@ -20,7 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class WsBindingConfig
 {
@@ -29,7 +29,7 @@ public final class WsBindingConfig
     public final long id;
     public final String entry;
     public final WsOptionsConfig options;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final List<WsRouteConfig> routes;
     public final WsRouteConfig exit;
 

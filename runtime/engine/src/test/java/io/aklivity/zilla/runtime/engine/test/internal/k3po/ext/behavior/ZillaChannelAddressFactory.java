@@ -88,7 +88,7 @@ public class ZillaChannelAddressFactory extends ChannelAddressFactorySpi
         }
 
         final long authorization = (Long) options.getOrDefault(OPTION_AUTHORIZATION.getName(), 0L);
-        final String replyTo = (String) options.getOrDefault(OPTION_REPLY_TO.getName(), "default");
+        final String replyTo = (String) options.getOrDefault(OPTION_REPLY_TO.getName(), "test");
 
         return new ZillaChannelAddress(location, authorization, replyTo);
     }

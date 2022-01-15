@@ -31,10 +31,10 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespacedRef;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], JsonObject>
@@ -48,13 +48,13 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
     private static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
 
-    private final RoleAdapter role;
+    private final KindAdapter kind;
     private final RouteAdapter route;
     private final OptionsAdapter options;
 
     public BindingConfigsAdapter()
     {
-        this.role = new RoleAdapter();
+        this.kind = new KindAdapter();
         this.route = new RouteAdapter();
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING);
     }
@@ -80,7 +80,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             item.add(TYPE_NAME, binding.type);
 
-            item.add(KIND_NAME, role.adaptToJson(binding.kind));
+            item.add(KIND_NAME, kind.adaptToJson(binding.kind));
 
             if (binding.options != null)
             {
@@ -122,7 +122,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             NamespacedRef vault = item.containsKey(VAULT_NAME)
                     ? NamespacedRef.of(item.getString(VAULT_NAME))
                     : null;
-            RoleConfig kind = role.adaptFromJson(item.getJsonString(KIND_NAME));
+            KindConfig kind = this.kind.adaptFromJson(item.getJsonString(KIND_NAME));
             OptionsConfig opts = item.containsKey(OPTIONS_NAME) ?
                     options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)) :
                     null;

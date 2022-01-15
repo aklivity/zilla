@@ -74,7 +74,6 @@ import org.agrona.collections.MutableReference;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.http.internal.Http2Counters;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
@@ -372,7 +371,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
-    private final Http2Counters counters;
     private final Signaler signaler;
     private final Http2Settings initialSettings;
     private final BufferPool headersPool;
@@ -401,7 +399,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
-        this.counters = new Http2Counters(context::supplyCounter);
         this.signaler = context.signaler();
         this.headersPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
@@ -2588,7 +2585,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
         else
         {
-            counters.settingsFramesRead.getAsLong();
             server.onDecodeSettings(traceId, authorization, http2Settings);
             server.decoder = decodeHttp2FrameType;
             progress = http2Settings.limit();
@@ -2631,7 +2627,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         else
         {
             final Http2PingFW http2Ping = http2PingRO.wrap(buffer, offset, limit);
-            counters.pingFramesRead.getAsLong();
             server.onDecodePing(traceId, authorization, http2Ping);
             server.decoder = decodeHttp2FrameType;
             progress = http2Ping.limit();
@@ -2667,7 +2662,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
         else
         {
-            counters.goawayFramesRead.getAsLong();
             server.onDecodeGoaway(traceId, authorization, http2Goaway);
             server.decoder = decodeHttp2IgnoreAll;
             progress = http2Goaway.limit();
@@ -2720,7 +2714,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (error == Http2ErrorCode.NO_ERROR)
             {
-                counters.windowUpdateFramesRead.getAsLong();
                 server.onDecodeWindowUpdate(traceId, authorization, http2WindowUpdate);
                 server.decoder = decodeHttp2FrameType;
                 progress = http2WindowUpdate.limit();
@@ -2766,7 +2759,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             if (server.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
-                counters.headersFramesRead.getAsLong();
                 if (server.streams.containsKey(streamId))
                 {
                     server.onDecodeTrailers(traceId, authorization, http2Headers);
@@ -2819,7 +2811,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
         else
         {
-            counters.continuationFramesRead.getAsLong();
             server.onDecodeContinuation(traceId, authorization, http2Continuation);
             server.decoder = decodeHttp2FrameType;
             progress = http2Continuation.limit();
@@ -2903,7 +2894,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         if (server.decodableDataBytes == 0)
         {
             server.decoder = decodeHttp2FrameType;
-            counters.dataFramesRead.getAsLong();
         }
 
         return progress;
@@ -2943,7 +2933,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         else
         {
             final Http2PriorityFW http2Priority = http2PriorityRO.wrap(buffer, offset, limit);
-            counters.priorityFramesRead.getAsLong();
             server.onDecodePriority(traceId, authorization, http2Priority);
             server.decoder = decodeHttp2FrameType;
             progress = http2Priority.limit();
@@ -2989,7 +2978,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             if (server.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
                 final Http2RstStreamFW http2RstStream = http2RstStreamRO.wrap(buffer, offset, limit);
-                counters.resetStreamFramesRead.getAsLong();
                 server.onDecodeRstStream(traceId, authorization, http2RstStream);
                 server.decoder = decodeHttp2FrameType;
                 progress = http2RstStream.limit();
@@ -4459,10 +4447,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     exchange.doRequestEnd(traceId, authorization, EMPTY_OCTETS);
                 }
-                else
-                {
-                    counters.pushPromiseFramesSkipped.getAsLong();
-                }
             }
         }
 
@@ -4478,8 +4462,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Settings);
-
-            counters.settingsFramesWritten.getAsLong();
         }
 
         private void doEncodeSettingsAck(
@@ -4492,8 +4474,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Settings);
-
-            counters.settingsFramesWritten.getAsLong();
         }
 
         private void doEncodeGoaway(
@@ -4508,8 +4488,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             doNetworkReservedData(traceId, authorization, 0L, http2Goaway);
             doNetworkEnd(traceId, authorization);
-
-            counters.goawayFramesWritten.getAsLong();
         }
 
         private void doEncodePingAck(
@@ -4524,8 +4502,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Ping);
-
-            counters.pingFramesWritten.getAsLong();
         }
 
         private void doEncodeHeaders(
@@ -4543,8 +4519,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .build();
 
             doNetworkHeadersData(traceId, authorization, 0L, http2Headers);
-
-            counters.headersFramesWritten.getAsLong();
         }
 
         private void doEncodeData(
@@ -4571,8 +4545,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                         .build();
                 frameOffset = http2Data.limit();
                 progress += length;
-
-                counters.dataFramesWritten.getAsLong();
             }
 
             assert progress == limit;
@@ -4606,8 +4578,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 doNetworkReservedData(traceId, authorization, 0L, http2Headers);
             }
-
-            counters.headersFramesWritten.getAsLong();
         }
 
         private void doEncodePushPromise(
@@ -4625,8 +4595,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .build();
 
             doNetworkHeadersData(traceId, authorization, 0L, http2PushPromise);
-
-            counters.pushPromiseFramesWritten.getAsLong();
         }
 
         private void doEncodeRstStream(
@@ -4641,8 +4609,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2RstStream);
-
-            counters.resetStreamFramesWritten.getAsLong();
         }
 
         private void doEncodeWindowUpdates(
@@ -4664,8 +4630,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     .limit();
 
             doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
-
-            counters.windowUpdateFramesWritten.getAsLong();
         }
 
         private void cleanupNetwork(

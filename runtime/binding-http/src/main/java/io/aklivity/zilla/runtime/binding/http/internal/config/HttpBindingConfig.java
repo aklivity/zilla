@@ -24,7 +24,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class HttpBindingConfig
 {
@@ -34,7 +34,7 @@ public final class HttpBindingConfig
     public final long vaultId;
     public final String entry;
     public final HttpOptionsConfig options;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final List<HttpRouteConfig> routes;
     public final HttpRouteConfig exit;
 

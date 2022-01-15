@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CACHE_CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CACHE_SERVER;
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CACHE_SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -36,13 +36,13 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class KafkaBindingContext implements BindingContext
 {
     private final Long2ObjectHashMap<KafkaClientRoute> clientRoutesById;
     private final Long2ObjectHashMap<KafkaCacheRoute> cacheRoutesById;
-    private final Map<RoleConfig, KafkaStreamFactory> factories;
+    private final Map<KindConfig, KafkaStreamFactory> factories;
 
     KafkaBindingContext(
         KafkaConfiguration config,
@@ -52,7 +52,7 @@ final class KafkaBindingContext implements BindingContext
         this.clientRoutesById = new Long2ObjectHashMap<>();
         this.cacheRoutesById = new Long2ObjectHashMap<>();
 
-        Map<RoleConfig, KafkaStreamFactory> factories = new EnumMap<>(RoleConfig.class);
+        Map<KindConfig, KafkaStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(CLIENT, new KafkaClientFactory(config, context, this::supplyClientRoute));
         factories.put(CACHE_SERVER, new KafkaCacheServerFactory(config, context, supplyCache,
             this::supplyCacheRoute));

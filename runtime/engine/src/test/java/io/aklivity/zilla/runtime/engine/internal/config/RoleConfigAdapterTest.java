@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -28,7 +28,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public class RoleConfigAdapterTest
 {
@@ -38,7 +38,7 @@ public class RoleConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new RoleAdapter());
+                .withAdapters(new KindAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -47,7 +47,7 @@ public class RoleConfigAdapterTest
     {
         String text = "\"server\"";
 
-        RoleConfig role = jsonb.fromJson(text, RoleConfig.class);
+        KindConfig role = jsonb.fromJson(text, KindConfig.class);
 
         assertThat(role, not(nullValue()));
         assertThat(role, equalTo(SERVER));

@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -28,17 +28,17 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class HttpBindingContext implements BindingContext
 {
-    private final Map<RoleConfig, HttpStreamFactory> factories;
+    private final Map<KindConfig, HttpStreamFactory> factories;
 
     HttpBindingContext(
         HttpConfiguration config,
         EngineContext context)
     {
-        Map<RoleConfig, HttpStreamFactory> factories = new EnumMap<>(RoleConfig.class);
+        Map<KindConfig, HttpStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(CLIENT, new HttpClientFactory(config, context));
         factories.put(SERVER, new HttpServerFactory(config, context));
         this.factories = factories;

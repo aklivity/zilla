@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -33,6 +32,7 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
@@ -287,7 +287,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.fetch.server.sent.close/client",
         "${app}/unmerged.fetch.server.sent.close/server"})
-    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchClose() throws Exception
     {
         k3po.finish();
@@ -298,7 +298,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.fetch.server.sent.close.with.message/client",
         "${app}/unmerged.fetch.server.sent.close.with.message/server"})
-    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchCloseWithMessage() throws Exception
     {
         k3po.start();
@@ -312,7 +312,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.fetch.server.sent.abort/client",
         "${app}/unmerged.fetch.server.sent.abort/server"})
-    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchAbort() throws Exception
     {
         k3po.finish();
@@ -323,7 +323,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.fetch.server.sent.abort.with.message/client",
         "${app}/unmerged.fetch.server.sent.abort.with.message/server"})
-    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchAbortWithMessage() throws Exception
     {
         k3po.start();
@@ -337,7 +337,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.fetch.server.sent.abort/client",
         "${app}/unmerged.fetch.server.sent.reset/server"})
-    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchReset() throws Exception
     {
         k3po.finish();
@@ -348,7 +348,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.fetch.server.sent.abort.with.message/client",
         "${app}/unmerged.fetch.server.sent.reset.and.abort.with.message/server"})
-    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldCloseMergedOnUnmergedFetchResetWithMessage() throws Exception
     {
         k3po.start();

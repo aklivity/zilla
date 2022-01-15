@@ -21,14 +21,14 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class MqttBindingConfig
 {
     public final long id;
     public final long vaultId;
     public final String entry;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final List<MqttRouteConfig> routes;
     public final MqttRouteConfig exit;
 

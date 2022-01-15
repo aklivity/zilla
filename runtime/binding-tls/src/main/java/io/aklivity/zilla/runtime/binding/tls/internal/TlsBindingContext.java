@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.CLIENT;
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.PROXY;
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -30,21 +30,20 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class TlsBindingContext implements BindingContext
 {
-    private final Map<RoleConfig, TlsStreamFactory> factories;
+    private final Map<KindConfig, TlsStreamFactory> factories;
 
     TlsBindingContext(
         TlsConfiguration config,
         EngineContext context)
     {
-        TlsCounters counters = new TlsCounters(context::supplyCounter, context::supplyAccumulator);
-        Map<RoleConfig, TlsStreamFactory> factories = new EnumMap<>(RoleConfig.class);
-        factories.put(SERVER, new TlsServerFactory(config, context, counters));
-        factories.put(PROXY, new TlsProxyFactory(config, context, counters));
-        factories.put(CLIENT, new TlsClientFactory(config, context, counters));
+        Map<KindConfig, TlsStreamFactory> factories = new EnumMap<>(KindConfig.class);
+        factories.put(SERVER, new TlsServerFactory(config, context));
+        factories.put(PROXY, new TlsProxyFactory(config, context));
+        factories.put(CLIENT, new TlsClientFactory(config, context));
         this.factories = factories;
     }
 

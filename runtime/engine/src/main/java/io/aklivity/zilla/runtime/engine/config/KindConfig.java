@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-public enum RoleConfig
+public enum KindConfig
 {
     SERVER,
     CLIENT,

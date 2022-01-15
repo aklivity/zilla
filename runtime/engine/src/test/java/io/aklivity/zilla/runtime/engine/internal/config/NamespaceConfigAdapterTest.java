@@ -15,8 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.config.RoleConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyCollectionOf;
@@ -49,31 +50,6 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
-    public void shouldReadEmptyNamespace()
-    {
-        String text =
-                "{" +
-                "}";
-
-        NamespaceConfig namespace = jsonb.fromJson(text, NamespaceConfig.class);
-
-        assertThat(namespace, not(nullValue()));
-        assertThat(namespace.name, equalTo("default"));
-        assertThat(namespace.bindings, emptyCollectionOf(BindingConfig.class));
-    }
-
-    @Test
-    public void shouldWriteEmptyNamespace()
-    {
-        NamespaceConfig namespace = new NamespaceConfig("default", emptyList(), emptyList());
-
-        String text = jsonb.toJson(namespace);
-
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{}"));
-    }
-
-    @Test
     public void shouldReadNamespace()
     {
         String text =
@@ -84,23 +60,27 @@ public class NamespaceConfigAdapterTest
                     "}," +
                     "\"bindings\":" +
                     "{" +
-                    "}" +
+                    "}," +
+                    "\"references\":" +
+                    "[" +
+                    "]" +
                 "}";
 
-        NamespaceConfig namespace = jsonb.fromJson(text, NamespaceConfig.class);
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
 
-        assertThat(namespace, not(nullValue()));
-        assertThat(namespace.name, equalTo("test"));
-        assertThat(namespace.bindings, emptyCollectionOf(BindingConfig.class));
-        assertThat(namespace.vaults, emptyCollectionOf(VaultConfig.class));
+        assertThat(config, not(nullValue()));
+        assertThat(config.name, equalTo("test"));
+        assertThat(config.bindings, emptyCollectionOf(BindingConfig.class));
+        assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
+        assertThat(config.references, emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
     public void shouldWriteNamespace()
     {
-        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), emptyList());
 
-        String text = jsonb.toJson(namespace);
+        String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\"}"));
@@ -125,22 +105,23 @@ public class NamespaceConfigAdapterTest
                     "}" +
                 "}";
 
-        NamespaceConfig namespace = jsonb.fromJson(text, NamespaceConfig.class);
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
 
-        assertThat(namespace, not(nullValue()));
-        assertThat(namespace.name, equalTo("test"));
-        assertThat(namespace.bindings, hasSize(1));
-        assertThat(namespace.bindings.get(0).entry, equalTo("test"));
-        assertThat(namespace.bindings.get(0).type, equalTo("test"));
-        assertThat(namespace.bindings.get(0).kind, equalTo(SERVER));
-        assertThat(namespace.vaults, emptyCollectionOf(VaultConfig.class));
+        assertThat(config, not(nullValue()));
+        assertThat(config.name, equalTo("test"));
+        assertThat(config.bindings, hasSize(1));
+        assertThat(config.bindings.get(0).entry, equalTo("test"));
+        assertThat(config.bindings.get(0).type, equalTo("test"));
+        assertThat(config.bindings.get(0).kind, equalTo(SERVER));
+        assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
+        assertThat(config.references, emptyCollectionOf(NamespaceRef.class));
     }
 
     @Test
     public void shouldWriteNamespaceWithBinding()
     {
         BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null);
-        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), singletonList(binding));
+        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), emptyList(), singletonList(binding));
 
         String text = jsonb.toJson(namespace);
 
@@ -149,7 +130,7 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
-    public void shouldReadConfigurationWithVault()
+    public void shouldReadNamespaceWithVault()
     {
         String text =
                 "{" +
@@ -166,24 +147,61 @@ public class NamespaceConfigAdapterTest
                     "}" +
                 "}";
 
-        NamespaceConfig namespace = jsonb.fromJson(text, NamespaceConfig.class);
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
 
-        assertThat(namespace, not(nullValue()));
-        assertThat(namespace.name, equalTo("test"));
-        assertThat(namespace.vaults, hasSize(1));
-        assertThat(namespace.vaults.get(0).name, equalTo("default"));
-        assertThat(namespace.vaults.get(0).type, equalTo("test"));
+        assertThat(config, not(nullValue()));
+        assertThat(config.name, equalTo("test"));
+        assertThat(config.vaults, hasSize(1));
+        assertThat(config.vaults.get(0).name, equalTo("default"));
+        assertThat(config.vaults.get(0).type, equalTo("test"));
     }
 
     @Test
-    public void shouldWriteConfigurationWithVault()
+    public void shouldWriteNamespaceWithVault()
     {
         VaultConfig vault = new VaultConfig("default", "test", null);
-        NamespaceConfig namespace = new NamespaceConfig("test", singletonList(vault), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), singletonList(vault), emptyList());
 
-        String text = jsonb.toJson(namespace);
+        String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"}}}"));
+    }
+
+    @Test
+    public void shouldReadNamespaceWithNamespace()
+    {
+        String text =
+                "{" +
+                    "\"name\": \"test\"," +
+                    "\"references\":" +
+                    "[" +
+                        "{" +
+                            "\"name\": \"test\"" +
+                        "}" +
+                    "]" +
+                "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.name, equalTo("test"));
+        assertThat(config.bindings, emptyCollectionOf(BindingConfig.class));
+        assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
+        assertThat(config.references, hasSize(1));
+        assertThat(config.references.get(0).name, equalTo("test"));
+        assertThat(config.references.get(0).links, equalTo(emptyMap()));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithNamespace()
+    {
+        NamespaceRef reference = new NamespaceRef("test", emptyMap());
+        NamespaceConfig config = new NamespaceConfig("test", singletonList(reference), emptyList(), emptyList());
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"references\":[{\"name\":\"test\"}]}"));
     }
 }

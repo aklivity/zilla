@@ -54,7 +54,7 @@ import io.aklivity.zilla.runtime.binding.tls.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoFW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.RoleConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public final class TlsBindingConfig
@@ -65,7 +65,7 @@ public final class TlsBindingConfig
     public final long vaultId;
     public final String entry;
     public final TlsOptionsConfig options;
-    public final RoleConfig kind;
+    public final KindConfig kind;
     public final List<TlsRouteConfig> routes;
     public final TlsRouteConfig exit;
 
@@ -91,7 +91,7 @@ public final class TlsBindingConfig
     {
         char[] keysPass = "generated".toCharArray();
         KeyStore keys = newKeys(vault, ignoreEmptyVaultRefs, keysPass, options.keys, options.signers);
-        KeyStore trust = newTrust(vault, ignoreEmptyVaultRefs, options.trust, options.trustcacerts && kind == RoleConfig.CLIENT);
+        KeyStore trust = newTrust(vault, ignoreEmptyVaultRefs, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
         {
@@ -102,7 +102,7 @@ public final class TlsBindingConfig
                 keyManagerFactory.init(keys, keysPass);
                 keyManagers = keyManagerFactory.getKeyManagers();
 
-                if (keyManagers != null && kind == RoleConfig.CLIENT)
+                if (keyManagers != null && kind == KindConfig.CLIENT)
                 {
                     for (int i = 0; i < keyManagers.length; i++)
                     {
