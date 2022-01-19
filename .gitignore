@@ -22,3 +22,4 @@ buildNumber.properties
 zilla
 !zilla/
 _book/
+node_modules/
