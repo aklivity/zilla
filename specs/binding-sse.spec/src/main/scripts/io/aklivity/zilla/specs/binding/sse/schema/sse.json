@@ -16,7 +16,6 @@
                 },
                 "options":
                 {
-                    "additionalProperties": false,
                     "properties":
                     {
                         "retry":
@@ -24,7 +23,8 @@
                             "type": "integer",
                             "default": 2000
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "routes":
                 {
@@ -36,7 +36,6 @@
                             {
                                 "items":
                                 {
-                                    "additionalProperties": false,
                                     "properties":
                                     {
                                         "path":
@@ -44,13 +43,30 @@
                                             "title": "Path",
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 }
-                            }
+                            },
+                            "with": false
                         }
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]

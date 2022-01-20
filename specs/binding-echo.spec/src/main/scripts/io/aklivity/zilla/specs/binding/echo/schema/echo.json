@@ -14,16 +14,10 @@
                 {
                     "enum": [ "server" ]
                 },
-                "options":
-                {
-                    "additionalProperties": false
-                }
+                "options": false,
+                "routes": false,
+                "exit": false
             }
         }
-    },
-    {
-        "op": "add",
-        "path": "/$defs/internal/terminal/enum/-",
-        "value": "echo"
     }
 ]

@@ -14,11 +14,24 @@
                 {
                     "enum": [ "server" ]
                 },
-                "options":
+                "options": false,
+                "routes": false
+            },
+            "anyOf":
+            [
                 {
-                    "additionalProperties": false
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
                 }
-            }
+            ]
         }
     }
 ]

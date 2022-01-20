@@ -16,7 +16,6 @@
                 },
                 "options":
                 {
-                    "additionalProperties": false,
                     "properties":
                     {
                         "host":
@@ -52,7 +51,8 @@
                                 }
                             ]
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "routes":
                 {
@@ -64,25 +64,47 @@
                             {
                                 "items":
                                 {
-                                    "additionalProperties": false,
                                     "properties":
                                     {
                                         "authority":
                                         {
+                                            "title": "Authority",
                                             "type": "string"
                                         },
                                         "cidr":
                                         {
+                                            "title": "CIDR Mask",
                                             "type": "string",
                                             "pattern": "^[0-9a-fA-F:.]+/(\\d{1,3})$"
                                         }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 }
-                            }
-                        }
+                            },
+                            "with": false
+                        },
+                        "required":
+                        [
+                            "exit"
+                        ]
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]

@@ -14,10 +14,7 @@
                 {
                     "enum": [ "client", "server" ]
                 },
-                "options":
-                {
-                    "additionalProperties": false
-                },
+                "options": false,
                 "routes":
                 {
                     "items":
@@ -142,11 +139,27 @@
                                         }
                                     }
                                 }
-                            }
+                            },
+                            "with": false
                         }
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]

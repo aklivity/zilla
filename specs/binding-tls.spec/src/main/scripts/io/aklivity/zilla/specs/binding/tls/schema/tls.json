@@ -16,7 +16,6 @@
                 },
                 "options":
                 {
-                    "additionalProperties": false,
                     "properties":
                     {
                         "version":
@@ -80,7 +79,8 @@
                                 "type": "string"
                             }
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "routes":
                 {
@@ -92,7 +92,6 @@
                             {
                                 "items":
                                 {
-                                    "additionalProperties": false,
                                     "properties":
                                     {
                                         "authority":
@@ -105,13 +104,30 @@
                                             "title": "Application Protocol",
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 }
-                            }
+                            },
+                            "with": false
                         }
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]

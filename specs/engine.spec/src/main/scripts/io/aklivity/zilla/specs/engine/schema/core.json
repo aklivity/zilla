@@ -1,5 +1,48 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Namespace",
+    "type": "object",
+    "properties":
+    {
+        "name":
+        {
+            "title": "Name",
+            "type": "string",
+            "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
+        },
+        "vaults":
+        {
+            "title": "Vaults",
+            "type": "object",
+            "patternProperties":
+            {
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                {
+                    "$ref": "#/$defs/vault"
+                }
+            },
+            "additionalProperties": false
+        },
+        "bindings":
+        {
+            "title": "Bindings",
+            "type": "object",
+            "patternProperties":
+            {
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                {
+                    "$ref": "#/$defs/binding"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false,
+    "required":
+    [
+        "name"
+    ],
+
     "$defs":
     {
         "vault":
@@ -60,7 +103,7 @@
                     "items":
                     {
                         "title": "Route",
-                        "additionalProperties": false,
+                        "type": "object",
                         "properties":
                         {
                             "exit":
@@ -84,111 +127,29 @@
                                 "type": "array",
                                 "items":
                                 {
-                                    "title": "Override",
+                                    "title": "Condition",
                                     "type": "object"
                                 }
                             }
                         },
-                        "required":
-                        [
-                            "exit"
-                        ]
+                        "additionalProperties": false
                     }
                 },
                 "exit":
                 {
                     "title": "Exit",
                     "type": "string"
-                }
+                },
+                "additionalProperties": false
             },
-            "additionalProperties": false,
             "required":
             [
                 "type",
                 "kind"
             ],
-            "allOf":
-            [
-                {
-                    "if":
-                    {
-                        "not":
-                        {
-                            "properties": { "type": { "$ref": "#/$defs/internal/terminal" } }
-                        }
-                    },
-                    "then":
-                    {
-                        "anyOf":
-                        [
-                            {
-                                "required":
-                                [
-                                    "exit"
-                                ]
-                            },
-                            {
-                                "required":
-                                [
-                                    "routes"
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ],
             "oneOf":
             [
             ]
-        },
-        "internal":
-        {
-            "terminal":
-            {
-                "enum": [ ]
-            }
         }
-    },
-    "title": "Namespace",
-    "type": "object",
-    "properties":
-    {
-        "name":
-        {
-            "title": "Name",
-            "type": "string",
-            "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
-        },
-        "vaults":
-        {
-            "title": "Vaults",
-            "type": "object",
-            "patternProperties":
-            {
-                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                {
-                    "$ref": "#/$defs/vault"
-                }
-            },
-            "additionalProperties": false
-        },
-        "bindings":
-        {
-            "title": "Bindings",
-            "type": "object",
-            "patternProperties":
-            {
-                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                {
-                    "$ref": "#/$defs/binding"
-                }
-            },
-            "additionalProperties": false
-        }
-    },
-    "additionalProperties": false,
-    "required":
-    [
-        "name"
-    ]
+    }
 }

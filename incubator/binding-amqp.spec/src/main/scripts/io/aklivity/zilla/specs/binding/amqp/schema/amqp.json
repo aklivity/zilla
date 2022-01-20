@@ -45,11 +45,27 @@
                                         }
                                     }
                                 }
-                            }
+                            },
+                            "with": false
                         }
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]

@@ -16,7 +16,6 @@
                 },
                 "options":
                 {
-                    "additionalProperties": false,
                     "properties":
                     {
                         "defaults":
@@ -48,7 +47,8 @@
                                 }
                             }
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "routes":
                 {
@@ -60,7 +60,6 @@
                             {
                                 "items":
                                 {
-                                    "additoinalProperties": "false",
                                     "properties":
                                     {
                                         "protocol":
@@ -83,13 +82,30 @@
                                             "title": "Path",
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "additoinalProperties": "false"
                                 }
-                            }
+                            },
+                            "with": false
                         }
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]

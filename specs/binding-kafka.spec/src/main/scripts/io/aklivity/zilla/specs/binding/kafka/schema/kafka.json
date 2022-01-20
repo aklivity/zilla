@@ -16,7 +16,6 @@
                 },
                 "options":
                 {
-                    "additionalProperties": false,
                     "properties":
                     {
                         "merged":
@@ -64,7 +63,8 @@
                                 }
                             }
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "routes":
                 {
@@ -76,7 +76,6 @@
                             {
                                 "items":
                                 {
-                                    "additionalProperties": false,
                                     "properties":
                                     {
                                         "topic":
@@ -84,13 +83,30 @@
                                             "title": "Topic",
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 }
-                            }
+                            },
+                            "with": false
                         }
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]

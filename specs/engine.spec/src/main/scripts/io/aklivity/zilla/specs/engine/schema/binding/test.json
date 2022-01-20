@@ -13,8 +13,24 @@
                 "kind":
                 {
                     "enum": [ "server" ]
+                },
+                "options": false
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
                 }
-            }
+            ]
         }
     }
 ]

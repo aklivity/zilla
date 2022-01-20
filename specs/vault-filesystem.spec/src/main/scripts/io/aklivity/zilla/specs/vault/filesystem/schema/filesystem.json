@@ -12,14 +12,12 @@
                 },
                 "options":
                 {
-                    "additionalProperties": false,
                     "properties":
                     {
                         "keys":
                         {
                             "title": "Keys",
                             "type": "object",
-                            "additionalProperties": false,
                             "properties":
                             {
                                 "store":
@@ -35,13 +33,13 @@
                                 {
                                     "type": "string"
                                 }
-                            }
+                            },
+                            "additionalProperties": false
                         },
                         "trust":
                         {
                             "title": "Trust Certificates",
                             "type": "object",
-                            "additionalProperties": false,
                             "properties":
                             {
                                 "store":
@@ -57,13 +55,13 @@
                                 {
                                     "type": "string"
                                 }
-                            }
+                            },
+                            "additionalProperties": false
                         },
                         "signers":
                         {
                             "title": "Signer Certificates",
                             "type": "object",
-                            "additionalProperties": false,
                             "properties":
                             {
                                 "store":
@@ -79,9 +77,11 @@
                                 {
                                     "type": "string"
                                 }
-                            }
+                            },
+                            "additionalProperties": false
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 }
             }
         }

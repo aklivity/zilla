@@ -16,7 +16,6 @@
                 },
                 "options":
                 {
-                    "additionalProperties": false,
                     "properties":
                     {
                         "versions":
@@ -36,10 +35,11 @@
                             "type": "object",
                             "additionalProperties" :
                             {
-                              "type": "string"
+                                "type": "string"
                             }
                         }
-                    }
+                    },
+                    "additionalProperties": false
                 },
                 "routes":
                 {
@@ -51,7 +51,6 @@
                             {
                                 "items":
                                 {
-                                    "additionalProperties": false,
                                     "properties":
                                     {
                                         "headers":
@@ -63,13 +62,30 @@
                                               "type": "string"
                                             }
                                         }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                 }
-                            }
+                            },
+                            "with": false
                         }
                     }
                 }
-            }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
         }
     }
 ]
