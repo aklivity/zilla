@@ -146,7 +146,7 @@ public class ConfigureTask implements Callable<Void>
         parse:
         try
         {
-            InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/core.json");
+            InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
 
             JsonProvider schemaProvider = JsonProvider.provider();
             JsonReader schemaReader = schemaProvider.createReader(schemaInput);

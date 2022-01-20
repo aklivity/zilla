@@ -41,7 +41,7 @@ public final class AmqpBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/amqp.json");
+        return getClass().getResource("schema/amqp.schema.patch.json");
     }
 
     @Override

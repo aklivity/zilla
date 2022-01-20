@@ -161,7 +161,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/engine/schema/core.json</includes>
+              <includes>io/aklivity/zilla/specs/engine/schema/engine.schema.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

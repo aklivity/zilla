@@ -162,7 +162,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/tcp/schema/tcp.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/tcp/schema/tcp.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

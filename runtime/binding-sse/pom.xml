@@ -137,7 +137,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/sse/schema/sse.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/sse/schema/sse.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

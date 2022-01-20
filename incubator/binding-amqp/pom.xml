@@ -137,7 +137,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/amqp/schema/amqp.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/amqp/schema/amqp.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

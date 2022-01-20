@@ -41,7 +41,7 @@ public final class ProxyBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/proxy.json");
+        return getClass().getResource("schema/proxy.schema.patch.json");
     }
 
     @Override

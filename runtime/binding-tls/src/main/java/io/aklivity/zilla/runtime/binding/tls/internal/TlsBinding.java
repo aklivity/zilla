@@ -41,7 +41,7 @@ public final class TlsBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/tls.json");
+        return getClass().getResource("schema/tls.schema.patch.json");
     }
 
     @Override

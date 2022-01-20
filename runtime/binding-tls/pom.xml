@@ -157,7 +157,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/tls/schema/tls.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

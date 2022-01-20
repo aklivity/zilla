@@ -42,7 +42,7 @@ public final class FileSystemVault implements Vault
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/filesystem.json");
+        return getClass().getResource("schema/filesystem.schema.patch.json");
     }
 
     @Override

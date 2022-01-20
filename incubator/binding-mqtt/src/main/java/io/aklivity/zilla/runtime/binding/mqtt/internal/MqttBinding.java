@@ -41,7 +41,7 @@ public final class MqttBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/mqtt.json");
+        return getClass().getResource("schema/mqtt.schema.patch.json");
     }
 
     @Override

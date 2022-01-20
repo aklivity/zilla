@@ -41,7 +41,7 @@ public final class HttpBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/http.json");
+        return getClass().getResource("schema/http.schema.patch.json");
     }
 
     @Override
