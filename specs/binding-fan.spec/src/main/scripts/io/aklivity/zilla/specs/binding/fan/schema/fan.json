@@ -1,32 +1,22 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "fan"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
-                    {
-                        "const": "fan"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
+                    "const": "fan"
+                },
+                "kind":
                 {
-                    "kind":
-                    {
-                        "enum": [ "server" ]
-                    }
+                    "enum": [ "server" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false
                 }
             }
         }

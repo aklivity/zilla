@@ -1,61 +1,47 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "amqp"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
-                    {
-                        "const": "amqp"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
+                    "const": "amqp"
+                },
+                "kind":
                 {
-                    "kind":
+                    "enum": [ "server" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false
+                },
+                "routes":
+                {
+                    "items":
                     {
-                        "enum": [ "server" ]
-                    },
-                    "options":
-                    {
-                        "additionalProperties": false
-                    },
-                    "routes":
-                    {
-                        "items":
+                        "properties":
                         {
-                            "properties":
+                            "when":
                             {
-                                "when":
+                                "items":
                                 {
-                                    "items":
+                                    "additionalProperties": false,
+                                    "properties":
                                     {
-                                        "additionalProperties": false,
-                                        "properties":
+                                        "address":
                                         {
-                                            "address":
-                                            {
-                                                "title": "Address",
-                                                "type": "string"
-                                            },
-                                            "capabilities":
-                                            {
-                                                "title": "Capabilities",
-                                                "type": "string",
-                                                "enum": [ "send_only", "receive_only", "send_and_receive" ],
-                                                "default": "send_and_receive"
-                                            }
+                                            "title": "Address",
+                                            "type": "string"
+                                        },
+                                        "capabilities":
+                                        {
+                                            "title": "Capabilities",
+                                            "type": "string",
+                                            "enum": [ "send_only", "receive_only", "send_and_receive" ],
+                                            "default": "send_and_receive"
                                         }
                                     }
                                 }

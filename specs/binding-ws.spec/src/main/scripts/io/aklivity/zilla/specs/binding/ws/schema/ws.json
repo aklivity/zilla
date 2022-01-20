@@ -1,101 +1,87 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "ws"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
-                    {
-                        "const": "ws"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
+                    "const": "ws"
+                },
+                "kind":
                 {
-                    "kind":
+                    "enum": [ "client", "server" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false,
+                    "properties":
                     {
-                        "enum": [ "client", "server" ]
-                    },
-                    "options":
-                    {
-                        "additionalProperties": false,
-                        "properties":
+                        "defaults":
                         {
-                            "defaults":
+                            "title": "Defaults",
+                            "type": "object",
+                            "additoinalProperties": "false",
+                            "properties":
                             {
-                                "title": "Defaults",
-                                "type": "object",
-                                "additoinalProperties": "false",
-                                "properties":
+                                "protocol":
                                 {
-                                    "protocol":
-                                    {
-                                        "title": "Subprotocol",
-                                        "type": "string"
-                                    },
-                                    "scheme":
-                                    {
-                                        "title": "Scheme",
-                                        "type": "string"
-                                    },
-                                    "authority":
-                                    {
-                                        "title": "Authority",
-                                        "type": "string"
-                                    },
-                                    "path":
-                                    {
-                                        "title": "Path",
-                                        "type": "string"
-                                    }
+                                    "title": "Subprotocol",
+                                    "type": "string"
+                                },
+                                "scheme":
+                                {
+                                    "title": "Scheme",
+                                    "type": "string"
+                                },
+                                "authority":
+                                {
+                                    "title": "Authority",
+                                    "type": "string"
+                                },
+                                "path":
+                                {
+                                    "title": "Path",
+                                    "type": "string"
                                 }
                             }
                         }
-                    },
-                    "routes":
+                    }
+                },
+                "routes":
+                {
+                    "items":
                     {
-                        "items":
+                        "properties":
                         {
-                            "properties":
+                            "when":
                             {
-                                "when":
+                                "items":
                                 {
-                                    "items":
+                                    "additoinalProperties": "false",
+                                    "properties":
                                     {
-                                        "additoinalProperties": "false",
-                                        "properties":
+                                        "protocol":
                                         {
-                                            "protocol":
-                                            {
-                                                "title": "Subprotocol",
-                                                "type": "string"
-                                            },
-                                            "scheme":
-                                            {
-                                                "title": "Scheme",
-                                                "type": "string"
-                                            },
-                                            "authority":
-                                            {
-                                                "title": "Authority",
-                                                "type": "string"
-                                            },
-                                            "path":
-                                            {
-                                                "title": "Path",
-                                                "type": "string"
-                                            }
+                                            "title": "Subprotocol",
+                                            "type": "string"
+                                        },
+                                        "scheme":
+                                        {
+                                            "title": "Scheme",
+                                            "type": "string"
+                                        },
+                                        "authority":
+                                        {
+                                            "title": "Authority",
+                                            "type": "string"
+                                        },
+                                        "path":
+                                        {
+                                            "title": "Path",
+                                            "type": "string"
                                         }
                                     }
                                 }

@@ -1,7 +1,16 @@
 [
     {
         "op": "add",
-        "path": "/$defs/vault/properties/type/enum/-",
-        "value": "test"
+        "path": "/$defs/vault/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "test"
+                }
+            }
+        }
     }
 ]

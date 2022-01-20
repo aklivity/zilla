@@ -1,80 +1,66 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "http"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
-                    {
-                        "const": "http"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
+                    "const": "http"
+                },
+                "kind":
                 {
-                    "kind":
+                    "enum": [ "server", "client" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false,
+                    "properties":
                     {
-                        "enum": [ "server", "client" ]
-                    },
-                    "options":
-                    {
-                        "additionalProperties": false,
-                        "properties":
+                        "versions":
                         {
-                            "versions":
+                            "title": "Versions",
+                            "type": "array",
+                            "default": [ "http/1.1", "h2" ],
+                            "items":
                             {
-                                "title": "Versions",
-                                "type": "array",
-                                "default": [ "http/1.1", "h2" ],
-                                "items":
-                                {
-                                    "type": "string",
-                                    "enum": [ "http/1.1", "h2" ]
-                                }
-                            },
-                            "overrides":
+                                "type": "string",
+                                "enum": [ "http/1.1", "h2" ]
+                            }
+                        },
+                        "overrides":
+                        {
+                            "title": "Overrides",
+                            "type": "object",
+                            "additionalProperties" :
                             {
-                                "title": "Overrides",
-                                "type": "object",
-                                "additionalProperties" :
-                                {
-                                  "type": "string"
-                                }
+                              "type": "string"
                             }
                         }
-                    },
-                    "routes":
+                    }
+                },
+                "routes":
+                {
+                    "items":
                     {
-                        "items":
+                        "properties":
                         {
-                            "properties":
+                            "when":
                             {
-                                "when":
+                                "items":
                                 {
-                                    "items":
+                                    "additionalProperties": false,
+                                    "properties":
                                     {
-                                        "additionalProperties": false,
-                                        "properties":
+                                        "headers":
                                         {
-                                            "headers":
+                                            "title": "Headers",
+                                            "type": "object",
+                                            "additionalProperties" :
                                             {
-                                                "title": "Headers",
-                                                "type": "object",
-                                                "additionalProperties" :
-                                                {
-                                                  "type": "string"
-                                                }
+                                              "type": "string"
                                             }
                                         }
                                     }

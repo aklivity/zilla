@@ -1,61 +1,47 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "mqtt"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
-                    {
-                        "const": "mqtt"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
+                    "const": "mqtt"
+                },
+                "kind":
                 {
-                    "kind":
+                    "enum": [ "server" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false
+                },
+                "routes":
+                {
+                    "items":
                     {
-                        "enum": [ "server" ]
-                    },
-                    "options":
-                    {
-                        "additionalProperties": false
-                    },
-                    "routes":
-                    {
-                        "items":
+                        "properties":
                         {
-                            "properties":
+                            "when":
                             {
-                                "when":
+                                "items":
                                 {
-                                    "items":
+                                    "additionalProperties": false,
+                                    "properties":
                                     {
-                                        "additionalProperties": false,
-                                        "properties":
+                                        "topic":
                                         {
-                                            "topic":
-                                            {
-                                                "title": "Topic",
-                                                "type": "string"
-                                            },
-                                            "capabilities":
-                                            {
-                                                "title": "Capabilities",
-                                                "type": "string",
-                                                "enum": [ "publish_only", "subscribe_only", "publish_and_subscribe" ],
-                                                "default": "publish_and_subscribe"
-                                            }
+                                            "title": "Topic",
+                                            "type": "string"
+                                        },
+                                        "capabilities":
+                                        {
+                                            "title": "Capabilities",
+                                            "type": "string",
+                                            "enum": [ "publish_only", "subscribe_only", "publish_and_subscribe" ],
+                                            "default": "publish_and_subscribe"
                                         }
                                     }
                                 }

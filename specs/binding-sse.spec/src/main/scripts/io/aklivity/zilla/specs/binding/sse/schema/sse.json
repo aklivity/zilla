@@ -1,62 +1,48 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "sse"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
+                    "const": "sse"
+                },
+                "kind":
+                {
+                    "enum": [ "client", "server" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false,
+                    "properties":
                     {
-                        "const": "sse"
+                        "retry":
+                        {
+                            "type": "integer",
+                            "default": 2000
+                        }
                     }
-                }
-            },
-            "then":
-            {
-                "properties":
+                },
+                "routes":
                 {
-                    "kind":
+                    "items":
                     {
-                        "enum": [ "client", "server" ]
-                    },
-                    "options":
-                    {
-                        "additionalProperties": false,
                         "properties":
                         {
-                            "retry":
+                            "when":
                             {
-                                "type": "integer",
-                                "default": 2000
-                            }
-                        }
-                    },
-                    "routes":
-                    {
-                        "items":
-                        {
-                            "properties":
-                            {
-                                "when":
+                                "items":
                                 {
-                                    "items":
+                                    "additionalProperties": false,
+                                    "properties":
                                     {
-                                        "additionalProperties": false,
-                                        "properties":
+                                        "path":
                                         {
-                                            "path":
-                                            {
-                                                "title": "Path",
-                                                "type": "string"
-                                            }
+                                            "title": "Path",
+                                            "type": "string"
                                         }
                                     }
                                 }

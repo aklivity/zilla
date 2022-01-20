@@ -1,102 +1,88 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "kafka"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
-                    {
-                        "const": "kafka"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
+                    "const": "kafka"
+                },
+                "kind":
                 {
-                    "kind":
+                    "enum": [ "cache_client", "cache_server", "client" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false,
+                    "properties":
                     {
-                        "enum": [ "cache_client", "cache_server", "client" ]
-                    },
-                    "options":
-                    {
-                        "additionalProperties": false,
-                        "properties":
+                        "merged":
                         {
-                            "merged":
+                            "title": "Merged",
+                            "type": "array",
+                            "items":
                             {
-                                "title": "Merged",
-                                "type": "array",
-                                "items":
-                                {
-                                    "type": "string"
-                                }
-                            },
-                            "bootstrap":
+                                "type": "string"
+                            }
+                        },
+                        "bootstrap":
+                        {
+                            "title": "Bootstrap",
+                            "type": "array",
+                            "items":
                             {
-                                "title": "Bootstrap",
-                                "type": "array",
-                                "items":
-                                {
-                                    "type": "string"
-                                }
-                            },
-                            "topics":
+                                "type": "string"
+                            }
+                        },
+                        "topics":
+                        {
+                            "title": "Topics",
+                            "type": "array",
+                            "items":
                             {
-                                "title": "Topics",
-                                "type": "array",
-                                "items":
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties":
                                 {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties":
+                                    "name":
                                     {
-                                        "name":
-                                        {
-                                            "type": "string"
-                                        },
-                                        "defaultOffset":
-                                        {
-                                            "type": "string",
-                                            "enum": [ "live", "historical" ]
-                                        },
-                                        "deltaType":
-                                        {
-                                            "type": "string",
-                                            "enum": [ "none", "json_patch" ]
-                                        }
+                                        "type": "string"
+                                    },
+                                    "defaultOffset":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "live", "historical" ]
+                                    },
+                                    "deltaType":
+                                    {
+                                        "type": "string",
+                                        "enum": [ "none", "json_patch" ]
                                     }
                                 }
                             }
                         }
-                    },
-                    "routes":
+                    }
+                },
+                "routes":
+                {
+                    "items":
                     {
-                        "items":
+                        "properties":
                         {
-                            "properties":
+                            "when":
                             {
-                                "when":
+                                "items":
                                 {
-                                    "items":
+                                    "additionalProperties": false,
+                                    "properties":
                                     {
-                                        "additionalProperties": false,
-                                        "properties":
+                                        "topic":
                                         {
-                                            "topic":
-                                            {
-                                                "title": "Topic",
-                                                "type": "string"
-                                            }
+                                            "title": "Topic",
+                                            "type": "string"
                                         }
                                     }
                                 }

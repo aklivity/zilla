@@ -10,8 +10,7 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string",
-                    "enum": [ ]
+                    "type": "string"
                 },
                 "options":
                 {
@@ -24,9 +23,8 @@
             [
                 "type"
             ],
-            "allOf":
+            "oneOf":
             [
-                true
             ]
         },
         "binding":
@@ -43,8 +41,7 @@
                 "type":
                 {
                     "title": "Type",
-                    "type": "string",
-                    "enum": [ ]
+                    "type": "string"
                 },
                 "kind":
                 {
@@ -139,6 +136,9 @@
                         ]
                     }
                 }
+            ],
+            "oneOf":
+            [
             ]
         },
         "internal":

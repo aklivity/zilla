@@ -1,154 +1,140 @@
 [
     {
         "op": "add",
-        "path": "/$defs/binding/properties/type/enum/-",
-        "value": "proxy"
-    },
-    {
-        "op": "add",
-        "path": "/$defs/binding/allOf/-",
+        "path": "/$defs/binding/oneOf/-",
         "value":
         {
-            "if":
+            "properties":
             {
-                "properties":
+                "type":
                 {
-                    "type":
-                    {
-                        "const": "proxy"
-                    }
-                }
-            },
-            "then":
-            {
-                "properties":
+                    "const": "proxy"
+                },
+                "kind":
                 {
-                    "kind":
+                    "enum": [ "client", "server" ]
+                },
+                "options":
+                {
+                    "additionalProperties": false
+                },
+                "routes":
+                {
+                    "items":
                     {
-                        "enum": [ "client", "server" ]
-                    },
-                    "options":
-                    {
-                        "additionalProperties": false
-                    },
-                    "routes":
-                    {
-                        "items":
+                        "properties":
                         {
-                            "properties":
+                            "when":
                             {
-                                "when":
+                                "items":
                                 {
-                                    "items":
+                                    "additionalProperties": false,
+                                    "properties":
                                     {
-                                        "additionalProperties": false,
-                                        "properties":
+                                        "transport":
                                         {
-                                            "transport":
+                                            "title": "Transport",
+                                            "type": "string",
+                                            "enum": [ "stream", "datagram" ]
+                                        },
+                                        "family":
+                                        {
+                                            "title": "Family",
+                                            "type": "string",
+                                            "enum": [ "inet", "inet4", "inet6", "unix" ]
+                                        },
+                                        "source":
+                                        {
+                                            "title": "Source",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
                                             {
-                                                "title": "Transport",
-                                                "type": "string",
-                                                "enum": [ "stream", "datagram" ]
-                                            },
-                                            "family":
-                                            {
-                                                "title": "Family",
-                                                "type": "string",
-                                                "enum": [ "inet", "inet4", "inet6", "unix" ]
-                                            },
-                                            "source":
-                                            {
-                                                "title": "Source",
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "properties":
+                                                "host":
                                                 {
-                                                    "host":
-                                                    {
-                                                        "type": "string"
-                                                    },
-                                                    "port":
-                                                    {
-                                                        "type": "integer"
-                                                    }
+                                                    "type": "string"
+                                                },
+                                                "port":
+                                                {
+                                                    "type": "integer"
                                                 }
-                                            },
-                                            "destination":
+                                            }
+                                        },
+                                        "destination":
+                                        {
+                                            "title": "Source",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
                                             {
-                                                "title": "Source",
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "properties":
+                                                "host":
                                                 {
-                                                    "host":
-                                                    {
-                                                        "type": "string"
-                                                    },
-                                                    "port":
-                                                    {
-                                                        "type": "integer"
-                                                    }
+                                                    "type": "string"
+                                                },
+                                                "port":
+                                                {
+                                                    "type": "integer"
                                                 }
-                                            },
-                                            "info":
+                                            }
+                                        },
+                                        "info":
+                                        {
+                                            "title": "Info",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties":
                                             {
-                                                "title": "Info",
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "properties":
+                                                "alpn":
                                                 {
-                                                    "alpn":
+                                                    "title": "Application Protocol",
+                                                    "type": "string"
+                                                },
+                                                "authority":
+                                                {
+                                                    "title": "Authority",
+                                                    "type": "string"
+                                                },
+                                                "identity":
+                                                {
+                                                    "title": "Identity",
+                                                    "type": "string"
+                                                },
+                                                "namespace":
+                                                {
+                                                    "title": "Namespace",
+                                                    "type": "string"
+                                                },
+                                                "secure":
+                                                {
+                                                    "title": "Secure",
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "properties":
                                                     {
-                                                        "title": "Application Protocol",
-                                                        "type": "string"
-                                                    },
-                                                    "authority":
-                                                    {
-                                                        "title": "Authority",
-                                                        "type": "string"
-                                                    },
-                                                    "identity":
-                                                    {
-                                                        "title": "Identity",
-                                                        "type": "string"
-                                                    },
-                                                    "namespace":
-                                                    {
-                                                        "title": "Namespace",
-                                                        "type": "string"
-                                                    },
-                                                    "secure":
-                                                    {
-                                                        "title": "Secure",
-                                                        "type": "object",
-                                                        "additionalProperties": false,
-                                                        "properties":
+                                                        "version":
                                                         {
-                                                            "version":
-                                                            {
-                                                                "title": "Protocol Version",
-                                                                "type": "string"
-                                                            },
-                                                            "cipher":
-                                                            {
-                                                                "title": "Cipher Name",
-                                                                "type": "string"
-                                                            },
-                                                            "key":
-                                                            {
-                                                                "title": "Key Algorithm",
-                                                                "type": "string"
-                                                            },
-                                                            "name":
-                                                            {
-                                                                "title": "Common Name",
-                                                                "type": "string"
-                                                            },
-                                                            "signature":
-                                                            {
-                                                                "title": "Signature Algorithm",
-                                                                "type": "string"
-                                                            }
+                                                            "title": "Protocol Version",
+                                                            "type": "string"
+                                                        },
+                                                        "cipher":
+                                                        {
+                                                            "title": "Cipher Name",
+                                                            "type": "string"
+                                                        },
+                                                        "key":
+                                                        {
+                                                            "title": "Key Algorithm",
+                                                            "type": "string"
+                                                        },
+                                                        "name":
+                                                        {
+                                                            "title": "Common Name",
+                                                            "type": "string"
+                                                        },
+                                                        "signature":
+                                                        {
+                                                            "title": "Signature Algorithm",
+                                                            "type": "string"
                                                         }
                                                     }
                                                 }
