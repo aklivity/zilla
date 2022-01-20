@@ -1,0 +1,110 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "tcp"
+                },
+                "kind":
+                {
+                    "enum": [ "server", "client" ]
+                },
+                "options":
+                {
+                    "properties":
+                    {
+                        "host":
+                        {
+                            "title": "Host",
+                            "type": "string"
+                        },
+                        "port":
+                        {
+                            "title": "Port",
+                            "oneOf":
+                            [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "oneOf":
+                                        [
+                                            {
+                                                "type": "integer"
+                                            },
+                                            {
+                                                "type": "string"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "routes":
+                {
+                    "items":
+                    {
+                        "properties":
+                        {
+                            "when":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "authority":
+                                        {
+                                            "title": "Authority",
+                                            "type": "string"
+                                        },
+                                        "cidr":
+                                        {
+                                            "title": "CIDR Mask",
+                                            "type": "string",
+                                            "pattern": "^[0-9a-fA-F:.]+/(\\d{1,3})$"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "with": false
+                        },
+                        "required":
+                        [
+                            "exit"
+                        ]
+                    }
+                }
+            },
+            "anyOf":
+            [
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
+            ]
+        }
+    }
+]

@@ -41,7 +41,7 @@ public final class WsBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/ws.json");
+        return getClass().getResource("schema/ws.schema.patch.json");
     }
 
     @Override

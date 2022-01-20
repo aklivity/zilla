@@ -1,154 +1,5 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$defs":
-    {
-        "vault":
-        {
-            "type": "object",
-            "properties":
-            {
-                "type":
-                {
-                    "title": "Type",
-                    "type": "string",
-                    "enum": [ ]
-                },
-                "options":
-                {
-                    "title": "Options",
-                    "type": "object"
-                }
-            },
-            "additionalProperties": false,
-            "required":
-            [
-                "type"
-            ],
-            "allOf":
-            [
-                true
-            ]
-        },
-        "binding":
-        {
-            "title": "Binding",
-            "type": "object",
-            "properties":
-            {
-                "vault":
-                {
-                    "title": "Vault",
-                    "type": "string"
-                },
-                "type":
-                {
-                    "title": "Type",
-                    "type": "string",
-                    "enum": [ ]
-                },
-                "kind":
-                {
-                    "title": "Kind",
-                    "type": "string"
-                },
-                "options":
-                {
-                    "title": "Options",
-                    "type": "object"
-                },
-                "routes":
-                {
-                    "title": "Routes",
-                    "type": "array",
-                    "items":
-                    {
-                        "title": "Route",
-                        "additionalProperties": false,
-                        "properties":
-                        {
-                            "exit":
-                            {
-                                "title": "Exit",
-                                "type": "string"
-                            },
-                            "when":
-                            {
-                                "title": "Conditions",
-                                "type": "array",
-                                "items":
-                                {
-                                    "title": "Condition",
-                                    "type": "object"
-                                }
-                            },
-                            "with":
-                            {
-                                "title": "Overrides",
-                                "type": "array",
-                                "items":
-                                {
-                                    "title": "Override",
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "required":
-                        [
-                            "exit"
-                        ]
-                    }
-                },
-                "exit":
-                {
-                    "title": "Exit",
-                    "type": "string"
-                }
-            },
-            "additionalProperties": false,
-            "required":
-            [
-                "type",
-                "kind"
-            ],
-            "allOf":
-            [
-                {
-                    "if":
-                    {
-                        "not":
-                        {
-                            "properties": { "type": { "$ref": "#/$defs/internal/terminal" } }
-                        }
-                    },
-                    "then":
-                    {
-                        "anyOf":
-                        [
-                            {
-                                "required":
-                                [
-                                    "exit"
-                                ]
-                            },
-                            {
-                                "required":
-                                [
-                                    "routes"
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        "internal":
-        {
-            "terminal":
-            {
-                "enum": [ ]
-            }
-        }
-    },
     "title": "Namespace",
     "type": "object",
     "properties":
@@ -190,5 +41,115 @@
     "required":
     [
         "name"
-    ]
+    ],
+
+    "$defs":
+    {
+        "vault":
+        {
+            "type": "object",
+            "properties":
+            {
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string"
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "required":
+            [
+                "type"
+            ],
+            "oneOf":
+            [
+            ]
+        },
+        "binding":
+        {
+            "title": "Binding",
+            "type": "object",
+            "properties":
+            {
+                "vault":
+                {
+                    "title": "Vault",
+                    "type": "string"
+                },
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string"
+                },
+                "kind":
+                {
+                    "title": "Kind",
+                    "type": "string"
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                },
+                "routes":
+                {
+                    "title": "Routes",
+                    "type": "array",
+                    "items":
+                    {
+                        "title": "Route",
+                        "type": "object",
+                        "properties":
+                        {
+                            "exit":
+                            {
+                                "title": "Exit",
+                                "type": "string"
+                            },
+                            "when":
+                            {
+                                "title": "Conditions",
+                                "type": "array",
+                                "items":
+                                {
+                                    "title": "Condition",
+                                    "type": "object"
+                                }
+                            },
+                            "with":
+                            {
+                                "title": "Overrides",
+                                "type": "array",
+                                "items":
+                                {
+                                    "title": "Condition",
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "exit":
+                {
+                    "title": "Exit",
+                    "type": "string"
+                },
+                "additionalProperties": false
+            },
+            "required":
+            [
+                "type",
+                "kind"
+            ],
+            "oneOf":
+            [
+            ]
+        }
+    }
 }

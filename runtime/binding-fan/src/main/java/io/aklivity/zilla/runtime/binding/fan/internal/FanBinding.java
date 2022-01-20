@@ -41,7 +41,7 @@ final class FanBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/fan.json");
+        return getClass().getResource("schema/fan.schema.patch.json");
     }
 
     @Override

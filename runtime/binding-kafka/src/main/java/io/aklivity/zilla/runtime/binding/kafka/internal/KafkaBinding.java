@@ -46,7 +46,7 @@ public final class KafkaBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/kafka.json");
+        return getClass().getResource("schema/kafka.schema.patch.json");
     }
 
     @Override

@@ -41,7 +41,7 @@ public final class SseBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/sse.json");
+        return getClass().getResource("schema/sse.schema.patch.json");
     }
 
     @Override

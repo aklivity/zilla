@@ -41,7 +41,7 @@ final class EchoBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/echo.json");
+        return getClass().getResource("schema/echo.schema.patch.json");
     }
 
     @Override

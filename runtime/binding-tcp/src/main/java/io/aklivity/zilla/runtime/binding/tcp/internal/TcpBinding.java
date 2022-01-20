@@ -49,7 +49,7 @@ public final class TcpBinding implements Binding
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/tcp.json");
+        return getClass().getResource("schema/tcp.schema.patch.json");
     }
 
     @Override

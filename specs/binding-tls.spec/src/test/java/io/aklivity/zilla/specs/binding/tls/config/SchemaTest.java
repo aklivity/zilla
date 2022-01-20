@@ -31,8 +31,8 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.json")
-        .schemaPatch("io/aklivity/zilla/specs/vault/filesystem/schema/filesystem.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/tls/schema/tls.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/vault/filesystem/schema/filesystem.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/tls/config");
 
     @Test

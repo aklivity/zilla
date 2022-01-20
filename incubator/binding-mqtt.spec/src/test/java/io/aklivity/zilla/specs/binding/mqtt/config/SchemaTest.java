@@ -31,7 +31,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/binding/mqtt/schema/mqtt.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/mqtt/schema/mqtt.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/mqtt/config");
 
     @Ignore("TODO")

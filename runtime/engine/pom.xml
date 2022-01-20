@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.6</version>
+    <version>0.9.7</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -161,7 +161,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/engine/schema/core.json</includes>
+              <includes>io/aklivity/zilla/specs/engine/schema/engine.schema.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

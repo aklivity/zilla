@@ -44,7 +44,7 @@ public final class ConfigSchemaRule implements TestRule
 {
     private JsonProvider provider;
 
-    private String schemaName = "io/aklivity/zilla/specs/engine/schema/core.json";
+    private String schemaName = "io/aklivity/zilla/specs/engine/schema/engine.schema.json";
     private List<String> schemaPatchNames = new ArrayList<>();
 
     private String configurationRoot;

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.not;
@@ -45,6 +46,7 @@ public class EngineTest
     {
         Properties properties = new Properties();
         properties.put(ENGINE_DIRECTORY.name(), "target/zilla-itests");
+        properties.put(ENGINE_WORKERS.name(), "1");
         config = new EngineConfiguration(properties);
     }
 

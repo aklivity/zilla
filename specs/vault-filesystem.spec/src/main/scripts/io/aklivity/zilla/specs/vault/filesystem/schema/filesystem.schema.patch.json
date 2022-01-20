@@ -1,0 +1,89 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/vault/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "filesystem"
+                },
+                "options":
+                {
+                    "properties":
+                    {
+                        "keys":
+                        {
+                            "title": "Keys",
+                            "type": "object",
+                            "properties":
+                            {
+                                "store":
+                                {
+                                    "type": "string"
+                                },
+                                "type":
+                                {
+                                    "type": "string",
+                                    "default": "pkcs12"
+                                },
+                                "password":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "trust":
+                        {
+                            "title": "Trust Certificates",
+                            "type": "object",
+                            "properties":
+                            {
+                                "store":
+                                {
+                                    "type": "string"
+                                },
+                                "type":
+                                {
+                                    "type": "string",
+                                    "default": "pkcs12"
+                                },
+                                "password":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "signers":
+                        {
+                            "title": "Signer Certificates",
+                            "type": "object",
+                            "properties":
+                            {
+                                "store":
+                                {
+                                    "type": "string"
+                                },
+                                "type":
+                                {
+                                    "type": "string",
+                                    "default": "pkcs12"
+                                },
+                                "password":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        }
+    }
+]

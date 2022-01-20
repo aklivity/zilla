@@ -30,7 +30,7 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/binding/echo/schema/echo.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/echo/schema/echo.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/echo/config");
 
     @Test

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>runtime</artifactId>
-    <version>0.9.6</version>
+    <version>0.9.7</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -142,7 +142,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/proxy/schema/proxy.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/proxy/schema/proxy.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

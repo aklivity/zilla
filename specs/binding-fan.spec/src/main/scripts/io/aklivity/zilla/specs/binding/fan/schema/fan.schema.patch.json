@@ -8,13 +8,14 @@
             {
                 "type":
                 {
-                    "const": "test"
+                    "const": "fan"
                 },
                 "kind":
                 {
                     "enum": [ "server" ]
                 },
-                "options": false
+                "options": false,
+                "routes": false
             },
             "anyOf":
             [
