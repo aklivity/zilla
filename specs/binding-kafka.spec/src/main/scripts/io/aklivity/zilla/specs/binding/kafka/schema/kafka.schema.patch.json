@@ -14,6 +14,7 @@
                 {
                     "enum": [ "cache_client", "cache_server", "client" ]
                 },
+                "vault": false,
                 "options":
                 {
                     "properties":
