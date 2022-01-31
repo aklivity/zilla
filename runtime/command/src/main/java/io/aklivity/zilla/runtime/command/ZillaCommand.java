@@ -15,12 +15,6 @@
  */
 package io.aklivity.zilla.runtime.command;
 
-import com.github.rvesse.airline.annotations.Option;
-import com.github.rvesse.airline.annotations.OptionType;
-
 public abstract class ZillaCommand implements Runnable
 {
-    @Option(type = OptionType.GLOBAL, name = "-v", description = "verbose")
-    public boolean verbose;
 }
-
