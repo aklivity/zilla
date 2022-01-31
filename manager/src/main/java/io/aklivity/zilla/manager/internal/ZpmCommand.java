@@ -38,17 +38,20 @@ public abstract class ZpmCommand implements Runnable
 
     @Option(name = { "--settings-directory" },
             description = "settings directory",
-            typeConverterProvider = ZpmPathConverterProvider.class)
+            typeConverterProvider = ZpmPathConverterProvider.class,
+            hidden = true)
     public Path settingsDir = Paths.get(System.getProperty("user.home"), ".zpm");
 
     @Option(name = { "--config-directory" },
             description = "config directory",
-            typeConverterProvider = ZpmPathConverterProvider.class)
+            typeConverterProvider = ZpmPathConverterProvider.class,
+            hidden = true)
     public Path configDir = Paths.get("");
 
     @Option(name = { "--output-directory" },
             description = "output directory",
-            typeConverterProvider = ZpmPathConverterProvider.class)
+            typeConverterProvider = ZpmPathConverterProvider.class,
+            hidden = true)
     public Path outputDir = Paths.get(".zpm");
 
     @Option(name = { "--lock-directory" },
@@ -59,7 +62,8 @@ public abstract class ZpmCommand implements Runnable
 
     @Option(name = { "--launcher-directory" },
             description = "launcher directory",
-            typeConverterProvider = ZpmPathConverterProvider.class)
+            typeConverterProvider = ZpmPathConverterProvider.class,
+            hidden = true)
     public Path launcherDir = Paths.get("");
 
     protected Path cacheDir;
