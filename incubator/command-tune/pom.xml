@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>runtime</artifactId>
-    <version>0.9.7</version>
+    <artifactId>incubator</artifactId>
+    <version>0.9.8</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>command-tune</artifactId>
-  <name>zilla::runtime::command-tune</name>
+  <name>zilla::incubator::command-tune</name>
 
   <licenses>
     <license>

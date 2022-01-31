@@ -23,3 +23,6 @@ zilla
 !zilla/
 _book/
 node_modules/
+*.epub
+*.mobi
+*.pdf

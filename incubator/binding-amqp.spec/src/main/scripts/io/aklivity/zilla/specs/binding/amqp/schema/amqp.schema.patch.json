@@ -14,10 +14,8 @@
                 {
                     "enum": [ "server" ]
                 },
-                "options":
-                {
-                    "additionalProperties": false
-                },
+                "vault": false,
+                "options": false,
                 "routes":
                 {
                     "items":

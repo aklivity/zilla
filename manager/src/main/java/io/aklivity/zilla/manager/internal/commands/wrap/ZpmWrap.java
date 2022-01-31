@@ -32,18 +32,22 @@ import io.aklivity.zilla.manager.internal.types.ZpmPathConverterProvider;
     description = "Generate wrapper")
 public class ZpmWrap extends ZpmCommand
 {
-    @Option(name = { "--repository" })
+    @Option(name = { "--remote-repository" },
+            description = "Remote Maven repository")
     public String repoURL = "https://maven.packages.aklivity.io";
 
-    @Option(name = { "--local-repository" })
+    @Option(name = { "--local-repository" },
+            description = "Local Maven repository")
     public Path localRepoDir = Paths.get("$HOME/.m2/repository");
 
-    @Option(name = { "--version" })
+    @Option(name = { "--version" },
+            description = "Require specific zpm version")
     public String version = VERSION;
 
     @Option(name = { "--zpmw-directory" },
             description = "zpmw directory",
-            typeConverterProvider = ZpmPathConverterProvider.class)
+            typeConverterProvider = ZpmPathConverterProvider.class,
+            hidden = true)
     public Path zpmwDir = Paths.get(".zpmw");
 
     @Override

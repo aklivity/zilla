@@ -54,6 +54,7 @@ import org.leadpony.justify.api.JsonValidationService;
 import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.Engine;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -76,6 +77,7 @@ public class ConfigureTask implements Callable<Void>
     private final ErrorHandler errorHandler;
     private final Consumer<String> logger;
     private final EngineExtContext context;
+    private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
 
     public ConfigureTask(
@@ -87,6 +89,7 @@ public class ConfigureTask implements Callable<Void>
         ErrorHandler errorHandler,
         Consumer<String> logger,
         EngineExtContext context,
+        EngineConfiguration config,
         List<EngineExtSpi> extensions)
     {
         this.configURL = configURL;
@@ -97,6 +100,7 @@ public class ConfigureTask implements Callable<Void>
         this.errorHandler = errorHandler;
         this.logger = logger;
         this.context = context;
+        this.config = config;
         this.extensions = extensions;
     }
 
@@ -137,7 +141,10 @@ public class ConfigureTask implements Callable<Void>
             }
         }
 
-        configText = Mustache.resolve(configText, System::getenv);
+        if (config.configSyntaxMustache())
+        {
+            configText = Mustache.resolve(configText, System::getenv);
+        }
 
         logger.accept(configText);
 

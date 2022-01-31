@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.7</version>
+    <version>0.9.8</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -25,6 +25,7 @@
 
     <module>command-load</module>
     <module>command-log</module>
+    <module>command-tune</module>
   </modules>
 
   <dependencyManagement>
@@ -47,6 +48,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-log</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>command-tune</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

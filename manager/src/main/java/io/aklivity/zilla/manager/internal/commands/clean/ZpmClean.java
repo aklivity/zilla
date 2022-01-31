@@ -33,7 +33,8 @@ import io.aklivity.zilla.manager.internal.ZpmCommand;
     description = "Clean up")
 public final class ZpmClean extends ZpmCommand
 {
-    @Option(name = { "--keep-image" })
+    @Option(name = { "--keep-image" },
+            description = "Keep runtime image")
     public Boolean keepImage = false;
 
     @Override

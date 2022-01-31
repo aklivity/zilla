@@ -48,16 +48,27 @@ public final class ZillaStartCommand extends ZillaCommand
     private final CountDownLatch stopped = new CountDownLatch(1);
     private final Collection<Throwable> errors = new LinkedHashSet<>();
 
-    @Option(name = "-c", description = "config")
-    public URI configURI = Paths.get("zilla.json").toUri();
+    @Option(name = { "-c", "--config" },
+            description = "Configuration location",
+            hidden = true)
+    public URI configURL = Paths.get("zilla.json").toUri();
 
-    @Option(name = "-w", description = "workers")
+    @Option(name = { "-v", "--verbose" },
+            description = "Show verbose output")
+    public boolean verbose;
+
+    @Option(name = { "-w", "--workers" },
+            description = "Worker count")
     public int workers = -1;
 
-    @Option(name = "-p", description = "properties")
+    @Option(name = { "-p", "--properties" },
+            description = "Path to properties",
+            hidden = true)
     public String properties;
 
-    @Option(name = "-e", description = "Show exception traces", hidden = true)
+    @Option(name = "-e",
+            description = "Show exception traces",
+            hidden = true)
     public boolean exceptions;
 
     @Override
@@ -98,7 +109,7 @@ public final class ZillaStartCommand extends ZillaCommand
 
         try (Engine engine = Engine.builder()
             .config(config)
-            .configURL(configURI.toURL())
+            .configURL(configURL.toURL())
             .errorHandler(this::onError)
             .build())
         {

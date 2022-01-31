@@ -99,16 +99,20 @@ public final class ZpmInstall extends ZpmCommand
 
     private static final Map<String, String> DEFAULT_REALMS = initDefaultRealms();
 
-    @Option(name = { "--debug" })
+    @Option(name = { "--debug" },
+            description = "Link jdk.jdwp.agent module")
     public Boolean debug = false;
 
-    @Option(name = { "--exclude-local-repository" })
+    @Option(name = { "--exclude-local-repository" },
+            description = "Exclude the local Maven repository")
     public boolean excludeLocalRepo;
 
-    @Option(name = { "--exclude-remote-repositories" })
+    @Option(name = { "--exclude-remote-repositories" },
+            description = "Exclude remote Maven repositories")
     public boolean excludeRemoteRepos;
 
-    @Option(name = { "--ignore-missing-dependencies" })
+    @Option(name = { "--ignore-missing-dependencies" },
+            hidden = true)
     public boolean ignoreMissingDependencies;
 
     @Override

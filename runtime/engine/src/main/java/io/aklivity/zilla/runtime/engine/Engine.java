@@ -127,7 +127,7 @@ public final class Engine implements AutoCloseable
         final Collection<URL> schemaTypes = Stream.concat(bindingTypes, vaultTypes).collect(toList());
         final Callable<Void> configure =
                 new ConfigureTask(configURL, schemaTypes, labels::supplyLabelId, tuning, dispatchers,
-                        errorHandler, logger, context, extensions);
+                        errorHandler, logger, context, config, extensions);
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
         dispatchers.forEach(d -> runners.add(d.runner()));
