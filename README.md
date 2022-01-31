@@ -11,7 +11,7 @@
 mvnw.cmd clean install
 ```
 ## Enjoy
-Try the [examples](examples).
+Read the [docs](https://docs.aklivity.io/zilla). Try the [examples](examples).
 
 ## License
 
