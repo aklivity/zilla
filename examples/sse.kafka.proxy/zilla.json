@@ -1,0 +1,144 @@
+{
+    "name": "example",
+    "vaults":
+    {
+        "server":
+        {
+            "type": "filesystem",
+            "options":
+            {
+                "keys":
+                {
+                    "store": "localhost.p12",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        }
+    },
+    "bindings":
+    {
+        "tcp0":
+        {
+            "type" : "tcp",
+            "kind": "server",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 9090
+            },
+            "exit": "tls0"
+        },
+        "tcp1":
+        {
+            "type" : "tcp",
+            "kind": "server",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 8080
+            },
+            "exit": "http0"
+        },
+        "tls0":
+        {
+            "type" : "tls",
+            "kind": "server",
+            "vault": "server",
+            "options":
+            {
+                "keys": [ "localhost" ],
+                "sni": [ "localhost" ]
+            },
+            "exit": "http0"
+        },
+        "http0":
+        {
+            "type" : "http",
+            "kind": "server",
+            "routes":
+            [
+                {
+                    "exit": "sse0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "http",
+                                ":authority": "localhost:8080"
+                            }
+                        },
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "localhost:9090"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "sse0":
+        {
+            "type" : "sse",
+            "kind": "server",
+            "exit": "sse_kafka0"
+        },
+        "sse_kafka0":
+        {
+            "type" : "sse-kafka",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "exit": "kafka0",
+                    "when":
+                    [
+                        {
+                            "path": "/{topic}",
+                            "query":
+                            [
+                                "key={key}",
+                                "headerA={headerA}"
+                            ]
+                        }
+                    ],
+                    "with":
+                    {
+                        "topic": "${params.topic}",
+                        "filters":
+                        [
+                            {
+                                "key": "${params.key}",
+                                "headers":
+                                {
+                                    "a": "${params.headerA}"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "kafka0":
+        {
+            "type" : "kafka",
+            "kind": "client",
+            "options":
+            {
+                "merged":
+                [
+                    "zilla"
+                ]
+            },
+            "exit": "tcp2"
+        },
+        "tcp2":
+        {
+            "type" : "tcp",
+            "kind": "client"
+        }
+    }
+}

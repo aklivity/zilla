@@ -19,9 +19,11 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
+    <module>binding-sse-kafka.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
+    <module>binding-sse-kafka</module>
 
     <module>command-load</module>
     <module>command-log</module>
@@ -38,6 +40,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-sse-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
