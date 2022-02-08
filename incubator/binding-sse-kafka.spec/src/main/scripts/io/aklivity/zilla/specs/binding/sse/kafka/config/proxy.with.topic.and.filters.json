@@ -2,7 +2,7 @@
     "name": "test",
     "bindings":
     {
-        "sse_kafka0":
+        "sse0":
         {
             "type" : "sse-kafka",
             "kind": "proxy",
