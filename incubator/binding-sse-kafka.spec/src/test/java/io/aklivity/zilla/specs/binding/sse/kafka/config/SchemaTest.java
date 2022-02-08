@@ -39,4 +39,20 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWithTopicAndFilters()
+    {
+        JsonObject config = schema.validate("proxy.with.topic.and.filters.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateProxyWithTopicAndFiltersDynamic()
+    {
+        JsonObject config = schema.validate("proxy.with.topic.and.filters.dynamic.json");
+
+        assertThat(config, not(nullValue()));
+    }
 }

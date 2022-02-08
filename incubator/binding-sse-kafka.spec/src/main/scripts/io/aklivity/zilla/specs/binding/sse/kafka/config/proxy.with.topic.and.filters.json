@@ -1,0 +1,37 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "sse_kafka0":
+        {
+            "type" : "sse-kafka",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "exit": "kafka0",
+                    "when":
+                    [
+                        {
+                            "path": "/test"
+                        }
+                    ],
+                    "with":
+                    {
+                        "topic": "test",
+                        "filters":
+                        [
+                            {
+                                "key": "fixed-key",
+                                "headers":
+                                {
+                                    "tag": "fixed-tag"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+}

@@ -62,13 +62,10 @@
                                                 "headers":
                                                 {
                                                     "title": "Headers",
-                                                    "type": "array",
-                                                    "items":
+                                                    "type": "object",
+                                                    "additionalProperties" :
                                                     {
-                                                        "additionalProperties" :
-                                                        {
-                                                            "type": "string"
-                                                        }
+                                                        "type": "string"
                                                     }
                                                 }
                                             },
@@ -76,7 +73,11 @@
                                         }
                                     }
                                 },
-                                "additionalProperties": false
+                                "additionalProperties": false,
+                                "required":
+                                [
+                                    "topic"
+                                ]
                             }
                         }
                     }
