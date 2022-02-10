@@ -182,8 +182,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final byte ZERO_BYTE = '0';
 
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
-    private static final byte[] REASON_OK_BYTES = "OK".getBytes(US_ASCII);
-    private static final byte[] REASON_SWITCHING_PROTOCOLS_BYTES = "Switching Protocols".getBytes(US_ASCII);
+    private static final byte[] REASON_UNRECOGNIZED_STATUS_BYTES = "Unrecognized Status".getBytes(US_ASCII);
 
     private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
 
@@ -219,9 +218,15 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String16FW CONNECTION_CLOSE = new String16FW("close");
     private static final String16FW SCHEME_HTTP = new String16FW("http");
     private static final String16FW SCHEME_HTTPS = new String16FW("https");
-    private static final String16FW STATUS_101 = new String16FW("101");
     private static final String16FW STATUS_200 = new String16FW("200");
+    private static final String16FW STATUS_204 = new String16FW("204");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
+
+    private static final HttpHeaderFW HEADER_CONNECTION_CLOSE = new HttpHeaderFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .name(HEADER_CONNECTION)
+            .value(CONNECTION_CLOSE)
+            .build();
 
     private static final Array32FW<HttpHeaderFW> DEFAULT_HEADERS =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
@@ -235,6 +240,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                          .build();
 
     private static final Map<String16FW, String> SCHEME_PORTS;
+
+    private static final Int2ObjectHashMap<byte[]> STATUS_REASONS;
 
     private static final Set<String> SUPPORTED_METHODS =
             new HashSet<>(asList("GET",
@@ -254,6 +261,78 @@ public final class HttpServerFactory implements HttpStreamFactory
         schemePorts.put(SCHEME_HTTP, "80");
         schemePorts.put(SCHEME_HTTPS, "443");
         SCHEME_PORTS = schemePorts;
+    }
+
+    static
+    {
+        final Int2ObjectHashMap<byte[]> reasons = new Int2ObjectHashMap<>();
+
+        reasons.put(100, "Continue".getBytes(US_ASCII));
+        reasons.put(101, "Switching Protocols".getBytes(US_ASCII));
+        reasons.put(102, "Processing".getBytes(US_ASCII));
+        reasons.put(103, "Early Hints".getBytes(US_ASCII));
+
+        reasons.put(200, "OK".getBytes(US_ASCII));
+        reasons.put(201, "Created".getBytes(US_ASCII));
+        reasons.put(202, "Accepted".getBytes(US_ASCII));
+        reasons.put(203, "Not Authoritive Information".getBytes(US_ASCII));
+        reasons.put(204, "No Content".getBytes(US_ASCII));
+        reasons.put(205, "Reset Content".getBytes(US_ASCII));
+        reasons.put(206, "Partial Content".getBytes(US_ASCII));
+        reasons.put(207, "Multi-Status".getBytes(US_ASCII));
+        reasons.put(208, "Already Supported".getBytes(US_ASCII));
+        reasons.put(226, "IM Used".getBytes(US_ASCII));
+
+        reasons.put(300, "Multiple Choices".getBytes(US_ASCII));
+        reasons.put(301, "Moved Permanently".getBytes(US_ASCII));
+        reasons.put(302, "Found".getBytes(US_ASCII));
+        reasons.put(303, "See Other".getBytes(US_ASCII));
+        reasons.put(304, "Not Modified".getBytes(US_ASCII));
+        reasons.put(305, "Use Proxy".getBytes(US_ASCII));
+        reasons.put(307, "Temporary Redirect".getBytes(US_ASCII));
+        reasons.put(308, "Permanent Redirect".getBytes(US_ASCII));
+
+        reasons.put(400, "Bad Request".getBytes(US_ASCII));
+        reasons.put(401, "Unauthorized".getBytes(US_ASCII));
+        reasons.put(402, "Payment required".getBytes(US_ASCII));
+        reasons.put(403, "Forbidden".getBytes(US_ASCII));
+        reasons.put(404, "Not Found".getBytes(US_ASCII));
+        reasons.put(405, "Method Not Allowed".getBytes(US_ASCII));
+        reasons.put(406, "Not Acceptable".getBytes(US_ASCII));
+        reasons.put(407, "Proxy Authentication Required".getBytes(US_ASCII));
+        reasons.put(408, "Request Timeout".getBytes(US_ASCII));
+        reasons.put(409, "Conflict".getBytes(US_ASCII));
+        reasons.put(410, "Gone".getBytes(US_ASCII));
+        reasons.put(411, "Length Required".getBytes(US_ASCII));
+        reasons.put(412, "Precondition Failed".getBytes(US_ASCII));
+        reasons.put(413, "Content Too Large".getBytes(US_ASCII));
+        reasons.put(414, "URI Too Long".getBytes(US_ASCII));
+        reasons.put(415, "Unsupported Media Type".getBytes(US_ASCII));
+        reasons.put(416, "Range Not Satisfiable".getBytes(US_ASCII));
+        reasons.put(417, "Expectation Failed".getBytes(US_ASCII));
+        reasons.put(421, "Misdirected Request".getBytes(US_ASCII));
+        reasons.put(422, "Unprocessable Content".getBytes(US_ASCII));
+        reasons.put(423, "Locked".getBytes(US_ASCII));
+        reasons.put(424, "Failed Dependency".getBytes(US_ASCII));
+        reasons.put(425, "Too Early".getBytes(US_ASCII));
+        reasons.put(426, "Upgrade Required".getBytes(US_ASCII));
+        reasons.put(428, "Precondition Required".getBytes(US_ASCII));
+        reasons.put(429, "Too Many Requests".getBytes(US_ASCII));
+        reasons.put(431, "Request Header Fields Too Large".getBytes(US_ASCII));
+        reasons.put(451, "Unavailable For Legal Reasons".getBytes(US_ASCII));
+
+        reasons.put(500, "Internal Server Error".getBytes(US_ASCII));
+        reasons.put(501, "Not Implemented".getBytes(US_ASCII));
+        reasons.put(502, "Bad Gateway".getBytes(US_ASCII));
+        reasons.put(503, "Service Unavailable".getBytes(US_ASCII));
+        reasons.put(504, "Gateway Timeout".getBytes(US_ASCII));
+        reasons.put(505, "HTTP Version Not Supported".getBytes(US_ASCII));
+        reasons.put(506, "Variant Also Negotiates".getBytes(US_ASCII));
+        reasons.put(507, "Insufficient Storage".getBytes(US_ASCII));
+        reasons.put(508, "Loop Detected".getBytes(US_ASCII));
+        reasons.put(511, "Network Authentication Required".getBytes(US_ASCII));
+
+        STATUS_REASONS = reasons;
     }
 
     private final BeginFW beginRO = new BeginFW();
@@ -1916,6 +1995,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
             final String16FW statusValue = status != null ? status.value() : STATUS_200;
+
             codecOffset.value = doEncodeStatus(codecBuffer, 0, statusValue);
             headers.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
             codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
@@ -1959,7 +2039,12 @@ public final class HttpServerFactory implements HttpStreamFactory
             buffer.putByte(progress, SPACE_BYTE);
             progress++;
 
-            byte[] reason = STATUS_101.equals(status) ? REASON_SWITCHING_PROTOCOLS_BYTES : REASON_OK_BYTES;
+            final int code = value.parseNaturalIntAscii(0, value.capacity());
+            byte[] reason = STATUS_REASONS.get(code);
+            if (reason == null)
+            {
+                reason = REASON_UNRECOGNIZED_STATUS_BYTES;
+            }
             buffer.putBytes(progress, reason);
             progress += reason.length;
 
@@ -2311,8 +2396,17 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final long traceId = reset.traceId();
                 final long authorization = reset.authorization();
+
+                if (requestState == HttpExchangeState.OPEN)
+                {
+                    doNetworkReset(traceId, authorization);
+                }
+                else
+                {
+                    doEncodeHeaders(this, traceId, authorization, 0L, HEADERS_404_NOT_FOUND);
+                }
+
                 requestState = HttpExchangeState.CLOSED;
-                doNetworkReset(traceId, authorization);
             }
 
             private void onRequestWindow(
