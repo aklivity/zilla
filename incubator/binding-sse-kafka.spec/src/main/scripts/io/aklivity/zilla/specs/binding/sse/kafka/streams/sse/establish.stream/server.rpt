@@ -26,6 +26,4 @@ read zilla:begin.ext ${sse:beginEx()
 
 connected
 
-read closed
-
 write flush

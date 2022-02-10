@@ -97,27 +97,12 @@
                     "when":
                     [
                         {
-                            "path": "/{topic}",
-                            "query":
-                            [
-                                "key={key}",
-                                "headerA={headerA}"
-                            ]
+                            "path": "/zilla"
                         }
                     ],
                     "with":
                     {
-                        "topic": "${params.topic}",
-                        "filters":
-                        [
-                            {
-                                "key": "${params.key}",
-                                "headers":
-                                {
-                                    "a": "${params.headerA}"
-                                }
-                            }
-                        ]
+                        "topic": "zilla"
                     }
                 }
             ]
@@ -125,7 +110,7 @@
         "kafka0":
         {
             "type" : "kafka",
-            "kind": "client",
+            "kind": "cache_client",
             "options":
             {
                 "merged":
@@ -133,12 +118,42 @@
                     "zilla"
                 ]
             },
+            "exit": "kafka1"
+        },
+        "kafka1":
+        {
+            "type" : "kafka",
+            "kind": "cache_server",
+            "exit": "kafka2"
+        },
+        "kafka2":
+        {
+            "type" : "kafka",
+            "kind": "client",
             "exit": "tcp2"
         },
         "tcp2":
         {
             "type" : "tcp",
-            "kind": "client"
+            "kind": "client",
+            "options":
+            {
+                "host": "localhost",
+                "port": 9092
+            },
+            "routes":
+            [
+                {
+                    "exit": "net0",
+                    "when":
+                    [
+                        {
+                            "cidr": "0.0.0.0/0"
+                        }
+                    ]
+                }
+            ],
+            "exit": "net0"
         }
     }
 }

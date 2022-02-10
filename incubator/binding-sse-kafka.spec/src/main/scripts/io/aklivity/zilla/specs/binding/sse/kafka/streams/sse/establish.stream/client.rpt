@@ -24,5 +24,3 @@ write zilla:begin.ext ${sse:beginEx()
                            .build()}
 
 connected
-
-write close
