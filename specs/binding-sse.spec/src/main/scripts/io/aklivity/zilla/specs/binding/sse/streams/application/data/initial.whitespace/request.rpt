@@ -16,7 +16,7 @@
 
 connect "zilla://streams/app0"
         option zilla:window 8192
-        option zilla:transmission "half-duplex"
+        option zilla:transmission "duplex"
 
 write zilla:begin.ext ${sse:beginEx()
                              .typeId(zilla:id("sse"))
@@ -25,7 +25,5 @@ write zilla:begin.ext ${sse:beginEx()
                              .build()}
 
 connected
-
-write close
 
 read "Hello, world"

@@ -18,7 +18,7 @@ property padding 0
 
 connect "zilla://streams/app0"
         option zilla:window ${5 + padding}
-        option zilla:transmission "half-duplex"
+        option zilla:transmission "duplex"
         option zilla:alignment "message"
 
 write zilla:begin.ext ${sse:beginEx()
@@ -28,8 +28,6 @@ write zilla:begin.ext ${sse:beginEx()
                              .build()}
 
 connected
-
-write close
 
 read zilla:data.ext ${sse:dataEx()
                            .typeId(zilla:id("sse"))

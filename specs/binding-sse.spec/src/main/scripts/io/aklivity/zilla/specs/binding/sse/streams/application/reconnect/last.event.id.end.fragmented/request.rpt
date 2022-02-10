@@ -16,7 +16,7 @@
 
 connect "zilla://streams/app0"
         option zilla:window 8192
-        option zilla:transmission "half-duplex"
+        option zilla:transmission "duplex"
 
 write zilla:begin.ext ${sse:beginEx()
                              .typeId(zilla:id("sse"))
@@ -25,8 +25,6 @@ write zilla:begin.ext ${sse:beginEx()
                              .build()}
 
 connected
-
-write close
 
 read zilla:data.ext ${zilla:id("sse")} 1519937168533L [0xfe] [0..254] [0x10] [0..16]
 read "Hello, world"
@@ -38,11 +36,12 @@ read zilla:end.ext ${sse:endEx()
 
 read notify RECONNECT_EVENT_STREAM
 read closed
+write close
 
 connect await RECONNECT_EVENT_STREAM
         "zilla://streams/app0"
         option zilla:window 8192
-        option zilla:transmission "half-duplex"
+        option zilla:transmission "duplex"
 
 write zilla:begin.ext ${sse:beginEx()
                              .typeId(zilla:id("sse"))
@@ -51,5 +50,3 @@ write zilla:begin.ext ${sse:beginEx()
                              .build()}
 
 connected
-
-write close
