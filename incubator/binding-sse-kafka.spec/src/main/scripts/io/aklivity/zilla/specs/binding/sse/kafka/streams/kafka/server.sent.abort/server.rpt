@@ -13,14 +13,21 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/sse0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 
-write zilla:begin.ext ${sse:beginEx()
-                           .typeId(zilla:id("sse"))
-                           .pathInfo("/test")
-                           .lastEventId(null)
-                           .build()}
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("test")
+                                .partition(-1, -2)
+                                .build()
+                            .build()}
 
 connected
+
+write abort

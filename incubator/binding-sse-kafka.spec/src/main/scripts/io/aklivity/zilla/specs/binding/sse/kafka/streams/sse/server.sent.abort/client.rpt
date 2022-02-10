@@ -13,17 +13,16 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/sse0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-accepted
+connect "zilla://streams/sse0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
 
-read zilla:begin.ext ${sse:beginEx()
-                            .typeId(zilla:id("sse"))
-                            .pathInfo("/test")
-                            .lastEventId(null)
-                            .build()}
+write zilla:begin.ext ${sse:beginEx()
+                           .typeId(zilla:id("sse"))
+                           .pathInfo("/test")
+                           .lastEventId(null)
+                           .build()}
 
 connected
 
-write flush
+read aborted

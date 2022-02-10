@@ -69,9 +69,96 @@ public class ProxyIT
     @Test
     @Configuration("proxy.with.topic.json")
     @Specification({
-        "${sse}/establish.stream/client",
-        "${kafka}/establish.stream/server"})
-    public void shouldEstablishStream() throws Exception
+        "${sse}/handshake/client",
+        "${kafka}/handshake/server"})
+    public void shouldCompleteHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/handshake.rejected/client"})
+    public void shouldRejectHandshakeWithNoBinding() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/handshake.rejected/client"})
+    public void shouldRejectHandshakeWithNoRoute() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/server.sent.messages/client",
+        "${kafka}/server.sent.messages/server"})
+    public void shouldReceiveServerSentMessaages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/server.sent.abort/client",
+        "${kafka}/server.sent.abort/server"})
+    public void shouldReceiveServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/server.sent.reset/client",
+        "${kafka}/server.sent.reset/server"})
+    public void shouldReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/server.sent.flush/client",
+        "${kafka}/server.sent.flush/server"})
+    public void shouldReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/client.sent.reset/client",
+        "${kafka}/client.sent.reset/server"})
+    public void shouldReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/client.sent.abort/client",
+        "${kafka}/client.sent.abort/server"})
+    public void shouldReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/client.sent.message/client",
+        "${kafka}/client.sent.abort/server"})
+    public void shouldRejectClientSentMessage() throws Exception
     {
         k3po.finish();
     }

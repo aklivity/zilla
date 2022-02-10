@@ -37,9 +37,63 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/establish.stream/client",
-        "${kafka}/establish.stream/server"})
-    public void shouldEstablishStream() throws Exception
+        "${kafka}/handshake/client",
+        "${kafka}/handshake/server"})
+    public void shouldCompleteHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.messages/client",
+        "${kafka}/server.sent.messages/server"})
+    public void shouldReceiveServerSentMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.abort/client",
+        "${kafka}/server.sent.abort/server"})
+    public void shouldReceiveServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.reset/client",
+        "${kafka}/server.sent.reset/server"})
+    public void shouldReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.flush/client",
+        "${kafka}/server.sent.flush/server"})
+    public void shouldReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/client.sent.reset/client",
+        "${kafka}/client.sent.reset/server"})
+    public void shouldReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/client.sent.abort/client",
+        "${kafka}/client.sent.abort/server"})
+    public void shouldReceiveClientSentAbort() throws Exception
     {
         k3po.finish();
     }

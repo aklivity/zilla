@@ -37,9 +37,81 @@ public class SseIT
 
     @Test
     @Specification({
-        "${sse}/establish.stream/client",
-        "${sse}/establish.stream/server"})
-    public void shouldEstablishStream() throws Exception
+        "${sse}/handshake/client",
+        "${sse}/handshake/server"})
+    public void shouldCompleteHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/handshake.rejected/client",
+        "${sse}/handshake.rejected/server"})
+    public void shouldRejectHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.messages/client",
+        "${sse}/server.sent.messages/server"})
+    public void shouldReceiveServerSentMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.abort/client",
+        "${sse}/server.sent.abort/server"})
+    public void shouldReceiveServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.reset/client",
+        "${sse}/server.sent.reset/server"})
+    public void shouldReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.flush/client",
+        "${sse}/server.sent.flush/server"})
+    public void shouldReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/client.sent.reset/client",
+        "${sse}/client.sent.reset/server"})
+    public void shouldReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/client.sent.abort/client",
+        "${sse}/client.sent.abort/server"})
+    public void shouldReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/client.sent.message/client",
+        "${sse}/client.sent.message/server"})
+    public void shouldRejectClientSentMessage() throws Exception
     {
         k3po.finish();
     }
