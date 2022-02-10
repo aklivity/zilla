@@ -455,7 +455,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             assert initialAck <= initialSeq;
 
-            stream.doAppEnd(traceId, authorization);
+            stream.doAppEndDeferred(traceId, authorization);
         }
 
         private void onNetAbort(
@@ -484,6 +484,7 @@ public final class SseServerFactory implements SseStreamFactory
             final long acknowledge = reset.acknowledge();
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
 
             assert acknowledge <= sequence;
             assert sequence <= httpReplySeq;
@@ -497,6 +498,7 @@ public final class SseServerFactory implements SseStreamFactory
             assert httpReplyAck <= httpReplySeq;
 
             stream.doAppReset(traceId);
+            stream.doAppEndIfDeferred(traceId, authorization);
             cleanupDebitorIfNecessary();
         }
 
@@ -535,6 +537,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 doNetAbort(traceId, authorization);
                 stream.doAppReset(traceId);
+                stream.doAppEndIfDeferred(traceId, authorization);
             }
             else
             {
@@ -839,10 +842,14 @@ public final class SseServerFactory implements SseStreamFactory
 
                         if (deferredEnd)
                         {
+                            final long authorization = data.authorization();
+
                             doHttpEnd(network, routeId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
-                                    data.traceId(), data.authorization());
+                                    data.traceId(), authorization);
                             cleanupDebitorIfNecessary();
                             deferredEnd = false;
+
+                            stream.doAppEndIfDeferred(data.traceId(), authorization);
                         }
                     }
                 }
@@ -892,6 +899,23 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 application = newSseStream(this::onAppMessage, routeId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, affinity, pathInfo, lastEventId);
+            }
+
+            private void doAppEndDeferred(
+                long traceId,
+                long authorization)
+            {
+                state = SseState.closingInitial(state);
+            }
+
+            private void doAppEndIfDeferred(
+                long traceId,
+                long authorization)
+            {
+                if (SseState.initialClosing(state))
+                {
+                    doAppEnd(traceId, authorization);
+                }
             }
 
             private void doAppEnd(
@@ -1004,6 +1028,7 @@ public final class SseServerFactory implements SseStreamFactory
                 if (sseReplySeq > sseReplyAck + sseReplyMax)
                 {
                     doAppReset(traceId);
+                    doAppEndIfDeferred(traceId, authorization);
                     doNetAbort(traceId, authorization);
                 }
                 else
@@ -1097,6 +1122,8 @@ public final class SseServerFactory implements SseStreamFactory
                 {
                     doNetEnd(traceId, authorization);
                 }
+
+                doAppEndIfDeferred(traceId, authorization);
             }
 
             private void onAppFlush(
@@ -1136,6 +1163,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sseReplyAck <= sseReplySeq;
 
                 doNetAbort(traceId, authorization);
+                doAppEndIfDeferred(traceId, authorization);
             }
 
             private void onAppWindow(
@@ -1182,8 +1210,13 @@ public final class SseServerFactory implements SseStreamFactory
             private void doAppReset(
                 long traceId)
             {
-                doReset(application, routeId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
-                        traceId);
+                if (!SseState.replyClosed(state))
+                {
+                    state = SseState.closeReply(state);
+
+                    doReset(application, routeId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
+                            traceId);
+                }
             }
 
             private void flushAppWindow(

@@ -16,7 +16,7 @@
 
 accept "zilla://streams/app0"
        option zilla:window 8192
-       option zilla:transmission "half-duplex"
+       option zilla:transmission "duplex"
 accepted
 
 read zilla:begin.ext ${sse:beginEx()
@@ -27,13 +27,14 @@ read zilla:begin.ext ${sse:beginEx()
 
 connected
 
-read closed
+write flush
 
 write zilla:end.ext ${sse:endEx()
                            .typeId(zilla:id("sse"))
                            .id("105")
                            .build()}
 write close
+read closed
 
 accepted
 
@@ -44,7 +45,3 @@ read zilla:begin.ext ${sse:beginEx()
                             .build()}
 
 connected
-
-read closed
-
-write flush
