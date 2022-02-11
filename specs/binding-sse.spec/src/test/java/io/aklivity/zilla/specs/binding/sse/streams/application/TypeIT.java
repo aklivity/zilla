@@ -38,8 +38,8 @@ public class TypeIT
 
     @Test
     @Specification({
-        "${app}/empty/request",
-        "${app}/empty/response" })
+        "${app}/empty/client",
+        "${app}/empty/server" })
     public void shouldReceiveEmptyType() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class TypeIT
 
     @Test
     @Specification({
-        "${app}/non.empty/request",
-        "${app}/non.empty/response" })
+        "${app}/non.empty/client",
+        "${app}/non.empty/server" })
     public void shouldReceiveNonEmptyType() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class TypeIT
 
     @Test
     @Specification({
-        "${app}/fragmented/request",
-        "${app}/fragmented/response" })
+        "${app}/fragmented/client",
+        "${app}/fragmented/server" })
     public void shouldReceiveNonEmptyTypeWithFragmentedMessage() throws Exception
     {
         k3po.finish();
@@ -65,8 +65,8 @@ public class TypeIT
 
     @Test
     @Specification({
-        "${app}/invalid.utf8/request",
-        "${app}/invalid.utf8/response" })
+        "${app}/invalid.utf8/client",
+        "${app}/invalid.utf8/server" })
     public void shouldRejectTypeWithInvalidUTF8() throws Exception
     {
         k3po.finish();
@@ -74,8 +74,8 @@ public class TypeIT
 
     @Test
     @Specification({
-        "${app}/initial.whitespace/request",
-        "${app}/initial.whitespace/response" })
+        "${app}/initial.whitespace/client",
+        "${app}/initial.whitespace/server" })
     public void shouldReceiveTypeWithInitialWhitespace() throws Exception
     {
         k3po.finish();

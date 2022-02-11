@@ -53,7 +53,7 @@ public class AdvisoryIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/flush/request",
-        "${app}/flush/response" })
+        "${app}/flush/server" })
     public void shouldFlushResponse() throws Exception
     {
         k3po.finish();

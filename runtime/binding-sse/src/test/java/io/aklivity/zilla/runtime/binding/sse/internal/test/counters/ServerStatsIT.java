@@ -55,7 +55,7 @@ public class ServerStatsIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/non.empty/request",
-        "${app}/non.empty/response" })
+        "${app}/non.empty/server" })
     public void shouldReceiveNonEmptyMessage() throws Exception
     {
         k3po.finish();

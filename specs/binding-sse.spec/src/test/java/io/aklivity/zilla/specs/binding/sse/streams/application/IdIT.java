@@ -38,8 +38,8 @@ public class IdIT
 
     @Test
     @Specification({
-        "${app}/empty/request",
-        "${app}/empty/response" })
+        "${app}/empty/client",
+        "${app}/empty/server" })
     public void shouldReceiveEmptyId() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class IdIT
 
     @Test
     @Specification({
-        "${app}/non.empty/request",
-        "${app}/non.empty/response" })
+        "${app}/non.empty/client",
+        "${app}/non.empty/server" })
     public void shouldReceiveNonEmptyId() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class IdIT
 
     @Test
     @Specification({
-        "${app}/invalid.utf8/request",
-        "${app}/invalid.utf8/response" })
+        "${app}/invalid.utf8/client",
+        "${app}/invalid.utf8/server" })
     public void shouldRejectIdWithInvalidUTF8() throws Exception
     {
         k3po.finish();
@@ -65,8 +65,8 @@ public class IdIT
 
     @Test
     @Specification({
-        "${app}/initial.whitespace/request",
-        "${app}/initial.whitespace/response" })
+        "${app}/initial.whitespace/client",
+        "${app}/initial.whitespace/server" })
     public void shouldReceiveIdWithInitialWhitespace() throws Exception
     {
         k3po.finish();

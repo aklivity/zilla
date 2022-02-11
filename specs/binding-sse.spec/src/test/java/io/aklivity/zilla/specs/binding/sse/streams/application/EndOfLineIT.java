@@ -38,8 +38,8 @@ public class EndOfLineIT
 
     @Test
     @Specification({
-        "${app}/carriage.return/request",
-        "${app}/carriage.return/response" })
+        "${app}/carriage.return/client",
+        "${app}/carriage.return/server" })
     public void shouldReceiveDataWithCarriageReturnEndOfLine() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class EndOfLineIT
 
     @Test
     @Specification({
-        "${app}/line.feed/request",
-        "${app}/line.feed/response" })
+        "${app}/line.feed/client",
+        "${app}/line.feed/server" })
     public void shouldReceiveDataWithLineFeedEndOfLine() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class EndOfLineIT
 
     @Test
     @Specification({
-        "${app}/carriage.return.line.feed/request",
-        "${app}/carriage.return.line.feed/response" })
+        "${app}/carriage.return.line.feed/client",
+        "${app}/carriage.return.line.feed/server" })
     public void shouldReceiveDataWithCarriageReturnLineFeedEndOfLine() throws Exception
     {
         k3po.finish();
