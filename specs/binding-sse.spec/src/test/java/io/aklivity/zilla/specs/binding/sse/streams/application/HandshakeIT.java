@@ -38,8 +38,8 @@ public class HandshakeIT
 
     @Test
     @Specification({
-        "${app}/connection.succeeded/request",
-        "${app}/connection.succeeded/response" })
+        "${app}/connection.succeeded/client",
+        "${app}/connection.succeeded/server" })
     public void shouldHandshake() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class HandshakeIT
 
     @Test
     @Specification({
-        "${app}/last.event.id/request",
-        "${app}/last.event.id/response" })
+        "${app}/last.event.id/client",
+        "${app}/last.event.id/server" })
     public void shouldHandshakeWithLastEventId() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class HandshakeIT
 
     @Test
     @Specification({
-        "${app}/last.event.id.empty/request",
-        "${app}/last.event.id.empty/response" })
+        "${app}/last.event.id.empty/client",
+        "${app}/last.event.id.empty/server" })
     public void shouldHandshakeWithLastEventIdEmpty() throws Exception
     {
         k3po.finish();
@@ -65,8 +65,8 @@ public class HandshakeIT
 
     @Test
     @Specification({
-        "${app}/connection.failed/request",
-        "${app}/connection.failed/response" })
+        "${app}/connection.failed/client",
+        "${app}/connection.failed/server" })
     public void shouldFailHandshake() throws Exception
     {
         k3po.finish();

@@ -55,7 +55,7 @@ public class DataIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/empty/request",
-        "${app}/empty/response" })
+        "${app}/empty/server" })
     public void shouldReceiveEmptyMessage() throws Exception
     {
         k3po.finish();
@@ -65,7 +65,7 @@ public class DataIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/non.empty/request",
-        "${app}/non.empty/response" })
+        "${app}/non.empty/server" })
     public void shouldReceiveNonEmptyMessage() throws Exception
     {
         k3po.finish();
@@ -75,7 +75,7 @@ public class DataIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/fragmented/request",
-        "${app}/fragmented/response" })
+        "${app}/fragmented/server" })
     @ScriptProperty("padding " + MAXIMUM_HEADER_SIZE)
     public void shouldReceiveFragmentedMessage() throws Exception
     {

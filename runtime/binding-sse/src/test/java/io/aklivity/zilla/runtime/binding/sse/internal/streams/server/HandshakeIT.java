@@ -55,7 +55,7 @@ public class HandshakeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/connection.succeeded/request",
-        "${app}/connection.succeeded/response" })
+        "${app}/connection.succeeded/server" })
     public void shouldHandshake() throws Exception
     {
         k3po.finish();
@@ -84,7 +84,7 @@ public class HandshakeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/initial.comment/request",
-        "${app}/last.event.id/response" })
+        "${app}/last.event.id/server" })
     public void shouldSendInitialComment() throws Exception
     {
         k3po.finish();
@@ -94,7 +94,7 @@ public class HandshakeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.header.last.event.id/request",
-        "${app}/last.event.id/response" })
+        "${app}/last.event.id/server" })
     public void shouldHandshakeWithRequestHeaderLastEventId() throws Exception
     {
         k3po.finish();
@@ -104,7 +104,7 @@ public class HandshakeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.header.last.event.id.empty/request",
-        "${app}/last.event.id.empty/response" })
+        "${app}/last.event.id.empty/server" })
     public void shouldHandshakeWithRequestHeaderLastEventIdEmpty() throws Exception
     {
         k3po.finish();
@@ -132,7 +132,7 @@ public class HandshakeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.parameter.last.event.id.empty/request",
-        "${app}/last.event.id.empty/response" })
+        "${app}/last.event.id.empty/server" })
     public void shouldHandshakeWithRequestParameterLastEventIdEmpty() throws Exception
     {
         k3po.finish();
@@ -142,7 +142,7 @@ public class HandshakeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.parameter.last.event.id/request",
-        "${app}/last.event.id/response" })
+        "${app}/last.event.id/server" })
     public void shouldHandshakeWithRequestParameterLastEventId() throws Exception
     {
         k3po.finish();
@@ -161,7 +161,7 @@ public class HandshakeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.parameter.last.event.id.url.encoded/request",
-        "${app}/last.event.id/response" })
+        "${app}/last.event.id/server" })
     public void shouldHandshakeWithURLEncodedRequestParameterLastEventId() throws Exception
     {
         k3po.finish();
