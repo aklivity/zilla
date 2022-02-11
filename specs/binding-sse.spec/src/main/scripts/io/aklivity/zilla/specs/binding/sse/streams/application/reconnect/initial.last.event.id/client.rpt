@@ -26,11 +26,9 @@ write zilla:begin.ext ${sse:beginEx()
 
 connected
 
-read zilla:data.ext ${sse:dataEx()
+read zilla:data.ext ${sse:matchDataEx()
                          .typeId(zilla:id("sse"))
-                         .timestamp(1519937168533)
                          .id("105")
-                         .type(null)
                          .build()}
 read "Hello, world"
 

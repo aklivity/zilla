@@ -17,12 +17,16 @@ package io.aklivity.zilla.specs.binding.sse.internal;
 
 import static java.lang.ThreadLocal.withInitial;
 
+import java.nio.ByteBuffer;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.sse.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseEndExFW;
@@ -41,6 +45,12 @@ public final class SseFunctions
     public static SseDataExBuilder dataEx()
     {
         return new SseDataExBuilder();
+    }
+
+    @Function
+    public static SseDataExMatcherBuilder matchDataEx()
+    {
+        return new SseDataExMatcherBuilder();
     }
 
     @Function
@@ -151,6 +161,123 @@ public final class SseFunctions
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
+        }
+    }
+
+    public static final class SseDataExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final SseDataExFW dataExRO = new SseDataExFW();
+
+        private Integer typeId;
+        private Long timestamp;
+        private String8FW id;
+        private String8FW type;
+
+        public SseDataExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public SseDataExMatcherBuilder timestamp(
+            long timestamp)
+        {
+            this.timestamp = timestamp;
+            return this;
+        }
+
+        public SseDataExMatcherBuilder id(
+            String id)
+        {
+            this.id = new String8FW(id);
+            return this;
+        }
+
+        public SseDataExMatcherBuilder idAsRawBytes(
+            byte[] id)
+        {
+            final DirectBuffer buffer = DIRECT_BUFFER.get();
+            buffer.wrap(id);
+            this.id = new String8FW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[1 + id.length]), 0, 1 + id.length)
+                    .set(buffer, 0, id.length)
+                    .build();
+            return this;
+        }
+
+        public SseDataExMatcherBuilder type(
+            String type)
+        {
+            this.type = new String8FW(type);
+            return this;
+        }
+
+        public SseDataExMatcherBuilder typeAsRawBytes(
+            byte[] type)
+        {
+            final DirectBuffer buffer = DIRECT_BUFFER.get();
+            buffer.wrap(type);
+            this.type = new String8FW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[1 + type.length]), 0, 1 + type.length)
+                    .set(buffer, 0, type.length)
+                    .build();
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return this::match;
+        }
+
+        private SseDataExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final SseDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (dataEx != null &&
+                matchTypeId(dataEx) &&
+                matchTimestamp(dataEx) &&
+                matchId(dataEx) &&
+                matchType(dataEx))
+            {
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
+            }
+
+            throw new Exception(dataEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final SseDataExFW dataEx)
+        {
+            return typeId == null || typeId == dataEx.typeId();
+        }
+
+        private boolean matchTimestamp(
+            final SseDataExFW dataEx)
+        {
+            return timestamp == null || timestamp == dataEx.timestamp();
+        }
+
+        private boolean matchId(
+            final SseDataExFW dataEx)
+        {
+            return id == null || id.equals(dataEx.id());
+        }
+
+        private boolean matchType(
+            final SseDataExFW dataEx)
+        {
+            return type == null || type.equals(dataEx.type());
         }
     }
 
