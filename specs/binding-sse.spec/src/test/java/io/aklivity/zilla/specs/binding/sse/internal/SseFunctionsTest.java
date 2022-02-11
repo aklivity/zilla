@@ -17,7 +17,11 @@ package io.aklivity.zilla.specs.binding.sse.internal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
+
+import java.nio.ByteBuffer;
 
 import javax.el.ELContext;
 import javax.el.ExpressionFactory;
@@ -27,6 +31,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Before;
 import org.junit.Test;
+import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.sse.internal.types.stream.SseBeginExFW;
@@ -115,5 +120,143 @@ public class SseFunctionsTest
         SseEndExFW endEx = new SseEndExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, endEx.typeId());
         assertEquals("id-42", endEx.id().asString());
+    }
+
+    @Test
+    public void shouldMatchDataExtension() throws Exception
+    {
+        byte[] dataEx = SseFunctions.dataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldMatchDataExtensionWithInvalidUtf8() throws Exception
+    {
+        byte[] dataEx = SseFunctions.dataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .idAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
+                .typeAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .idAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
+                .typeAsRawBytes(new byte[] {(byte) 0xc3, 0x28})
+                .build();
+
+        assertNotNull(matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldNotMatchDataExtensionWhenEmpty() throws Exception
+    {
+        byte[] dataEx = new byte[0];
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        assertNull(matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldNotMatchDataExtensionWhenIncomplete() throws Exception
+    {
+        byte[] dataEx = new byte[1];
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldNotMatchDataExtensionWithDifferentTypeId()
+    {
+        byte[] dataEx = SseFunctions.dataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .typeId(0x02)
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldNotMatchDataExtensionWithDifferentTimestamp()
+    {
+        byte[] dataEx = SseFunctions.dataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .timestamp(12345679L)
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldNotMatchDataExtensionWithDifferentId()
+    {
+        byte[] dataEx = SseFunctions.dataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .id("id-43")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
+    }
+
+    @Test
+    public void shouldNotMatchDataExtensionWithDifferentType()
+    {
+        byte[] dataEx = SseFunctions.dataEx()
+                .typeId(0x01)
+                .timestamp(12345678L)
+                .id("id-42")
+                .type("custom")
+                .build();
+
+        BytesMatcher matcher = SseFunctions.matchDataEx()
+                .type("custom-x")
+                .build();
+
+        assertThrows(Exception.class, () -> matcher.match(ByteBuffer.wrap(dataEx)));
     }
 }
