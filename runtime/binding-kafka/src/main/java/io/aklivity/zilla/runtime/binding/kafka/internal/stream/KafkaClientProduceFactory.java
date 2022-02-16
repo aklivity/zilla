@@ -1198,7 +1198,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
             final long traceId = begin.traceId();
 
             authorization = begin.authorization();
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             doNetworkWindow(traceId, 0L, 0, 0, decodeMaxBytes);
 

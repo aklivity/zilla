@@ -660,7 +660,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             members.forEach(s -> s.doDescribeReplyBeginIfNecessary(traceId));
 

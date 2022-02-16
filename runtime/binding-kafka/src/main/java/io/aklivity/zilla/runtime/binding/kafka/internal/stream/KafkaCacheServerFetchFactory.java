@@ -658,7 +658,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final int partitionId = progress.partitionId();
             final long partitionOffset = progress.partitionOffset();
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             assert partitionId == partition.id();
             assert partitionOffset >= 0L && partitionOffset >= this.partitionOffset;

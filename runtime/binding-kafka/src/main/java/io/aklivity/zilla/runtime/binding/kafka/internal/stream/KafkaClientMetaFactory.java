@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
@@ -67,6 +68,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaClientMetaFactory implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
+    private static final int ERROR_UNKNOWN_TOPIC = 3;
 
     private static final int SIGNAL_NEXT_REQUEST = 1;
 
@@ -898,6 +900,11 @@ public final class KafkaClientMetaFactory implements BindingHandler
             client.doNetworkResetIfNecessary(traceId);
         }
 
+        private boolean isApplicationReplyOpen()
+        {
+            return KafkaState.replyOpening(state);
+        }
+
         private void doApplicationBeginIfNecessary(
             long traceId,
             long authorization,
@@ -1072,7 +1079,6 @@ public final class KafkaClientMetaFactory implements BindingHandler
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.decoder = decodeResponse;
                 this.topic = requireNonNull(topic);
-                this.partitions = new Int2IntHashMap(-1);
                 this.newBrokers = new Long2ObjectHashMap<>();
                 this.newPartitions = new Int2IntHashMap(-1);
             }
@@ -1124,7 +1130,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
                 final long traceId = begin.traceId();
 
                 authorization = begin.authorization();
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openingReply(state);
 
                 doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
             }
@@ -1190,7 +1196,14 @@ public final class KafkaClientMetaFactory implements BindingHandler
 
                 cancelNextRequestSignal();
 
-                doApplicationEnd(traceId);
+                if (!isApplicationReplyOpen())
+                {
+                    cleanupNetwork(traceId);
+                }
+                else if (decodeSlot == NO_SLOT)
+                {
+                    doApplicationEnd(traceId);
+                }
             }
 
             private void onNetworkAbort(
@@ -1556,6 +1569,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
                 switch (errorCode)
                 {
                 case ERROR_NONE:
+                case ERROR_UNKNOWN_TOPIC:
                     assert topic.equals(this.topic);
                     newPartitions.clear();
                     break;
@@ -1596,8 +1610,13 @@ public final class KafkaClientMetaFactory implements BindingHandler
                     newPartitions.forEach(sharedPartitions::put);
                 }
 
-                if (!partitions.equals(newPartitions))
+                if (!Objects.equals(partitions, newPartitions))
                 {
+                    if (partitions == null)
+                    {
+                        partitions = new Int2IntHashMap(-1);
+                    }
+
                     partitions.clear();
                     newPartitions.forEach(partitions::put);
 
