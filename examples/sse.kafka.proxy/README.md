@@ -29,15 +29,15 @@ started
 ```
 
 ### Install sse-cat client
-Requires Server-Sent Events client, such as `sse-cat`.
+Requires Server-Sent Events client, such as `sse-cat` version `2.0.5` or higher on `node` version `14` or higher.
 ```bash
-$ npm install sse-cat
+$ npm install -g sse-cat
 ```
 
 ### Install kcat client
 Requires Kafka client, such as `kcat`.
 ```bash
-$ brew install sse-cat
+$ brew install kcat
 ```
 
 ### Verify behavior
@@ -47,5 +47,5 @@ $ sse-cat http://localhost:8080/zilla
 Hello, world
 ```
 ```bash
-$ echo "Hello, world" | kcat -P -b localhost:9092 -t zilla
+$ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t zilla
 ```
