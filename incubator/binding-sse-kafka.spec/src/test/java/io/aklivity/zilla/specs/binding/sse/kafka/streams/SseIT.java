@@ -55,6 +55,15 @@ public class SseIT
 
     @Test
     @Specification({
+        "${sse}/handshake.reconnect/client",
+        "${sse}/handshake.reconnect/server"})
+    public void shouldCompleteHandshakeThenReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${sse}/server.sent.messages/client",
         "${sse}/server.sent.messages/server"})
     public void shouldReceiveServerSentMessages() throws Exception

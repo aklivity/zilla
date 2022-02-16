@@ -18,13 +18,13 @@ connect "zilla://streams/kafka0"
     option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                             .typeId(zilla:id("kafka"))
-                             .merged()
-                                 .capabilities("FETCH_ONLY")
-                                 .topic("test")
-                                 .partition(-1, -2)
-                                 .build()
-                             .build()}
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("test")
+                                   .partition(-1, -2)
+                                   .build()
+                               .build()}
 
 connected
 
@@ -40,14 +40,25 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read "Hello, world"
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .partition(0, 2, 2)
-                               .progress(0, 3)
-                               .progress(1, 1)
-                               .key("key")
-                               .header("header", "value")
-                               .build()
-                           .build()}
-read "Hello, again"
+read notify RECONNECT_MESSAGE_STREAM
+read closed
+write close
+
+connect await RECONNECT_MESSAGE_STREAM
+    "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("test")
+                                   .partition(0, 2)
+                                   .partition(1, 1)
+                                   .partition(-1, -2)
+                                   .build()
+                               .build()}
+
+connected
+

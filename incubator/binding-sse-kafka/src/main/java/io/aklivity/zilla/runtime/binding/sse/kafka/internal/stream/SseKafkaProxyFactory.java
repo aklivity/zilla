@@ -19,6 +19,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaBindingConfig;
@@ -28,8 +29,8 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.DataFW;
@@ -38,9 +39,7 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.Extensi
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaDataExFW;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedDataExFW;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.KafkaMergedFlushExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBeginExFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseDataExFW;
@@ -54,6 +53,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 {
     private static final String SSE_TYPE_NAME = "sse";
     private static final String KAFKA_TYPE_NAME = "kafka";
+
+    private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -77,13 +78,15 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     private final SseBeginExFW sseBeginExRO = new SseBeginExFW();
 
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
-    private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
 
     private final SseDataExFW.Builder sseDataExRW = new SseDataExFW.Builder();
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
 
+    private final SseKafkaIdHelper sseEventId = new SseKafkaIdHelper();
+
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -97,6 +100,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
+        this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -249,10 +253,11 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
             final SseBeginExFW sseBeginEx =
                     beginEx != null && beginEx.typeId() == sseTypeId ? extension.get(sseBeginExRO::tryWrap) : null;
+            final String8FW lastEventId = sseBeginEx != null ? sseBeginEx.lastEventId() : null;
+            final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(lastEventId);
 
             // TODO: resolve parameters from sseBeginEx path to with
-            // TODO: decode lastEventId to initialize progress
-            delegate.doKafkaBegin(traceId, authorization, affinity, with.topic);
+            delegate.doKafkaBegin(traceId, authorization, affinity, with.topic, partitions);
         }
 
         private void onSseData(
@@ -380,10 +385,11 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            Flyweight payload)
+            Flyweight payload,
+            Flyweight extension)
         {
             doData(sse, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, budgetId, flags, reserved, payload);
+                    traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             replySeq += reserved;
 
@@ -488,7 +494,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long traceId,
             long authorization,
             long affinity,
-            String topic)
+            String topic,
+            Array32FW<KafkaOffsetFW> partitions)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -496,7 +503,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             state = SseKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, topic);
+                    traceId, authorization, affinity, topic, partitions);
         }
 
         private void doKafkaEnd(
@@ -626,11 +633,19 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 final KafkaDataExFW kafkaDataEx =
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
                 final KafkaMergedDataExFW kafkaMergedDataEx =
-                        kafkaDataEx != null && kafkaDataEx.kind() != KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
+                        kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
                 final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
+                final String8FW encodedBuf = sseEventId.encode(progress);
+                final Flyweight sseDataEx = encodedBuf == null
+                        ? emptyExRO
+                        : sseDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(sseTypeId)
+                            .timestamp(0L)
+                            .id(encodedBuf)
+                            .type((String) null)
+                            .build();
 
-                // TODO: map progress to SseDataEx
-                delegate.doSseData(traceId, authorization, budgetId, reserved, flags, payload);
+                delegate.doSseData(traceId, authorization, budgetId, reserved, flags, payload, sseDataEx);
             }
         }
 
@@ -662,7 +677,6 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             final long authorization = flush.authorization();
             final long budgetId = flush.budgetId();
             final int reserved = flush.reserved();
-            final OctetsFW extension = flush.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -671,14 +685,6 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            final ExtensionFW flushEx = extension.get(extensionRO::tryWrap);
-            final KafkaFlushExFW kafkaFlushEx =
-                    flushEx != null && flushEx.typeId() == kafkaTypeId ? extension.get(kafkaFlushExRO::tryWrap) : null;
-            final KafkaMergedFlushExFW kafkaMergedFlushEx =
-                    kafkaFlushEx != null && kafkaFlushEx.kind() != KafkaDataExFW.KIND_MERGED ? kafkaFlushEx.merged() : null;
-            final Array32FW<KafkaOffsetFW> progress = kafkaMergedFlushEx != null ? kafkaMergedFlushEx.progress() : null;
-
-            // TODO: map progress to SseFlushEx
             delegate.doSseFlush(traceId, authorization, budgetId, reserved);
         }
 
@@ -807,7 +813,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        Flyweight payload)
+        Flyweight payload,
+        Flyweight extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .routeId(routeId)
@@ -821,6 +828,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .budgetId(budgetId)
                 .reserved(reserved)
                 .payload(payload.buffer(), payload.offset(), payload.sizeof())
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
@@ -909,15 +917,15 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String topic)
+        String topic,
+        Array32FW<KafkaOffsetFW> partitions)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
                               .topic(topic)
-                              .partitionsItem(p -> p.partitionId(-1) // TODO: parameterize partition offsets
-                                                    .partitionOffset(KafkaOffsetType.HISTORICAL.value())))
+                              .partitions(partitions))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

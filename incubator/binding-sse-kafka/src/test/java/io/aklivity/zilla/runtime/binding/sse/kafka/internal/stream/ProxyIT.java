@@ -13,22 +13,6 @@
  * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.stream;
-/*
- * Copyright 2021-2022 Aklivity Inc.
- *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -72,6 +56,16 @@ public class ProxyIT
         "${sse}/handshake/client",
         "${kafka}/handshake/server"})
     public void shouldCompleteHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/handshake.reconnect/client",
+        "${kafka}/handshake.reconnect/server"})
+    public void shouldCompleteHandshakeThenReconnect() throws Exception
     {
         k3po.finish();
     }

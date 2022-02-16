@@ -26,7 +26,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.88</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -98,7 +98,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core sse kafka</scopeNames>
+          <scopeNames>core internal sse kafka</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.sse.kafka.internal.types</packageName>
         </configuration>
         <executions>

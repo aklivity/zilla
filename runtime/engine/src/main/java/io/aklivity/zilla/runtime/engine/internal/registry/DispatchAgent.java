@@ -33,6 +33,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.SelectableChannel;
+import java.time.Duration;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Deque;
@@ -542,10 +543,16 @@ public class DispatchAgent implements EngineContext, Agent
     @Override
     public void onClose()
     {
+        final long closeAt = System.nanoTime();
         while (config.drainOnClose() &&
                streamsBuffer.consumerPosition() < streamsBuffer.producerPosition())
         {
             ThreadHints.onSpinWait();
+
+            if (System.nanoTime() - closeAt >= Duration.ofSeconds(30).toNanos())
+            {
+                break;
+            }
         }
 
         configuration.detachAll();

@@ -46,6 +46,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/handshake.reconnect/client",
+        "${kafka}/handshake.reconnect/server"})
+    public void shouldCompleteHandshakeThenReconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/server.sent.messages/client",
         "${kafka}/server.sent.messages/server"})
     public void shouldReceiveServerSentMessages() throws Exception
