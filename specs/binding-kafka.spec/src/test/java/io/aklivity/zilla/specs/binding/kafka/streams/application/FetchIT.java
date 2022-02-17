@@ -66,6 +66,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/partition.incomplete/client",
+        "${app}/partition.incomplete/server"})
+    public void shouldRejectWhenPartitionIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.not.leader/client",
         "${app}/partition.not.leader/server"})
     public void shouldRejectPartitionNotLeader() throws Exception

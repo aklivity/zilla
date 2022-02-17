@@ -56,18 +56,18 @@ public class MetadataIT
 
     @Test
     @Specification({
-        "${net}/topic.partition.info/client",
-        "${net}/topic.partition.info/server"})
-    public void shouldReceiveTopicPartitionInfo() throws Exception
+        "${net}/topic.partition.info.incomplete/client",
+        "${net}/topic.partition.info.incomplete/server"})
+    public void shouldReceiveTopicPartitionInfoIncomplete() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/topic.partition.info.changed/client",
-        "${net}/topic.partition.info.changed/server"})
-    public void shouldReceiveTopicPartitionInfoChanged() throws Exception
+        "${net}/topic.partition.info/client",
+        "${net}/topic.partition.info/server"})
+    public void shouldReceiveTopicPartitionInfo() throws Exception
     {
         k3po.finish();
     }

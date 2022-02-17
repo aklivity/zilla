@@ -47,6 +47,15 @@ public class DescribeConfigsIT
 
     @Test
     @Specification({
+        "${net}/topic.config.info.incomplete/client",
+        "${net}/topic.config.info.incomplete/server"})
+    public void shouldReceiveTopicConfigInfoIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/topic.config.info/client",
         "${net}/topic.config.info/server"})
     public void shouldReceiveTopicConfigInfo() throws Exception

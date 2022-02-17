@@ -57,6 +57,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${net}/partition.incomplete/client",
+        "${net}/partition.incomplete/server" })
+    public void shouldReceivePartitionIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/partition.offset/client",
         "${net}/partition.offset/server"})
     public void shouldRequestPartitionOffset() throws Exception

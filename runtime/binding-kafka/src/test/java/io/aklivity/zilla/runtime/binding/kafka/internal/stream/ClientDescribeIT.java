@@ -63,6 +63,16 @@ public class ClientDescribeIT
     @Test
     @Configuration("client.when.topic.json")
     @Specification({
+        "${app}/topic.config.info.incomplete/client",
+        "${net}/topic.config.info.incomplete/server"})
+    public void shouldRejectWhenTopicConfigInfoIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
         "${app}/topic.config.info/client",
         "${net}/topic.config.info/server"})
     public void shouldReceiveTopicConfigInfo() throws Exception

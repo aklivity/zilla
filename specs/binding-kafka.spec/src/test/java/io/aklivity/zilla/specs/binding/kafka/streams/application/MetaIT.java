@@ -38,9 +38,9 @@ public class MetaIT
 
     @Test
     @Specification({
-        "${app}/topic.unknown/client",
-        "${app}/topic.unknown/server"})
-    public void shouldRejectWhenTopicUnknown() throws Exception
+        "${app}/topic.unreachable/client",
+        "${app}/topic.unreachable/server"})
+    public void shouldRejectWhenTopicUnreachable() throws Exception
     {
         k3po.finish();
     }
@@ -56,9 +56,27 @@ public class MetaIT
 
     @Test
     @Specification({
+        "${app}/topic.partition.info.incomplete/client",
+        "${app}/topic.partition.info.incomplete/server"})
+    public void shouldRejectWhenTopicPartitionInfoIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/topic.partition.info/client",
         "${app}/topic.partition.info/server"})
     public void shouldReceiveTopicPartitionInfo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/topic.unknown/client",
+        "${app}/topic.unknown/server"})
+    public void shouldReceiveTopicPartitionInfoWhenTopicUnknown() throws Exception
     {
         k3po.finish();
     }

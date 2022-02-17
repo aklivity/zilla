@@ -123,13 +123,8 @@
                             },
                             "with":
                             {
-                                "title": "Overrides",
-                                "type": "array",
-                                "items":
-                                {
-                                    "title": "Condition",
-                                    "type": "object"
-                                }
+                                "title": "Override",
+                                "type": "object"
                             }
                         },
                         "additionalProperties": false

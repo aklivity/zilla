@@ -826,7 +826,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             final KafkaProduceBeginExFW kafkaProduceBeginEx = kafkaBeginEx.produce();
             final int partitionId = kafkaProduceBeginEx.partition().partitionId();
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             assert partitionId == this.partitionId;
 
