@@ -24,7 +24,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithResolver.SseKafkaWithResult;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaCapabilities;
@@ -148,14 +148,16 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             route = binding.resolve(authorization, sseBeginEx);
         }
 
-
         MessageConsumer newStream = null;
 
         if (route != null)
         {
             final long resolvedId = route.id;
+            final SseKafkaWithResult resolved = route.with
+                    .map(r -> r.resolve(sseBeginEx, sseEventId))
+                    .orElse(null);
 
-            newStream = new SseProxy(sse, routeId, initialId, resolvedId, route.with)::onSseMessage;
+            newStream = new SseProxy(sse, routeId, initialId, resolvedId, resolved)::onSseMessage;
         }
 
         return newStream;
@@ -168,7 +170,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         private final long initialId;
         private final long replyId;
         private final KafkaProxy delegate;
-        private final SseKafkaWithConfig with;
+        private final SseKafkaWithResult resolved;
 
         private int state;
 
@@ -185,14 +187,14 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long routeId,
             long initialId,
             long resolvedId,
-            SseKafkaWithConfig with)
+            SseKafkaWithResult resolved)
         {
             this.sse = sse;
             this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.delegate = new KafkaProxy(resolvedId, this);
-            this.with = with;
+            this.resolved = resolved;
         }
 
         private void onSseMessage(
@@ -238,7 +240,6 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
-            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -250,14 +251,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
-            final SseBeginExFW sseBeginEx =
-                    beginEx != null && beginEx.typeId() == sseTypeId ? extension.get(sseBeginExRO::tryWrap) : null;
-            final String8FW lastEventId = sseBeginEx != null ? sseBeginEx.lastEventId() : null;
-            final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(lastEventId);
-
-            // TODO: resolve parameters from sseBeginEx path to with
-            delegate.doKafkaBegin(traceId, authorization, affinity, with.topic, partitions);
+            delegate.doKafkaBegin(traceId, authorization, affinity, resolved);
         }
 
         private void onSseData(
@@ -494,8 +488,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long traceId,
             long authorization,
             long affinity,
-            String topic,
-            Array32FW<KafkaOffsetFW> partitions)
+            SseKafkaWithResult resolved)
         {
             initialSeq = delegate.initialSeq;
             initialAck = delegate.initialAck;
@@ -503,7 +496,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             state = SseKafkaState.openingInitial(state);
 
             kafka = newKafkaStream(this::onKafkaMessage, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, topic, partitions);
+                    traceId, authorization, affinity, resolved);
         }
 
         private void doKafkaEnd(
@@ -917,15 +910,15 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String topic,
-        Array32FW<KafkaOffsetFW> partitions)
+        SseKafkaWithResult resolved)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY))
-                              .topic(topic)
-                              .partitions(partitions))
+                              .topic(resolved.topic())
+                              .partitions(resolved.partitions())
+                              .filters(resolved::filters))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

@@ -14,7 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -26,6 +31,9 @@ import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
     private static final String TOPIC_NAME = "topic";
+    private static final String FILTERS_NAME = "filters";
+    private static final String KEY_NAME = "key";
+    private static final String HEADERS_NAME = "headers";
 
     @Override
     public String type()
@@ -41,12 +49,38 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (sseKafkaWith.topic != null)
-        {
-            object.add(TOPIC_NAME, sseKafkaWith.topic);
-        }
+        object.add(TOPIC_NAME, sseKafkaWith.topic);
 
-        // TODO: filters
+        if (sseKafkaWith.filters.isPresent())
+        {
+            JsonArrayBuilder newFilters = Json.createArrayBuilder();
+
+            for (SseKafkaWithFilterConfig filter : sseKafkaWith.filters.get())
+            {
+                JsonObjectBuilder newFilter = Json.createObjectBuilder();
+
+                if (filter.key.isPresent())
+                {
+                    newFilter.add(KEY_NAME, filter.key.get());
+                }
+
+                if (filter.headers.isPresent())
+                {
+                    JsonObjectBuilder newHeaders = Json.createObjectBuilder();
+
+                    for (SseKafkaWithFilterHeaderConfig header : filter.headers.get())
+                    {
+                        newHeaders.add(header.name, header.value);
+                    }
+
+                    newFilter.add(HEADERS_NAME, newHeaders);
+                }
+
+                newFilters.add(newFilter);
+            }
+
+            object.add(FILTERS_NAME, newFilters);
+        }
 
         return object.build();
     }
@@ -55,12 +89,41 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
     public WithConfig adaptFromJson(
         JsonObject object)
     {
-        String topic = object.containsKey(TOPIC_NAME)
-                ? object.getString(TOPIC_NAME)
-                : null;
+        String newTopic = object.getString(TOPIC_NAME);
+        List<SseKafkaWithFilterConfig> newFilters = null;
 
-        // TODO: filters
+        if (object.containsKey(FILTERS_NAME))
+        {
+            JsonArray filters = object.getJsonArray(FILTERS_NAME);
+            newFilters = new ArrayList<>(filters.size());
 
-        return new SseKafkaWithConfig(topic);
+            for (int i = 0; i < filters.size(); i++)
+            {
+                JsonObject filter = filters.getJsonObject(i);
+
+                String newKey = null;
+                if (filter.containsKey(KEY_NAME))
+                {
+                    newKey = filter.getString(KEY_NAME);
+                }
+
+                List<SseKafkaWithFilterHeaderConfig> newHeaders = null;
+                if (filter.containsKey(HEADERS_NAME))
+                {
+                    JsonObject headers = filter.getJsonObject(HEADERS_NAME);
+                    newHeaders = new ArrayList<>(headers.size());
+
+                    for (String newHeaderName : headers.keySet())
+                    {
+                        String newHeaderValue = headers.getString(newHeaderName);
+                        newHeaders.add(new SseKafkaWithFilterHeaderConfig(newHeaderName, newHeaderValue));
+                    }
+                }
+
+                newFilters.add(new SseKafkaWithFilterConfig(newKey, newHeaders));
+            }
+        }
+
+        return new SseKafkaWithConfig(newTopic, newFilters);
     }
 }

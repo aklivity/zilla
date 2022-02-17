@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class ProxyIT
+public class SseKafkaProxyIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("sse", "io/aklivity/zilla/specs/binding/sse/kafka/streams/sse")
@@ -56,6 +56,16 @@ public class ProxyIT
         "${sse}/handshake/client",
         "${kafka}/handshake/server"})
     public void shouldCompleteHandshake() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.and.filters.json")
+    @Specification({
+        "${sse}/handshake/client",
+        "${kafka}/handshake.with.filters/server"})
+    public void shouldCompleteHandshakeWithFilters() throws Exception
     {
         k3po.finish();
     }

@@ -17,18 +17,16 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 import java.util.List;
 import java.util.Optional;
 
-import io.aklivity.zilla.runtime.engine.config.WithConfig;
-
-public final class SseKafkaWithConfig extends WithConfig
+public final class SseKafkaWithFilterConfig
 {
-    public final String topic;
-    public final Optional<List<SseKafkaWithFilterConfig>> filters;
+    public final Optional<String> key;
+    public final Optional<List<SseKafkaWithFilterHeaderConfig>> headers;
 
-    public SseKafkaWithConfig(
-        String topic,
-        List<SseKafkaWithFilterConfig> filters)
+    public SseKafkaWithFilterConfig(
+        String key,
+        List<SseKafkaWithFilterHeaderConfig> headers)
     {
-        this.topic = topic;
-        this.filters = Optional.ofNullable(filters);
+        this.key = Optional.ofNullable(key);
+        this.headers = Optional.ofNullable(headers);
     }
 }

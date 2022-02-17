@@ -14,10 +14,16 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
+import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
+import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertTrue;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -39,7 +45,7 @@ public class SseKafkaWithConfigAdapterTest
     }
 
     @Test
-    public void shouldReadWith()
+    public void shouldReadWithTopic()
     {
         String text =
                 "{" +
@@ -50,16 +56,64 @@ public class SseKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.topic, equalTo("test"));
+        assertTrue(with.filters.isEmpty());
     }
 
     @Test
-    public void shouldWriteCondition()
+    public void shouldWriteWithTopic()
     {
-        SseKafkaWithConfig with = new SseKafkaWithConfig("test");
+        SseKafkaWithConfig with = new SseKafkaWithConfig("test", null);
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"topic\":\"test\"}"));
+    }
+
+    @Test
+    public void shouldReadWithTopicAndFilters()
+    {
+        String text =
+                "{" +
+                    "\"topic\": \"test\"," +
+                    "\"filters\":" +
+                    "[" +
+                        "{" +
+                            "\"key\": \"fixed-key\"," +
+                            "\"headers\":" +
+                            "{" +
+                                "\"tag\": \"fixed-tag\"" +
+                            "}" +
+                        "}" +
+                    "]" +
+                "}";
+
+        SseKafkaWithConfig with = jsonb.fromJson(text, SseKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.topic, equalTo("test"));
+        assertThat(with.filters.get(), contains(
+                both(hasField("key", isPresentAnd(equalTo("fixed-key")))).
+                and(hasField("headers", isPresentAnd(contains(
+                    both(hasField("name", equalTo("tag"))).
+                    and(hasField("value", equalTo("fixed-tag")))))))));
+    }
+
+    @Test
+    public void shouldWriteWithTopicAndFilters()
+    {
+        SseKafkaWithConfig with = new SseKafkaWithConfig(
+                "test",
+                singletonList(new SseKafkaWithFilterConfig(
+                    "fixed-key",
+                    singletonList(new SseKafkaWithFilterHeaderConfig(
+                        "tag",
+                        "fixed-tag")))));
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text,
+                equalTo("{\"topic\":\"test\",\"filters\":[{\"key\":\"fixed-key\",\"headers\":{\"tag\":\"fixed-tag\"}}]}"));
     }
 }

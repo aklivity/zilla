@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Optional;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -26,7 +27,7 @@ public final class SseKafkaRouteConfig extends OptionsConfig
     public final long id;
     public final int order;
     public final List<SseKafkaConditionMatcher> when;
-    public final SseKafkaWithConfig with;
+    public final Optional<SseKafkaWithResolver> with;
 
     public SseKafkaRouteConfig(
         RouteConfig route)
@@ -37,6 +38,8 @@ public final class SseKafkaRouteConfig extends OptionsConfig
             .map(SseKafkaConditionConfig.class::cast)
             .map(SseKafkaConditionMatcher::new)
             .collect(toList());
-        this.with = route.with instanceof SseKafkaWithConfig ? (SseKafkaWithConfig) route.with : null;
+        this.with = Optional.ofNullable(route.with)
+            .map(SseKafkaWithConfig.class::cast)
+            .map(SseKafkaWithResolver::new);
     }
 }

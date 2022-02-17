@@ -57,7 +57,17 @@
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-library</artifactId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.vtence.hamcrest</groupId>
+      <artifactId>hamcrest-jpa</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.npathai</groupId>
+      <artifactId>hamcrest-optional</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
