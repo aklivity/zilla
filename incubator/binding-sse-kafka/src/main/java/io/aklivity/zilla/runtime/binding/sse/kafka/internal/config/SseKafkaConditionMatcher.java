@@ -14,12 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class SseKafkaConditionMatcher
 {
     private final Matcher path;
+    private Consumer<SseKafkaConditionMatcher> observer;
 
     public SseKafkaConditionMatcher(
         SseKafkaConditionConfig condition)
@@ -30,7 +32,30 @@ public final class SseKafkaConditionMatcher
     public boolean matches(
         String path)
     {
-        return matchPath(path);
+        return matchPath(path) &&
+               observeMatched();
+    }
+
+    public String parameter(
+        String name)
+    {
+        return path.group(name);
+    }
+
+    public void observe(
+        Consumer<SseKafkaConditionMatcher> observer)
+    {
+        this.observer = observer;
+    }
+
+    private boolean observeMatched()
+    {
+        if (observer != null)
+        {
+            observer.accept(this);
+        }
+
+        return true;
     }
 
     private boolean matchPath(
@@ -42,7 +67,10 @@ public final class SseKafkaConditionMatcher
     private static Matcher asMatcher(
         String wildcard)
     {
-        // TODO: named groups for parameters
-        return Pattern.compile(wildcard.replace(".", "\\.").replace("*", ".*")).matcher("");
+        return Pattern.compile(
+                wildcard.replace(".", "\\.")
+                        .replace("*", ".*")
+                        .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)"))
+                .matcher("");
     }
 }

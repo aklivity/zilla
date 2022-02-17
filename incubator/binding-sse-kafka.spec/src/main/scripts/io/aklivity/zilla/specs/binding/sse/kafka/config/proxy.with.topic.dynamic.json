@@ -13,22 +13,12 @@
                     "when":
                     [
                         {
-                            "path": "/test"
+                            "path": "/{topic}"
                         }
                     ],
                     "with":
                     {
-                        "topic": "test",
-                        "filters":
-                        [
-                            {
-                                "key": "example-key",
-                                "headers":
-                                {
-                                    "tag": "example-tag"
-                                }
-                            }
-                        ]
+                        "topic": "${params.topic}"
                     }
                 }
             ]

@@ -71,6 +71,26 @@ public class SseKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.with.topic.dynamic.json")
+    @Specification({
+        "${sse}/handshake/client",
+        "${kafka}/handshake/server"})
+    public void shouldCompleteHandshakeWithDyanamicTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.and.filters.dynamic.json")
+    @Specification({
+        "${sse}/handshake.with.filters.dynamic/client",
+        "${kafka}/handshake.with.filters/server"})
+    public void shouldCompleteHandshakeWithTopicAndDynamicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.with.topic.json")
     @Specification({
         "${sse}/handshake.reconnect/client",

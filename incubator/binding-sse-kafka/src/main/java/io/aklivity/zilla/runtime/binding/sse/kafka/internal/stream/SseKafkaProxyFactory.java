@@ -24,7 +24,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.SseKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithResolver.SseKafkaWithResult;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithResult;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaCapabilities;

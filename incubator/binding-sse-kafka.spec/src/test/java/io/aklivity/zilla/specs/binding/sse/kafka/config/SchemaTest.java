@@ -41,6 +41,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyWithTopicDynamic()
+    {
+        JsonObject config = schema.validate("proxy.with.topic.dynamic.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyWithTopicAndFilters()
     {
         JsonObject config = schema.validate("proxy.with.topic.and.filters.json");

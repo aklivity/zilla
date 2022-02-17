@@ -46,6 +46,15 @@ public class SseIT
 
     @Test
     @Specification({
+        "${sse}/handshake.with.filters.dynamic/client",
+        "${sse}/handshake.with.filters.dynamic/server"})
+    public void shouldCompleteHandshakeWithDynamicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${sse}/handshake.rejected/client",
         "${sse}/handshake.rejected/server"})
     public void shouldRejectHandshake() throws Exception

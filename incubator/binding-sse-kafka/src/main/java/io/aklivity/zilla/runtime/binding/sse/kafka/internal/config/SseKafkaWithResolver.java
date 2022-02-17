@@ -14,15 +14,17 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
-import static java.util.Collections.emptyList;
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.stream.SseKafkaIdHelper;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
@@ -30,14 +32,24 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBegi
 
 public final class SseKafkaWithResolver
 {
-    private static final List<SseKafkaWithFilterConfig> EMPTY_FILTERS = emptyList();
+    private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
 
     private final SseKafkaWithConfig with;
+    private final Matcher paramsMatcher;
+
+    private Function<MatchResult, String> replacer = r -> null;
 
     public SseKafkaWithResolver(
         SseKafkaWithConfig with)
     {
         this.with = with;
+        this.paramsMatcher = PARAMS_PATTERN.matcher("");
+    }
+
+    public void onConditionMatched(
+        SseKafkaConditionMatcher condition)
+    {
+        this.replacer = r -> condition.parameter(r.group(1));
     }
 
     public SseKafkaWithResult resolve(
@@ -47,68 +59,60 @@ public final class SseKafkaWithResolver
         final String8FW lastEventId = sseBeginEx != null ? sseBeginEx.lastEventId() : null;
         final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(lastEventId);
 
-        // TODO: hoist to resolver constructor if constant
-        String16FW topic = new String16FW(with.topic);
-        List<SseKafkaWithFilterConfig> filters = with.filters.orElse(EMPTY_FILTERS);
-
-        // TODO: resolve parameters from sseBeginEx path
-        return new SseKafkaWithResult(topic, partitions, filters);
-    }
-
-    public static class SseKafkaWithResult
-    {
-        private final String16FW topic;
-        private final Array32FW<KafkaOffsetFW> partitions;
-        private final List<SseKafkaWithFilterConfig> filters;
-
-        SseKafkaWithResult(
-            String16FW topic,
-            Array32FW<KafkaOffsetFW> partitions,
-            List<SseKafkaWithFilterConfig> filters)
+        // TODO: hoist to constructor if constant
+        String topic0 = with.topic;
+        Matcher topicMatcher = paramsMatcher.reset(with.topic);
+        if (topicMatcher.matches())
         {
-            this.topic = topic;
-            this.partitions = partitions;
-            this.filters = filters;
+            topic0 = topicMatcher.replaceAll(replacer);
         }
+        String16FW topic = new String16FW(topic0);
 
-        public String16FW topic()
+        List<SseKafkaWithFilterResult> filters = null;
+        if (with.filters.isPresent())
         {
-            return topic;
-        }
+            filters = new ArrayList<>();
 
-        public Array32FW<KafkaOffsetFW> partitions()
-        {
-            return partitions;
-        }
-
-        public void filters(
-            Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> fs)
-        {
-            for (SseKafkaWithFilterConfig filter : filters)
+            for (SseKafkaWithFilterConfig filter : with.filters.get())
             {
-                fs.item(i ->
+                DirectBuffer key = null;
+                if (filter.key.isPresent())
                 {
-                    if (filter.key.isPresent())
+                    String key0 = filter.key.get();
+                    Matcher keyMatcher = paramsMatcher.reset(key0);
+                    if (keyMatcher.matches())
                     {
-                        DirectBuffer key = new String16FW(filter.key.get()).value();
-                        i.conditionsItem(c -> c.key(k -> k.length(key.capacity())
-                                                          .value(key, 0, key.capacity())));
+                        key0 = keyMatcher.replaceAll(replacer);
                     }
+                    key = new String16FW(key0).value();
+                }
 
-                    if (filter.headers.isPresent())
+                List<SseKafkaWithFilterHeaderResult> headers = null;
+                if (filter.headers.isPresent())
+                {
+                    headers = new ArrayList<>();
+
+                    for (SseKafkaWithFilterHeaderConfig header0 : filter.headers.get())
                     {
-                        for (SseKafkaWithFilterHeaderConfig header : filter.headers.get())
+                        String name0 = header0.name;
+                        DirectBuffer name = new String16FW(name0).value();
+
+                        String value0 = header0.value;
+                        Matcher valueMatcher = paramsMatcher.reset(value0);
+                        if (valueMatcher.matches())
                         {
-                            DirectBuffer name = new String16FW(header.name).value();
-                            DirectBuffer value = new String16FW(header.value).value();
-                            i.conditionsItem(c -> c.header(h -> h.nameLen(name.capacity())
-                                                                 .name(name, 0, name.capacity())
-                                                                 .valueLen(value.capacity())
-                                                                 .value(value, 0, value.capacity())));
+                            value0 = valueMatcher.replaceAll(replacer);
                         }
+                        DirectBuffer value = new String16FW(value0).value();
+
+                        headers.add(new SseKafkaWithFilterHeaderResult(name, value));
                     }
-                });
+                }
+
+                filters.add(new SseKafkaWithFilterResult(key, headers));
             }
         }
+
+        return new SseKafkaWithResult(topic, partitions, filters);
     }
 }

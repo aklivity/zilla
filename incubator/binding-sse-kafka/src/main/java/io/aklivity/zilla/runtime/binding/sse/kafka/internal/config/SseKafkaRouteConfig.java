@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -34,12 +35,14 @@ public final class SseKafkaRouteConfig extends OptionsConfig
     {
         this.id = route.id;
         this.order = route.order;
-        this.when = route.when.stream()
-            .map(SseKafkaConditionConfig.class::cast)
-            .map(SseKafkaConditionMatcher::new)
-            .collect(toList());
         this.with = Optional.ofNullable(route.with)
             .map(SseKafkaWithConfig.class::cast)
             .map(SseKafkaWithResolver::new);
+        Consumer<SseKafkaConditionMatcher> observer = with.isPresent() ? with.get()::onConditionMatched : null;
+        this.when = route.when.stream()
+                .map(SseKafkaConditionConfig.class::cast)
+                .map(SseKafkaConditionMatcher::new)
+                .peek(m -> m.observe(observer))
+                .collect(toList());
     }
 }
