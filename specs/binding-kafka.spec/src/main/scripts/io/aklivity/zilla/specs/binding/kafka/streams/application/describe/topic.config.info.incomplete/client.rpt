@@ -20,22 +20,10 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
-                               .meta()
+                               .describe()
                                    .topic("test")
+                                   .config("cleanup.policy")
                                    .build()
                                .build()}
 
-connected
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .topic("test")
-                                  .build()
-                              .build()}
-
-read zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .meta()
-                                 .build()
-                             .build()}
+connect aborted

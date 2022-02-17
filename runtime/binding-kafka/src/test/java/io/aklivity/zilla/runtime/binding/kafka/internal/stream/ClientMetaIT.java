@@ -54,8 +54,8 @@ public class ClientMetaIT
     @Test
     @Configuration("client.when.topic.json")
     @Specification({
-        "${app}/topic.unknown/client" })
-    public void shouldRejectWhenTopicUnknown() throws Exception
+        "${app}/topic.unreachable/client" })
+    public void shouldRejectWhenTopicUnreachable() throws Exception
     {
         k3po.finish();
     }
@@ -73,9 +73,29 @@ public class ClientMetaIT
     @Test
     @Configuration("client.when.topic.json")
     @Specification({
+        "${app}/topic.partition.info.incomplete/client",
+        "${net}/topic.partition.info.incomplete/server" })
+    public void shouldRejectWhenTopicPartitionInfoIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info/server"})
     public void shouldReceiveTopicPartitionInfo() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
+        "${app}/topic.unknown/client",
+        "${net}/topic.unknown/server" })
+    public void shouldReceiveTopicPartitionInfoWhenTopicUnknown() throws Exception
     {
         k3po.finish();
     }

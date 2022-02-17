@@ -20,21 +20,4 @@ accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-accepted
-connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .meta()
-                                   .topic("test")
-                                   .build()
-                               .build()}
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .build()
-                              .build()}
-write flush
-
+rejected

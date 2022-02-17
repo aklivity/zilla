@@ -25,17 +25,4 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
-connected
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .topic("test")
-                                  .build()
-                              .build()}
-
-read zilla:data.ext ${kafka:dataEx()
-                             .typeId(zilla:id("kafka"))
-                             .meta()
-                                 .build()
-                             .build()}
+connect aborted

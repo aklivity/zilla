@@ -37,5 +37,24 @@ read zilla:begin.ext ${kafka:beginEx()
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .meta()
+                                 .partition(0, 177)
                                  .build()
                              .build()}
+
+read notify ROUTED_BROKER_CLIENT
+
+connect await ROUTED_BROKER_CLIENT
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 177
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .topic("test")
+                                   .partition(0, 0)
+                                   .build()
+                               .build()}
+
+connect aborted
