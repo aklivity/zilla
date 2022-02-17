@@ -97,12 +97,12 @@
                     "when":
                     [
                         {
-                            "path": "/zilla"
+                            "path": "/{topic}"
                         }
                     ],
                     "with":
                     {
-                        "topic": "zilla"
+                        "topic": "${params.topic}"
                     }
                 }
             ]
