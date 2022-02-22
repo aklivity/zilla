@@ -48,7 +48,8 @@
             "options":
             {
                 "keys": [ "localhost" ],
-                "sni": [ "localhost" ]
+                "sni": [ "localhost" ],
+                "alpn": [ "http/1.1", "h2" ]
             },
             "exit": "http0"
         },
