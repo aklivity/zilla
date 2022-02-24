@@ -219,14 +219,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String16FW SCHEME_HTTP = new String16FW("http");
     private static final String16FW SCHEME_HTTPS = new String16FW("https");
     private static final String16FW STATUS_200 = new String16FW("200");
-    private static final String16FW STATUS_204 = new String16FW("204");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
-
-    private static final HttpHeaderFW HEADER_CONNECTION_CLOSE = new HttpHeaderFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-            .name(HEADER_CONNECTION)
-            .value(CONNECTION_CLOSE)
-            .build();
 
     private static final Array32FW<HttpHeaderFW> DEFAULT_HEADERS =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
@@ -4871,7 +4864,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (requestDebitorIndex != NO_DEBITOR_INDEX && requestDebitor != null)
                     {
                         final int minimum = reserved; // TODO: fragmentation
-                        reserved = requestDebitor.claim(requestDebitorIndex, requestId, minimum, reserved);
+                        reserved = requestDebitor.claim(0L, requestDebitorIndex, requestId, minimum, reserved, 0);
                         length = Math.max(reserved - requestPadding, 0);
                     }
 
@@ -5182,9 +5175,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long sequence = flush.sequence();
                 final long acknowledge = flush.acknowledge();
                 final long traceId = flush.traceId();
-                final long budgetId = flush.budgetId();
-                final int reserved = flush.reserved();
-                final OctetsFW extension = flush.extension();
 
                 assert acknowledge <= sequence;
                 assert sequence >= replySeq;
@@ -5198,10 +5188,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     doResponseReset(traceId, authorization);
                     doNetworkAbort(traceId, authorization);
-                }
-                else
-                {
-                    //doNetFlush(traceId, budgetId, reserved, extension);
                 }
             }
 
