@@ -169,20 +169,30 @@ public class AccessControlIT
 
     @Test
     @Specification({
-        "${net}/reject.methods.unexpected/client",
-        "${net}/reject.methods.unexpected/server",
+        "${net}/reject.origin.not.allowed/client",
+        "${net}/reject.origin.not.allowed/server",
     })
-    public void shouldRejectMethodsUnexpected() throws Exception
+    public void shouldRejectOriginNotAllowed() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/reject.headers.unexpected/client",
-        "${net}/reject.headers.unexpected/server",
+        "${net}/reject.method.not.allowed/client",
+        "${net}/reject.method.not.allowed/server",
     })
-    public void shouldRejectHeadersUnexpected() throws Exception
+    public void shouldRejectMethodNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.header.not.allowed/client",
+        "${net}/reject.header.not.allowed/server",
+    })
+    public void shouldRejectHeaderNotAllowed() throws Exception
     {
         k3po.finish();
     }

@@ -30,11 +30,9 @@ read zilla:begin.ext ${proxy:matchBeginEx()
 
 connected
 
-read "OPTIONS / HTTP/1.1" "\r\n"
+read "GET / HTTP/1.1" "\r\n"
      "Host: example.com:9090" "\r\n"
-     "Origin: https://example.net:9090" "\r\n"
-     "Access-Control-Request-Method: GET" "\r\n"
-     "Access-Control-Request-Headers: Unexpected" "\r\n"
+     "Origin: https://example.org:9090" "\r\n"
      "\r\n"
 
 read closed

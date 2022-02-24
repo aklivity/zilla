@@ -49,6 +49,15 @@
                                     "type": "object",
                                     "properties":
                                     {
+                                        "origins":
+                                        {
+                                            "title": "Origins",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
                                         "methods":
                                         {
                                             "title": "Methods",
@@ -66,28 +75,37 @@
                                             {
                                                 "type": "string"
                                             }
+                                        },
+                                        "credentials":
+                                        {
+                                            "title": "Credentials",
+                                            "type": "boolean"
                                         }
                                     },
                                     "additionalProperties": false
-                                },
-                                "credentials":
-                                {
-                                    "title": "Credentials",
-                                    "type": "boolean"
                                 },
                                 "max-age":
                                 {
                                     "title": "Max Age",
                                     "type": "number"
                                 },
-                                "origins":
+                                "expose":
                                 {
-                                    "title": "Origins",
-                                    "type": "array",
-                                    "items":
+                                    "title": "Allow",
+                                    "type": "object",
+                                    "properties":
                                     {
-                                        "type": "string"
-                                    }
+                                        "headers":
+                                        {
+                                            "title": "Headers",
+                                            "type": "array",
+                                            "items":
+                                            {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 }
                             },
                             "additionalProperties": false

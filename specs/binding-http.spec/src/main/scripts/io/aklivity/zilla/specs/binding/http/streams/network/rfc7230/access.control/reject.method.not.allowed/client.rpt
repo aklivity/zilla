@@ -34,7 +34,7 @@ connected
 write "OPTIONS / HTTP/1.1" "\r\n"
       "Host: example.com:9090" "\r\n"
       "Origin: https://example.net:9090" "\r\n"
-      "Access-Control-Request-Method: Unexpected" "\r\n"
+      "Access-Control-Request-Method: PATCH" "\r\n"
       "\r\n"
 write flush
 

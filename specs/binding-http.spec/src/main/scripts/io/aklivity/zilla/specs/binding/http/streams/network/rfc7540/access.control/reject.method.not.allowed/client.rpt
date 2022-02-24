@@ -72,3 +72,22 @@ read [0x00 0x00 0x0d]                                      # length 13
      [0x00 0x00 0x00 0x01]                                 # stream_id = 1
      [0x1e] [0x03] "403"                                   # :status: 403
      [0x0f] [0x27] [0x05] "Zilla"                          # server
+
+write [0x00 0x00 0x44]                                     # length = 68
+      [0x01]                                               # HEADERS frame
+      [0x05]                                               # END_HEADERS | END_STREAM
+      [0x00 0x00 0x00 0x03]                                # stream_id = 3
+      [0x40] [0x07] ":method" [0x05] "PATCH"               # :method: PATCH
+      [0x87]                                               # :scheme: https
+      [0x84]                                               # :path: /
+      [0x01] [0x10] "example.com:9090"                     # :authority: example.com:9090
+      [0x40] [0x06] "origin"
+             [0x18] "https://example.net:9090"             # origin
+write flush
+
+read [0x00 0x00 0x0d]                                      # length 13
+     [0x01]                                                # HTTP2 HEADERS frame
+     [0x05]                                                # END_HEADERS | END_STREAM
+     [0x00 0x00 0x00 0x03]                                 # stream_id = 3
+     [0x1e] [0x03] "403"                                   # :status: 403
+     [0x0f] [0x27] [0x05] "Zilla"                          # server

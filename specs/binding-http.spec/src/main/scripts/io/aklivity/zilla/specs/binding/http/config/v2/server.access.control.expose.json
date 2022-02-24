@@ -13,8 +13,7 @@
                 {
                     "allow":
                     {
-                        "origins": [ "https://example.net:9090" ],
-                        "methods": [ "GET", "DELETE" ],
+                        "methods": [ "HEAD", "GET", "PUT", "POST", "PATCH", "DELETE" ],
                         "headers": [ "x-api-key" ]
                     }
                 }

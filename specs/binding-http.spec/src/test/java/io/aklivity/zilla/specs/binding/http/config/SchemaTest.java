@@ -82,6 +82,46 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateHttp11ServerAccessControlPolicy()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.policy.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp1ServerAccessControlAllow()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.allow.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp1ServerAccessControlAllowCredentials()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.allow.credentials.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp1ServerAccessControlMaxAge()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.max.age.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp1ServerAccessControlExpose()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.expose.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateHttp2Client()
     {
         JsonObject config = schema.validate("v2/client.json");
@@ -138,9 +178,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlCredentials()
+    public void shouldValidateHttp2ServerAccessControlAllowCredentials()
     {
-        JsonObject config = schema.validate("v2/server.access.control.credentials.json");
+        JsonObject config = schema.validate("v2/server.access.control.allow.credentials.json");
 
         assertThat(config, not(nullValue()));
     }
@@ -154,9 +194,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlOrigins()
+    public void shouldValidateHttp2ServerAccessControlExpose()
     {
-        JsonObject config = schema.validate("v2/server.access.control.origins.json");
+        JsonObject config = schema.validate("v2/server.access.control.expose.json");
 
         assertThat(config, not(nullValue()));
     }
