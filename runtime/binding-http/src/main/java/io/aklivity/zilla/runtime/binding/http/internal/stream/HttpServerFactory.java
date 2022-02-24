@@ -4224,7 +4224,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final Map<String, String> headers = headersDecoder.headers;
                 final String authority = headers.get(":authority");
-                if (authority.indexOf(':') == -1)
+                if (authority != null && authority.indexOf(':') == -1)
                 {
                     String scheme = headers.get(":scheme");
                     String defaultPort = "https".equals(scheme) ? ":443" : ":80";
