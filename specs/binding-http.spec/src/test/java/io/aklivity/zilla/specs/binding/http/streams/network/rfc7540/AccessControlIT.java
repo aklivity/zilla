@@ -169,6 +169,16 @@ public class AccessControlIT
 
     @Test
     @Specification({
+        "${net}/allow.origin.same.origin/client",
+        "${net}/allow.origin.same.origin/server",
+    })
+    public void shouldAllowOriginWhenSameOrigin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.origin.not.allowed/client",
         "${net}/reject.origin.not.allowed/server",
     })

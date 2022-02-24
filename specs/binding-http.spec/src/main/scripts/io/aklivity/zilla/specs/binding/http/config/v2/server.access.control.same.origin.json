@@ -8,10 +8,10 @@
             "kind": "server",
             "options":
             {
-                "versions": [ "http/1.1" ],
+                "versions": [ "h2" ],
                 "access-control":
                 {
-                    "max-age": 10
+                    "policy": "same-origin"
                 }
             },
             "routes":

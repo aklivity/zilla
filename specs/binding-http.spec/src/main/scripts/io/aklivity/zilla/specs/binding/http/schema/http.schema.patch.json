@@ -39,76 +39,95 @@
                                 "policy":
                                 {
                                     "title": "Policy",
-                                    "type": "string",
-                                    "enum": [ "cross-origin" ],
-                                    "default": "cross-origin"
-                                },
-                                "allow":
+                                    "type": "string"
+                                }
+                            },
+                            "oneOf":
+                            [
                                 {
-                                    "title": "Allow",
-                                    "type": "object",
                                     "properties":
                                     {
-                                        "origins":
+                                        "policy":
                                         {
-                                            "title": "Origins",
-                                            "type": "array",
-                                            "items":
-                                            {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "methods":
-                                        {
-                                            "title": "Methods",
-                                            "type": "array",
-                                            "items":
-                                            {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "headers":
-                                        {
-                                            "title": "Headers",
-                                            "type": "array",
-                                            "items":
-                                            {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "credentials":
-                                        {
-                                            "title": "Credentials",
-                                            "type": "boolean"
+                                            "const": "same-origin"
                                         }
-                                    },
-                                    "additionalProperties": false
+                                    }
                                 },
-                                "max-age":
                                 {
-                                    "title": "Max Age",
-                                    "type": "number"
-                                },
-                                "expose":
-                                {
-                                    "title": "Allow",
-                                    "type": "object",
                                     "properties":
                                     {
-                                        "headers":
+                                        "policy":
                                         {
-                                            "title": "Headers",
-                                            "type": "array",
-                                            "items":
+                                            "const": "cross-origin"
+                                        },
+                                        "allow":
+                                        {
+                                            "title": "Allow",
+                                            "type": "object",
+                                            "properties":
                                             {
-                                                "type": "string"
-                                            }
+                                                "origins":
+                                                {
+                                                    "title": "Origins",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "methods":
+                                                {
+                                                    "title": "Methods",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "credentials":
+                                                {
+                                                    "title": "Credentials",
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "max-age":
+                                        {
+                                            "title": "Max Age",
+                                            "type": "number"
+                                        },
+                                        "expose":
+                                        {
+                                            "title": "Allow",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false
                                         }
                                     },
                                     "additionalProperties": false
                                 }
-                            },
-                            "additionalProperties": false
+                            ]
                         },
                         "overrides":
                         {

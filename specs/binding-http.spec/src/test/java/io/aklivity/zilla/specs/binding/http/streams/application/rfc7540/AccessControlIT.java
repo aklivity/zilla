@@ -85,4 +85,14 @@ public class AccessControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/allow.origin.same.origin/client",
+        "${app}/allow.origin.same.origin/server",
+    })
+    public void shouldAllowOriginWhenSameOrigin() throws Exception
+    {
+        k3po.finish();
+    }
 }

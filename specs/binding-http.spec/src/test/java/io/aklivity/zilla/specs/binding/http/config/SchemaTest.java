@@ -82,41 +82,49 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp11ServerAccessControlPolicy()
+    public void shouldValidateHttp11ServerAccessControlCrossOrigin()
     {
-        JsonObject config = schema.validate("v1.1/server.access.control.policy.json");
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp1ServerAccessControlAllow()
+    public void shouldValidateHttp1ServerAccessControlCrossOriginAllow()
     {
-        JsonObject config = schema.validate("v1.1/server.access.control.allow.json");
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.allow.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp1ServerAccessControlAllowCredentials()
+    public void shouldValidateHttp1ServerAccessControlCrossOriginAllowCredentials()
     {
-        JsonObject config = schema.validate("v1.1/server.access.control.allow.credentials.json");
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.allow.credentials.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp1ServerAccessControlMaxAge()
+    public void shouldValidateHttp1ServerAccessControlCrossOriginMaxAge()
     {
-        JsonObject config = schema.validate("v1.1/server.access.control.max.age.json");
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.max.age.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp1ServerAccessControlExpose()
+    public void shouldValidateHttp1ServerAccessControlCrossOriginExpose()
     {
-        JsonObject config = schema.validate("v1.1/server.access.control.expose.json");
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.expose.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp1ServerAccessControlSameOrigin()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.same.origin.json");
 
         assertThat(config, not(nullValue()));
     }
@@ -146,7 +154,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttpServerAuthority()
+    public void shouldValidateHttp2ServerAuthority()
     {
         JsonObject config = schema.validate("v2/server.authority.json");
 
@@ -162,41 +170,49 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlPolicy()
+    public void shouldValidateHttp2ServerAccessControlCrossOrigin()
     {
-        JsonObject config = schema.validate("v2/server.access.control.policy.json");
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlAllow()
+    public void shouldValidateHttp2ServerAccessControlCrossOriginAllow()
     {
-        JsonObject config = schema.validate("v2/server.access.control.allow.json");
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.allow.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlAllowCredentials()
+    public void shouldValidateHttp2ServerAccessControlCrossOriginAllowCredentials()
     {
-        JsonObject config = schema.validate("v2/server.access.control.allow.credentials.json");
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.allow.credentials.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlMaxAge()
+    public void shouldValidateHttp2ServerAccessControlCrossOriginMaxAge()
     {
-        JsonObject config = schema.validate("v2/server.access.control.max.age.json");
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.max.age.json");
 
         assertThat(config, not(nullValue()));
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlExpose()
+    public void shouldValidateHttp2ServerAccessControlCrossOriginExpose()
     {
-        JsonObject config = schema.validate("v2/server.access.control.expose.json");
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.expose.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlSameOrigin()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.same.origin.json");
 
         assertThat(config, not(nullValue()));
     }

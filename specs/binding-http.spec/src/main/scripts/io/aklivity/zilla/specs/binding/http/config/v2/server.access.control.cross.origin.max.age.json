@@ -8,14 +8,11 @@
             "kind": "server",
             "options":
             {
-                "versions": [ "http/1.1" ],
+                "versions": [ "h2" ],
                 "access-control":
                 {
-                    "allow":
-                    {
-                        "methods": [ "HEAD", "GET", "PUT", "POST", "PATCH", "DELETE" ],
-                        "headers": [ "x-api-key" ]
-                    }
+                    "policy": "cross-origin",
+                    "max-age": 10
                 }
             },
             "routes":

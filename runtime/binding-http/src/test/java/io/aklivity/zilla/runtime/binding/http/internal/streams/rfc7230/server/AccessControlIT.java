@@ -13,9 +13,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
+package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7230.server;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -35,8 +34,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class AccessControlIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/cross.origin")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/cross.origin");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/cross.origin")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/cross.origin");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -45,8 +44,7 @@ public class AccessControlIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
-        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
+        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
         .external("app0")
         .clean();
 
@@ -265,27 +263,6 @@ public class AccessControlIT
         "${net}/reject.header.not.allowed/client",
     })
     public void shouldRejectHeaderNotAllowed() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.access.control.same.origin.json")
-    @Specification({
-        "${net}/allow.origin.same.origin/client",
-        "${app}/allow.origin.same.origin/server",
-    })
-    public void shouldAllowOriginWhenSameOrigin() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.access.control.same.origin.allow.json")
-    @Specification({
-        "${net}/reject.origin.not.allowed/client",
-    })
-    public void shouldRejectOriginNotSameOrigin() throws Exception
     {
         k3po.finish();
     }

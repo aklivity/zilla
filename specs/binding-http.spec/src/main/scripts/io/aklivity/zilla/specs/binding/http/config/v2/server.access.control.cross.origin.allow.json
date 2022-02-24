@@ -11,9 +11,11 @@
                 "versions": [ "h2" ],
                 "access-control":
                 {
+                    "policy": "cross-origin",
                     "allow":
                     {
-                        "methods": [ "HEAD", "GET", "PUT", "POST", "PATCH", "DELETE" ],
+                        "origins": [ "https://example.net:9090" ],
+                        "methods": [ "GET", "DELETE" ],
                         "headers": [ "x-api-key" ]
                     }
                 }
