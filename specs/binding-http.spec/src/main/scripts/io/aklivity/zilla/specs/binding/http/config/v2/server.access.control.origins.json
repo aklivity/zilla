@@ -9,12 +9,9 @@
             "options":
             {
                 "versions": [ "h2" ],
-                "cors":
+                "access-control":
                 {
-                    "allow":
-                    {
-                        "methods": [ "DELETE" ]
-                    }
+                    "origins": [ "https://example.net:9090" ]
                 }
             },
             "routes":

@@ -120,4 +120,44 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlPolicy()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.policy.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlAllow()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.allow.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlCredentials()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.credentials.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlMaxAge()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.max.age.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlOrigins()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.origins.json");
+
+        assertThat(config, not(nullValue()));
+    }
 }

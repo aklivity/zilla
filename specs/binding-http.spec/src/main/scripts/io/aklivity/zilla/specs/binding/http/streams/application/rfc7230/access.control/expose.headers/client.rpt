@@ -22,13 +22,17 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
-                            .header(":scheme", "http")
+                            .header(":scheme", "https")
                             .header(":path", "/")
-                            .header(":authority", "localhost:8080")
-                            .header("authorization", "Bearer TOKEN")
+                            .header(":authority", "example.com:9090")
+                            .header("origin", "https://example.net:9090")
                             .build()}
 
 connected
+
+write flush
+
+write close
 
 read zilla:begin.ext ${http:beginEx()
                            .typeId(zilla:id("http"))
@@ -36,6 +40,10 @@ read zilla:begin.ext ${http:beginEx()
                            .header("server", "Zilla")
                            .header("date", "Tue, 02 Feb 2022 22:22:22 GMT")
                            .header("content-type", "text/plain; charset=UTF-8")
+                           .header("content-length", "12")
+                           .header("x-custom-header", "exposed-value")
                            .build()}
 
 read "Hello, world"
+
+read closed

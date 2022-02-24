@@ -8,7 +8,15 @@
             "kind": "server",
             "options":
             {
-                "versions": [ "h2" ]
+                "versions": [ "h2" ],
+                "access-control":
+                {
+                    "allow":
+                    {
+                        "methods": [ "HEAD", "GET", "PUT", "POST", "PATCH", "DELETE" ],
+                        "headers": [ "x-api-key" ]
+                    }
+                }
             },
             "routes":
             [

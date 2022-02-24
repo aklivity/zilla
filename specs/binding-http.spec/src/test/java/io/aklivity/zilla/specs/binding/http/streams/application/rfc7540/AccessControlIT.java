@@ -13,9 +13,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
+package io.aklivity.zilla.specs.binding.http.streams.application.rfc7540;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -27,36 +26,62 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.engine.test.EngineRule;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-
-public class CrossOriginIT
+public class AccessControlIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/cross.origin")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/cross.origin");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/access.control");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
-    private final EngineRule engine = new EngineRule()
-        .directory("target/zilla-itests")
-        .commandBufferCapacity(1024)
-        .responseBufferCapacity(1024)
-        .counterValuesBufferCapacity(8192)
-        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
-        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
-        .external("app0")
-        .clean();
-
     @Rule
-    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
-    @Configuration("server.access.control.policy.json")
     @Specification({
-        "${net}/allow.credentials.cookie/client",
-        "${app}/allow.credentials.cookie/server" })
+        "${app}/allow.origin/client",
+        "${app}/allow.origin/server",
+    })
+    public void shouldAllowOrigin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/allow.methods/client",
+        "${app}/allow.methods/server",
+    })
+    public void shouldAllowMethods() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/allow.headers/client",
+        "${app}/allow.headers/server",
+    })
+    public void shouldAllowHeaders() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/allow.credentials.cookie/client",
+        "${app}/allow.credentials.cookie/server",
+    })
     public void shouldAllowCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/expose.headers/client",
+        "${app}/expose.headers/server",
+    })
+    public void shouldExposeHeaders() throws Exception
     {
         k3po.finish();
     }

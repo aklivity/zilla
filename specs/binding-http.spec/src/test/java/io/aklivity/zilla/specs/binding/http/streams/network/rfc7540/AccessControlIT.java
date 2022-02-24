@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class CrossOriginIT
+public class AccessControlIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/cross.origin");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/access.control");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
