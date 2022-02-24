@@ -95,4 +95,14 @@ public class AccessControlIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/allow.origin.omitted/client",
+        "${app}/allow.origin.omitted/server",
+    })
+    public void shouldAllowOriginWhenOmitted() throws Exception
+    {
+        k3po.finish();
+    }
 }

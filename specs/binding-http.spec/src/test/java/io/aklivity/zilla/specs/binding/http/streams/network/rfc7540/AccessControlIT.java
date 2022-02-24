@@ -179,6 +179,16 @@ public class AccessControlIT
 
     @Test
     @Specification({
+        "${net}/allow.origin.omitted/client",
+        "${net}/allow.origin.omitted/server",
+    })
+    public void shouldAllowOriginWhenOmitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.origin.not.allowed/client",
         "${net}/reject.origin.not.allowed/server",
     })
@@ -203,6 +213,16 @@ public class AccessControlIT
         "${net}/reject.header.not.allowed/server",
     })
     public void shouldRejectHeaderNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.origin.omitted/client",
+        "${net}/reject.origin.omitted/server",
+    })
+    public void shouldRejectOriginWhenOmitted() throws Exception
     {
         k3po.finish();
     }
