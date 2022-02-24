@@ -1,0 +1,38 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "net0":
+        {
+            "type" : "http",
+            "kind": "server",
+            "options":
+            {
+                "versions": [ "h2" ],
+                "cors":
+                {
+                    "allow":
+                    {
+                        "methods": [ "DELETE" ]
+                    }
+                }
+            },
+            "routes":
+            [
+                {
+                    "exit": "app0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "example.com:9090"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
