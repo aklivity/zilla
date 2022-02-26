@@ -64,15 +64,6 @@ public class HandshakeIT
     @Test
     @Configuration("server.when.json")
     @Specification({
-        "${net}/cors.preflight/request" })
-    public void shouldHandshakeWithCorsPreflight() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.json")
-    @Specification({
         "${net}/request.method.unsupported/request" })
     public void shouldFailHandshakeWhenRequestMethodUnsupported() throws Exception
     {

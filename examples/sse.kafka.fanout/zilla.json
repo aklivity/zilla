@@ -61,15 +61,7 @@
             {
                 "access-control":
                 {
-                    "policy": "cross-origin",
-                    "allow":
-                    {
-                        "headers": [ "last-event-id" ]
-                    },
-                    "expose":
-                    {
-                        "headers": []
-                    }
+                    "policy": "cross-origin"
                 }
             },
             "routes":
