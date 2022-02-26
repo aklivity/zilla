@@ -52,7 +52,7 @@ read [0x00 0x00 0x00]                                      # length = 0
      [0x01]                                                # ACK
      [0x00 0x00 0x00 0x00]                                 # stream_id = 0
 
-read [0x00 0x00 0x15]                                      # length = 21
+read [0x00 0x00 0x36]                                      # length = 54
      [0x01]                                                # HEADERS frame
      [0x05]                                                # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x01]                                 # stream_id = 1
@@ -60,20 +60,26 @@ read [0x00 0x00 0x15]                                      # length = 21
      [0x87]                                                # :scheme: https
      [0x84]                                                # :path: /
      [0x01] [0x10] "example.com:9090"                      # :authority: example.com:9090
+     [0x40] [0x06] "origin"
+            [0x18] "https://example.net:9090"              # origin: https://example.net:9090
 
-write [0x00 0x00 0x53]                                     # length = 83
+write [0x00 0x00 0x90]                                     # length = 144
       [0x01]                                               # HTTP2 HEADERS frame
       [0x04]                                               # END_HEADERS
-      [0x00 0x00 0x00 0x01]                                # stream_id = 1
+      [0x00 0x00 0x00 0x01]                                # stream_id=1
       [0x88]                                               # :status: 200
       [0x0f] [0x27] [0x05] "Zilla"                         # server
       [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT" # date
       [0x0f] [0x10] [0x19] "text/plain; charset=UTF-8"     # content-type
+      [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
+      [0x00] [0x20] "access-control-allow-credentials"
+             [0x04] "true"                                 # access-control-allow-credentials
+      [0x0f] [0x2c] [0x06] "origin"                        # vary
 write flush
 
 write [0x00 0x00 0x0c]                                     # length = 12
       [0x00]                                               # HTTP2 DATA frame
       [0x00]                                               # no flags
-      [0x00 0x00 0x00 0x01]                                # stream_id = 1
+      [0x00 0x00 0x00 0x01]                                # stream_id=1
       "Hello, world"
 write flush

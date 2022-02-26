@@ -1,0 +1,113 @@
+#
+# Copyright 2021-2022 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+connect "zilla://streams/net0"
+        option zilla:window 40000
+        option zilla:transmission "duplex"
+connected
+
+write "PRI * HTTP/2.0\r\n"
+      "\r\n"
+      "SM\r\n"
+      "\r\n"
+write flush
+
+read [0x00 0x00 0x12]                                      # length = 18
+     [0x04]                                                # HTTP2 SETTINGS frame
+     [0x00]                                                # flags = 0x00
+     [0x00 0x00 0x00 0x00]                                 # stream_id = 0
+     [0x00 0x03 0x00 0x00 0x00 0x64]                       # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+     [0x00 0x04 0x00 0x00 0x00 0x00]                       # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
+     [0x00 0x06 0x00 0x00 0x20 0x00]                       # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
+
+write [0x00 0x00 0x0c]                                     # length = 12
+      [0x04]                                               # HTTP2 SETTINGS frame
+      [0x00]                                               # flags = 0x00
+      [0x00 0x00 0x00 0x00]                                # stream_id = 0
+      [0x00 0x03 0x00 0x00 0x00 0x64]                      # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+      [0x00 0x04 0x00 0x00 0xff 0xff]                      # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
+write flush
+
+read [0x00 0x00 0x00]                                      # length = 0
+     [0x04]                                                # HTTP2 SETTINGS frame
+     [0x01]                                                # ACK
+     [0x00 0x00 0x00 0x00]                                 # stream_id = 0
+
+write [0x00 0x00 0x00]                                     # length = 0
+      [0x04]                                               # HTTP2 SETTINGS frame
+      [0x01]                                               # ACK
+      [0x00 0x00 0x00 0x00]                                # stream_id = 0
+write flush
+
+write [0x00 0x00 0x93]                                     # length = 147
+      [0x01]                                               # HEADERS frame
+      [0x05]                                               # END_HEADERS | END_STREAM
+      [0x00 0x00 0x00 0x01]                                # stream_id = 1
+      [0x40] [0x07] ":method" [0x07] "OPTIONS"             # :method: OPTIONS
+      [0x87]                                               # :scheme: https
+      [0x84]                                               # :path: /
+      [0x01] [0x10] "example.com:9090"                     # :authority: example.com:9090
+      [0x40] [0x06] "origin"
+             [0x18] "https://example.net:9090"             # origin
+      [0x40] [0x1d] "access-control-request-method"
+             [0x03] "GET"                                  # access-control-request-method
+      [0x40] [0x1e] "access-control-request-headers"
+             [0x09] "x-api-key"                            # access-control-request-headers
+write flush
+
+read [0x00 0x00 0x89]                                      # length 137
+     [0x01]                                                # HTTP2 HEADERS frame
+     [0x05]                                                # END_HEADERS | END_STREAM
+     [0x00 0x00 0x00 0x01]                                 # stream_id = 1
+     [0x89]                                                # :status: 204
+     [0x0f] [0x27] [0x05] "Zilla"                          # server
+     [0x0f] [0x05] [0x18] "https://example.net:9090"       # access-control-allow-origin
+     [0x00] [0x1c] "access-control-allow-methods"
+            [0x03] "GET"                                   # access-control-allow-methods
+     [0x00] [0x1c] "access-control-allow-headers"
+            [0x09] "x-api-key"                             # access-control-allow-headers
+     [0x00] [0x16] "access-control-max-age"
+            [0x02] "10"                                    # access-control-max-age
+
+write [0x00 0x00 0x45]                                     # length = 69
+      [0x01]                                               # HEADERS frame
+      [0x05]                                               # END_HEADERS | END_STREAM
+      [0x00 0x00 0x00 0x03]                                # stream_id = 3
+      [0x82]                                               # :method: GET
+      [0x87]                                               # :scheme: https
+      [0x84]                                               # :path: /
+      [0x01] [0x10] "example.com:9090"                     # :authority: example.com:9090
+      [0x40] [0x06] "origin"
+             [0x18] "https://example.net:9090"             # origin
+      [0x40] [0x09] "x-api-key" [0x03] "KEY"               # x-api-key
+write flush
+
+read [0x00 0x00 0x69]                                      # length = 105
+     [0x01]                                                # HTTP2 HEADERS frame
+     [0x04]                                                # END_HEADERS
+     [0x00 0x00 0x00 0x03]                                 # stream_id = 3
+     [0x88]                                                # :status: 200
+     [0x0f] [0x27] [0x05] "Zilla"                          # server
+     [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT"  # date
+     [0x0f] [0x10] [0x19] "text/plain; charset=UTF-8"      # content-type
+     [0x0f] [0x05] [0x18] "https://example.net:9090"       # access-control-allow-origin
+     [0x0f] [0x2c] [0x06] "origin"                         # vary
+
+read [0x00 0x00 0x0c]                                      # length = 12
+     [0x00]                                                # HTTP2 DATA frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x03]                                 # stream_id = 3
+     "Hello, world"

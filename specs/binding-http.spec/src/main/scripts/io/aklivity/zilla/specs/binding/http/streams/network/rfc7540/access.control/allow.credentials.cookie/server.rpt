@@ -64,7 +64,7 @@ read [0x00 0x00 0x4b]                                      # length = 75
             [0x18] "https://example.net:9090"              # origin: https://example.net:9090
      [0x0f] [0x11] [0x12] "access_token=TOKEN"             # cookie: access_token=TOKEN
 
-write [0x00 0x00 0x95]                                     # length = 149
+write [0x00 0x00 0x90]                                     # length = 144
       [0x01]                                               # HTTP2 HEADERS frame
       [0x04]                                               # END_HEADERS
       [0x00 0x00 0x00 0x01]                                # stream_id = 1
@@ -73,8 +73,9 @@ write [0x00 0x00 0x95]                                     # length = 149
       [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT" # date
       [0x0f] [0x10] [0x19] "text/plain; charset=UTF-8"     # content-type
       [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
-      [0x40] [0x20] "access-control-allow-credentials"
+      [0x00] [0x20] "access-control-allow-credentials"
              [0x04] "true"                                 # access-control-allow-credentials
+      [0x0f] [0x2c] [0x06] "origin"                        # vary
 write flush
 
 write [0x00 0x00 0x0c]                                     # length = 12

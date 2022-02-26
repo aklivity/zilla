@@ -179,10 +179,20 @@ public class AccessControlIT
 
     @Test
     @Specification({
-        "${net}/allow.origin.omitted/client",
-        "${net}/allow.origin.omitted/server",
+        "${net}/allow.origin.omitted.cross.origin/client",
+        "${net}/allow.origin.omitted.cross.origin/server",
     })
-    public void shouldAllowOriginWhenOmitted() throws Exception
+    public void shouldAllowOriginWhenOmittedCrossOrigin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.origin.omitted.same.origin/client",
+        "${net}/allow.origin.omitted.same.origin/server",
+    })
+    public void shouldAllowOriginWhenOmittedSameOrigin() throws Exception
     {
         k3po.finish();
     }

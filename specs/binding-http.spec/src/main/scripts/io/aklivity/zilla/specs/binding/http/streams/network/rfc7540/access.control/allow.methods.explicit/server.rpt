@@ -52,7 +52,7 @@ read [0x00 0x00 0x00]                                      # length = 0
      [0x01]                                                # ACK
      [0x00 0x00 0x00 0x00]                                 # stream_id = 0
 
-read [0x00 0x00 0x6e]                                      # length = 110
+read [0x00 0x00 0x6c]                                      # length = 108
      [0x01]                                                # HEADERS frame
      [0x05]                                                # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x01]                                 # stream_id = 1
@@ -72,7 +72,7 @@ write [0x00 0x00 0x49]                                     # length 73
       [0x89]                                               # :status: 204
       [0x0f] [0x27] [0x05] "Zilla"                         # server
       [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
-      [0x40] [0x1c] "access-control-allow-methods"
+      [0x00] [0x1c] "access-control-allow-methods"
              [0x06] "DELETE"                               # access-control-allow-methods
 write flush
 
@@ -87,12 +87,13 @@ read [0x00 0x00 0x45]                                      # length = 70
      [0x40] [0x06] "origin"
             [0x18] "https://example.net:9090"              # origin: https://example.net:9090
 
-write [0x00 0x00 0x2d]                                     # length = 45
+write [0x00 0x00 0x4d]                                     # length = 77
       [0x01]                                               # HTTP2 HEADERS frame
-      [0x05]                                               # END_HEADERS | END_STREAM
+      [0x04]                                               # END_HEADERS
       [0x00 0x00 0x00 0x03]                                # stream_id = 3
-      [0x88]                                               # :status: 204
+      [0x89]                                               # :status: 204
       [0x0f] [0x27] [0x05] "Zilla"                         # server
       [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT" # date
-      [0x0f] [0x05] [0x01] "*"                             # access-control-allow-origin
+      [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
+      [0x0f] [0x2c] [0x06] "origin"                        # vary
 write flush

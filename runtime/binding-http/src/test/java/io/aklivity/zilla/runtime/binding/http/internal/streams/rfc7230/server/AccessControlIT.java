@@ -34,8 +34,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class AccessControlIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/cross.origin")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/cross.origin");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/access.control")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7230/access.control");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -65,7 +65,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.credentials.json")
     @Specification({
         "${net}/allow.methods.explicit/client",
-        "${app}/allow.methods.explicit/server",
+        "${app}/allow.methods/server",
     })
     public void shouldAllowMethodsExplicitWhenCredentials() throws Exception
     {
@@ -76,7 +76,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.json")
     @Specification({
         "${net}/allow.methods.wildcard/client",
-        "${app}/allow.methods.wildcard/server",
+        "${app}/allow.headers/server",
     })
     public void shouldAllowMethodsWildcard() throws Exception
     {
@@ -87,7 +87,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.credentials.json")
     @Specification({
         "${net}/allow.headers.explicit/client",
-        "${app}/allow.headers.explicit/server",
+        "${app}/allow.headers/server",
     })
     public void shouldAllowHeadersExplicitWhenCredentials() throws Exception
     {
@@ -98,7 +98,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.json")
     @Specification({
         "${net}/allow.headers.wildcard/client",
-        "${app}/allow.headers.wildcard/server",
+        "${app}/allow.headers/server",
     })
     public void shouldAllowHeadersWildcard() throws Exception
     {
@@ -109,7 +109,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.json")
     @Specification({
         "${net}/allow.origin.explicit/client",
-        "${app}/allow.origin.explicit/server",
+        "${app}/allow.origin/server",
     })
     public void shouldAllowOriginExplicitWhenNotWildcard() throws Exception
     {
@@ -120,7 +120,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.credentials.json")
     @Specification({
         "${net}/allow.origin.explicit/client",
-        "${app}/allow.origin.explicit/server",
+        "${app}/allow.origin/server",
     })
     public void shouldAllowOriginExplicitWhenCredentials() throws Exception
     {
@@ -131,7 +131,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.json")
     @Specification({
         "${net}/allow.origin.wildcard/client",
-        "${app}/allow.origin.wildcard/server",
+        "${app}/allow.methods/server",
     })
     public void shouldAllowOriginWildcard() throws Exception
     {
@@ -142,7 +142,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.json")
     @Specification({
         "${net}/cache.allow.methods.explicit/client",
-        "${app}/cache.allow.methods.explicit/server",
+        "${app}/allow.methods/server",
     })
     public void shouldCacheAllowMethodsExplicitWhenNotWildcard() throws Exception
     {
@@ -153,7 +153,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.credentials.json")
     @Specification({
         "${net}/cache.allow.methods.explicit/client",
-        "${app}/cache.allow.methods.explicit/server",
+        "${app}/allow.methods/server",
     })
     public void shouldCacheAllowMethodsExplicitWhenCredentials() throws Exception
     {
@@ -164,7 +164,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.json")
     @Specification({
         "${net}/cache.allow.methods.wildcard/client",
-        "${app}/cache.allow.methods.wildcard/server",
+        "${app}/allow.headers/server",
     })
     public void shouldCacheAllowMethodsWildcard() throws Exception
     {
@@ -175,7 +175,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.json")
     @Specification({
         "${net}/cache.allow.headers.explicit/client",
-        "${app}/cache.allow.headers.explicit/server",
+        "${app}/allow.headers/server",
     })
     public void shouldCacheAllowHeadersExplicitWhenNotWildcard() throws Exception
     {
@@ -186,7 +186,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.credentials.json")
     @Specification({
         "${net}/cache.allow.headers.explicit/client",
-        "${app}/cache.allow.headers.explicit/server",
+        "${app}/allow.headers/server",
     })
     public void shouldCacheAllowHeadersExplicitWhenCredentials() throws Exception
     {
@@ -197,7 +197,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.json")
     @Specification({
         "${net}/cache.allow.headers.wildcard/client",
-        "${app}/cache.allow.headers.wildcard/server",
+        "${app}/allow.headers/server",
     })
     public void shouldCacheAllowHeadersWildcard() throws Exception
     {
@@ -208,7 +208,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.expose.json")
     @Specification({
         "${net}/expose.headers.explicit/client",
-        "${app}/expose.headers.explicit/server",
+        "${app}/expose.headers/server",
     })
     public void shouldExposeHeadersExplicitWhenNotWildcard() throws Exception
     {
@@ -219,7 +219,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.allow.credentials.json")
     @Specification({
         "${net}/expose.headers.explicit/client",
-        "${app}/expose.headers.explicit/server",
+        "${app}/expose.headers/server",
     })
     public void shouldExposeHeadersExplicitWhenCredentials() throws Exception
     {
@@ -230,7 +230,7 @@ public class AccessControlIT
     @Configuration("server.access.control.cross.origin.json")
     @Specification({
         "${net}/expose.headers.wildcard/client",
-        "${app}/expose.headers.wildcard/server",
+        "${app}/expose.headers/server",
     })
     public void shouldExposeHeadersWildcard() throws Exception
     {

@@ -62,14 +62,15 @@ write [0x00 0x00 0x15]                                     # length = 21
       [0x01] [0x10] "example.com:9090"                     # :authority: example.com:9090
 write flush
 
-read [0x00 0x00 0x53]                                      # length = 83
+read [0x00 0x00 0x49]                                      # length = 73
      [0x01]                                                # HTTP2 HEADERS frame
      [0x04]                                                # END_HEADERS
-     [0x00 0x00 0x00 0x01]                                 # stream_id = 1
+     [0x00 0x00 0x00 0x01]                                 # stream_id=1
      [0x88]                                                # :status: 200
      [0x0f] [0x27] [0x05] "Zilla"                          # server
      [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT"  # date
      [0x0f] [0x10] [0x19] "text/plain; charset=UTF-8"      # content-type
+     [0x0f] [0x05] [0x01] "*"                              # access-control-allow-origin
 
 read [0x00 0x00 0x0c]                                      # length = 12
      [0x00]                                                # HTTP2 DATA frame

@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SERVER_HEADER_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -53,17 +52,6 @@ public class ConfigIT
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
-
-    @Test
-    @Configure(name = HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME, value = "true")
-    @Configuration("server.json")
-    @Specification({
-        "${net}/access.control.allow.origin/client",
-        "${app}/access.control.allow.origin/server" })
-    public void accessControlAllowOrigin() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Configure(name = HTTP_SERVER_HEADER_NAME, value = "zilla")

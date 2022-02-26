@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_ACCESS_CONTROL_ALLOW_ORIGIN;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAXIMUM_QUEUED_REQUESTS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
@@ -30,7 +29,6 @@ public class HttpConfigurationTest
 {
     // needed by test annotations
     public static final String HTTP_MAXIMUM_QUEUED_REQUESTS_NAME = "zilla.binding.http.maximum.requests.queued";
-    public static final String HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME = "zilla.binding.http.server.access.control.allow.origin";
     public static final String HTTP_SERVER_HEADER_NAME = "zilla.binding.http.server.header";
     public static final String HTTP_SERVER_CONCURRENT_STREAMS_NAME = "zilla.binding.http.server.concurrent.streams";
     public static final String HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME = "zilla.binding.http.server.max.header.list.size";
@@ -41,7 +39,6 @@ public class HttpConfigurationTest
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(HTTP_MAXIMUM_QUEUED_REQUESTS.name(), HTTP_MAXIMUM_QUEUED_REQUESTS_NAME);
-        assertEquals(HTTP_ACCESS_CONTROL_ALLOW_ORIGIN.name(), HTTP_ACCESS_CONTROL_ALLOW_ORIGIN_NAME);
         assertEquals(HTTP_SERVER_HEADER.name(), HTTP_SERVER_HEADER_NAME);
         assertEquals(HTTP_SERVER_CONCURRENT_STREAMS.name(), HTTP_SERVER_CONCURRENT_STREAMS_NAME);
         assertEquals(HTTP_SERVER_MAX_HEADER_LIST_SIZE.name(), HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME);

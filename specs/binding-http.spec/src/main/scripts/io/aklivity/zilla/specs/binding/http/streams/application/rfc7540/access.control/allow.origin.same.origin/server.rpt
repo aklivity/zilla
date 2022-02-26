@@ -33,9 +33,14 @@ read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "204")
+                            .header(":status", "200")
                             .header("server", "Zilla")
                             .header("date", "Tue, 02 Feb 2022 22:22:22 GMT")
+                            .header("content-type", "text/plain; charset=UTF-8")
                             .build()}
+
+
+write "Hello, world"
+write flush
 
 write close

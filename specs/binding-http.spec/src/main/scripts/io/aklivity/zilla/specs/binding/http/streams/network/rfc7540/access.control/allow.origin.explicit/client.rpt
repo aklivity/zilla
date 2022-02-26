@@ -64,7 +64,7 @@ write [0x00 0x00 0x36]                                     # length = 54
              [0x18] "https://example.net:9090"             # origin: https://example.net:9090
 write flush
 
-read [0x00 0x00 0x77]                                      # length = 119
+read [0x00 0x00 0x69]                                      # length = 105
      [0x01]                                                # HTTP2 HEADERS frame
      [0x04]                                                # END_HEADERS
      [0x00 0x00 0x00 0x01]                                 # stream_id=1

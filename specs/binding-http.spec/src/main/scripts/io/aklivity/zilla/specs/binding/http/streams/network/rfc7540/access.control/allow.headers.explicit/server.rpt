@@ -64,7 +64,7 @@ read [0x00 0x00 0x93]                                      # length = 147
             [0x18] "https://example.net:9090"              # origin: https://example.net:9090
      [0x40] [0x1d] "access-control-request-method"
             [0x03] "GET"                                   # access-control-request-method: GET
-     [0x40] [0x1d] "access-control-request-header"
+     [0x40] [0x1e] "access-control-request-headers"
             [0x09] "x-api-key"                             # access-control-request-header
 
 write [0x00 0x00 0x6e]                                     # length 110
@@ -74,13 +74,13 @@ write [0x00 0x00 0x6e]                                     # length 110
       [0x89]                                               # :status: 204
       [0x0f] [0x27] [0x05] "Zilla"                         # server
       [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
-      [0x40] [0x1c] "access-control-allow-methods"
+      [0x00] [0x1c] "access-control-allow-methods"
              [0x03] "GET"                                  # access-control-allow-methods
-      [0x40] [0x1c] "access-control-allow-headers"
+      [0x00] [0x1c] "access-control-allow-headers"
              [0x09] "x-api-key"                            # access-control-allow-headers
 write flush
 
-read [0x00 0x00 0x55]                                      # length = 70
+read [0x00 0x00 0x45]                                      # length = 69
      [0x01]                                                # HEADERS frame
      [0x05]                                                # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x03]                                 # stream_id = 3
@@ -92,7 +92,7 @@ read [0x00 0x00 0x55]                                      # length = 70
             [0x18] "https://example.net:9090"              # origin: https://example.net:9090
      [0x40] [0x09] "x-api-key" [0x03] "KEY"                # x-api-key
 
-write [0x00 0x00 0x6e]                                     # length = 110
+write [0x00 0x00 0x69]                                     # length = 105
       [0x01]                                               # HTTP2 HEADERS frame
       [0x04]                                               # END_HEADERS
       [0x00 0x00 0x00 0x03]                                # stream_id = 3
@@ -101,6 +101,7 @@ write [0x00 0x00 0x6e]                                     # length = 110
       [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT" # date
       [0x0f] [0x10] [0x19] "text/plain; charset=UTF-8"     # content-type
       [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
+      [0x0f] [0x2c] [0x06] "origin"                        # vary
 write flush
 
 write [0x00 0x00 0x0c]                                     # length = 12

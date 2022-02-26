@@ -12,10 +12,9 @@
                 "access-control":
                 {
                     "policy": "cross-origin",
-                    "allow":
+                    "expose":
                     {
-                        "methods": [ "HEAD", "GET", "PUT", "POST", "PATCH", "DELETE" ],
-                        "headers": [ "x-api-key" ]
+                        "headers": [ "x-custom-header" ]
                     }
                 }
             },

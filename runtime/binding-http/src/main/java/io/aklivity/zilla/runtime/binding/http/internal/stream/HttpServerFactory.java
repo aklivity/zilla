@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
-import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.DEFAULT_ACCESS_CONTROL_ALLOW_ORIGIN;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.KEEP_ALIVE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.PROXY_CONNECTION;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
@@ -50,10 +49,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -91,6 +92,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion;
@@ -148,17 +150,17 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .item(h -> h.name(":status").value("200"))
                 .build();
 
+    private static final Array32FW<HttpHeaderFW> HEADERS_400_BAD_REQUEST =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .item(h -> h.name(":status").value("400"))
+                .build();
+
     private static final Array32FW<HttpHeaderFW> HEADERS_404_NOT_FOUND =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
                 .item(h -> h.name(":status").value("404"))
                 .build();
-
-    private static final Array32FW<HttpHeaderFW> HEADERS_400_BAD_REQUEST =
-        new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-            .item(h -> h.name(":status").value("400"))
-            .build();
 
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
@@ -205,21 +207,75 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final DirectBuffer ERROR_507_INSUFFICIENT_STORAGE =
             initResponse(507, "Insufficient Storage");
 
+    private static final String HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD = "access-control-request-method";
+    private static final String HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS = "access-control-request-headers";
+    private static final String HEADER_NAME_ACCESS_CONTROL_EXPOSE_HEADERS = "access-control-expose-headers";
+    private static final String HEADER_NAME_METHOD = ":method";
+    private static final String HEADER_NAME_ORIGIN = "origin";
+    private static final String HEADER_NAME_SCHEME = ":scheme";
+    private static final String HEADER_NAME_AUTHORITY = ":authority";
+
+    private static final String METHOD_NAME_OPTIONS = "OPTIONS";
+
+    private static final String8FW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN = new String8FW("access-control-allow-origin");
+    private static final String8FW HEADER_ACCESS_CONTROL_ALLOW_METHODS = new String8FW("access-control-allow-methods");
+    private static final String8FW HEADER_ACCESS_CONTROL_ALLOW_HEADERS = new String8FW("access-control-allow-headers");
+    private static final String8FW HEADER_ACCESS_CONTROL_EXPOSE_HEADERS = new String8FW("access-control-expose-headers");
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
     private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
+    private static final String8FW HEADER_SERVER = new String8FW("server");
     private static final String8FW HEADER_STATUS = new String8FW(":status");
     private static final String8FW HEADER_TRANSFER_ENCODING = new String8FW("transfer-encoding");
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
+    private static final String8FW HEADER_VARY = new String8FW("vary");
 
+    private static final String16FW ACCESS_CONTROL_WILDCARD = new String16FW("*");
     private static final String16FW CONNECTION_CLOSE = new String16FW("close");
     private static final String16FW SCHEME_HTTP = new String16FW("http");
     private static final String16FW SCHEME_HTTPS = new String16FW("https");
     private static final String16FW STATUS_200 = new String16FW("200");
+    private static final String16FW STATUS_204 = new String16FW("204");
+    private static final String16FW STATUS_403 = new String16FW("403");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
+
+    private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD =
+            new HttpHeaderFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .name(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN)
+                .value(ACCESS_CONTROL_WILDCARD)
+                .build();
+
+    private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_METHODS_WILDCARD =
+            new HttpHeaderFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .name(HEADER_ACCESS_CONTROL_ALLOW_METHODS)
+                .value(ACCESS_CONTROL_WILDCARD)
+                .build();
+
+    private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_HEADERS_WILDCARD =
+            new HttpHeaderFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .name(HEADER_ACCESS_CONTROL_ALLOW_HEADERS)
+                .value(ACCESS_CONTROL_WILDCARD)
+                .build();
+
+    private static final HttpHeaderFW HEADER_ACCESS_CONTROL_EXPOSE_HEADERS_WILDCARD =
+            new HttpHeaderFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .name(HEADER_ACCESS_CONTROL_EXPOSE_HEADERS)
+                .value(ACCESS_CONTROL_WILDCARD)
+                .build();
+
+    private static final HttpHeaderFW HEADER_VARY_ORIGIN =
+            new HttpHeaderFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .name(HEADER_VARY)
+                .value(HEADER_NAME_ORIGIN)
+                .build();
 
     private static final Array32FW<HttpHeaderFW> DEFAULT_HEADERS =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
@@ -328,6 +384,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         STATUS_REASONS = reasons;
     }
 
+    private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headersRW =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
+
+    private final Array32FW<HttpHeaderFW> headers403;
+
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final AtomicBuffer payloadRO = new UnsafeBuffer(0, 0);
@@ -428,7 +489,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.decodersByFrameType = decodersByFrameType;
     }
 
-
     private final Http2HeadersDecoder headersDecoder = new Http2HeadersDecoder();
     private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
@@ -446,7 +506,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final Signaler signaler;
     private final Http2Settings initialSettings;
     private final BufferPool headersPool;
-    private final MutableDirectBuffer extensionBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final int decodeMax;
     private final int encodeMax;
     private final int proxyTypeId;
@@ -476,7 +536,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.initialSettings = new Http2Settings(config, headersPool);
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.extensionBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.httpTypeId = context.supplyTypeId(HttpBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.requestLine = REQUEST_LINE_PATTERN.matcher("");
@@ -487,6 +547,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.decodeMax = bufferPool.slotCapacity();
         this.encodeMax = bufferPool.slotCapacity();
         this.bindings = new Long2ObjectHashMap<>();
+
+        this.headers403 = initHeaders(config, STATUS_403);
     }
 
     @Override
@@ -555,11 +617,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                 case HTTP_1_1:
                     final boolean upgrade = !secure && supportedVersions.contains(HttpVersion.HTTP_2);
-                    final HttpServer http11 = new HttpServer(network, routeId, initialId, affinity, secure, upgrade);
+                    final HttpServer http11 = new HttpServer(binding, network, routeId, initialId, affinity, secure, upgrade);
                     newStream = upgrade ? http11::onNetworkUpgradeable : http11::onNetwork;
                     break;
                 case HTTP_2:
-                    final Http2Server http2 = new Http2Server(network, routeId, initialId, affinity);
+                    final Http2Server http2 = new Http2Server(binding, network, routeId, initialId, affinity);
                     newStream = http2::onNetwork;
                     break;
                 }
@@ -872,7 +934,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Map<String, String> headers = new LinkedHashMap<>();
                 beginEx.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-                HttpBindingConfig binding = bindings.get(server.routeId);
+                HttpBindingConfig binding = server.binding;
                 HttpRouteConfig route = binding.resolve(authorization, headers::get);
                 if (route != null)
                 {
@@ -1338,6 +1400,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final class HttpServer
     {
+        private final HttpBindingConfig binding;
         private final MessageConsumer network;
         private final long routeId;
         private final long initialId;
@@ -1373,6 +1436,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int replyMax;
 
         private HttpServer(
+            HttpBindingConfig binding,
             MessageConsumer network,
             long routeId,
             long initialId,
@@ -1380,6 +1444,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             boolean secure,
             boolean upgrade)
         {
+            this.binding = binding;
             this.network = network;
             this.routeId = routeId;
             this.initialId = initialId;
@@ -3137,6 +3202,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private final MutableBoolean expectDynamicTableSizeUpdate = new MutableBoolean(true);
 
+        private final HttpBindingConfig binding;
         private final MessageConsumer network;
         private final long routeId;
         private final long initialId;
@@ -3197,11 +3263,13 @@ public final class HttpServerFactory implements HttpStreamFactory
         private int decodableDataBytes;
 
         private Http2Server(
+            HttpBindingConfig binding,
             MessageConsumer network,
             long routeId,
             long initialId,
             long affinity)
         {
+            this.binding = binding;
             this.network = network;
             this.routeId = routeId;
             this.initialId = initialId;
@@ -3223,7 +3291,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         private Http2Server(
             HttpServer server)
         {
-            this(server.network, server.routeId, server.initialId, server.affinity);
+            this(server.binding, server.network, server.routeId, server.initialId, server.affinity);
         }
 
         private int replyPendingAck()
@@ -4216,42 +4284,124 @@ public final class HttpServerFactory implements HttpStreamFactory
             else
             {
                 final Map<String, String> headers = headersDecoder.headers;
-                final String authority = headers.get(":authority");
-                if (authority != null && authority.indexOf(':') == -1)
-                {
-                    String scheme = headers.get(":scheme");
-                    String defaultPort = "https".equals(scheme) ? ":443" : ":80";
-                    headers.put(":authority", authority + defaultPort);
-                }
 
-                final HttpBindingConfig binding = bindings.get(routeId);
-                final HttpRouteConfig route = binding.resolve(authorization, headers::get);
-                if (route == null)
+                final HttpAccessControlConfig access = binding.access();
+
+                if (isCorsPreflightRequest(headers::get))
                 {
-                    doEncodeHeaders(traceId, authorization, streamId, HEADERS_404_NOT_FOUND, true);
+                    if (!endRequest)
+                    {
+                        doEncodeHeaders(traceId, authorization, streamId, HEADERS_400_BAD_REQUEST, true);
+                    }
+                    else
+                    {
+                        final String origin = headers.get(HEADER_NAME_ORIGIN);
+                        final String requestMethod = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD);
+                        final String requestHeaders = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS);
+
+                        if (origin != null && !access.allowOrigin(origin) ||
+                            requestMethod != null && !access.allowMethod(requestMethod) ||
+                            requestHeaders != null && !access.allowHeaders(requestHeaders))
+                        {
+                            doEncodeHeaders(traceId, authorization, streamId, headers403, true);
+                        }
+                        else
+                        {
+                            Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> responseHeaders = headersRW
+                                    .wrap(extBuffer, 0, extBuffer.capacity())
+                                    .item(i -> i.name(HEADER_STATUS).value(STATUS_204));
+
+                            final String16FW server = config.serverHeader();
+                            if (server != null)
+                            {
+                                responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
+                            }
+
+                            final HttpHeaderFW allowOrigin = access.allowOriginHeader(origin);
+                            responseHeaders.item(h -> h.set(allowOrigin));
+
+                            if (requestMethod != null)
+                            {
+                                if (access.allowMethodsExplicit())
+                                {
+                                    responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_METHODS).value(requestMethod));
+                                }
+                                else
+                                {
+                                    responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_METHODS_WILDCARD));
+                                }
+                            }
+
+                            if (requestHeaders != null)
+                            {
+                                if (access.allowHeadersExplicit())
+                                {
+                                    responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_HEADERS).value(requestHeaders));
+                                }
+                                else
+                                {
+                                    responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_HEADERS_WILDCARD));
+                                }
+                            }
+
+                            if (requestMethod != null || requestHeaders != null)
+                            {
+                                HttpHeaderFW maxAgeHeader = access.maxAgeHeader();
+                                if (maxAgeHeader != null)
+                                {
+                                    responseHeaders.item(h -> h.set(maxAgeHeader));
+                                }
+                            }
+
+                            doEncodeHeaders(traceId, authorization, streamId, responseHeaders.build(), true);
+                        }
+                    }
+                }
+                else if (!isCorsRequestAllowed(access, headers))
+                {
+                    doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
                 else
                 {
-                    if (binding.options != null && binding.options.overrides != null)
+                    final String authority = headers.get(HEADER_NAME_AUTHORITY);
+                    if (authority != null && authority.indexOf(':') == -1)
                     {
-                        binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+                        String scheme = headers.get(HEADER_NAME_SCHEME);
+                        String defaultPort = "https".equals(scheme) ? ":443" : ":80";
+                        headers.put(HEADER_NAME_AUTHORITY, authority + defaultPort);
                     }
 
-                    final long routeId = route.id;
-                    final long contentLength = headersDecoder.contentLength;
-
-                    final Http2Exchange exchange = new Http2Exchange(routeId, streamId, contentLength);
-
-                    final HttpBeginExFW beginEx = beginExRW.wrap(extensionBuffer, 0, extensionBuffer.capacity())
-                            .typeId(httpTypeId)
-                            .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
-                            .build();
-
-                    exchange.doRequestBegin(traceId, authorization, beginEx);
-
-                    if (endRequest)
+                    final HttpRouteConfig route = binding.resolve(authorization, headers::get);
+                    if (route == null)
                     {
-                        exchange.doRequestEnd(traceId, authorization, EMPTY_OCTETS);
+                        doEncodeHeaders(traceId, authorization, streamId, HEADERS_404_NOT_FOUND, true);
+                    }
+                    else
+                    {
+                        if (binding.options != null && binding.options.overrides != null)
+                        {
+                            binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+                        }
+
+                        final long routeId = route.id;
+                        final long contentLength = headersDecoder.contentLength;
+
+                        final String origin = headers.get(HEADER_NAME_ORIGIN);
+
+                        final Http2Exchange exchange =
+                                new Http2Exchange(routeId, streamId, origin, contentLength);
+
+                        final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                .typeId(httpTypeId)
+                                .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
+                                .build();
+
+                        exchange.doRequestBegin(traceId, authorization, beginEx);
+
+                        if (endRequest)
+                        {
+                            exchange.doRequestEnd(traceId, authorization, EMPTY_OCTETS);
+                        }
                     }
                 }
             }
@@ -4340,7 +4490,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final Map<String, String> trailers = headersDecoder.headers;
-                    final HttpEndExFW endEx = endExRW.wrap(extensionBuffer, 0, extensionBuffer.capacity())
+                    final HttpEndExFW endEx = endExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
                             .trailers(ts -> trailers.forEach((n, v) -> ts.item(t -> t.name(n).value(v))))
                             .build();
@@ -4491,7 +4641,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             headers.clear();
             promise.forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-            final HttpBindingConfig binding = bindings.get(routeId);
             final HttpRouteConfig route = binding.resolve(authorization, headers::get);
             if (route != null)
             {
@@ -4518,14 +4667,17 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
 
                     final long routeId = route.id;
-                    final long contentLength = headersDecoder.contentLength;
+                    final long contentLength = -1;
                     final int promiseId = ++maxServerStreamId << 1;
+
+                    final String origin = headers.get(HEADER_NAME_ORIGIN);
 
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
-                    final Http2Exchange exchange = new Http2Exchange(routeId, promiseId, contentLength);
+                    final Http2Exchange exchange =
+                            new Http2Exchange(routeId, promiseId, origin, contentLength);
 
-                    final HttpBeginExFW beginEx = beginExRW.wrap(extensionBuffer, 0, extensionBuffer.capacity())
+                    final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
                             .headers(hs -> headers.forEach((n, v) -> hs.item(i -> i.name(n).value(v))))
                             .build();
@@ -4595,12 +4747,30 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization,
             int streamId,
+            String origin,
             Array32FW<HttpHeaderFW> headers,
             boolean endResponse)
         {
             final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
-                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, headers, hb))
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, binding.access(), origin, headers, hb))
+                    .endHeaders()
+                    .endStream(endResponse)
+                    .build();
+
+            doNetworkHeadersData(traceId, authorization, 0L, http2Headers);
+        }
+
+        private void doEncodeHeaders(
+            long traceId,
+            long authorization,
+            int streamId,
+            Array32FW<HttpHeaderFW> headers,
+            boolean endResponse)
+        {
+            final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(streamId)
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, null, null, headers, hb))
                     .endHeaders()
                     .endStream(endResponse)
                     .build();
@@ -4787,6 +4957,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final long requestId;
             private final long responseId;
             private final int streamId;
+            private final String origin;
             private final long contentLength;
 
             private int state;
@@ -4810,15 +4981,16 @@ public final class HttpServerFactory implements HttpStreamFactory
             private Http2Exchange(
                 long routeId,
                 int streamId,
+                String origin,
                 long contentLength)
             {
                 this.routeId = routeId;
                 this.streamId = streamId;
+                this.origin = origin;
                 this.contentLength = contentLength;
                 this.requestId = supplyInitialId.applyAsLong(routeId);
                 this.responseId = supplyReplyId.applyAsLong(requestId);
             }
-
 
             private int initialWindow()
             {
@@ -5088,7 +5260,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : HEADERS_200_OK;
 
-                doEncodeHeaders(traceId, authorization, streamId, headers, false);
+                doEncodeHeaders(traceId, authorization, streamId, origin, headers, false);
             }
 
             private void onResponseData(
@@ -5692,12 +5864,10 @@ public final class HttpServerFactory implements HttpStreamFactory
         private HpackContext context;
 
         private boolean status;
-        private boolean accessControlAllowOrigin;
         private boolean serverHeader;
         private final List<String> connectionHeaders = new ArrayList<>();
 
         private final Consumer<HttpHeaderFW> search = ((Consumer<HttpHeaderFW>) this::status)
-                .andThen(this::accessControlAllowOrigin)
                 .andThen(this::serverHeader)
                 .andThen(this::connectionHeaders);
 
@@ -5712,6 +5882,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         void encodeHeaders(
             HpackContext encodeContext,
+            HttpAccessControlConfig access,
+            String origin,
             Array32FW<HttpHeaderFW> headers,
             HpackHeaderBlockFW.Builder headerBlock)
         {
@@ -5732,18 +5904,52 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
             });
 
-            if (config.accessControlAllowOrigin() && !accessControlAllowOrigin)
-            {
-                headerBlock.header(b -> b.literal(l -> l.type(WITHOUT_INDEXING)
-                                                        .name(20)
-                                                        .value(DEFAULT_ACCESS_CONTROL_ALLOW_ORIGIN)));
-            }
-
             // add configured Server header if there is no Server header in response
             if (config.serverHeader() != null && !serverHeader)
             {
-                DirectBuffer server = config.serverHeader();
-                headerBlock.header(b -> b.literal(l -> l.type(WITHOUT_INDEXING).name(54).value(server)));
+                String16FW server = config.serverHeader();
+                headerBlock.header(b -> b.literal(l -> l.type(WITHOUT_INDEXING).name(54).value(server.value())));
+            }
+
+            if (access != null)
+            {
+                HttpHeaderFW allowOrigin = access.allowOriginHeader(origin);
+                if (allowOrigin != null)
+                {
+                    headerBlock.header(b -> encodeHeader(allowOrigin, b));
+                }
+
+                if (access.exposeHeadersExplicit())
+                {
+                    headers.forEach(h ->
+                    {
+                        final String name = h.name().asString();
+                        if (includeHeader(h) && access.exposeHeader(name))
+                        {
+                            // TODO: combine header name list into single comma-separated value
+                            headerBlock.header(b -> b.literal(HEADER_NAME_ACCESS_CONTROL_EXPOSE_HEADERS, name));
+                        }
+                    });
+                }
+                else if (access.exposeHeaders())
+                {
+                    if (headers.anyMatch(h -> access.exposeHeader(h.name().asString())))
+                    {
+                        headerBlock.header(b -> encodeHeader(HEADER_ACCESS_CONTROL_EXPOSE_HEADERS_WILDCARD, b));
+                    }
+                }
+
+                HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
+                if (allowCredentials != null)
+                {
+                    headerBlock.header(b -> encodeHeader(allowCredentials, b));
+                }
+
+                if (allowOrigin != null &&
+                    !allowOrigin.equals(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD))
+                {
+                    headerBlock.header(b -> encodeHeader(HEADER_VARY_ORIGIN, b));
+                }
             }
         }
 
@@ -5760,7 +5966,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             context = encodeContext;
             status = false;
-            accessControlAllowOrigin = false;
             serverHeader = false;
             connectionHeaders.clear();
         }
@@ -5769,12 +5974,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             HttpHeaderFW header)
         {
             status |= header.name().value().equals(context.nameBuffer(8));
-        }
-
-        private void accessControlAllowOrigin(
-            HttpHeaderFW header)
-        {
-            accessControlAllowOrigin |= header.name().value().equals(context.nameBuffer(20));
         }
 
         // Checks if response has server header
@@ -5873,6 +6072,24 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
     }
 
+    private static Array32FW<HttpHeaderFW> initHeaders(
+        HttpConfiguration config,
+        String16FW status)
+    {
+        final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .item(h -> h.name(HEADER_STATUS).value(status));
+
+        final String16FW server = config.serverHeader();
+        if (server != null)
+        {
+            builder.item(h -> h.name(HEADER_SERVER).value(server));
+        }
+
+        return builder.build();
+    }
+
     private static DirectBuffer initResponse(
         int status,
         String reason)
@@ -5881,6 +6098,23 @@ public final class HttpServerFactory implements HttpStreamFactory
                                               "Connection: close\r\n" +
                                               "\r\n",
                                               status, reason).getBytes(UTF_8));
+    }
+
+    private boolean isCorsPreflightRequest(
+        Function<String, String> headerByName)
+    {
+        return Objects.equals(headerByName.apply(HEADER_NAME_METHOD), METHOD_NAME_OPTIONS) &&
+               headerByName.apply(HEADER_NAME_ORIGIN) != null &&
+               (headerByName.apply(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD) != null ||
+                headerByName.apply(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS) != null);
+    }
+
+    private boolean isCorsRequestAllowed(
+        HttpAccessControlConfig access,
+        Map<String, String> headers)
+    {
+        return !headers.containsKey(HEADER_NAME_ORIGIN) ||
+               access != null && access.allowRequest(headers);
     }
 
     private URI createTargetURI(

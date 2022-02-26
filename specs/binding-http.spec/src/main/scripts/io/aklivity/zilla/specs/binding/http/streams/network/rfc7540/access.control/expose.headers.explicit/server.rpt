@@ -63,7 +63,7 @@ read [0x00 0x00 0x36]                                      # length = 54
      [0x40] [0x06] "origin"
             [0x18] "https://example.net:9090"              # origin: https://example.net:9090
 
-write [0x00 0x00 0xbc]                                     # length = 188
+write [0x00 0x00 0x97]                                     # length = 151
       [0x01]                                               # HTTP2 HEADERS frame
       [0x04]                                               # END_HEADERS
       [0x00 0x00 0x00 0x01]                                # stream_id=1
@@ -71,10 +71,10 @@ write [0x00 0x00 0xbc]                                     # length = 188
       [0x0f] [0x27] [0x05] "Zilla"                         # server
       [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT" # date
       [0x0f] [0x10] [0x19] "text/plain; charset=UTF-8"     # content-type
-      [0x40] [0x0f] "x-custom-header"
+      [0x00] [0x0f] "x-custom-header"
              [0x0d] "exposed-value"                        # x-custom-header
-      [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
-      [0x40] [0x1d] "access-control-expose-headers"
+      [0x0f] [0x05] [0x01] "*"                             # access-control-allow-origin
+      [0x00] [0x1d] "access-control-expose-headers"
              [0x0f] "x-custom-header"                      # access-control-expose-headers
 write flush
 

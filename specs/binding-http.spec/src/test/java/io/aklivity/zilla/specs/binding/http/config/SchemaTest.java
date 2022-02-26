@@ -90,9 +90,25 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp1ServerAccessControlCrossOriginAllow()
+    public void shouldValidateHttp1ServerAccessControlCrossOriginCached()
     {
-        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.allow.json");
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.cached.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp1ServerAccessControlCrossOriginAllowExplicit()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.allow.explicit.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp1ServerAccessControlCrossOriginAllowExplicitCached()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.allow.explicit.cached.json");
 
         assertThat(config, not(nullValue()));
     }
@@ -106,9 +122,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp1ServerAccessControlCrossOriginMaxAge()
+    public void shouldValidateHttp1ServerAccessControlCrossOriginAllowCredentialsCached()
     {
-        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.max.age.json");
+        JsonObject config = schema.validate("v1.1/server.access.control.cross.origin.allow.credentials.cached.json");
 
         assertThat(config, not(nullValue()));
     }
@@ -178,9 +194,25 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlCrossOriginAllow()
+    public void shouldValidateHttp2ServerAccessControlCrossOriginCached()
     {
-        JsonObject config = schema.validate("v2/server.access.control.cross.origin.allow.json");
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.cached.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlCrossOriginAllowExplicit()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.allow.explicit.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlCrossOriginAllowExplicitCached()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.allow.explicit.cached.json");
 
         assertThat(config, not(nullValue()));
     }
@@ -194,9 +226,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateHttp2ServerAccessControlCrossOriginMaxAge()
+    public void shouldValidateHttp2ServerAccessControlCrossOriginAllowCredentialsCached()
     {
-        JsonObject config = schema.validate("v2/server.access.control.cross.origin.max.age.json");
+        JsonObject config = schema.validate("v2/server.access.control.cross.origin.allow.credentials.cached.json");
 
         assertThat(config, not(nullValue()));
     }

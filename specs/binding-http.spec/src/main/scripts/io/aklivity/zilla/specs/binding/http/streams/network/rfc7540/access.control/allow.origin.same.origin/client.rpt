@@ -64,10 +64,17 @@ write [0x00 0x00 0x36]                                     # length = 54
              [0x18] "https://example.com:9090"             # same-origin
 write flush
 
-read [0x00 0x00 0x29]                                      # length = 41
+read [0x00 0x00 0x45]                                      # length = 69
      [0x01]                                                # HTTP2 HEADERS frame
-     [0x05]                                                # END_HEADERS | END_STREAM
+     [0x04]                                                # END_HEADERS
      [0x00 0x00 0x00 0x01]                                 # stream_id=1
-     [0x89]                                                # :status: 204
+     [0x88]                                                # :status: 200
      [0x0f] [0x27] [0x05] "Zilla"                          # server
      [0x0f] [0x12] [0x1d] "Tue, 02 Feb 2022 22:22:22 GMT"  # date
+     [0x0f] [0x10] [0x19] "text/plain; charset=UTF-8"      # content-type
+
+read [0x00 0x00 0x0c]                                      # length = 12
+     [0x00]                                                # HTTP2 DATA frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x01]                                 # stream_id = 1
+     "Hello, world"

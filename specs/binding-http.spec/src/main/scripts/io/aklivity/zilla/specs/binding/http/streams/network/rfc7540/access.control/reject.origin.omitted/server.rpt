@@ -65,6 +65,6 @@ write [0x00 0x00 0x0d]                                     # length 13
       [0x01]                                               # HTTP2 HEADERS frame
       [0x05]                                               # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]                                # stream_id = 1
-      [0x1e] [0x03] "403"                                  # :status: 403
+      [0x08] [0x03] "403"                                  # :status: 403
       [0x0f] [0x27] [0x05] "Zilla"                         # server
 write flush

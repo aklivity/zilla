@@ -38,50 +38,10 @@ public class AccessControlIT
 
     @Test
     @Specification({
-        "${net}/allow.credentials.cookie/client",
-        "${net}/allow.credentials.cookie/server",
+        "${net}/allow.origin.wildcard/client",
+        "${net}/allow.origin.wildcard/server",
     })
-    public void shouldAllowCredentialsCookie() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/allow.methods.explicit/client",
-        "${net}/allow.methods.explicit/server",
-    })
-    public void shouldAllowMethodsExplicit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/allow.methods.wildcard/client",
-        "${net}/allow.methods.wildcard/server",
-    })
-    public void shouldAllowMethodsWildcard() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/allow.headers.explicit/client",
-        "${net}/allow.headers.explicit/server",
-    })
-    public void shouldAllowHeadersExplicit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/allow.headers.wildcard/client",
-        "${net}/allow.headers.wildcard/server",
-    })
-    public void shouldAllowHeadersWildcard() throws Exception
+    public void shouldAllowOriginWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -98,71 +58,10 @@ public class AccessControlIT
 
     @Test
     @Specification({
-        "${net}/allow.origin.wildcard/client",
-        "${net}/allow.origin.wildcard/server",
+        "${net}/allow.origin.credentials/client",
+        "${net}/allow.origin.credentials/server",
     })
-    public void shouldAllowOriginWildcard() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/cache.allow.methods.explicit/client",
-        "${net}/cache.allow.methods.explicit/server",
-    })
-    public void shouldCacheAllowMethodsExplicit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/cache.allow.methods.wildcard/client",
-        "${net}/cache.allow.methods.wildcard/server",
-    })
-    public void shouldCacheAllowMethodsWildcard() throws Exception
-    {
-        k3po.finish();
-    }
-
-
-    @Test
-    @Specification({
-        "${net}/cache.allow.headers.explicit/client",
-        "${net}/cache.allow.headers.explicit/server",
-    })
-    public void shouldCacheAllowHeadersExplicit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/cache.allow.headers.wildcard/client",
-        "${net}/cache.allow.headers.wildcard/server",
-    })
-    public void shouldCacheAllowHeadersWildcard() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/expose.headers.explicit/client",
-        "${net}/expose.headers.explicit/server",
-    })
-    public void shouldExposeHeadersExplicit() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/expose.headers.wildcard/client",
-        "${net}/expose.headers.wildcard/server",
-    })
-    public void shouldExposeHeadersWildcard() throws Exception
+    public void shouldAllowOriginWithCredentials() throws Exception
     {
         k3po.finish();
     }
@@ -179,10 +78,20 @@ public class AccessControlIT
 
     @Test
     @Specification({
-        "${net}/allow.origin.omitted/client",
-        "${net}/allow.origin.omitted/server",
+        "${net}/allow.origin.omitted.cross.origin/client",
+        "${net}/allow.origin.omitted.cross.origin/server",
     })
-    public void shouldAllowOriginWhenOmitted() throws Exception
+    public void shouldAllowOriginWhenOmittedCrossOrigin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.origin.omitted.same.origin/client",
+        "${net}/allow.origin.omitted.same.origin/server",
+    })
+    public void shouldAllowOriginWhenOmittedSameOrigin() throws Exception
     {
         k3po.finish();
     }
@@ -199,10 +108,170 @@ public class AccessControlIT
 
     @Test
     @Specification({
+        "${net}/reject.origin.omitted/client",
+        "${net}/reject.origin.omitted/server",
+    })
+    public void shouldRejectOriginWhenOmitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.methods.wildcard/client",
+        "${net}/allow.methods.wildcard/server",
+    })
+    public void shouldAllowMethodsWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.methods.wildcard.cached/client",
+        "${net}/allow.methods.wildcard.cached/server",
+    })
+    public void shouldAllowMethodsWildcardCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.methods.explicit/client",
+        "${net}/allow.methods.explicit/server",
+    })
+    public void shouldAllowMethodsExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.methods.explicit.cached/client",
+        "${net}/allow.methods.explicit.cached/server",
+    })
+    public void shouldAllowMethodsExplicitCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.methods.credentials/client",
+        "${net}/allow.methods.credentials/server",
+    })
+    public void shouldAllowMethodsWithCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.methods.credentials.cached/client",
+        "${net}/allow.methods.credentials.cached/server",
+    })
+    public void shouldAllowMethodsWithCredentialsCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.method.not.allowed/client",
         "${net}/reject.method.not.allowed/server",
     })
     public void shouldRejectMethodNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.headers.wildcard/client",
+        "${net}/allow.headers.wildcard/server",
+    })
+    public void shouldAllowHeadersWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.headers.wildcard.cached/client",
+        "${net}/allow.headers.wildcard.cached/server",
+    })
+    public void shouldAllowHeadersWildcardCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.headers.explicit/client",
+        "${net}/allow.headers.explicit/server",
+    })
+    public void shouldAllowHeadersExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.headers.explicit.cached/client",
+        "${net}/allow.headers.explicit.cached/server",
+    })
+    public void shouldAllowHeadersExplicitCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.headers.credentials/client",
+        "${net}/allow.headers.credentials/server",
+    })
+    public void shouldAllowHeadersWithCredentials() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.headers.credentials.cached/client",
+        "${net}/allow.headers.credentials.cached/server",
+    })
+    public void shouldAllowHeadersWithCredentialsCached() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/expose.headers.wildcard/client",
+        "${net}/expose.headers.wildcard/server",
+    })
+    public void shouldExposeHeadersWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/expose.headers.explicit/client",
+        "${net}/expose.headers.explicit/server",
+    })
+    public void shouldExposeHeadersExplicit() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/expose.headers.credentials/client",
+        "${net}/expose.headers.credentials/server",
+    })
+    public void shouldExposeHeadersWithCredentials() throws Exception
     {
         k3po.finish();
     }
@@ -219,10 +288,10 @@ public class AccessControlIT
 
     @Test
     @Specification({
-        "${net}/reject.origin.omitted/client",
-        "${net}/reject.origin.omitted/server",
+        "${net}/allow.credentials.cookie/client",
+        "${net}/allow.credentials.cookie/server",
     })
-    public void shouldRejectOriginWhenOmitted() throws Exception
+    public void shouldAllowCredentialsCookie() throws Exception
     {
         k3po.finish();
     }
