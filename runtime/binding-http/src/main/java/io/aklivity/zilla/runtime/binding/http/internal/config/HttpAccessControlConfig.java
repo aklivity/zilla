@@ -235,10 +235,8 @@ public final class HttpAccessControlConfig
         Map<String, String> headers)
     {
         String origin = headers.get("origin");
-        String method = headers.get(":method");
 
-        return allowOrigin(origin) &&
-               allowMethod(method);
+        return allowOrigin(origin);
     }
 
     private boolean isSameOrigin(
