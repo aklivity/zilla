@@ -25,7 +25,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,19 +59,6 @@ public final class HttpAccessControlConfig
                 .name("access-control-allow-credentials")
                 .value("true")
                 .build();
-
-    private static final Set<String> ALLOWED_REQUEST_HEADERS;
-
-    static
-    {
-        Set<String> headers = new LinkedHashSet<>();
-        headers.add("accept");
-        headers.add("accept-language");
-        headers.add("content-language");
-        headers.add("content-type");
-        headers.add("origin");
-        ALLOWED_REQUEST_HEADERS = unmodifiableSet(headers);
-    }
 
     private static final Set<String> EXPOSED_RESPONSE_HEADERS;
 
@@ -240,23 +226,9 @@ public final class HttpAccessControlConfig
     }
 
     private boolean allowHeaders(
-        Set<String> headers)
-    {
-        return policy == SAME_ORIGIN || allow == null || allow.headers(headers, this::allowHeader);
-    }
-
-    private boolean allowHeaders(
         String headers)
     {
         return policy == SAME_ORIGIN || allow == null || allow.headers(headers);
-    }
-
-    private boolean allowHeader(
-        String header)
-    {
-        return header.charAt(0) == ':' ||
-                allow.header(header) ||
-                ALLOWED_REQUEST_HEADERS.contains(header);
     }
 
     private boolean allowCrossOrigin(
@@ -264,11 +236,9 @@ public final class HttpAccessControlConfig
     {
         String origin = headers.get("origin");
         String method = headers.get(":method");
-        Set<String> headerNames = headers.keySet();
 
         return allowOrigin(origin) &&
-               allowMethod(method) &&
-               allowHeaders(headerNames);
+               allowMethod(method);
     }
 
     private boolean isSameOrigin(
@@ -323,14 +293,6 @@ public final class HttpAccessControlConfig
         {
             return methods == null ||
                    methods.contains(method);
-        }
-
-        private boolean headers(
-            Set<String> headers,
-            Predicate<String> allowHeader)
-        {
-            return headers == null ||
-                   headers.stream().allMatch(allowHeader);
         }
 
         private boolean headers(
