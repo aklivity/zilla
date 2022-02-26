@@ -54,7 +54,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -4285,9 +4284,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 final Map<String, String> headers = headersDecoder.headers;
 
-                final HttpAccessControlConfig access = binding.access();
-
-                if (isCorsPreflightRequest(headers::get))
+                if (isCorsPreflightRequest(headers))
                 {
                     if (!endRequest)
                     {
@@ -4295,69 +4292,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                     else
                     {
-                        final String origin = headers.get(HEADER_NAME_ORIGIN);
-                        final String requestMethod = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD);
-                        final String requestHeaders = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS);
-
-                        if (origin != null && !access.allowOrigin(origin) ||
-                            requestMethod != null && !access.allowMethod(requestMethod) ||
-                            requestHeaders != null && !access.allowHeaders(requestHeaders))
-                        {
-                            doEncodeHeaders(traceId, authorization, streamId, headers403, true);
-                        }
-                        else
-                        {
-                            Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> responseHeaders = headersRW
-                                    .wrap(extBuffer, 0, extBuffer.capacity())
-                                    .item(i -> i.name(HEADER_STATUS).value(STATUS_204));
-
-                            final String16FW server = config.serverHeader();
-                            if (server != null)
-                            {
-                                responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
-                            }
-
-                            final HttpHeaderFW allowOrigin = access.allowOriginHeader(origin);
-                            responseHeaders.item(h -> h.set(allowOrigin));
-
-                            if (requestMethod != null)
-                            {
-                                if (access.allowMethodsExplicit())
-                                {
-                                    responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_METHODS).value(requestMethod));
-                                }
-                                else
-                                {
-                                    responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_METHODS_WILDCARD));
-                                }
-                            }
-
-                            if (requestHeaders != null)
-                            {
-                                if (access.allowHeadersExplicit())
-                                {
-                                    responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_HEADERS).value(requestHeaders));
-                                }
-                                else
-                                {
-                                    responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_HEADERS_WILDCARD));
-                                }
-                            }
-
-                            if (requestMethod != null || requestHeaders != null)
-                            {
-                                HttpHeaderFW maxAgeHeader = access.maxAgeHeader();
-                                if (maxAgeHeader != null)
-                                {
-                                    responseHeaders.item(h -> h.set(maxAgeHeader));
-                                }
-                            }
-
-                            doEncodeHeaders(traceId, authorization, streamId, responseHeaders.build(), true);
-                        }
+                        doCorsPreflightResponse(traceId, authorization, streamId, headers);
                     }
                 }
-                else if (!isCorsRequestAllowed(access, headers))
+                else if (!isCorsRequestAllowed(headers))
                 {
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
@@ -4405,6 +4343,82 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                 }
             }
+        }
+
+        private void doCorsPreflightResponse(
+            long traceId,
+            long authorization,
+            int streamId,
+            Map<String, String> headers)
+        {
+            final HttpAccessControlConfig access = binding.access();
+            final String origin = headers.get(HEADER_NAME_ORIGIN);
+            final String requestMethod = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD);
+            final String requestHeaders = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS);
+
+            if (origin != null && !access.allowOrigin(origin) ||
+                requestMethod != null && !access.allowMethod(requestMethod) ||
+                requestHeaders != null && !access.allowHeaders(requestHeaders))
+            {
+                doEncodeHeaders(traceId, authorization, streamId, headers403, true);
+            }
+            else
+            {
+                Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> responseHeaders = headersRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .item(i -> i.name(HEADER_STATUS).value(STATUS_204));
+
+                final String16FW server = config.serverHeader();
+                if (server != null)
+                {
+                    responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
+                }
+
+                final HttpHeaderFW allowOrigin = access.allowOriginHeader(origin);
+                responseHeaders.item(h -> h.set(allowOrigin));
+
+                if (requestMethod != null)
+                {
+                    if (access.allowMethodsExplicit())
+                    {
+                        responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_METHODS).value(requestMethod));
+                    }
+                    else
+                    {
+                        responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_METHODS_WILDCARD));
+                    }
+                }
+
+                if (requestHeaders != null)
+                {
+                    if (access.allowHeadersExplicit())
+                    {
+                        responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_HEADERS).value(requestHeaders));
+                    }
+                    else
+                    {
+                        responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_HEADERS_WILDCARD));
+                    }
+                }
+
+                if (requestMethod != null || requestHeaders != null)
+                {
+                    HttpHeaderFW maxAgeHeader = access.maxAgeHeader();
+                    if (maxAgeHeader != null)
+                    {
+                        responseHeaders.item(h -> h.set(maxAgeHeader));
+                    }
+                }
+
+                doEncodeHeaders(traceId, authorization, streamId, responseHeaders.build(), true);
+            }
+        }
+
+        private boolean isCorsRequestAllowed(
+            Map<String, String> headers)
+        {
+            return !headers.containsKey(HEADER_NAME_ORIGIN) ||
+                   binding.access().allowRequest(headers);
         }
 
         private void onDecodeTrailers(
@@ -6101,20 +6115,12 @@ public final class HttpServerFactory implements HttpStreamFactory
     }
 
     private boolean isCorsPreflightRequest(
-        Function<String, String> headerByName)
-    {
-        return Objects.equals(headerByName.apply(HEADER_NAME_METHOD), METHOD_NAME_OPTIONS) &&
-               headerByName.apply(HEADER_NAME_ORIGIN) != null &&
-               (headerByName.apply(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD) != null ||
-                headerByName.apply(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS) != null);
-    }
-
-    private boolean isCorsRequestAllowed(
-        HttpAccessControlConfig access,
         Map<String, String> headers)
     {
-        return !headers.containsKey(HEADER_NAME_ORIGIN) ||
-               access != null && access.allowRequest(headers);
+        return Objects.equals(headers.get(HEADER_NAME_METHOD), METHOD_NAME_OPTIONS) &&
+               headers.containsKey(HEADER_NAME_ORIGIN) &&
+               (headers.containsKey(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD) ||
+                headers.containsKey(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS));
     }
 
     private URI createTargetURI(
