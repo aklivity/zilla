@@ -125,7 +125,14 @@ public final class HttpAccessControlConfig
         this.expose = expose;
     }
 
+    public HttpPolicyConfig effectivePolicy(
+        Map<String, String> headers)
+    {
+        return policy == SAME_ORIGIN || isSameOrigin(headers) ? SAME_ORIGIN : policy;
+    }
+
     public HttpHeaderFW allowOriginHeader(
+        HttpPolicyConfig policy,
         String origin)
     {
         HttpHeaderFW allowOrigin = null;
@@ -160,43 +167,23 @@ public final class HttpAccessControlConfig
                 : null;
     }
 
+    public boolean allowPreflight(
+        Map<String, String> headers)
+    {
+        final String origin = headers.get("origin");
+        final String requestMethod = headers.get("access-control-request-method");
+        final String requestHeaders = headers.get("access-control-request-headers");
+
+        return origin != null && allowOrigin(origin) &&
+            (requestMethod == null || allowMethod(requestMethod)) &&
+            (requestHeaders == null || allowHeaders(requestHeaders));
+    }
+
     public boolean allowRequest(
         Map<String, String> headers)
     {
         return policy == CROSS_ORIGIN && allowCrossOrigin(headers) ||
-               policy == SAME_ORIGIN && allowSameOrigin(headers);
-    }
-
-    public boolean allowOrigin(
-        String origin)
-    {
-        return policy == SAME_ORIGIN || allow == null || allow.origin(origin);
-    }
-
-    public boolean allowMethod(
-        String method)
-    {
-        return policy == SAME_ORIGIN || allow == null || allow.method(method);
-    }
-
-    public boolean allowHeaders(
-        Set<String> headers)
-    {
-        return policy == SAME_ORIGIN || allow == null || allow.headers(headers, this::allowHeader);
-    }
-
-    public boolean allowHeaders(
-        String headers)
-    {
-        return policy == SAME_ORIGIN || allow == null || allow.headers(headers);
-    }
-
-    private boolean allowHeader(
-        String header)
-    {
-        return header.charAt(0) == ':' ||
-                allow.header(header) ||
-                ALLOWED_REQUEST_HEADERS.contains(header);
+               isSameOrigin(headers);
     }
 
     public boolean exposeHeader(
@@ -240,6 +227,38 @@ public final class HttpAccessControlConfig
                  expose != null && expose.headersExplicit());
     }
 
+    private boolean allowOrigin(
+        String origin)
+    {
+        return policy == SAME_ORIGIN || allow == null || allow.origin(origin);
+    }
+
+    private boolean allowMethod(
+        String method)
+    {
+        return policy == SAME_ORIGIN || allow == null || allow.method(method);
+    }
+
+    private boolean allowHeaders(
+        Set<String> headers)
+    {
+        return policy == SAME_ORIGIN || allow == null || allow.headers(headers, this::allowHeader);
+    }
+
+    private boolean allowHeaders(
+        String headers)
+    {
+        return policy == SAME_ORIGIN || allow == null || allow.headers(headers);
+    }
+
+    private boolean allowHeader(
+        String header)
+    {
+        return header.charAt(0) == ':' ||
+                allow.header(header) ||
+                ALLOWED_REQUEST_HEADERS.contains(header);
+    }
+
     private boolean allowCrossOrigin(
         Map<String, String> headers)
     {
@@ -252,13 +271,21 @@ public final class HttpAccessControlConfig
                allowHeaders(headerNames);
     }
 
-    private boolean allowSameOrigin(
+    private boolean isSameOrigin(
         Map<String, String> headers)
     {
         String origin = headers.get("origin");
         String scheme = headers.get(":scheme");
         String authority = headers.get(":authority");
 
+        return origin != null && matchesSameOrigin(origin, scheme, authority);
+    }
+
+    private boolean matchesSameOrigin(
+        String origin,
+        String scheme,
+        String authority)
+    {
         final Matcher matcher = ORIGIN_MATCHER.get().reset(origin);
         return matcher.matches() &&
                 Objects.equals(matcher.group("scheme"), scheme) &&

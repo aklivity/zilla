@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.KEEP_ALIVE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.PROXY_CONNECTION;
@@ -92,6 +93,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion;
@@ -4324,10 +4326,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final long routeId = route.id;
                         final long contentLength = headersDecoder.contentLength;
 
-                        final String origin = headers.get(HEADER_NAME_ORIGIN);
+                        HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
+                        final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
                         final Http2Exchange exchange =
-                                new Http2Exchange(routeId, streamId, origin, contentLength);
+                                new Http2Exchange(routeId, streamId, policy, origin, contentLength);
 
                         final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                 .typeId(httpTypeId)
@@ -4352,18 +4355,17 @@ public final class HttpServerFactory implements HttpStreamFactory
             Map<String, String> headers)
         {
             final HttpAccessControlConfig access = binding.access();
-            final String origin = headers.get(HEADER_NAME_ORIGIN);
-            final String requestMethod = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD);
-            final String requestHeaders = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS);
 
-            if (origin != null && !access.allowOrigin(origin) ||
-                requestMethod != null && !access.allowMethod(requestMethod) ||
-                requestHeaders != null && !access.allowHeaders(requestHeaders))
+            if (!access.allowPreflight(headers))
             {
                 doEncodeHeaders(traceId, authorization, streamId, headers403, true);
             }
             else
             {
+                final String origin = headers.get(HEADER_NAME_ORIGIN);
+                final String requestMethod = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD);
+                final String requestHeaders = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS);
+
                 Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> responseHeaders = headersRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .item(i -> i.name(HEADER_STATUS).value(STATUS_204));
@@ -4374,7 +4376,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
                 }
 
-                final HttpHeaderFW allowOrigin = access.allowOriginHeader(origin);
+                final HttpHeaderFW allowOrigin = access.allowOriginHeader(CROSS_ORIGIN, origin);
                 responseHeaders.item(h -> h.set(allowOrigin));
 
                 if (requestMethod != null)
@@ -4684,12 +4686,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final long contentLength = -1;
                     final int promiseId = ++maxServerStreamId << 1;
 
+                    final HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                     final String origin = headers.get(HEADER_NAME_ORIGIN);
 
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
                     final Http2Exchange exchange =
-                            new Http2Exchange(routeId, promiseId, origin, contentLength);
+                            new Http2Exchange(routeId, promiseId, policy, origin, contentLength);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
@@ -4761,13 +4764,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization,
             int streamId,
+            HttpPolicyConfig policy,
             String origin,
             Array32FW<HttpHeaderFW> headers,
             boolean endResponse)
         {
             final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
-                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, binding.access(), origin, headers, hb))
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, binding.access(), policy, origin, headers, hb))
                     .endHeaders()
                     .endStream(endResponse)
                     .build();
@@ -4784,7 +4788,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
-                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, null, null, headers, hb))
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, null, null, null, headers, hb))
                     .endHeaders()
                     .endStream(endResponse)
                     .build();
@@ -4971,6 +4975,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final long requestId;
             private final long responseId;
             private final int streamId;
+            private final HttpPolicyConfig policy;
             private final String origin;
             private final long contentLength;
 
@@ -4995,11 +5000,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             private Http2Exchange(
                 long routeId,
                 int streamId,
+                HttpPolicyConfig policy,
                 String origin,
                 long contentLength)
             {
                 this.routeId = routeId;
                 this.streamId = streamId;
+                this.policy = policy;
                 this.origin = origin;
                 this.contentLength = contentLength;
                 this.requestId = supplyInitialId.applyAsLong(routeId);
@@ -5274,7 +5281,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : HEADERS_200_OK;
 
-                doEncodeHeaders(traceId, authorization, streamId, origin, headers, false);
+                doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, false);
             }
 
             private void onResponseData(
@@ -5897,6 +5904,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         void encodeHeaders(
             HpackContext encodeContext,
             HttpAccessControlConfig access,
+            HttpPolicyConfig policy,
             String origin,
             Array32FW<HttpHeaderFW> headers,
             HpackHeaderBlockFW.Builder headerBlock)
@@ -5927,7 +5935,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (access != null)
             {
-                HttpHeaderFW allowOrigin = access.allowOriginHeader(origin);
+                HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
                 if (allowOrigin != null)
                 {
                     headerBlock.header(b -> encodeHeader(allowOrigin, b));

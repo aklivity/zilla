@@ -26,6 +26,7 @@ read zilla:begin.ext ${http:beginEx()
                            .header(":path", "/")
                            .header(":authority", "example.com:9090")
                            .header("origin", "https://example.com:9090")
+                           .header("user-agent", "zilla")
                            .build()}
 connected
 

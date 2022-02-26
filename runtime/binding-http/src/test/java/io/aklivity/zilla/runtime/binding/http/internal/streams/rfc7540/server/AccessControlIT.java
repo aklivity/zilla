@@ -98,6 +98,17 @@ public class AccessControlIT
     }
 
     @Test
+    @Configuration("server.access.control.cross.origin.json")
+    @Specification({
+        "${net}/allow.origin.same.origin/client",
+        "${app}/allow.origin.same.origin/server",
+    })
+    public void shouldAllowOriginWhenCrossOriginWithSameOrigin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.access.control.same.origin.json")
     @Specification({
         "${net}/allow.origin.omitted.same.origin/client",

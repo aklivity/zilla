@@ -52,7 +52,7 @@ read [0x00 0x00 0x00]                                      # length = 0
      [0x01]                                                # ACK
      [0x00 0x00 0x00 0x00]                                 # stream_id = 0
 
-read [0x00 0x00 0x36]                                      # length = 54
+read [0x00 0x00 0x48]                                      # length = 72
      [0x01]                                                # HEADERS frame
      [0x05]                                                # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x01]                                 # stream_id = 1
@@ -62,6 +62,8 @@ read [0x00 0x00 0x36]                                      # length = 54
      [0x01] [0x10] "example.com:9090"                      # :authority: example.com:9090
      [0x40] [0x06] "origin"
             [0x18] "https://example.com:9090"              # same-origin
+     [0x40] [0x0a] "user-agent"
+            [0x05] "zilla"                                 # user-agent
 
 write [0x00 0x00 0x45]                                     # length = 69
       [0x01]                                               # HTTP2 HEADERS frame
