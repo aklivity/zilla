@@ -146,6 +146,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateHttp1ServerAccessControlSameOriginWithImplicitPorts()
+    {
+        JsonObject config = schema.validate("v1.1/server.access.control.same.origin.implicit.ports.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateHttp2Client()
     {
         JsonObject config = schema.validate("v2/client.json");
@@ -245,6 +253,14 @@ public class SchemaTest
     public void shouldValidateHttp2ServerAccessControlSameOrigin()
     {
         JsonObject config = schema.validate("v2/server.access.control.same.origin.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAccessControlSameOriginWithImplicitPorts()
+    {
+        JsonObject config = schema.validate("v2/server.access.control.same.origin.implicit.ports.json");
 
         assertThat(config, not(nullValue()));
     }

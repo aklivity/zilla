@@ -21,6 +21,7 @@ import static java.lang.ThreadLocal.withInitial;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -258,8 +259,33 @@ public final class HttpAccessControlConfig
     {
         final Matcher matcher = ORIGIN_MATCHER.get().reset(origin);
         return matcher.matches() &&
-                Objects.equals(matcher.group("scheme"), scheme) &&
-                Objects.equals(matcher.group("authority"), authority);
+                matchesSameOrigin(matcher.group("scheme"), scheme, matcher.group("authority"), authority);
+    }
+
+    private boolean matchesSameOrigin(
+        String originScheme,
+        String headerScheme,
+        String originAuthority,
+        String headerAuthority)
+    {
+        return Objects.equals(originScheme, headerScheme) &&
+                (Objects.equals(originAuthority, headerAuthority) ||
+                 equivalentAuthority(originScheme, originAuthority, headerAuthority));
+    }
+
+    private boolean equivalentAuthority(
+        String scheme,
+        String originAuthority,
+        String headerAuthority)
+    {
+        URI originURI = URI.create(String.format("%s://%s", scheme, originAuthority));
+        String originHost = originURI.getHost();
+        int originPort = asImplicitPortIfNecessary(originURI.getPort(), scheme);
+        URI headerURI = URI.create(String.format("%s://%s", scheme, headerAuthority));
+        String headerHost = headerURI.getHost();
+        int headerPort = asImplicitPortIfNecessary(originURI.getPort(), scheme);
+
+        return Objects.equals(originHost, headerHost) && originPort == headerPort;
     }
 
     public static final class HttpAllowConfig
@@ -269,6 +295,8 @@ public final class HttpAccessControlConfig
         public final Set<String> headers;
         public final boolean credentials;
 
+        private final Set<String> implicitOrigins;
+
         public HttpAllowConfig(
             Set<String> origins,
             Set<String> methods,
@@ -276,6 +304,7 @@ public final class HttpAccessControlConfig
             boolean credentials)
         {
             this.origins = origins;
+            this.implicitOrigins = origins != null ? asImplicitOrigins(origins) : null;
             this.methods = methods;
             this.headers = headers != null ? asCaseless(headers) : null;
             this.credentials = credentials;
@@ -285,7 +314,8 @@ public final class HttpAccessControlConfig
             String origin)
         {
             return origins == null ||
-                   origins.contains(origin);
+                   origins.contains(origin) ||
+                   implicitOrigins.contains(origin);
         }
 
         private boolean method(
@@ -376,5 +406,69 @@ public final class HttpAccessControlConfig
         final Set<String> caseless = new TreeSet<String>(String::compareToIgnoreCase);
         caseless.addAll(cased);
         return caseless;
+    }
+
+    private static Set<String> asImplicitOrigins(
+        Set<String> origins)
+    {
+        Set<String> implicit = new LinkedHashSet<>();
+
+        for (String origin : origins)
+        {
+            URI originURI = URI.create(origin);
+            String scheme = originURI.getScheme();
+            String authority = originURI.getAuthority();
+            int port = originURI.getPort();
+
+            switch (scheme)
+            {
+            case "http":
+                switch (port)
+                {
+                case -1:
+                    implicit.add(String.format("%s://%s:%d", scheme, authority, 80));
+                    break;
+                case 80:
+                    implicit.add(String.format("%s://%s", scheme, authority));
+                    break;
+                }
+                break;
+            case "https":
+                switch (port)
+                {
+                case -1:
+                    implicit.add(String.format("%s://%s:%d", scheme, authority, 443));
+                    break;
+                case 443:
+                    implicit.add(String.format("%s://%s", scheme, authority));
+                    break;
+                }
+                break;
+            }
+        }
+
+        return implicit;
+    }
+
+    private static int asImplicitPortIfNecessary(
+        int port,
+        String scheme)
+    {
+        int portOrDefault = port;
+
+        if (portOrDefault == -1)
+        {
+            switch (scheme)
+            {
+            case "http":
+                portOrDefault = 80;
+                break;
+            case "https":
+                portOrDefault = 443;
+                break;
+            }
+        }
+
+        return portOrDefault;
     }
 }

@@ -78,6 +78,26 @@ public class AccessControlIT
 
     @Test
     @Specification({
+        "${net}/allow.origin.same.origin.implicit.http.port/client",
+        "${net}/allow.origin.same.origin.implicit.http.port/server",
+    })
+    public void shouldAllowOriginWhenSameOriginWithImplicitHttpPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/allow.origin.same.origin.implicit.https.port/client",
+        "${net}/allow.origin.same.origin.implicit.https.port/server",
+    })
+    public void shouldAllowOriginWhenSameOriginWithImplicitHttpsPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/allow.origin.omitted.cross.origin/client",
         "${net}/allow.origin.omitted.cross.origin/server",
     })
