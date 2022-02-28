@@ -39,8 +39,6 @@ read "OPTIONS / HTTP/1.1" "\r\n"
 
 write "HTTP/1.1 204 No Content" "\r\n"
       "Server: Zilla" "\r\n"
-      "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
-      "Content-Type: text/plain; charset=UTF-8" "\r\n"
       "Access-Control-Allow-Origin: *" "\r\n"
       "Access-Control-Allow-Methods: *" "\r\n"
       "Access-Control-Allow-Headers: *" "\r\n"

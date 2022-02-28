@@ -41,7 +41,7 @@ write "HTTP/1.1 200 OK" "\r\n"
       "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
       "Content-Type: text/plain; charset=UTF-8" "\r\n"
       "Content-Length: 12" "\r\n"
-      "Access-Control-Allow-Origin: *\r\n" "\r\n"
+      "Access-Control-Allow-Origin: *" "\r\n"
       "\r\n"
 write flush
 

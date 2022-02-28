@@ -74,10 +74,10 @@ write [0x00 0x00 0xde]                                     # length = 222
       [0x00] [0x0f] "x-custom-header"
              [0x0d] "exposed-value"                        # x-custom-header
       [0x0f] [0x05] [0x18] "https://example.net:9090"      # access-control-allow-origin
-      [0x00] [0x1d] "access-control-expose-headers"
-             [0x0f] "x-custom-header"                      # access-control-expose-headers
       [0x00] [0x20] "access-control-allow-credentials"
              [0x04] "true"                                 # access-control-allow-credentials
+      [0x00] [0x1d] "access-control-expose-headers"
+             [0x0f] "x-custom-header"                      # access-control-expose-headers
       [0x0f] [0x2c] [0x06] "origin"                        # vary
 write flush
 

@@ -181,6 +181,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final byte COLON_BYTE = ':';
     private static final byte HYPHEN_BYTE = '-';
+    private static final byte COMMA_BYTE = ',';
     private static final byte SPACE_BYTE = ' ';
     private static final byte ZERO_BYTE = '0';
 
@@ -389,6 +390,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
 
     private final Array32FW<HttpHeaderFW> headers403;
+    private final DirectBuffer response403;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -550,6 +552,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
 
         this.headers403 = initHeaders(config, STATUS_403);
+        this.response403 = initResponse(config, 403, "Forbidden");
     }
 
     @Override
@@ -935,25 +938,41 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Map<String, String> headers = new LinkedHashMap<>();
                 beginEx.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-                HttpBindingConfig binding = server.binding;
-                HttpRouteConfig route = binding.resolve(authorization, headers::get);
-                if (route != null)
+                if (isCorsPreflightRequest(headers))
                 {
-                    if (binding.options != null && binding.options.overrides != null)
-                    {
-                        binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
-
-                        final HttpBeginExFW.Builder newBeginEx = newBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                                                                             .typeId(httpTypeId);
-                        headers.forEach((k, v) -> newBeginEx.headersItem(i -> i.name(k).value(v)));
-                        beginEx = newBeginEx.build();
-                    }
-
-                    server.onDecodeHeaders(route.id, traceId, authorization, beginEx);
+                    server.onDecodeCorsPreflight(traceId, authorization, headers);
+                    server.decoder = decodeEmptyLines;
+                }
+                else if (!isCorsRequestAllowed(server.binding, headers))
+                {
+                    server.onDecodeHeadersError(traceId, authorization, response403);
+                    server.decoder = decodeIgnore;
                 }
                 else
                 {
-                    error = ERROR_404_NOT_FOUND;
+                    HttpBindingConfig binding = server.binding;
+                    HttpRouteConfig route = binding.resolve(authorization, headers::get);
+                    if (route != null)
+                    {
+                        if (binding.options != null && binding.options.overrides != null)
+                        {
+                            binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+
+                            final HttpBeginExFW.Builder newBeginEx = newBeginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                                                                                 .typeId(httpTypeId);
+                            headers.forEach((k, v) -> newBeginEx.headersItem(i -> i.name(k).value(v)));
+                            beginEx = newBeginEx.build();
+                        }
+
+                        HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
+                        final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
+
+                        server.onDecodeHeaders(route.id, traceId, authorization, policy, origin, beginEx);
+                    }
+                    else
+                    {
+                        error = ERROR_404_NOT_FOUND;
+                    }
                 }
             }
         }
@@ -969,6 +988,14 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         return error == null && endOfHeadersAt != -1 ? endOfHeadersAt : offset;
+    }
+
+    private boolean isCorsRequestAllowed(
+        HttpBindingConfig binding,
+        Map<String, String> headers)
+    {
+        return !headers.containsKey(HEADER_NAME_ORIGIN) ||
+               binding.access().allowRequest(headers);
     }
 
     private DirectBuffer decodeStartLine(
@@ -1979,13 +2006,84 @@ public final class HttpServerFactory implements HttpStreamFactory
             cleanupNetwork(traceId, authorization);
         }
 
+        private void onDecodeCorsPreflight(
+            long traceId,
+            long authorization,
+            Map<String, String> headers)
+        {
+            final HttpAccessControlConfig access = binding.access();
+
+            if (!access.allowPreflight(headers))
+            {
+                onDecodeHeadersError(traceId, authorization, response403);
+            }
+            else
+            {
+                final String origin = headers.get(HEADER_NAME_ORIGIN);
+                final String requestMethod = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD);
+                final String requestHeaders = headers.get(HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS);
+
+                Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> responseHeaders = headersRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .item(i -> i.name(HEADER_STATUS).value(STATUS_204));
+
+                final String16FW server = config.serverHeader();
+                if (server != null)
+                {
+                    responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
+                }
+
+                final HttpHeaderFW allowOrigin = access.allowOriginHeader(CROSS_ORIGIN, origin);
+                responseHeaders.item(h -> h.set(allowOrigin));
+
+                if (requestMethod != null)
+                {
+                    if (access.allowMethodsExplicit())
+                    {
+                        responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_METHODS).value(requestMethod));
+                    }
+                    else
+                    {
+                        responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_METHODS_WILDCARD));
+                    }
+                }
+
+                if (requestHeaders != null)
+                {
+                    if (access.allowHeadersExplicit())
+                    {
+                        responseHeaders.item(h -> h.name(HEADER_ACCESS_CONTROL_ALLOW_HEADERS).value(requestHeaders));
+                    }
+                    else
+                    {
+                        responseHeaders.item(h -> h.set(HEADER_ACCESS_CONTROL_ALLOW_HEADERS_WILDCARD));
+                    }
+                }
+
+                if (requestMethod != null || requestHeaders != null)
+                {
+                    HttpHeaderFW maxAgeHeader = access.maxAgeHeader();
+                    if (maxAgeHeader != null)
+                    {
+                        responseHeaders.item(h -> h.set(maxAgeHeader));
+                    }
+                }
+
+                doEncodeHeaders(traceId, authorization, replyBudgetId, responseHeaders.build());
+            }
+
+            assert exchange == null;
+        }
+
         private void onDecodeHeaders(
             long routeId,
             long traceId,
             long authorization,
+            HttpPolicyConfig policy,
+            String origin,
             HttpBeginExFW beginEx)
         {
-            final HttpExchange exchange = new HttpExchange(routeId);
+            final HttpExchange exchange = new HttpExchange(routeId, policy, origin);
             exchange.doRequestBegin(traceId, authorization, beginEx);
 
             final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
@@ -2029,6 +2127,27 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         private void doEncodeHeaders(
+            long traceId,
+            long authorization,
+            long budgetId,
+            Array32FW<HttpHeaderFW> headers)
+        {
+            final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
+            final String16FW statusValue = status != null ? status.value() : STATUS_200;
+
+            codecOffset.value = doEncodeStatus(codecBuffer, 0, statusValue);
+            headers.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
+            codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
+            codecOffset.value += CRLF_BYTES.length;
+
+            final int length = codecOffset.value;
+            assert length <= maximumHeadersSize;
+
+            final int reserved = length + replyPad;
+            doNetworkData(traceId, authorization, budgetId, reserved, codecBuffer, 0, length);
+        }
+
+        private void doEncodeHeaders(
             HttpExchange exchange,
             long traceId,
             long authorization,
@@ -2052,11 +2171,63 @@ public final class HttpServerFactory implements HttpStreamFactory
                     ? parseInt(contentLength.value().asString())
                     : Integer.MAX_VALUE - encodeMax; // avoids responseRemaining overflow
 
+            final HttpHeaderFW server = headers.matchFirst(h -> HEADER_SERVER.equals(h.name()));
+            final String16FW serverHeader = config.serverHeader();
+
             final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
             final String16FW statusValue = status != null ? status.value() : STATUS_200;
 
             codecOffset.value = doEncodeStatus(codecBuffer, 0, statusValue);
+            if (server == null && serverHeader != null)
+            {
+                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
+                        HEADER_SERVER.value(), serverHeader.value(), false);
+            }
             headers.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
+
+            final String origin = exchange.origin;
+            final HttpPolicyConfig policy = exchange.policy;
+            final HttpAccessControlConfig access = binding.access();
+            HttpHeaderFW allowOrigin = access.allowOriginHeader(policy, origin);
+            if (allowOrigin != null)
+            {
+                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowOrigin);
+            }
+
+            HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
+            if (allowCredentials != null)
+            {
+                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, allowCredentials);
+            }
+
+            if (access.exposeHeadersExplicit())
+            {
+                headers.forEach(h ->
+                {
+                    final String8FW name = h.name();
+                    if (access.exposeHeader(name.asString()))
+                    {
+                        String8FW expose = HEADER_ACCESS_CONTROL_EXPOSE_HEADERS;
+                        codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, expose.value(), name.value(), true);
+                    }
+                });
+            }
+            else if (access.exposeHeaders())
+            {
+                if (headers.anyMatch(h -> access.exposeHeader(h.name().asString())))
+                {
+                    codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
+                            HEADER_ACCESS_CONTROL_EXPOSE_HEADERS_WILDCARD);
+                }
+            }
+
+            if (allowOrigin != null &&
+                !allowOrigin.equals(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD))
+            {
+                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
+                        HEADER_VARY_ORIGIN, true);
+            }
+
             codecBuffer.putBytes(codecOffset.value, CRLF_BYTES);
             codecOffset.value += CRLF_BYTES.length;
 
@@ -2118,35 +2289,78 @@ public final class HttpServerFactory implements HttpStreamFactory
             int offset,
             HttpHeaderFW header)
         {
+            return doEncodeHeader(buffer, offset, header, false);
+        }
+
+        private int doEncodeHeader(
+            MutableDirectBuffer buffer,
+            int offset,
+            HttpHeaderFW header,
+            boolean valueInitCaps)
+        {
             int progress = offset;
             final DirectBuffer name = header.name().value();
-            if (name.getByte(0) != COLON_BYTE)
+            byte nameByte0 = name.getByte(0);
+            if (nameByte0 != COLON_BYTE)
             {
                 final DirectBuffer value = header.value().value();
+                progress = doEncodeHeader(buffer, progress, name, value, valueInitCaps);
+            }
+            return progress;
+        }
 
-                boolean uppercase = true;
-                for (int pos = 0, len = name.capacity(); pos < len; pos++, progress++)
-                {
-                    byte ch = name.getByte(pos);
-                    if (uppercase)
-                    {
-                        ch = (byte) toUpperCase(ch);
-                    }
-                    else
-                    {
-                        ch |= (byte) toLowerCase(ch);
-                    }
-                    buffer.putByte(progress, ch);
-                    uppercase = ch == HYPHEN_BYTE;
-                }
+        private int doEncodeHeader(
+            MutableDirectBuffer buffer,
+            int offset,
+            DirectBuffer name,
+            DirectBuffer value,
+            boolean valueInitCaps)
+        {
+            int progress = offset;
+            progress = doEncodeInitialCaps(buffer, name, progress);
 
-                buffer.putBytes(progress, COLON_SPACE_BYTES);
-                progress += COLON_SPACE_BYTES.length;
+            buffer.putBytes(progress, COLON_SPACE_BYTES);
+            progress += COLON_SPACE_BYTES.length;
+
+            if (valueInitCaps)
+            {
+                progress = doEncodeInitialCaps(buffer, value, progress);
+            }
+            else
+            {
                 buffer.putBytes(progress, value, 0, value.capacity());
                 progress += value.capacity();
-                buffer.putBytes(progress, CRLF_BYTES);
-                progress += CRLF_BYTES.length;
             }
+
+            buffer.putBytes(progress, CRLF_BYTES);
+            progress += CRLF_BYTES.length;
+
+            return progress;
+        }
+
+        private int doEncodeInitialCaps(
+            MutableDirectBuffer buffer,
+            DirectBuffer name,
+            int offset)
+        {
+            int progress = offset;
+
+            boolean uppercase = true;
+            for (int pos = 0, len = name.capacity(); pos < len; pos++, progress++)
+            {
+                byte ch = name.getByte(pos);
+                if (uppercase)
+                {
+                    ch = (byte) toUpperCase(ch);
+                }
+                else
+                {
+                    ch |= (byte) toLowerCase(ch);
+                }
+                buffer.putByte(progress, ch);
+                uppercase = ch == HYPHEN_BYTE || ch == COMMA_BYTE || ch == SPACE_BYTE;
+            }
+
             return progress;
         }
 
@@ -2281,6 +2495,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final long routeId;
             private final long requestId;
             private final long responseId;
+            private final HttpPolicyConfig policy;
+            private final String origin;
 
             private long requestSeq;
             private long requestAck;
@@ -2300,9 +2516,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long authorization;
 
             private HttpExchange(
-                long routeId)
+                long routeId,
+                HttpPolicyConfig policy,
+                String origin)
             {
                 this.routeId = routeId;
+                this.policy = policy;
+                this.origin = origin;
                 this.requestId = supplyInitialId.applyAsLong(routeId);
                 this.responseId = supplyReplyId.applyAsLong(requestId);
                 this.requestState = HttpExchangeState.PENDING;
@@ -4294,10 +4514,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                     }
                     else
                     {
-                        doCorsPreflightResponse(traceId, authorization, streamId, headers);
+                        onDecodeCorsPreflight(traceId, authorization, streamId, headers);
                     }
                 }
-                else if (!isCorsRequestAllowed(headers))
+                else if (!isCorsRequestAllowed(binding, headers))
                 {
                     doEncodeHeaders(traceId, authorization, streamId, headers403, true);
                 }
@@ -4348,7 +4568,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
         }
 
-        private void doCorsPreflightResponse(
+        private void onDecodeCorsPreflight(
             long traceId,
             long authorization,
             int streamId,
@@ -4414,13 +4634,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 doEncodeHeaders(traceId, authorization, streamId, responseHeaders.build(), true);
             }
-        }
-
-        private boolean isCorsRequestAllowed(
-            Map<String, String> headers)
-        {
-            return !headers.containsKey(HEADER_NAME_ORIGIN) ||
-                   binding.access().allowRequest(headers);
         }
 
         private void onDecodeTrailers(
@@ -5941,6 +6154,12 @@ public final class HttpServerFactory implements HttpStreamFactory
                     headerBlock.header(b -> encodeHeader(allowOrigin, b));
                 }
 
+                HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
+                if (allowCredentials != null)
+                {
+                    headerBlock.header(b -> encodeHeader(allowCredentials, b));
+                }
+
                 if (access.exposeHeadersExplicit())
                 {
                     headers.forEach(h ->
@@ -5959,12 +6178,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         headerBlock.header(b -> encodeHeader(HEADER_ACCESS_CONTROL_EXPOSE_HEADERS_WILDCARD, b));
                     }
-                }
-
-                HttpHeaderFW allowCredentials = access.allowCredentialsHeader();
-                if (allowCredentials != null)
-                {
-                    headerBlock.header(b -> encodeHeader(allowCredentials, b));
                 }
 
                 if (allowOrigin != null &&
@@ -6113,6 +6326,17 @@ public final class HttpServerFactory implements HttpStreamFactory
     }
 
     private static DirectBuffer initResponse(
+        HttpConfiguration config,
+        int status,
+        String reason)
+    {
+        final String16FW serverHeader = config.serverHeader();
+        return serverHeader != null
+            ? initResponse(status, reason, serverHeader.asString())
+            : initResponse(status, reason);
+    }
+
+    private static DirectBuffer initResponse(
         int status,
         String reason)
     {
@@ -6120,6 +6344,18 @@ public final class HttpServerFactory implements HttpStreamFactory
                                               "Connection: close\r\n" +
                                               "\r\n",
                                               status, reason).getBytes(UTF_8));
+    }
+
+    private static DirectBuffer initResponse(
+        int status,
+        String reason,
+        String server)
+    {
+        return new UnsafeBuffer(String.format("HTTP/1.1 %d %s\r\n" +
+                                              "Server: %s\r\n" +
+                                              "Connection: close\r\n" +
+                                              "\r\n",
+                                              status, reason, server).getBytes(UTF_8));
     }
 
     private boolean isCorsPreflightRequest(

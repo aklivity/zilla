@@ -40,8 +40,6 @@ write flush
 
 read "HTTP/1.1 204 No Content" "\r\n"
      "Server: Zilla" "\r\n"
-     "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
-     "Content-Type: text/plain; charset=UTF-8" "\r\n"
      "Access-Control-Allow-Origin: https://example.net:9090" "\r\n"
      "Access-Control-Allow-Methods: DELETE" "\r\n"
      "\r\n"
@@ -58,6 +56,7 @@ read "HTTP/1.1 204 No Content" "\r\n"
      "Server: Zilla" "\r\n"
      "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
      "Access-Control-Allow-Origin: https://example.net:9090" "\r\n"
+     "Vary: Origin" "\r\n"
      "\r\n"
 
 read closed

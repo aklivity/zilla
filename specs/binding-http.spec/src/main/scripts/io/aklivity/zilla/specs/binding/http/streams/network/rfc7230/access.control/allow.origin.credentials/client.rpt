@@ -31,23 +31,7 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write "OPTIONS / HTTP/1.1" "\r\n"
-      "Host: example.com:9090" "\r\n"
-      "Origin: https://example.net:9090" "\r\n"
-      "Access-Control-Request-Method: DELETE" "\r\n"
-      "\r\n"
-write flush
-
-read "HTTP/1.1 204 No Content" "\r\n"
-     "Server: Zilla" "\r\n"
-     "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
-     "Content-Type: text/plain; charset=UTF-8" "\r\n"
-     "Access-Control-Allow-Origin: https://example.net:9090" "\r\n"
-     "Access-Control-Allow-Methods: DELETE" "\r\n"
-     "Access-Control-Max-Age: 10" "\r\n"
-     "\r\n"
-
-write "DELETE / HTTP/1.1" "\r\n"
+write "GET / HTTP/1.1" "\r\n"
       "Host: example.com:9090" "\r\n"
       "Origin: https://example.net:9090" "\r\n"
       "\r\n"
@@ -55,10 +39,16 @@ write flush
 
 write close
 
-read "HTTP/1.1 204 No Content" "\r\n"
+read "HTTP/1.1 200 OK" "\r\n"
      "Server: Zilla" "\r\n"
      "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
+     "Content-Type: text/plain; charset=UTF-8" "\r\n"
+     "Content-Length: 12" "\r\n"
      "Access-Control-Allow-Origin: https://example.net:9090" "\r\n"
+     "Access-Control-Allow-Credentials: true" "\r\n"
+     "Vary: Origin" "\r\n"
      "\r\n"
+
+read "Hello, world"
 
 read closed

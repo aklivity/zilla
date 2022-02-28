@@ -19,12 +19,14 @@ import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessC
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +38,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 public final class HttpAccessControlConfig
 {
     private static final Pattern ORIGIN_PATTERN = Pattern.compile("(?<scheme>https?)://(?<authority>[^/]+)");
-    private static final Pattern HEADERS_PATTERN = Pattern.compile("([^,\\s]+)(:?,\\s*([^,\\\\s]+))*");
+    private static final Pattern HEADERS_PATTERN = Pattern.compile("([^,\\s]+)(:?,\\s*([^,\\\\s]+))*", CASE_INSENSITIVE);
 
     private static final ThreadLocal<Matcher> ORIGIN_MATCHER = withInitial(() -> ORIGIN_PATTERN.matcher(""));
     private static final ThreadLocal<Matcher> HEADERS_MATCHER = withInitial(() -> HEADERS_PATTERN.matcher(""));
@@ -275,7 +277,7 @@ public final class HttpAccessControlConfig
         {
             this.origins = origins;
             this.methods = methods;
-            this.headers = headers;
+            this.headers = headers != null ? asCaseless(headers) : null;
             this.credentials = credentials;
         }
 
@@ -366,5 +368,13 @@ public final class HttpAccessControlConfig
         {
             return headers != null;
         }
+    }
+
+    private static Set<String> asCaseless(
+        Set<String> cased)
+    {
+        final Set<String> caseless = new TreeSet<String>(String::compareToIgnoreCase);
+        caseless.addAll(cased);
+        return caseless;
     }
 }

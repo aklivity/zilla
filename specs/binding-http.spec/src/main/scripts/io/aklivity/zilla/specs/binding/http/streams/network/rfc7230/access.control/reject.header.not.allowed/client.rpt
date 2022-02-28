@@ -41,19 +41,7 @@ write flush
 
 read "HTTP/1.1 403 Forbidden" "\r\n"
      "Server: Zilla" "\r\n"
-     "\r\n"
-
-write "GET / HTTP/1.1" "\r\n"
-      "Host: example.com:9090" "\r\n"
-      "Origin: https://example.net:9090" "\r\n"
-      "Not-Allowed: forbidden" "\r\n"
-      "\r\n"
-write flush
-
-write close
-
-read "HTTP/1.1 403 Forbidden" "\r\n"
-     "Server: Zilla" "\r\n"
+     "Connection: close" "\r\n"
      "\r\n"
 
 read closed

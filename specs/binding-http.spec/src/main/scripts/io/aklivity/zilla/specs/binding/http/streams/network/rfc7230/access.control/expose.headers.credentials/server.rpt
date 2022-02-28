@@ -30,28 +30,9 @@ read zilla:begin.ext ${proxy:matchBeginEx()
 
 connected
 
-read "OPTIONS / HTTP/1.1" "\r\n"
-     "Host: example.com:9090" "\r\n"
-     "Origin: https://example.net:9090" "\r\n"
-     "Access-Control-Request-Method: GET" "\r\n"
-     "Access-Control-Request-Headers: X-Api-Key" "\r\n"
-     "\r\n"
-
-write "HTTP/1.1 204 No Content" "\r\n"
-      "Server: Zilla" "\r\n"
-      "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
-      "Content-Type: text/plain; charset=UTF-8" "\r\n"
-      "Access-Control-Allow-Origin: https://example.net:9090" "\r\n"
-      "Access-Control-Allow-Methods: GET" "\r\n"
-      "Access-Control-Allow-Headers: X-Api-Key" "\r\n"
-      "Access-Control-Max-Age: 10" "\r\n"
-      "\r\n"
-write flush
-
 read "GET / HTTP/1.1" "\r\n"
      "Host: example.com:9090" "\r\n"
      "Origin: https://example.net:9090" "\r\n"
-     "X-Api-Key: KEY" "\r\n"
      "\r\n"
 
 read closed
@@ -61,7 +42,11 @@ write "HTTP/1.1 200 OK" "\r\n"
       "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
       "Content-Type: text/plain; charset=UTF-8" "\r\n"
       "Content-Length: 12" "\r\n"
+      "X-Custom-Header: exposed-value" "\r\n"
       "Access-Control-Allow-Origin: https://example.net:9090" "\r\n"
+      "Access-Control-Allow-Credentials: true" "\r\n"
+      "Access-Control-Expose-Headers: X-Custom-Header" "\r\n"
+      "Vary: Origin" "\r\n"
       "\r\n"
 write flush
 
@@ -69,3 +54,4 @@ write "Hello, world"
 write flush
 
 write close
+
