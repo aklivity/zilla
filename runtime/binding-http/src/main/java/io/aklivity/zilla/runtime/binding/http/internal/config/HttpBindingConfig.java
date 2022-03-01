@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
 import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toList;
 
@@ -28,7 +29,8 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class HttpBindingConfig
 {
-    public static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
+    private static final SortedSet<HttpVersion> DEFAULT_VERSIONS = new TreeSet<>(allOf(HttpVersion.class));
+    private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL = new HttpAccessControlConfig(SAME_ORIGIN);
 
     public final long id;
     public final long vaultId;
@@ -63,5 +65,10 @@ public final class HttpBindingConfig
     public SortedSet<HttpVersion>  versions()
     {
         return options != null && options.versions != null ? options.versions : DEFAULT_VERSIONS;
+    }
+
+    public HttpAccessControlConfig access()
+    {
+        return options != null && options.access != null ? options.access : DEFAULT_ACCESS_CONTROL;
     }
 }

@@ -26,12 +26,15 @@ public final class HttpOptionsConfig extends OptionsConfig
 {
     public final SortedSet<HttpVersion>  versions;
     public final Map<String8FW, String16FW>  overrides;
+    public final HttpAccessControlConfig access;
 
     public HttpOptionsConfig(
         SortedSet<HttpVersion>  versions,
-        Map<String8FW, String16FW> overrides)
+        Map<String8FW, String16FW> overrides,
+        HttpAccessControlConfig access)
     {
         this.versions = versions;
         this.overrides = overrides;
+        this.access = access;
     }
 }

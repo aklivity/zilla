@@ -15,12 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertTrue;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.TreeSet;
 
@@ -31,6 +35,8 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpAllowConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpExposeConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
@@ -56,6 +62,22 @@ public class HttpOptionsConfigAdapterTest
                         "\"http/1.1\"," +
                         "\"h2\"" +
                     "]," +
+                    "\"access-control\":" +
+                    "{" +
+                        "\"policy\": \"cross-origin\"," +
+                        "\"allow\":" +
+                        "{" +
+                            "\"origins\": [ \"https://example.com:9090\" ]," +
+                            "\"methods\": [ \"DELETE\" ]," +
+                            "\"headers\": [ \"x-api-key\" ]," +
+                            "\"credentials\": true" +
+                        "}," +
+                        "\"max-age\": 10," +
+                        "\"expose\":" +
+                        "{" +
+                            "\"headers\": [ \"x-custom-header\" ]" +
+                        "}" +
+                    "}," +
                     "\"overrides\":" +
                     "{" +
                         "\":authority\": \"example.com:443\"" +
@@ -66,6 +88,15 @@ public class HttpOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.versions, equalTo(EnumSet.allOf(HttpVersion.class)));
+        assertThat(options.access, not(nullValue()));
+        assertThat(options.access.allow, not(nullValue()));
+        assertThat(options.access.allow.origins, equalTo(singleton("https://example.com:9090")));
+        assertThat(options.access.allow.methods, equalTo(singleton("DELETE")));
+        assertThat(options.access.allow.headers, equalTo(singleton("x-api-key")));
+        assertTrue(options.access.allow.credentials);
+        assertThat(options.access.maxAge, equalTo(Duration.ofSeconds(10)));
+        assertThat(options.access.expose, not(nullValue()));
+        assertThat(options.access.expose.headers, equalTo(singleton("x-custom-header")));
         assertThat(options.overrides, equalTo(singletonMap(new String8FW(":authority"), new String16FW("example.com:443"))));
     }
 
@@ -74,11 +105,48 @@ public class HttpOptionsConfigAdapterTest
     {
         HttpOptionsConfig options = new HttpOptionsConfig(
                 new TreeSet<>(EnumSet.allOf(HttpVersion.class)),
-                singletonMap(new String8FW(":authority"), new String16FW("example.com:443")));
+                singletonMap(new String8FW(":authority"), new String16FW("example.com:443")),
+                new HttpAccessControlConfig(
+                    CROSS_ORIGIN,
+                    new HttpAllowConfig(
+                        singleton("https://example.com:9090"),
+                        singleton("DELETE"),
+                        singleton("x-api-key"),
+                        true),
+                    Duration.ofSeconds(10),
+                    new HttpExposeConfig(
+                        singleton("x-custom-header"))));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"versions\":[\"http/1.1\",\"h2\"],\"overrides\":{\":authority\":\"example.com:443\"}}"));
+        assertThat(text, equalTo(
+                    "{" +
+                        "\"versions\":" +
+                        "[" +
+                            "\"http/1.1\"," +
+                            "\"h2\"" +
+                        "]," +
+                        "\"access-control\":" +
+                        "{" +
+                            "\"policy\":\"cross-origin\"," +
+                            "\"allow\":" +
+                            "{" +
+                                "\"origins\":[\"https://example.com:9090\"]," +
+                                "\"methods\":[\"DELETE\"]," +
+                                "\"headers\":[\"x-api-key\"]," +
+                                "\"credentials\":true" +
+                            "}," +
+                            "\"max-age\":10," +
+                            "\"expose\":" +
+                            "{" +
+                                "\"headers\":[\"x-custom-header\"]" +
+                            "}" +
+                        "}," +
+                        "\"overrides\":" +
+                        "{" +
+                            "\":authority\":\"example.com:443\"" +
+                        "}" +
+                    "}"));
     }
 }

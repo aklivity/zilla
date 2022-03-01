@@ -30,6 +30,105 @@
                                 "enum": [ "http/1.1", "h2" ]
                             }
                         },
+                        "access-control":
+                        {
+                            "title": "Access Control",
+                            "type": "object",
+                            "properties":
+                            {
+                                "policy":
+                                {
+                                    "title": "Policy",
+                                    "type": "string"
+                                }
+                            },
+                            "oneOf":
+                            [
+                                {
+                                    "properties":
+                                    {
+                                        "policy":
+                                        {
+                                            "const": "same-origin"
+                                        }
+                                    }
+                                },
+                                {
+                                    "properties":
+                                    {
+                                        "policy":
+                                        {
+                                            "const": "cross-origin"
+                                        },
+                                        "allow":
+                                        {
+                                            "title": "Allow",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "origins":
+                                                {
+                                                    "title": "Origins",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "methods":
+                                                {
+                                                    "title": "Methods",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "credentials":
+                                                {
+                                                    "title": "Credentials",
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "max-age":
+                                        {
+                                            "title": "Max Age",
+                                            "type": "number"
+                                        },
+                                        "expose":
+                                        {
+                                            "title": "Allow",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            ]
+                        },
                         "overrides":
                         {
                             "title": "Overrides",
