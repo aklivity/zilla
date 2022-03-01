@@ -270,22 +270,30 @@ public final class HttpAccessControlConfig
     {
         return Objects.equals(originScheme, headerScheme) &&
                 (Objects.equals(originAuthority, headerAuthority) ||
-                 equivalentAuthority(originScheme, originAuthority, headerAuthority));
+                 matchesAuthority(originScheme, originAuthority, headerAuthority));
     }
 
-    private boolean equivalentAuthority(
+    private boolean matchesAuthority(
         String scheme,
         String originAuthority,
         String headerAuthority)
     {
-        URI originURI = URI.create(String.format("%s://%s", scheme, originAuthority));
-        String originHost = originURI.getHost();
-        int originPort = asImplicitPortIfNecessary(originURI.getPort(), scheme);
-        URI headerURI = URI.create(String.format("%s://%s", scheme, headerAuthority));
-        String headerHost = headerURI.getHost();
-        int headerPort = asImplicitPortIfNecessary(originURI.getPort(), scheme);
+        boolean matches = false;
 
-        return Objects.equals(originHost, headerHost) && originPort == headerPort;
+        if (originAuthority.indexOf(':') == -1 ||
+            headerAuthority.indexOf(':') == -1)
+        {
+            URI originURI = URI.create(String.format("%s://%s", scheme, originAuthority));
+            String originHost = originURI.getHost();
+            int originPort = asImplicitPortIfNecessary(originURI.getPort(), scheme);
+            URI headerURI = URI.create(String.format("%s://%s", scheme, headerAuthority));
+            String headerHost = headerURI.getHost();
+            int headerPort = asImplicitPortIfNecessary(headerURI.getPort(), scheme);
+
+            matches = Objects.equals(originHost, headerHost) && originPort == headerPort;
+        }
+
+        return matches;
     }
 
     public static final class HttpAllowConfig

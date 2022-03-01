@@ -936,7 +936,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 HttpBeginExFW beginEx = httpBeginEx.build();
 
                 final Map<String, String> headers = new LinkedHashMap<>();
-                beginEx.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
+                beginEx.headers().forEach(h -> headers.put(h.name().asString().toLowerCase(), h.value().asString()));
 
                 if (isCorsPreflightRequest(headers))
                 {
