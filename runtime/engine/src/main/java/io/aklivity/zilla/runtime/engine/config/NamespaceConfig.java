@@ -27,18 +27,21 @@ public class NamespaceConfig
 
     public final String name;
     public final List<NamespaceRef> references;
-    public final List<VaultConfig> vaults;
     public final List<BindingConfig> bindings;
+    public final List<GuardConfig> guards;
+    public final List<VaultConfig> vaults;
 
     public NamespaceConfig(
         String name,
         List<NamespaceRef> references,
-        List<VaultConfig> vaults,
-        List<BindingConfig> bindings)
+        List<BindingConfig> bindings,
+        List<GuardConfig> guards,
+        List<VaultConfig> vaults)
     {
         this.name = requireNonNull(name);
         this.references = requireNonNull(references);
-        this.vaults = requireNonNull(vaults);
         this.bindings = requireNonNull(bindings);
+        this.guards = requireNonNull(guards);
+        this.vaults = requireNonNull(vaults);
     }
 }

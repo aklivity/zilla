@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public class OptionsConfigAdapterTest
 {
@@ -113,6 +114,12 @@ public class OptionsConfigAdapterTest
     public static final class TestOptionsConfigAdapter implements OptionsConfigAdapterSpi
     {
         private static final String MODE_NAME = "mode";
+
+        @Override
+        public Kind kind()
+        {
+            return Kind.BINDING;
+        }
 
         @Override
         public String type()

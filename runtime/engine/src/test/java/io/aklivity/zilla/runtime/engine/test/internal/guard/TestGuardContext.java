@@ -13,29 +13,29 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
-import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 
-public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>
+public final class TestGuardContext implements GuardContext
 {
-    enum Kind
+    public TestGuardContext(
+        EngineContext context)
     {
-        BINDING,
-        VAULT,
-        GUARD
     }
 
-    Kind kind();
-
-    String type();
+    @Override
+    public TestGuardHandler attach(
+        GuardConfig vault)
+    {
+        return new TestGuardHandler(vault);
+    }
 
     @Override
-    JsonObject adaptToJson(
-        OptionsConfig options);
-
-    @Override
-    OptionsConfig adaptFromJson(
-        JsonObject object);
+    public void detach(
+        GuardConfig vault)
+    {
+    }
 }

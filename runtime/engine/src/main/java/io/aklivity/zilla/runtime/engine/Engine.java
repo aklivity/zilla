@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
-import java.util.stream.Stream;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
@@ -46,6 +45,7 @@ import org.agrona.concurrent.AgentRunner;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
+import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
@@ -75,6 +75,7 @@ public final class Engine implements AutoCloseable
     Engine(
         EngineConfiguration config,
         Collection<Binding> bindings,
+        Collection<Guard> guards,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
         URL configURL,
@@ -111,7 +112,8 @@ public final class Engine implements AutoCloseable
         for (int coreIndex = 0; coreIndex < coreCount; coreIndex++)
         {
             DispatchAgent agent =
-                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity, bindings, vaults, coreIndex);
+                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity,
+                        bindings, guards, vaults, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -122,9 +124,12 @@ public final class Engine implements AutoCloseable
                 .collect(toList());
 
         final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers);
-        final Stream<URL> bindingTypes = bindings.stream().map(Binding::type).filter(Objects::nonNull);
-        final Stream<URL> vaultTypes = vaults.stream().map(Vault::type).filter(Objects::nonNull);
-        final Collection<URL> schemaTypes = Stream.concat(bindingTypes, vaultTypes).collect(toList());
+
+        final Collection<URL> schemaTypes = new ArrayList<>();
+        schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
+
         final Callable<Void> configure =
                 new ConfigureTask(configURL, schemaTypes, labels::supplyLabelId, tuning, dispatchers,
                         errorHandler, logger, context, config, extensions);

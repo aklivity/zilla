@@ -23,35 +23,42 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
 {
     private final NamespaceConfig namespace;
     private final Function<String, BindingContext> bindingsByType;
+    private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
     private final Int2ObjectHashMap<BindingRegistry> bindingsById;
+    private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
         Function<String, BindingContext> bindingsByType,
+        Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
         this.namespace = namespace;
         this.bindingsByType = bindingsByType;
+        this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
         this.bindingsById = new Int2ObjectHashMap<>();
+        this.guardsById = new Int2ObjectHashMap<>();
         this.vaultsById = new Int2ObjectHashMap<>();
     }
 
@@ -63,12 +70,14 @@ public class NamespaceRegistry
     public void attach()
     {
         namespace.vaults.forEach(this::attachVault);
+        namespace.guards.forEach(this::attachGuard);
         namespace.bindings.forEach(this::attachBinding);
     }
 
     public void detach()
     {
         namespace.vaults.forEach(this::detachVault);
+        namespace.guards.forEach(this::detachGuard);
         namespace.bindings.forEach(this::detachBinding);
     }
 
@@ -119,10 +128,39 @@ public class NamespaceRegistry
         }
     }
 
+    private void attachGuard(
+        GuardConfig config)
+    {
+        GuardContext context = guardsByType.apply(config.type);
+        assert context != null : "Missing guard type: " + config.type;
+
+        int vaultId = supplyLabelId.applyAsInt(config.name);
+        GuardRegistry registry = new GuardRegistry(config, context);
+        guardsById.put(vaultId, registry);
+        registry.attach();
+    }
+
+    private void detachGuard(
+        GuardConfig config)
+    {
+        int guardId = supplyLabelId.applyAsInt(config.name);
+        GuardRegistry context = guardsById.remove(guardId);
+        if (context != null)
+        {
+            context.detach();
+        }
+    }
+
     BindingRegistry findBinding(
         int bindingId)
     {
         return bindingsById.get(bindingId);
+    }
+
+    GuardRegistry findGuard(
+        int guardId)
+    {
+        return guardsById.get(guardId);
     }
 
     VaultRegistry findVault(

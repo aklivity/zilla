@@ -23,10 +23,17 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.sse.internal.SseBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String RETRY_NAME = "retry";
+
+    @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
 
     @Override
     public String type()

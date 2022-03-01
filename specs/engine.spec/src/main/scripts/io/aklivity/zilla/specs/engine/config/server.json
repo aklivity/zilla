@@ -7,6 +7,13 @@
             "type": "test"
         }
     },
+    "guards":
+    {
+        "test":
+        {
+            "type": "test"
+        }
+    },
     "bindings":
     {
         "net0":

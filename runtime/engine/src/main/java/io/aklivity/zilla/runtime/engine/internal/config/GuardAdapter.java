@@ -13,45 +13,57 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.proxy.internal.config;
+package io.aklivity.zilla.runtime.engine.internal.config;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.json.bind.adapter.JsonbAdapter;
 
-import io.aklivity.zilla.runtime.binding.proxy.internal.ProxyBinding;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
-public final class ProxyOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
+public class GuardAdapter
 {
-    @Override
-    public Kind kind()
+    private static final String TYPE_NAME = "type";
+    private static final String OPTIONS_NAME = "options";
+
+    private final OptionsAdapter options;
+
+    public GuardAdapter()
     {
-        return Kind.BINDING;
+        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.GUARD);
     }
 
-    @Override
-    public String type()
-    {
-        return ProxyBinding.NAME;
-    }
-
-    @Override
     public JsonObject adaptToJson(
-        OptionsConfig options)
+        GuardConfig guard)
     {
+        options.adaptType(guard.type);
+
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        object.add(TYPE_NAME, guard.type);
+
+        if (guard.options != null)
+        {
+            object.add(OPTIONS_NAME, options.adaptToJson(guard.options));
+        }
 
         return object.build();
     }
 
-    @Override
-    public OptionsConfig adaptFromJson(
+    public GuardConfig adaptFromJson(
+        String name,
         JsonObject object)
     {
-        return new ProxyOptionsConfig();
+        String type = object.getString(TYPE_NAME);
+
+        options.adaptType(type);
+
+        OptionsConfig opts = object.containsKey(OPTIONS_NAME) ?
+                options.adaptFromJson(object.getJsonObject(OPTIONS_NAME)) :
+                null;
+
+        return new GuardConfig(name, type, opts);
     }
 }

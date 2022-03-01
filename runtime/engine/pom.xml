@@ -186,6 +186,7 @@
               </artifactItems>
               <includes>
                 io/aklivity/zilla/specs/engine/schema/binding/test.json,
+                io/aklivity/zilla/specs/engine/schema/guard/test.json,
                 io/aklivity/zilla/specs/engine/schema/vault/test.json
               </includes>
               <outputDirectory>${project.build.directory}/test-classes</outputDirectory>

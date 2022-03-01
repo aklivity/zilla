@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -59,6 +60,12 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     private static final String MAX_AGE_NAME = "max-age";
     private static final String EXPOSE_NAME = "expose";
     private static final String EXPOSE_HEADERS_NAME = "headers";
+
+    @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
 
     @Override
     public String type()

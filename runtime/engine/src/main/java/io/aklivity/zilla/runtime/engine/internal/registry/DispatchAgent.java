@@ -85,6 +85,9 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.guard.Guard;
+import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.engine.internal.Counters;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
@@ -194,6 +197,7 @@ public class DispatchAgent implements EngineContext, Agent
         ErrorHandler errorHandler,
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
+        Collection<Guard> guards,
         Collection<Vault> vaults,
         int index)
     {
@@ -302,6 +306,13 @@ public class DispatchAgent implements EngineContext, Agent
             bindingsByType.put(type, binding.supply(this));
         }
 
+        Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
+        for (Guard guard : guards)
+        {
+            String type = guard.name();
+            guardsByType.put(type, guard.supply(this));
+        }
+
         Map<String, VaultContext> vaultsByType = new LinkedHashMap<>();
         for (Vault vault : vaults)
         {
@@ -310,7 +321,7 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, vaultsByType::get,
+                bindingsByType::get, guardsByType::get, vaultsByType::get,
                 labels::supplyLabelId, supplyLoadEntry::apply);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
@@ -474,6 +485,14 @@ public class DispatchAgent implements EngineContext, Agent
     public BindingHandler streamFactory()
     {
         return this::newStream;
+    }
+
+    @Override
+    public GuardHandler supplyGuard(
+        long guardId)
+    {
+        GuardRegistry guard = configuration.resolveGuard(guardId);
+        return guard != null ? guard.handler() : null;
     }
 
     @Override
