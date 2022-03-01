@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public class OptionsConfigAdapterTest
 {
