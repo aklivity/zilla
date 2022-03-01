@@ -108,7 +108,7 @@
                                         },
                                         "expose":
                                         {
-                                            "title": "Allow",
+                                            "title": "Expose",
                                             "type": "object",
                                             "properties":
                                             {
