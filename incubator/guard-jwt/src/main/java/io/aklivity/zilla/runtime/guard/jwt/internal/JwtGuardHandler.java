@@ -14,9 +14,7 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
-import java.net.URL;
 import java.util.List;
-import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
@@ -24,8 +22,7 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 public class JwtGuardHandler implements GuardHandler
 {
     public JwtGuardHandler(
-        JwtOptionsConfig options,
-        Function<String, URL> resolvePath)
+        JwtOptionsConfig options)
     {
     }
 

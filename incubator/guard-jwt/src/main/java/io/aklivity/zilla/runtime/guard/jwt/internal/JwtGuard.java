@@ -45,9 +45,9 @@ public final class JwtGuard implements Guard
     }
 
     @Override
-    public JwtContext supply(
+    public JwtGuardContext supply(
         EngineContext context)
     {
-        return new JwtContext(config, context);
+        return new JwtGuardContext(config, context);
     }
 }

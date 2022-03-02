@@ -14,24 +14,18 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
-import java.net.URL;
-import java.util.function.Function;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
-final class JwtContext implements GuardContext
+final class JwtGuardContext implements GuardContext
 {
-    private final Function<String, URL> resolvePath;
-
-    JwtContext(
+    JwtGuardContext(
         Configuration config,
         EngineContext context)
     {
-        this.resolvePath = context::resolvePath;
     }
 
     @Override
@@ -39,12 +33,12 @@ final class JwtContext implements GuardContext
         GuardConfig guard)
     {
         JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
-        return new JwtGuardHandler(options, resolvePath);
+        return new JwtGuardHandler(options);
     }
 
     @Override
     public void detach(
-            GuardConfig vault)
+        GuardConfig vault)
     {
     }
 }
