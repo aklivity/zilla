@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongPredicate;
 
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jws.JsonWebSignature;
@@ -73,11 +74,11 @@ public class JwtGuardHandler implements GuardHandler
     }
 
     @Override
-    public long verifier(
+    public LongPredicate verifier(
         List<String> roles)
     {
-        // TODO Auto-generated method stub
-        return 0;
+        // TODO
+        return session -> false;
     }
 
     @Override
@@ -159,14 +160,5 @@ public class JwtGuardHandler implements GuardHandler
     {
         // TODO Auto-generated method stub
         return 0;
-    }
-
-    @Override
-    public boolean allows(
-        long session,
-        long verifier)
-    {
-        // TODO Auto-generated method stub
-        return false;
     }
 }

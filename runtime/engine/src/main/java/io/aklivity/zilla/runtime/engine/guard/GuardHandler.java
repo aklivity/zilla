@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.guard;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 public interface GuardHandler
 {
@@ -24,9 +25,9 @@ public interface GuardHandler
      *
      * @param roles  the roles to verify
      *
-     * @return  the verifier identifier
+     * @return  the session verifier predicate
      */
-    long verifier(
+    LongPredicate verifier(
         List<String> roles);
 
     /*
@@ -70,16 +71,4 @@ public interface GuardHandler
      */
     long challengeAt(
         long session);
-
-    /*
-     * Returns whether the session allows access.
-     *
-     * @param session       the session identifier
-     * @param verifier      the verifier identifier
-     *
-     * @return  true if the session allows access, otherwise false
-     */
-    boolean allows(
-        long session,
-        long verifier);
 }
