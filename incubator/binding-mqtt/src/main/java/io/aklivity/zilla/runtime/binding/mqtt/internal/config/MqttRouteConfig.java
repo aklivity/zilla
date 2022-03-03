@@ -18,14 +18,18 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class MqttRouteConfig extends OptionsConfig
 {
     public final long id;
-    public final List<MqttConditionMatcher> when;
+
+    private final List<MqttConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public MqttRouteConfig(
         RouteConfig route)
@@ -35,5 +39,19 @@ public final class MqttRouteConfig extends OptionsConfig
             .map(MqttConditionConfig.class::cast)
             .map(MqttConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        String topic,
+        MqttCapabilities capabilities)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic, capabilities));
     }
 }

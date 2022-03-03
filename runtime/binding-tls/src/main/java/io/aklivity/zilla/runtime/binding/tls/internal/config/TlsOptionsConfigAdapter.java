@@ -32,7 +32,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.tls.internal.TlsBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {

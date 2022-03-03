@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class FanServerFactory implements FanStreamFactory
 {
@@ -126,16 +127,25 @@ public final class FanServerFactory implements FanStreamFactory
         if (binding != null)
         {
             final long initialId = begin.streamId();
+            long authorization = begin.authorization();
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
-            final FanServerGroup group = supplyFanServerGroup(binding.exit.id);
+            final RouteConfig exit = binding.routes.stream()
+                    .filter(r -> r.authorized.test(authorization))
+                    .findFirst()
+                    .orElse(null);
 
-            newStream = new FanServer(
-                    group,
-                    routeId,
-                    initialId,
-                    replyId,
-                    replyTo)::onMemberMessage;
+            if (exit != null)
+            {
+                final FanServerGroup group = supplyFanServerGroup(exit.id);
+
+                newStream = new FanServer(
+                        group,
+                        routeId,
+                        initialId,
+                        replyId,
+                        replyTo)::onMemberMessage;
+            }
         }
 
         return newStream;

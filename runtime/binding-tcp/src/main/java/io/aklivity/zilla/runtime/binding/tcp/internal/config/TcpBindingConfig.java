@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -30,7 +31,6 @@ public final class TcpBindingConfig
     public final KindConfig kind;
     public final TcpOptionsConfig options;
     public final List<TcpRouteConfig> routes;
-    public final TcpRouteConfig exit;
 
     private PollerKey[] attached;
 
@@ -42,7 +42,6 @@ public final class TcpBindingConfig
         this.kind = binding.kind;
         this.options = TcpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(TcpRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new TcpRouteConfig(binding.exit) : null;
     }
 
     public PollerKey[] attach(
@@ -51,5 +50,14 @@ public final class TcpBindingConfig
         PollerKey[] detached = attached;
         attached = attachment;
         return detached;
+    }
+
+    public TcpRouteConfig resolve(
+        InetSocketAddress remote)
+    {
+        return routes.stream()
+            .filter(r -> r.matches(remote.getAddress()))
+            .findFirst()
+            .orElse(null);
     }
 }

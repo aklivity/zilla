@@ -30,7 +30,6 @@ public final class MqttBindingConfig
     public final String entry;
     public final KindConfig kind;
     public final List<MqttRouteConfig> routes;
-    public final MqttRouteConfig exit;
 
     public MqttBindingConfig(
         BindingConfig binding)
@@ -40,7 +39,6 @@ public final class MqttBindingConfig
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(MqttRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new MqttRouteConfig(binding.exit) : null;
     }
 
     public MqttRouteConfig resolve(
@@ -49,8 +47,8 @@ public final class MqttBindingConfig
         MqttCapabilities capabilities)
     {
         return routes.stream()
-            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(topic, capabilities)))
+            .filter(r -> r.authorized(authorization) && r.matches(topic, capabilities))
             .findFirst()
-            .orElse(exit);
+            .orElse(null);
     }
 }

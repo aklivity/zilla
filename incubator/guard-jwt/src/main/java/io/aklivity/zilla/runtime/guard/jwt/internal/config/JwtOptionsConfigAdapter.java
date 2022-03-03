@@ -51,7 +51,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     @Override
     public Kind kind()
     {
-        return Kind.VAULT;
+        return Kind.GUARD;
     }
 
     @Override

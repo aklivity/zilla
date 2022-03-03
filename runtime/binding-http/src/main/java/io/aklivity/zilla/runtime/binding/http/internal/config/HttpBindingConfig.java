@@ -38,7 +38,6 @@ public final class HttpBindingConfig
     public final HttpOptionsConfig options;
     public final KindConfig kind;
     public final List<HttpRouteConfig> routes;
-    public final HttpRouteConfig exit;
 
     public HttpBindingConfig(
         BindingConfig binding)
@@ -49,7 +48,6 @@ public final class HttpBindingConfig
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(HttpRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new HttpRouteConfig(binding.exit) : null;
     }
 
     public HttpRouteConfig resolve(
@@ -57,9 +55,9 @@ public final class HttpBindingConfig
         Function<String, String> headerByName)
     {
         return routes.stream()
-            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(headerByName)))
+            .filter(r -> r.authorized(authorization) && r.matches(headerByName))
             .findFirst()
-            .orElse(exit);
+            .orElse(null);
     }
 
     public SortedSet<HttpVersion>  versions()

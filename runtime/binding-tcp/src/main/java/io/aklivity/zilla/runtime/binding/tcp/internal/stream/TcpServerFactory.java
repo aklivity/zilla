@@ -186,10 +186,7 @@ public class TcpServerFactory implements TcpStreamFactory
         SocketChannel network,
         InetSocketAddress remote)
     {
-        final TcpRouteConfig route = binding.routes.stream()
-            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(c -> c.matches(remote.getAddress())))
-            .findFirst()
-            .orElse(binding.exit);
+        final TcpRouteConfig route = binding.resolve(remote);
 
         if (route != null)
         {

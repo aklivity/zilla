@@ -14,16 +14,62 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
+import static org.agrona.LangUtil.rethrowUnchecked;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.jose4j.jwk.JsonWebKey;
+import org.jose4j.jws.JsonWebSignature;
+import org.jose4j.jwt.JwtClaims;
+import org.jose4j.jwt.MalformedClaimException;
+import org.jose4j.jwt.NumericDate;
+import org.jose4j.jwt.consumer.InvalidJwtException;
+import org.jose4j.lang.JoseException;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 public class JwtGuardHandler implements GuardHandler
 {
+    private final JsonWebSignature signature = new JsonWebSignature();
+
+    private final String issuer;
+    private final String audience;
+    private final Map<String, JsonWebKey> keys;
+
     public JwtGuardHandler(
         JwtOptionsConfig options)
     {
+        this.issuer = options.issuer;
+        this.audience = options.audience;
+
+        Map<String, JsonWebKey> keys = new HashMap<>();
+        for (JwtKeyConfig key : options.keys)
+        {
+            try
+            {
+                Map<String, Object> params = new HashMap<>();
+                params.put("kty", key.kty);
+                params.put("kid", key.kid);
+                params.put("e", key.e);
+                params.put("n", key.n);
+                params.put("alg", key.alg);
+                params.put("crv", key.crv);
+                params.put("x", key.x);
+                params.put("y", key.y);
+                params.put("use", key.use);
+                keys.put(key.kid, JsonWebKey.Factory.newJwk(params));
+            }
+            catch (JoseException ex)
+            {
+                rethrowUnchecked(ex);
+            }
+        }
+        this.keys = keys;
     }
 
     @Override
@@ -39,8 +85,56 @@ public class JwtGuardHandler implements GuardHandler
         long session,
         String credentials)
     {
-        // TODO Auto-generated method stub
-        return 0;
+        int authorized = 0;
+
+        authorize:
+        try
+        {
+            signature.setCompactSerialization(credentials);
+
+            String kid = signature.getKeyIdHeaderValue();
+            String alg = signature.getAlgorithmHeaderValue();
+            JsonWebKey key = keys.get(kid);
+
+            if (alg == null ||
+                key == null ||
+                !Objects.equals(alg, key.getAlgorithm()))
+            {
+                break authorize;
+            }
+
+            signature.setKey(key.getKey());
+            if (!signature.verifySignature())
+            {
+                break authorize;
+            }
+
+            String payload = signature.getPayload();
+            JwtClaims claims = JwtClaims.parse(payload);
+            NumericDate notBefore = claims.getNotBefore();
+            NumericDate notAfter = claims.getExpirationTime();
+            String issuer = claims.getIssuer();
+            List<String> audience = claims.getAudience();
+
+            long now = System.currentTimeMillis();
+            if (notBefore != null && now < notBefore.getValueInMillis() ||
+                notAfter != null && now > notAfter.getValueInMillis() ||
+                issuer == null || !issuer.equals(this.issuer) ||
+                audience == null || !audience.contains(this.audience))
+            {
+                break authorize;
+            }
+
+            // create session
+            // store at session id, scoped by engine context index
+            // TODO: when to clean up session?
+        }
+        catch (JoseException | InvalidJwtException | MalformedClaimException ex)
+        {
+            // not authorized
+        }
+
+        return authorized;
     }
 
     @Override

@@ -31,7 +31,6 @@ public final class SseBindingConfig
     public final SseOptionsConfig options;
     public final KindConfig kind;
     public final List<SseRouteConfig> routes;
-    public final SseRouteConfig exit;
 
     public SseBindingConfig(
         BindingConfig binding)
@@ -41,7 +40,6 @@ public final class SseBindingConfig
         this.kind = binding.kind;
         this.options = binding.options instanceof SseOptionsConfig ? (SseOptionsConfig) binding.options : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(SseRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new SseRouteConfig(binding.exit) : null;
     }
 
     public SseRouteConfig resolve(
@@ -49,8 +47,8 @@ public final class SseBindingConfig
         String path)
     {
         return routes.stream()
-            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(path)))
+            .filter(r -> r.authorized(authorization) && r.matches(path))
             .findFirst()
-            .orElse(exit);
+            .orElse(null);
     }
 }

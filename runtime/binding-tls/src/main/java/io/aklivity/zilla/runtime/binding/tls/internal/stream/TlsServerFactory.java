@@ -236,7 +236,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         if (binding != null)
         {
-            final SSLEngine tlsEngine = binding.newServerEngine();
+            final SSLEngine tlsEngine = binding.newServerEngine(authorization);
 
             if (tlsEngine != null)
             {

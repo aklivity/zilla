@@ -30,7 +30,6 @@ public final class ProxyBindingConfig
     public final KindConfig kind;
     public final ProxyOptionsConfig options;
     public final List<ProxyRouteConfig> routes;
-    public final ProxyRouteConfig exit;
 
     public ProxyBindingConfig(
         BindingConfig binding)
@@ -40,7 +39,6 @@ public final class ProxyBindingConfig
         this.kind = binding.kind;
         this.options = ProxyOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(ProxyRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new ProxyRouteConfig(binding.exit) : null;
     }
 
     public ProxyRouteConfig resolve(
@@ -48,8 +46,8 @@ public final class ProxyBindingConfig
         ProxyBeginExFW beginEx)
     {
         return routes.stream()
-                .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(c -> c.matches(beginEx)))
+                .filter(r -> r.authorized(authorization) && r.matches(beginEx))
                 .findFirst()
-                .orElse(exit);
+                .orElse(null);
     }
 }

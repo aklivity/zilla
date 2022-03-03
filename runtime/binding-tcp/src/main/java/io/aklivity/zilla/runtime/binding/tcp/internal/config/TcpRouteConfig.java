@@ -17,14 +17,19 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
 import static java.util.stream.Collectors.toList;
 
+import java.net.InetAddress;
 import java.util.List;
+import java.util.function.LongPredicate;
+import java.util.function.Predicate;
 
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class TcpRouteConfig
 {
     public final long id;
-    public final List<TcpConditionMatcher> when;
+
+    private final List<TcpConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public TcpRouteConfig(
         RouteConfig route)
@@ -34,5 +39,30 @@ public final class TcpRouteConfig
             .map(TcpConditionConfig.class::cast)
             .map(TcpConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    public boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    public boolean matches(
+        InetAddress address)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(address));
+    }
+
+    public boolean matchesExplicit(
+        InetAddress address)
+    {
+        return when.stream().anyMatch(m -> m.matches(address));
+    }
+
+    public boolean matchesExplicit(
+        Predicate<TcpConditionMatcher> predicate)
+    {
+        return when.stream().anyMatch(predicate);
     }
 }

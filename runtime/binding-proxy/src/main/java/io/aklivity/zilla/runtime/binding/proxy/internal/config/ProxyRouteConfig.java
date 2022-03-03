@@ -18,13 +18,17 @@ package io.aklivity.zilla.runtime.binding.proxy.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.proxy.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class ProxyRouteConfig
 {
     public final long id;
-    public final List<ProxyConditionMatcher> when;
+
+    private final List<ProxyConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public ProxyRouteConfig(
         RouteConfig route)
@@ -34,5 +38,18 @@ public final class ProxyRouteConfig
             .map(ProxyConditionConfig.class::cast)
             .map(ProxyConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        ProxyBeginExFW beginEx)
+    {
+        return when.isEmpty() || when.stream().anyMatch(c -> c.matches(beginEx));
     }
 }

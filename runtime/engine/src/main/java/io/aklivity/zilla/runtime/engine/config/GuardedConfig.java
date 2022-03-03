@@ -19,30 +19,18 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
-public class BindingConfig
+public class GuardedConfig
 {
     public transient long id;
 
-    public final NamespacedRef vault;
-    public final String entry;
-    public final String type;
-    public final KindConfig kind;
-    public final OptionsConfig options;
-    public final List<RouteConfig> routes;
+    public final String name;
+    public final List<String> roles;
 
-    public BindingConfig(
-        NamespacedRef vault,
-        String entry,
-        String type,
-        KindConfig kind,
-        OptionsConfig options,
-        List<RouteConfig> routes)
+    public GuardedConfig(
+        String name,
+        List<String> roles)
     {
-        this.vault = vault;
-        this.entry = entry;
-        this.type = requireNonNull(type);
-        this.kind = requireNonNull(kind);
-        this.options = options;
-        this.routes = routes;
+        this.name = requireNonNull(name);
+        this.roles = requireNonNull(roles);
     }
 }

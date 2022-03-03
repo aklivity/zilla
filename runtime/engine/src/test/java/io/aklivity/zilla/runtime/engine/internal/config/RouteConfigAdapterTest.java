@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -31,6 +32,7 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.internal.config.ConditionConfigAdapterTest.TestConditionConfig;
 
@@ -44,6 +46,63 @@ public class RouteConfigAdapterTest
         JsonbConfig config = new JsonbConfig()
                 .withAdapters(new RouteAdapter().adaptType("test"));
         jsonb = JsonbBuilder.create(config);
+    }
+
+    @Test
+    public void shouldReadRoute()
+    {
+        String text =
+                "{" +
+                    "\"exit\": \"test\"" +
+                "}";
+
+        RouteConfig route = jsonb.fromJson(text, RouteConfig.class);
+
+        assertThat(route, not(nullValue()));
+        assertThat(route.exit, equalTo("test"));
+    }
+
+    @Test
+    public void shouldWriteRoute()
+    {
+        RouteConfig route = new RouteConfig("test");
+
+        String text = jsonb.toJson(route);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"exit\":\"test\"}"));
+    }
+
+    @Test
+    public void shouldReadRouteGuarded()
+    {
+        String text =
+                "{" +
+                    "\"exit\": \"test\"," +
+                    "\"guarded\": " +
+                    "{" +
+                        "\"test\": [ \"role\" ]" +
+                    "}" +
+                "}";
+
+        RouteConfig route = jsonb.fromJson(text, RouteConfig.class);
+
+        assertThat(route, not(nullValue()));
+        assertThat(route.exit, equalTo("test"));
+        assertThat(route.guarded, hasSize(1));
+        assertThat(route.guarded.get(0).name, equalTo("test"));
+        assertThat(route.guarded.get(0).roles, equalTo(singletonList("role")));
+    }
+
+    @Test
+    public void shouldWriteRouteGuarded()
+    {
+        RouteConfig route = new RouteConfig("test", singletonList(new GuardedConfig("test", singletonList("role"))));
+
+        String text = jsonb.toJson(route);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"exit\":\"test\",\"guarded\":{\"test\":[\"role\"]}}"));
     }
 
     @Test
@@ -66,26 +125,14 @@ public class RouteConfigAdapterTest
         assertThat(route.when, contains(instanceOf(TestConditionConfig.class)));
     }
 
-
     @Test
     public void shouldWriteRouteWhenMatch()
     {
-        RouteConfig route = new RouteConfig("test", singletonList(new TestConditionConfig("test")));
+        RouteConfig route = new RouteConfig("test", singletonList(new TestConditionConfig("test")), emptyList());
 
         String text = jsonb.toJson(route);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"exit\":\"test\",\"when\":[{\"match\":\"test\"}]}"));
-    }
-
-    @Test
-    public void shouldWriteRoute()
-    {
-        RouteConfig route = new RouteConfig("test");
-
-        String text = jsonb.toJson(route);
-
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"exit\":\"test\"}"));
     }
 }

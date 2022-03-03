@@ -61,7 +61,11 @@
                     },
                     "additionalProperties": false
                 }
-            }
+            },
+            "required":
+            [
+                "options"
+            ]
         }
     }
 ]

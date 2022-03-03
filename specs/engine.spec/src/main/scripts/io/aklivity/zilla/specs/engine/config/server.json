@@ -20,7 +20,11 @@
         {
             "type" : "test",
             "kind": "server",
-            "exit": "app0"
+            "exit": "app0",
+            "guarded":
+            {
+                "test": [ "read" ]
+            }
         }
     }
 }

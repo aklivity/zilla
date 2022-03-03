@@ -56,6 +56,8 @@ import org.leadpony.justify.api.ProblemHandler;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -215,15 +217,23 @@ public class ConfigureTask implements Callable<Void>
                 for (RouteConfig route : binding.routes)
                 {
                     route.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(route.exit));
-                }
 
-                // TODO: consider binding exit namespace
-                if (binding.exit != null)
-                {
-                    binding.exit.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(binding.exit.exit));
+                    if (route.guarded != null)
+                    {
+                        // TODO: consider guard namespace
+                        for (GuardedConfig guarded : route.guarded)
+                        {
+                            guarded.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(guarded.name));
+                        }
+                    }
                 }
 
                 tuning.affinity(binding.id, tuning.affinity(binding.id));
+            }
+
+            for (GuardConfig guard : namespace.guards)
+            {
+                guard.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(guard.name));
             }
 
             for (VaultConfig vault : namespace.vaults)

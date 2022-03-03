@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
@@ -72,9 +73,14 @@ final class TestBindingFactory implements BindingHandler
     public void attach(
         BindingConfig binding)
     {
-        if (binding.exit != null)
+        RouteConfig exit = binding.routes.stream()
+            .filter(r -> r.when.isEmpty())
+            .findFirst()
+            .orElse(null);
+
+        if (exit != null)
         {
-            router.put(binding.id, binding.exit.id);
+            router.put(binding.id, exit.id);
         }
     }
 

@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -94,11 +95,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 item.add(ROUTES_NAME, routes);
             }
 
-            if (binding.exit != null)
-            {
-                item.add(EXIT_NAME, binding.exit.exit);
-            }
-
             object.add(binding.entry, item);
         }
 
@@ -140,7 +136,15 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                     ? new RouteConfig(routes.size(), item.getString(EXIT_NAME))
                     : null;
 
-            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes, exit));
+            if (exit != null)
+            {
+                List<RouteConfig> routesWithExit = new ArrayList<>();
+                routesWithExit.addAll(routes);
+                routesWithExit.add(exit);
+                routes = routesWithExit;
+            }
+
+            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes));
         }
 
         return bindings.toArray(BindingConfig[]::new);

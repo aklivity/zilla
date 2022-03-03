@@ -26,7 +26,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.96</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.81</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -42,6 +42,11 @@
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bitbucket.b_c</groupId>
+      <artifactId>jose4j</artifactId>
+      <version>0.7.10</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
