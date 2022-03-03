@@ -40,7 +40,7 @@ public final class TestGuard implements Guard
     @Override
     public URL type()
     {
-        return getClass().getResource("test.json");
+        return getClass().getResource("test.schema.patch.json");
     }
 
     @Override

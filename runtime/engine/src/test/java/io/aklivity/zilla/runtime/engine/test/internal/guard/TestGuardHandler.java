@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -28,10 +29,10 @@ public final class TestGuardHandler implements GuardHandler
     }
 
     @Override
-    public long verifier(
+    public LongPredicate verifier(
         List<String> roles)
     {
-        return 0;
+        return session -> false;
     }
 
     @Override
@@ -60,13 +61,5 @@ public final class TestGuardHandler implements GuardHandler
         long session)
     {
         return 0;
-    }
-
-    @Override
-    public boolean allows(
-        long session,
-        long verifier)
-    {
-        return false;
     }
 }
