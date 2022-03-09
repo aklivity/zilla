@@ -50,6 +50,8 @@ public interface EngineContext
     long supplyReplyId(
         long initialId);
 
+    long supplyAuthorizedId();
+
     long supplyBudgetId();
 
     long supplyTraceId();

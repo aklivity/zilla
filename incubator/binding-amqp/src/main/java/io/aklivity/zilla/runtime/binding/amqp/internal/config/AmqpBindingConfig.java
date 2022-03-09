@@ -26,7 +26,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class AmqpBindingConfig
 {
     public final long id;
-    public final long vaultId;
     public final String entry;
     public final KindConfig kind;
     public final List<AmqpRouteConfig> routes;
@@ -35,7 +34,6 @@ public final class AmqpBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.vaultId = binding.vault != null ? binding.vault.id : 0L;
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(AmqpRouteConfig::new).collect(toList());

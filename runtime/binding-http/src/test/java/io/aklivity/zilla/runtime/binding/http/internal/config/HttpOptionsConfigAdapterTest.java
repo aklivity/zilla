@@ -17,9 +17,11 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertTrue;
@@ -37,6 +39,8 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpAllowConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpExposeConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpPatternConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 
@@ -78,6 +82,19 @@ public class HttpOptionsConfigAdapterTest
                             "\"headers\": [ \"x-custom-header\" ]" +
                         "}" +
                     "}," +
+                    "\"authorization\":" +
+                    "{" +
+                        "\"test0\":" +
+                        "{" +
+                            "\"credentials\":" +
+                            "{" +
+                                "\"headers\":" +
+                                "{" +
+                                    "\"authorization\":\"Bearer {credentials}\"" +
+                                "}" +
+                            "}" +
+                        "}" +
+                    "}," +
                     "\"overrides\":" +
                     "{" +
                         "\":authority\": \"example.com:443\"" +
@@ -97,6 +114,14 @@ public class HttpOptionsConfigAdapterTest
         assertThat(options.access.maxAge, equalTo(Duration.ofSeconds(10)));
         assertThat(options.access.expose, not(nullValue()));
         assertThat(options.access.expose.headers, equalTo(singleton("x-custom-header")));
+        assertThat(options.authorization, not(nullValue()));
+        assertThat(options.authorization.name, equalTo("test0"));
+        assertThat(options.authorization.credentials, not(nullValue()));
+        assertThat(options.authorization.credentials.headers, not(nullValue()));
+        assertThat(options.authorization.credentials.headers, hasSize(1));
+        assertThat(options.authorization.credentials.headers.get(0), not(nullValue()));
+        assertThat(options.authorization.credentials.parameters, nullValue());
+        assertThat(options.authorization.credentials.cookies, nullValue());
         assertThat(options.overrides, equalTo(singletonMap(new String8FW(":authority"), new String16FW("example.com:443"))));
     }
 
@@ -115,7 +140,13 @@ public class HttpOptionsConfigAdapterTest
                         true),
                     Duration.ofSeconds(10),
                     new HttpExposeConfig(
-                        singleton("x-custom-header"))));
+                        singleton("x-custom-header"))),
+                new HttpAuthorizationConfig(
+                    "test0",
+                    new HttpCredentialsConfig(
+                        singletonList(new HttpPatternConfig(
+                            "authorization",
+                            "Bearer {credentials}")))));
 
         String text = jsonb.toJson(options);
 
@@ -141,6 +172,19 @@ public class HttpOptionsConfigAdapterTest
                             "\"expose\":" +
                             "{" +
                                 "\"headers\":[\"x-custom-header\"]" +
+                            "}" +
+                        "}," +
+                        "\"authorization\":" +
+                        "{" +
+                            "\"test0\":" +
+                            "{" +
+                                "\"credentials\":" +
+                                "{" +
+                                    "\"headers\":" +
+                                    "{" +
+                                        "\"authorization\":\"Bearer {credentials}\"" +
+                                    "}" +
+                                "}" +
                             "}" +
                         "}," +
                         "\"overrides\":" +

@@ -120,6 +120,10 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class DispatchAgent implements EngineContext, Agent
 {
+    private static final int RESERVED_SIZE = Byte.SIZE;
+
+    private static final int SHIFT_SIZE = Long.SIZE - RESERVED_SIZE;
+
     private static final int SIGNAL_TASK_QUEUED = 1;
 
     private final FrameFW frameRO = new FrameFW();
@@ -153,7 +157,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final Int2ObjectHashMap<MessageConsumer> writersByIndex;
     private final Int2ObjectHashMap<Target> targetsByIndex;
     private final BufferPool bufferPool;
-    private final int shift;
     private final long mask;
     private final MessageHandler readHandler;
     private final TimerHandler expireHandler;
@@ -186,6 +189,7 @@ public class DispatchAgent implements EngineContext, Agent
     private long iniitalId;
     private long traceId;
     private long budgetId;
+    private long authorizedId;
 
     private long lastReadStreamId;
 
@@ -276,17 +280,15 @@ public class DispatchAgent implements EngineContext, Agent
 
         final BufferPool bufferPool = bufferPoolLayout.bufferPool();
 
-        final int reserved = Byte.SIZE;
-        final int shift = Long.SIZE - reserved;
-        final long initial = ((long) index) << shift;
-        final long mask = initial | (-1L >>> reserved);
+        final long initial = ((long) index) << SHIFT_SIZE;
+        final long mask = initial | (-1L >>> RESERVED_SIZE);
 
-        this.shift = shift;
         this.mask = mask;
         this.bufferPool = bufferPool;
         this.iniitalId = initial;
         this.traceId = initial;
         this.budgetId = initial;
+        this.authorizedId = initial;
 
         final BudgetsLayout budgetsLayout = new BudgetsLayout.Builder()
                 .path(config.directory().resolve(String.format("budgets%d", index)))
@@ -325,6 +327,12 @@ public class DispatchAgent implements EngineContext, Agent
                 labels::supplyLabelId, supplyLoadEntry::apply);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
+    }
+
+    public static int indexOfId(
+        long indexedId)
+    {
+        return (int) (indexedId >> SHIFT_SIZE);
     }
 
     @Override
@@ -382,6 +390,14 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
+    public long supplyAuthorizedId()
+    {
+        authorizedId++;
+        authorizedId &= mask;
+        return authorizedId;
+    }
+
+    @Override
     public long supplyBudgetId()
     {
         budgetId++;
@@ -414,7 +430,7 @@ public class DispatchAgent implements EngineContext, Agent
     public BudgetDebitor supplyDebitor(
         long budgetId)
     {
-        final int ownerIndex = (int) ((budgetId >> shift) & 0xFFFF_FFFF);
+        final int ownerIndex = (int) ((budgetId >> SHIFT_SIZE) & 0xFFFF_FFFF);
         return debitorsByIndex.computeIfAbsent(ownerIndex, this::newBudgetDebitor);
     }
 

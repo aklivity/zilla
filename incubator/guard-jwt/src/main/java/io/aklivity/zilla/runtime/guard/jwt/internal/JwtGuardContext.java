@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.guard.jwt.internal;
 
+import java.util.function.LongSupplier;
+
+import org.agrona.collections.Long2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
@@ -22,10 +26,15 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 final class JwtGuardContext implements GuardContext
 {
+    private final Long2ObjectHashMap<JwtGuardHandler> handlersById;
+    private final LongSupplier supplyAuthorizedId;
+
     JwtGuardContext(
         Configuration config,
         EngineContext context)
     {
+        this.handlersById = new Long2ObjectHashMap<>();
+        this.supplyAuthorizedId = context::supplyAuthorizedId;
     }
 
     @Override
@@ -33,12 +42,21 @@ final class JwtGuardContext implements GuardContext
         GuardConfig guard)
     {
         JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
-        return new JwtGuardHandler(options);
+        JwtGuardHandler handler = new JwtGuardHandler(options, supplyAuthorizedId);
+        handlersById.put(guard.id, handler);
+        return handler;
     }
 
     @Override
     public void detach(
-        GuardConfig vault)
+        GuardConfig guard)
     {
+        handlersById.remove(guard.id);
+    }
+
+    JwtGuardHandler handler(
+        long guardId)
+    {
+        return handlersById.get(guardId);
     }
 }

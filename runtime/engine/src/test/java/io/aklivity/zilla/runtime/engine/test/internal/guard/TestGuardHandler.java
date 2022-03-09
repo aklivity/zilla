@@ -16,50 +16,60 @@
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
 import java.util.List;
-import java.util.function.LongPredicate;
 
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
 {
+    private final String credentials;
+    private final List<String> roles;
+
     public TestGuardHandler(
-        GuardConfig vault)
+        TestGuardConfig config)
     {
+        this.credentials = config.options != null ? config.options.credentials : null;
+        this.roles = config.options != null ? config.options.roles : null;
     }
 
     @Override
-    public LongPredicate verifier(
-        List<String> roles)
+    public long reauthorize(
+        long contextId,
+        String credentials)
     {
-        return session -> false;
+        return this.credentials != null && this.credentials.equals(credentials) ? 1L : 0L;
     }
 
     @Override
-    public long authorize(
-        long session, String credentials)
+    public void deauthorize(
+        long sessionId)
     {
-        return 0;
     }
 
     @Override
     public String identity(
-        long session)
+        long sessionId)
     {
         return "test";
     }
 
     @Override
     public long expiresAt(
-        long session)
+        long sessionId)
     {
         return 0;
     }
 
     @Override
     public long challengeAt(
-        long session)
+        long sessionId)
     {
         return 0;
+    }
+
+    boolean verify(
+        long sessionId,
+        List<String> roles)
+    {
+        return roles != null && (this.roles == null || this.roles.containsAll(roles));
     }
 }

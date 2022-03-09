@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
+import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
@@ -130,8 +132,11 @@ public final class Engine implements AutoCloseable
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
 
+        final Map<String, Guard> guardsByType = guards.stream()
+            .collect(Collectors.toMap(g -> g.name(), g -> g));
+
         final Callable<Void> configure =
-                new ConfigureTask(configURL, schemaTypes, labels::supplyLabelId, tuning, dispatchers,
+                new ConfigureTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId, tuning, dispatchers,
                         errorHandler, logger, context, config, extensions);
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());

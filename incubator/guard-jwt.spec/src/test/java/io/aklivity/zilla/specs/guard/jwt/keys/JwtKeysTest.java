@@ -12,15 +12,22 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.guard.jwt.internal;
+package io.aklivity.zilla.specs.guard.jwt.keys;
+
+import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_ES256;
+import static io.aklivity.zilla.specs.guard.jwt.keys.JwtKeys.RFC7515_RS256;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
-public class JwtGuardTest
+public class JwtKeysTest
 {
     @Test
-    public void shouldAuthorize() throws Exception
+    public void shouldVerifyKeys()
     {
-        // TODO
+        assertThat(RFC7515_RS256, not(nullValue()));
+        assertThat(RFC7515_ES256, not(nullValue()));
     }
 }

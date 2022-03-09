@@ -15,10 +15,16 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
+
 import java.net.URL;
+import java.util.List;
+import java.util.function.LongPredicate;
+import java.util.function.LongToIntFunction;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 
@@ -26,9 +32,12 @@ public final class TestGuard implements Guard
 {
     public static final String NAME = "test";
 
+    private final TestGuardContext[] contexts;
+
     public TestGuard(
         Configuration config)
     {
+        this.contexts = new TestGuardContext[ENGINE_WORKERS.get(config)];
     }
 
     @Override
@@ -47,6 +56,29 @@ public final class TestGuard implements Guard
     public GuardContext supply(
         EngineContext context)
     {
-        return new TestGuardContext(context);
+        TestGuardContext guard = new TestGuardContext(context);
+        contexts[context.index()] = guard;
+        return guard;
+    }
+
+    @Override
+    public LongPredicate verifier(
+        LongToIntFunction indexOf,
+        GuardedConfig config)
+    {
+        long guardId = config.id;
+        List<String> roles = config.roles;
+        return sessionId -> verify(guardId, indexOf.applyAsInt(sessionId), sessionId, roles);
+    }
+
+    private boolean verify(
+        long guardId,
+        int index,
+        long sessionId,
+        List<String> roles)
+    {
+        TestGuardContext context = contexts[index];
+        TestGuardHandler handler = context.handler(guardId);
+        return handler.verify(sessionId, roles);
     }
 }

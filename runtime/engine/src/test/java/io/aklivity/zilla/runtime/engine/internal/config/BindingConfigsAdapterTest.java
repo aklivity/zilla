@@ -35,9 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespacedRef;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.internal.config.OptionsConfigAdapterTest.TestOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class BindingConfigsAdapterTest
 {
@@ -104,7 +103,7 @@ public class BindingConfigsAdapterTest
 
         assertThat(bindings[0], not(nullValue()));
         assertThat(bindings[0].vault, not(nullValue()));
-        assertThat(bindings[0].vault.name, equalTo("test"));
+        assertThat(bindings[0].vault, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].routes, emptyCollectionOf(RouteConfig.class));
     }
@@ -112,8 +111,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBindingWithVault()
     {
-        NamespacedRef vault = new NamespacedRef("default", "test");
-        BindingConfig[] bindings = { new BindingConfig(vault, "test", "test", SERVER, null, emptyList()) };
+        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -142,15 +140,15 @@ public class BindingConfigsAdapterTest
         assertThat(bindings[0], not(nullValue()));
         assertThat(bindings[0].entry, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
-        assertThat(bindings[0].options, instanceOf(TestOptionsConfig.class));
-        assertThat(((TestOptionsConfig) bindings[0].options).mode, equalTo("test"));
+        assertThat(bindings[0].options, instanceOf(TestBindingOptionsConfig.class));
+        assertThat(((TestBindingOptionsConfig) bindings[0].options).mode, equalTo("test"));
     }
 
     @Test
     public void shouldWriteBindingWithOptions()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, new TestOptionsConfig("test"), emptyList()) };
+            { new BindingConfig(null, "test", "test", SERVER, new TestBindingOptionsConfig("test"), emptyList()) };
 
         String text = jsonb.toJson(bindings);
 

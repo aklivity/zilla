@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Optional.ofNullable;
 
 import java.io.InputStream;
 import java.io.StringReader;
@@ -34,6 +33,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 
 import jakarta.json.JsonArray;
@@ -63,6 +64,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
+import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
@@ -73,6 +75,7 @@ public class ConfigureTask implements Callable<Void>
 {
     private final URL configURL;
     private final Collection<URL> schemaTypes;
+    private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
     private final Tuning tuning;
     private final Collection<DispatchAgent> dispatchers;
@@ -85,6 +88,7 @@ public class ConfigureTask implements Callable<Void>
     public ConfigureTask(
         URL configURL,
         Collection<URL> schemaTypes,
+        Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
         Tuning tuning,
         Collection<DispatchAgent> dispatchers,
@@ -96,6 +100,7 @@ public class ConfigureTask implements Callable<Void>
     {
         this.configURL = configURL;
         this.schemaTypes = schemaTypes;
+        this.guardByType = guardByType;
         this.supplyId = supplyId;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
@@ -202,43 +207,54 @@ public class ConfigureTask implements Callable<Void>
             }
 
             namespace.id = supplyId.applyAsInt(namespace.name);
+
+            // TODO: consider qualified name "namespace::name"
+            namespace.resolveId = name -> NamespacedId.id(namespace.id, supplyId.applyAsInt(name));
+
+            for (GuardConfig guard : namespace.guards)
+            {
+                guard.id = namespace.resolveId.applyAsLong(guard.name);
+            }
+
+            for (VaultConfig vault : namespace.vaults)
+            {
+                vault.id = namespace.resolveId.applyAsLong(vault.name);
+            }
+
             for (BindingConfig binding : namespace.bindings)
             {
-                binding.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(binding.entry));
+                binding.id = namespace.resolveId.applyAsLong(binding.entry);
+                binding.resolveId = namespace.resolveId;
 
                 if (binding.vault != null)
                 {
-                    binding.vault.id = NamespacedId.id(
-                            supplyId.applyAsInt(ofNullable(binding.vault.namespace).orElse(namespace.name)),
-                            supplyId.applyAsInt(binding.vault.name));
+                    binding.vaultId = namespace.resolveId.applyAsLong(binding.vault);
                 }
 
-                // TODO: consider route exit namespace
                 for (RouteConfig route : binding.routes)
                 {
-                    route.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(route.exit));
+                    route.id = namespace.resolveId.applyAsLong(route.exit);
+                    route.authorized = session -> true;
 
                     if (route.guarded != null)
                     {
-                        // TODO: consider guard namespace
                         for (GuardedConfig guarded : route.guarded)
                         {
-                            guarded.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(guarded.name));
+                            guarded.id = namespace.resolveId.applyAsLong(guarded.name);
+
+                            LongPredicate authorizer = namespace.guards.stream()
+                                .filter(g -> g.id == guarded.id)
+                                .findFirst()
+                                .map(g -> guardByType.apply(g.type))
+                                .map(g -> g.verifier(DispatchAgent::indexOfId, guarded))
+                                .orElse(session -> false);
+
+                            route.authorized = route.authorized.and(authorizer);
                         }
                     }
                 }
 
                 tuning.affinity(binding.id, tuning.affinity(binding.id));
-            }
-
-            for (GuardConfig guard : namespace.guards)
-            {
-                guard.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(guard.name));
-            }
-
-            for (VaultConfig vault : namespace.vaults)
-            {
-                vault.id = NamespacedId.id(namespace.id, supplyId.applyAsInt(vault.name));
             }
 
             CompletableFuture<Void> future = CompletableFuture.completedFuture(null);

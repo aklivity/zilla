@@ -25,7 +25,6 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class KafkaBindingConfig
 {
     public final long id;
-    public final long vaultId;
     public final String entry;
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
@@ -35,7 +34,6 @@ public final class KafkaBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.vaultId = binding.vault != null ? binding.vault.id : 0L;
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);

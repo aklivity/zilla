@@ -16,12 +16,18 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.LongPredicate;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 
+import org.agrona.collections.Long2ObjectHashMap;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
@@ -40,13 +46,19 @@ public class JwtGuardHandler implements GuardHandler
 
     private final String issuer;
     private final String audience;
+    private final Duration challenge;
     private final Map<String, JsonWebKey> keys;
+    private final Long2ObjectHashMap<JwtSession> sessionsById;
+    private final LongSupplier supplyAuthorizedId;
+    private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
 
     public JwtGuardHandler(
-        JwtOptionsConfig options)
+        JwtOptionsConfig options,
+        LongSupplier supplyAuthorizedId)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
+        this.challenge = options.challenge.orElse(null);
 
         Map<String, JsonWebKey> keys = new HashMap<>();
         for (JwtKeyConfig key : options.keys)
@@ -71,22 +83,17 @@ public class JwtGuardHandler implements GuardHandler
             }
         }
         this.keys = keys;
+        this.supplyAuthorizedId = supplyAuthorizedId;
+        this.sessionsById = new Long2ObjectHashMap<>();
+        this.sessionStoresByContextId = new Long2ObjectHashMap<>();
     }
 
     @Override
-    public LongPredicate verifier(
-        List<String> roles)
-    {
-        // TODO
-        return session -> false;
-    }
-
-    @Override
-    public long authorize(
-        long session,
+    public long reauthorize(
+        long contextId,
         String credentials)
     {
-        int authorized = 0;
+        JwtSession session = null;
 
         authorize:
         try
@@ -126,39 +133,184 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
-            // create session
-            // store at session id, scoped by engine context index
-            // TODO: when to clean up session?
+            String subject = claims.getSubject();
+            List<String> roles = Optional.ofNullable(claims.getClaimValue("scope"))
+                .map(s -> s.toString().intern())
+                .map(s -> s.split("\\s+"))
+                .map(Arrays::asList)
+                .orElse(null);
+
+            JwtSessionStore sessionStore = supplySessionStore(contextId);
+            session = sessionStore.supplySession(subject, roles);
+
+            session.roles = roles;
+            session.expiresAt = notAfter != null
+                ? Math.max(session.expiresAt, notAfter.getValueInMillis())
+                : EXPIRES_NEVER;
+            session.challengeAt = challenge != null ? session.expiresAt - challenge.toMillis() : 0L;
+
+            JwtSession previous = sessionsById.put(session.authorized, session);
+            assert previous == null && session.refs == 0 || previous == session && session.refs > 0;
+            session.refs++;
         }
         catch (JoseException | InvalidJwtException | MalformedClaimException ex)
         {
             // not authorized
         }
 
-        return authorized;
+        return session != null ? session.authorized : NOT_AUTHORIZED;
+    }
+
+    @Override
+    public void deauthorize(
+        long sessionId)
+    {
+        JwtSession session = sessionsById.get(sessionId);
+        if (session != null)
+        {
+            session.refs--;
+
+            if (session.refs == 0)
+            {
+                sessionsById.remove(session.authorized);
+                session.unshareIfNecessary();
+            }
+        }
     }
 
     @Override
     public String identity(
-        long session)
+        long sessionId)
     {
-        // TODO Auto-generated method stub
-        return null;
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null ? session.subject : null;
     }
 
     @Override
     public long expiresAt(
-        long session)
+        long sessionId)
     {
-        // TODO Auto-generated method stub
-        return 0;
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null ? session.expiresAt : EXPIRES_NEVER;
     }
 
     @Override
     public long challengeAt(
-        long session)
+        long sessionId)
     {
-        // TODO Auto-generated method stub
-        return 0;
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null ? session.challengeAt : 0L;
+    }
+
+    boolean verify(
+        long sessionId,
+        List<String> roles)
+    {
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null && verify(session, roles);
+    }
+
+    private boolean verify(
+        JwtSession session,
+        List<String> roles)
+    {
+        return roles != null && session.roles != null && session.roles.containsAll(roles);
+    }
+
+    private JwtSessionStore supplySessionStore(
+        long contextId)
+    {
+        return sessionStoresByContextId.computeIfAbsent(contextId, JwtSessionStore::new);
+    }
+
+    private final class JwtSessionStore
+    {
+        private final long contextId;
+        private final Map<String, JwtSession> sessionsBySubject;
+
+        private JwtSessionStore(
+            long contextId)
+        {
+            this.contextId = contextId;
+            this.sessionsBySubject = new IdentityHashMap<>();
+        }
+
+        private JwtSession supplySession(
+            String subject,
+            List<String> roles)
+        {
+            JwtSession session = sessionsBySubject.get(subject);
+
+            if (subject == null || session != null && roles != null && !verify(session, roles))
+            {
+                session = newSession(subject);
+            }
+            else
+            {
+                session = sessionsBySubject.computeIfAbsent(subject, this::newSharedSession);
+            }
+
+            return session;
+        }
+
+        private JwtSession newSharedSession(
+            String subject)
+        {
+            return new JwtSession(supplyAuthorizedId.getAsLong(), subject, this::onUnshared);
+        }
+
+        private JwtSession newSession(
+            String subject)
+        {
+            return new JwtSession(supplyAuthorizedId.getAsLong(), subject);
+        }
+
+        private void onUnshared(
+            JwtSession session)
+        {
+            sessionsBySubject.remove(session.subject);
+            if (sessionsBySubject.isEmpty())
+            {
+                sessionStoresByContextId.remove(contextId);
+            }
+        }
+    }
+
+    private final class JwtSession
+    {
+        private final long authorized;
+        private final String subject;
+        private final Consumer<JwtSession> unshare;
+
+        private volatile List<String> roles;
+        private volatile long expiresAt;
+        private volatile long challengeAt;
+
+        private int refs;
+
+        private JwtSession(
+            long authorized,
+            String subject)
+        {
+            this(authorized, subject, null);
+        }
+
+        private JwtSession(
+            long authorized,
+            String subject,
+            Consumer<JwtSession> unshare)
+        {
+            this.authorized = authorized;
+            this.subject = subject;
+            this.unshare = unshare;
+        }
+
+        private void unshareIfNecessary()
+        {
+            if (unshare != null)
+            {
+                unshare.accept(this);
+            }
+        }
     }
 }

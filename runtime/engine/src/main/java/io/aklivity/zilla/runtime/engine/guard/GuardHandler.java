@@ -15,60 +15,59 @@
  */
 package io.aklivity.zilla.runtime.engine.guard;
 
-import java.util.List;
-import java.util.function.LongPredicate;
-
 public interface GuardHandler
 {
-    /*
-     * Returns a verifier for the specified roles.
-     *
-     * @param roles  the roles to verify
-     *
-     * @return  the session verifier predicate
-     */
-    LongPredicate verifier(
-        List<String> roles);
+    long NOT_AUTHORIZED = 0L;
+
+    long EXPIRES_NEVER = Long.MAX_VALUE;
 
     /*
-     * Authorize the credentials.
+     * Reauthorize the credentials.
      *
-     * @param session       the parent session (possibly zero)
+     * @param contextId     the context identifier, zero if no context
      * @param credentials   the trusted credentials
      *
      * @return  the session identifier
      */
-    long authorize(
-        long session,
+    long reauthorize(
+        long contextId,
         String credentials);
+
+    /*
+     * Deauthorizes the session.
+     *
+     * @param sessionId     the session identifier
+     */
+    void deauthorize(
+        long sessionId);
 
     /*
      * Returns the authorized identity.
      *
-     * @param session       the session identifier
+     * @param sessionId     the session identifier
      *
      * @return  the authorized identity
      */
     String identity(
-        long session);
+        long sessionId);
 
     /*
      * Returns the session expiration time in UTC milliseconds.
      *
-     * @param session       the session identifier
+     * @param sessionId     the session identifier
      *
      * @return  the expiration time
      */
     long expiresAt(
-        long session);
+        long sessionId);
 
     /*
      * Returns the session challenge time in UTC milliseconds.
      *
-     * @param session       the session identifier
+     * @param sessionId     the session identifier
      *
      * @return  the challenge time
      */
     long challengeAt(
-        long session);
+        long sessionId);
 }

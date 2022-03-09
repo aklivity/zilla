@@ -74,7 +74,7 @@ public final class TlsBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.vaultId = binding.vault != null ? binding.vault.id : 0L;
+        this.vaultId = binding.vaultId;
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.options = TlsOptionsConfig.class.cast(binding.options);

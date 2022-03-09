@@ -27,7 +27,7 @@ public class RouteConfig
     public static final List<GuardedConfig> GUARDED_DEFAULT = emptyList();
 
     public transient long id;
-    public transient LongPredicate authorized = a -> true; // TODO
+    public transient LongPredicate authorized;
 
     public final int order;
     public final String exit;

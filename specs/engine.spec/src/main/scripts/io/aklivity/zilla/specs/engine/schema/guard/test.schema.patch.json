@@ -9,8 +9,28 @@
                 "type":
                 {
                     "const": "test"
+                },
+                "options":
+                {
+                    "properties":
+                    {
+                        "credentials":
+                        {
+                            "type": "string"
+                        },
+                        "roles":
+                        {
+                            "type": "array",
+                            "items":
+                            {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
                 }
-            }
+            },
+            "additionalProperties": false
         }
     }
 ]

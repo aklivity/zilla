@@ -26,6 +26,7 @@
                             "default": [ "http/1.1", "h2" ],
                             "items":
                             {
+                                "title": "Version",
                                 "type": "string",
                                 "enum": [ "http/1.1", "h2" ]
                             }
@@ -128,6 +129,88 @@
                                     "additionalProperties": false
                                 }
                             ]
+                        },
+                        "authorization":
+                        {
+                            "title": "Authorizations",
+                            "type": "object",
+                            "patternProperties":
+                            {
+                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                {
+                                    "title": "Authorization",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "credentials":
+                                        {
+                                            "title": "Credentials",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "cookies":
+                                                {
+                                                    "title": "Cookies",
+                                                    "type": "object",
+                                                    "additionalProperties":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": ".*\\{credentials\\}.*"
+                                                    }
+                                                },
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "object",
+                                                    "additionalProperties":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": ".*\\{credentials\\}.*"
+                                                    }
+                                                },
+                                                "query":
+                                                {
+                                                    "title": "Query Parameters",
+                                                    "type": "object",
+                                                    "additionalProperties":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": ".*\\{credentials\\}.*"
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "anyOf":
+                                            [
+                                                {
+                                                    "required":
+                                                    [
+                                                        "headers"
+                                                    ]
+                                                },
+                                                {
+                                                    "required":
+                                                    [
+                                                        "query"
+                                                    ]
+                                                },
+                                                {
+                                                    "required":
+                                                    [
+                                                        "cookies"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "required":
+                                    [
+                                        "credentials"
+                                    ]
+                                }
+                            },
+                            "maxProperties": 1
                         },
                         "overrides":
                         {

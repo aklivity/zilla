@@ -33,7 +33,6 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespacedRef;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -75,8 +74,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             if (binding.vault != null)
             {
-                // TODO: qualified name format
-                item.add(VAULT_NAME, binding.vault.name);
+                item.add(VAULT_NAME, binding.vault);
             }
 
             item.add(TYPE_NAME, binding.type);
@@ -115,8 +113,8 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             route.adaptType(type);
             options.adaptType(type);
 
-            NamespacedRef vault = item.containsKey(VAULT_NAME)
-                    ? NamespacedRef.of(item.getString(VAULT_NAME))
+            String vault = item.containsKey(VAULT_NAME)
+                    ? item.getString(VAULT_NAME)
                     : null;
             KindConfig kind = this.kind.adaptFromJson(item.getJsonString(KIND_NAME));
             OptionsConfig opts = item.containsKey(OPTIONS_NAME) ?

@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -131,6 +132,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class HttpServerFactory implements HttpStreamFactory
 {
@@ -506,6 +508,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
+    private final LongFunction<GuardHandler> supplyGuard;
     private final Signaler signaler;
     private final Http2Settings initialSettings;
     private final BufferPool headersPool;
@@ -534,6 +537,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBudgetId = context::supplyBudgetId;
+        this.supplyGuard = context::supplyGuard;
         this.signaler = context.signaler();
         this.headersPool = bufferPool.duplicate();
         this.initialSettings = new Http2Settings(config, headersPool);
@@ -3430,6 +3434,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         private final long replyId;
         private final long affinity;
         private final long budgetId;
+        private final GuardHandler guard;
+        private final Function<Function<String, String>, String> credentials;
 
         private long initialSeq;
         private long initialAck;
@@ -3507,6 +3513,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.encodeHeadersBuffer = new ExpandableArrayBuffer();
             this.encodeReservedBuffer = new ExpandableArrayBuffer();
             this.remoteSharedBudget = remoteSettings.initialWindowSize;
+            this.guard = resolveGuard(binding);
+            this.credentials = binding.credentials();
         }
 
         private Http2Server(
@@ -3684,7 +3692,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                  iterator.hasNext() && remaining > 0; remaining--)
             {
                 final Http2Exchange stream = iterator.next();
-                stream.cleanup(traceId, authorization);
+                stream.cleanup(traceId);
             }
 
             if (!streams.isEmpty())
@@ -4341,7 +4349,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                    .stream()
                    .filter(e -> e.getKey() > lastStreamId)
                    .map(Map.Entry::getValue)
-                   .forEach(ex -> ex.cleanup(traceId, authorization));
+                   .forEach(ex -> ex.cleanup(traceId));
 
             remoteSettings.enablePush = 0;
         }
@@ -4531,18 +4539,19 @@ public final class HttpServerFactory implements HttpStreamFactory
                         headers.put(HEADER_NAME_AUTHORITY, authority + defaultPort);
                     }
 
-                    final HttpRouteConfig route = binding.resolve(authorization, headers::get);
+                    long exchangeAuth = authorization;
+                    if (guard != null)
+                    {
+                        exchangeAuth = guard.reauthorize(initialId, credentials.apply(headers::get));
+                    }
+
+                    final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                     if (route == null)
                     {
                         doEncodeHeaders(traceId, authorization, streamId, HEADERS_404_NOT_FOUND, true);
                     }
                     else
                     {
-                        if (binding.options != null && binding.options.overrides != null)
-                        {
-                            binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
-                        }
-
                         final long routeId = route.id;
                         final long contentLength = headersDecoder.contentLength;
 
@@ -4550,18 +4559,23 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
                         final Http2Exchange exchange =
-                                new Http2Exchange(routeId, streamId, policy, origin, contentLength);
+                                new Http2Exchange(routeId, streamId, exchangeAuth, policy, origin, contentLength);
+
+                        if (binding.options != null && binding.options.overrides != null)
+                        {
+                            binding.options.overrides.forEach((k, v) -> headers.put(k.asString(), v.asString()));
+                        }
 
                         final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                                 .typeId(httpTypeId)
                                 .headers(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
                                 .build();
 
-                        exchange.doRequestBegin(traceId, authorization, beginEx);
+                        exchange.doRequestBegin(traceId, beginEx);
 
                         if (endRequest)
                         {
-                            exchange.doRequestEnd(traceId, authorization, EMPTY_OCTETS);
+                            exchange.doRequestEnd(traceId, EMPTY_OCTETS);
                         }
                     }
                 }
@@ -4708,7 +4722,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (headersDecoder.streamError != null)
                     {
                         doEncodeRstStream(traceId, authorization, streamId, headersDecoder.streamError);
-                        exchange.cleanup(traceId, authorization);
+                        exchange.cleanup(traceId);
                     }
                     else if (headersDecoder.connectionError != null)
                     {
@@ -4724,7 +4738,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             .trailers(ts -> trailers.forEach((n, v) -> ts.item(t -> t.name(n).value(v))))
                             .build();
 
-                    exchange.doRequestEnd(traceId, authorization, endEx);
+                    exchange.doRequestEnd(traceId, endEx);
                 }
             }
         }
@@ -4756,7 +4770,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (error != Http2ErrorCode.NO_ERROR)
                 {
-                    exchange.cleanup(traceId, authorization);
+                    exchange.cleanup(traceId);
                     doEncodeRstStream(traceId, authorization, streamId, error);
                     progress += payloadRemaining.value;
                 }
@@ -4767,7 +4781,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (payloadLength > 0)
                     {
                         payloadRemaining.set(payloadLength);
-                        exchange.doRequestData(traceId, authorization, payload, payloadRemaining);
+                        exchange.doRequestData(traceId, payload, payloadRemaining);
                         progress += payloadLength - payloadRemaining.value;
                         deferred += payloadRemaining.value;
                     }
@@ -4780,7 +4794,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            exchange.doRequestEnd(traceId, authorization, EMPTY_OCTETS);
+                            exchange.doRequestEnd(traceId, EMPTY_OCTETS);
                         }
                     }
                 }
@@ -4817,7 +4831,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (exchange != null)
             {
-                exchange.cleanup(traceId, authorization);
+                exchange.cleanup(traceId);
             }
         }
 
@@ -4860,9 +4874,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
         }
 
-        private void onEncodePromise(
+        private void doEncodePromise(
             long traceId,
-            long authorization,
             int streamId,
             Array32FW<HttpHeaderFW> promise)
         {
@@ -4870,7 +4883,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             headers.clear();
             promise.forEach(h -> headers.put(h.name().asString(), h.value().asString()));
 
-            final HttpRouteConfig route = binding.resolve(authorization, headers::get);
+            long exchangeAuth = authorization;
+            if (guard != null)
+            {
+                exchangeAuth = guard.reauthorize(initialId, credentials.apply(headers::get));
+            }
+
+            final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
             if (route != null)
             {
                 final int pushId =
@@ -4905,16 +4924,16 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
                     final Http2Exchange exchange =
-                            new Http2Exchange(routeId, promiseId, policy, origin, contentLength);
+                            new Http2Exchange(routeId, promiseId, exchangeAuth, policy, origin, contentLength);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
                             .headers(hs -> headers.forEach((n, v) -> hs.item(i -> i.name(n).value(v))))
                             .build();
 
-                    exchange.doRequestBegin(traceId, authorization, beginEx);
+                    exchange.doRequestBegin(traceId, beginEx);
 
-                    exchange.doRequestEnd(traceId, authorization, EMPTY_OCTETS);
+                    exchange.doRequestEnd(traceId, EMPTY_OCTETS);
                 }
             }
         }
@@ -5191,6 +5210,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final HttpPolicyConfig policy;
             private final String origin;
             private final long contentLength;
+            private final long exchangeAuth;
 
             private int state;
             private long contentObserved;
@@ -5213,12 +5233,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             private Http2Exchange(
                 long routeId,
                 int streamId,
+                long authorization,
                 HttpPolicyConfig policy,
                 String origin,
                 long contentLength)
             {
                 this.routeId = routeId;
                 this.streamId = streamId;
+                this.exchangeAuth = authorization;
                 this.policy = policy;
                 this.origin = origin;
                 this.contentLength = contentLength;
@@ -5233,14 +5255,13 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void doRequestBegin(
                 long traceId,
-                long authorization,
                 Flyweight extension)
             {
                 assert state == 0;
                 state = HttpState.openingInitial(state);
 
                 application = newStream(this::onExchange, routeId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, authorization, affinity, extension);
+                    traceId, exchangeAuth, affinity, extension);
                 streams.put(streamId, this);
                 streamsActive[streamId & 0x01]++;
                 applicationHeadersProcessed.add(streamId);
@@ -5251,7 +5272,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void doRequestData(
                 long traceId,
-                long authorization,
                 DirectBuffer buffer,
                 MutableInteger remaining)
             {
@@ -5259,8 +5279,8 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (localBudget < remaining.value)
                 {
-                    doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
-                    cleanup(traceId, authorization);
+                    doEncodeRstStream(traceId, exchangeAuth, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
+                    cleanup(traceId);
                 }
                 else
                 {
@@ -5277,7 +5297,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (length > 0)
                     {
                         doData(application, routeId, requestId, requestSeq, requestAck, requestMax, traceId,
-                            authorization, requestBudgetId, reserved, buffer, 0, length, EMPTY_OCTETS);
+                            exchangeAuth, requestBudgetId, reserved, buffer, 0, length, EMPTY_OCTETS);
                         contentObserved += length;
 
                         requestSeq += reserved;
@@ -5292,7 +5312,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private void doRequestEnd(
                 long traceId,
-                long authorization,
                 Flyweight extension)
             {
                 if (!HttpState.initialOpened(state))
@@ -5301,27 +5320,25 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    flushRequestEnd(traceId, authorization, extension);
+                    flushRequestEnd(traceId, exchangeAuth, extension);
                 }
             }
 
             private void doRequestAbort(
                 long traceId,
-                long authorization,
                 Flyweight extension)
             {
                 setRequestClosed();
 
-                doAbort(application, routeId, requestId, requestSeq, requestAck, requestMax, traceId, authorization, extension);
+                doAbort(application, routeId, requestId, requestSeq, requestAck, requestMax, traceId, exchangeAuth, extension);
             }
 
             private void doRequestAbortIfNecessary(
-                long traceId,
-                long authorization)
+                long traceId)
             {
                 if (!HttpState.initialClosed(state))
                 {
-                    doRequestAbort(traceId, authorization, EMPTY_OCTETS);
+                    doRequestAbort(traceId, EMPTY_OCTETS);
                 }
             }
 
@@ -5373,15 +5390,15 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (HttpState.replyOpened(state))
                 {
-                    doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.NO_ERROR);
+                    doEncodeRstStream(traceId, exchangeAuth, streamId, Http2ErrorCode.NO_ERROR);
                 }
                 else
                 {
-                    doEncodeHeaders(traceId, authorization, streamId, HEADERS_404_NOT_FOUND, true);
+                    doEncodeHeaders(traceId, exchangeAuth, streamId, HEADERS_404_NOT_FOUND, true);
                 }
 
                 decodeNetworkIfNecessary(traceId);
-                cleanup(traceId, authorization);
+                cleanup(traceId);
             }
 
             private void onRequestWindow(
@@ -5419,11 +5436,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (HttpState.initialClosing(state))
                     {
                         // TODO: trailers extension?
-                        flushRequestEnd(traceId, authorization, EMPTY_OCTETS);
+                        flushRequestEnd(traceId, exchangeAuth, EMPTY_OCTETS);
                     }
                     else
                     {
-                        flushRequestWindowUpdate(traceId, authorization);
+                        flushRequestWindowUpdate(traceId, exchangeAuth);
                     }
                 }
                 applicationHeadersProcessed.remove(streamId);
@@ -5457,7 +5474,16 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 state = HttpState.closeInitial(state);
                 cleanupRequestDebitorIfNecessary();
+                deauthorizeIfNecessary();
                 removeStreamIfNecessary();
+            }
+
+            private void deauthorizeIfNecessary()
+            {
+                if (exchangeAuth != 0L && guard != null)
+                {
+                    guard.deauthorize(exchangeAuth);
+                }
             }
 
             private void cleanupRequestDebitorIfNecessary()
@@ -5526,7 +5552,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (responseSeq > responseAck + responseMax)
                 {
-                    doResponseReset(traceId, authorization);
+                    doResponseReset(traceId);
                     doNetworkAbort(traceId, authorization);
                 }
                 else
@@ -5539,7 +5565,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         final Array32FW<HttpHeaderFW> promise = dataEx.promise();
 
-                        onEncodePromise(traceId, authorization, streamId, promise);
+                        doEncodePromise(traceId, streamId, promise);
                     }
 
                     if (payload != null)
@@ -5570,7 +5596,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final int minimumClaim = 1024;
                         final int responseCreditMin = (responseWin <= responsePadding + minimumClaim) ? 0 : remoteBudget >> 1;
 
-                        flushResponseWindow(traceId, authorization, responseCreditMin);
+                        flushResponseWindow(traceId, responseCreditMin);
                     }
                 }
             }
@@ -5592,7 +5618,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (responseSeq > responseAck + responseMax)
                 {
-                    doResponseReset(traceId, authorization);
+                    doResponseReset(traceId);
                     doNetworkAbort(traceId, authorization);
                 }
             }
@@ -5606,7 +5632,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : TRAILERS_EMPTY;
 
                 final long traceId = end.traceId();
-                final long authorization = end.authorization();
 
                 doEncodeTrailers(traceId, authorization, streamId, trailers);
             }
@@ -5617,28 +5642,25 @@ public final class HttpServerFactory implements HttpStreamFactory
                 setResponseClosed();
 
                 final long traceId = abort.traceId();
-                final long authorization = abort.authorization();
 
                 doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.NO_ERROR);
-                cleanup(traceId, authorization);
+                cleanup(traceId);
             }
 
             private void doResponseReset(
-                long traceId,
-                long authorization)
+                long traceId)
             {
                 setResponseClosed();
 
-                doReset(application, routeId, responseId, responseSeq, responseAck, responseMax, traceId, authorization);
+                doReset(application, routeId, responseId, responseSeq, responseAck, responseMax, traceId, exchangeAuth);
             }
 
             private void doResponseResetIfNecessary(
-                long traceId,
-                long authorization)
+                long traceId)
             {
                 if (!HttpState.replyClosed(state))
                 {
-                    doResponseReset(traceId, authorization);
+                    doResponseReset(traceId);
                 }
             }
 
@@ -5652,19 +5674,18 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (newRemoteBudget > MAX_REMOTE_BUDGET)
                 {
                     doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
-                    cleanup(traceId, authorization);
+                    cleanup(traceId);
                 }
                 else
                 {
                     remoteBudget = (int) newRemoteBudget;
 
-                    flushResponseWindow(traceId, authorization, 0);
+                    flushResponseWindow(traceId, 0);
                 }
             }
 
             private void flushResponseWindow(
                 long traceId,
-                long authorization,
                 int responseCreditMin)
             {
                 if (!HttpState.replyClosed(state))
@@ -5687,7 +5708,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         responseMax = newResponseWin + (int)(responseSeq - responseAck);
                         assert responseMax >= 0;
 
-                        doWindow(application, routeId, responseId, responseSeq, responseAck, responseMax, traceId, authorization,
+                        doWindow(application, routeId, responseId, responseSeq, responseAck, responseMax, traceId, exchangeAuth,
                                  budgetId, responsePad);
                     }
                 }
@@ -5711,11 +5732,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
 
             private void cleanup(
-                long traceId,
-                long authorization)
+                long traceId)
             {
-                doRequestAbortIfNecessary(traceId, authorization);
-                doResponseResetIfNecessary(traceId, authorization);
+                doRequestAbortIfNecessary(traceId);
+                doResponseResetIfNecessary(traceId);
             }
         }
     }
@@ -6381,5 +6401,20 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         return targetURI;
+    }
+
+    private GuardHandler resolveGuard(
+        HttpBindingConfig binding)
+    {
+        GuardHandler guard = null;
+
+        if (binding.options != null &&
+            binding.options.authorization != null)
+        {
+            long guardId = binding.resolveId.applyAsLong(binding.options.authorization.name);
+            guard = supplyGuard.apply(guardId);
+        }
+
+        return guard;
     }
 }
