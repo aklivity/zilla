@@ -37,7 +37,7 @@ public final class HttpAuthorizationConfig
 
     public Function<Function<String, String>, String> credentials()
     {
-        return credentials != null ? credentials.accessor() : DEFAULT_CREDENTIALS;
+        return credentials != null ? credentials.accessor : DEFAULT_CREDENTIALS;
     }
 
     public static final class HttpCredentialsConfig
@@ -45,6 +45,8 @@ public final class HttpAuthorizationConfig
         public final List<HttpPatternConfig> headers;
         public final List<HttpPatternConfig> parameters;
         public final List<HttpPatternConfig> cookies;
+
+        private final Function<Function<String, String>, String> accessor;
 
         public HttpCredentialsConfig(
             List<HttpPatternConfig> headers)
@@ -60,13 +62,16 @@ public final class HttpAuthorizationConfig
             this.headers = headers;
             this.parameters = parameters;
             this.cookies = cookies;
+            this.accessor = asAccessor(headers, parameters, cookies);
         }
 
-        public Function<Function<String, String>, String> accessor()
+        private Function<Function<String, String>, String> asAccessor(
+            List<HttpPatternConfig> headers,
+            List<HttpPatternConfig> parameters,
+            List<HttpPatternConfig> cookies)
         {
             Function<Function<String, String>, String> accessor = DEFAULT_CREDENTIALS;
 
-            // TODO: hoist matcher reuse
             if (cookies != null && !cookies.isEmpty())
             {
                 HttpPatternConfig config = cookies.get(0);
