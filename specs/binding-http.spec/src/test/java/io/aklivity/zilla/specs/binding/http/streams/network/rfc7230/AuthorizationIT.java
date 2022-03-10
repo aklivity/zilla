@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.http.streams.application.rfc7540;
+package io.aklivity.zilla.specs.binding.http.streams.network.rfc7230;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class AuthorizationIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/authorization");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7230/authorization");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -62,6 +62,36 @@ public class AuthorizationIT
         "${app}/authorize.credentials.query/server",
     })
     public void shouldAuthorizeCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.credentials.cookie/client",
+        "${app}/reject.credentials.cookie/server",
+    })
+    public void shouldRejectCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.credentials.header/client",
+        "${app}/reject.credentials.header/server",
+    })
+    public void shouldRejectCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reject.credentials.query/client",
+        "${app}/reject.credentials.query/server",
+    })
+    public void shouldRejectCredentialsQuery() throws Exception
     {
         k3po.finish();
     }

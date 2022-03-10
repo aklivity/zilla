@@ -66,8 +66,28 @@ public final class HttpAuthorizationConfig
         {
             Function<Function<String, String>, String> accessor = DEFAULT_CREDENTIALS;
 
-            // TODO: parameters, cookies
             // TODO: hoist matcher reuse
+            if (cookies != null && !cookies.isEmpty())
+            {
+                HttpPatternConfig config = cookies.get(0);
+                String cookieName = config.name;
+
+                Matcher cookieMatch =
+                        Pattern.compile(String.format(
+                                    "(;\\s*)?%s=%s",
+                                    cookieName,
+                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
+                               .matcher("");
+
+                accessor = orElseIfNull(accessor, hs ->
+                {
+                    String cookie = hs.apply("cookie");
+                    return cookie != null && cookieMatch.reset(cookie).find()
+                        ? cookieMatch.group("credentials")
+                        : null;
+                });
+            }
+
             if (headers != null && !headers.isEmpty())
             {
                 HttpPatternConfig config = headers.get(0);
@@ -76,16 +96,48 @@ public final class HttpAuthorizationConfig
                         Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
                                .matcher("");
 
-                accessor = hs ->
+                accessor = orElseIfNull(accessor, hs ->
                 {
                     String header = hs.apply(headerName);
                     return header != null && headerMatch.reset(header).matches()
                             ? headerMatch.group("credentials")
                             : null;
-                };
+                });
+            }
+
+            if (parameters != null && !parameters.isEmpty())
+            {
+                HttpPatternConfig config = parameters.get(0);
+                String parametersName = config.name;
+
+                Matcher parametersMatch =
+                        Pattern.compile(String.format(
+                                    "(\\?|\\&)%s=%s",
+                                    parametersName,
+                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
+                               .matcher("");
+
+                accessor = orElseIfNull(accessor, hs ->
+                {
+                    String pathWithQuery = hs.apply(":path");
+                    return pathWithQuery != null && parametersMatch.reset(pathWithQuery).find()
+                        ? parametersMatch.group("credentials")
+                        : null;
+                });
             }
 
             return accessor;
+        }
+
+        private static Function<Function<String, String>, String> orElseIfNull(
+            Function<Function<String, String>, String> first,
+            Function<Function<String, String>, String> second)
+        {
+            return hs ->
+            {
+                String result = first.apply(hs);
+                return result != null ? result : second.apply(hs);
+            };
         }
     }
 

@@ -38,10 +38,30 @@ public class AuthorizationIT
 
     @Test
     @Specification({
+        "${app}/authorize.credentials.cookie/client",
+        "${app}/authorize.credentials.cookie/server",
+    })
+    public void shouldAuthorizeCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/authorize.credentials.header/client",
         "${app}/authorize.credentials.header/server",
     })
     public void shouldAuthorizeCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/authorize.credentials.query/client",
+        "${app}/authorize.credentials.query/server",
+    })
+    public void shouldAuthorizeCredentialsQuery() throws Exception
     {
         k3po.finish();
     }

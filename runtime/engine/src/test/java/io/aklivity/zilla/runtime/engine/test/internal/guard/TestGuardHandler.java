@@ -70,6 +70,6 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId,
         List<String> roles)
     {
-        return roles != null && (this.roles == null || this.roles.containsAll(roles));
+        return sessionId != 0L && (this.roles == null || this.roles.containsAll(roles));
     }
 }

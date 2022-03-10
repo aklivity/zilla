@@ -185,6 +185,12 @@
                                                 {
                                                     "required":
                                                     [
+                                                        "cookies"
+                                                    ]
+                                                },
+                                                {
+                                                    "required":
+                                                    [
                                                         "headers"
                                                     ]
                                                 },
@@ -192,12 +198,6 @@
                                                     "required":
                                                     [
                                                         "query"
-                                                    ]
-                                                },
-                                                {
-                                                    "required":
-                                                    [
-                                                        "cookies"
                                                     ]
                                                 }
                                             ]

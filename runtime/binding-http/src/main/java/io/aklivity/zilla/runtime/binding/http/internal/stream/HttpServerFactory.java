@@ -196,8 +196,6 @@ public final class HttpServerFactory implements HttpStreamFactory
             initResponse(400, "Bad Request");
     private static final DirectBuffer ERROR_400_BAD_REQUEST_OBSOLETE_LINE_FOLDING =
             initResponse(400, "Bad Request - obsolete line folding not supported");
-    private static final DirectBuffer ERROR_404_NOT_FOUND =
-            initResponse(404, "Not Found");
     private static final DirectBuffer ERROR_414_REQUEST_URI_TOO_LONG =
             initResponse(414, "Request URI Too Long");
     private static final DirectBuffer ERROR_431_HEADERS_TOO_LARGE =
@@ -393,6 +391,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final Array32FW<HttpHeaderFW> headers403;
     private final DirectBuffer response403;
+    private final DirectBuffer response404;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -557,6 +556,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         this.headers403 = initHeaders(config, STATUS_403);
         this.response403 = initResponse(config, 403, "Forbidden");
+        this.response404 = initResponse(config, 404, "Not Found");
     }
 
     @Override
@@ -955,7 +955,15 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     HttpBindingConfig binding = server.binding;
-                    HttpRouteConfig route = binding.resolve(authorization, headers::get);
+                    GuardHandler guard = server.guard;
+
+                    long exchangeAuth = authorization;
+                    if (guard != null)
+                    {
+                        exchangeAuth = guard.reauthorize(server.initialId, server.credentials.apply(headers::get));
+                    }
+
+                    HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                     if (route != null)
                     {
                         if (binding.options != null && binding.options.overrides != null)
@@ -971,11 +979,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                         HttpPolicyConfig policy = binding.access().effectivePolicy(headers);
                         final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
-                        server.onDecodeHeaders(route.id, traceId, authorization, policy, origin, beginEx);
+                        server.onDecodeHeaders(route.id, traceId, exchangeAuth, policy, origin, beginEx);
                     }
                     else
                     {
-                        error = ERROR_404_NOT_FOUND;
+                        error = response404;
                     }
                 }
             }
@@ -1043,11 +1051,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             else
             {
                 final String path = targetURI.getRawPath();
+                final String query = targetURI.getRawQuery();
                 final String authority = targetURI.getAuthority();
+
+                final String pathWithQuery = query != null ? String.format("%s?%s", path, query) : path;
 
                 httpBeginEx.headersItem(h -> h.name(HEADER_SCHEME).value(scheme))
                            .headersItem(h -> h.name(HEADER_METHOD).value(method))
-                           .headersItem(h -> h.name(HEADER_PATH).value(path));
+                           .headersItem(h -> h.name(HEADER_PATH).value(pathWithQuery));
 
                 if (authority != null)
                 {
@@ -1439,6 +1450,8 @@ public final class HttpServerFactory implements HttpStreamFactory
         private final long replyId;
         private final long affinity;
         private final boolean upgrade;
+        private final GuardHandler guard;
+        private final Function<Function<String, String>, String> credentials;
 
         private int replyPad;
         private boolean replyCloseOnFlush;
@@ -1488,6 +1501,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             this.decodeSlot = NO_SLOT;
             this.encodeSlot = NO_SLOT;
             this.delegateNetwork = this::onNetwork;
+            this.guard = resolveGuard(binding);
+            this.credentials = binding.credentials();
         }
 
         private int replyPendingAck()
