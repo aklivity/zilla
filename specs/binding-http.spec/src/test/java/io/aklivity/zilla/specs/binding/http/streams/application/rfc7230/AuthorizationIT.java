@@ -65,4 +65,14 @@ public class AuthorizationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/challenge.response.before.expiration/client",
+        "${app}/challenge.response.before.expiration/server",
+    })
+    public void shouldChallengeResponseBeforeExpiration() throws Exception
+    {
+        k3po.finish();
+    }
 }

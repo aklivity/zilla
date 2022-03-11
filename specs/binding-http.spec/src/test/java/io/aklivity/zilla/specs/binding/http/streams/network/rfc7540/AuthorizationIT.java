@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class AuthorizationIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/authorization");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/authorization");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,8 +38,8 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${app}/authorize.credentials.cookie/client",
-        "${app}/authorize.credentials.cookie/server",
+        "${net}/authorize.credentials.cookie/client",
+        "${net}/authorize.credentials.cookie/server",
     })
     public void shouldAuthorizeCredentialsCookie() throws Exception
     {
@@ -48,8 +48,8 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${app}/authorize.credentials.header/client",
-        "${app}/authorize.credentials.header/server",
+        "${net}/authorize.credentials.header/client",
+        "${net}/authorize.credentials.header/server",
     })
     public void shouldAuthorizeCredentialsHeader() throws Exception
     {
@@ -58,8 +58,8 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${app}/authorize.credentials.query/client",
-        "${app}/authorize.credentials.query/server",
+        "${net}/authorize.credentials.query/client",
+        "${net}/authorize.credentials.query/server",
     })
     public void shouldAuthorizeCredentialsQuery() throws Exception
     {
@@ -68,10 +68,20 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${app}/reject.credentials.header/client",
-        "${app}/reject.credentials.header/server",
+        "${net}/reject.credentials.header/client",
+        "${net}/reject.credentials.header/server",
     })
     public void shouldRejectCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/challenge.response.before.expiration/client",
+        "${net}/challenge.response.before.expiration/server",
+    })
+    public void shouldChallengeResponseBeforeExpiration() throws Exception
     {
         k3po.finish();
     }
