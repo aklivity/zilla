@@ -2411,7 +2411,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             }
             else
             {
-                readIdleTimeoutId = signaler.signalAt(readIdleTimeoutAt, routeId, replyId, READ_IDLE_SIGNAL_ID);
+                readIdleTimeoutId = signaler.signalAt(readIdleTimeoutAt, routeId, replyId, READ_IDLE_SIGNAL_ID, 0);
             }
         }
 
@@ -2429,7 +2429,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             }
             else
             {
-                writeIdleTimeoutId = signaler.signalAt(writeIdleTimeoutAt, routeId, replyId, WRITE_IDLE_SIGNAL_ID);
+                writeIdleTimeoutId = signaler.signalAt(writeIdleTimeoutAt, routeId, replyId, WRITE_IDLE_SIGNAL_ID, 0);
             }
         }
 
@@ -2970,7 +2970,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                 if (readIdleTimeoutId == NO_CANCEL_ID)
                 {
-                    readIdleTimeoutId = signaler.signalAt(readIdleTimeoutAt, routeId, replyId, READ_IDLE_SIGNAL_ID);
+                    readIdleTimeoutId = signaler.signalAt(readIdleTimeoutAt, routeId, replyId, READ_IDLE_SIGNAL_ID, 0);
                 }
             }
         }
@@ -2983,7 +2983,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
 
                 if (writeIdleTimeoutId == NO_CANCEL_ID)
                 {
-                    writeIdleTimeoutId = signaler.signalAt(writeIdleTimeoutAt, routeId, replyId, WRITE_IDLE_SIGNAL_ID);
+                    writeIdleTimeoutId = signaler.signalAt(writeIdleTimeoutAt, routeId, replyId, WRITE_IDLE_SIGNAL_ID, 0);
                 }
             }
         }
@@ -2993,7 +2993,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
             final long closeTimeoutAt = currentTimeMillis() + closeTimeout;
 
             assert closeTimeoutId == NO_CANCEL_ID;
-            closeTimeoutId = signaler.signalAt(closeTimeoutAt, routeId, replyId, CLOSE_SIGNAL_ID);
+            closeTimeoutId = signaler.signalAt(closeTimeoutAt, routeId, replyId, CLOSE_SIGNAL_ID, 0);
         }
 
         private final class AmqpSession

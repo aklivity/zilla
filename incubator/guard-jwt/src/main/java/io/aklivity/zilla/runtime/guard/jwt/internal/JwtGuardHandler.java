@@ -147,7 +147,7 @@ public class JwtGuardHandler implements GuardHandler
             session.expiresAt = notAfter != null
                 ? Math.max(session.expiresAt, notAfter.getValueInMillis())
                 : EXPIRES_NEVER;
-            session.challengeAt = challenge != null ? session.expiresAt - challenge.toMillis() : 0L;
+            session.challengeAt = challenge != null ? session.expiresAt - challenge.toMillis() : session.expiresAt;
 
             JwtSession previous = sessionsById.put(session.authorized, session);
             assert previous == null && session.refs == 0 || previous == session && session.refs > 0;
@@ -195,11 +195,20 @@ public class JwtGuardHandler implements GuardHandler
     }
 
     @Override
-    public long challengeAt(
+    public long expiringAt(
         long sessionId)
     {
         JwtSession session = sessionsById.get(sessionId);
-        return session != null ? session.challengeAt : 0L;
+        return session != null ? session.challengeAt : EXPIRES_NEVER;
+    }
+
+    @Override
+    public boolean challenge(
+        long sessionId,
+        long now)
+    {
+        JwtSession session = sessionsById.get(sessionId);
+        return session != null && session.challenge(now);
     }
 
     boolean verify(
@@ -282,9 +291,11 @@ public class JwtGuardHandler implements GuardHandler
         private final String subject;
         private final Consumer<JwtSession> unshare;
 
+        private long expiresAt;
+        private long challengeAt;
+        private long challengedAt;
+
         private volatile List<String> roles;
-        private volatile long expiresAt;
-        private volatile long challengeAt;
 
         private int refs;
 
@@ -303,6 +314,19 @@ public class JwtGuardHandler implements GuardHandler
             this.authorized = authorized;
             this.subject = subject;
             this.unshare = unshare;
+        }
+
+        boolean challenge(
+            long now)
+        {
+            final boolean challenge = challengeAt <= now && now < expiresAt && challengedAt < challengeAt;
+
+            if (challenge)
+            {
+                challengedAt = challengeAt;
+            }
+
+            return challenge;
         }
 
         private void unshareIfNecessary()

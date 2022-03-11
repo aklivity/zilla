@@ -23,11 +23,11 @@ public interface Signaler
 
     long signalAt(long timeMillis, int signalId, IntConsumer handler);
 
-    void signalNow(long routeId, long streamId, int signalId);
+    void signalNow(long routeId, long streamId, int signalId, int contextId);
 
-    long signalAt(long timeMillis, long routeId, long streamId, int signalId);
+    long signalAt(long timeMillis, long routeId, long streamId, int signalId, int contextId);
 
-    long signalTask(Runnable task, long routeId, long streamId, int signalId);
+    long signalTask(Runnable task, long routeId, long streamId, int signalId, int contextId);
 
     boolean cancel(long cancelId);
 }

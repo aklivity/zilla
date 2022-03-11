@@ -2,16 +2,23 @@
     "name": "test",
     "vaults":
     {
-        "test":
+        "test0":
         {
             "type": "test"
         }
     },
     "guards":
     {
-        "test":
+        "test0":
         {
-            "type": "test"
+            "type": "test",
+            "options":
+            {
+                "credentials": "TOKEN",
+                "lifetime": "PT30S",
+                "challenge": "PT5S",
+                "roles": [ "read", "write" ]
+            }
         }
     },
     "bindings":
@@ -23,7 +30,7 @@
             "exit": "app0",
             "guarded":
             {
-                "test": [ "read" ]
+                "test0": [ "read" ]
             }
         }
     }

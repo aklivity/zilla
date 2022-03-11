@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.guard.config;
 
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_CHALLENGE_NEVER;
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_LIFETIME_FOREVER;
+
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +35,8 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapterSpi
 {
     private static final String CREDENTIALS_NAME = "credentials";
+    private static final String LIFETIME_NAME = "lifetime";
+    private static final String CHALLENGE_NAME = "challenge";
     private static final String ROLES_NAME = "roles";
 
     @Override
@@ -55,6 +61,16 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
 
         object.add(CREDENTIALS_NAME, testOptions.credentials);
 
+        if (testOptions.lifetime != DEFAULT_LIFETIME_FOREVER)
+        {
+            object.add(LIFETIME_NAME, testOptions.lifetime.toString());
+        }
+
+        if (testOptions.challenge != DEFAULT_CHALLENGE_NEVER)
+        {
+            object.add(CHALLENGE_NAME, testOptions.challenge.toString());
+        }
+
         if (testOptions.roles != null &&
             !testOptions.roles.isEmpty())
         {
@@ -75,6 +91,14 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
                 ? object.getString(CREDENTIALS_NAME)
                 : null;
 
+        Duration newLifetime = object.containsKey(LIFETIME_NAME)
+                ? Duration.parse(object.getString(LIFETIME_NAME))
+                : DEFAULT_LIFETIME_FOREVER;
+
+        Duration newChallenge = object.containsKey(CHALLENGE_NAME)
+                ? Duration.parse(object.getString(CHALLENGE_NAME))
+                : DEFAULT_CHALLENGE_NEVER;
+
         JsonArray roles = object.containsKey(ROLES_NAME)
                 ? object.getJsonArray(ROLES_NAME)
                 : null;
@@ -89,6 +113,6 @@ public final class TestGuardOptionsConfigAdapter implements OptionsConfigAdapter
             newRoles = newRoles0;
         }
 
-        return new TestGuardOptionsConfig(newCredentials, newRoles);
+        return new TestGuardOptionsConfig(newCredentials, newLifetime, newChallenge, newRoles);
     }
 }

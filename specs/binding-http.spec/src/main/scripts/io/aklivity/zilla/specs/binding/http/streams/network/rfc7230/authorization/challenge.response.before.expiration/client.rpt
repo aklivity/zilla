@@ -42,7 +42,7 @@ write close
 read "HTTP/1.1 200 OK" "\r\n"
      "Server: Zilla" "\r\n"
      "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
-     "Content-Type: text/event-stream; charset=UTF-8" "\r\n"
+     "Content-Type: text/event-stream" "\r\n"
      "Connection: close" "\r\n"
      "\r\n"
 
@@ -53,7 +53,6 @@ read "type:challenge\n"
      "data:"
      "{"
          "\"method\":\"POST\","
-         "\"url\":\"https://example.com:9090/\","
          "\"headers\":"
          "{"
              "\"content-type\":\"application/x-challenge-response\""
@@ -81,13 +80,14 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write "GET / HTTP/1.1" "\r\n"
+write "POST / HTTP/1.1" "\r\n"
       "Host: example.com:9090" "\r\n"
       "Authorization: Bearer TOKEN" "\r\n"
+      "Content-Type: application/x-challenge-response" "\r\n"
+      "Content-Length: 0" "\r\n"
       "\r\n"
 write flush
 
-read "HTTP/1.1 204 OK" "\r\n"
+read "HTTP/1.1 204 No Content" "\r\n"
      "Server: Zilla" "\r\n"
-     "Date: Tue, 02 Feb 2022 22:22:22 GMT" "\r\n"
      "\r\n"

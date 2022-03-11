@@ -712,7 +712,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
                     currentTimeMillis() + handshakeTimeoutMillis,
                     routeId,
                     replyId,
-                    HANDSHAKE_TIMEOUT_SIGNAL);
+                    HANDSHAKE_TIMEOUT_SIGNAL,
+                    0);
             }
         }
 

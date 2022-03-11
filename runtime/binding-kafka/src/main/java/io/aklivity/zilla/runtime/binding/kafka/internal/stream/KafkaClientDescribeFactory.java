@@ -1384,7 +1384,7 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                 }
 
                 nextResponseId++;
-                signaler.signalAt(currentTimeMillis() + maxAgeMillis, routeId, initialId, SIGNAL_NEXT_REQUEST);
+                signaler.signalAt(currentTimeMillis() + maxAgeMillis, routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void cleanupNetwork(

@@ -1131,11 +1131,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             if (timeMillis <= System.currentTimeMillis())
             {
-                signaler.signalNow(routeId, initialId, signalId);
+                signaler.signalNow(routeId, initialId, signalId, 0);
             }
             else
             {
-                timerId = signaler.signalAt(timeMillis, routeId, initialId, signalId);
+                timerId = signaler.signalAt(timeMillis, routeId, initialId, signalId, 0);
             }
 
             return timerId;

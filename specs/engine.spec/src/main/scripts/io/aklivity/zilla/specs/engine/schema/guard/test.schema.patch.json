@@ -18,6 +18,16 @@
                         {
                             "type": "string"
                         },
+                        "lifetime":
+                        {
+                            "type": "string",
+                            "pattern": "PT\\d+S"
+                        },
+                        "challenge":
+                        {
+                            "type": "string",
+                            "pattern": "PT\\d+S"
+                        },
                         "roles":
                         {
                             "type": "array",

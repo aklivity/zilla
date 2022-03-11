@@ -995,7 +995,8 @@ public final class TlsServerFactory implements TlsStreamFactory
                     currentTimeMillis() + handshakeTimeoutMillis,
                     routeId,
                     replyId,
-                    NET_SIGNAL_HANDSHAKE_TIMEOUT);
+                    NET_SIGNAL_HANDSHAKE_TIMEOUT,
+                    0);
             }
         }
 
@@ -1527,7 +1528,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 if (task != null)
                 {
-                    handshakeTaskFutureId = signaler.signalTask(task, routeId, replyId, NET_SIGNAL_HANDSHAKE_TASK_COMPLETE);
+                    handshakeTaskFutureId = signaler.signalTask(task, routeId, replyId, NET_SIGNAL_HANDSHAKE_TASK_COMPLETE, 0);
                 }
             }
         }
@@ -2138,7 +2139,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                         awaitSyncCloseMillis > 0L)
                     {
                         final long signalAt = currentTimeMillis() + awaitSyncCloseMillis;
-                        resetLaterAt = signaler.signalAt(signalAt, routeId, initialId, APP_SIGNAL_RESET_LATER);
+                        resetLaterAt = signaler.signalAt(signalAt, routeId, initialId, APP_SIGNAL_RESET_LATER, 0);
                     }
                     else
                     {

@@ -41,7 +41,7 @@ public class JwtGuardHandlerTest
     @Test
     public void shouldAuthorize() throws Exception
     {
-        Duration challenge = ofSeconds(30L);
+        Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
         JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
@@ -63,8 +63,58 @@ public class JwtGuardHandlerTest
         assertThat(authorizedId, not(equalTo(0L)));
         assertThat(guard.identity(authorizedId), equalTo("testSubject"));
         assertThat(guard.expiresAt(authorizedId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
-        assertThat(guard.challengeAt(authorizedId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
+        assertThat(guard.expiringAt(authorizedId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
         assertTrue(guard.verify(authorizedId, asList("read:stream", "write:stream")));
+    }
+
+    @Test
+    public void shouldAuthorizeAndWithinChallengeWindow() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+        String payload = claims.toJson();
+
+        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+
+        long sessionId = guard.reauthorize(101L, token);
+
+        assertTrue(guard.challenge(sessionId, now.plusSeconds(8L).toEpochMilli()));
+    }
+
+    @Test
+    public void shouldAuthorizeAndNotWithinChallengeWindow() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+        String payload = claims.toJson();
+
+        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+
+        long sessionId = guard.reauthorize(101L, token);
+
+        assertFalse(guard.challenge(sessionId, now.plusSeconds(5L).toEpochMilli()));
     }
 
     @Test

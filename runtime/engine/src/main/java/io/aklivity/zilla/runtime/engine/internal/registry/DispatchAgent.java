@@ -178,7 +178,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final DeadlineTimerWheel timerWheel;
     private final Long2ObjectHashMap<Runnable> tasksByTimerId;
     private final Long2ObjectHashMap<Future<?>> futuresById;
-    private final AxleSignaler signaler;
+    private final ElektronSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
 
     private final ConfigurationRegistry configuration;
@@ -274,7 +274,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.timerWheel = new DeadlineTimerWheel(MILLISECONDS, currentTimeMillis(), 512, 1024);
         this.tasksByTimerId = new Long2ObjectHashMap<>();
         this.futuresById = new Long2ObjectHashMap<>();
-        this.signaler = new AxleSignaler(executor);
+        this.signaler = new ElektronSignaler(executor);
 
         this.poller = new Poller();
 
@@ -706,7 +706,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask attachTask = configuration.attach(namespace);
         taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED);
+        signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED, 0);
         return attachTask.future();
     }
 
@@ -715,7 +715,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask detachTask = configuration.detach(namespace);
         taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED);
+        signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED, 0);
         return detachTask.future();
     }
 
@@ -1471,7 +1471,7 @@ public class DispatchAgent implements EngineContext, Agent
         return dispatcher;
     }
 
-    private final class AxleSignaler implements Signaler
+    private final class ElektronSignaler implements Signaler
     {
         private final ThreadLocal<SignalFW.Builder> signalRW = withInitial(DispatchAgent::newSignalRW);
 
@@ -1479,7 +1479,7 @@ public class DispatchAgent implements EngineContext, Agent
 
         private long nextFutureId;
 
-        private AxleSignaler(
+        private ElektronSignaler(
             ExecutorService executorService)
         {
             this.executorService = executorService;
@@ -1514,10 +1514,11 @@ public class DispatchAgent implements EngineContext, Agent
             long timeMillis,
             long routeId,
             long streamId,
-            int signalId)
+            int signalId,
+            int contextId)
         {
             final long timerId = timerWheel.scheduleTimer(timeMillis);
-            final Runnable task = () -> signal(routeId, streamId, 0L, 0L, NO_CANCEL_ID, signalId);
+            final Runnable task = () -> signal(routeId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
             final Runnable oldTask = tasksByTimerId.put(timerId, task);
             assert oldTask == null;
             assert timerId >= 0L;
@@ -1529,7 +1530,8 @@ public class DispatchAgent implements EngineContext, Agent
             Runnable task,
             long routeId,
             long streamId,
-            int signalId)
+            int signalId,
+            int contextId)
         {
             long cancelId;
 
@@ -1539,8 +1541,8 @@ public class DispatchAgent implements EngineContext, Agent
                 final long newFutureId = (nextFutureId << 1) | 0x8000_0000_0000_0001L;
                 assert newFutureId != NO_CANCEL_ID;
 
-                final Future<?> newFuture =
-                    executorService.submit(() -> invokeAndSignal(task, routeId, streamId, 0L, 0L, newFutureId, signalId));
+                final Future<?> newFuture = executorService.submit(
+                    () -> invokeAndSignal(task, routeId, streamId, 0L, 0L, newFutureId, signalId, contextId));
                 final Future<?> oldFuture = futuresById.put(newFutureId, newFuture);
                 assert oldFuture == null;
                 cancelId = newFutureId;
@@ -1548,7 +1550,7 @@ public class DispatchAgent implements EngineContext, Agent
             else
             {
                 cancelId = NO_CANCEL_ID;
-                invokeAndSignal(task, routeId, streamId, 0L, 0L, cancelId, signalId);
+                invokeAndSignal(task, routeId, streamId, 0L, 0L, cancelId, signalId, contextId);
             }
 
             assert cancelId < 0L;
@@ -1560,9 +1562,10 @@ public class DispatchAgent implements EngineContext, Agent
         public void signalNow(
             long routeId,
             long streamId,
-            int signalId)
+            int signalId,
+            int contextId)
         {
-            signal(routeId, streamId, 0L, 0L, NO_CANCEL_ID, signalId);
+            signal(routeId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
         }
 
         @Override
@@ -1594,7 +1597,8 @@ public class DispatchAgent implements EngineContext, Agent
             long sequence,
             long acknowledge,
             long cancelId,
-            int signalId)
+            int signalId,
+            int contextId)
         {
             try
             {
@@ -1602,7 +1606,7 @@ public class DispatchAgent implements EngineContext, Agent
             }
             finally
             {
-                signal(routeId, streamId, sequence, acknowledge, cancelId, signalId);
+                signal(routeId, streamId, sequence, acknowledge, cancelId, signalId, contextId);
             }
         }
 
@@ -1612,7 +1616,8 @@ public class DispatchAgent implements EngineContext, Agent
             long sequence,
             long acknowledge,
             long cancelId,
-            int signalId)
+            int signalId,
+            int contextId)
         {
             final long timestamp = timestamps ? System.nanoTime() : 0L;
 
@@ -1627,6 +1632,7 @@ public class DispatchAgent implements EngineContext, Agent
                                             .traceId(supplyTraceId())
                                             .cancelId(cancelId)
                                             .signalId(signalId)
+                                            .contextId(contextId)
                                             .build();
 
             streamsBuffer.write(signal.typeId(), signal.buffer(), signal.offset(), signal.sizeof());

@@ -38,7 +38,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":status", "200")
                             .header("server", "Zilla")
                             .header("date", "Tue, 02 Feb 2022 22:22:22 GMT")
-                            .header("content-type", "text/event-stream; charset=UTF-8")
+                            .header("content-type", "text/event-stream")
                             .header("connection", "close")
                             .build()}
 
@@ -49,9 +49,6 @@ write flush
 write advised zilla:challenge ${http:challengeEx()
                                     .typeId(zilla:id("http"))
                                     .header(":method", "POST")
-                                    .header(":scheme", "https")
-                                    .header(":authority", "example.com:9090")
-                                    .header(":path", "/")
                                     .header("content-type", "application/x-challenge-response")
                                     .build()}
 
@@ -59,7 +56,6 @@ write "type:challenge\n"
       "data:"
       "{"
           "\"method\":\"POST\","
-          "\"url\":\"https://example.com:9090/\","
           "\"headers\":"
           "{"
               "\"content-type\":\"application/x-challenge-response\""

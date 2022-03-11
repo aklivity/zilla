@@ -62,12 +62,28 @@ public interface GuardHandler
         long sessionId);
 
     /*
-     * Returns the session challenge time in UTC milliseconds.
+     * Returns the session expiring time in UTC milliseconds.
+     *
+     * This may be the challenge time if specified, or the expiration time if challenge duration is unset.
      *
      * @param sessionId     the session identifier
      *
      * @return  the challenge time
      */
-    long challengeAt(
+    long expiringAt(
         long sessionId);
+
+    /*
+     * Returns true if should challenge now, otherwise false.
+     *
+     * The guard handler may assume that a challenge was sent if the return value is true.
+     *
+     * @param sessionId     the session identifier
+     * @param now           the current time in UTC milliseconds
+     *
+     * @return  true if should challenge now, otherwise false
+     */
+    boolean challenge(
+        long sessionId,
+        long now);
 }

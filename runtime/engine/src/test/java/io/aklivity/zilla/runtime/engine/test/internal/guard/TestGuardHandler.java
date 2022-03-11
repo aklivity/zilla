@@ -15,20 +15,37 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.guard;
 
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_CHALLENGE_NEVER;
+import static io.aklivity.zilla.runtime.engine.test.internal.guard.TestGuardConfig.DEFAULT_LIFETIME_FOREVER;
+
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+
+import org.agrona.collections.Long2LongHashMap;
+import org.agrona.collections.MutableLong;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 
 public final class TestGuardHandler implements GuardHandler
 {
     private final String credentials;
+    private final Duration challenge;
+    private final Duration lifetime;
     private final List<String> roles;
+
+    private final Long2LongHashMap sessions;
+    private final MutableLong nextSessionId;
 
     public TestGuardHandler(
         TestGuardConfig config)
     {
         this.credentials = config.options != null ? config.options.credentials : null;
+        this.lifetime = config.options != null ? config.options.lifetime : DEFAULT_LIFETIME_FOREVER;
+        this.challenge = config.options != null ? config.options.challenge : DEFAULT_CHALLENGE_NEVER;
         this.roles = config.options != null ? config.options.roles : null;
+        this.sessions = new Long2LongHashMap(-1L);
+        this.nextSessionId = new MutableLong(1L);
     }
 
     @Override
@@ -36,13 +53,26 @@ public final class TestGuardHandler implements GuardHandler
         long contextId,
         String credentials)
     {
-        return this.credentials != null && this.credentials.equals(credentials) ? 1L : 0L;
+        long sessionId = 0L;
+
+        if (this.credentials != null && this.credentials.equals(credentials))
+        {
+            long expiresAt = DEFAULT_LIFETIME_FOREVER.equals(lifetime)
+                    ? EXPIRES_NEVER
+                    : Instant.now().toEpochMilli() + lifetime.toMillis();
+
+            sessionId = nextSessionId.value++;
+            sessions.put(sessionId, expiresAt);
+        }
+
+        return sessionId;
     }
 
     @Override
     public void deauthorize(
         long sessionId)
     {
+        sessions.remove(sessionId);
     }
 
     @Override
@@ -56,20 +86,31 @@ public final class TestGuardHandler implements GuardHandler
     public long expiresAt(
         long sessionId)
     {
-        return 0;
+        return sessions.containsKey(sessionId) ? sessions.get(sessionId) : 0L;
     }
 
     @Override
-    public long challengeAt(
+    public long expiringAt(
         long sessionId)
     {
-        return 0;
+        final long expiresAt = expiresAt(sessionId);
+        return expiresAt != 0L ? expiresAt - challenge.toMillis() : 0L;
+    }
+
+    @Override
+    public boolean challenge(
+        long sessionId,
+        long now)
+    {
+        final long expiresAt = expiresAt(sessionId);
+        final long challengeAt = expiresAt - challenge.toMillis();
+        return expiresAt != 0L && challengeAt <= now && now < expiresAt;
     }
 
     boolean verify(
         long sessionId,
         List<String> roles)
     {
-        return sessionId != 0L && (this.roles == null || this.roles.containsAll(roles));
+        return sessions.containsKey(sessionId) && (this.roles == null || this.roles.containsAll(roles));
     }
 }
