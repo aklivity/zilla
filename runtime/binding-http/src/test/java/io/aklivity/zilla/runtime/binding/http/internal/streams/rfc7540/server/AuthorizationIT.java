@@ -119,10 +119,65 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
-        "${net}/challenge.response.before.expiration/client",
-        "${app}/challenge.response.before.expiration/server",
+        "${net}/challenge.credentials.cookie/client",
+        "${app}/challenge.credentials.cookie/server",
     })
-    public void shouldChallengeResponseBeforeExpiration() throws Exception
+    public void shouldChallengeCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
+        "${net}/challenge.credentials.header/client",
+        "${app}/challenge.credentials.header/server",
+    })
+    public void shouldChallengeCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
+        "${net}/challenge.credentials.query/client",
+        "${app}/challenge.credentials.query/server",
+    })
+    public void shouldChallengeCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
+        "${net}/expire.credentials.cookie/client",
+        "${app}/expire.credentials.cookie/server",
+    })
+    public void shouldExpireCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
+        "${net}/expire.credentials.header/client",
+        "${app}/expire.credentials.header/server",
+    })
+    public void shouldExpireCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
+        "${net}/expire.credentials.query/client",
+        "${app}/expire.credentials.query/server",
+    })
+    public void shouldExpireCredentialsQuery() throws Exception
     {
         k3po.finish();
     }

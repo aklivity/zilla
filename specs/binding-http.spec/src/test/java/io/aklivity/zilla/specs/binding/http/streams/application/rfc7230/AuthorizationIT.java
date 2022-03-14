@@ -68,10 +68,60 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${app}/challenge.response.before.expiration/client",
-        "${app}/challenge.response.before.expiration/server",
+        "${app}/challenge.credentials.cookie/client",
+        "${app}/challenge.credentials.cookie/server",
     })
-    public void shouldChallengeResponseBeforeExpiration() throws Exception
+    public void shouldChallengeCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/challenge.credentials.header/client",
+        "${app}/challenge.credentials.header/server",
+    })
+    public void shouldChallengeCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/challenge.credentials.query/client",
+        "${app}/challenge.credentials.query/server",
+    })
+    public void shouldChallengeCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/expire.credentials.cookie/client",
+        "${app}/expire.credentials.cookie/server",
+    })
+    public void shouldExpireCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/expire.credentials.header/client",
+        "${app}/expire.credentials.header/server",
+    })
+    public void shouldExpireCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/expire.credentials.query/client",
+        "${app}/expire.credentials.query/server",
+    })
+    public void shouldExpireCredentialsQuery() throws Exception
     {
         k3po.finish();
     }

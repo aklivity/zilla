@@ -116,6 +116,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.Capability;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.EndFW;
@@ -149,6 +150,8 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int EXPIRING_SIGNAL = 2;
 
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
+
+    private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
 
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
@@ -2589,6 +2592,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long requestAck;
             private int requestMax;
             private int requestPad;
+            private int requestCaps;
 
             private long responseSeq;
             private long responseAck;
@@ -2779,6 +2783,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long budgetId = window.budgetId();
                 final int maximum = window.maximum();
                 final int padding = window.padding();
+                final int capabilities = window.capabilities();
 
                 if (requestState == HttpExchangeState.PENDING)
                 {
@@ -2793,6 +2798,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 requestAck = acknowledge;
                 requestMax = maximum;
                 requestPad = padding;
+                requestCaps = capabilities;
 
                 assert requestAck <= requestSeq;
 
@@ -2915,7 +2921,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doNetworkAbort(traceId, 0L);
                     expiringId = NO_CANCEL_ID;
                 }
-                else if (guard.challenge(sessionId, now))
+                else if (canChallenge(requestCaps) && guard.challenge(sessionId, now))
                 {
                     doResponseChallenge(traceId);
                     expiringId = signaler.signalAt(expiresAt, routeId, replyId, EXPIRING_SIGNAL, 0);
@@ -4564,7 +4570,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (error != Http2ErrorCode.NO_ERROR)
             {
-                doEncodeRstStream(traceId, authorization, streamId, error);
+                doEncodeRstStream(traceId, streamId, error);
             }
 
             final DirectBuffer dataBuffer = http2Headers.buffer();
@@ -4647,7 +4653,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 if (headersDecoder.streamError != null)
                 {
-                    doEncodeRstStream(traceId, authorization, streamId, headersDecoder.streamError);
+                    doEncodeRstStream(traceId, streamId, headersDecoder.streamError);
                 }
                 else if (headersDecoder.connectionError != null)
                 {
@@ -4826,7 +4832,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (error != Http2ErrorCode.NO_ERROR)
             {
-                doEncodeRstStream(traceId, authorization, streamId, error);
+                doEncodeRstStream(traceId, streamId, error);
             }
 
             final DirectBuffer dataBuffer = http2Trailers.buffer();
@@ -4880,7 +4886,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     if (headersDecoder.streamError != null)
                     {
-                        doEncodeRstStream(traceId, authorization, streamId, headersDecoder.streamError);
+                        doEncodeRstStream(traceId, streamId, headersDecoder.streamError);
                         exchange.cleanup(traceId);
                     }
                     else if (headersDecoder.connectionError != null)
@@ -4930,7 +4936,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (error != Http2ErrorCode.NO_ERROR)
                 {
                     exchange.cleanup(traceId);
-                    doEncodeRstStream(traceId, authorization, streamId, error);
+                    doEncodeRstStream(traceId, streamId, error);
                     progress += payloadRemaining.value;
                 }
                 else
@@ -4949,7 +4955,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     {
                         if (exchange.contentLength != -1 && exchange.contentObserved != exchange.contentLength)
                         {
-                            doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                            doEncodeRstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
                         }
                         else
                         {
@@ -4975,7 +4981,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 if (parentStream == streamId)
                 {
-                    doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
                 }
             }
         }
@@ -5265,7 +5271,6 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private void doEncodeRstStream(
             long traceId,
-            long authorization,
             int streamId,
             Http2ErrorCode error)
         {
@@ -5379,8 +5384,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long requestSeq;
             private long requestAck;
             private int requestMax;
-            private int requestPadding;
-            private long requestBudgetId;
+            private int requestPad;
+            private long requestBud;
+            private int requestCaps;
+
             private BudgetDebitor requestDebitor;
             private long requestDebitorIndex = NO_DEBITOR_INDEX;
 
@@ -5441,25 +5448,25 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (localBudget < remaining.value)
                 {
-                    doEncodeRstStream(traceId, sessionId, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
+                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
                     cleanup(traceId);
                 }
                 else
                 {
-                    int length = Math.max(Math.min(initialWindow() - requestPadding, remaining.value), 0);
-                    int reserved = length + requestPadding;
+                    int length = Math.max(Math.min(initialWindow() - requestPad, remaining.value), 0);
+                    int reserved = length + requestPad;
 
                     if (requestDebitorIndex != NO_DEBITOR_INDEX && requestDebitor != null)
                     {
                         final int minimum = reserved; // TODO: fragmentation
                         reserved = requestDebitor.claim(0L, requestDebitorIndex, requestId, minimum, reserved, 0);
-                        length = Math.max(reserved - requestPadding, 0);
+                        length = Math.max(reserved - requestPad, 0);
                     }
 
                     if (length > 0)
                     {
                         doData(application, routeId, requestId, requestSeq, requestAck, requestMax, traceId,
-                            sessionId, requestBudgetId, reserved, buffer, 0, length, EMPTY_OCTETS);
+                            sessionId, requestBud, reserved, buffer, 0, length, EMPTY_OCTETS);
                         contentObserved += length;
 
                         requestSeq += reserved;
@@ -5552,7 +5559,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (HttpState.replyOpened(state))
                 {
-                    doEncodeRstStream(traceId, sessionId, streamId, Http2ErrorCode.NO_ERROR);
+                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
                 }
                 else
                 {
@@ -5572,6 +5579,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long budgetId = window.budgetId();
                 final int maximum = window.maximum();
                 final int padding = window.padding();
+                final int capabilities = window.capabilities();
 
                 assert acknowledge <= sequence;
                 assert sequence <= requestSeq;
@@ -5582,10 +5590,11 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 requestAck = acknowledge;
                 requestMax = maximum;
-                requestPadding = padding;
-                requestBudgetId = budgetId;
+                requestPad = padding;
+                requestBud = budgetId;
+                requestCaps = capabilities;
 
-                if (requestBudgetId != 0L && requestDebitorIndex == NO_DEBITOR_INDEX)
+                if (requestBud != 0L && requestDebitorIndex == NO_DEBITOR_INDEX)
                 {
                     requestDebitor = supplyDebitor.apply(budgetId);
                     requestDebitorIndex = requestDebitor.acquire(budgetId, initialId, Http2Server.this::decodeNetworkIfNecessary);
@@ -5805,7 +5814,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 final long traceId = abort.traceId();
 
-                doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.NO_ERROR);
+                doEncodeRstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
                 cleanup(traceId);
             }
 
@@ -5817,10 +5826,10 @@ public final class HttpServerFactory implements HttpStreamFactory
                 if (now > expiresAt)
                 {
                     doResponseReset(traceId);
-                    doNetworkAbort(traceId, 0L);
+                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
                     expiringId = NO_CANCEL_ID;
                 }
-                else if (guard.challenge(sessionId, now))
+                else if (canChallenge(requestCaps) && guard.challenge(sessionId, now))
                 {
                     doResponseChallenge(traceId);
                     expiringId = signaler.signalAt(expiresAt, routeId, replyId, EXPIRING_SIGNAL, streamId);
@@ -5858,7 +5867,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                 if (newRemoteBudget > MAX_REMOTE_BUDGET)
                 {
-                    doEncodeRstStream(traceId, authorization, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
+                    doEncodeRstStream(traceId, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
                     cleanup(traceId);
                 }
                 else
@@ -6645,5 +6654,11 @@ public final class HttpServerFactory implements HttpStreamFactory
         }
 
         return expiringId;
+    }
+
+    private static boolean canChallenge(
+        int capabilities)
+    {
+        return (capabilities & CAPABILITY_CHALLENGE_MASK) != 0;
     }
 }
