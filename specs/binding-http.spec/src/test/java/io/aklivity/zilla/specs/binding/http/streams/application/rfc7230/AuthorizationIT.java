@@ -68,6 +68,36 @@ public class AuthorizationIT
 
     @Test
     @Specification({
+        "${app}/expire.credentials.cookie/client",
+        "${app}/expire.credentials.cookie/server",
+    })
+    public void shouldExpireCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/expire.credentials.header/client",
+        "${app}/expire.credentials.header/server",
+    })
+    public void shouldExpireCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/expire.credentials.query/client",
+        "${app}/expire.credentials.query/server",
+    })
+    public void shouldExpireCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/challenge.credentials.cookie/client",
         "${app}/challenge.credentials.cookie/server",
     })
@@ -98,30 +128,30 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${app}/expire.credentials.cookie/client",
-        "${app}/expire.credentials.cookie/server",
+        "${app}/reauthorize.credentials.cookie/client",
+        "${app}/reauthorize.credentials.cookie/server",
     })
-    public void shouldExpireCredentialsCookie() throws Exception
+    public void shouldReauthorizeCredentialsCookie() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/expire.credentials.header/client",
-        "${app}/expire.credentials.header/server",
+        "${app}/reauthorize.credentials.header/client",
+        "${app}/reauthorize.credentials.header/server",
     })
-    public void shouldExpireCredentialsHeader() throws Exception
+    public void shouldReauthorizeCredentialsHeader() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/expire.credentials.query/client",
-        "${app}/expire.credentials.query/server",
+        "${app}/reauthorize.credentials.query/client",
+        "${app}/reauthorize.credentials.query/server",
     })
-    public void shouldExpireCredentialsQuery() throws Exception
+    public void shouldReauthorizeCredentialsQuery() throws Exception
     {
         k3po.finish();
     }

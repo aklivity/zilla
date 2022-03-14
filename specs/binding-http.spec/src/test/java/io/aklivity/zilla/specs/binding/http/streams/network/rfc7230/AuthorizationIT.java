@@ -38,6 +38,36 @@ public class AuthorizationIT
 
     @Test
     @Specification({
+        "${net}/reject.credentials.cookie/client",
+        "${net}/reject.credentials.cookie/server",
+    })
+    public void shouldRejectCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.credentials.header/client",
+        "${net}/reject.credentials.header/server",
+    })
+    public void shouldRejectCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.credentials.query/client",
+        "${net}/reject.credentials.query/server",
+    })
+    public void shouldRejectCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/authorize.credentials.cookie/client",
         "${net}/authorize.credentials.cookie/server",
     })
@@ -68,30 +98,30 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${net}/reject.credentials.cookie/client",
-        "${net}/reject.credentials.cookie/server",
+        "${net}/expire.credentials.cookie/client",
+        "${net}/expire.credentials.cookie/server",
     })
-    public void shouldRejectCredentialsCookie() throws Exception
+    public void shouldExpireCredentialsCookie() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/reject.credentials.header/client",
-        "${net}/reject.credentials.header/server",
+        "${net}/expire.credentials.header/client",
+        "${net}/expire.credentials.header/server",
     })
-    public void shouldRejectCredentialsHeader() throws Exception
+    public void shouldExpireCredentialsHeader() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/reject.credentials.query/client",
-        "${net}/reject.credentials.query/server",
+        "${net}/expire.credentials.query/client",
+        "${net}/expire.credentials.query/server",
     })
-    public void shouldRejectCredentialsQuery() throws Exception
+    public void shouldExpireCredentialsQuery() throws Exception
     {
         k3po.finish();
     }
@@ -128,30 +158,30 @@ public class AuthorizationIT
 
     @Test
     @Specification({
-        "${net}/expire.credentials.cookie/client",
-        "${net}/expire.credentials.cookie/server",
+        "${net}/reauthorize.credentials.cookie/client",
+        "${net}/reauthorize.credentials.cookie/server",
     })
-    public void shouldExpireCredentialsCookie() throws Exception
+    public void shouldReauthorizeCredentialsCookie() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/expire.credentials.header/client",
-        "${net}/expire.credentials.header/server",
+        "${net}/reauthorize.credentials.header/client",
+        "${net}/reauthorize.credentials.header/server",
     })
-    public void shouldExpireCredentialsHeader() throws Exception
+    public void shouldReauthorizeCredentialsHeader() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/expire.credentials.query/client",
-        "${net}/expire.credentials.query/server",
+        "${net}/reauthorize.credentials.query/client",
+        "${net}/reauthorize.credentials.query/server",
     })
-    public void shouldExpireCredentialsQuery() throws Exception
+    public void shouldReauthorizeCredentialsQuery() throws Exception
     {
         k3po.finish();
     }

@@ -27,7 +27,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":scheme", "https")
                            .header(":path", "/")
                            .header(":authority", "example.com:9090")
-                           .header("authorization", "Bearer TOKEN")
+                           .header("cookie", "access_token=TOKEN")
                            .build()}
 connected
 
@@ -39,7 +39,6 @@ write zilla:begin.ext ${http:beginEx()
                             .header("server", "Zilla")
                             .header("date", "Tue, 02 Feb 2022 22:22:22 GMT")
                             .header("content-type", "text/event-stream")
-                            .header("connection", "close")
                             .build()}
 
 write "data:Hello, world\n"
@@ -63,5 +62,3 @@ write "type:challenge\n"
       "}\n"
       "\n"
 write flush
-
-write abort

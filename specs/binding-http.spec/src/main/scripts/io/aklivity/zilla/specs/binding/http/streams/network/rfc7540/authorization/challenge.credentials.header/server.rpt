@@ -97,22 +97,9 @@ write [0x00 0x00 0x65]                                     # length = 101
       "\n"
 write flush
 
-read [0x00 0x00 0x54]                                      # length = 84
-     [0x01]                                                # HEADERS frame
-     [0x05]                                                # END_HEADERS | END_STREAM
-     [0x00 0x00 0x00 0x03]                                 # stream_id = 3
-     [0x83]                                                # :method: POST
-     [0x87]                                                # :scheme: https
-     [0x84]                                                # :path: /
-     [0x01] [0x10] "example.com:9090"                      # :authority: example.com:9090
-     [0x40] [0x0d] "authorization"
-            [0x0c] "Bearer TOKEN"                          # authorization
-     [0x0f] [0x10] [0x20] "application/x-challenge-response"
-
-write [0x00 0x00 0x09]                                     # length = 9
-      [0x01]                                               # HTTP2 HEADERS frame
-      [0x05]                                               # END_HEADERS | END_STREAM
-      [0x00 0x00 0x00 0x03]                                # stream_id = 3
-      [0x89]                                               # :status: 204
-      [0x0f] [0x27] [0x05] "Zilla"                         # server
+write [0x00 0x00 0x04]                                     # length = 4
+      [0x03]                                               # HTTP2 RST_STREAM frame
+      [0x00]                                               # no flags
+      [0x00 0x00 0x00 0x01]                                # stream_id = 1
+      [0x00 0x00 0x00 0x00]                                # NO_ERROR
 write flush

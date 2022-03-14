@@ -25,7 +25,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":scheme", "https")
                             .header(":path", "/")
                             .header(":authority", "example.com:9090")
-                            .header("authorization", "Bearer TOKEN")
+                            .header("cookie", "access_token=TOKEN")
                             .build()}
 connected
 
@@ -60,5 +60,3 @@ read "type:challenge\n"
          "}"
      "}\n"
      "\n"
-
-read aborted

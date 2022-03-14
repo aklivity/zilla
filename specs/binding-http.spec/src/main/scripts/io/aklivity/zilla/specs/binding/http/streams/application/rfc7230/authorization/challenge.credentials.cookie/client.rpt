@@ -60,3 +60,5 @@ read "type:challenge\n"
          "}"
      "}\n"
      "\n"
+
+read aborted

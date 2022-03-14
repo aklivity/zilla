@@ -25,9 +25,8 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
                            .header(":scheme", "https")
-                           .header(":path", "/")
+                           .header(":path", "/?access_token=TOKEN")
                            .header(":authority", "example.com:9090")
-                           .header("authorization", "Bearer TOKEN")
                            .build()}
 connected
 
@@ -63,5 +62,3 @@ write "type:challenge\n"
       "}\n"
       "\n"
 write flush
-
-write abort

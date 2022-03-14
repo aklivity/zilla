@@ -60,34 +60,4 @@ read "type:challenge\n"
      "}\n"
      "\n"
 
-read notify RECEIVED_CHALLENGE
-
-connect await RECEIVED_CHALLENGE
-  "zilla://streams/net0"
-  option zilla:window 8192
-  option zilla:transmission "duplex"
-
-write zilla:begin.ext ${proxy:beginEx()
-                             .typeId(zilla:id("proxy"))
-                             .addressNone()
-                               .build()
-                             .info()
-                               .secure()
-                                 .version("TLSv1.3")
-                                 .build()
-                               .build()
-                             .build()}
-
-connected
-
-write "POST / HTTP/1.1" "\r\n"
-      "Host: example.com:9090" "\r\n"
-      "Cookie: access_token=TOKEN" "\r\n"
-      "Content-Type: application/x-challenge-response" "\r\n"
-      "Content-Length: 0" "\r\n"
-      "\r\n"
-write flush
-
-read "HTTP/1.1 204 No Content" "\r\n"
-     "Server: Zilla" "\r\n"
-     "\r\n"
+read aborted

@@ -63,5 +63,3 @@ write "type:challenge\n"
       "}\n"
       "\n"
 write flush
-
-write abort
