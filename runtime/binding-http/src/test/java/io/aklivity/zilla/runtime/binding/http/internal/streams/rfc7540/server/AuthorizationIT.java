@@ -56,6 +56,36 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
+        "${net}/reject.credentials.cookie/client",
+    })
+    public void shouldRejectCredentialsCookie() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
+        "${net}/reject.credentials.header/client",
+    })
+    public void shouldRejectCredentialsHeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
+        "${net}/reject.credentials.query/client",
+    })
+    public void shouldRejectCredentialsQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.authorization.credentials.json")
+    @Specification({
         "${net}/authorize.credentials.cookie/client",
         "${app}/authorize.credentials.cookie/server",
     })
@@ -89,9 +119,10 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
-        "${net}/reject.credentials.cookie/client",
+        "${net}/expire.credentials.cookie/client",
+        "${app}/expire.credentials.cookie/server",
     })
-    public void shouldRejectCredentialsCookie() throws Exception
+    public void shouldExpireCredentialsCookie() throws Exception
     {
         k3po.finish();
     }
@@ -99,9 +130,10 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
-        "${net}/reject.credentials.header/client",
+        "${net}/expire.credentials.header/client",
+        "${app}/expire.credentials.header/server",
     })
-    public void shouldRejectCredentialsHeader() throws Exception
+    public void shouldExpireCredentialsHeader() throws Exception
     {
         k3po.finish();
     }
@@ -109,9 +141,10 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
-        "${net}/reject.credentials.query/client",
+        "${net}/expire.credentials.query/client",
+        "${app}/expire.credentials.query/server",
     })
-    public void shouldRejectCredentialsQuery() throws Exception
+    public void shouldExpireCredentialsQuery() throws Exception
     {
         k3po.finish();
     }
@@ -152,10 +185,10 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
-        "${net}/expire.credentials.cookie/client",
-        "${app}/expire.credentials.cookie/server",
+        "${net}/reauthorize.credentials.cookie/client",
+        "${app}/reauthorize.credentials.cookie/server",
     })
-    public void shouldExpireCredentialsCookie() throws Exception
+    public void shouldReauthorizeCredentialsCookie() throws Exception
     {
         k3po.finish();
     }
@@ -163,10 +196,10 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
-        "${net}/expire.credentials.header/client",
-        "${app}/expire.credentials.header/server",
+        "${net}/reauthorize.credentials.header/client",
+        "${app}/reauthorize.credentials.header/server",
     })
-    public void shouldExpireCredentialsHeader() throws Exception
+    public void shouldReauthorizeCredentialsHeader() throws Exception
     {
         k3po.finish();
     }
@@ -174,10 +207,10 @@ public class AuthorizationIT
     @Test
     @Configuration("server.authorization.credentials.json")
     @Specification({
-        "${net}/expire.credentials.query/client",
-        "${app}/expire.credentials.query/server",
+        "${net}/reauthorize.credentials.query/client",
+        "${app}/reauthorize.credentials.query/server",
     })
-    public void shouldExpireCredentialsQuery() throws Exception
+    public void shouldReauthorizeCredentialsQuery() throws Exception
     {
         k3po.finish();
     }
