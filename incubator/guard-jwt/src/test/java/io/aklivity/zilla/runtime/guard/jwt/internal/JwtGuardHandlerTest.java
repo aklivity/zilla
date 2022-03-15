@@ -29,6 +29,7 @@ import java.security.KeyPair;
 import java.time.Duration;
 import java.time.Instant;
 
+import org.agrona.collections.MutableLong;
 import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.lang.JoseException;
@@ -44,7 +45,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         Instant now = Instant.now();
 
@@ -54,26 +55,25 @@ public class JwtGuardHandlerTest
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", now.getEpochSecond() + 10L);
         claims.setClaim("scope", "read:stream write:stream");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, not(equalTo(0L)));
-        assertThat(guard.identity(authorizedId), equalTo("testSubject"));
-        assertThat(guard.expiresAt(authorizedId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
-        assertThat(guard.expiringAt(authorizedId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
-        assertTrue(guard.verify(authorizedId, asList("read:stream", "write:stream")));
+        assertThat(sessionId, not(equalTo(0L)));
+        assertThat(guard.identity(sessionId), equalTo("testSubject"));
+        assertThat(guard.expiresAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
+        assertThat(guard.expiringAt(sessionId), equalTo(ofSeconds(now.getEpochSecond() + 10L).minus(challenge).toMillis()));
+        assertTrue(guard.verify(sessionId, asList("read:stream", "write:stream")));
     }
 
     @Test
-    public void shouldAuthorizeAndWithinChallengeWindow() throws Exception
+    public void shouldChallengeDuringChallengeWindow() throws Exception
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         Instant now = Instant.now();
 
@@ -83,9 +83,8 @@ public class JwtGuardHandlerTest
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", now.getEpochSecond() + 10L);
         claims.setClaim("scope", "read:stream write:stream");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
         long sessionId = guard.reauthorize(101L, token);
 
@@ -93,12 +92,12 @@ public class JwtGuardHandlerTest
     }
 
     @Test
-    public void shouldAuthorizeAndNotWithinChallengeWindow() throws Exception
+    public void shouldNotChallengeBeforeChallengeWindow() throws Exception
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         Instant now = Instant.now();
 
@@ -108,9 +107,8 @@ public class JwtGuardHandlerTest
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", now.getEpochSecond() + 10L);
         claims.setClaim("scope", "read:stream write:stream");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
         long sessionId = guard.reauthorize(101L, token);
 
@@ -118,84 +116,106 @@ public class JwtGuardHandlerTest
     }
 
     @Test
-    public void shouldNotAuthorizeWhenAlgorithmDiffers() throws Exception
+    public void shouldNotChallengeAgainDuringChallengeWindow() throws Exception
     {
-        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
         claims.setClaim("aud", "testAudience");
-        String payload = claims.toJson();
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS512");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, equalTo(0L));
+        assertTrue(guard.challenge(sessionId, now.plusSeconds(8L).toEpochMilli()));
+        assertFalse(guard.challenge(sessionId, now.plusSeconds(8L).toEpochMilli()));
+        assertFalse(guard.challenge(sessionId, now.plusSeconds(8L).toEpochMilli()));
+    }
+
+    @Test
+    public void shouldNotAuthorizeWhenAlgorithmDiffers() throws Exception
+    {
+        JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS512");
+
+        long sessionId = guard.reauthorize(101L, token);
+
+        assertThat(sessionId, equalTo(0L));
     }
 
     @Test
     public void shouldNotAuthorizeWhenSignatureInvalid() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
         claims.setClaim("aud", "testAudience");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256")
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256")
                 .replaceFirst("\\.[^X]", ".X")
                 .replaceFirst("\\.[^Y]", ".Y");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, equalTo(0L));
+        assertThat(sessionId, equalTo(0L));
     }
 
     @Test
     public void shouldNotAuthorizeWhenIssuerDiffers() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "not test issuer");
         claims.setClaim("aud", "testAudience");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, equalTo(0L));
+        assertThat(sessionId, equalTo(0L));
     }
 
     @Test
     public void shouldNotAuthorizeWhenAudienceDiffers() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
         claims.setClaim("aud", "not testAudience");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, equalTo(0L));
+        assertThat(sessionId, equalTo(0L));
     }
 
     @Test
     public void shouldNotAuthorizeWhenExpired() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         Instant now = Instant.now();
 
@@ -203,20 +223,19 @@ public class JwtGuardHandlerTest
         claims.setClaim("iss", "test issuer");
         claims.setClaim("aud", "testAudience");
         claims.setClaim("exp", now.getEpochSecond() - 10L);
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, equalTo(0L));
+        assertThat(sessionId, equalTo(0L));
     }
 
     @Test
     public void shouldNotAuthorizeWhenNotYetValid() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         Instant now = Instant.now();
 
@@ -224,13 +243,12 @@ public class JwtGuardHandlerTest
         claims.setClaim("iss", "test issuer");
         claims.setClaim("aud", "testAudience");
         claims.setClaim("nbf", now.getEpochSecond() + 10L);
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, equalTo(0L));
+        assertThat(sessionId, equalTo(0L));
     }
 
     @Test
@@ -239,29 +257,28 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(30L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
         claims.setClaim("aud", "testAudience");
         claims.setClaim("scope", "read:stream");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionId = guard.reauthorize(101L, token);
 
-        assertThat(authorizedId, not(equalTo(0L)));
-        assertFalse(guard.verify(authorizedId, asList("read:stream", "write:stream")));
+        assertThat(sessionId, not(equalTo(0L)));
+        assertFalse(guard.verify(sessionId, asList("read:stream", "write:stream")));
     }
 
     @Test
-    public void shouldDeauthorize() throws Exception
+    public void shouldReauthorizeWhenExpirationLater() throws Exception
     {
-        Duration challenge = ofSeconds(30L);
+        Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, Long.valueOf(1L)::longValue);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
 
         Instant now = Instant.now();
 
@@ -271,16 +288,201 @@ public class JwtGuardHandlerTest
         claims.setClaim("sub", "testSubject");
         claims.setClaim("exp", now.getEpochSecond() + 10L);
         claims.setClaim("scope", "read:stream write:stream");
-        String payload = claims.toJson();
 
-        String token = sign(payload, "test", RFC7515_RS256, "RS256");
+        String tokenPlus10 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
 
-        long authorizedId = guard.reauthorize(101L, token);
+        long sessionIdPlus10 = guard.reauthorize(101L, tokenPlus10);
 
-        guard.deauthorize(authorizedId);
+        claims.setClaim("exp", now.getEpochSecond() + 60L);
+        String tokenPlus60 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus60 = guard.reauthorize(101L, tokenPlus60);
+
+        assertThat(sessionIdPlus60, equalTo(sessionIdPlus10));
+        assertThat(guard.expiresAt(sessionIdPlus10), equalTo(ofSeconds(now.getEpochSecond() + 60L).toMillis()));
     }
 
-    private static String sign(
+    @Test
+    public void shouldReauthorizeWhenScopeBroader() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream");
+
+        String tokenPlus10 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus10 = guard.reauthorize(101L, tokenPlus10);
+
+        claims.setClaim("exp", now.getEpochSecond() + 60L);
+        claims.setClaim("scope", "read:stream write:stream");
+        String tokenPlus60 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus60 = guard.reauthorize(101L, tokenPlus60);
+
+        assertThat(sessionIdPlus60, equalTo(sessionIdPlus10));
+        assertThat(guard.expiresAt(sessionIdPlus10), equalTo(ofSeconds(now.getEpochSecond() + 60L).toMillis()));
+    }
+
+    @Test
+    public void shouldNotReauthorizeWhenExpirationEarlier() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+
+        String tokenPlus10 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus10 = guard.reauthorize(101L, tokenPlus10);
+
+        claims.setClaim("exp", now.getEpochSecond() + 5L);
+        String tokenPlus5 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus5 = guard.reauthorize(101L, tokenPlus5);
+
+        assertThat(sessionIdPlus5, equalTo(sessionIdPlus10));
+        assertThat(guard.expiresAt(sessionIdPlus10), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
+    }
+
+    @Test
+    public void shouldNotReauthorizeWhenScopeNarrower() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+
+        String tokenPlus10 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus10 = guard.reauthorize(101L, tokenPlus10);
+
+        claims.setClaim("exp", now.getEpochSecond() + 60L);
+        claims.setClaim("scope", "read:stream");
+        String tokenPlus60 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus60 = guard.reauthorize(101L, tokenPlus60);
+
+        assertThat(sessionIdPlus60, not(equalTo(sessionIdPlus10)));
+        assertThat(guard.expiresAt(sessionIdPlus10), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
+        assertThat(guard.expiresAt(sessionIdPlus60), equalTo(ofSeconds(now.getEpochSecond() + 60L).toMillis()));
+    }
+
+    @Test
+    public void shouldNotReauthorizeWhenSubjectDiffers() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+
+        String tokenPlus10 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus10 = guard.reauthorize(101L, tokenPlus10);
+
+        claims.setClaim("sub", "otherSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 60L);
+        String tokenPlus60 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus60 = guard.reauthorize(101L, tokenPlus60);
+
+        assertThat(sessionIdPlus60, not(equalTo(sessionIdPlus10)));
+        assertThat(guard.expiresAt(sessionIdPlus10), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
+        assertThat(guard.expiresAt(sessionIdPlus60), equalTo(ofSeconds(now.getEpochSecond() + 60L).toMillis()));
+    }
+
+    @Test
+    public void shouldNotReauthorizeWhenContextDiffers() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+
+        String tokenPlus10 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus10 = guard.reauthorize(101L, tokenPlus10);
+
+        claims.setClaim("exp", now.getEpochSecond() + 60L);
+        String tokenPlus60 = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionIdPlus60 = guard.reauthorize(202L, tokenPlus60);
+
+        assertThat(sessionIdPlus60, not(equalTo(sessionIdPlus10)));
+        assertThat(guard.expiresAt(sessionIdPlus10), equalTo(ofSeconds(now.getEpochSecond() + 10L).toMillis()));
+        assertThat(guard.expiresAt(sessionIdPlus60), equalTo(ofSeconds(now.getEpochSecond() + 60L).toMillis()));
+    }
+
+    @Test
+    public void shouldDeauthorize() throws Exception
+    {
+        Duration challenge = ofSeconds(30L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("sub", "testSubject");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionId = guard.reauthorize(101L, token);
+
+        guard.deauthorize(sessionId);
+    }
+
+    static String sign(
         String payload,
         String kid,
         KeyPair pair,

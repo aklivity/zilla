@@ -61,25 +61,28 @@ public class JwtGuardHandler implements GuardHandler
         this.challenge = options.challenge.orElse(null);
 
         Map<String, JsonWebKey> keys = new HashMap<>();
-        for (JwtKeyConfig key : options.keys)
+        if (options.keys != null)
         {
-            try
+            for (JwtKeyConfig key : options.keys)
             {
-                Map<String, Object> params = new HashMap<>();
-                params.put("kty", key.kty);
-                params.put("kid", key.kid);
-                params.put("e", key.e);
-                params.put("n", key.n);
-                params.put("alg", key.alg);
-                params.put("crv", key.crv);
-                params.put("x", key.x);
-                params.put("y", key.y);
-                params.put("use", key.use);
-                keys.put(key.kid, JsonWebKey.Factory.newJwk(params));
-            }
-            catch (JoseException ex)
-            {
-                rethrowUnchecked(ex);
+                try
+                {
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("kty", key.kty);
+                    params.put("kid", key.kid);
+                    params.put("e", key.e);
+                    params.put("n", key.n);
+                    params.put("alg", key.alg);
+                    params.put("crv", key.crv);
+                    params.put("x", key.x);
+                    params.put("y", key.y);
+                    params.put("use", key.use);
+                    keys.put(key.kid, JsonWebKey.Factory.newJwk(params));
+                }
+                catch (JoseException ex)
+                {
+                    rethrowUnchecked(ex);
+                }
             }
         }
         this.keys = keys;
@@ -150,7 +153,7 @@ public class JwtGuardHandler implements GuardHandler
             session.challengeAt = challenge != null ? session.expiresAt - challenge.toMillis() : session.expiresAt;
 
             JwtSession previous = sessionsById.put(session.authorized, session);
-            assert previous == null && session.refs == 0 || previous == session && session.refs > 0;
+            assert previous != session && session.refs == 0 || previous == session && session.refs > 0;
             session.refs++;
         }
         catch (JoseException | InvalidJwtException | MalformedClaimException ex)
@@ -216,14 +219,21 @@ public class JwtGuardHandler implements GuardHandler
         List<String> roles)
     {
         JwtSession session = sessionsById.get(sessionId);
-        return session != null && verify(session, roles);
+        return session != null && subsetOf(session, roles);
     }
 
-    private boolean verify(
+    private boolean subsetOf(
         JwtSession session,
         List<String> roles)
     {
         return roles != null && session.roles != null && session.roles.containsAll(roles);
+    }
+
+    private boolean supersetOf(
+        JwtSession session,
+        List<String> roles)
+    {
+        return roles != null && session.roles == null || roles.containsAll(session.roles);
     }
 
     private JwtSessionStore supplySessionStore(
@@ -248,15 +258,16 @@ public class JwtGuardHandler implements GuardHandler
             String subject,
             List<String> roles)
         {
-            JwtSession session = sessionsBySubject.get(subject);
+            String subjectKey = subject != null ? subject.intern() : null;
+            JwtSession session = sessionsBySubject.get(subjectKey);
 
-            if (subject == null || session != null && roles != null && !verify(session, roles))
+            if (subjectKey == null || session != null && roles != null && !supersetOf(session, roles))
             {
-                session = newSession(subject);
+                session = newSession(subjectKey);
             }
             else
             {
-                session = sessionsBySubject.computeIfAbsent(subject, this::newSharedSession);
+                session = sessionsBySubject.computeIfAbsent(subjectKey, this::newSharedSession);
             }
 
             return session;

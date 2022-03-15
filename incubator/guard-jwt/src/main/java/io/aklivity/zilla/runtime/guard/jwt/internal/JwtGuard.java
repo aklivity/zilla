@@ -82,7 +82,7 @@ public final class JwtGuard implements Guard
         List<String> roles)
     {
         final JwtGuardContext context = contexts[index];
-        final JwtGuardHandler handler = context.handler(guardId);
-        return handler.verify(sessionId, roles);
+        final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
+        return handler != null && handler.verify(sessionId, roles);
     }
 }
