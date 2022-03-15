@@ -88,19 +88,21 @@ public final class TcpClientRouter
 
             for (TcpRouteConfig route : binding.routes)
             {
+                if (!route.authorized(authorization))
+                {
+                    continue;
+                }
+
                 Array32FW<ProxyInfoFW> infos = beginEx.infos();
                 ProxyInfoFW authorityInfo = infos.matchFirst(i -> i.kind() == AUTHORITY);
-                if (authorityInfo != null && route.when.stream().anyMatch(r -> r.authority != null))
+                if (authorityInfo != null && route.matchesExplicit(r -> r.authority != null))
                 {
                     final List<InetAddress> authorities = Arrays.asList(resolveHost.apply(authorityInfo.authority().asString()));
                     for (InetAddress authority : authorities)
                     {
-                        resolved = route.when.stream().anyMatch(m -> m.matches(authority))
-                                ? new InetSocketAddress(authority, port)
-                                : null;
-
-                        if (resolved != null)
+                        if (route.matchesExplicit(authority))
                         {
+                            resolved = new InetSocketAddress(authority, port);
                             break;
                         }
                     }
@@ -108,9 +110,7 @@ public final class TcpClientRouter
 
                 if (resolved == null)
                 {
-                    Predicate<? super InetAddress> matches = a -> route.when.stream().anyMatch(m -> m.matches(a));
-
-                    resolved = resolve(address, authorization, matches);
+                    resolved = resolve(address, authorization, route::matchesExplicit);
                 }
 
                 if (resolved != null)
@@ -119,11 +119,24 @@ public final class TcpClientRouter
                 }
             }
 
-            if (resolved == null && binding.exit != null)
+            if (resolved == null && options.host != null && !"*".equals(options.host))
             {
                 final List<InetAddress> host = Arrays.asList(resolveHost.apply(options.host));
 
-                resolved = resolve(address, authorization, host::contains);
+                for (TcpRouteConfig route : binding.routes)
+                {
+                    if (!route.authorized(authorization))
+                    {
+                        continue;
+                    }
+
+                    resolved = resolve(address, authorization, host::contains);
+
+                    if (resolved != null)
+                    {
+                        break;
+                    }
+                }
             }
         }
 

@@ -19,8 +19,10 @@ import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessC
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.SAME_ORIGIN;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -38,6 +40,8 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpAllowConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpExposeConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpPatternConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -51,6 +55,11 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     private static final String POLICY_NAME = "policy";
     private static final String POLICY_VALUE_SAME_ORIGIN = "same-origin";
     private static final String POLICY_VALUE_CROSS_ORIGIN = "cross-origin";
+    private static final String AUTHORIZATION_NAME = "authorization";
+    private static final String AUTHORIZATION_CREDENTIALS_NAME = "credentials";
+    private static final String AUTHORIZATION_CREDENTIALS_HEADERS_NAME = "headers";
+    private static final String AUTHORIZATION_CREDENTIALS_QUERY_NAME = "query";
+    private static final String AUTHORIZATION_CREDENTIALS_COOKIES_NAME = "cookies";
     private static final String ALLOW_NAME = "allow";
     private static final String ALLOW_ORIGINS_NAME = "origins";
     private static final String ALLOW_METHODS_NAME = "methods";
@@ -59,6 +68,12 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     private static final String MAX_AGE_NAME = "max-age";
     private static final String EXPOSE_NAME = "expose";
     private static final String EXPOSE_HEADERS_NAME = "headers";
+
+    @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
 
     @Override
     public String type()
@@ -156,6 +171,53 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             object.add(ACCESS_CONTROL_NAME, access);
         }
 
+        HttpAuthorizationConfig httpAuthorization = httpOptions.authorization;
+        if (httpAuthorization != null)
+        {
+            JsonObjectBuilder authorizations = Json.createObjectBuilder();
+
+            JsonObjectBuilder authorization = Json.createObjectBuilder();
+
+            HttpCredentialsConfig httpCredentials = httpAuthorization.credentials;
+            if (httpCredentials != null)
+            {
+                JsonObjectBuilder credentials = Json.createObjectBuilder();
+
+                if (httpCredentials.headers != null)
+                {
+                    JsonObjectBuilder headers = Json.createObjectBuilder();
+
+                    httpCredentials.headers.forEach(p -> headers.add(p.name, p.pattern));
+
+                    credentials.add(AUTHORIZATION_CREDENTIALS_HEADERS_NAME, headers);
+                }
+
+                if (httpCredentials.parameters != null)
+                {
+                    JsonObjectBuilder parameters = Json.createObjectBuilder();
+
+                    httpCredentials.parameters.forEach(p -> parameters.add(p.name, p.pattern));
+
+                    credentials.add(AUTHORIZATION_CREDENTIALS_QUERY_NAME, parameters);
+                }
+
+                if (httpCredentials.cookies != null)
+                {
+                    JsonObjectBuilder cookies = Json.createObjectBuilder();
+
+                    httpCredentials.cookies.forEach(p -> cookies.add(p.name, p.pattern));
+
+                    credentials.add(AUTHORIZATION_CREDENTIALS_COOKIES_NAME, cookies);
+                }
+
+                authorization.add(AUTHORIZATION_CREDENTIALS_NAME, credentials);
+
+                authorizations.add(httpAuthorization.name, authorization);
+            }
+
+            object.add(AUTHORIZATION_NAME, authorizations);
+        }
+
         if (httpOptions.overrides != null &&
             !httpOptions.overrides.isEmpty())
         {
@@ -184,6 +246,40 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             versions.forEach(v ->
                 newVersions0.add(HttpVersion.of(JsonString.class.cast(v).getString())));
             newVersions = newVersions0;
+        }
+
+        HttpAuthorizationConfig newAuthorization = null;
+
+        JsonObject authorizations = object.containsKey(AUTHORIZATION_NAME)
+                ? object.getJsonObject(AUTHORIZATION_NAME)
+                : null;
+
+        if (authorizations != null)
+        {
+            for (String name : authorizations.keySet())
+            {
+                JsonObject authorization = authorizations.getJsonObject(name);
+
+                HttpCredentialsConfig newCredentials = null;
+
+                JsonObject credentials = authorization.getJsonObject(AUTHORIZATION_CREDENTIALS_NAME);
+
+                if (credentials != null)
+                {
+                    List<HttpPatternConfig> newHeaders =
+                            adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_HEADERS_NAME);
+
+                    List<HttpPatternConfig> newParameters =
+                            adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_QUERY_NAME);
+
+                    List<HttpPatternConfig> newCookies =
+                            adaptPatternFromJson(credentials, AUTHORIZATION_CREDENTIALS_COOKIES_NAME);
+
+                    newCredentials = new HttpCredentialsConfig(newHeaders, newParameters, newCookies);
+                }
+
+                newAuthorization = new HttpAuthorizationConfig(name, newCredentials);
+            }
         }
 
         HttpAccessControlConfig newAccess = null;
@@ -309,6 +405,26 @@ public final class HttpOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             newOverrides = newOverrides0;
         }
 
-        return new HttpOptionsConfig(newVersions, newOverrides, newAccess);
+        return new HttpOptionsConfig(newVersions, newOverrides, newAccess, newAuthorization);
+    }
+
+    private List<HttpPatternConfig> adaptPatternFromJson(
+        JsonObject object,
+        String property)
+    {
+        List<HttpPatternConfig> newPatterns = null;
+        if (object.containsKey(property))
+        {
+            newPatterns = new ArrayList<>();
+
+            JsonObject patterns = object.getJsonObject(property);
+            for (String name : patterns.keySet())
+            {
+                String pattern = patterns.getString(name);
+
+                newPatterns.add(new HttpPatternConfig(name, pattern));
+            }
+        }
+        return newPatterns;
     }
 }

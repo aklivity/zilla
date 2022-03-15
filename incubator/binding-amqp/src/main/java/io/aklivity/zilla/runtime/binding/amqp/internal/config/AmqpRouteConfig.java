@@ -18,14 +18,18 @@ package io.aklivity.zilla.runtime.binding.amqp.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.amqp.internal.types.AmqpCapabilities;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public final class AmqpRouteConfig extends OptionsConfig
 {
     public final long id;
-    public final List<AmqpConditionMatcher> when;
+
+    private final List<AmqpConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public AmqpRouteConfig(
         RouteConfig route)
@@ -35,5 +39,19 @@ public final class AmqpRouteConfig extends OptionsConfig
             .map(AmqpConditionConfig.class::cast)
             .map(AmqpConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        String address,
+        AmqpCapabilities capabilities)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(address, capabilities));
     }
 }

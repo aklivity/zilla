@@ -45,6 +45,12 @@ public final class TlsOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String TRUSTCACERTS_NAME = "trustcacerts";
 
     @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
+
+    @Override
     public String type()
     {
         return TlsBinding.NAME;

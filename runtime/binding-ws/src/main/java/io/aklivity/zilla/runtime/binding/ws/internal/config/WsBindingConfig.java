@@ -31,7 +31,6 @@ public final class WsBindingConfig
     public final WsOptionsConfig options;
     public final KindConfig kind;
     public final List<WsRouteConfig> routes;
-    public final WsRouteConfig exit;
 
     public WsBindingConfig(
         BindingConfig binding)
@@ -41,7 +40,6 @@ public final class WsBindingConfig
         this.kind = binding.kind;
         this.options = binding.options instanceof WsOptionsConfig ? (WsOptionsConfig) binding.options : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(WsRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new WsRouteConfig(binding.exit) : null;
     }
 
     public WsRouteConfig resolve(
@@ -52,8 +50,8 @@ public final class WsBindingConfig
         String path)
     {
         return routes.stream()
-            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(protocol, scheme, authority, path)))
+            .filter(r -> r.authorized(authorization) && r.matches(protocol, scheme, authority, path))
             .findFirst()
-            .orElse(exit);
+            .orElse(null);
     }
 }

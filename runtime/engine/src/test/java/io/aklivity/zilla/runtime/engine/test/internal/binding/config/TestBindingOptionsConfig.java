@@ -13,29 +13,17 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.test.internal.binding.config;
 
-import static java.util.Objects.requireNonNull;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class NamespacedRef
+public final class TestBindingOptionsConfig extends OptionsConfig
 {
-    public final String namespace;
-    public final String name;
+    public final String mode;
 
-    public long id;
-
-    public NamespacedRef(
-        String namespace,
-        String name)
+    public TestBindingOptionsConfig(
+        String mode)
     {
-        this.namespace = namespace;
-        this.name = requireNonNull(name);
-    }
-
-    public static NamespacedRef of(
-        String qname)
-    {
-        // TODO: qualified name format
-        return new NamespacedRef(null, qname);
+        this.mode = mode;
     }
 }

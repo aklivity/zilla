@@ -15,8 +15,10 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static java.util.Collections.emptyList;
+import static io.aklivity.zilla.runtime.engine.config.RouteConfig.GUARDED_DEFAULT;
+import static io.aklivity.zilla.runtime.engine.config.RouteConfig.WHEN_DEFAULT;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,10 +26,12 @@ import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
@@ -36,8 +40,7 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     private static final String EXIT_NAME = "exit";
     private static final String WHEN_NAME = "when";
     private static final String WITH_NAME = "with";
-
-    private static final List<ConditionConfig> WHEN_DEFAULT = emptyList();
+    private static final String GUARDED_NAME = "guarded";
 
     private int index;
     private final ConditionAdapter condition;
@@ -83,6 +86,20 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
             object.add(WITH_NAME, with.adaptToJson(route.with));
         }
 
+        if (!GUARDED_DEFAULT.equals(route.guarded))
+        {
+            JsonObjectBuilder newGuarded = Json.createObjectBuilder();
+
+            for (GuardedConfig guarded : route.guarded)
+            {
+                JsonArrayBuilder newRoles = Json.createArrayBuilder();
+                guarded.roles.forEach(newRoles::add);
+                newGuarded.add(guarded.name, newRoles);
+            }
+
+            object.add(GUARDED_NAME, newGuarded);
+        }
+
         return object.build();
     }
 
@@ -90,17 +107,35 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     public RouteConfig adaptFromJson(
         JsonObject object)
     {
-        String exit = object.getString(EXIT_NAME);
-        List<ConditionConfig> when = object.containsKey(WHEN_NAME)
+        String newExit = object.getString(EXIT_NAME);
+        List<ConditionConfig> newWhen = object.containsKey(WHEN_NAME)
                 ? object.getJsonArray(WHEN_NAME)
                     .stream().map(JsonValue::asJsonObject)
                     .map(condition::adaptFromJson)
                     .collect(Collectors.toList())
                 : WHEN_DEFAULT;
-        WithConfig wth = object.containsKey(WITH_NAME)
+        WithConfig newWith = object.containsKey(WITH_NAME)
                 ? with.adaptFromJson(object.getJsonObject(WITH_NAME))
                 : null;
 
-        return new RouteConfig(index, exit, when, wth);
+        List<GuardedConfig> newGuarded = GUARDED_DEFAULT;
+        if (object.containsKey(GUARDED_NAME))
+        {
+            newGuarded = new ArrayList<>();
+
+            JsonObject guarded = object.getJsonObject(GUARDED_NAME);
+            for (String name : guarded.keySet())
+            {
+                List<String> roles = guarded.getJsonArray(name)
+                    .stream()
+                    .map(JsonString.class::cast)
+                    .map(JsonString::getString)
+                    .collect(Collectors.toList());
+
+                newGuarded.add(new GuardedConfig(name, roles));
+            }
+        }
+
+        return new RouteConfig(index, newExit, newWhen, newWith, newGuarded);
     }
 }

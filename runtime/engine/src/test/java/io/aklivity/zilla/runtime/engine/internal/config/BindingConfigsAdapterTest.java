@@ -35,9 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespacedRef;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.internal.config.OptionsConfigAdapterTest.TestOptionsConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class BindingConfigsAdapterTest
 {
@@ -76,7 +75,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBinding()
     {
-        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null) };
+        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null, emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -104,7 +103,7 @@ public class BindingConfigsAdapterTest
 
         assertThat(bindings[0], not(nullValue()));
         assertThat(bindings[0].vault, not(nullValue()));
-        assertThat(bindings[0].vault.name, equalTo("test"));
+        assertThat(bindings[0].vault, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].routes, emptyCollectionOf(RouteConfig.class));
     }
@@ -112,51 +111,12 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBindingWithVault()
     {
-        NamespacedRef vault = new NamespacedRef("default", "test");
-        BindingConfig[] bindings = { new BindingConfig(vault, "test", "test", SERVER, null, emptyList(), null) };
+        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"test\":{\"vault\":\"test\",\"type\":\"test\",\"kind\":\"server\"}}"));
-    }
-
-    @Test
-    public void shouldReadBindingWithExit()
-    {
-        String text =
-                "{" +
-                    "\"test\":" +
-                    "{" +
-                        "\"type\": \"test\"," +
-                        "\"kind\": \"server\"," +
-                        "\"routes\":" +
-                        "[" +
-                        "]," +
-                        "\"exit\": \"test\"" +
-                    "}" +
-                "}";
-
-        BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
-
-        assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].entry, equalTo("test"));
-        assertThat(bindings[0].kind, equalTo(SERVER));
-        assertThat(bindings[0].routes, emptyCollectionOf(RouteConfig.class));
-        assertThat(bindings[0].exit, not(nullValue()));
-        assertThat(bindings[0].exit.exit, equalTo("test"));
-    }
-
-    @Test
-    public void shouldWriteBindingWithExit()
-    {
-        BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, null, emptyList(), new RouteConfig("test")) };
-
-        String text = jsonb.toJson(bindings);
-
-        assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\",\"exit\":\"test\"}}"));
     }
 
     @Test
@@ -180,15 +140,15 @@ public class BindingConfigsAdapterTest
         assertThat(bindings[0], not(nullValue()));
         assertThat(bindings[0].entry, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
-        assertThat(bindings[0].options, instanceOf(TestOptionsConfig.class));
-        assertThat(((TestOptionsConfig) bindings[0].options).mode, equalTo("test"));
+        assertThat(bindings[0].options, instanceOf(TestBindingOptionsConfig.class));
+        assertThat(((TestBindingOptionsConfig) bindings[0].options).mode, equalTo("test"));
     }
 
     @Test
     public void shouldWriteBindingWithOptions()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, new TestOptionsConfig("test"), emptyList(), null) };
+            { new BindingConfig(null, "test", "test", SERVER, new TestBindingOptionsConfig("test"), emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -228,7 +188,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithRoute()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, null, singletonList(new RouteConfig("test")), null) };
+            { new BindingConfig(null, "test", "test", SERVER, null, singletonList(new RouteConfig("test"))) };
 
         String text = jsonb.toJson(bindings);
 

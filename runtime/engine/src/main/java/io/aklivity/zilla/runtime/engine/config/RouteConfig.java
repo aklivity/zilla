@@ -19,17 +19,21 @@ import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 public class RouteConfig
 {
-    private static final List<ConditionConfig> UNCONDITIONAL = emptyList();
+    public static final List<ConditionConfig> WHEN_DEFAULT = emptyList();
+    public static final List<GuardedConfig> GUARDED_DEFAULT = emptyList();
 
     public transient long id;
+    public transient LongPredicate authorized;
 
     public final int order;
     public final String exit;
     public final List<ConditionConfig> when;
     public final WithConfig with;
+    public final List<GuardedConfig> guarded;
 
     public RouteConfig(
         String exit)
@@ -39,35 +43,37 @@ public class RouteConfig
 
     public RouteConfig(
         String exit,
-        List<ConditionConfig> when)
+        List<GuardedConfig> guarded)
     {
-        this(0, exit, when);
+        this(exit, WHEN_DEFAULT, guarded);
+    }
+
+    public RouteConfig(
+        String exit,
+        List<ConditionConfig> when,
+        List<GuardedConfig> guarded)
+    {
+        this(0, exit, when, null, guarded);
     }
 
     public RouteConfig(
         int order,
         String exit)
     {
-        this(order, exit, UNCONDITIONAL);
-    }
-
-    public RouteConfig(
-        int order,
-        String exit,
-        List<ConditionConfig> when)
-    {
-        this(order, exit, when, null);
+        this(order, exit, WHEN_DEFAULT, null, GUARDED_DEFAULT);
     }
 
     public RouteConfig(
         int order,
         String exit,
         List<ConditionConfig> when,
-        WithConfig with)
+        WithConfig with,
+        List<GuardedConfig> guarded)
     {
         this.order = order;
         this.exit = requireNonNull(exit);
         this.when = requireNonNull(when);
         this.with = with;
+        this.guarded = requireNonNull(guarded);
     }
 }

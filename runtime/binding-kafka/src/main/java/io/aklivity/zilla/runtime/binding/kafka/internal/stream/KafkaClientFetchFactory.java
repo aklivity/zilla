@@ -2808,7 +2808,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
 
                 if (clientRoute.partitions.get(partitionId) == leaderId)
                 {
-                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST);
+                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
                 {

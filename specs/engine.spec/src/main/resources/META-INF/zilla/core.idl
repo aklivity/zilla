@@ -89,7 +89,7 @@ scope core
         {
             int64 cancelId;
             int32 signalId;
-            octets extension;
+            int32 contextId;
         }
 
         struct Challenge extends Frame [0x40000004]

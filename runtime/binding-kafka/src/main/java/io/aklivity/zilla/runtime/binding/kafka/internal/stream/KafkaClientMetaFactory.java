@@ -1629,7 +1629,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
                 }
 
                 nextResponseId++;
-                nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis, routeId, initialId, SIGNAL_NEXT_REQUEST);
+                nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis, routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void cleanupNetwork(

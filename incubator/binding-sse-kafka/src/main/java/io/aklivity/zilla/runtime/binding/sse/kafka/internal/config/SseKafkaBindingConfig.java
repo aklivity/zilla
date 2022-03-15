@@ -28,7 +28,6 @@ public final class SseKafkaBindingConfig
     public final String entry;
     public final KindConfig kind;
     public final List<SseKafkaRouteConfig> routes;
-    public final SseKafkaRouteConfig exit;
 
     public SseKafkaBindingConfig(
         BindingConfig binding)
@@ -37,7 +36,6 @@ public final class SseKafkaBindingConfig
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(SseKafkaRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new SseKafkaRouteConfig(binding.exit) : null;
     }
 
     public SseKafkaRouteConfig resolve(
@@ -46,8 +44,8 @@ public final class SseKafkaBindingConfig
     {
         String path = beginEx != null ? beginEx.pathInfo().asString() : null;
         return routes.stream()
-            .filter(r -> r.when.isEmpty() || path != null && r.when.stream().anyMatch(m -> m.matches(path)))
+            .filter(r -> r.authorized(authorization) && r.matches(path))
             .findFirst()
-            .orElse(exit);
+            .orElse(null);
     }
 }

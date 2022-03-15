@@ -185,8 +185,9 @@
                 </artifactItem>
               </artifactItems>
               <includes>
-                io/aklivity/zilla/specs/engine/schema/binding/test.json,
-                io/aklivity/zilla/specs/engine/schema/vault/test.json
+                io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json
               </includes>
               <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
             </configuration>
@@ -219,9 +220,15 @@
                 <include>io/aklivity/zilla/runtime/engine/test/EngineRule*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/annotation/Configur*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/**/*.schema.patch.json</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/vault/**/*.class</include>
               </includes>
               <excludes>
-                <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.*</exclude>
+                <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.EngineExtSpi</exclude>
+                <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi</exclude>
+                <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi</exclude>
                 <exclude>**/*IT.class</exclude>
                 <exclude>**/*Test.class</exclude>
               </excludes>

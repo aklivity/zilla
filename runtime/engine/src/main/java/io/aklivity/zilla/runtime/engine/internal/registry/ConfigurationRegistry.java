@@ -23,12 +23,14 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
 {
     private final Function<String, BindingContext> bindingsByType;
+    private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
@@ -37,11 +39,13 @@ public class ConfigurationRegistry
 
     public ConfigurationRegistry(
         Function<String, BindingContext> bindingsByType,
+        Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry)
     {
         this.bindingsByType = bindingsByType;
+        this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
@@ -70,6 +74,16 @@ public class ConfigurationRegistry
         return namespace != null ? namespace.findBinding(localId) : null;
     }
 
+    public GuardRegistry resolveGuard(
+        long guardId)
+    {
+        int namespaceId = NamespacedId.namespaceId(guardId);
+        int localId = NamespacedId.localId(guardId);
+
+        NamespaceRegistry namespace = findNamespace(namespaceId);
+        return namespace != null ? namespace.findGuard(localId) : null;
+    }
+
     public VaultRegistry resolveVault(
         long vaultId)
     {
@@ -96,7 +110,7 @@ public class ConfigurationRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, bindingsByType, vaultsByType, supplyLabelId, supplyLoadEntry);
+                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, supplyLabelId, supplyLoadEntry);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

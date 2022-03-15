@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.sse.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -25,17 +26,30 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class SseRouteConfig extends OptionsConfig
 {
     public final long id;
-    public final int order;
-    public final List<SseConditionMatcher> when;
+
+    private final List<SseConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public SseRouteConfig(
         RouteConfig route)
     {
         this.id = route.id;
-        this.order = route.order;
         this.when = route.when.stream()
             .map(SseConditionConfig.class::cast)
             .map(SseConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        String path)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(path));
     }
 }

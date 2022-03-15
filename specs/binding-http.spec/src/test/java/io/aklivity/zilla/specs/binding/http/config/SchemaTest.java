@@ -31,6 +31,7 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/http/schema/http.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config");
 
     @Test
@@ -154,6 +155,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateHttp11ServerAuthorizationCredentials()
+    {
+        JsonObject config = schema.validate("v1.1/server.authorization.credentials.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateHttp2Client()
     {
         JsonObject config = schema.validate("v2/client.json");
@@ -261,6 +270,14 @@ public class SchemaTest
     public void shouldValidateHttp2ServerAccessControlSameOriginWithImplicitPorts()
     {
         JsonObject config = schema.validate("v2/server.access.control.same.origin.implicit.ports.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateHttp2ServerAuthorizationCredentials()
+    {
+        JsonObject config = schema.validate("v2/server.authorization.credentials.json");
 
         assertThat(config, not(nullValue()));
     }

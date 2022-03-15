@@ -23,6 +23,19 @@
             },
             "additionalProperties": false
         },
+        "guards":
+        {
+            "title": "Guards",
+            "type": "object",
+            "patternProperties":
+            {
+                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                {
+                    "$ref": "#/$defs/guard"
+                }
+            },
+            "additionalProperties": false
+        },
         "bindings":
         {
             "title": "Bindings",
@@ -46,6 +59,31 @@
     "$defs":
     {
         "vault":
+        {
+            "type": "object",
+            "properties":
+            {
+                "type":
+                {
+                    "title": "Type",
+                    "type": "string"
+                },
+                "options":
+                {
+                    "title": "Options",
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false,
+            "required":
+            [
+                "type"
+            ],
+            "oneOf":
+            [
+            ]
+        },
+        "guard":
         {
             "type": "object",
             "properties":
@@ -125,6 +163,24 @@
                             {
                                 "title": "Override",
                                 "type": "object"
+                            },
+                            "guarded":
+                            {
+                                "title": "Guarded",
+                                "type": "object",
+                                "patternProperties":
+                                {
+                                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                    {
+                                        "title": "Roles",
+                                        "type": "array",
+                                        "items":
+                                        {
+                                            "title": "Role",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
                             }
                         },
                         "additionalProperties": false

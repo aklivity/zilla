@@ -33,6 +33,12 @@ public final class WsOptionsConfigAdapter implements OptionsConfigAdapterSpi, Js
     private static final String PATH_NAME = "path";
 
     @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
+
+    @Override
     public String type()
     {
         return WsBinding.NAME;

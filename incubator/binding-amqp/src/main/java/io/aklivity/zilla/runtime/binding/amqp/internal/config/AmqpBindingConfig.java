@@ -26,21 +26,17 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class AmqpBindingConfig
 {
     public final long id;
-    public final long vaultId;
     public final String entry;
     public final KindConfig kind;
     public final List<AmqpRouteConfig> routes;
-    public final AmqpRouteConfig exit;
 
     public AmqpBindingConfig(
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.vaultId = binding.vault != null ? binding.vault.id : 0L;
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(AmqpRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new AmqpRouteConfig(binding.exit) : null;
     }
 
     public AmqpRouteConfig resolve(
@@ -49,8 +45,8 @@ public final class AmqpBindingConfig
         AmqpCapabilities capabilities)
     {
         return routes.stream()
-            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(address, capabilities)))
+            .filter(r -> r.authorized(authorization) && r.matches(address, capabilities))
             .findFirst()
-            .orElse(exit);
+            .orElse(null);
     }
 }

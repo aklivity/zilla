@@ -1,0 +1,71 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/guard/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "jwt"
+                },
+                "options":
+                {
+                    "properties":
+                    {
+                        "issuer":
+                        {
+                            "title": "Issuer",
+                            "type": "string"
+                        },
+                        "audience":
+                        {
+                            "title": "Audience",
+                            "type": "string"
+                        },
+                        "keys":
+                        {
+                            "title": "Keys",
+                            "type": "array",
+                            "items":
+                            {
+                                "title": "Key",
+                                "type": "object",
+                                "properties":
+                                {
+                                    "kty":
+                                    {
+                                        "title": "Key Type",
+                                        "type": "string"
+                                    },
+                                    "kid":
+                                    {
+                                        "title": "Key ID",
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": true,
+                                "required":
+                                [
+                                    "kty",
+                                    "kid"
+                                ]
+                            }
+                        },
+                        "challenge":
+                        {
+                            "title": "Challenge",
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required":
+            [
+                "options"
+            ]
+        }
+    }
+]

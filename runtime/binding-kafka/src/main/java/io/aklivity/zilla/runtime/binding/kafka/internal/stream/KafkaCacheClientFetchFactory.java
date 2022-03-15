@@ -682,7 +682,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             // defer reply window credit until next tick
             assert reserved == SIZE_OF_FLUSH_WITH_EXTENSION;
-            signaler.signalNow(routeId, initialId, SIGNAL_FANOUT_REPLY_WINDOW);
+            signaler.signalNow(routeId, initialId, SIGNAL_FANOUT_REPLY_WINDOW, 0);
         }
 
         private void onClientFanoutReplyEnd(

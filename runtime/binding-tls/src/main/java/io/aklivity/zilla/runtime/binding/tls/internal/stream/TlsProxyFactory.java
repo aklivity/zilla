@@ -159,7 +159,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (binding != null && (!binding.routes.isEmpty() || binding.exit != null))
+        if (binding != null && !binding.routes.isEmpty())
         {
             newStream = new TlsProxy(
                 net,
@@ -712,7 +712,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
                     currentTimeMillis() + handshakeTimeoutMillis,
                     routeId,
                     replyId,
-                    HANDSHAKE_TIMEOUT_SIGNAL);
+                    HANDSHAKE_TIMEOUT_SIGNAL,
+                    0);
             }
         }
 

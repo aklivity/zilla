@@ -1010,7 +1010,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long timeMillis,
             int signalId)
         {
-            return signaler.signalAt(timeMillis, routeId, initialId, signalId);
+            return signaler.signalAt(timeMillis, routeId, initialId, signalId, 0);
         }
     }
 
