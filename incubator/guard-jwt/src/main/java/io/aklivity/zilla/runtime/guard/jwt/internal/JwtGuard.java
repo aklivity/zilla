@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 
+import java.lang.invoke.VarHandle;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
@@ -70,18 +71,25 @@ public final class JwtGuard implements Guard
         Objects.requireNonNull(indexOf);
 
         final long guardId = config.id;
-        List<String> roles = config.roles;
+        final List<String> roles = config.roles;
 
-        return session -> verify(guardId, indexOf.applyAsInt(session), session, roles);
+        final int guardIndex = indexOf.applyAsInt(guardId);
+
+        return session -> verify(guardIndex, guardId, indexOf.applyAsInt(session), session, roles);
     }
 
     private boolean verify(
+        int guardIndex,
         long guardId,
-        int index,
+        int sessionIndex,
         long sessionId,
         List<String> roles)
     {
-        final JwtGuardContext context = contexts[index];
+        if (sessionIndex != guardIndex)
+        {
+            VarHandle.fullFence();
+        }
+        final JwtGuardContext context = contexts[sessionIndex];
         final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
         return handler != null && handler.verify(sessionId, roles);
     }
