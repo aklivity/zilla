@@ -11,6 +11,8 @@ buildNumber.properties
 .classpath
 .project
 .settings/
+*-cs-cleanup.xml
+*-cs-formatter.xml
 .checkstyle
 .idea/
 *.iml
