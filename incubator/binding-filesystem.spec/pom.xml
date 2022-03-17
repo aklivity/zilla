@@ -78,7 +78,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
+          <scopeNames>core filesystem</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.filesystem.internal.types</packageName>
         </configuration>
         <executions>

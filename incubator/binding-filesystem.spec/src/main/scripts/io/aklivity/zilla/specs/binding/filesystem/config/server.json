@@ -1,0 +1,15 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "filesystem0":
+        {
+            "type" : "filesystem",
+            "kind": "server",
+            "options":
+            {
+                "location": "file:files"
+            }
+        }
+    }
+}
