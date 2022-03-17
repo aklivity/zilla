@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.specs.binding.filesystem.internal;
 
+import static io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities.READ_EXTENSION;
+import static io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities.READ_PAYLOAD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -56,8 +58,8 @@ public class FileSystemFunctionsTest
         byte[] build = FileSystemFunctions.beginEx()
             .typeId(0x01)
             .path("index.html")
+            .capabilities("READ_PAYLOAD")
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -65,8 +67,8 @@ public class FileSystemFunctionsTest
 
         assertEquals(0x01, beginEx.typeId());
         assertEquals("index.html", beginEx.path().asString());
+        assertEquals(1 << READ_PAYLOAD.ordinal(), beginEx.capabilities());
         assertEquals(now.toEpochMilli(), beginEx.modifiedSince());
-        assertEquals(65535L, beginEx.maximumSize());
     }
 
     @Test
@@ -75,8 +77,8 @@ public class FileSystemFunctionsTest
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
             .path("index.html")
+            .capabilities("READ_PAYLOAD")
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -84,8 +86,8 @@ public class FileSystemFunctionsTest
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .path("index.html")
+            .capabilities(1 << READ_PAYLOAD.ordinal())
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -96,8 +98,8 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .path("index.html")
+            .capabilities("READ_PAYLOAD")
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -105,8 +107,8 @@ public class FileSystemFunctionsTest
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .path("index.html")
+            .capabilities(1 << READ_PAYLOAD.ordinal())
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         assertNull(matcher.match(byteBuf));
@@ -118,8 +120,8 @@ public class FileSystemFunctionsTest
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
             .path("index.html")
+            .capabilities("READ_PAYLOAD")
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -127,8 +129,8 @@ public class FileSystemFunctionsTest
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x02)
             .path("index.html")
+            .capabilities(1 << READ_PAYLOAD.ordinal())
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         matcher.match(byteBuf);
@@ -140,8 +142,8 @@ public class FileSystemFunctionsTest
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
             .path("index.json")
+            .capabilities("READ_PAYLOAD")
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -149,8 +151,30 @@ public class FileSystemFunctionsTest
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .path("index.html")
+            .capabilities(1 << READ_PAYLOAD.ordinal())
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExtensionWhenCapabilitiesDiffer() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .path("index.html")
+            .capabilities("READ_PAYLOAD")
+            .modifiedSince(now.toEpochMilli())
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .path("index.html")
+            .capabilities(1 << READ_EXTENSION.ordinal())
+            .modifiedSince(now.toEpochMilli())
             .build();
 
         matcher.match(byteBuf);
@@ -162,8 +186,8 @@ public class FileSystemFunctionsTest
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
             .path("index.html")
+            .capabilities("READ_PAYLOAD")
             .modifiedSince(now.toEpochMilli() + 1)
-            .maximumSize(65535L)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -171,30 +195,8 @@ public class FileSystemFunctionsTest
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
             .path("index.html")
+            .capabilities(1 << READ_PAYLOAD.ordinal())
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchBeginExtensionWhenMaximumSizeDiffers() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
-            .typeId(0x01)
-            .path("index.html")
-            .modifiedSince(now.toEpochMilli())
-            .maximumSize(65536L)
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .path("index.html")
-            .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         matcher.match(byteBuf);
@@ -206,8 +208,8 @@ public class FileSystemFunctionsTest
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
             .path("index.html")
+            .capabilities("READ_PAYLOAD")
             .modifiedSince(now.toEpochMilli())
-            .maximumSize(65535L)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(0);

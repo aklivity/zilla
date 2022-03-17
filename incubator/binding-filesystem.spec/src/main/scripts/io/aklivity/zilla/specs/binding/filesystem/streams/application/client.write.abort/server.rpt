@@ -15,26 +15,15 @@
 
 accept "zilla://streams/app0"
        option zilla:window 8192
-       option zilla:transmission "half-duplex"
+       option zilla:transmission "duplex"
 accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
                                  .path("index.html")
+                                 .capabilities("READ_EXTENSION")
                                  .build()}
 connected
 
-read closed
-
-write zilla:data.ext ${filesystem:dataEx()
-                                 .typeId(zilla:id("filesystem"))
-                                 .modifiedTime(1643869342000)
-                                 .path("index.html")
-                                 .build()}
-write "<html>\n"
-      "<head><title>Welcome</title></head>\n"
-      "<body>Hello, world</body>\n"
-      "</html>\n"
-write flush
-
-write close
+read aborted
+write abort

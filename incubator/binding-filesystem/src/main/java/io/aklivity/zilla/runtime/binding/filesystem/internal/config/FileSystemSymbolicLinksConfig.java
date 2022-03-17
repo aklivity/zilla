@@ -12,29 +12,10 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-scope filesystem
+package io.aklivity.zilla.runtime.binding.filesystem.internal.config;
+
+public enum FileSystemSymbolicLinksConfig
 {
-    enum FileSystemCapabilities
-    {
-        READ_PAYLOAD,
-        READ_EXTENSION,
-        READ_CHANGES
-    }
-
-    scope stream
-    {
-        struct FileSystemBeginEx extends core::stream::Extension
-        {
-            string16 path;
-            int32 capabilities = 3;
-            int64 modifiedSince = 0;
-        }
-
-        struct FileSystemDataEx extends core::stream::Extension
-        {
-            int64 deferred = 0;         // INIT only (TODO: move to DATA frame)
-            int64 modifiedTime = 0;
-            string16 path = null;
-        }
-    }
+    FOLLOW,
+    IGNORE
 }

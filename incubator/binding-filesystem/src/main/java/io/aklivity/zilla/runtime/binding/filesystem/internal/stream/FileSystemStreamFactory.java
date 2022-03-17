@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2021-2022 Aklivity Inc
  *
  * Licensed under the Aklivity Community License (the "License"); you may not use
@@ -12,4 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-body { font: bold }
+package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
+
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
+public interface FileSystemStreamFactory extends BindingHandler
+{
+    void attach(
+        BindingConfig binding);
+
+    void detach(
+        long bindingId);
+}

@@ -2,13 +2,13 @@
     "name": "test",
     "bindings":
     {
-        "filesystem0":
+        "app0":
         {
             "type" : "filesystem",
             "kind": "server",
             "options":
             {
-                "location": "file:files"
+                "location": "target/files/"
             }
         }
     }

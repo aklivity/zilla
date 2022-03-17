@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.binding.filesystem.internal;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -23,6 +24,7 @@ import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemDataExFW;
 
@@ -76,10 +78,14 @@ public final class FileSystemFunctions
             return this;
         }
 
-        public FileSystemBeginExBuilder maximumSize(
-            long maximumSize)
+        public FileSystemBeginExBuilder capabilities(
+            String... capabilities)
         {
-            beginExRW.maximumSize(maximumSize);
+            beginExRW.capabilities(Arrays.asList(capabilities).stream()
+                .map(FileSystemCapabilities::valueOf)
+                .mapToInt(FileSystemCapabilities::ordinal)
+                .map(n -> 1 << n)
+                .sum());
             return this;
         }
 
@@ -107,7 +113,7 @@ public final class FileSystemFunctions
 
         private Integer typeId;
         private String path;
-        private Long maximumSize;
+        private Integer capabilities;
         private Long modifiedSince;
 
         public FileSystemBeginExMatcherBuilder typeId(
@@ -124,10 +130,14 @@ public final class FileSystemFunctions
             return this;
         }
 
-        public FileSystemBeginExMatcherBuilder maximumSize(
-            long maximumSize)
+        public FileSystemBeginExMatcherBuilder capabilities(
+            String... capabilities)
         {
-            this.maximumSize = maximumSize;
+            this.capabilities = Arrays.asList(capabilities).stream()
+                .map(FileSystemCapabilities::valueOf)
+                .mapToInt(FileSystemCapabilities::ordinal)
+                .map(n -> 1 << n)
+                .sum();
             return this;
         }
 
@@ -157,7 +167,7 @@ public final class FileSystemFunctions
             if (beginEx != null &&
                 matchTypeId(beginEx) &&
                 matchPath(beginEx) &&
-                matchMaximumSize(beginEx) &&
+                matchCapabilities(beginEx) &&
                 matchModifiedSince(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
@@ -179,10 +189,10 @@ public final class FileSystemFunctions
             return path == null || path.equals(beginEx.path().asString());
         }
 
-        private boolean matchMaximumSize(
+        private boolean matchCapabilities(
             FileSystemBeginExFW beginEx)
         {
-            return maximumSize == null || maximumSize == beginEx.maximumSize();
+            return capabilities == null || capabilities == beginEx.capabilities();
         }
 
         private boolean matchModifiedSince(

@@ -15,11 +15,12 @@
 
 connect "zilla://streams/app0"
     option zilla:window 8192
-    option zilla:transmission "half-duplex"
+    option zilla:transmission "duplex"
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .path("**/*")
+                                  .path("index.html")
+                                  .capabilities("READ_EXTENSION")
                                   .build()}
 connected
 
@@ -27,19 +28,8 @@ write close
 
 read zilla:data.ext ${filesystem:matchDataEx()
                                 .typeId(zilla:id("filesystem"))
-                                .modifiedTime(1643869342000)
                                 .path("index.html")
                                 .build()}
-read "<html>\n"
-     "<head><title>Welcome</title></head>\n"
-     "<body>Hello, world</body>\n"
-     "</html>\n"
-
-read zilla:data.ext ${filesystem:matchDataEx()
-                                .typeId(zilla:id("filesystem"))
-                                .modifiedTime(1643869342000)
-                                .path("styles.css")
-                                .build()}
-read "body { font: bold }\n"
+read zilla:data.null
 
 read closed
