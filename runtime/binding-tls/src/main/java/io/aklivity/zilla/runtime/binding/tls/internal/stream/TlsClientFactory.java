@@ -1055,7 +1055,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = TlsState.closeInitial(state);
+            state = TlsState.closeReply(state);
             client.stream = nullIfClosed(state, client.stream);
 
             client.doNetReset(traceId);
