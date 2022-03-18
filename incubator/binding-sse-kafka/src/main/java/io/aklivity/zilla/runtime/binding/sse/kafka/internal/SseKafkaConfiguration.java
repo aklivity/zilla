@@ -14,45 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class SseKafkaConfiguration extends Configuration
 {
-    public static final String CHALLENGE_EVENT_TYPE_NAME = "zilla.binding.sse.challenge.event.type";
-
-    public static final BooleanPropertyDef INITIAL_COMMENT_ENABLED;
-
-    private static final DirectBuffer INITIAL_COMMENT_DEFAULT = new UnsafeBuffer(new byte[0]);
-
-    private static final ConfigurationDef SSE_CONFIG;
-
-    static final PropertyDef<String> CHALLENGE_EVENT_TYPE;
+    private static final ConfigurationDef SSE_KAFKA_CONFIG;
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse");
-        INITIAL_COMMENT_ENABLED = config.property("initial.comment.enabled", false);
-        CHALLENGE_EVENT_TYPE = config.property("challenge.event.type", "challenge");
-        SSE_CONFIG = config;
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse.kafka");
+        SSE_KAFKA_CONFIG = config;
     }
 
     public SseKafkaConfiguration(
         Configuration config)
     {
-        super(SSE_CONFIG, config);
+        super(SSE_KAFKA_CONFIG, config);
     }
-
-    public DirectBuffer initialComment()
-    {
-        return INITIAL_COMMENT_ENABLED.getAsBoolean(this) ? INITIAL_COMMENT_DEFAULT : null;
-    }
-
-    public String getChallengeEventType()
-    {
-        return CHALLENGE_EVENT_TYPE.get(this);
-    }
-
 }
