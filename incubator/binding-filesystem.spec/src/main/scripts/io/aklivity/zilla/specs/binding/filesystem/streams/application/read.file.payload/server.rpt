@@ -31,6 +31,7 @@ write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
                                   .capabilities("READ_PAYLOAD")
                                   .path("index.html")
+                                  .type("text/html")
                                   .payloadSize(77)
                                   .build()}
 write flush

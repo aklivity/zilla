@@ -27,6 +27,7 @@ scope filesystem
         {
             int32 capabilities = 3;
             string16 path;
+            string16 type = null;
             int64 payloadSize = 0;
             int64 modifiedTime = 0;
         }

@@ -151,11 +151,12 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             try
             {
+                String type = Files.probeContentType(path);
                 BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class, symlinks);
                 BasicFileAttributes attributes = view.readAttributes();
                 InputStream input = canReadPayload(capabilities) ? Files.newInputStream(path, symlinks) : null;
 
-                return new FileSystemServer(app, routeId, initialId, attributes, input)::onAppMessage;
+                return new FileSystemServer(app, routeId, initialId, attributes, type, input)::onAppMessage;
             }
             catch (IOException ex)
             {
@@ -174,6 +175,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private final long replyId;
 
         private final BasicFileAttributes attributes;
+        private final String type;
         private final InputStream input;
 
         private long initialSeq;
@@ -196,6 +198,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             long routeId,
             long initialId,
             BasicFileAttributes attributes,
+            String type,
             InputStream input)
         {
             this.app = app;
@@ -203,6 +206,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.attributes = attributes;
+            this.type = type;
             this.input = input;
         }
 
@@ -272,6 +276,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .typeId(fileSystemTypeId)
                 .capabilities(capabilities)
                 .path(path)
+                .type(type)
                 .payloadSize(size)
                 .modifiedTime(modifiedTime)
                 .build();

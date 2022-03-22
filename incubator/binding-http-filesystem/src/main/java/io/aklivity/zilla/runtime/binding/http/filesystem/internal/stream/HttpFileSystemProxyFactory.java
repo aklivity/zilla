@@ -53,6 +53,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
     private static final String8FW HEADER_STATUS_NAME = new String8FW(":status");
     private static final String16FW HEADER_STATUS_VALUE_200 = new String16FW("200");
+    private static final String8FW HEADER_CONTENT_TYPE_NAME = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
 
     private static final Predicate<HttpHeaderFW> HEADER_METHOD_GET_OR_HEAD;
@@ -615,11 +616,13 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             final FileSystemBeginExFW fsBeginEx =
                     dataEx != null && dataEx.typeId() == fsTypeId ? extension.get(fsBeginExRO::tryWrap) : null;
             final String length = fsBeginEx != null ? Long.toString(fsBeginEx.payloadSize()) : null;
+            final String16FW type = fsBeginEx != null ? fsBeginEx.type() : null;
             final Flyweight httpBeginEx = fsBeginEx == null
                     ? emptyExRO
                     : httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
                         .headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_200))
+                        .headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length))
                         .build();
 

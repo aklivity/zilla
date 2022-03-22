@@ -76,6 +76,13 @@ public final class FileSystemFunctions
             return this;
         }
 
+        public FileSystemBeginExBuilder type(
+            String type)
+        {
+            beginExRW.type(type);
+            return this;
+        }
+
         public FileSystemBeginExBuilder payloadSize(
             long payloadSize)
         {
@@ -108,6 +115,7 @@ public final class FileSystemFunctions
         private Integer typeId;
         private Integer capabilities;
         private String path;
+        private String type;
         private Long payloadSize;
         private Long modifiedTime;
 
@@ -133,6 +141,13 @@ public final class FileSystemFunctions
             String path)
         {
             this.path = path;
+            return this;
+        }
+
+        public FileSystemBeginExMatcherBuilder type(
+            String type)
+        {
+            this.type = type;
             return this;
         }
 
@@ -170,6 +185,7 @@ public final class FileSystemFunctions
                 matchTypeId(beginEx) &&
                 matchCapabilities(beginEx) &&
                 matchPath(beginEx) &&
+                matchType(beginEx) &&
                 matchPayloadSize(beginEx) &&
                 matchModifiedTime(beginEx))
             {
@@ -202,6 +218,12 @@ public final class FileSystemFunctions
             FileSystemBeginExFW beginEx)
         {
             return path == null || path.equals(beginEx.path().asString());
+        }
+
+        private boolean matchType(
+            FileSystemBeginExFW beginEx)
+        {
+            return type == null || type.equals(beginEx.type().asString());
         }
 
         private boolean matchModifiedTime(

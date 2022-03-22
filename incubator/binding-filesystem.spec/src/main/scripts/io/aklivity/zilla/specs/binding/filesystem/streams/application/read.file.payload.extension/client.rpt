@@ -30,6 +30,7 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
                                  .capabilities("READ_PAYLOAD", "READ_EXTENSION")
                                  .path("index.html")
+                                 .type("text/html")
                                  .payloadSize(77)
                                  .build()}
 

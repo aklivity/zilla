@@ -58,6 +58,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -79,6 +80,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -89,6 +91,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -109,6 +112,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -122,6 +126,7 @@ public class FileSystemFunctionsTest
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .modifiedTime(now.toEpochMilli())
             .build();
 
@@ -131,6 +136,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -145,6 +151,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .modifiedTime(now.toEpochMilli())
             .build();
 
@@ -154,6 +161,7 @@ public class FileSystemFunctionsTest
             .typeId(0x02)
             .capabilities(1 << READ_PAYLOAD.ordinal())
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -168,6 +176,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -178,6 +187,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities(1 << READ_EXTENSION.ordinal())
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -192,6 +202,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.json")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -202,6 +213,33 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
             .path("index.html")
+            .type("text/html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExtensionWhenTypeDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .capabilities("READ_PAYLOAD")
+            .path("index.html")
+            .type("application/json")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .capabilities(1 << READ_PAYLOAD.ordinal())
+            .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -216,6 +254,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -226,6 +265,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
             .path("index.html")
+            .type("text/html")
             .payloadSize(76L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -240,6 +280,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli() + 1)
             .build();
@@ -250,6 +291,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities(1 << READ_PAYLOAD.ordinal())
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
@@ -264,6 +306,7 @@ public class FileSystemFunctionsTest
             .typeId(0x01)
             .capabilities("READ_PAYLOAD")
             .path("index.html")
+            .type("text/html")
             .payloadSize(77L)
             .modifiedTime(now.toEpochMilli())
             .build();
