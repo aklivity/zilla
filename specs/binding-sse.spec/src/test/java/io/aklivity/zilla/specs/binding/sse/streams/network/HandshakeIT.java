@@ -47,6 +47,24 @@ public class HandshakeIT
 
     @Test
     @Specification({
+        "${net}/connection.closed/request",
+        "${net}/connection.closed/response" })
+    public void shouldHandshakeThenClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connection.closed.deferred/request",
+        "${net}/connection.closed.deferred/response" })
+    public void shouldHandshakeThenCloseDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.method.unsupported/request",
         "${net}/request.method.unsupported/response" })
     public void shouldFailHandshakeWhenRequestMethodUnsupported() throws Exception

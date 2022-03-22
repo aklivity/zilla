@@ -47,6 +47,24 @@ public class HandshakeIT
 
     @Test
     @Specification({
+        "${app}/connection.closed/client",
+        "${app}/connection.closed/server" })
+    public void shouldHandshakeThenClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/connection.closed.deferred/client",
+        "${app}/connection.closed.deferred/server" })
+    public void shouldHandshakeThenCloseDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/last.event.id/client",
         "${app}/last.event.id/server" })
     public void shouldHandshakeWithLastEventId() throws Exception
