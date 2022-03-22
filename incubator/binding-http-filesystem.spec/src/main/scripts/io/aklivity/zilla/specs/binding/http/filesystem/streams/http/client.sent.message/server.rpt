@@ -20,7 +20,7 @@ accepted
 
 read zilla:begin.ext ${http:beginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "HEAD")
+                           .header(":method", "GET")
                            .header(":scheme", "https")
                            .header(":authority", "example.com:9090")
                            .header(":path", "/index.html")
@@ -28,12 +28,6 @@ read zilla:begin.ext ${http:beginEx()
 
 connected
 
-read closed
+read "Hello, world"
 
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("content-length", "77")
-                            .build()}
-
-write close
+read abort

@@ -53,7 +53,7 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.json")
     @Specification({
-        "${http}/handshake/client",
+        "${http}/client.read.file/client",
         "${filesystem}/client.read.file/server"})
     public void shouldReceiveClientReadFile() throws Exception
     {
@@ -63,7 +63,7 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.json")
     @Specification({
-        "${http}/handshake/client",
+        "${http}/client.read.file.info/client",
         "${filesystem}/client.read.file.info/server"})
     public void shouldReceiveClientReadFileInfo() throws Exception
     {
@@ -73,7 +73,7 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.dynamic.json")
     @Specification({
-        "${http}/handshake/client",
+        "${http}/client.read.file/client",
         "${filesystem}/client.read.file/server"})
     public void shouldReceiveClientReadFileWithDyanamicPath() throws Exception
     {
@@ -83,7 +83,7 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.dynamic.json")
     @Specification({
-        "${http}/handshake/client",
+        "${http}/client.read.file.info/client",
         "${filesystem}/client.read.file.info/server"})
     public void shouldReceiveClientReadFileInfoWithDyanamicPath() throws Exception
     {
@@ -93,16 +93,16 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.json")
     @Specification({
-        "${http}/handshake.rejected/client"})
-    public void shouldRejectHandshakeWithNoBinding() throws Exception
+        "${http}/client.rejected/client"})
+    public void shouldRejectClientWithNoBinding() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${http}/handshake.rejected/client"})
-    public void shouldRejectHandshakeWithNoRoute() throws Exception
+        "${http}/client.rejected/client"})
+    public void shouldRejectClientWithNoRoute() throws Exception
     {
         k3po.finish();
     }
@@ -110,9 +110,9 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.json")
     @Specification({
-        "${http}/server.sent.messages/client",
-        "${filesystem}/server.sent.messages/server"})
-    public void shouldReceiveServerSentMessaages() throws Exception
+        "${http}/client.sent.message/client",
+        "${filesystem}/client.sent.abort/server"})
+    public void shouldRejectClientSentMessage() throws Exception
     {
         k3po.finish();
     }
@@ -163,16 +163,6 @@ public class HttpFileSystemProxyIT
         "${http}/client.sent.abort/client",
         "${filesystem}/client.sent.abort/server"})
     public void shouldReceiveClientSentAbort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.with.path.json")
-    @Specification({
-        "${http}/client.sent.message/client",
-        "${filesystem}/client.sent.abort/server"})
-    public void shouldRejectClientSentMessage() throws Exception
     {
         k3po.finish();
     }

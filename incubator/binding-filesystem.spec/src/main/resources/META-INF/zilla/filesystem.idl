@@ -25,16 +25,10 @@ scope filesystem
     {
         struct FileSystemBeginEx extends core::stream::Extension
         {
-            string16 path;
             int32 capabilities = 3;
-            int64 modifiedSince = 0;
-        }
-
-        struct FileSystemDataEx extends core::stream::Extension
-        {
-            int64 deferred = 0;         // INIT only (TODO: move to DATA frame)
+            string16 path;
+            int64 payloadSize = 0;
             int64 modifiedTime = 0;
-            string16 path = null;
         }
     }
 }

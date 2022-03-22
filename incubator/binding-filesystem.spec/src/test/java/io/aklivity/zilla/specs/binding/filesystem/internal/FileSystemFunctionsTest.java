@@ -35,7 +35,6 @@ import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
-import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSystemDataExFW;
 
 public class FileSystemFunctionsTest
 {
@@ -57,9 +56,10 @@ public class FileSystemFunctionsTest
     {
         byte[] build = FileSystemFunctions.beginEx()
             .typeId(0x01)
-            .path("index.html")
             .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -68,7 +68,8 @@ public class FileSystemFunctionsTest
         assertEquals(0x01, beginEx.typeId());
         assertEquals("index.html", beginEx.path().asString());
         assertEquals(1 << READ_PAYLOAD.ordinal(), beginEx.capabilities());
-        assertEquals(now.toEpochMilli(), beginEx.modifiedSince());
+        assertEquals(77L, beginEx.payloadSize());
+        assertEquals(now.toEpochMilli(), beginEx.modifiedTime());
     }
 
     @Test
@@ -76,18 +77,40 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
-            .path("index.html")
             .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .path("index.html")
             .capabilities(1 << READ_PAYLOAD.ordinal())
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchBeginExtensionWhenUnconstrained() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .capabilities(1 << READ_PAYLOAD.ordinal())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -97,18 +120,19 @@ public class FileSystemFunctionsTest
     public void shouldNotMatchBeginExtensionWhenTypeIdMissing() throws Exception
     {
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
-            .path("index.html")
             .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .path("index.html")
             .capabilities(1 << READ_PAYLOAD.ordinal())
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         assertNull(matcher.match(byteBuf));
@@ -119,40 +143,19 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
-            .path("index.html")
             .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x02)
-            .path("index.html")
             .capabilities(1 << READ_PAYLOAD.ordinal())
-            .modifiedSince(now.toEpochMilli())
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchBeginExtensionWhenPathDiffers() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
-            .typeId(0x01)
-            .path("index.json")
-            .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli())
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
             .path("index.html")
-            .capabilities(1 << READ_PAYLOAD.ordinal())
-            .modifiedSince(now.toEpochMilli())
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         matcher.match(byteBuf);
@@ -163,40 +166,92 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
-            .path("index.html")
             .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .path("index.html")
             .capabilities(1 << READ_EXTENSION.ordinal())
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         matcher.match(byteBuf);
     }
 
     @Test(expected = Exception.class)
-    public void shouldNotMatchBeginExtensionWhenModifiedSinceDiffers() throws Exception
+    public void shouldNotMatchBeginExtensionWhenPathDiffers() throws Exception
     {
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
-            .path("index.html")
             .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli() + 1)
+            .path("index.json")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .path("index.html")
             .capabilities(1 << READ_PAYLOAD.ordinal())
-            .modifiedSince(now.toEpochMilli())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExtensionWhenPayloadSizeDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .capabilities("READ_PAYLOAD")
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .capabilities(1 << READ_PAYLOAD.ordinal())
+            .path("index.html")
+            .payloadSize(76L)
+            .modifiedTime(now.toEpochMilli())
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExtensionWhenModifiedTimeDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .capabilities("READ_PAYLOAD")
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli() + 1)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .capabilities(1 << READ_PAYLOAD.ordinal())
+            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         matcher.match(byteBuf);
@@ -207,174 +262,10 @@ public class FileSystemFunctionsTest
     {
         BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
             .typeId(0x01)
-            .path("index.html")
             .capabilities("READ_PAYLOAD")
-            .modifiedSince(now.toEpochMilli())
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(0);
-
-        assertNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldGenerateDataExtension()
-    {
-        byte[] build = FileSystemFunctions.dataEx()
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
             .path("index.html")
-            .build();
-
-        DirectBuffer buffer = new UnsafeBuffer(build);
-        FileSystemDataExFW dataEx = new FileSystemDataExFW().wrap(buffer, 0, buffer.capacity());
-
-        assertEquals(0x01, dataEx.typeId());
-        assertEquals(32767L, dataEx.deferred());
-        assertEquals(1643869342000L, dataEx.modifiedTime());
-        assertEquals("index.html", dataEx.path().asString());
-    }
-
-    @Test
-    public void shouldMatchDataExtension() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchDataEx()
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        assertNotNull(matcher.match(byteBuf));
-    }
-
-    @Test
-    public void shouldNotMatchDataExtensionWhenTypeIdMissing() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchDataEx()
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        assertNull(matcher.match(byteBuf));
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchDataExtensionWhenTypeIdDiffers() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchDataEx()
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x02)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchDataExtensionWhenDeferredDiffers() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchDataEx()
-            .typeId(0x01)
-            .deferred(32768L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchDataExtensionWhenModifiedTimeDiffers() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchDataEx()
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342001L)
-            .path("index.html")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchDataExtensionWhenPathDiffers() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchDataEx()
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.json")
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test
-    public void shouldNotMatchDataExtensionWhenBufferOverflow() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchDataEx()
-            .typeId(0x01)
-            .deferred(32767L)
-            .modifiedTime(1643869342000L)
-            .path("index.html")
+            .payloadSize(77L)
+            .modifiedTime(now.toEpochMilli())
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(0);

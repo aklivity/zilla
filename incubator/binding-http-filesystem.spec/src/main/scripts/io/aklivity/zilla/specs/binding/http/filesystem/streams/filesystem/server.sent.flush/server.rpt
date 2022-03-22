@@ -15,7 +15,7 @@
 
 accept "zilla://streams/filesystem0"
     option zilla:window 8192
-    option zilla:transmission "duplex"
+    option zilla:transmission "half-duplex"
 
 accepted
 
@@ -25,5 +25,7 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .build()}
 
 connected
+
+write flush
 
 write advise zilla:flush

@@ -18,7 +18,7 @@
                     ],
                     "with":
                     {
-                        "path": "{params.path}"
+                        "path": "${params.path}"
                     }
                 }
             ]

@@ -15,13 +15,13 @@
 
 accept "zilla://streams/app0"
        option zilla:window 8192
-       option zilla:transmission "duplex"
+       option zilla:transmission "half-duplex"
 accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .path("index.html")
                                  .capabilities("READ_EXTENSION")
+                                 .path("index.html")
                                  .build()}
 connected
 

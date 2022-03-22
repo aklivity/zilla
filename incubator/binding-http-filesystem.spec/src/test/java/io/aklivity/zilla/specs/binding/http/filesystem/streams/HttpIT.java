@@ -55,6 +55,42 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/client.rejected/client",
+        "${http}/client.rejected/server"})
+    public void shouldRejectClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.sent.message/client",
+        "${http}/client.sent.message/server"})
+    public void shouldRejectClientSentMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.sent.reset/client",
+        "${http}/client.sent.reset/server"})
+    public void shouldReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.sent.abort/client",
+        "${http}/client.sent.abort/server"})
+    public void shouldReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/server.sent.abort/client",
         "${http}/server.sent.abort/server"})
     public void shouldReceiveServerSentAbort() throws Exception
@@ -76,24 +112,6 @@ public class HttpIT
         "${http}/server.sent.flush/client",
         "${http}/server.sent.flush/server"})
     public void shouldReceiveServerSentFlush() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${http}/client.sent.reset/client",
-        "${http}/client.sent.reset/server"})
-    public void shouldReceiveClientSentReset() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${http}/client.sent.abort/client",
-        "${http}/client.sent.abort/server"})
-    public void shouldReceiveClientSentAbort() throws Exception
     {
         k3po.finish();
     }

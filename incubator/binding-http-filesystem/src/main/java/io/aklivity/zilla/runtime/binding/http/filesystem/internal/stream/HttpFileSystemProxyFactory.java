@@ -35,7 +35,6 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.D
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemBeginExFW;
-import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FileSystemDataExFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.stream.ResetFW;
@@ -77,7 +76,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
-    private final FileSystemDataExFW fsDataExRO = new FileSystemDataExFW();
+    private final FileSystemBeginExFW fsBeginExRO = new FileSystemBeginExFW();
 
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
 
@@ -456,7 +455,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
     final class FileSystemProxy
     {
-        private MessageConsumer kafka;
+        private MessageConsumer filesystem;
         private final long routeId;
         private final long initialId;
         private final long replyId;
@@ -471,7 +470,6 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         private long replySeq;
         private long replyAck;
         private int replyMax;
-        private long replyAff;
 
         private FileSystemProxy(
             long routeId,
@@ -494,7 +492,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             initialMax = delegate.initialMax;
             state = HttpFileSystemState.openingInitial(state);
 
-            kafka = newFileSystemStream(this::onFileSystemMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+            filesystem = newFileSystemStream(this::onFileSystemMessage, routeId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, resolved);
         }
 
@@ -510,7 +508,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 initialMax = delegate.initialMax;
                 state = HttpFileSystemState.closeInitial(state);
 
-                doEnd(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(filesystem, routeId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -526,7 +524,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 initialMax = delegate.initialMax;
                 state = HttpFileSystemState.closeInitial(state);
 
-                doAbort(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(filesystem, routeId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -575,8 +573,9 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         {
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
-            final int maximum = begin.maximum();
             final long affinity = begin.affinity();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -584,11 +583,24 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
             replySeq = sequence;
             replyAck = acknowledge;
-            replyMax = maximum;
-            replyAff = affinity;
             state = HttpFileSystemState.openingReply(state);
 
             assert replyAck <= replySeq;
+
+            final OctetsFW extension = begin.extension();
+            final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+            final FileSystemBeginExFW fsBeginEx =
+                    dataEx != null && dataEx.typeId() == fsTypeId ? extension.get(fsBeginExRO::tryWrap) : null;
+            final String length = fsBeginEx != null ? Long.toString(fsBeginEx.payloadSize()) : null;
+            final Flyweight httpBeginEx = fsBeginEx == null
+                    ? emptyExRO
+                    : httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_200))
+                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length))
+                        .build();
+
+            delegate.doHttpBegin(traceId, authorization, affinity, httpBeginEx);
         }
 
         private void onFileSystemData(
@@ -613,35 +625,11 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             if (replySeq > replyAck + replyMax)
             {
                 doFileSystemReset(traceId);
-                delegate.doHttpBegin(traceId, authorization, replyAff, emptyExRO);
                 delegate.doHttpAbort(traceId, authorization);
             }
             else
             {
-                if (HttpFileSystemFlags.init(flags))
-                {
-                    final OctetsFW extension = data.extension();
-                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                    final FileSystemDataExFW fsDataEx =
-                            dataEx != null && dataEx.typeId() == fsTypeId ? extension.get(fsDataExRO::tryWrap) : null;
-                    final String length = fsDataEx != null ? Long.toString(payload.sizeof() + fsDataEx.deferred()) : null;
-                    final Flyweight httpBeginEx = fsDataEx == null
-                            ? emptyExRO
-                            : httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                                .typeId(httpTypeId)
-                                .headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_200))
-                                .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length))
-                                .build();
-
-                    delegate.doHttpBegin(traceId, authorization, replyAff, httpBeginEx);
-                }
-
                 delegate.doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
-
-                if (HttpFileSystemFlags.fin(flags))
-                {
-                    delegate.doHttpEnd(traceId, authorization);
-                }
             }
         }
 
@@ -752,7 +740,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             {
                 state = HttpFileSystemState.closeReply(state);
 
-                doReset(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+                doReset(filesystem, routeId, replyId, replySeq, replyAck, replyMax,
                         traceId);
             }
         }
@@ -767,7 +755,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
 
-            doWindow(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+            doWindow(filesystem, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
     }
@@ -918,8 +906,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         final FileSystemBeginExFW fsBeginEx =
             fsBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(fsTypeId)
-                .path(resolved.path())
                 .capabilities(resolved.capabilities())
+                .path(resolved.path())
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

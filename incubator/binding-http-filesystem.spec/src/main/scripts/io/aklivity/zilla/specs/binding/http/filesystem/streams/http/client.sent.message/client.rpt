@@ -13,27 +13,20 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/http0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-accepted
-
-read zilla:begin.ext ${http:beginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":method", "HEAD")
-                           .header(":scheme", "https")
-                           .header(":authority", "example.com:9090")
-                           .header(":path", "/index.html")
-                           .build()}
-
-connected
-
-read closed
+connect "zilla://streams/http0"
+        option zilla:window 8192
+        option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("content-length", "77")
+                            .header(":method", "GET")
+                            .header(":scheme", "https")
+                            .header(":authority", "example.com:9090")
+                            .header(":path", "/index.html")
                             .build()}
 
-write close
+connected
+
+write "Hello, world"
+
+write aborted

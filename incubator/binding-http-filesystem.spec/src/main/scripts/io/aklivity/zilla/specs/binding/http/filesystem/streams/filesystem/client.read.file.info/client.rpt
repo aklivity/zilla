@@ -15,21 +15,23 @@
 
 connect "zilla://streams/filesystem0"
     option zilla:window 8192
-    option zilla:transmission "duplex"
+    option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .path("index.html")
                                   .capabilities("READ_EXTENSION")
+                                  .path("index.html")
                                   .build()}
 connected
 
 write close
 
-read zilla:data.ext ${filesystem:matchDataEx()
-                                .typeId(zilla:id("filesystem"))
-                                .path("index.html")
-                                .build()}
-read zilla:data.null
+read zilla:begin.ext ${filesystem:matchBeginEx()
+                                 .typeId(zilla:id("filesystem"))
+                                 .capabilities("READ_EXTENSION")
+                                 .path("index.html")
+                                 .payloadSize(77)
+                                 .modifiedTime(1643869342000)
+                                 .build()}
 
 read closed

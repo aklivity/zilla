@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
 
-import static io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities.READ_EXTENSION;
-import static io.aklivity.zilla.specs.binding.filesystem.internal.types.FileSystemCapabilities.READ_PAYLOAD;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_EXTENSION;
+import static io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities.READ_PAYLOAD;
 
 import java.util.function.Function;
 import java.util.regex.MatchResult;

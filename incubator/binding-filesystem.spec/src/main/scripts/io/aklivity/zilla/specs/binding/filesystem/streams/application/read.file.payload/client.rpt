@@ -15,16 +15,23 @@
 
 connect "zilla://streams/app0"
     option zilla:window 8192
-    option zilla:transmission "duplex"
+    option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .path("index.html")
                                   .capabilities("READ_PAYLOAD")
+                                  .path("index.html")
                                   .build()}
 connected
 
 write close
+
+read zilla:begin.ext ${filesystem:matchBeginEx()
+                                 .typeId(zilla:id("filesystem"))
+                                 .capabilities("READ_PAYLOAD")
+                                 .path("index.html")
+                                 .payloadSize(77)
+                                 .build()}
 
 read "<html>\n"
      "<head><title>Welcome</title></head>\n"

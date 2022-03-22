@@ -15,12 +15,12 @@
 
 connect "zilla://streams/app0"
     option zilla:window 0
-    option zilla:transmission "duplex"
+    option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .path("index.html")
                                   .capabilities("READ_PAYLOAD")
+                                  .path("index.html")
                                   .build()}
 connected
 

@@ -28,6 +28,8 @@ read zilla:begin.ext ${http:beginEx()
 
 connected
 
+read closed
+
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")

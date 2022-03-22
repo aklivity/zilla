@@ -40,12 +40,12 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemOp
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
-import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemDataExFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -59,7 +59,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
 
-    private static final int READ_EXTENSION_MASK = 1 << FileSystemCapabilities.READ_EXTENSION.ordinal();
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
 
     private final BeginFW beginRO = new BeginFW();
@@ -77,7 +76,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
-    private final FileSystemDataExFW.Builder dataExRW = new FileSystemDataExFW.Builder();
+    private final FileSystemBeginExFW.Builder beginExRW = new FileSystemBeginExFW.Builder();
     private final OctetsFW payloadRO = new OctetsFW();
 
     private final Long2ObjectHashMap<FileSystemBindingConfig> bindings;
@@ -153,10 +152,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             try
             {
                 BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class, symlinks);
-                BasicFileAttributes attributes = canReadExtension(capabilities) ? view.readAttributes() : null;
+                BasicFileAttributes attributes = view.readAttributes();
                 InputStream input = canReadPayload(capabilities) ? Files.newInputStream(path, symlinks) : null;
 
-                return new FileSystemServer(app, routeId, initialId, relativePath, attributes, input)::onAppMessage;
+                return new FileSystemServer(app, routeId, initialId, attributes, input)::onAppMessage;
             }
             catch (IOException ex)
             {
@@ -174,7 +173,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private final long initialId;
         private final long replyId;
 
-        private final String relativePath;
         private final BasicFileAttributes attributes;
         private final InputStream input;
 
@@ -189,6 +187,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private int replyMax;
         private int replyPad;
         private long replyBud;
+        private long replyBytes;
 
         private int state;
 
@@ -196,7 +195,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             MessageConsumer app,
             long routeId,
             long initialId,
-            String relativePath,
             BasicFileAttributes attributes,
             InputStream input)
         {
@@ -204,7 +202,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.relativePath = relativePath;
             this.attributes = attributes;
             this.input = input;
         }
@@ -249,6 +246,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final long acknowledge = begin.acknowledge();
             final long authorization = begin.authorization();
             final long traceId = begin.traceId();
+            final FileSystemBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -263,7 +261,24 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             state = FileSystemState.openingInitial(state);
 
             doAppWindow(traceId);
-            doAppBegin(traceId);
+
+            final int capabilities = beginEx.capabilities();
+            final String16FW path = beginEx.path();
+            final long size = attributes.size();
+            final long modifiedTime = attributes.lastModifiedTime().toMillis();
+
+            Flyweight newBeginEx = beginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(fileSystemTypeId)
+                .capabilities(capabilities)
+                .path(path)
+                .payloadSize(size)
+                .modifiedTime(modifiedTime)
+                .build();
+
+            doAppBegin(traceId, newBeginEx);
+
+            flushAppData(traceId);
         }
 
         private void onAppEnd(
@@ -347,24 +362,24 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         }
 
         private void doAppBegin(
-            long traceId)
+            long traceId,
+            Flyweight extension)
         {
             state = FileSystemState.openingReply(state);
 
-            doBegin(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, EMPTY_EXTENSION);
+            doBegin(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
         }
 
         private void doAppData(
             long traceId,
             int reserved,
-            OctetsFW payload,
-            Flyweight extension)
+            OctetsFW payload)
         {
             final int length = payload != null ? payload.sizeof() : 0;
             assert reserved >= length + replyPad : String.format("%d >= %d", reserved, length + replyPad);
 
             doData(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, replyBud,
-                    reserved, payload, extension);
+                    reserved, payload, EMPTY_EXTENSION);
 
             replySeq += reserved;
             assert replySeq <= replyAck + replyMax;
@@ -373,8 +388,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            state = FileSystemState.closeReply(state);
-            doEnd(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, EMPTY_EXTENSION);
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
+            {
+                state = FileSystemState.closeReply(state);
+                doEnd(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, EMPTY_EXTENSION);
+            }
         }
 
         private void doAppAbort(
@@ -411,42 +429,28 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private void flushAppData(
             long traceId)
         {
-            OctetsFW payload = null;
-            int reserved = 0;
-            Flyweight dataEx = EMPTY_EXTENSION;
-
             int replyWin = replyMax - (int)(replySeq - replyAck) - replyPad;
 
             if (replyWin > 0)
             {
-                if (replySeq == 0L && attributes != null)
-                {
-                    long size = attributes.size();
-                    long modifiedTime = attributes.lastModifiedTime().toMillis();
-
-                    long length = Math.max(Math.min(size, replyWin), 0L);
-                    long deferred = size - length;
-
-                    dataEx = dataExRW
-                            .wrap(extBuffer, 0, extBuffer.capacity())
-                            .typeId(fileSystemTypeId)
-                            .deferred(deferred)
-                            .modifiedTime(modifiedTime)
-                            .path(relativePath)
-                            .build();
-                }
-
-                int bytesRead = -1;
+                boolean replyClosable = input == null;
 
                 if (input != null)
                 {
                     try
                     {
-                        bytesRead = input.read(readBuffer.byteArray(), 0, replyWin);
+                        final byte[] readArray = readBuffer.byteArray();
+                        int bytesRead = input.read(readArray, 0, Math.min(readArray.length, replyWin));
+
                         if (bytesRead != -1)
                         {
-                            payload = payloadRO.wrap(readBuffer, 0, bytesRead);
-                            reserved = bytesRead + replyPad;
+                            OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+                            int reserved = bytesRead + replyPad;
+
+                            doAppData(traceId, reserved, payload);
+
+                            replyBytes += bytesRead;
+                            replyClosable = replyBytes == attributes.size();
                         }
                         else
                         {
@@ -459,12 +463,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     }
                 }
 
-                if (input == null || bytesRead != -1)
-                {
-                    doAppData(traceId, reserved, payload, dataEx);
-                }
-
-                if (bytesRead == -1)
+                if (replyClosable)
                 {
                     doAppEnd(traceId);
                 }
@@ -634,11 +633,5 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         int capabilities)
     {
         return (capabilities & READ_PAYLOAD_MASK) != 0;
-    }
-
-    private boolean canReadExtension(
-        int capabilities)
-    {
-        return (capabilities & READ_EXTENSION_MASK) != 0;
     }
 }
