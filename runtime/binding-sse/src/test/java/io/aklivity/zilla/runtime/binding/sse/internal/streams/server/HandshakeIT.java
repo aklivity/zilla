@@ -64,6 +64,26 @@ public class HandshakeIT
     @Test
     @Configuration("server.when.json")
     @Specification({
+        "${net}/connection.closed/request",
+        "${app}/connection.closed/server" })
+    public void shouldHandshakeThenClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/connection.closed.deferred/request",
+        "${app}/connection.closed.deferred/server" })
+    public void shouldHandshakeThenCloseDeferred() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
         "${net}/request.method.unsupported/request" })
     public void shouldFailHandshakeWhenRequestMethodUnsupported() throws Exception
     {

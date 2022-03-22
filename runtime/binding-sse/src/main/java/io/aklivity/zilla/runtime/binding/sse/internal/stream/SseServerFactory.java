@@ -474,8 +474,8 @@ public final class SseServerFactory implements SseStreamFactory
 
             assert httpReplyAck <= httpReplySeq;
 
+            stream.doAppEndDeferred(traceId, authorization);
             stream.doAppReset(traceId);
-            stream.doAppEndIfDeferred(traceId, authorization);
             cleanupDebitorIfNecessary();
         }
 
@@ -513,8 +513,8 @@ public final class SseServerFactory implements SseStreamFactory
             if (httpReplyBud != 0L && replyDebitorIndex == NO_DEBITOR_INDEX)
             {
                 doNetAbort(traceId, authorization);
+                stream.doAppEndDeferred(traceId, authorization);
                 stream.doAppReset(traceId);
-                stream.doAppEndIfDeferred(traceId, authorization);
             }
             else
             {
@@ -826,7 +826,7 @@ public final class SseServerFactory implements SseStreamFactory
                             cleanupDebitorIfNecessary();
                             deferredEnd = false;
 
-                            stream.doAppEndIfDeferred(data.traceId(), authorization);
+                            stream.doAppEndDeferred(data.traceId(), authorization);
                         }
                     }
                 }
@@ -882,17 +882,12 @@ public final class SseServerFactory implements SseStreamFactory
                 long traceId,
                 long authorization)
             {
-                state = SseState.closingInitial(state);
-            }
-
-            private void doAppEndIfDeferred(
-                long traceId,
-                long authorization)
-            {
                 if (SseState.initialClosing(state))
                 {
                     doAppEnd(traceId, authorization);
                 }
+
+                state = SseState.closingInitial(state);
             }
 
             private void doAppEnd(
@@ -1005,7 +1000,7 @@ public final class SseServerFactory implements SseStreamFactory
                 if (sseReplySeq > sseReplyAck + sseReplyMax)
                 {
                     doAppReset(traceId);
-                    doAppEndIfDeferred(traceId, authorization);
+                    doAppEndDeferred(traceId, authorization);
                     doNetAbort(traceId, authorization);
                 }
                 else
@@ -1042,6 +1037,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
+                state = SseState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1100,7 +1096,7 @@ public final class SseServerFactory implements SseStreamFactory
                     doNetEnd(traceId, authorization);
                 }
 
-                doAppEndIfDeferred(traceId, authorization);
+                doAppEndDeferred(traceId, authorization);
             }
 
             private void onAppFlush(
@@ -1136,11 +1132,12 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
+                state = SseState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
                 doNetAbort(traceId, authorization);
-                doAppEndIfDeferred(traceId, authorization);
+                doAppEndDeferred(traceId, authorization);
             }
 
             private void onAppWindow(
