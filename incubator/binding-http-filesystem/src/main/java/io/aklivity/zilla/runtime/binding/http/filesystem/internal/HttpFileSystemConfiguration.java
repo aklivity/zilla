@@ -12,23 +12,23 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.internal;
+package io.aklivity.zilla.runtime.binding.http.filesystem.internal;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public class SseKafkaConfiguration extends Configuration
+public class HttpFileSystemConfiguration extends Configuration
 {
-    private static final ConfigurationDef SSE_KAFKA_CONFIG;
+    private static final ConfigurationDef HTTP_FILE_SYSTEM_CONFIG;
 
     static
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse.kafka");
-        SSE_KAFKA_CONFIG = config;
+        final ConfigurationDef config = new ConfigurationDef("zilla.binding.http.filesystem");
+        HTTP_FILE_SYSTEM_CONFIG = config;
     }
 
-    public SseKafkaConfiguration(
+    public HttpFileSystemConfiguration(
         Configuration config)
     {
-        super(SSE_KAFKA_CONFIG, config);
+        super(HTTP_FILE_SYSTEM_CONFIG, config);
     }
 }

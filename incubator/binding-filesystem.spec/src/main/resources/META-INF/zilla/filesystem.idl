@@ -12,23 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.sse.kafka.internal;
-
-import io.aklivity.zilla.runtime.engine.Configuration;
-
-public class SseKafkaConfiguration extends Configuration
+scope filesystem
 {
-    private static final ConfigurationDef SSE_KAFKA_CONFIG;
-
-    static
+    enum FileSystemCapabilities
     {
-        final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse.kafka");
-        SSE_KAFKA_CONFIG = config;
+        READ_PAYLOAD,
+        READ_EXTENSION,
+        READ_CHANGES
     }
 
-    public SseKafkaConfiguration(
-        Configuration config)
+    scope stream
     {
-        super(SSE_KAFKA_CONFIG, config);
+        struct FileSystemBeginEx extends core::stream::Extension
+        {
+            int32 capabilities = 3;
+            string16 path;
+            string16 type = null;
+            int64 payloadSize = 0;
+            int64 modifiedTime = 0;
+        }
     }
 }
