@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.filesystem.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String8FW;
@@ -26,7 +27,13 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class HttpFileSystemBindingConfig
 {
-    private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
+    private static final Predicate<HttpHeaderFW> HEADER_NAME_PATH;
+
+    static
+    {
+        String8FW headerPath = new String8FW(":path");
+        HEADER_NAME_PATH = h -> headerPath.equals(h.name());
+    }
 
     public final long id;
     public final String entry;
@@ -46,11 +53,11 @@ public final class HttpFileSystemBindingConfig
         long authorization,
         HttpBeginExFW beginEx)
     {
-        HttpHeaderFW pathHeader = beginEx != null ? beginEx.headers().matchFirst(h -> HEADER_NAME_PATH.equals(h.name())) : null;
+        HttpHeaderFW pathHeader = beginEx != null ? beginEx.headers().matchFirst(HEADER_NAME_PATH) : null;
         String path = pathHeader != null ? pathHeader.value().asString() : null;
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(path))
-            .findFirst()
-            .orElse(null);
+                .filter(r -> r.authorized(authorization) && r.matches(path))
+                .findFirst()
+                .orElse(null);
     }
 }

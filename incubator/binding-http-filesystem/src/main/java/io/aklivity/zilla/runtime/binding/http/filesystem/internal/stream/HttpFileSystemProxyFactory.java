@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.http.filesystem.internal.stream;
 
 import java.util.function.LongUnaryOperator;
+import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -26,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFil
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemWithResult;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.String8FW;
@@ -52,6 +54,27 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private static final String8FW HEADER_STATUS_NAME = new String8FW(":status");
     private static final String16FW HEADER_STATUS_VALUE_200 = new String16FW("200");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
+
+    private static final Predicate<HttpHeaderFW> HEADER_METHOD_GET_OR_HEAD;
+
+    static
+    {
+        HttpHeaderFW headerMethodGet = new HttpHeaderFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+                .name(":method")
+                .value("GET")
+                .build();
+
+        HttpHeaderFW headerMethodHead = new HttpHeaderFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[512]), 0, 512)
+                .name(":method")
+                .value("HEAD")
+                .build();
+
+        Predicate<HttpHeaderFW> test = headerMethodGet::equals;
+        test = test.or(headerMethodHead::equals);
+        HEADER_METHOD_GET_OR_HEAD = test;
+    }
 
     private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
@@ -134,15 +157,15 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
-        final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
+        final HttpBeginExFW beginEx = extension.get(httpBeginExRO::tryWrap);
 
         final HttpFileSystemBindingConfig binding = bindings.get(routeId);
 
         HttpFileSystemRouteConfig route = null;
 
-        if (binding != null)
+        if (binding != null && beginEx.headers().anyMatch(HEADER_METHOD_GET_OR_HEAD))
         {
-            route = binding.resolve(authorization, httpBeginEx);
+            route = binding.resolve(authorization, beginEx);
         }
 
         MessageConsumer newStream = null;
@@ -151,7 +174,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
         {
             final long resolvedId = route.id;
             final HttpFileSystemWithResult resolved = route.with
-                    .map(r -> r.resolve(httpBeginEx))
+                    .map(r -> r.resolve(beginEx))
                     .orElse(null);
 
             newStream = new HttpProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;

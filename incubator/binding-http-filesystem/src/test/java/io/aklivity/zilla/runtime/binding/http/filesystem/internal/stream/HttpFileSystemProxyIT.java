@@ -100,6 +100,15 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
+    @Configuration("proxy.with.path.json")
+    @Specification({
+        "${http}/client.write.file.rejected/client"})
+    public void shouldRejectClientWriteFile() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Specification({
         "${http}/client.rejected/client"})
     public void shouldRejectClientWithNoRoute() throws Exception
