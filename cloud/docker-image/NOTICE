@@ -1,0 +1,34 @@
+Licensed under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at:
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+
+This project includes:
+  agrona under The Apache License, Version 2.0
+  ICU4J under Unicode/ICU License
+  Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  org.leadpony.justify under The Apache Software License, Version 2.0
+  zilla::manager under The Apache Software License, Version 2.0 or Aklivity Community License
+  zilla::runtime::binding-echo under The Apache Software License, Version 2.0
+  zilla::runtime::binding-fan under The Apache Software License, Version 2.0
+  zilla::runtime::binding-http under The Apache Software License, Version 2.0
+  zilla::runtime::binding-kafka under The Apache Software License, Version 2.0
+  zilla::runtime::binding-proxy under The Apache Software License, Version 2.0
+  zilla::runtime::binding-sse under The Apache Software License, Version 2.0
+  zilla::runtime::binding-tcp under The Apache Software License, Version 2.0
+  zilla::runtime::binding-tls under The Apache Software License, Version 2.0
+  zilla::runtime::binding-ws under The Apache Software License, Version 2.0
+  zilla::runtime::command-start under The Apache Software License, Version 2.0
+  zilla::runtime::command-stop under The Apache Software License, Version 2.0
+  zilla::runtime::engine under The Apache Software License, Version 2.0
+  zilla::runtime::vault-filesystem under The Apache Software License, Version 2.0
+
