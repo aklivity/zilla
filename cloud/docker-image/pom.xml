@@ -16,10 +16,14 @@
   <name>zilla::cloud::docker-image</name>
   <packaging>pom</packaging>
 
+  <properties>
+    <docker.context>release</docker.context>
+  </properties>
+
   <licenses>
     <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <name>Aklivity Community License Agreement</name>
+      <url>https://www.aklivity.io/aklivity-community-license/</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -29,71 +33,85 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>manager</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-echo</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-fan</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-http</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-kafka</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-proxy</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-sse</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-tcp</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-tls</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-ws</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>command-start</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>command-stop</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>vault-filesystem</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
     </dependency>
   </dependencies>
 
@@ -125,7 +143,7 @@
           <arguments>
             <argument>wrap</argument>
             <argument>--launcher-directory</argument>
-            <argument>${project.basedir}/src/main/docker/release</argument>
+            <argument>${project.basedir}/src/main/docker/${docker.context}</argument>
           </arguments>
         </configuration>
         <executions>
@@ -146,9 +164,9 @@
           <images>
             <image>
               <alias>zilla</alias>
-              <name>aklivity/zilla:${project.version}</name>
+              <name>aklivity/zilla:%l</name>
               <build>
-                <contextDir>release</contextDir>
+                <contextDir>${docker.context}</contextDir>
                 <assemblies>
                   <assembly>
                     <inline>
@@ -158,7 +176,16 @@
                           <outputDirectory>./</outputDirectory>
                           <useDefaultExcludes>false</useDefaultExcludes>
                           <includes>
-                            <include>io/aklivity/zilla/**</include>
+                            <include>io/aklivity/zilla/zilla/**</include>
+                            <include>io/aklivity/zilla/runtime/**</include>
+                            <include>io/aklivity/zilla/engine/**</include>
+                            <include>io/aklivity/zilla/binding-*/**</include>
+                            <include>io/aklivity/zilla/guard-*/**</include>
+                            <include>io/aklivity/zilla/vault-*/**</include>
+                            <include>io/aklivity/zilla/command/**</include>
+                            <include>io/aklivity/zilla/command-*/**</include>
+                            <include>io/aklivity/zilla/manager/**</include>
+                            <include>io/aklivity/zilla/incubator/**</include>
                             <include>org/agrona/**</include>
                             <include>jakarta/json/**</include>
                             <include>jakarta/inject/**</include>
@@ -169,10 +196,9 @@
                             <include>com/guicedee/**</include>
                             <include>org/eclipse/ee4j/**</include>
                             <include>com/ibm/icu/**</include>
+                            <include>org/bitbucket/b_c/jose4j/**</include>
+                            <include>org/slf4j/**</include>
                           </includes>
-                          <excludes>
-                            <exclude>io/aklivity/zilla/plus/**</exclude>
-                          </excludes>
                         </fileSet>
                       </fileSets>
                     </inline>
@@ -192,4 +218,68 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>incubator</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+
+      <properties>
+        <docker.context>incubator</docker.context>
+      </properties>
+
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>binding-amqp</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>binding-filesystem</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>binding-http-filesystem</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>binding-mqtt</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>binding-sse-kafka</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>command-load</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>command-tune</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>guard-jwt</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>
