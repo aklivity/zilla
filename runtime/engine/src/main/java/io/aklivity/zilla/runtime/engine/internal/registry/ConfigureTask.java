@@ -19,6 +19,7 @@ import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URL;
@@ -73,6 +74,8 @@ import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
 
 public class ConfigureTask implements Callable<Void>
 {
+    private static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
+
     private final URL configURL;
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
@@ -118,7 +121,7 @@ public class ConfigureTask implements Callable<Void>
 
         if (configURL == null)
         {
-            configText = "{\"name\":\"default\"}";
+            configText = CONFIG_TEXT_DEFAULT;
         }
         else if ("https".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
         {
@@ -145,6 +148,10 @@ public class ConfigureTask implements Callable<Void>
             try (InputStream input = connection.getInputStream())
             {
                 configText = new String(input.readAllBytes(), UTF_8);
+            }
+            catch (IOException ex)
+            {
+                configText = CONFIG_TEXT_DEFAULT;
             }
         }
 

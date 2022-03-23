@@ -60,6 +60,7 @@
     <module>specs</module>
     <module>runtime</module>
     <module>manager</module>
+    <module>cloud</module>
   </modules>
 
   <dependencyManagement>
