@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.10</version>
+    <version>0.9.11</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -163,6 +163,9 @@
               <name>ghcr.io/aklivity/zilla:%l</name>
               <build>
                 <contextDir>${docker.context}</contextDir>
+                <tags>
+                  <tag>latest</tag>
+                </tags>
                 <assemblies>
                   <assembly>
                     <inline>
@@ -218,12 +221,9 @@
 
   <profiles>
     <profile>
-      <id>incubator-image</id>
+      <id>incubator</id>
       <activation>
-        <property>
-          <name>docker.context</name>
-          <value>incubator</value>
-        </property>
+        <activeByDefault>true</activeByDefault>
       </activation>
 
       <dependencies>
