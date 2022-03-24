@@ -161,6 +161,7 @@
         <version>0.39.1</version>
         <configuration>
           <filter>${*}</filter>
+          <registry>ghcr.io</registry>
           <images>
             <image>
               <alias>zilla</alias>
@@ -212,6 +213,7 @@
           <execution>
             <goals>
               <goal>build</goal>
+              <goal>push</goal>
             </goals>
           </execution>
         </executions>
