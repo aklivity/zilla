@@ -859,7 +859,7 @@ public final class KafkaCacheServerBootstrapFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             doDescribeReplyWindow(traceId, 0, 8192);
         }
@@ -1115,7 +1115,7 @@ public final class KafkaCacheServerBootstrapFactory implements BindingHandler
         {
             final long traceId = begin.traceId();
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             doMetaReplyWindow(traceId, 0, 8192);
         }

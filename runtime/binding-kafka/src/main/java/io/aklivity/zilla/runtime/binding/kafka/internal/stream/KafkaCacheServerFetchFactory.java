@@ -658,7 +658,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final int partitionId = progress.partitionId();
             final long partitionOffset = progress.partitionOffset();
 
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             assert partitionId == partition.id();
             assert partitionOffset >= 0L && partitionOffset >= this.partitionOffset;
@@ -1131,11 +1131,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             if (timeMillis <= System.currentTimeMillis())
             {
-                signaler.signalNow(routeId, initialId, signalId);
+                signaler.signalNow(routeId, initialId, signalId, 0);
             }
             else
             {
-                timerId = signaler.signalAt(timeMillis, routeId, initialId, signalId);
+                timerId = signaler.signalAt(timeMillis, routeId, initialId, signalId, 0);
             }
 
             return timerId;

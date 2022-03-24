@@ -1,0 +1,30 @@
+version: "3"
+
+networks:
+  net0:
+    driver: overlay
+
+services:
+
+  kafka:
+    image: "bitnami/kafka:3"
+    hostname: "kafka.local"
+    networks:
+      - net0
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_ZOOKEEPER_PROTOCOL=PLAINTEXT
+    ports:
+      - "9092:9092"
+
+  zookeeper:
+    image: 'bitnami/zookeeper:3'
+    hostname: "zookeeper.internal.net"
+    networks:
+      - net0
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes

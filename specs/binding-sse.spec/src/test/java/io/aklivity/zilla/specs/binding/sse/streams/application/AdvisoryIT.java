@@ -38,8 +38,8 @@ public class AdvisoryIT
 
     @Test
     @Specification({
-        "${app}/flush/request",
-        "${app}/flush/response" })
+        "${app}/flush/client",
+        "${app}/flush/server" })
     public void shouldFlushResponse() throws Exception
     {
         k3po.finish();

@@ -1,0 +1,46 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/guard/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "test"
+                },
+                "options":
+                {
+                    "properties":
+                    {
+                        "credentials":
+                        {
+                            "type": "string"
+                        },
+                        "lifetime":
+                        {
+                            "type": "string",
+                            "pattern": "PT\\d+S"
+                        },
+                        "challenge":
+                        {
+                            "type": "string",
+                            "pattern": "PT\\d+S"
+                        },
+                        "roles":
+                        {
+                            "type": "array",
+                            "items":
+                            {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+]

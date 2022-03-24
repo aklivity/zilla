@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -25,8 +26,10 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class KafkaRouteConfig extends OptionsConfig
 {
     public final long id;
-    public final List<KafkaConditionMatcher> when;
     public final KafkaWithConfig with;
+
+    private final List<KafkaConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public KafkaRouteConfig(
         RouteConfig route)
@@ -37,5 +40,18 @@ public final class KafkaRouteConfig extends OptionsConfig
             .map(KafkaConditionMatcher::new)
             .collect(toList());
         this.with = (KafkaWithConfig) route.with;
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        String topic)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
     }
 }

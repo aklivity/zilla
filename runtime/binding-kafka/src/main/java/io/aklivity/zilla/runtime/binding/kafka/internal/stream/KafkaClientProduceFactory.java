@@ -1198,7 +1198,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
             final long traceId = begin.traceId();
 
             authorization = begin.authorization();
-            state = KafkaState.openedReply(state);
+            state = KafkaState.openingReply(state);
 
             doNetworkWindow(traceId, 0L, 0, 0, decodeMaxBytes);
 
@@ -1661,11 +1661,11 @@ public final class KafkaClientProduceFactory implements BindingHandler
             {
                 if (produceRequestMaxDelay == 0)
                 {
-                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST);
+                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
                 {
-                    signaler.signalAt(currentTimeMillis() + produceRequestMaxDelay, routeId, initialId, SIGNAL_NEXT_REQUEST);
+                    signaler.signalAt(currentTimeMillis() + produceRequestMaxDelay, routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 signaledRequestId = nextRequestId + 1;
             }
@@ -2008,7 +2008,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
 
             if (encodeSlot != NO_SLOT)
             {
-                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST);
+                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
         }
 

@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,7 +33,6 @@ import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespacedRef;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -74,8 +74,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             if (binding.vault != null)
             {
-                // TODO: qualified name format
-                item.add(VAULT_NAME, binding.vault.name);
+                item.add(VAULT_NAME, binding.vault);
             }
 
             item.add(TYPE_NAME, binding.type);
@@ -92,11 +91,6 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 JsonArrayBuilder routes = Json.createArrayBuilder();
                 binding.routes.forEach(r -> routes.add(route.adaptToJson(r)));
                 item.add(ROUTES_NAME, routes);
-            }
-
-            if (binding.exit != null)
-            {
-                item.add(EXIT_NAME, binding.exit.exit);
             }
 
             object.add(binding.entry, item);
@@ -119,8 +113,8 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
             route.adaptType(type);
             options.adaptType(type);
 
-            NamespacedRef vault = item.containsKey(VAULT_NAME)
-                    ? NamespacedRef.of(item.getString(VAULT_NAME))
+            String vault = item.containsKey(VAULT_NAME)
+                    ? item.getString(VAULT_NAME)
                     : null;
             KindConfig kind = this.kind.adaptFromJson(item.getJsonString(KIND_NAME));
             OptionsConfig opts = item.containsKey(OPTIONS_NAME) ?
@@ -140,7 +134,15 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                     ? new RouteConfig(routes.size(), item.getString(EXIT_NAME))
                     : null;
 
-            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes, exit));
+            if (exit != null)
+            {
+                List<RouteConfig> routesWithExit = new ArrayList<>();
+                routesWithExit.addAll(routes);
+                routesWithExit.add(exit);
+                routes = routesWithExit;
+            }
+
+            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes));
         }
 
         return bindings.toArray(BindingConfig[]::new);

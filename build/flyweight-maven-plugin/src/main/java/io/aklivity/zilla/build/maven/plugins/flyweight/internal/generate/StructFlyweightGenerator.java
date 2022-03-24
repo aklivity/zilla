@@ -1574,6 +1574,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                           .addMethod(wrapMethod.generate())
                           .addMethod(wrapMethodWithArray.generate())
                           .addMethod(rewrapMethod())
+                          .addMethod(setMethod())
                           .addMethod(buildMethod())
                           .build();
         }
@@ -1615,6 +1616,19 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
                     .addStatement("super.rewrap()")
                     .addStatement("return this")
                     .build();
+        }
+
+        private MethodSpec setMethod()
+        {
+            return methodBuilder("set")
+                    .addAnnotation(Override.class)
+                .addModifiers(PUBLIC)
+                .addParameter(structType, "value")
+                .returns(thisName)
+                .addStatement("super.set(value)")
+                .addStatement("lastFieldSet = FIELD_COUNT - 1")
+                .addStatement("return this")
+                .build();
         }
 
         private static String appendMethodName(

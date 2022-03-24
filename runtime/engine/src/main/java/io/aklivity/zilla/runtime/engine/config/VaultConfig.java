@@ -19,11 +19,11 @@ import static java.util.Objects.requireNonNull;
 
 public class VaultConfig
 {
+    public transient long id;
+
     public final String name;
     public final String type;
     public final OptionsConfig options;
-
-    public long id;
 
     public VaultConfig(
         String name,

@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.tls.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -25,7 +26,9 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class TlsRouteConfig extends OptionsConfig
 {
     public final long id;
-    public List<TlsConditionMatcher> when;
+
+    private final List<TlsConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public TlsRouteConfig(
         RouteConfig route)
@@ -35,5 +38,19 @@ public final class TlsRouteConfig extends OptionsConfig
             .map(TlsConditionConfig.class::cast)
             .map(TlsConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        String hostname,
+        String alpn)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(hostname, alpn));
     }
 }

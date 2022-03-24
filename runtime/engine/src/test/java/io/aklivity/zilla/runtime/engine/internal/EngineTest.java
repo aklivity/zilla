@@ -108,7 +108,7 @@ public class EngineTest
     @Test
     public void shouldNotConfigureDuplicateKey() throws Exception
     {
-        String resource = String.format("%s-%s.json.broken", getClass().getSimpleName(), "duplicate-key");
+        String resource = String.format("%s-%s.broken.json", getClass().getSimpleName(), "duplicate-key");
         URL configURL = getClass().getResource(resource);
         List<Throwable> errors = new LinkedList<>();
         try (Engine engine = Engine.builder()

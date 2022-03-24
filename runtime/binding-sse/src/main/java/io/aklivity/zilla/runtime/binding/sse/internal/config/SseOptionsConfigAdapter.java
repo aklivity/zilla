@@ -29,6 +29,12 @@ public final class SseOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final String RETRY_NAME = "retry";
 
     @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
+
+    @Override
     public String type()
     {
         return SseBinding.NAME;

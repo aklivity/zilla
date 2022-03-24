@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
@@ -78,7 +79,7 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespace()
     {
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 
@@ -120,13 +121,52 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithBinding()
     {
-        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null);
-        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), emptyList(), singletonList(binding));
+        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, emptyList());
+        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), singletonList(binding), emptyList(), emptyList());
 
         String text = jsonb.toJson(namespace);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"bindings\":{\"test\":{\"type\":\"test\",\"kind\":\"server\"}}}"));
+    }
+
+    @Test
+    public void shouldReadNamespaceWithGuard()
+    {
+        String text =
+                "{" +
+                    "\"name\": \"test\"," +
+                    "\"bindings\":" +
+                    "{" +
+                    "}," +
+                    "\"guards\":" +
+                    "{" +
+                        "\"default\":" +
+                        "{" +
+                            "\"type\": \"test\"" +
+                        "}" +
+                    "}" +
+                "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.name, equalTo("test"));
+        assertThat(config.guards, hasSize(1));
+        assertThat(config.guards.get(0).name, equalTo("default"));
+        assertThat(config.guards.get(0).type, equalTo("test"));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithGuard()
+    {
+        GuardConfig guard = new GuardConfig("default", "test", null);
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), singletonList(guard), emptyList());
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"guards\":{\"default\":{\"type\":\"test\"}}}"));
     }
 
     @Test
@@ -160,7 +200,7 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithVault()
     {
         VaultConfig vault = new VaultConfig("default", "test", null);
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), singletonList(vault), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), emptyList(), singletonList(vault));
 
         String text = jsonb.toJson(config);
 
@@ -169,7 +209,7 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
-    public void shouldReadNamespaceWithNamespace()
+    public void shouldReadNamespaceWithReference()
     {
         String text =
                 "{" +
@@ -194,10 +234,10 @@ public class NamespaceConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteNamespaceWithNamespace()
+    public void shouldWriteNamespaceWithReference()
     {
         NamespaceRef reference = new NamespaceRef("test", emptyMap());
-        NamespaceConfig config = new NamespaceConfig("test", singletonList(reference), emptyList(), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", singletonList(reference), emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 

@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -25,7 +27,9 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class HttpRouteConfig extends OptionsConfig
 {
     public final long id;
-    public List<HttpConditionMatcher> when;
+
+    private List<HttpConditionMatcher> when;
+    private LongPredicate authorized;
 
     public HttpRouteConfig(
         RouteConfig route)
@@ -35,5 +39,18 @@ public final class HttpRouteConfig extends OptionsConfig
             .map(HttpConditionConfig.class::cast)
             .map(HttpConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        Function<String, String> headerByName)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(headerByName));
     }
 }

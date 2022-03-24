@@ -16,15 +16,19 @@
 module io.aklivity.zilla.runtime.engine
 {
     exports io.aklivity.zilla.runtime.engine;
+    exports io.aklivity.zilla.runtime.engine.config;
+
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
+    exports io.aklivity.zilla.runtime.engine.guard;
+    exports io.aklivity.zilla.runtime.engine.vault;
+
+    exports io.aklivity.zilla.runtime.engine.ext;
+
     exports io.aklivity.zilla.runtime.engine.budget;
     exports io.aklivity.zilla.runtime.engine.buffer;
     exports io.aklivity.zilla.runtime.engine.concurrent;
     exports io.aklivity.zilla.runtime.engine.poller;
-    exports io.aklivity.zilla.runtime.engine.config;
-    exports io.aklivity.zilla.runtime.engine.ext;
-    exports io.aklivity.zilla.runtime.engine.vault;
 
     requires transitive jakarta.json;
     requires transitive jakarta.json.bind;
@@ -38,6 +42,7 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 }

@@ -38,16 +38,6 @@ public class ConfigIT
 
     @Test
     @Specification({
-        "${net}/access.control.allow.origin/client",
-        "${net}/access.control.allow.origin/server",
-    })
-    public void accessControlAllowLoging() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/server.header/client",
         "${net}/server.header/server",
     })

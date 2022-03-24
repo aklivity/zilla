@@ -26,9 +26,191 @@
                             "default": [ "http/1.1", "h2" ],
                             "items":
                             {
+                                "title": "Version",
                                 "type": "string",
                                 "enum": [ "http/1.1", "h2" ]
                             }
+                        },
+                        "access-control":
+                        {
+                            "title": "Access Control",
+                            "type": "object",
+                            "properties":
+                            {
+                                "policy":
+                                {
+                                    "title": "Policy",
+                                    "type": "string"
+                                }
+                            },
+                            "oneOf":
+                            [
+                                {
+                                    "properties":
+                                    {
+                                        "policy":
+                                        {
+                                            "const": "same-origin"
+                                        }
+                                    }
+                                },
+                                {
+                                    "properties":
+                                    {
+                                        "policy":
+                                        {
+                                            "const": "cross-origin"
+                                        },
+                                        "allow":
+                                        {
+                                            "title": "Allow",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "origins":
+                                                {
+                                                    "title": "Origins",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "methods":
+                                                {
+                                                    "title": "Methods",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "credentials":
+                                                {
+                                                    "title": "Credentials",
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "max-age":
+                                        {
+                                            "title": "Max Age",
+                                            "type": "number"
+                                        },
+                                        "expose":
+                                        {
+                                            "title": "Expose",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "array",
+                                                    "items":
+                                                    {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            ]
+                        },
+                        "authorization":
+                        {
+                            "title": "Authorizations",
+                            "type": "object",
+                            "patternProperties":
+                            {
+                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                {
+                                    "title": "Authorization",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "credentials":
+                                        {
+                                            "title": "Credentials",
+                                            "type": "object",
+                                            "properties":
+                                            {
+                                                "cookies":
+                                                {
+                                                    "title": "Cookies",
+                                                    "type": "object",
+                                                    "additionalProperties":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": ".*\\{credentials\\}.*"
+                                                    }
+                                                },
+                                                "headers":
+                                                {
+                                                    "title": "Headers",
+                                                    "type": "object",
+                                                    "additionalProperties":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": ".*\\{credentials\\}.*"
+                                                    }
+                                                },
+                                                "query":
+                                                {
+                                                    "title": "Query Parameters",
+                                                    "type": "object",
+                                                    "additionalProperties":
+                                                    {
+                                                        "type": "string",
+                                                        "pattern": ".*\\{credentials\\}.*"
+                                                    }
+                                                }
+                                            },
+                                            "additionalProperties": false,
+                                            "anyOf":
+                                            [
+                                                {
+                                                    "required":
+                                                    [
+                                                        "cookies"
+                                                    ]
+                                                },
+                                                {
+                                                    "required":
+                                                    [
+                                                        "headers"
+                                                    ]
+                                                },
+                                                {
+                                                    "required":
+                                                    [
+                                                        "query"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "additionalProperties": false,
+                                    "required":
+                                    [
+                                        "credentials"
+                                    ]
+                                }
+                            },
+                            "maxProperties": 1
                         },
                         "overrides":
                         {
@@ -60,7 +242,7 @@
                                             "type": "object",
                                             "additionalProperties" :
                                             {
-                                              "type": "string"
+                                                "type": "string"
                                             }
                                         }
                                     },

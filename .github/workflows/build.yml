@@ -25,9 +25,10 @@ jobs:
     - name: Cache Maven packages
       uses: actions/cache@v2
       with:
-        path: ~/.m2
+        path: |
+          ~/.m2/repository
+          !~/.m2/repository/io/aklivity/zilla
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven
-      run: ./mvnw -B -U -nsu verify jacoco:report-aggregate
-
+      run: ./mvnw -B -U -nsu -Ddocker.logStdout -Ddocker.verbose install jacoco:report-aggregate

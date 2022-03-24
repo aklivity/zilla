@@ -25,23 +25,19 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class KafkaBindingConfig
 {
     public final long id;
-    public final long vaultId;
     public final String entry;
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
-    public final KafkaRouteConfig exit;
 
     public KafkaBindingConfig(
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.vaultId = binding.vault != null ? binding.vault.id : 0L;
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new KafkaRouteConfig(binding.exit) : null;
     }
 
     public KafkaRouteConfig resolve(
@@ -49,9 +45,9 @@ public final class KafkaBindingConfig
         String topic)
     {
         return routes.stream()
-            .filter(r -> r.when.isEmpty() || r.when.stream().anyMatch(m -> m.matches(topic)))
+            .filter(r -> r.authorized(authorization) && r.matches(topic))
             .findFirst()
-            .orElse(exit);
+            .orElse(null);
     }
 
     public KafkaTopicConfig topic(

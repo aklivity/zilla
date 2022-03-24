@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.ws.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -26,7 +27,9 @@ public final class WsRouteConfig extends OptionsConfig
 {
     public final long id;
     public final int order;
-    public final List<WsConditionMatcher> when;
+
+    private final List<WsConditionMatcher> when;
+    private final LongPredicate authorized;
 
     public WsRouteConfig(
         RouteConfig route)
@@ -37,5 +40,21 @@ public final class WsRouteConfig extends OptionsConfig
             .map(WsConditionConfig.class::cast)
             .map(WsConditionMatcher::new)
             .collect(toList());
+        this.authorized = route.authorized;
+    }
+
+    boolean authorized(
+        long authorization)
+    {
+        return authorized.test(authorization);
+    }
+
+    boolean matches(
+        String protocol,
+        String scheme,
+        String authority,
+        String path)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(protocol, scheme, authority, path));
     }
 }

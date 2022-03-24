@@ -38,8 +38,8 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/name.only/request",
-        "${app}/name.only/response" })
+        "${app}/name.only/client",
+        "${app}/name.only/server" })
     public void shouldReceiveDataNameOnly() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/empty/request",
-        "${app}/empty/response" })
+        "${app}/empty/client",
+        "${app}/empty/server" })
     public void shouldReceiveEmptyData() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/non.empty/request",
-        "${app}/non.empty/response" })
+        "${app}/non.empty/client",
+        "${app}/non.empty/server" })
     public void shouldReceiveNonEmptyData() throws Exception
     {
         k3po.finish();
@@ -65,8 +65,8 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/fragmented/request",
-        "${app}/fragmented/response" })
+        "${app}/fragmented/client",
+        "${app}/fragmented/server" })
     public void shouldReceiveFragmentedData() throws Exception
     {
         k3po.finish();
@@ -74,8 +74,8 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/invalid.utf8/request",
-        "${app}/invalid.utf8/response" })
+        "${app}/invalid.utf8/client",
+        "${app}/invalid.utf8/server" })
     public void shouldRejectDataWithInvalidUTF8() throws Exception
     {
         k3po.finish();
@@ -83,8 +83,8 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/initial.whitespace/request",
-        "${app}/initial.whitespace/response" })
+        "${app}/initial.whitespace/client",
+        "${app}/initial.whitespace/server" })
     public void shouldReceiveDataWithInitialWhitespace() throws Exception
     {
         k3po.finish();
@@ -92,8 +92,8 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/multi.line/request",
-        "${app}/multi.line/response" })
+        "${app}/multi.line/client",
+        "${app}/multi.line/server" })
     public void shouldReceiveMultiLineData() throws Exception
     {
         k3po.finish();

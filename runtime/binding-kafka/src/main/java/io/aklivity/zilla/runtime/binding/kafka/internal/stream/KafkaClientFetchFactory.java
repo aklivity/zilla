@@ -178,6 +178,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
     private final KafkaFetchClientDecoder decodeIgnoreRecordBatch = this::decodeIgnoreRecordBatch;
     private final KafkaFetchClientDecoder decodeIgnoreRecordSet = this::decodeIgnoreRecordSet;
     private final KafkaFetchClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
+    private final KafkaFetchClientDecoder decodeReject = this::decodeReject;
 
     private final int fetchMaxBytes;
     private final int fetchMaxWaitMillis;
@@ -1612,6 +1613,22 @@ public final class KafkaClientFetchFactory implements BindingHandler
         return limit;
     }
 
+    private int decodeReject(
+        KafkaFetchStream.KafkaFetchClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        client.doNetworkResetIfNecessary(traceId);
+        client.decoder = decodeIgnoreAll;
+        return limit;
+    }
+
     private final class KafkaFetchStream
     {
         private final MessageConsumer application;
@@ -1709,6 +1726,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
 
             if (clientRoute.partitions.get(client.partitionId) != leaderId)
             {
+                client.network = MessageConsumer.NOOP;
                 cleanupApplication(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
             }
             else
@@ -1787,6 +1805,11 @@ public final class KafkaClientFetchFactory implements BindingHandler
             state = KafkaState.closedInitial(state);
 
             client.doNetworkResetIfNecessary(traceId);
+        }
+
+        private boolean isApplicationReplyOpen()
+        {
+            return KafkaState.replyOpening(state);
         }
 
         private void doApplicationBeginIfNecessary(
@@ -2021,7 +2044,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 this.nextOffset = initialOffset;
                 this.latestOffset = latestOffset;
                 this.encoder = encodeFetchRequest;
-                this.decoder = decodeFetchResponse;
+                this.decoder = decodeReject;
             }
 
             private void onNetwork(
@@ -2071,7 +2094,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 final long traceId = begin.traceId();
 
                 authorization = begin.authorization();
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openingReply(state);
 
                 doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
             }
@@ -2140,7 +2163,11 @@ public final class KafkaClientFetchFactory implements BindingHandler
 
                 state = KafkaState.closingReply(state);
 
-                if (decodeSlot == NO_SLOT)
+                if (!isApplicationReplyOpen())
+                {
+                    cleanupNetwork(traceId);
+                }
+                else if (decodeSlot == NO_SLOT)
                 {
                     doApplicationEnd(traceId);
                 }
@@ -2428,6 +2455,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 }
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+                this.decoder = decodeOffsetsResponse;
             }
 
             private void doEncodeFetchRequest(
@@ -2493,6 +2522,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 }
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+                this.decoder = decodeFetchResponse;
             }
 
             private void encodeNetwork(
@@ -2656,7 +2687,6 @@ public final class KafkaClientFetchFactory implements BindingHandler
                     // TODO: recover at EARLIEST or LATEST ?
                     nextOffset = OFFSET_HISTORICAL;
                     client.encoder = client.encodeOffsetsRequest;
-                    client.decoder = decodeOffsetsResponse;
                     doEncodeRequestIfNecessary(traceId, initialBudgetId);
                     break;
                 default:
@@ -2778,7 +2808,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
 
                 if (clientRoute.partitions.get(partitionId) == leaderId)
                 {
-                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST);
+                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
                 {

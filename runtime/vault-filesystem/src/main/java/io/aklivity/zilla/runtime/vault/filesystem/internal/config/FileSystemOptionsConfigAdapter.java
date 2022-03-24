@@ -41,7 +41,7 @@ public final class FileSystemOptionsConfigAdapter implements OptionsConfigAdapte
     @Override
     public Kind kind()
     {
-        return OptionsConfigAdapterSpi.Kind.VAULT;
+        return Kind.VAULT;
     }
 
     @Override

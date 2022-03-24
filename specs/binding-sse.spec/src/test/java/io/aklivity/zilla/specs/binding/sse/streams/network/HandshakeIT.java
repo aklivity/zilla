@@ -47,9 +47,18 @@ public class HandshakeIT
 
     @Test
     @Specification({
-        "${net}/cors.preflight/request",
-        "${net}/cors.preflight/response" })
-    public void shouldHandshakeWithCorsPreflight() throws Exception
+        "${net}/connection.closed/request",
+        "${net}/connection.closed/response" })
+    public void shouldHandshakeThenClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/connection.closed.deferred/request",
+        "${net}/connection.closed.deferred/response" })
+    public void shouldHandshakeThenCloseDeferred() throws Exception
     {
         k3po.finish();
     }

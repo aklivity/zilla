@@ -60,8 +60,8 @@ public class CacheMetaIT
     @Test
     @Configuration("cache.json")
     @Specification({
-        "${app}/topic.unknown/client" })
-    public void shouldRejectWhenTopicUnknown() throws Exception
+        "${app}/topic.unreachable/client" })
+    public void shouldRejectWhenTopicUnreachable() throws Exception
     {
         k3po.finish();
     }

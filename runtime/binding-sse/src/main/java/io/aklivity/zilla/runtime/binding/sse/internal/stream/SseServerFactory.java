@@ -82,19 +82,11 @@ public final class SseServerFactory implements SseStreamFactory
     private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
     private static final String8FW HEADER_NAME_ACCEPT = new String8FW("accept");
-    private static final String8FW HEADER_NAME_ACCESS_CONTROL_ALLOW_METHODS = new String8FW("access-control-allow-methods");
-    private static final String8FW HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD = new String8FW("access-control-request-method");
-    private static final String8FW HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS = new String8FW("access-control-request-headers");
     private static final String8FW HEADER_NAME_LAST_EVENT_ID = new String8FW("last-event-id");
 
-    private static final String16FW HEADER_VALUE_STATUS_204 = new String16FW("204");
     private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
     private static final String16FW HEADER_VALUE_STATUS_400 = new String16FW("400");
     private static final String16FW HEADER_VALUE_METHOD_GET = new String16FW("GET");
-    private static final String16FW HEADER_VALUE_METHOD_OPTIONS = new String16FW("OPTIONS");
-
-    private static final String16FW CORS_PREFLIGHT_METHOD = HEADER_VALUE_METHOD_OPTIONS;
-    private static final String16FW CORS_ALLOWED_METHODS = HEADER_VALUE_METHOD_GET;
 
     private static final Pattern QUERY_PARAMS_PATTERN = Pattern.compile("(?<path>[^?]*)(?<query>[\\?].*)");
     private static final Pattern LAST_EVENT_ID_PATTERN = Pattern.compile("(\\?|&)lastEventId=(?<lastEventId>[^&]*)(&|$)");
@@ -213,27 +205,12 @@ public final class SseServerFactory implements SseStreamFactory
         MessageConsumer network)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long affinity = begin.affinity();
         final OctetsFW extension = begin.extension();
         final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
         MessageConsumer newStream = null;
 
-        if (isCorsPreflightRequest(httpBeginEx))
-        {
-            final long acceptRouteId = begin.routeId();
-            final long acceptInitialId = begin.streamId();
-            final long acceptReplyId = supplyReplyId.applyAsLong(acceptInitialId);
-            final long newTraceId = supplyTraceId.getAsLong();
-
-            doWindow(network, acceptRouteId, acceptInitialId, 0L, 0L, 0, newTraceId, 0L, 0L, 0, 0);
-            doHttpBegin(network, acceptRouteId, acceptReplyId, 0L, 0L, 0, newTraceId, 0L, affinity,
-                    SseServerFactory::setCorsPreflightResponse);
-            doHttpEnd(network, acceptRouteId, acceptReplyId, 0L, 0L, 0, newTraceId, 0L);
-
-            newStream = (t, b, i, l) -> {};
-        }
-        else if (!isSseRequestMethod(httpBeginEx))
+        if (!isSseRequestMethod(httpBeginEx))
         {
             doHttpResponse(begin, network, HEADER_VALUE_STATUS_405);
             newStream = (t, b, i, l) -> {};
@@ -455,7 +432,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             assert initialAck <= initialSeq;
 
-            stream.doAppEnd(traceId, authorization);
+            stream.doAppEndDeferred(traceId, authorization);
         }
 
         private void onNetAbort(
@@ -484,6 +461,7 @@ public final class SseServerFactory implements SseStreamFactory
             final long acknowledge = reset.acknowledge();
             final int maximum = reset.maximum();
             final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
 
             assert acknowledge <= sequence;
             assert sequence <= httpReplySeq;
@@ -496,6 +474,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             assert httpReplyAck <= httpReplySeq;
 
+            stream.doAppEndDeferred(traceId, authorization);
             stream.doAppReset(traceId);
             cleanupDebitorIfNecessary();
         }
@@ -534,6 +513,7 @@ public final class SseServerFactory implements SseStreamFactory
             if (httpReplyBud != 0L && replyDebitorIndex == NO_DEBITOR_INDEX)
             {
                 doNetAbort(traceId, authorization);
+                stream.doAppEndDeferred(traceId, authorization);
                 stream.doAppReset(traceId);
             }
             else
@@ -839,10 +819,14 @@ public final class SseServerFactory implements SseStreamFactory
 
                         if (deferredEnd)
                         {
+                            final long authorization = data.authorization();
+
                             doHttpEnd(network, routeId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
-                                    data.traceId(), data.authorization());
+                                    data.traceId(), authorization);
                             cleanupDebitorIfNecessary();
                             deferredEnd = false;
+
+                            stream.doAppEndDeferred(data.traceId(), authorization);
                         }
                     }
                 }
@@ -892,6 +876,18 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 application = newSseStream(this::onAppMessage, routeId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, affinity, pathInfo, lastEventId);
+            }
+
+            private void doAppEndDeferred(
+                long traceId,
+                long authorization)
+            {
+                if (SseState.initialClosing(state))
+                {
+                    doAppEnd(traceId, authorization);
+                }
+
+                state = SseState.closingInitial(state);
             }
 
             private void doAppEnd(
@@ -1004,6 +1000,7 @@ public final class SseServerFactory implements SseStreamFactory
                 if (sseReplySeq > sseReplyAck + sseReplyMax)
                 {
                     doAppReset(traceId);
+                    doAppEndDeferred(traceId, authorization);
                     doNetAbort(traceId, authorization);
                 }
                 else
@@ -1040,6 +1037,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
+                state = SseState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1097,6 +1095,8 @@ public final class SseServerFactory implements SseStreamFactory
                 {
                     doNetEnd(traceId, authorization);
                 }
+
+                doAppEndDeferred(traceId, authorization);
             }
 
             private void onAppFlush(
@@ -1132,10 +1132,12 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
+                state = SseState.closeReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
                 doNetAbort(traceId, authorization);
+                doAppEndDeferred(traceId, authorization);
             }
 
             private void onAppWindow(
@@ -1182,8 +1184,13 @@ public final class SseServerFactory implements SseStreamFactory
             private void doAppReset(
                 long traceId)
             {
-                doReset(application, routeId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
-                        traceId);
+                if (!SseState.replyClosed(state))
+                {
+                    state = SseState.closeReply(state);
+
+                    doReset(application, routeId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
+                            traceId);
+                }
             }
 
             private void flushAppWindow(
@@ -1591,23 +1598,6 @@ public final class SseServerFactory implements SseStreamFactory
         }
 
         return lastEventId != null ? new String16FW(lastEventId) : null;
-    }
-
-    private static boolean isCorsPreflightRequest(
-        HttpBeginExFW httpBeginEx)
-    {
-        return httpBeginEx != null &&
-               httpBeginEx.headers().anyMatch(h -> HEADER_NAME_METHOD.equals(h.name()) &&
-                                                   CORS_PREFLIGHT_METHOD.equals(h.value())) &&
-               httpBeginEx.headers().anyMatch(h -> HEADER_NAME_ACCESS_CONTROL_REQUEST_METHOD.equals(h.name()) ||
-                                                   HEADER_NAME_ACCESS_CONTROL_REQUEST_HEADERS.equals(h.name()));
-    }
-
-    private static void setCorsPreflightResponse(
-        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headers)
-    {
-        headers.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_204))
-               .item(h -> h.name(HEADER_NAME_ACCESS_CONTROL_ALLOW_METHODS).value(CORS_ALLOWED_METHODS));
     }
 
     private static boolean isSseRequestMethod(

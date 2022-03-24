@@ -1,0 +1,30 @@
+{
+  "repositories":
+  [
+    "https://maven.packages.aklivity.io/",
+    "https://repo.maven.apache.org/maven2/"
+  ],
+
+  "imports":
+  [
+    "io.aklivity.zilla:runtime:${VERSION}"
+  ],
+
+  "dependencies":
+  [
+    "io.aklivity.zilla:binding-echo",
+    "io.aklivity.zilla:binding-fan",
+    "io.aklivity.zilla:binding-http",
+    "io.aklivity.zilla:binding-kafka",
+    "io.aklivity.zilla:binding-proxy",
+    "io.aklivity.zilla:binding-sse",
+    "io.aklivity.zilla:binding-tcp",
+    "io.aklivity.zilla:binding-tls",
+    "io.aklivity.zilla:binding-ws",
+    "io.aklivity.zilla:command",
+    "io.aklivity.zilla:command-start",
+    "io.aklivity.zilla:command-stop",
+    "io.aklivity.zilla:engine",
+    "io.aklivity.zilla:vault-filesystem"
+  ]
+}

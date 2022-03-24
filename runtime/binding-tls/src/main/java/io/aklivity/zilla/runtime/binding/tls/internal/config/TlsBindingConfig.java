@@ -67,7 +67,6 @@ public final class TlsBindingConfig
     public final TlsOptionsConfig options;
     public final KindConfig kind;
     public final List<TlsRouteConfig> routes;
-    public final TlsRouteConfig exit;
 
     private SSLContext context;
 
@@ -75,12 +74,11 @@ public final class TlsBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.vaultId = binding.vault != null ? binding.vault.id : 0L;
+        this.vaultId = binding.vaultId;
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.options = TlsOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(TlsRouteConfig::new).collect(toList());
-        this.exit = binding.exit != null ? new TlsRouteConfig(binding.exit) : null;
     }
 
     public void init(
@@ -154,23 +152,10 @@ public final class TlsBindingConfig
         String hostname,
         String alpn)
     {
-        TlsRouteConfig resolved = null;
-
-        for (TlsRouteConfig route : routes)
-        {
-            if (route.when.stream().anyMatch(m -> m.matches(hostname, alpn)))
-            {
-                resolved = route;
-                break;
-            }
-        }
-
-        if (resolved == null)
-        {
-            resolved = exit;
-        }
-
-        return resolved;
+        return routes.stream()
+                .filter(r -> r.authorized(authorization) && r.matches(hostname, alpn))
+                .findFirst()
+                .orElse(null);
     }
 
     public SSLEngine newClientEngine(
@@ -246,7 +231,8 @@ public final class TlsBindingConfig
         return engine;
     }
 
-    public SSLEngine newServerEngine()
+    public SSLEngine newServerEngine(
+        long authorization)
     {
         SSLEngine engine = null;
 
@@ -270,7 +256,7 @@ public final class TlsBindingConfig
                 break;
             }
 
-            engine.setHandshakeApplicationProtocolSelector(this::selectAlpn);
+            engine.setHandshakeApplicationProtocolSelector((ngin, alpns) -> selectAlpn(ngin, alpns, authorization));
         }
 
         return engine;
@@ -278,7 +264,8 @@ public final class TlsBindingConfig
 
     private String selectAlpn(
         SSLEngine engine,
-        List<String> protocols)
+        List<String> protocols,
+        long authorization)
     {
         List<SNIServerName> serverNames = null;
 
@@ -326,7 +313,8 @@ public final class TlsBindingConfig
                                 continue;
                             }
 
-                            if (route.when.stream().anyMatch(m -> m.matches(authority, protocol)))
+                            if (route.authorized(authorization) &&
+                                route.matches(authority, protocol))
                             {
                                 selected = protocol;
                                 break;
@@ -347,7 +335,8 @@ public final class TlsBindingConfig
                         continue;
                     }
 
-                    if (route.when.stream().anyMatch(m -> m.matches(null, protocol)))
+                    if (route.authorized(authorization) &&
+                        route.matches(null, protocol))
                     {
                         selected = protocol;
                         break;
@@ -356,7 +345,7 @@ public final class TlsBindingConfig
             }
         }
 
-        if (selected == null && exit != null)
+        if (selected == null && !routes.isEmpty())
         {
             selected = "";
         }

@@ -691,6 +691,11 @@ public final class KafkaClientDescribeFactory implements BindingHandler
             client.doNetworkResetIfNecessary(traceId);
         }
 
+        private boolean isApplicationReplyOpen()
+        {
+            return KafkaState.replyOpening(state);
+        }
+
         private void doApplicationBeginIfNecessary(
             long traceId,
             long authorization,
@@ -934,7 +939,7 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                 final long traceId = begin.traceId();
 
                 authorization = begin.authorization();
-                state = KafkaState.openedReply(state);
+                state = KafkaState.openingReply(state);
 
                 doNetworkWindow(traceId, 0L, 0, 0, decodePool.slotCapacity());
             }
@@ -1000,7 +1005,14 @@ public final class KafkaClientDescribeFactory implements BindingHandler
 
                 cleanupDecodeSlotIfNecessary();
 
-                doApplicationEnd(traceId);
+                if (!isApplicationReplyOpen())
+                {
+                    cleanupNetwork(traceId);
+                }
+                else if (decodeSlot == NO_SLOT)
+                {
+                    doApplicationEnd(traceId);
+                }
             }
 
             private void onNetworkAbort(
@@ -1372,7 +1384,7 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                 }
 
                 nextResponseId++;
-                signaler.signalAt(currentTimeMillis() + maxAgeMillis, routeId, initialId, SIGNAL_NEXT_REQUEST);
+                signaler.signalAt(currentTimeMillis() + maxAgeMillis, routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void cleanupNetwork(

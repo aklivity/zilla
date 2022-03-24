@@ -18,27 +18,29 @@ package io.aklivity.zilla.runtime.engine.config;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.function.ToLongFunction;
 
 public class BindingConfig
 {
     public transient long id;
+    public transient ToLongFunction<String> resolveId;
 
-    public final NamespacedRef vault;
+    public transient long vaultId;
+
+    public final String vault;
     public final String entry;
     public final String type;
     public final KindConfig kind;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
-    public final RouteConfig exit;
 
     public BindingConfig(
-        NamespacedRef vault,
+        String vault,
         String entry,
         String type,
         KindConfig kind,
         OptionsConfig options,
-        List<RouteConfig> routes,
-        RouteConfig exit)
+        List<RouteConfig> routes)
     {
         this.vault = vault;
         this.entry = entry;
@@ -46,6 +48,5 @@ public class BindingConfig
         this.kind = requireNonNull(kind);
         this.options = options;
         this.routes = routes;
-        this.exit = exit;
     }
 }

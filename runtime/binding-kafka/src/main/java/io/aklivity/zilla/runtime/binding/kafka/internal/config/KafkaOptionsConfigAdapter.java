@@ -29,6 +29,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -37,6 +38,13 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     private static final String TOPICS_NAME = "topics";
 
     private final KafkaTopicConfigAdapter topic = new KafkaTopicConfigAdapter();
+
+    @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
+
     @Override
     public String type()
     {

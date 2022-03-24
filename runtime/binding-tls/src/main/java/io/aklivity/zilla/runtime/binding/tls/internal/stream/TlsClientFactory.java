@@ -1055,7 +1055,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = TlsState.closeInitial(state);
+            state = TlsState.closeReply(state);
             client.stream = nullIfClosed(state, client.stream);
 
             client.doNetReset(traceId);
@@ -1613,7 +1613,8 @@ public final class TlsClientFactory implements TlsStreamFactory
                         currentTimeMillis() + handshakeTimeoutMillis,
                         routeId,
                         initialId,
-                        HANDSHAKE_TIMEOUT_SIGNAL);
+                        HANDSHAKE_TIMEOUT_SIGNAL,
+                        0);
                 }
             }
 
@@ -1873,7 +1874,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
                     if (task != null)
                     {
-                        handshakeTaskFutureId = signaler.signalTask(task, routeId, initialId, HANDSHAKE_TASK_COMPLETE_SIGNAL);
+                        handshakeTaskFutureId = signaler.signalTask(task, routeId, initialId, HANDSHAKE_TASK_COMPLETE_SIGNAL, 0);
                     }
                 }
             }

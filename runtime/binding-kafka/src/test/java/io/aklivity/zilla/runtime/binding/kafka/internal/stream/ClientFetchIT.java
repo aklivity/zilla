@@ -92,6 +92,16 @@ public class ClientFetchIT
     @Test
     @Configuration("client.when.topic.json")
     @Specification({
+        "${app}/partition.incomplete/client",
+        "${net}/partition.incomplete/server"})
+    public void shouldRejectWhenPartitionIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
         "${app}/partition.not.leader/client",
         "${net}/partition.not.leader/server"})
     public void shouldRejectPartitionNotLeader() throws Exception

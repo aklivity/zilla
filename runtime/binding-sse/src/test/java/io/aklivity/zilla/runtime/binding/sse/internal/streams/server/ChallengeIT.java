@@ -53,7 +53,7 @@ public class ChallengeIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/respond.to.challenge/request",
-        "${app}/respond.to.challenge/response" })
+        "${app}/respond.to.challenge/server" })
     public void shouldReceiveChallengeMessage() throws Exception
     {
         k3po.finish();

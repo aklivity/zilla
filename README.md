@@ -6,12 +6,8 @@
 ```bash
 ./mvnw clean install
 ```
-## Build on Windows
-```bash
-mvnw.cmd clean install
-```
 ## Enjoy
-Try the [examples](examples).
+Read the [docs](https://docs.aklivity.io/zilla). Try the [examples](examples). Join the [Slack community](https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ).
 
 ## License
 

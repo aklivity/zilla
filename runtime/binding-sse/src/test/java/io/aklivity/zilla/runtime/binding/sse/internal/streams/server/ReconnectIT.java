@@ -53,7 +53,7 @@ public class ReconnectIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.header.last.event.id.and.data/request",
-        "${app}/last.event.id.data/response" })
+        "${app}/last.event.id.data/server" })
     public void shouldReconnectWithLastEventIdOnData() throws Exception
     {
         k3po.finish();
@@ -63,7 +63,7 @@ public class ReconnectIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.header.last.event.id/request",
-        "${app}/last.event.id.end/response" })
+        "${app}/last.event.id.end/server" })
     public void shouldReconnectWithLastEventIdOnEnd() throws Exception
     {
         k3po.finish();
@@ -73,7 +73,7 @@ public class ReconnectIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.header.last.event.id.fragmented/request",
-        "${app}/last.event.id.end.fragmented/response" })
+        "${app}/last.event.id.end.fragmented/server" })
     public void shouldReconnectWithLastEventIdOnEndFragmented() throws Exception
     {
         k3po.finish();
@@ -83,7 +83,7 @@ public class ReconnectIT
     @Configuration("server.when.json")
     @Specification({
         "${net}/request.header.and.parameter.last.event.id/request",
-        "${app}/initial.last.event.id/response" })
+        "${app}/initial.last.event.id/server" })
     public void shouldReconnectWithInitialLastEventId() throws Exception
     {
         k3po.finish();

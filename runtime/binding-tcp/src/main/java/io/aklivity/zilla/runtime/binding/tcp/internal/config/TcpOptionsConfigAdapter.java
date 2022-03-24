@@ -33,6 +33,7 @@ import org.agrona.collections.MutableInteger;
 import io.aklivity.zilla.runtime.binding.tcp.internal.TcpBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
@@ -43,6 +44,12 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final int BACKLOG_DEFAULT = 0;
     private static final boolean NODELAY_DEFAULT = true;
     private static final boolean KEEPALIVE_DEFAULT = false;
+
+    @Override
+    public Kind kind()
+    {
+        return Kind.BINDING;
+    }
 
     @Override
     public String type()

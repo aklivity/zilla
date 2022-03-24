@@ -20,9 +20,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -32,6 +29,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
+import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class OptionsConfigAdapterTest
 {
@@ -56,7 +54,7 @@ public class OptionsConfigAdapterTest
                     "\"mode\": \"test\"" +
                 "}";
 
-        TestOptionsConfig options = (TestOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+        TestBindingOptionsConfig options = (TestBindingOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
 
         assertThat(options, not(nullValue()));
         assertThat(options.mode, equalTo("test"));
@@ -65,7 +63,7 @@ public class OptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        OptionsConfig options = new TestOptionsConfig("test");
+        OptionsConfig options = new TestBindingOptionsConfig("test");
 
         String text = jsonb.toJson(options);
 
@@ -82,7 +80,7 @@ public class OptionsConfigAdapterTest
                 "}";
 
         adapter.adaptType(null);
-        TestOptionsConfig options = (TestOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
+        TestBindingOptionsConfig options = (TestBindingOptionsConfig) jsonb.fromJson(text, OptionsConfig.class);
 
         assertThat(options, nullValue());
     }
@@ -90,56 +88,12 @@ public class OptionsConfigAdapterTest
     @Test
     public void shouldWriteNullWhenNotAdapting()
     {
-        OptionsConfig options = new TestOptionsConfig("test");
+        OptionsConfig options = new TestBindingOptionsConfig("test");
 
         adapter.adaptType(null);
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("null"));
-    }
-
-    public static final class TestOptionsConfig extends OptionsConfig
-    {
-        public final String mode;
-
-        public TestOptionsConfig(
-            String mode)
-        {
-            this.mode = mode;
-        }
-    }
-
-    public static final class TestOptionsConfigAdapter implements OptionsConfigAdapterSpi
-    {
-        private static final String MODE_NAME = "mode";
-
-        @Override
-        public String type()
-        {
-            return "test";
-        }
-
-        @Override
-        public JsonObject adaptToJson(
-            OptionsConfig options)
-        {
-            TestOptionsConfig testOptions = (TestOptionsConfig) options;
-
-            JsonObjectBuilder object = Json.createObjectBuilder();
-
-            object.add(MODE_NAME, testOptions.mode);
-
-            return object.build();
-        }
-
-        @Override
-        public OptionsConfig adaptFromJson(
-            JsonObject object)
-        {
-            String mode = object.getString(MODE_NAME);
-
-            return new TestOptionsConfig(mode);
-        }
     }
 }
