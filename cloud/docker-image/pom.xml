@@ -16,10 +16,6 @@
   <name>zilla::cloud::docker-image</name>
   <packaging>pom</packaging>
 
-  <properties>
-    <docker.context>release</docker.context>
-  </properties>
-
   <licenses>
     <license>
       <name>Aklivity Community License Agreement</name>
@@ -222,14 +218,13 @@
 
   <profiles>
     <profile>
-      <id>incubator</id>
+      <id>incubator-image</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>docker.context</name>
+          <value>incubator</value>
+        </property>
       </activation>
-
-      <properties>
-        <docker.context>incubator</docker.context>
-      </properties>
 
       <dependencies>
         <dependency>

@@ -45,6 +45,7 @@
     <checkstyle.config.location>io/aklivity/zilla/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>io/aklivity/zilla/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
     <docker.skip.push>true</docker.skip.push>
+    <docker.context>incubator</docker.context>
     <antlr4.version>4.7</antlr4.version>
     <agrona.version>1.6.0</agrona.version>
     <junit.version>5.8.2</junit.version>
@@ -624,6 +625,7 @@
 
       <properties>
         <docker.skip.push>false</docker.skip.push>
+        <docker.context>release</docker.context>
       </properties>
 
       <build>
