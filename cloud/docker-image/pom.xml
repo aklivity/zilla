@@ -161,11 +161,10 @@
         <version>0.39.1</version>
         <configuration>
           <filter>${*}</filter>
-          <registry>ghcr.io</registry>
           <images>
             <image>
               <alias>zilla</alias>
-              <name>aklivity/zilla:%l</name>
+              <name>ghcr.io/aklivity/zilla:%l</name>
               <build>
                 <contextDir>${docker.context}</contextDir>
                 <assemblies>
