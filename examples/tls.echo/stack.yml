@@ -7,7 +7,7 @@ networks:
 services:
 
   zilla:
-    image: "ghcr.io/aklivity/zilla:0.9.10"
+    image: "ghcr.io/aklivity/zilla:latest"
     command: "start"
     hostname: "zilla"
     volumes:
