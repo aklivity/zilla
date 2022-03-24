@@ -172,7 +172,7 @@
                     <inline>
                       <fileSets>
                         <fileSet>
-                          <directory>${user.home}/.m2/repository</directory>
+                          <directory>${settings.localRepository}</directory>
                           <outputDirectory>./</outputDirectory>
                           <useDefaultExcludes>false</useDefaultExcludes>
                           <includes>
@@ -210,7 +210,6 @@
         </configuration>
         <executions>
           <execution>
-            <phase>package</phase>
             <goals>
               <goal>build</goal>
             </goals>
