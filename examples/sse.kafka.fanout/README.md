@@ -1,4 +1,4 @@
-# sse.kafka.proxy (incubator)
+# sse.kafka.proxy
 Listens on https port `9090` and will stream back whatever is published to the `zilla` topic in Kafka.
 
 ### Requirements
