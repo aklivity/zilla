@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>zilla</artifactId>
-    <version>0.9.11</version>
+    <version>0.9.12</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -28,6 +28,7 @@
     <module>binding-sse</module>
     <module>binding-ws</module>
     <module>binding-kafka</module>
+    <module>binding-sse-kafka</module>
     <module>command</module>
     <module>command-start</module>
     <module>command-stop</module>
@@ -88,6 +89,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-sse-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

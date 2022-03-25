@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.11</version>
+    <version>0.9.12</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -82,6 +82,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-ws</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-sse-kafka</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -223,7 +229,10 @@
     <profile>
       <id>incubator</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>release</name>
+          <value>!true</value>
+        </property>
       </activation>
 
       <dependencies>
@@ -248,12 +257,6 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>binding-mqtt</artifactId>
-          <version>${project.version}</version>
-          <scope>runtime</scope>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>binding-sse-kafka</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

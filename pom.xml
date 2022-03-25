@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.11</version>
+  <version>0.9.12</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -573,7 +573,10 @@
     <profile>
       <id>incubator</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>release</name>
+          <value>!true</value>
+        </property>
       </activation>
 
       <properties>
@@ -614,6 +617,12 @@
 
     <profile>
       <id>release</id>
+      <activation>
+        <property>
+          <name>release</name>
+          <value>true</value>
+        </property>
+      </activation>
 
       <distributionManagement>
         <downloadUrl>https://maven.pkg.github.com/aklivity/zilla/</downloadUrl>
@@ -653,6 +662,10 @@
                     <requireJavaVersion>
                       <version>[13,14)</version>
                     </requireJavaVersion>
+                    <requireProperty>
+                      <property>release</property>
+                      <regex>true</regex>
+                    </requireProperty>
                   </rules>
                 </configuration>
               </execution>
