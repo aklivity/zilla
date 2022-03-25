@@ -25,7 +25,7 @@ $ curl http://localhost:8080/index.html
 </html>
 ```
 ```bash
-$ curl --cacert test-ca.crt https://localhost:9090//index.html
+$ curl --cacert test-ca.crt https://localhost:9090/index.html
 <html>
 <head>
 <title>Welcome to Zilla!</title>
