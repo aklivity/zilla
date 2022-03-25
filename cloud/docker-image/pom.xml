@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.12</version>
+    <version>0.9.13</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -40,6 +40,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-fan</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-filesystem</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -82,6 +88,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-ws</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http-filesystem</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -166,7 +178,7 @@
           <images>
             <image>
               <alias>zilla</alias>
-              <name>ghcr.io/aklivity/zilla:%l</name>
+              <name>ghcr.io/aklivity/zilla:%v</name>
               <build>
                 <contextDir>${docker.context}</contextDir>
                 <tags>
@@ -239,18 +251,6 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>binding-amqp</artifactId>
-          <version>${project.version}</version>
-          <scope>runtime</scope>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>binding-filesystem</artifactId>
-          <version>${project.version}</version>
-          <scope>runtime</scope>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>binding-http-filesystem</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>
