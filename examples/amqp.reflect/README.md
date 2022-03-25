@@ -3,7 +3,7 @@ Listens on amqp port `5672` and will echo back whatever is sent to the server, b
 Listens on amqps port `5671` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
 
 ### Requirements
- - Zilla docker image local build, `develop-SNAPSHOT` version
+ - Zilla docker image local incubator build, `develop-SNAPSHOT` version
  - Docker 20.10+
 
 ### Start zilla engine
