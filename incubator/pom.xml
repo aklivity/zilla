@@ -21,14 +21,12 @@
     <module>binding-filesystem.spec</module>
     <module>binding-http-filesystem.spec</module>
     <module>binding-mqtt.spec</module>
-    <module>binding-sse-kafka.spec</module>
     <module>guard-jwt.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-filesystem</module>
     <module>binding-http-filesystem</module>
     <module>binding-mqtt</module>
-    <module>binding-sse-kafka</module>
     <module>guard-jwt</module>
 
     <module>command-load</module>
@@ -56,11 +54,6 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-sse-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
