@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>incubator</artifactId>
+    <artifactId>runtime</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>binding-filesystem.spec</artifactId>
-  <name>zilla::incubator::binding-filesystem.spec</name>
+  <artifactId>binding-http-filesystem</artifactId>
+  <name>zilla::runtime::binding-http-filesystem</name>
 
   <licenses>
     <license>
@@ -26,24 +26,53 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>org.kaazing</groupId>
-      <artifactId>k3po.lang</artifactId>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http-filesystem.spec</artifactId>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>engine.spec</artifactId>
+      <artifactId>engine</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>engine</artifactId>
+      <type>test-jar</type>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.vtence.hamcrest</groupId>
+      <artifactId>hamcrest-jpa</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.npathai</groupId>
+      <artifactId>hamcrest-optional</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -52,22 +81,23 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-library</artifactId>
+      <groupId>org.kaazing</groupId>
+      <artifactId>k3po.lang</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-      <resource>
-        <directory>src/main/scripts</directory>
-      </resource>
-    </resources>
-
     <plugins>
       <plugin>
         <groupId>org.jasig.maven</groupId>
@@ -78,13 +108,12 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core filesystem</scopeNames>
-          <packageName>io.aklivity.zilla.specs.binding.filesystem.internal.types</packageName>
+          <scopeNames>core http filesystem</scopeNames>
+          <packageName>io.aklivity.zilla.runtime.binding.http.filesystem.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
             <goals>
-              <goal>validate</goal>
               <goal>generate</goal>
             </goals>
           </execution>
@@ -93,14 +122,36 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>src/main/scripts/io/aklivity/zilla/specs/binding/filesystem/config/files/**/*</exclude>
-          </excludes>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>binding-http-filesystem.spec</artifactId>
+                  <fileMappers>
+                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                       <pattern>^\Qio/aklivity/zilla/specs/binding/http/filesystem/\E</pattern>
+                       <replacement>io/aklivity/zilla/runtime/binding/http/filesystem/internal/</replacement>
+                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                  </fileMappers>
+                </artifactItem>
+              </artifactItems>
+              <includes>io/aklivity/zilla/specs/binding/http/filesystem/schema/http.filesystem.schema.patch.json</includes>
+              <outputDirectory>${project.build.directory}/classes</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -113,6 +164,17 @@
       <plugin>
         <groupId>org.moditect</groupId>
         <artifactId>moditect-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.kaazing</groupId>
@@ -140,7 +202,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/specs/binding/filesystem/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/http/filesystem/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
@@ -159,6 +221,23 @@
               </limits>
             </rule>
           </rules>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.gatling</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <configuration>
+          <artifactSet>
+            <includes>
+              <include>org.agrona:agrona</include>
+              <include>io.aklivity.zilla:engine</include>
+              <include>org.openjdk.jmh:jmh-core</include>
+              <include>net.sf.jopt-simple:jopt-simple</include>
+              <include>org.apache.commons:commons-math3</include>
+              <include>commons-cli:commons-cli</include>
+              <include>com.github.biboudis:jmh-profilers</include>
+            </includes>
+          </artifactSet>
         </configuration>
       </plugin>
     </plugins>

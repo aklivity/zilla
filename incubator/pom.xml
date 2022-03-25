@@ -18,14 +18,10 @@
 
   <modules>
     <module>binding-amqp.spec</module>
-    <module>binding-filesystem.spec</module>
-    <module>binding-http-filesystem.spec</module>
     <module>binding-mqtt.spec</module>
     <module>guard-jwt.spec</module>
 
     <module>binding-amqp</module>
-    <module>binding-filesystem</module>
-    <module>binding-http-filesystem</module>
     <module>binding-mqtt</module>
     <module>guard-jwt</module>
 
@@ -39,16 +35,6 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-filesystem</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>binding-http-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -21,6 +21,7 @@
     <module>vault-filesystem</module>
     <module>binding-echo</module>
     <module>binding-fan</module>
+    <module>binding-filesystem</module>
     <module>binding-proxy</module>
     <module>binding-tcp</module>
     <module>binding-tls</module>
@@ -28,6 +29,7 @@
     <module>binding-sse</module>
     <module>binding-ws</module>
     <module>binding-kafka</module>
+    <module>binding-http-filesystem</module>
     <module>binding-sse-kafka</module>
     <module>command</module>
     <module>command-start</module>
@@ -54,6 +56,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-fan</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -89,6 +96,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-http-filesystem</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

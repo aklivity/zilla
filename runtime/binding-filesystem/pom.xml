@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>incubator</artifactId>
+    <artifactId>runtime</artifactId>
     <version>develop-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>binding-http-filesystem</artifactId>
-  <name>zilla::incubator::binding-http-filesystem</name>
+  <artifactId>binding-filesystem</artifactId>
+  <name>zilla::runtime::binding-filesystem</name>
 
   <licenses>
     <license>
@@ -26,14 +26,14 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.92</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-http-filesystem.spec</artifactId>
+      <artifactId>binding-filesystem.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -108,8 +108,8 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core http filesystem</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.binding.http.filesystem.internal.types</packageName>
+          <scopeNames>core filesystem</scopeNames>
+          <packageName>io.aklivity.zilla.runtime.binding.filesystem.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -138,17 +138,40 @@
               <artifactItems>
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-http-filesystem.spec</artifactId>
+                  <artifactId>binding-filesystem.spec</artifactId>
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
-                       <pattern>^\Qio/aklivity/zilla/specs/binding/http/filesystem/\E</pattern>
-                       <replacement>io/aklivity/zilla/runtime/binding/http/filesystem/internal/</replacement>
+                       <pattern>^\Qio/aklivity/zilla/specs/binding/filesystem/\E</pattern>
+                       <replacement>io/aklivity/zilla/runtime/binding/filesystem/internal/</replacement>
                      </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/http/filesystem/schema/http.filesystem.schema.patch.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/filesystem/schema/filesystem.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>extract-files</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>binding-filesystem.spec</artifactId>
+                  <fileMappers>
+                     <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                       <pattern>^\Qio/aklivity/zilla/specs/binding/filesystem/config/files\E</pattern>
+                       <replacement>files</replacement>
+                     </org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
+                  </fileMappers>
+                </artifactItem>
+              </artifactItems>
+              <includes>io/aklivity/zilla/specs/binding/filesystem/config/files/**/*</includes>
+              <outputDirectory>${project.build.directory}</outputDirectory>
             </configuration>
           </execution>
         </executions>
@@ -202,7 +225,7 @@
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>io/aklivity/zilla/runtime/binding/http/filesystem/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/filesystem/internal/types/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
