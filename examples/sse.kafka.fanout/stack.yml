@@ -14,6 +14,7 @@ services:
       - ./.zilla/zilla.properties:/.zilla/zilla.properties:ro
       - ./zilla.json:/zilla.json:ro
       - ./localhost.p12:/localhost.p12:ro
+      - ./web:/web:ro
     networks:
       - net0
     ports:

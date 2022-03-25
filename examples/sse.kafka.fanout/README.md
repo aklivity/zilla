@@ -1,5 +1,5 @@
-# sse.kafka.proxy
-Listens on https port `9090` and will stream back whatever is published to the `zilla` topic in Kafka.
+# sse.kafka.fanout
+Listens on http port `8080` or https port `9090` and will stream back whatever is published to the `zilla` topic in Kafka.
 
 ### Requirements
  - Docker 20.10+

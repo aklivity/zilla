@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Welcome to Zilla!</title>
+<script>
+	function attachEventSource()
+	{
+		var location = document.getElementById('location');
+		var messages = document.getElementById('messages');
+
+		var es = new EventSource(location.value);
+		es.onmessage = evt =>
+		{
+			var text = document.createTextNode(evt.data);
+			var line = document.createElement("p");
+			line.appendChild(text);
+
+			messages.insertBefore(line, messages.firstChild);
+		}
+	}
+</script>
+</head>
+
+<body>
+
+<h3>Location</h3>
+<input id="location"
+       value="https://localhost:9090/zilla">
+<button onclick="javascript:attachEventSource()">Go</button>
+
+<h3>Messages</h3>
+<div id="messages" >
+</div>
+
+</body>
+
+</html>

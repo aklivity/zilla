@@ -67,6 +67,28 @@
             "routes":
             [
                 {
+                    "exit": "http_filesystem0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "http",
+                                ":authority": "localhost:8080",
+                                ":path": "/index.html"
+                            }
+                        },
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "localhost:9090",
+                                ":path": "/index.html"
+                            }
+                        }
+                    ]
+                },
+                {
                     "exit": "sse0",
                     "when":
                     [
@@ -87,6 +109,36 @@
                     ]
                 }
             ]
+        },
+        "http_filesystem0":
+        {
+            "type" : "http-filesystem",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "exit": "filesystem0",
+                    "when":
+                    [
+                        {
+                            "path": "/{path}"
+                        }
+                    ],
+                    "with":
+                    {
+                        "path": "${params.path}"
+                    }
+                }
+            ]
+        },
+        "filesystem0":
+        {
+            "type" : "filesystem",
+            "kind": "server",
+            "options":
+            {
+                "location": "web/"
+            }
         },
         "sse0":
         {
