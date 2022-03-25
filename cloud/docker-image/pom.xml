@@ -241,7 +241,10 @@
     <profile>
       <id>incubator</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>release</name>
+          <value>!true</value>
+        </property>
       </activation>
 
       <dependencies>
