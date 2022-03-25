@@ -18,6 +18,7 @@
     "io.aklivity.zilla:binding-kafka",
     "io.aklivity.zilla:binding-proxy",
     "io.aklivity.zilla:binding-sse",
+    "io.aklivity.zilla:binding-sse-kafka",
     "io.aklivity.zilla:binding-tcp",
     "io.aklivity.zilla:binding-tls",
     "io.aklivity.zilla:binding-ws",

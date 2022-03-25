@@ -27,6 +27,7 @@
     <module>binding-sse.spec</module>
     <module>binding-ws.spec</module>
     <module>binding-kafka.spec</module>
+    <module>binding-sse-kafka.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>
 
@@ -80,6 +81,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-kafka.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-sse-kafka.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
