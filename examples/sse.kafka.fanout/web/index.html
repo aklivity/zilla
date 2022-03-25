@@ -17,6 +17,8 @@
 
 			messages.insertBefore(line, messages.firstChild);
 		}
+		es.onopen = evt => console.log(evt);
+		es.onerror = evt => console.log(evt);
 	}
 </script>
 </head>

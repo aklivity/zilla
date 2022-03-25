@@ -67,7 +67,7 @@
             "routes":
             [
                 {
-                    "exit": "http_filesystem0",
+                    "exit": "sse0",
                     "when":
                     [
                         {
@@ -75,7 +75,7 @@
                             {
                                 ":scheme": "http",
                                 ":authority": "localhost:8080",
-                                ":path": "/index.html"
+                                ":path": "/zilla"
                             }
                         },
                         {
@@ -83,13 +83,13 @@
                             {
                                 ":scheme": "https",
                                 ":authority": "localhost:9090",
-                                ":path": "/index.html"
+                                ":path": "/zilla"
                             }
                         }
                     ]
                 },
                 {
-                    "exit": "sse0",
+                    "exit": "http_filesystem0",
                     "when":
                     [
                         {
