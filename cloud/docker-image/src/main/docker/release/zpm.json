@@ -14,7 +14,9 @@
   [
     "io.aklivity.zilla:binding-echo",
     "io.aklivity.zilla:binding-fan",
+    "io.aklivity.zilla:binding-filesystem",
     "io.aklivity.zilla:binding-http",
+    "io.aklivity.zilla:binding-http-filesystem",
     "io.aklivity.zilla:binding-kafka",
     "io.aklivity.zilla:binding-proxy",
     "io.aklivity.zilla:binding-sse",
