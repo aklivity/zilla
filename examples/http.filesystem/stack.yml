@@ -1,0 +1,22 @@
+version: "3"
+
+networks:
+  net0:
+    driver: overlay
+
+services:
+
+  zilla:
+    image: "ghcr.io/aklivity/zilla:latest"
+    command: "start"
+    hostname: "zilla"
+    volumes:
+      - ./.zilla/zilla.properties:/.zilla/zilla.properties:ro
+      - ./zilla.json:/zilla.json:ro
+      - ./localhost.p12:/localhost.p12:ro
+      - ./web:/web:ro
+    networks:
+      - net0
+    ports:
+      - "8080:8080"
+      - "9090:9090"
