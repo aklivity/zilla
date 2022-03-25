@@ -178,7 +178,7 @@
           <images>
             <image>
               <alias>zilla</alias>
-              <name>ghcr.io/aklivity/zilla:%l</name>
+              <name>ghcr.io/aklivity/zilla:%v</name>
               <build>
                 <contextDir>${docker.context}</contextDir>
                 <tags>
