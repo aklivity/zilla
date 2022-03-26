@@ -123,6 +123,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>guard-jwt</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>vault-filesystem</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
@@ -269,12 +275,6 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>command-tune</artifactId>
-          <version>${project.version}</version>
-          <scope>runtime</scope>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>guard-jwt</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

@@ -19,11 +19,9 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
-    <module>guard-jwt.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
-    <module>guard-jwt</module>
 
     <module>command-load</module>
     <module>command-log</module>
@@ -44,11 +42,6 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>guard-jwt</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
         <artifactId>command-load</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -61,11 +54,6 @@
         <groupId>${project.groupId}</groupId>
         <artifactId>command-tune</artifactId>
         <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-        <version>1.7.21</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
