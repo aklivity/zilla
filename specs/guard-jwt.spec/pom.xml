@@ -7,13 +7,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.aklivity.zilla</groupId>
-    <artifactId>incubator</artifactId>
-    <version>0.9.13</version>
+    <artifactId>specs</artifactId>
+    <version>0.9.14</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>guard-jwt.spec</artifactId>
-  <name>zilla::incubator::guard-jwt.spec</name>
+  <name>zilla::specs::guard-jwt.spec</name>
 
   <licenses>
     <license>
