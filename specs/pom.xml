@@ -30,6 +30,7 @@
     <module>binding-kafka.spec</module>
     <module>binding-http-filesystem.spec</module>
     <module>binding-sse-kafka.spec</module>
+    <module>guard-jwt.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>
 
@@ -98,6 +99,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-sse-kafka.spec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>guard-jwt</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
