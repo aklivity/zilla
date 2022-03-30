@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.specs.engine.config;
 
-import static org.agrona.LangUtil.rethrowUnchecked;
-
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -25,7 +23,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import jakarta.json.JsonArray;
-import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
@@ -105,11 +102,10 @@ public final class ConfigSchemaRule implements TestRule
             .createParser(new StringReader(schemaObject.toString()));
 
         JsonValidationService service = JsonValidationService.newInstance();
-        ProblemHandler handler = service.createProblemPrinter(msg -> rethrowUnchecked(new JsonException(msg)));
         JsonSchemaReader reader = service.createSchemaReader(schemaParser);
         JsonSchema schema = reader.read();
 
-        provider = service.createJsonProvider(schema, parser -> handler);
+        provider = service.createJsonProvider(schema, parser -> ProblemHandler.throwing());
 
         if (configurationRoot != null)
         {
