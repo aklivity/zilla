@@ -42,6 +42,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(0, 2)
                                 .progress(1, 1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header("etag", "revision=42")
                                 .build()
                             .build()}
 write '{ "name": "gadget" }'

@@ -33,7 +33,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "application/json")
-                           .header("etag", "AQQABAIC")
+                           .header("etag", "TODO/revision=42")
                            .build()}
 
 read '{ "name": "gadget" }'

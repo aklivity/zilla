@@ -32,10 +32,14 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("content-type", "application/json")
-                            .header("etag", "AQQABAIC")
+                            .header("etag", "TODO")
                             .build()}
 
-write '[{ "name": "gadget" }]'
+write '['
+      '{ "name": "gadget" }'
+      ','
+      '{ "name": "gizmo" }'
+      ']'
 write flush
 
 write close

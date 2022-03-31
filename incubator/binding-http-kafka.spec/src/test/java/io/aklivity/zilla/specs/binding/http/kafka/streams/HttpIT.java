@@ -46,18 +46,45 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/delete.item.async/client",
-        "${http}/delete.item.async/server"})
-    public void shouldDeleteItemAsync() throws Exception
+        "${http}/delete.item.if.match/client",
+        "${http}/delete.item.if.match/server"})
+    public void shouldDeleteItemIfMatch() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${http}/delete.item.sync/client",
-        "${http}/delete.item.sync/server"})
-    public void shouldDeleteItemSync() throws Exception
+        "${http}/delete.item.if.match.failed/client",
+        "${http}/delete.item.if.match.failed/server"})
+    public void shouldNotDeleteItemIfMatchFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.prefer.async/client",
+        "${http}/delete.item.prefer.async/server"})
+    public void shouldDeleteItemPreferAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.prefer.async.delayed/client",
+        "${http}/delete.item.prefer.async.delayed/server"})
+    public void shouldDeleteItemPreferAsyncDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.prefer.async.ignored/client",
+        "${http}/delete.item.prefer.async.ignored/server"})
+    public void shouldDeleteItemPreferAsyncIgnored() throws Exception
     {
         k3po.finish();
     }
@@ -73,9 +100,36 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/get.item.wait/client",
-        "${http}/get.item.wait/server"})
-    public void shouldGetItemWait() throws Exception
+        "${http}/get.item.if.none.match/client",
+        "${http}/get.item.if.none.match/server"})
+    public void shouldGetItemIfNoneMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.if.none.match.not.modified/client",
+        "${http}/get.item.if.none.match.not.modified/server"})
+    public void shouldNotGetItemIfNoneMatchNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.not.found/client",
+        "${http}/get.item.not.found/server"})
+    public void shouldNotGetItemNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.prefer.wait/client",
+        "${http}/get.item.prefer.wait/server"})
+    public void shouldGetItemPreferWait() throws Exception
     {
         k3po.finish();
     }
@@ -91,9 +145,9 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/get.items.wait/client",
-        "${http}/get.items.wait/server"})
-    public void shouldGetItemsWait() throws Exception
+        "${http}/get.items.prefer.wait/client",
+        "${http}/get.items.prefer.wait/server"})
+    public void shouldGetItemsPreferWait() throws Exception
     {
         k3po.finish();
     }
@@ -109,18 +163,135 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/patch.item.async/client",
-        "${http}/patch.item.async/server"})
-    public void shouldPatchItemAsync() throws Exception
+        "${http}/patch.item.if.match/client",
+        "${http}/patch.item.if.match/server"})
+    public void shouldPatchItemIfMatch() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${http}/patch.item.sync/client",
-        "${http}/patch.item.sync/server"})
-    public void shouldPatchItemSync() throws Exception
+        "${http}/patch.item.if.match.failed/client",
+        "${http}/patch.item.if.match.failed/server"})
+    public void shouldNotPatchItemIfMatchFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/patch.item.prefer.async/client",
+        "${http}/patch.item.prefer.async/server"})
+    public void shouldPatchItemPreferAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/patch.item.prefer.async.delayed/client",
+        "${http}/patch.item.prefer.async.delayed/server"})
+    public void shouldPatchItemPreferAsyncDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/patch.item.prefer.async.ignored/client",
+        "${http}/patch.item.prefer.async.ignored/server"})
+    public void shouldPatchItemPreferAsyncIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.item.command/client",
+        "${http}/post.item.command/server"})
+    public void shouldPostItemCommand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.item.command.if.match/client",
+        "${http}/post.item.command.if.match/server"})
+    public void shouldPostItemCommandIfMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.item.command.if.match.failed/client",
+        "${http}/post.item.command.if.match.failed/server"})
+    public void shouldNotPostItemCommandIfMatchFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.item.command.prefer.async/client",
+        "${http}/post.item.command.prefer.async/server"})
+    public void shouldPostItemCommandPreferAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.item.command.prefer.async.delayed/client",
+        "${http}/post.item.command.prefer.async.delayed/server"})
+    public void shouldPostItemCommandPreferAsyncDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.item.command.prefer.async.ignored/client",
+        "${http}/post.item.command.prefer.async.ignored/server"})
+    public void shouldPostItemCommandPreferAsyncIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.items/client",
+        "${http}/post.items/server"})
+    public void shouldPostItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.items.prefer.async/client",
+        "${http}/post.items.prefer.async/server"})
+    public void shouldPostItemsPreferAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.items.prefer.async.delayed/client",
+        "${http}/post.items.prefer.async.delayed/server"})
+    public void shouldPostItemsPreferAsyncDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/post.items.prefer.async.ignored/client",
+        "${http}/post.items.prefer.async.ignored/server"})
+    public void shouldPostItemsPreferAsyncIgnored() throws Exception
     {
         k3po.finish();
     }
@@ -136,18 +307,45 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/put.item.async/client",
-        "${http}/put.item.async/server"})
-    public void shouldPutItemAsync() throws Exception
+        "${http}/put.item.if.match/client",
+        "${http}/put.item.if.match/server"})
+    public void shouldPutItemIfMatch() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${http}/put.item.sync/client",
-        "${http}/put.item.sync/server"})
-    public void shouldPutItemSync() throws Exception
+        "${http}/put.item.if.match.failed/client",
+        "${http}/put.item.if.match.failed/server"})
+    public void shouldNotPutItemIfMatchFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/put.item.prefer.async/client",
+        "${http}/put.item.prefer.async/server"})
+    public void shouldPutItemPreferAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/put.item.prefer.async.delayed/client",
+        "${http}/put.item.prefer.async.delayed/server"})
+    public void shouldPutItemPreferAyncDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/put.item.prefer.async.ignored/client",
+        "${http}/put.item.prefer.async.ignored/server"})
+    public void shouldPutItemPreferAyncIgnored() throws Exception
     {
         k3po.finish();
     }

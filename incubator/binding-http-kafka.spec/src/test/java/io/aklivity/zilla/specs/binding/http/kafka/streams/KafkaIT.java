@@ -48,9 +48,64 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/delete.item.if.match/client",
+        "${kafka}/delete.item.if.match/server"})
+    public void shouldDeleteItemIfMatch() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.item.if.match.failed/client",
+        "${kafka}/delete.item.if.match.failed/server"})
+    public void shouldNotDeleteItemIfMatchFailed() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.item/client",
         "${kafka}/get.item/server"})
     public void shouldGetItem() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.item.deleted/client",
+        "${kafka}/get.item.deleted/server"})
+    public void shouldNotGetItemDeleted() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.item.modified/client",
+        "${kafka}/get.item.modified/server"})
+    public void shouldGetItemModified() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.item.not.found/client",
+        "${kafka}/get.item.not.found/server"})
+    public void shouldNotGetItemNotFound() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
@@ -81,9 +136,97 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/patch.item.if.match/client",
+        "${kafka}/patch.item.if.match/server"})
+    public void shouldPatchItemIfMatch() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/patch.item.if.match.failed/client",
+        "${kafka}/patch.item.if.match.failed/server"})
+    public void shouldNotPatchItemIfMatchFailed() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.item.command/client",
+        "${kafka}/post.item.command/server"})
+    public void shouldPostItemCommand() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.item.command.if.match/client",
+        "${kafka}/post.item.command.if.match/server"})
+    public void shouldPostItemCommandIfMatch() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.item.command.if.match.failed/client",
+        "${kafka}/post.item.command.if.match.failed/server"})
+    public void shouldNotPostItemCommandIfMatchFailed() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.items/client",
+        "${kafka}/post.items/server"})
+    public void shouldPostItems() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/put.item/client",
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/put.item.if.match/client",
+        "${kafka}/put.item.if.match/server"})
+    public void shouldPutItemIfMatch() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/put.item.if.match.failed/client",
+        "${kafka}/put.item.if.match.failed/server"})
+    public void shouldNotPutItemIfMatchFailed() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
