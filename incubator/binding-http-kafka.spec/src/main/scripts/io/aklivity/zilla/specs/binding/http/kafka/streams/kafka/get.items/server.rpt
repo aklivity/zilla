@@ -30,6 +30,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write await SEND_ASYNC_RESPONSE
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

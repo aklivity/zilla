@@ -73,9 +73,27 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.item.wait/client",
+        "${http}/get.item.wait/server"})
+    public void shouldGetItemWait() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.items/client",
         "${http}/get.items/server"})
     public void shouldGetItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.wait/client",
+        "${http}/get.items.wait/server"})
+    public void shouldGetItemsWait() throws Exception
     {
         k3po.finish();
     }
