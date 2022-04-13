@@ -32,6 +32,10 @@
                                     "default": "idempotency-key"
                                 }
                             },
+                            "required":
+                            [
+                                "header"
+                            ],
                             "additionalProperties": false
                         },
                         "correlation":
@@ -62,6 +66,10 @@
                                     "additionalProperties": false
                                 }
                             },
+                            "required":
+                            [
+                                "headers"
+                            ],
                             "additionalProperties": false
                         }
                     },
@@ -147,7 +155,7 @@
                                                     {
                                                         "title": "Content Type",
                                                         "type": "string",
-                                                        "enum": [ "application/json" ]
+                                                        "const": "application/json"
                                                     },
                                                     "patch":
                                                     {
@@ -168,9 +176,17 @@
                                                                 "default": "/-"
                                                             }
                                                         },
+                                                        "required":
+                                                        [
+                                                            "initial", "path"
+                                                        ],
                                                         "additionalProperties": false
                                                     }
                                                 },
+                                                "required":
+                                                [
+                                                    "content-type"
+                                                ],
                                                 "additionalProperties": false
                                             }
                                         },
