@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class HttpKafkaRouteConfig extends OptionsConfig
 {
     public final long id;
-    public final Optional<HttpKafkaWithResolver> with;
+    public final HttpKafkaWithResolver with;
 
     private final List<HttpKafkaConditionMatcher> when;
     private final LongPredicate authorized;
@@ -36,10 +36,11 @@ public final class HttpKafkaRouteConfig extends OptionsConfig
         RouteConfig route)
     {
         this.id = route.id;
-        this.with = Optional.ofNullable(route.with)
+        this.with = Optional.of(route.with)
             .map(HttpKafkaWithConfig.class::cast)
-            .map(HttpKafkaWithResolver::new);
-        Consumer<HttpKafkaConditionMatcher> observer = with.isPresent() ? with.get()::onConditionMatched : null;
+            .map(HttpKafkaWithResolver::new)
+            .get();
+        Consumer<HttpKafkaConditionMatcher> observer = with::onConditionMatched;
         this.when = route.when.stream()
                 .map(HttpKafkaConditionConfig.class::cast)
                 .map(HttpKafkaConditionMatcher::new)

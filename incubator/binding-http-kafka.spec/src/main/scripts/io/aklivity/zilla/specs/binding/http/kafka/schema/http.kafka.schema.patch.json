@@ -248,24 +248,18 @@
                                     "topic"
                                 ]
                             }
-                        }
+                        },
+                        "required":
+                        [
+                            "with"
+                        ]
                     }
-                }
-            },
-            "anyOf":
-            [
-                {
-                    "required":
-                    [
-                        "exit"
-                    ]
                 },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
-                }
+                "exit": false
+            },
+            "required":
+            [
+                "routes"
             ]
         }
     }

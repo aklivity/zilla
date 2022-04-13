@@ -144,17 +144,15 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         MessageConsumer newStream = null;
 
-        if (route != null && route.with.isPresent())
+        if (route != null)
         {
             final long resolvedId = route.id;
 
-            switch (route.with.get().capability())
+            switch (route.with.capability())
             {
             case FETCH:
             {
-                final HttpKafkaWithFetchResult resolved = route.with
-                        .map(r -> r.resolveFetch(httpBeginEx))
-                        .orElse(null);
+                final HttpKafkaWithFetchResult resolved = route.with.resolveFetch(httpBeginEx);
 
                 newStream = new HttpFetchProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
                 break;
