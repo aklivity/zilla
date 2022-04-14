@@ -37,6 +37,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaTypeFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaHeadersFW;
@@ -49,6 +50,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkipFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.String16FW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.String8FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaBootstrapBeginExFW;
@@ -73,6 +76,12 @@ public final class KafkaFunctions
     public static KafkaBeginExBuilder beginEx()
     {
         return new KafkaBeginExBuilder();
+    }
+
+    @Function
+    public static KafkaBeginExMatcherBuilder matchBeginEx()
+    {
+        return new KafkaBeginExMatcherBuilder();
     }
 
     @Function
@@ -840,7 +849,7 @@ public final class KafkaFunctions
             public KafkaProduceBeginExBuilder partition(
                 int partitionId)
             {
-                partition(partitionId, DEFAULT_LATEST_OFFSET, DEFAULT_LATEST_OFFSET);
+                partition(partitionId, DEFAULT_LATEST_OFFSET);
                 return this;
             }
 
@@ -2228,6 +2237,434 @@ public final class KafkaFunctions
                 final KafkaMergedDataExFW mergedDataEx)
             {
                 return headersRW == null || headersRW.build().equals(mergedDataEx.headers());
+            }
+        }
+    }
+
+    public static final class KafkaBeginExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final KafkaBeginExFW beginExRO = new KafkaBeginExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<KafkaBeginExFW> caseMatcher;
+
+        public KafkaMergedBeginExMatcherBuilder merged()
+        {
+            final KafkaMergedBeginExMatcherBuilder matcherBuilder = new KafkaMergedBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.MERGED.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaFetchBeginExMatcherBuilder fetch()
+        {
+            final KafkaFetchBeginExMatcherBuilder matcherBuilder = new KafkaFetchBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.FETCH.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaProduceBeginExMatcherBuilder produce()
+        {
+            final KafkaProduceBeginExMatcherBuilder matcherBuilder = new KafkaProduceBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.PRODUCE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaBeginExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private KafkaBeginExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final KafkaBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (beginEx != null &&
+                matchTypeId(beginEx) &&
+                matchKind(beginEx) &&
+                matchCase(beginEx))
+            {
+                byteBuf.position(byteBuf.position() + beginEx.sizeof());
+                return beginEx;
+            }
+
+            throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final KafkaBeginExFW beginEx)
+        {
+            return typeId == null || typeId == beginEx.typeId();
+        }
+
+        private boolean matchKind(
+            final KafkaBeginExFW beginEx)
+        {
+            return kind == null || kind == beginEx.kind();
+        }
+
+        private boolean matchCase(
+            final KafkaBeginExFW beginEx) throws Exception
+        {
+            return caseMatcher == null || caseMatcher.test(beginEx);
+        }
+
+        public final class KafkaFetchBeginExMatcherBuilder
+        {
+            private String16FW topic;
+            private KafkaDeltaTypeFW deltaType;
+
+            private KafkaOffsetFW.Builder partitionRW;
+            private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
+
+            private KafkaFetchBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaFetchBeginExMatcherBuilder topic(
+                String topic)
+            {
+                this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaFetchBeginExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaFetchBeginExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                long latestOffset)
+            {
+                assert partitionRW == null;
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                partitionRW.partitionId(partitionId).partitionOffset(partitionOffset).latestOffset(latestOffset);
+
+                return this;
+            }
+
+            public KafkaFilterBuilder<KafkaFetchBeginExMatcherBuilder> filter()
+            {
+                if (filtersRW == null)
+                {
+                    filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+
+                return new KafkaFilterBuilder<>()
+                {
+
+                    @Override
+                    protected KafkaFetchBeginExMatcherBuilder build(
+                        KafkaFilterFW filter)
+                    {
+                        filtersRW.item(fb -> set(fb, filter));
+                        return KafkaFetchBeginExMatcherBuilder.this;
+                    }
+                };
+            }
+
+            public KafkaFetchBeginExMatcherBuilder deltaType(
+                String deltaType)
+            {
+                assert this.deltaType == null;
+                this.deltaType = new KafkaDeltaTypeFW.Builder().wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                        .set(KafkaDeltaType.valueOf(deltaType))
+                        .build();
+                return this;
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaFetchBeginExFW fetchBeginEx = beginEx.fetch();
+                return matchTopic(fetchBeginEx) &&
+                    matchPartition(fetchBeginEx) &&
+                    matchFilters(fetchBeginEx) &&
+                    matchDeltaType(fetchBeginEx);
+            }
+
+            private boolean matchTopic(
+                final KafkaFetchBeginExFW fetchBeginEx)
+            {
+                return topic == null || topic.equals(fetchBeginEx.topic());
+            }
+
+            private boolean matchPartition(
+                final KafkaFetchBeginExFW fetchBeginEx)
+            {
+                return partitionRW == null || partitionRW.build().equals(fetchBeginEx.partition());
+            }
+
+            private boolean matchFilters(
+                final KafkaFetchBeginExFW fetchBeginEx)
+            {
+                return filtersRW == null || filtersRW.build().equals(fetchBeginEx.filters());
+            }
+
+            private boolean matchDeltaType(
+                final KafkaFetchBeginExFW fetchBeginEx)
+            {
+                return deltaType == null || deltaType.equals(fetchBeginEx.deltaType());
+            }
+        }
+
+        public final class KafkaProduceBeginExMatcherBuilder
+        {
+            private String8FW transaction;
+            private Long producerId;
+            private String16FW topic;
+            private KafkaOffsetFW.Builder partitionRW;
+
+            private KafkaProduceBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaProduceBeginExMatcherBuilder transaction(
+                String transaction)
+            {
+                this.transaction = new String8FW(transaction);
+                return this;
+            }
+
+            public KafkaProduceBeginExMatcherBuilder producerId(
+                long producerId)
+            {
+                this.producerId = producerId;
+                return this;
+            }
+
+            public KafkaProduceBeginExMatcherBuilder topic(
+                String topic)
+            {
+                this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaProduceBeginExMatcherBuilder partition(
+                int partitionId)
+            {
+                partition(partitionId, DEFAULT_LATEST_OFFSET, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaProduceBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset)
+            {
+                partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaProduceBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset,
+                long latestOffset)
+            {
+                assert partitionRW == null;
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                partitionRW.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset);
+
+                return this;
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaProduceBeginExFW produceBeginEx = beginEx.produce();
+                return matchTransaction(produceBeginEx) &&
+                    matchProducerId(produceBeginEx) &&
+                    matchTopic(produceBeginEx) &&
+                    matchPartition(produceBeginEx);
+            }
+
+            private boolean matchTransaction(
+                final KafkaProduceBeginExFW produceBeginEx)
+            {
+                return transaction == null || transaction.equals(produceBeginEx.transaction());
+            }
+
+            private boolean matchProducerId(
+                final KafkaProduceBeginExFW produceBeginEx)
+            {
+                return producerId == null || producerId == produceBeginEx.producerId();
+            }
+
+            private boolean matchTopic(
+                final KafkaProduceBeginExFW produceBeginEx)
+            {
+                return topic == null || topic.equals(produceBeginEx.topic());
+            }
+
+            private boolean matchPartition(
+                final KafkaProduceBeginExFW produceBeginEx)
+            {
+                return partitionRW == null || partitionRW.build().equals(produceBeginEx.partition());
+            }
+
+        }
+
+        public final class KafkaMergedBeginExMatcherBuilder
+        {
+            private KafkaCapabilities capabilities;
+            private String16FW topic;
+            private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
+            private KafkaDeltaType deltaType;
+            private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
+
+            private KafkaMergedBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaMergedBeginExMatcherBuilder capabilities(
+                String capabilities)
+            {
+                assert this.capabilities == null;
+                this.capabilities = KafkaCapabilities.valueOf(capabilities);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder topic(
+                String topic)
+            {
+                this.topic = new String16FW(topic);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset)
+            {
+                partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset,
+                long latestOffset)
+            {
+                if (partitionsRW == null)
+                {
+                    this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+                                                 .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                partitionsRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
+                return this;
+            }
+
+            public KafkaFilterBuilder<KafkaMergedBeginExMatcherBuilder> filter()
+            {
+                if (filtersRW == null)
+                {
+                    filtersRW = new Array32FW.Builder<>(new KafkaFilterFW.Builder(), new KafkaFilterFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+
+                return new KafkaFilterBuilder<>()
+                {
+
+                    @Override
+                    protected KafkaMergedBeginExMatcherBuilder build(
+                        KafkaFilterFW filter)
+                    {
+                        filtersRW.item(fb -> set(fb, filter));
+                        return KafkaMergedBeginExMatcherBuilder.this;
+                    }
+                };
+            }
+
+            public KafkaMergedBeginExMatcherBuilder deltaType(
+                String deltaType)
+            {
+                assert this.deltaType == null;
+                this.deltaType = KafkaDeltaType.valueOf(deltaType);
+                return this;
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaMergedBeginExFW mergedBeginEx = beginEx.merged();
+                return matchCapabilities(mergedBeginEx) &&
+                    matchTopic(mergedBeginEx) &&
+                    matchPartitions(mergedBeginEx) &&
+                    matchFilters(mergedBeginEx) &&
+                    matchDeltaType(mergedBeginEx);
+            }
+
+            private boolean matchCapabilities(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return capabilities == null || capabilities == mergedBeginEx.capabilities().get();
+            }
+
+            private boolean matchTopic(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return topic == null || topic.equals(mergedBeginEx.topic());
+            }
+
+            private boolean matchPartitions(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return partitionsRW == null || partitionsRW.build().equals(mergedBeginEx.partitions());
+            }
+
+            private boolean matchFilters(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return filtersRW == null || filtersRW.build().equals(mergedBeginEx.filters());
+            }
+
+            private boolean matchDeltaType(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return deltaType == null || deltaType == mergedBeginEx.deltaType().get();
             }
         }
     }
