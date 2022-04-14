@@ -115,15 +115,19 @@ public final class HttpKafkaBindingConfig
         private void visitMethod(
             String16FW value)
         {
-            final DirectBuffer buffer = value.value();
-            method = methodRO.wrap(buffer, 0, buffer.capacity());
+            final DirectBuffer buffer = value.buffer();
+            final int offset = value.offset() + value.fieldSizeLength();
+            final int length = value.sizeof() - value.fieldSizeLength();
+            method = methodRO.wrap(buffer, offset, length);
         }
 
         private void visitPath(
             String16FW value)
         {
-            final DirectBuffer buffer = value.value();
-            path = pathRO.wrap(buffer, 0, buffer.capacity());
+            final DirectBuffer buffer = value.buffer();
+            final int offset = value.offset() + value.fieldSizeLength();
+            final int length = value.sizeof() - value.fieldSizeLength();
+            path = pathRO.wrap(buffer, offset, length);
         }
     }
 }

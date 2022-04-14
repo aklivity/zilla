@@ -18,16 +18,15 @@ connect "zilla://streams/kafka0"
     option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .merged()
-                                   .capabilities("FETCH_ONLY")
-                                   .topic("items-snapshots")
-                                   .partition(-1, -2)
-                                   .filter()
+                             .typeId(zilla:id("kafka"))
+                             .merged()
+                                 .capabilities("FETCH_ONLY")
+                                 .topic("items-snapshots")
+                                 .filter()
                                      .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                      .build()
-                                   .build()
-                               .build()}
+                                 .build()
+                             .build()}
 
 connected
 

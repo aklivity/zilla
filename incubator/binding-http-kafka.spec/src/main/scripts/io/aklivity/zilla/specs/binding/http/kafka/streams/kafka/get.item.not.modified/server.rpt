@@ -35,20 +35,5 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 2, 2)
-                                .progress(0, 3)
-                                .progress(1, 1)
-                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header("content-type", "application/json")
-                                .header("etag", "revision=43")
-                                .build()
-                            .build()}
-write '{ "name": "widget" }'
-write flush
-
 write close
 read closed

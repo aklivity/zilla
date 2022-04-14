@@ -13,26 +13,27 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/http0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
-        option zilla:update "proactive"
-
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":method", "GET")
-                            .header(":scheme", "https")
-                            .header(":authority", "example.com:9090")
-                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                            .build()}
-
-connected
-
-write close
+accept "zilla://streams/http0"
+       option zilla:window 8192
+       option zilla:transmission "half-duplex"
+accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "404")
+                           .header(":method", "GET")
+                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                           .header("prefer", "wait=1")
                            .build()}
 
+connected
+
 read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "404")
+                            .build()}
+
+write flush
+
+write close

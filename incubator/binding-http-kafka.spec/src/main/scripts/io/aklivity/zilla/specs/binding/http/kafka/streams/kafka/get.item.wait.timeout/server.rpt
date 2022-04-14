@@ -24,6 +24,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("items-snapshots")
+                                .partition(-1, -2)
                                 .filter()
                                     .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                     .build()
@@ -32,20 +33,5 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header("content-type", "application/json")
-                                .header("etag", "revision=42")
-                                .build()
-                            .build()}
-write '{ "name": "gadget" }'
-write flush
-
-write close
 read closed
+write close

@@ -136,6 +136,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.item.prefer.wait.not.found/client",
+        "${http}/get.item.prefer.wait.not.found/server"})
+    public void shouldNotGetItemPreferWaitNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.items/client",
         "${http}/get.items/server"})
     public void shouldGetItems() throws Exception

@@ -82,7 +82,7 @@ public final class HttpKafkaState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
     }
 
     static boolean replyOpening(

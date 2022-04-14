@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -50,6 +51,7 @@ public class HttpKafkaProxyIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
@@ -60,6 +62,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
@@ -70,6 +73,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
@@ -80,6 +84,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
@@ -90,6 +95,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
@@ -100,6 +106,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
@@ -135,7 +142,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.get.item.json")
     @Specification({
         "${http}/get.item.if.none.match.not.modified/client",
-        "${kafka}/get.item/server"})
+        "${kafka}/get.item.not.modified/server"})
     public void shouldNotGetItemIfNoneMatchNotModified() throws Exception
     {
         k3po.finish();
@@ -165,12 +172,23 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.get.item.json")
     @Specification({
         "${http}/get.item.prefer.wait/client",
-        "${kafka}/get.item/server"})
+        "${kafka}/get.item.wait/server"})
     public void shouldGetItemPreferWait() throws Exception
     {
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.get.item.json")
+    @Specification({
+        "${http}/get.item.prefer.wait.not.found/client",
+        "${kafka}/get.item.wait.timeout/server"})
+    public void shouldNotGetItemPreferWaitNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.get.items.json")
     @Specification({
@@ -181,6 +199,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.get.items.json")
     @Specification({
@@ -191,6 +210,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
@@ -201,6 +221,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
@@ -211,6 +232,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
@@ -221,6 +243,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.async.json")
     @Specification({
@@ -231,6 +254,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.async.json")
     @Specification({
@@ -241,6 +265,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
@@ -251,6 +276,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({
@@ -261,6 +287,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({
@@ -271,6 +298,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({
@@ -281,6 +309,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.async.json")
     @Specification({
@@ -291,6 +320,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.async.json")
     @Specification({
@@ -301,6 +331,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({
@@ -311,6 +342,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.items.json")
     @Specification({
@@ -321,6 +353,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.items.async.json")
     @Specification({
@@ -331,6 +364,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.items.async.json")
     @Specification({
@@ -341,6 +375,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.items.json")
     @Specification({
@@ -351,6 +386,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({
@@ -361,6 +397,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({
@@ -371,6 +408,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({
@@ -381,6 +419,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.async.json")
     @Specification({
@@ -391,6 +430,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.async.json")
     @Specification({
@@ -401,6 +441,7 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({

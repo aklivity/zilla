@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -22,7 +24,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.stream.HttpKafkaEtagHelper;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
@@ -31,8 +38,22 @@ public final class HttpKafkaWithResolver
 {
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
 
+    private static final String8FW HEADER_NAME_PREFER = new String8FW("prefer");
+    private static final String8FW HEADER_NAME_IF_NONE_MATCH = new String8FW("if-none-match");
+
+    private static final Pattern HEADER_VALUE_PREFER_WAIT_PATTERN = Pattern.compile("(^|;)\\s*wait=(?<wait>\\d+)(;|$)");
+    private static final Pattern HEADER_VALUE_IF_NONE_MATCH_PATTERN =
+            Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_]+)(/.*))?");
+
+    private final String8FW.Builder stringRW = new String8FW.Builder()
+            .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+
+    private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
+
     private final HttpKafkaWithConfig with;
     private final Matcher paramsMatcher;
+    private final Matcher preferWaitMatcher;
+    private final Matcher ifNoneMatchMatcher;
 
     private Function<MatchResult, String> replacer = r -> null;
 
@@ -41,6 +62,8 @@ public final class HttpKafkaWithResolver
     {
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
+        this.preferWaitMatcher = HEADER_VALUE_PREFER_WAIT_PATTERN.matcher("");
+        this.ifNoneMatchMatcher = HEADER_VALUE_IF_NONE_MATCH_PATTERN.matcher("");
     }
 
     public void onConditionMatched(
@@ -67,6 +90,29 @@ public final class HttpKafkaWithResolver
             topic0 = topicMatcher.replaceAll(replacer);
         }
         String16FW topic = new String16FW(topic0);
+
+        long timeout = 0L;
+        Array32FW<KafkaOffsetFW> partitions = null;
+        String etag = null;
+
+        final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
+        final HttpHeaderFW ifNoneMatch = httpHeaders.matchFirst(h -> HEADER_NAME_IF_NONE_MATCH.equals(h.name()));
+        if (ifNoneMatch != null && ifNoneMatchMatcher.reset(ifNoneMatch.value().asString()).matches())
+        {
+            etag = ifNoneMatchMatcher.group("etag");
+
+            final String progress = ifNoneMatchMatcher.group("progress");
+            final String8FW decodable = stringRW
+                .set(ifNoneMatch.value().value(), 0, progress.length())
+                .build();
+            partitions = etagHelper.decode(decodable);
+        }
+
+        final HttpHeaderFW prefer = httpHeaders.matchFirst(h -> HEADER_NAME_PREFER.equals(h.name()));
+        if (prefer != null && preferWaitMatcher.reset(prefer.value().asString()).find())
+        {
+            timeout = SECONDS.toMillis(Long.parseLong(preferWaitMatcher.group("wait")));
+        }
 
         List<HttpKafkaWithFetchFilterResult> filters = null;
         if (fetch.filters.isPresent())
@@ -114,7 +160,7 @@ public final class HttpKafkaWithResolver
         }
 
         // TODO: merge
-        return new HttpKafkaWithFetchResult(topic, filters);
+        return new HttpKafkaWithFetchResult(topic, partitions, filters, etag, timeout);
     }
 
     public HttpKafkaWithProduceResult resolveProduce(

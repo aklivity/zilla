@@ -32,8 +32,9 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
+                            .header("content-length", "20")
                             .header("content-type", "application/json")
-                            .header("etag", "TODO/revision=42")
+                            .header("etag", "AQQABAIC/revision=42")
                             .build()}
 
 write '{ "name": "gadget" }'

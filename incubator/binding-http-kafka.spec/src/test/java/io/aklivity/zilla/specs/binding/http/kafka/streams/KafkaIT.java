@@ -74,8 +74,6 @@ public class KafkaIT
         "${kafka}/get.item/server"})
     public void shouldGetItem() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
@@ -85,8 +83,6 @@ public class KafkaIT
         "${kafka}/get.item.deleted/server"})
     public void shouldNotGetItemDeleted() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
@@ -96,8 +92,6 @@ public class KafkaIT
         "${kafka}/get.item.modified/server"})
     public void shouldGetItemModified() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
@@ -107,8 +101,33 @@ public class KafkaIT
         "${kafka}/get.item.not.found/server"})
     public void shouldNotGetItemNotFound() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.item.not.modified/client",
+        "${kafka}/get.item.not.modified/server"})
+    public void shouldNotGetItemNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.item.wait/client",
+        "${kafka}/get.item.wait/server"})
+    public void shouldGetItemWait() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.item.wait.timeout/client",
+        "${kafka}/get.item.wait.timeout/server"})
+    public void shouldNotGetItemWaitTimeout() throws Exception
+    {
         k3po.finish();
     }
 
