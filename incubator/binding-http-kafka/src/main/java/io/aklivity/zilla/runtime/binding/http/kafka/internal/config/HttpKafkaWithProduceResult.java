@@ -20,39 +20,53 @@ import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
 public class HttpKafkaWithProduceResult
 {
+    private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_202 =
+        new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("202"));
+    private static final String8FW HTTP_HEADER_NAME_PREFER = new String8FW("prefer");
+
+    private final HttpKafkaCorrelationConfig correlation;
     private final String16FW topic;
     private final DirectBuffer key;
     private final List<HttpKafkaWithProduceOverrideResult> overrides;
     private final String16FW replyTo;
     private final List<HttpKafkaWithProduceAsyncHeaderResult> async;
+    private final String16FW correlationId;
+    private final String16FW idempotencyKey;
+    private final long timeout;
 
     HttpKafkaWithProduceResult(
+        HttpKafkaCorrelationConfig correlation,
         String16FW topic,
         DirectBuffer key,
         List<HttpKafkaWithProduceOverrideResult> overrides,
         String16FW replyTo,
-        List<HttpKafkaWithProduceAsyncHeaderResult> async)
+        String16FW idempotencyKey,
+        List<HttpKafkaWithProduceAsyncHeaderResult> async,
+        String16FW correlationId,
+        long timeout)
     {
+        this.correlation = correlation;
         this.topic = topic;
         this.key = key;
         this.overrides = overrides;
         this.replyTo = replyTo;
+        this.idempotencyKey = idempotencyKey;
         this.async = async;
+        this.correlationId = correlationId;
+        this.timeout = timeout;
     }
 
     public String16FW topic()
     {
         return topic;
-    }
-
-    public DirectBuffer key()
-    {
-        return key;
     }
 
     public void overrides(
@@ -69,12 +83,133 @@ public class HttpKafkaWithProduceResult
         return replyTo;
     }
 
+    public void key(
+        KafkaKeyFW.Builder builder)
+    {
+        if (key != null)
+        {
+            builder
+                .length(key.capacity())
+                .value(key, 0, key.capacity());
+        }
+    }
+
+    public void headers(
+        Array32FW<HttpHeaderFW> headers,
+        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
+    {
+        headers.forEach(h -> header(h, builder));
+        builder.item(this::replyTo);
+        builder.item(this::correlationId);
+    }
+
+    private void header(
+        HttpHeaderFW header,
+        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
+    {
+        final String8FW name = header.name();
+        final String16FW value = header.value();
+
+        if (!HTTP_HEADER_NAME_PREFER.equals(name))
+        {
+            builder.item(i -> i
+                .nameLen(name.length())
+                .name(name.value(), 0, name.length())
+                .valueLen(value.length())
+                .value(value.value(), 0, value.length()));
+        }
+    }
+
+    private void replyTo(
+        KafkaHeaderFW.Builder builder)
+    {
+        if (replyTo != null)
+        {
+            builder
+                .nameLen(correlation.replyTo.length())
+                .name(correlation.replyTo.value(), 0, correlation.replyTo.length())
+                .valueLen(replyTo.length())
+                .value(replyTo.value(), 0, replyTo.length());
+        }
+    }
+
+    private void correlationId(
+        KafkaHeaderFW.Builder builder)
+    {
+        if (idempotencyKey != null)
+        {
+            builder
+                .nameLen(correlation.correlationId.length())
+                .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
+                .valueLen(idempotencyKey.length())
+                .value(idempotencyKey.value(), 0, idempotencyKey.length());
+        }
+    }
+
+    public String16FW idempotencyKey()
+    {
+        return idempotencyKey;
+    }
+
+    public void correlated(
+        Array32FW<KafkaHeaderFW> headers,
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
+    {
+        headers.forEach(h -> correlated(h, builder));
+    }
+
+    private void correlated(
+        KafkaHeaderFW header,
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
+    {
+        final DirectBuffer name = header.name().value();
+        final DirectBuffer value = header.value().value();
+
+        if (!correlation.correlationId.value().equals(name))
+        {
+            builder.item(i -> i
+                .name(name, 0, name.capacity())
+                .value(value, 0, value.capacity()));
+        }
+    }
+
     public void async(
         Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
     {
         if (async != null)
         {
+            builder.item(HTTP_STATUS_202::header);
             async.forEach(a -> builder.item(a::header));
+        }
+    }
+
+    public boolean async()
+    {
+        return async != null;
+    }
+
+    public boolean correlated()
+    {
+        return correlationId != null;
+    }
+
+    public long timeout()
+    {
+        return timeout;
+    }
+
+    public void filters(
+        Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
+    {
+        if (correlationId != null)
+        {
+            builder.item(i -> i
+                .conditionsItem(c -> c
+                    .header(h -> h
+                        .nameLen(correlation.correlationId.length())
+                        .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
+                        .valueLen(correlationId.length())
+                        .value(correlationId.value(), 0, correlationId.length()))));
         }
     }
 }

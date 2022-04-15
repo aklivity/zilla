@@ -14,8 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
 public final class HttpKafkaWithProduceConfig
 {
@@ -24,6 +31,8 @@ public final class HttpKafkaWithProduceConfig
     public final Optional<List<HttpKafkaWithProduceOverrideConfig>> overrides;
     public final Optional<String> replyTo;
     public final Optional<List<HttpKafkaWithProduceAsyncHeaderConfig>> async;
+
+    private final List<Matcher> asyncMatchers;
 
     public HttpKafkaWithProduceConfig(
         String topic,
@@ -37,5 +46,36 @@ public final class HttpKafkaWithProduceConfig
         this.overrides = Optional.ofNullable(overrides);
         this.replyTo = Optional.ofNullable(replyTo);
         this.async = Optional.ofNullable(async);
+
+        this.asyncMatchers = this.async.isPresent()
+            ? async.stream()
+                .map(h -> h.value)
+                .filter(v -> v.contains("${correlationId}"))
+                .map(HttpKafkaWithProduceConfig::asMatcher)
+                .collect(toList())
+            : null;
+    }
+
+    public String16FW correlationId(
+        HttpHeaderFW path)
+    {
+        final String httpPath = path.value().asString();
+
+        return asyncMatchers != null
+            ? asyncMatchers.stream()
+                .filter(m -> m.reset(httpPath).matches())
+                .map(m -> m.group("correlationId"))
+                .map(String16FW::new)
+                .findFirst()
+                .orElse(null)
+            : null;
+    }
+
+    private static Matcher asMatcher(
+        String wildcard)
+    {
+        return Pattern
+                .compile(wildcard.replaceAll("\\$\\{(?:params\\.)?([a-zA-Z_]+)\\}", "(?<$1>.+)"))
+                .matcher("");
     }
 }

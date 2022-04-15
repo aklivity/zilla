@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
 public class HttpKafkaOptionsConfigAdapterTest
 {
@@ -74,7 +75,7 @@ public class HttpKafkaOptionsConfigAdapterTest
     {
         HttpKafkaOptionsConfig options = new HttpKafkaOptionsConfig(
                 new HttpKafkaIdempotencyConfig(
-                    new String16FW("x-idempotency-key")),
+                    new String8FW("x-idempotency-key")),
                 new HttpKafkaCorrelationConfig(
                     new String16FW("zilla:x-reply-to"),
                     new String16FW("zilla:x-correlation-id")));

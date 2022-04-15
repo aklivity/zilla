@@ -33,12 +33,13 @@ public final class HttpKafkaRouteConfig extends OptionsConfig
     private final LongPredicate authorized;
 
     public HttpKafkaRouteConfig(
+        HttpKafkaOptionsConfig options,
         RouteConfig route)
     {
         this.id = route.id;
         this.with = Optional.of(route.with)
             .map(HttpKafkaWithConfig.class::cast)
-            .map(HttpKafkaWithResolver::new)
+            .map(c -> new HttpKafkaWithResolver(options, c))
             .get();
         Consumer<HttpKafkaConditionMatcher> observer = with::onConditionMatched;
         this.when = route.when.stream()

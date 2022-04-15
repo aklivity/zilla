@@ -259,7 +259,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.patch.item.async.json")
     @Specification({
         "${http}/patch.item.prefer.async.delayed/client",
-        "${http}/patch.item/server"})
+        "${kafka}/patch.item/server"})
     public void shouldPatchItemPreferAsyncDelayed() throws Exception
     {
         k3po.finish();
@@ -270,7 +270,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.patch.item.json")
     @Specification({
         "${http}/patch.item.prefer.async.ignored/client",
-        "${http}/patch.item/server"})
+        "${kafka}/patch.item/server"})
     public void shouldPatchItemPreferAsyncIgnored() throws Exception
     {
         k3po.finish();
@@ -336,7 +336,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.post.item.command.json")
     @Specification({
         "${http}/post.item.command.prefer.async.ignored/client",
-        "${http}/post.item.command/server"})
+        "${kafka}/post.item.command/server"})
     public void shouldPostItemCommandPreferAsyncIgnored() throws Exception
     {
         k3po.finish();
@@ -419,7 +419,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.async.json")
     @Specification({
@@ -430,12 +429,11 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.async.json")
     @Specification({
         "${http}/put.item.prefer.async.delayed/client",
-        "${http}/put.item.prefer/server"})
+        "${kafka}/put.item.delayed/server"})
     public void shouldPutItemPreferAyncDelayed() throws Exception
     {
         k3po.finish();
@@ -446,7 +444,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.put.item.json")
     @Specification({
         "${http}/put.item.prefer.async.ignored/client",
-        "${http}/put.item.prefer/server"})
+        "${kafka}/put.item/server"})
     public void shouldPutItemPreferAyncIgnored() throws Exception
     {
         k3po.finish();

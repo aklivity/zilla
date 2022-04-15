@@ -30,6 +30,10 @@
                         {
                             "method": "PUT",
                             "path": "/items/{id}"
+                        },
+                        {
+                            "method": "GET",
+                            "path": "/items/{id};{correlationId}"
                         }
                     ],
                     "with":

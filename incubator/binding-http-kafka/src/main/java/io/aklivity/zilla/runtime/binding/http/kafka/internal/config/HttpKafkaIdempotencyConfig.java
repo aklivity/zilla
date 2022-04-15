@@ -16,14 +16,14 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
 import java.util.Objects;
 
-import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
 public final class HttpKafkaIdempotencyConfig
 {
-    public final String16FW header;
+    public final String8FW header;
 
     public HttpKafkaIdempotencyConfig(
-        String16FW header)
+        String8FW header)
     {
         this.header = header;
     }

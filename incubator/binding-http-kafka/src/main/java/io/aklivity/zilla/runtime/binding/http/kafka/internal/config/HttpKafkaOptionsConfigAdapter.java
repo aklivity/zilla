@@ -21,6 +21,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.HttpKafkaBinding;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -29,7 +30,7 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String IDEMPOTENCY_NAME = "idempotency";
     private static final String IDEMPOTENCY_HEADER_NAME = "header";
 
-    private static final String16FW IDEMPOTENCY_HEADER_DEFAULT = new String16FW("idempotency-key");
+    private static final String8FW IDEMPOTENCY_HEADER_DEFAULT = new String8FW("idempotency-key");
     private static final HttpKafkaIdempotencyConfig IDEMPOTENCY_DEFAULT =
         new HttpKafkaIdempotencyConfig(
             IDEMPOTENCY_HEADER_DEFAULT);
@@ -108,12 +109,12 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
         if (object.containsKey(IDEMPOTENCY_NAME))
         {
-            String16FW newIdempotencyKey = IDEMPOTENCY_HEADER_DEFAULT;
+            String8FW newIdempotencyKey = IDEMPOTENCY_HEADER_DEFAULT;
 
             JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
             if (idempotency.containsKey(IDEMPOTENCY_HEADER_NAME))
             {
-                newIdempotencyKey = new String16FW(idempotency.getString(IDEMPOTENCY_HEADER_NAME));
+                newIdempotencyKey = new String8FW(idempotency.getString(IDEMPOTENCY_HEADER_NAME));
             }
 
             newIdempotency = new HttpKafkaIdempotencyConfig(newIdempotencyKey);

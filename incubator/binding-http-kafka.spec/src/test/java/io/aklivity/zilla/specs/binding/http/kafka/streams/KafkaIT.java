@@ -225,8 +225,15 @@ public class KafkaIT
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/put.item.delayed/client",
+        "${kafka}/put.item.delayed/server"})
+    public void shouldPutItemDelayed() throws Exception
+    {
         k3po.finish();
     }
 
