@@ -185,6 +185,12 @@ public final class HttpKafkaWithResolver
     {
         HttpKafkaWithProduceConfig produce = with.produce.get();
 
+        final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
+        final HttpHeaderFW httpIdempotencyKey = httpHeaders.matchFirst(h -> options.idempotency.header.equals(h.name()));
+        String16FW idempotencyKey = httpIdempotencyKey != null
+                ? new String16FW(httpIdempotencyKey.value().asString())
+                : null;
+
         // TODO: hoist to constructor if constant
         String topic0 = produce.topic;
         Matcher topicMatcher = paramsMatcher.reset(topic0);
@@ -202,6 +208,11 @@ public final class HttpKafkaWithResolver
             if (keyMatcher.matches())
             {
                 key0 = keyMatcher.replaceAll(replacer);
+            }
+            keyMatcher = correlationIdMatcher.reset(key0);
+            if (idempotencyKey != null && keyMatcher.find())
+            {
+                key0 = keyMatcher.replaceAll(idempotencyKey.asString());
             }
             key = new String16FW(key0).value();
         }
@@ -222,6 +233,11 @@ public final class HttpKafkaWithResolver
                 {
                     value0 = valueMatcher.replaceAll(replacer);
                 }
+                valueMatcher = correlationIdMatcher.reset(value0);
+                if (idempotencyKey != null && valueMatcher.find())
+                {
+                    value0 = valueMatcher.replaceAll(idempotencyKey.asString());
+                }
                 DirectBuffer value = new String16FW(value0).value();
 
                 overrides.add(new HttpKafkaWithProduceOverrideResult(name, value));
@@ -239,12 +255,6 @@ public final class HttpKafkaWithResolver
             }
             replyTo = new String16FW(replyTo0);
         }
-
-        final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
-        final HttpHeaderFW httpIdempotencyKey = httpHeaders.matchFirst(h -> options.idempotency.header.equals(h.name()));
-        String16FW idempotencyKey = httpIdempotencyKey != null
-                ? new String16FW(httpIdempotencyKey.value().asString())
-                : null;
 
         String16FW ifMatch = null;
 
