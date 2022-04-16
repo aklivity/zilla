@@ -30,6 +30,10 @@
                         {
                             "method": "POST",
                             "path": "/items/{id}/{command}"
+                        },
+                        {
+                            "method": "GET",
+                            "path": "/items/{id}/{command};{correlationId}"
                         }
                     ],
                     "with":

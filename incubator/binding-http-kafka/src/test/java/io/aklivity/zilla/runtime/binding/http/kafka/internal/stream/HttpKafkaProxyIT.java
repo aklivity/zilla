@@ -264,7 +264,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({
@@ -275,7 +274,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({
@@ -286,7 +284,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({
@@ -297,7 +294,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.async.json")
     @Specification({
@@ -308,18 +304,16 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.async.json")
     @Specification({
         "${http}/post.item.command.prefer.async.delayed/client",
-        "${kafka}/post.item.command/server"})
+        "${kafka}/post.item.command.delayed/server"})
     public void shouldPostItemCommandPreferAsyncDelayed() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.post.item.command.json")
     @Specification({

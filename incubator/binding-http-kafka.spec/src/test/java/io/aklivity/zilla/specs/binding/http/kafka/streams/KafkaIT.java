@@ -187,8 +187,15 @@ public class KafkaIT
         "${kafka}/post.item.command/server"})
     public void shouldPostItemCommand() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.item.command.delayed/client",
+        "${kafka}/post.item.command.delayed/server"})
+    public void shouldPostItemCommandDelayed() throws Exception
+    {
         k3po.finish();
     }
 
@@ -198,8 +205,6 @@ public class KafkaIT
         "${kafka}/post.item.command.if.match/server"})
     public void shouldPostItemCommandIfMatch() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
@@ -209,8 +214,6 @@ public class KafkaIT
         "${kafka}/post.item.command.if.match.failed/server"})
     public void shouldNotPostItemCommandIfMatchFailed() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 

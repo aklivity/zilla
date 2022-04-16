@@ -47,6 +47,7 @@ connect await RECEIVED_ASYNC_RESPONSE
         "zilla://streams/http0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:update "proactive"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
@@ -60,7 +61,7 @@ write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "200")
+                           .header(":status", "204")
                            .build()}
 
 read closed

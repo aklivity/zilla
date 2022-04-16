@@ -43,6 +43,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                                .header("zilla:reply-to", "items-replies")
                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8")
+                               .header("zilla:command", "rename")
                                .build()
                            .build()}
 read '{ "name": "widget" }'
@@ -66,7 +67,6 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write await SEND_ASYNC_RESPONSE
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -74,7 +74,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(0, 2)
                                 .progress(1, 1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header(":status", "200")
+                                .header(":status", "204")
                                 .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                                 .build()
                             .build()}

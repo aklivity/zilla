@@ -38,7 +38,6 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header(":authority", "example.com:9090")
                                 .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename")
                                 .header("content-type", "application/json")
-                                .header("if-match", "revision=42")
                                 .header("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                                 .header("zilla:reply-to", "items-replies")
                                 .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8")
@@ -52,7 +51,32 @@ write notify SENT_ASYNC_REQUEST
 write close
 read closed
 
+
 connect await SENT_ASYNC_REQUEST
+        "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("items-replies")
+                                   .partition(-1, -2)
+                                   .filter()
+                                     .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8")
+                                     .build()
+                                   .build()
+                               .build()}
+
+connected
+
+read notify SENT_ASYNC_REQUEST_AGAIN
+
+read closed
+write close
+
+connect await SENT_ASYNC_REQUEST_AGAIN
         "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
