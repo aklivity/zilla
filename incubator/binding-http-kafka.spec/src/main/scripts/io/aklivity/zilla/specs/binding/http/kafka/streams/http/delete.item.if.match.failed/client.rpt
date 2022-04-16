@@ -16,6 +16,7 @@
 connect "zilla://streams/http0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+        option zilla:update "proactive"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
@@ -23,7 +24,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":scheme", "https")
                             .header(":authority", "example.com:9090")
                             .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                            .header("if-match", "TODO/revision=41")
+                            .header("if-match", "AQQABAIC/revision=41")
                             .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                             .build()}
 

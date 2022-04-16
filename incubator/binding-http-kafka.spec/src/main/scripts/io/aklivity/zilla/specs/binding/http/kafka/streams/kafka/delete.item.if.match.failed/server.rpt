@@ -43,9 +43,10 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                .header("zilla:reply-to", "items-replies")
                                .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
+                               .header("zilla:injected", "extra")
                                .build()
                            .build()}
-read zilla:data.null
+read zilla:data.empty
 
 read closed
 write close
@@ -66,7 +67,6 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write await SEND_ASYNC_RESPONSE
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

@@ -51,7 +51,6 @@ public class HttpKafkaProxyIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
@@ -62,7 +61,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
@@ -73,7 +71,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
@@ -84,7 +81,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
@@ -95,18 +91,16 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
         "${http}/delete.item.prefer.async.delayed/client",
-        "${kafka}/delete.item/server"})
+        "${kafka}/delete.item.delayed/server"})
     public void shouldDeleteItemPreferAsyncDelayed() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({

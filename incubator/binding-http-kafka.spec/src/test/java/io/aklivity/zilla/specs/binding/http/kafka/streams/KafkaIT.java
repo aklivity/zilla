@@ -41,8 +41,15 @@ public class KafkaIT
         "${kafka}/delete.item/server"})
     public void shouldDeleteItem() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.item.delayed/client",
+        "${kafka}/delete.item.delayed/server"})
+    public void shouldDeleteItemDelayed() throws Exception
+    {
         k3po.finish();
     }
 
@@ -52,8 +59,6 @@ public class KafkaIT
         "${kafka}/delete.item.if.match/server"})
     public void shouldDeleteItemIfMatch() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
@@ -63,8 +68,6 @@ public class KafkaIT
         "${kafka}/delete.item.if.match.failed/server"})
     public void shouldNotDeleteItemIfMatchFailed() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
