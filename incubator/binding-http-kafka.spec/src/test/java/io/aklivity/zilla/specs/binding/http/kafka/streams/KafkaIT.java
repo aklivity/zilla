@@ -243,8 +243,6 @@ public class KafkaIT
         "${kafka}/put.item.if.match/server"})
     public void shouldPutItemIfMatch() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
@@ -254,8 +252,6 @@ public class KafkaIT
         "${kafka}/put.item.if.match.failed/server"})
     public void shouldNotPutItemIfMatchFailed() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 }

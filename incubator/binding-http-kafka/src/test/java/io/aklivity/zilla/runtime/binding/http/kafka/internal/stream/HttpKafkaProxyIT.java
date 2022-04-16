@@ -386,7 +386,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({
@@ -397,7 +396,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({
@@ -408,7 +406,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({
@@ -439,7 +436,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.put.item.json")
     @Specification({

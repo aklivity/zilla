@@ -43,6 +43,7 @@ public final class HttpKafkaWithResolver
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
     private static final String8FW HEADER_NAME_PREFER = new String8FW("prefer");
+    private static final String8FW HEADER_NAME_IF_MATCH = new String8FW("if-match");
     private static final String8FW HEADER_NAME_IF_NONE_MATCH = new String8FW("if-none-match");
 
     private static final String16FW HEADER_VALUE_METHOD_GET = new String16FW("GET");
@@ -51,8 +52,8 @@ public final class HttpKafkaWithResolver
             Pattern.compile("(^|;)\\s*wait=(?<wait>\\d+)(;|$)");
     private static final Pattern HEADER_VALUE_PREFER_ASYNC_PATTERN =
             Pattern.compile("(^|;)\\s*respond-async(;|$)");
-    private static final Pattern HEADER_VALUE_IF_NONE_MATCH_PATTERN =
-            Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_]+)(/.*))?");
+    private static final Pattern HEADER_VALUE_ETAG_PATTERN =
+            Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_]+)(/(?<ifmatch>.*)))?");
 
     private final String8FW.Builder stringRW = new String8FW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
@@ -65,7 +66,7 @@ public final class HttpKafkaWithResolver
     private final Matcher correlationIdMatcher;
     private final Matcher preferWaitMatcher;
     private final Matcher preferAsyncMatcher;
-    private final Matcher ifNoneMatchMatcher;
+    private final Matcher etagMatcher;
 
     private Function<MatchResult, String> replacer = r -> null;
 
@@ -79,7 +80,7 @@ public final class HttpKafkaWithResolver
         this.correlationIdMatcher = CORRELATION_ID_PATTERN.matcher("");
         this.preferWaitMatcher = HEADER_VALUE_PREFER_WAIT_PATTERN.matcher("");
         this.preferAsyncMatcher = HEADER_VALUE_PREFER_ASYNC_PATTERN.matcher("");
-        this.ifNoneMatchMatcher = HEADER_VALUE_IF_NONE_MATCH_PATTERN.matcher("");
+        this.etagMatcher = HEADER_VALUE_ETAG_PATTERN.matcher("");
     }
 
     public void onConditionMatched(
@@ -113,11 +114,11 @@ public final class HttpKafkaWithResolver
 
         final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
         final HttpHeaderFW ifNoneMatch = httpHeaders.matchFirst(h -> HEADER_NAME_IF_NONE_MATCH.equals(h.name()));
-        if (ifNoneMatch != null && ifNoneMatchMatcher.reset(ifNoneMatch.value().asString()).matches())
+        if (ifNoneMatch != null && etagMatcher.reset(ifNoneMatch.value().asString()).matches())
         {
-            etag = ifNoneMatchMatcher.group("etag");
+            etag = etagMatcher.group("etag");
 
-            final String progress = ifNoneMatchMatcher.group("progress");
+            final String progress = etagMatcher.group("progress");
             final String8FW decodable = stringRW
                 .set(ifNoneMatch.value().value(), 0, progress.length())
                 .build();
@@ -245,6 +246,14 @@ public final class HttpKafkaWithResolver
                 ? new String16FW(httpIdempotencyKey.value().asString())
                 : null;
 
+        String16FW ifMatch = null;
+
+        final HttpHeaderFW httpIfMatch = httpHeaders.matchFirst(h -> HEADER_NAME_IF_MATCH.equals(h.name()));
+        if (httpIfMatch != null && etagMatcher.reset(httpIfMatch.value().asString()).matches())
+        {
+            ifMatch = new String16FW(etagMatcher.group("ifmatch"));
+        }
+
         List<HttpKafkaWithProduceAsyncHeaderResult> async = null;
         String16FW correlationId = null;
         long timeout = 0L;
@@ -304,7 +313,7 @@ public final class HttpKafkaWithResolver
         }
 
         return new HttpKafkaWithProduceResult(
-                options.correlation, topic, key, overrides, replyTo,
+                options.correlation, topic, key, overrides, ifMatch, replyTo,
                 idempotencyKey, async, correlationId, timeout);
     }
 }

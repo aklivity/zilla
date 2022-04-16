@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
 public class HttpKafkaWithFetchResult
 {
-    private final KafkaOffsetFW historical =
+    private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
             new KafkaOffsetFW.Builder()
                 .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
@@ -67,7 +67,7 @@ public class HttpKafkaWithFetchResult
             partitions.forEach(p -> builder.item(i -> i.set(p)));
         }
 
-        builder.item(p -> p.set(historical));
+        builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
     }
 
     public void filters(

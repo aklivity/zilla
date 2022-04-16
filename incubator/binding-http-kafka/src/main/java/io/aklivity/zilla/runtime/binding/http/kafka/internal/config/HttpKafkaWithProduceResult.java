@@ -17,12 +17,15 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 import java.util.List;
 
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaKeyFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
@@ -31,11 +34,20 @@ public class HttpKafkaWithProduceResult
     private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_202 =
         new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("202"));
     private static final String8FW HTTP_HEADER_NAME_PREFER = new String8FW("prefer");
+    private static final String8FW HTTP_HEADER_NAME_IF_MATCH = new String8FW("if-match");
+
+    private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
+            new KafkaOffsetFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+                .partitionId(-1)
+                .partitionOffset(KafkaOffsetType.HISTORICAL.value())
+                .build();
 
     private final HttpKafkaCorrelationConfig correlation;
     private final String16FW topic;
     private final DirectBuffer key;
     private final List<HttpKafkaWithProduceOverrideResult> overrides;
+    private final String16FW ifMatch;
     private final String16FW replyTo;
     private final List<HttpKafkaWithProduceAsyncHeaderResult> async;
     private final String16FW correlationId;
@@ -47,6 +59,7 @@ public class HttpKafkaWithProduceResult
         String16FW topic,
         DirectBuffer key,
         List<HttpKafkaWithProduceOverrideResult> overrides,
+        String16FW ifMatch,
         String16FW replyTo,
         String16FW idempotencyKey,
         List<HttpKafkaWithProduceAsyncHeaderResult> async,
@@ -57,6 +70,7 @@ public class HttpKafkaWithProduceResult
         this.topic = topic;
         this.key = key;
         this.overrides = overrides;
+        this.ifMatch = ifMatch;
         this.replyTo = replyTo;
         this.idempotencyKey = idempotencyKey;
         this.async = async;
@@ -69,13 +83,10 @@ public class HttpKafkaWithProduceResult
         return topic;
     }
 
-    public void overrides(
-        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
+    public void partitions(
+        Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
     {
-        if (overrides != null)
-        {
-            overrides.forEach(o -> builder.item(o::header));
-        }
+        builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
     }
 
     public String16FW replyTo()
@@ -101,6 +112,11 @@ public class HttpKafkaWithProduceResult
         headers.forEach(h -> header(h, builder));
         builder.item(this::replyTo);
         builder.item(this::correlationId);
+
+        if (overrides != null)
+        {
+            overrides.forEach(o -> builder.item(o::header));
+        }
     }
 
     private void header(
@@ -108,10 +124,11 @@ public class HttpKafkaWithProduceResult
         Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
     {
         final String8FW name = header.name();
-        final String16FW value = header.value();
 
         if (!HTTP_HEADER_NAME_PREFER.equals(name))
         {
+            final String16FW value = HTTP_HEADER_NAME_IF_MATCH.equals(name) ? ifMatch : header.value();
+
             builder.item(i -> i
                 .nameLen(name.length())
                 .name(name.value(), 0, name.length())
@@ -201,6 +218,8 @@ public class HttpKafkaWithProduceResult
     public void filters(
         Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
     {
+        final String16FW correlationId = this.correlationId != null ? this.correlationId : this.idempotencyKey;
+
         if (correlationId != null)
         {
             builder.item(i -> i
