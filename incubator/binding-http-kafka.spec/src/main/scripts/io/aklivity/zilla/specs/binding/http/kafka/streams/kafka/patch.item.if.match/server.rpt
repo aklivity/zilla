@@ -41,9 +41,9 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                .header("content-type", "application/json-patch+json")
                                .header("if-match", "revision=42")
-                               .header("idempotency-key", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
+                               .header("idempotency-key", "afe0e568-cfbe-4bf4-a405-98578c98e4ca")
                                .header("zilla:reply-to", "items-replies")
-                               .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
+                               .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca")
                                .build()
                            .build()}
 read '[ { "op": "replace", "path":"/name", "value": "widget" } ]'
@@ -60,14 +60,13 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
+                                    .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca")
                                     .build()
                                   .build()
                               .build()}
 
 connected
 
-write await SEND_ASYNC_RESPONSE
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -76,7 +75,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(1, 1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header(":status", "204")
-                                .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
+                                .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca")
                                 .build()
                             .build()}
 write flush

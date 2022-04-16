@@ -151,8 +151,15 @@ public class KafkaIT
         "${kafka}/patch.item/server"})
     public void shouldPatchItem() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/patch.item.delayed/client",
+        "${kafka}/patch.item.delayed/server"})
+    public void shouldPatchItemDelayed() throws Exception
+    {
         k3po.finish();
     }
 
@@ -162,8 +169,6 @@ public class KafkaIT
         "${kafka}/patch.item.if.match/server"})
     public void shouldPatchItemIfMatch() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 
@@ -173,8 +178,6 @@ public class KafkaIT
         "${kafka}/patch.item.if.match.failed/server"})
     public void shouldNotPatchItemIfMatchFailed() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
         k3po.finish();
     }
 

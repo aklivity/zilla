@@ -37,7 +37,11 @@
                         "capability": "produce",
                         "topic": "items-commands",
                         "key": "${params.id}",
-                        "reply-to": "items-replies"
+                        "reply-to": "items-replies",
+                        "overrides":
+                        {
+                            "zilla:injected": "extra"
+                        }
                     }
                 }
             ]
