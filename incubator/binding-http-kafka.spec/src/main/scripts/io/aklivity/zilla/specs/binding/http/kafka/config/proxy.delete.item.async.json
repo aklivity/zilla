@@ -42,10 +42,6 @@
                         "topic": "items-commands",
                         "key": "${params.id}",
                         "reply-to": "items-replies",
-                        "overrides":
-                        {
-                            "zilla:injected": "extra"
-                        },
                         "async":
                         {
                             "location": "/items/${params.id};${correlationId}"

@@ -42,7 +42,6 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("idempotency-key", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
                                 .header("zilla:reply-to", "items-replies")
                                 .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
-                                .header("zilla:injected", "extra")
                                 .build()
                             .build()}
 write '{ "name": "widget" }'
