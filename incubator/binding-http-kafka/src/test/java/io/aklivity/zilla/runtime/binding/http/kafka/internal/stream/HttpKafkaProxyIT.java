@@ -204,7 +204,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
@@ -215,7 +214,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
@@ -226,7 +224,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
@@ -237,7 +234,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.async.json")
     @Specification({
@@ -248,18 +244,16 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.async.json")
     @Specification({
         "${http}/patch.item.prefer.async.delayed/client",
-        "${kafka}/patch.item/server"})
+        "${kafka}/patch.item.delayed/server"})
     public void shouldPatchItemPreferAsyncDelayed() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.patch.item.json")
     @Specification({
