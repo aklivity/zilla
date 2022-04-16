@@ -64,6 +64,33 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/delete.item.read.abort/client",
+        "${http}/delete.item.read.abort/server"})
+    public void shouldNotDeleteItemWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.write.abort/client",
+        "${http}/delete.item.write.abort/server"})
+    public void shouldNotDeleteItemWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.write.flush/client",
+        "${http}/delete.item.write.flush/server"})
+    public void shouldDeleteItemWriteFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/delete.item.prefer.async/client",
         "${http}/delete.item.prefer.async/server"})
     public void shouldDeleteItemPreferAsync() throws Exception

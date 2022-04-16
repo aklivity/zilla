@@ -33,22 +33,22 @@ write zilla:data.ext ${kafka:dataEx()
                             .merged()
                                 .partition(-1, -1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header(":method", "POST")
+                                .header(":method", "DELETE")
                                 .header(":scheme", "https")
                                 .header(":authority", "example.com:9090")
-                                .header(":path", "/items")
-                                .header("content-type", "application/json")
-                                .header("idempotency-key", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                 .header("zilla:reply-to", "items-replies")
-                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                 .build()
                             .build()}
-write '{ "name": "widget" }'
+write zilla:data.empty
 write flush
 
 write notify SENT_ASYNC_REQUEST
-write close
-read closed
+
+read abort
+write aborted
 
 connect await SENT_ASYNC_REQUEST
         "zilla://streams/kafka0"
@@ -62,26 +62,12 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("items-replies")
                                    .partition(-1, -2)
                                    .filter()
-                                     .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                     .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                      .build()
                                    .build()
                                .build()}
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .partition(0, 1, 2)
-                               .progress(0, 2)
-                               .progress(1, 1)
-                               .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                               .header(":status", "201")
-                               .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                               .build()
-                           .build()}
-read '{ "name": "widget" }'
-
-read closed
-write close
+read abort
+write aborted

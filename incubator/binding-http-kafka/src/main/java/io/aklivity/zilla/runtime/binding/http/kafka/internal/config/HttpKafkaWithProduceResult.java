@@ -33,6 +33,7 @@ public class HttpKafkaWithProduceResult
 {
     private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_202 =
         new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("202"));
+    private static final String8FW HTTP_HEADER_NAME_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HTTP_HEADER_NAME_PREFER = new String8FW("prefer");
     private static final String8FW HTTP_HEADER_NAME_IF_MATCH = new String8FW("if-match");
 
@@ -125,7 +126,8 @@ public class HttpKafkaWithProduceResult
     {
         final String8FW name = header.name();
 
-        if (!HTTP_HEADER_NAME_PREFER.equals(name))
+        if (!HTTP_HEADER_NAME_CONTENT_LENGTH.equals(name) &&
+            !HTTP_HEADER_NAME_PREFER.equals(name))
         {
             final String16FW value = HTTP_HEADER_NAME_IF_MATCH.equals(name) ? ifMatch : header.value();
 

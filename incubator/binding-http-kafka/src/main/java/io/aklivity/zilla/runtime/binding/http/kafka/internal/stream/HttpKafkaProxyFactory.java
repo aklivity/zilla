@@ -868,9 +868,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long budgetId,
             int reserved)
         {
-            replySeq = delegate.replySeq;
+            initialSeq = delegate.initialSeq;
 
-            doFlush(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -1612,9 +1612,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long budgetId,
             int reserved)
         {
-            replySeq = delegate.replySeq;
+            initialSeq = delegate.initialSeq;
 
-            doFlush(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -2367,9 +2367,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long budgetId,
             int reserved)
         {
-            replySeq = delegate.replySeq;
+            initialSeq = delegate.initialSeq;
 
-            doFlush(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -2874,39 +2874,48 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             OctetsFW payload,
             OctetsFW extension)
         {
-            if ((flags & 0x02) != 0x00) // INIT
+            if (HttpKafkaState.replyClosing(state))
             {
-                Flyweight httpBeginEx = emptyExRO;
+                replySeq += reserved;
 
-                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                final KafkaDataExFW kafkaDataEx =
-                        dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-
-                if (kafkaDataEx != null)
+                correlater.doKafkaWindow(traceId, authorization, budgetId, reserved, flags);
+            }
+            else
+            {
+                if ((flags & 0x02) != 0x00) // INIT
                 {
-                    final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
-                    final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedDataEx.headers();
+                    Flyweight httpBeginEx = emptyExRO;
 
-                    httpBeginEx = httpBeginExRW
-                            .wrap(extBuffer, 0, extBuffer.capacity())
-                            .typeId(httpTypeId)
-                            .headers(hs -> correlater.resolved.correlated(kafkaHeaders, hs))
-                            .build();
+                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+                    final KafkaDataExFW kafkaDataEx =
+                            dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+
+                    if (kafkaDataEx != null)
+                    {
+                        final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
+                        final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedDataEx.headers();
+
+                        httpBeginEx = httpBeginExRW
+                                .wrap(extBuffer, 0, extBuffer.capacity())
+                                .typeId(httpTypeId)
+                                .headers(hs -> correlater.resolved.correlated(kafkaHeaders, hs))
+                                .build();
+                    }
+
+                    doHttpBegin(traceId, authorization, 0L, httpBeginEx);
                 }
 
-                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
-            }
+                if (HttpKafkaState.replyOpening(state) && payload != null)
+                {
+                    // TODO: await http response window if necessary (handle in doHttpData)
+                    doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
+                }
 
-            if (HttpKafkaState.replyOpening(state) && payload != null)
-            {
-                // TODO: await http response window if necessary (handle in doHttpData)
-                doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
-            }
-
-            if ((flags & 0x01) != 0x00) // FIN
-            {
-                correlater.doKafkaEnd(traceId, authorization);
-                doHttpEnd(traceId, authorization);
+                if ((flags & 0x01) != 0x00) // FIN
+                {
+                    correlater.doKafkaEnd(traceId, authorization);
+                    state = HttpKafkaState.closingReply(state);
+                }
             }
         }
 

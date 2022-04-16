@@ -25,6 +25,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":authority", "example.com:9090")
                             .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                             .header("content-type", "application/json")
+                            .header("content-length", "20")
                             .header("idempotency-key", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
                             .build()}
 

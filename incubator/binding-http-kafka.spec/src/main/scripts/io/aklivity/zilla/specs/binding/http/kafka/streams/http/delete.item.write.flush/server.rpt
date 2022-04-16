@@ -20,40 +20,14 @@ accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "PUT")
+                           .header(":method", "DELETE")
                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                           .header("content-type", "application/json")
-                           .header("content-length", "20")
-                           .header("idempotency-key", "3f96592e-c8f1-4167-8c46-85f2aabb70a5")
-                           .header("prefer", "respond-async")
+                           .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                            .build()}
 
 connected
 
-read '{ "name": "widget" }'
-
-read closed
-
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":status", "202")
-                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;3f96592e-c8f1-4167-8c46-85f2aabb70a5")
-                            .build()}
-
-write flush
-
-write close
-
-
-accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":method", "GET")
-                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;3f96592e-c8f1-4167-8c46-85f2aabb70a5")
-                           .build()}
-
-connected
+read advised zilla:flush
 
 read closed
 
@@ -63,5 +37,7 @@ write zilla:begin.ext ${http:beginEx()
                             .build()}
 
 write flush
+
+write advise zilla:flush
 
 write close

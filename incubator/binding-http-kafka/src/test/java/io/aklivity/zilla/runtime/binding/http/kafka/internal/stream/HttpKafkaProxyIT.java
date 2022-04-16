@@ -82,6 +82,36 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.delete.item.json")
+    @Specification({
+        "${http}/delete.item.read.abort/client",
+        "${kafka}/delete.item.read.abort/server"})
+    public void shouldNotDeleteItemWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.json")
+    @Specification({
+        "${http}/delete.item.write.abort/client",
+        "${kafka}/delete.item.write.abort/server"})
+    public void shouldNotDeleteItemWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.json")
+    @Specification({
+        "${http}/delete.item.write.flush/client",
+        "${kafka}/delete.item.write.flush/server"})
+    public void shouldDeleteItemWriteFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
         "${http}/delete.item.prefer.async/client",

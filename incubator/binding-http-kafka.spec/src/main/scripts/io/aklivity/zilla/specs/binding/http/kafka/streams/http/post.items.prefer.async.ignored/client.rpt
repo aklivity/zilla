@@ -41,4 +41,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                            .build()}
 
+read '{ "name": "widget" }'
+
 read closed

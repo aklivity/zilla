@@ -73,6 +73,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/delete.item.read.abort/client",
+        "${kafka}/delete.item.read.abort/server"})
+    public void shouldNotDeleteItemWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.item.write.abort/client",
+        "${kafka}/delete.item.write.abort/server"})
+    public void shouldNotDeleteItemWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.item.write.flush/client",
+        "${kafka}/delete.item.write.flush/server"})
+    public void shouldDeleteItemWriteFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.item/client",
         "${kafka}/get.item/server"})
     public void shouldGetItem() throws Exception

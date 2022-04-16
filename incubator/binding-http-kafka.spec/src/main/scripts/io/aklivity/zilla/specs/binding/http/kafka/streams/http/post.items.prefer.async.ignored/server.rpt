@@ -41,4 +41,6 @@ write zilla:begin.ext ${http:beginEx()
 
 write flush
 
+write '{ "name": "widget" }'
+
 write close
