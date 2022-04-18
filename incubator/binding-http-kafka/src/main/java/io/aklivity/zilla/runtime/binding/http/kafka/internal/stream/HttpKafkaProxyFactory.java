@@ -529,86 +529,95 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             OctetsFW payload,
             OctetsFW extension)
         {
-            if ((flags & 0x02) != 0x00) // INIT
+            if (HttpKafkaState.replyClosing(state))
             {
-                Flyweight httpBeginEx = emptyExRO;
+                replySeq += reserved;
 
-                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                final KafkaDataExFW kafkaDataEx =
-                        dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-
-                if (payload == null)
-                {
-                    httpBeginEx = httpBeginEx404;
-                }
-                else if (kafkaDataEx != null)
-                {
-                    final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
-                    final int contentLength = payload.sizeof() + kafkaMergedDataEx.deferred();
-
-                    final HttpBeginExFW.Builder builder = httpBeginExRW
-                            .wrap(extBuffer, 0, extBuffer.capacity())
-                            .typeId(httpTypeId);
-
-                    if (contentLength == 0)
-                    {
-                        builder.headersItem(h -> h.set(httpStatus204));
-                    }
-                    else
-                    {
-                        builder.headersItem(h -> h.set(httpStatus200))
-                               .headersItem(h -> h.name(httpContentLength).value(Integer.toString(contentLength)));
-                    }
-
-                    final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx.headers();
-
-                    // TODO: header inclusion configuration
-                    final KafkaHeaderFW contentType =
-                            headers.matchFirst(h -> httpContentType.value().equals(h.name().value()));
-                    if (contentType != null)
-                    {
-                        builder.headersItem(h -> h.name(contentType.name().value(), 0, contentType.nameLen())
-                                                  .value(contentType.value().value(), 0, contentType.valueLen()));
-                    }
-
-                    // TODO: header inclusion configuration
-                    final KafkaHeaderFW etag =
-                            headers.matchFirst(h -> httpEtag.value().equals(h.name().value()));
-                    if (etag != null)
-                    {
-                        final String8FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
-                        String httpEtag = String.format("%s/%s",
-                            progress64.asString(),
-                            etag.value().value().getStringWithoutLengthAscii(0, etag.valueLen()));
-                        builder.headersItem(h -> h
-                            .name(etag.name().value(), 0, etag.nameLen())
-                            .value(httpEtag));
-                    }
-                    else
-                    {
-                        final String8FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
-
-                        builder.headersItem(h -> h
-                            .name(httpEtag.value(), 0, httpEtag.length())
-                            .value(progress64.value(), 0, progress64.length()));
-                    }
-
-                    httpBeginEx = builder.build();
-                }
-
-                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+                fetcher.doKafkaWindow(traceId, authorization, budgetId, reserved, flags);
             }
-
-            if (HttpKafkaState.replyOpening(state) && payload != null)
+            else
             {
-                // TODO: await http response window if necessary (handle in doHttpData)
-                doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
-            }
+                if ((flags & 0x02) != 0x00) // INIT
+                {
+                    Flyweight httpBeginEx = emptyExRO;
 
-            if ((flags & 0x01) != 0x00) // FIN
-            {
-                doHttpEnd(traceId, authorization);
-                fetcher.doKafkaEnd(traceId, authorization);
+                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+                    final KafkaDataExFW kafkaDataEx =
+                            dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+
+                    if (payload == null)
+                    {
+                        httpBeginEx = httpBeginEx404;
+                    }
+                    else if (kafkaDataEx != null)
+                    {
+                        final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
+                        final int contentLength = payload.sizeof() + kafkaMergedDataEx.deferred();
+
+                        final HttpBeginExFW.Builder builder = httpBeginExRW
+                                .wrap(extBuffer, 0, extBuffer.capacity())
+                                .typeId(httpTypeId);
+
+                        if (contentLength == 0)
+                        {
+                            builder.headersItem(h -> h.set(httpStatus204));
+                        }
+                        else
+                        {
+                            builder.headersItem(h -> h.set(httpStatus200))
+                                   .headersItem(h -> h.name(httpContentLength).value(Integer.toString(contentLength)));
+                        }
+
+                        final Array32FW<KafkaHeaderFW> headers = kafkaMergedDataEx.headers();
+
+                        // TODO: header inclusion configuration
+                        final KafkaHeaderFW contentType =
+                                headers.matchFirst(h -> httpContentType.value().equals(h.name().value()));
+                        if (contentType != null)
+                        {
+                            builder.headersItem(h -> h.name(contentType.name().value(), 0, contentType.nameLen())
+                                                      .value(contentType.value().value(), 0, contentType.valueLen()));
+                        }
+
+                        // TODO: header inclusion configuration
+                        final KafkaHeaderFW etag =
+                                headers.matchFirst(h -> httpEtag.value().equals(h.name().value()));
+                        if (etag != null)
+                        {
+                            final String8FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
+                            String httpEtag = String.format("%s/%s",
+                                progress64.asString(),
+                                etag.value().value().getStringWithoutLengthAscii(0, etag.valueLen()));
+                            builder.headersItem(h -> h
+                                .name(etag.name().value(), 0, etag.nameLen())
+                                .value(httpEtag));
+                        }
+                        else
+                        {
+                            final String8FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
+
+                            builder.headersItem(h -> h
+                                .name(httpEtag.value(), 0, httpEtag.length())
+                                .value(progress64.value(), 0, progress64.length()));
+                        }
+
+                        httpBeginEx = builder.build();
+                    }
+
+                    doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+                }
+
+                if (HttpKafkaState.replyOpening(state) && payload != null)
+                {
+                    // TODO: await http response window if necessary (handle in doHttpData)
+                    doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
+                }
+
+                if ((flags & 0x01) != 0x00) // FIN
+                {
+                    fetcher.doKafkaEnd(traceId, authorization);
+                    state = HttpKafkaState.closingReply(state);
+                }
             }
         }
 

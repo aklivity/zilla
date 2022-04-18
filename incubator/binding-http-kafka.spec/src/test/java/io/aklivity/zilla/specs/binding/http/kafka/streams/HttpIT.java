@@ -127,6 +127,33 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.item.read.abort/client",
+        "${http}/get.item.read.abort/server"})
+    public void shouldNotGetItemWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.write.abort/client",
+        "${http}/get.item.write.abort/server"})
+    public void shouldNotGetItemWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.write.flush/client",
+        "${http}/get.item.write.flush/server"})
+    public void shouldGetItemWriteFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.item.if.none.match/client",
         "${http}/get.item.if.none.match/server"})
     public void shouldGetItemIfNoneMatch() throws Exception
