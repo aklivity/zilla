@@ -20,40 +20,25 @@ accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":method", "DELETE")
+                           .header(":method", "GET")
                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                           .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                           .header("prefer", "respond-async")
+                           .header("content-length", "15")
                            .build()}
 
 connected
+
+read "Ignored content"
+read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "202")
-                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;7101a8ea-5745-43c8-8d0c-b2f9baba7004")
+                            .header(":status", "200")
+                            .header("content-length", "20")
+                            .header("content-type", "application/json")
+                            .header("etag", "AQQABAIC/revision=42")
                             .build()}
 
+write '{ "name": "gadget" }'
 write flush
 
-read await RECEIVED_RESPONSE_ABORT
-read abort
-read notify SENT_REQUEST_ABORT
-write aborted
-
-accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":method", "GET")
-                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                           .build()}
-
-connected
-
-write aborted
-write notify RECEIVED_RESPONSE_ABORT
-
-read await SENT_REQUEST_ABORT
-read abort
-
+write close

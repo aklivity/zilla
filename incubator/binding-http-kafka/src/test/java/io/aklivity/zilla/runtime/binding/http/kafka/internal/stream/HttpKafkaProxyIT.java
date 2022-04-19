@@ -124,9 +124,39 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
+        "${http}/delete.item.prefer.async.with.body/client",
+        "${kafka}/delete.item/server"})
+    public void shouldDeleteItemPreferAsyncWithBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
         "${http}/delete.item.prefer.async.read.abort/client",
         "${kafka}/delete.item.read.abort/server"})
     public void shouldNotDeleteItemPreferAsyncWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
+        "${http}/delete.item.prefer.async.write.abort/client",
+        "${kafka}/delete.item.write.abort/server"})
+    public void shouldNotDeleteItemPreferAsyncWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
+        "${http}/delete.item.prefer.async.write.flush/client",
+        "${kafka}/delete.item.write.flush/server"})
+    public void shouldDeleteItemPreferAsyncWriteFlush() throws Exception
     {
         k3po.finish();
     }
@@ -157,6 +187,26 @@ public class HttpKafkaProxyIT
         "${http}/get.item/client",
         "${kafka}/get.item/server"})
     public void shouldGetItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.item.json")
+    @Specification({
+        "${http}/get.item.with.body/client",
+        "${kafka}/get.item/server"})
+    public void shouldGetItemWithBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.item.json")
+    @Specification({
+        "${http}/get.item.empty/client",
+        "${kafka}/get.item.empty/server"})
+    public void shouldGetItemWhenEmpty() throws Exception
     {
         k3po.finish();
     }

@@ -49,6 +49,9 @@ read zilla:data.empty
 read aborted
 read notify RECEIVED_REQUEST_ABORT
 
+write await SENT_RESPONSE_ABORT
+write abort
+
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
@@ -67,3 +70,5 @@ connected
 
 write await RECEIVED_REQUEST_ABORT
 write abort
+write notify SENT_RESPONSE_ABORT
+read aborted

@@ -100,9 +100,36 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/delete.item.prefer.async.with.body/client",
+        "${http}/delete.item.prefer.async.with.body/server"})
+    public void shouldDeleteItemPreferAsyncWithBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/delete.item.prefer.async.read.abort/client",
         "${http}/delete.item.prefer.async.read.abort/server"})
     public void shouldNotDeleteItemPreferAsyncWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.prefer.async.write.abort/client",
+        "${http}/delete.item.prefer.async.write.abort/server"})
+    public void shouldNotDeleteItemPreferAsyncWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.prefer.async.write.flush/client",
+        "${http}/delete.item.prefer.async.write.flush/server"})
+    public void shouldDeleteItemPreferAsyncWriteFlush() throws Exception
     {
         k3po.finish();
     }
@@ -130,6 +157,24 @@ public class HttpIT
         "${http}/get.item/client",
         "${http}/get.item/server"})
     public void shouldGetItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.with.body/client",
+        "${http}/get.item.with.body/server"})
+    public void shouldGetItemWithBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.empty/client",
+        "${http}/get.item.empty/server"})
+    public void shouldGetItemWhenEmpty() throws Exception
     {
         k3po.finish();
     }

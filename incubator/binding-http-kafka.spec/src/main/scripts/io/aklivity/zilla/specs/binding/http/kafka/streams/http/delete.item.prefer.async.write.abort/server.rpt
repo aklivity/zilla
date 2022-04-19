@@ -36,10 +36,11 @@ write zilla:begin.ext ${http:beginEx()
 
 write flush
 
-read await RECEIVED_RESPONSE_ABORT
-read abort
-read notify SENT_REQUEST_ABORT
-write aborted
+read aborted
+read notify RECEIVED_REQUEST_ABORT
+
+write await SENT_RESPONSE_ABORT
+write abort
 
 accepted
 
@@ -51,9 +52,7 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-write aborted
-write notify RECEIVED_RESPONSE_ABORT
-
-read await SENT_REQUEST_ABORT
-read abort
-
+write await RECEIVED_REQUEST_ABORT
+write abort
+write notify SENT_RESPONSE_ABORT
+read aborted

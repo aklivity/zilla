@@ -16,44 +16,30 @@
 connect "zilla://streams/http0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":method", "DELETE")
-                            .header(":scheme", "https")
-                            .header(":authority", "example.com:9090")
-                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                            .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                            .header("prefer", "respond-async")
-                            .build()}
-
-connected
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "202")
-                           .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                           .build()}
-
-read notify RECEIVED_ASYNC_RESPONSE
-
-write aborted
-read abort
-
-connect await RECEIVED_ASYNC_RESPONSE
-        "zilla://streams/http0"
-        option zilla:window 8192
-        option zilla:transmission "half-duplex"
         option zilla:update "proactive"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
-                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;7101a8ea-5745-43c8-8d0c-b2f9baba7004")
+                            .header(":scheme", "https")
+                            .header(":authority", "example.com:9090")
+                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                            .header("content-length", 15)
                             .build()}
 
 connected
 
-read abort
-write aborted
+write "Ignored content"
+write close
 
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-length", "20")
+                           .header("content-type", "application/json")
+                           .header("etag", "AQQABAIC/revision=42")
+                           .build()}
+
+read '{ "name": "gadget" }'
+
+read closed

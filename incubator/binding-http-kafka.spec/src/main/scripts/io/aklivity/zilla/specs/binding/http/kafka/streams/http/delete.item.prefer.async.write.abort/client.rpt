@@ -37,8 +37,8 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 read notify RECEIVED_ASYNC_RESPONSE
 
-write aborted
-read abort
+write abort
+read aborted
 
 connect await RECEIVED_ASYNC_RESPONSE
         "zilla://streams/http0"
@@ -54,6 +54,6 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-read abort
-write aborted
+read aborted
+write abort
 

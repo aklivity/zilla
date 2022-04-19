@@ -109,6 +109,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.item.empty/client",
+        "${kafka}/get.item.empty/server"})
+    public void shouldGetItemWhenEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.item.read.abort/client",
         "${kafka}/get.item.read.abort/server"})
     public void shouldNotGetItemWhenReadAbort() throws Exception

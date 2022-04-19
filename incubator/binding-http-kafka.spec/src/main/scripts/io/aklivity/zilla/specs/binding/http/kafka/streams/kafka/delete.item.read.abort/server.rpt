@@ -48,6 +48,8 @@ read zilla:data.empty
 
 read await RECEIVED_RESPONSE_ABORT
 read abort
+read notify SENT_REQUEST_ABORT
+write aborted
 
 accepted
 
@@ -67,3 +69,6 @@ connected
 
 write aborted
 write notify RECEIVED_RESPONSE_ABORT
+
+read await SENT_REQUEST_ABORT
+read abort
