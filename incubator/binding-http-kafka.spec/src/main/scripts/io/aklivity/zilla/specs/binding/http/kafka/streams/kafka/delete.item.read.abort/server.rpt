@@ -46,7 +46,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
-write aborted
+read await RECEIVED_RESPONSE_ABORT
 read abort
 
 accepted
@@ -66,4 +66,4 @@ read zilla:begin.ext ${kafka:beginEx()
 connected
 
 write aborted
-read abort
+write notify RECEIVED_RESPONSE_ABORT

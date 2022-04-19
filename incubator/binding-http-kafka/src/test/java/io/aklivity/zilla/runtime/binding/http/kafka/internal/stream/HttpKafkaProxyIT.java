@@ -124,6 +124,16 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
+        "${http}/delete.item.prefer.async.read.abort/client",
+        "${kafka}/delete.item.read.abort/server"})
+    public void shouldNotDeleteItemPreferAsyncWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
         "${http}/delete.item.prefer.async.delayed/client",
         "${kafka}/delete.item.delayed/server"})
     public void shouldDeleteItemPreferAsyncDelayed() throws Exception

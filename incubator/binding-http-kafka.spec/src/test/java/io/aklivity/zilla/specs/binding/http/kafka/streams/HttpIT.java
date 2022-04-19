@@ -100,6 +100,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/delete.item.prefer.async.read.abort/client",
+        "${http}/delete.item.prefer.async.read.abort/server"})
+    public void shouldNotDeleteItemPreferAsyncWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/delete.item.prefer.async.delayed/client",
         "${http}/delete.item.prefer.async.delayed/server"})
     public void shouldDeleteItemPreferAsyncDelayed() throws Exception

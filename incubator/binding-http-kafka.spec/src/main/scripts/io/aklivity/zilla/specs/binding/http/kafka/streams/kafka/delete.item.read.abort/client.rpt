@@ -47,7 +47,6 @@ write flush
 
 write notify SENT_ASYNC_REQUEST
 
-read abort
 write aborted
 
 connect await SENT_ASYNC_REQUEST
@@ -70,4 +69,3 @@ write zilla:begin.ext ${kafka:beginEx()
 connected
 
 read abort
-write aborted
