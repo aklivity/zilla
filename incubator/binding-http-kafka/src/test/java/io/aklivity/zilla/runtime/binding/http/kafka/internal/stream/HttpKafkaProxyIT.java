@@ -64,6 +64,16 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
+        "${http}/delete.item/client",
+        "${kafka}/delete.item.repeated/server"})
+    public void shouldDeleteItemRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.json")
+    @Specification({
         "${http}/delete.item.if.match/client",
         "${kafka}/delete.item.if.match/server"})
     public void shouldDeleteItemIfMatch() throws Exception
@@ -172,6 +182,16 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
+        "${http}/delete.item.prefer.async.wait.delayed/client",
+        "${kafka}/delete.item.wait.delayed/server"})
+    public void shouldDeleteItemPreferAsyncWaitDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
         "${http}/delete.item.prefer.async.ignored/client",
@@ -194,6 +214,16 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.get.item.json")
     @Specification({
+        "${http}/get.item/client",
+        "${kafka}/get.item.modifying/server"})
+    public void shouldGetItemModifying() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.item.json")
+    @Specification({
         "${http}/get.item.with.body/client",
         "${kafka}/get.item/server"})
     public void shouldGetItemWithBody() throws Exception
@@ -207,6 +237,16 @@ public class HttpKafkaProxyIT
         "${http}/get.item.empty/client",
         "${kafka}/get.item.empty/server"})
     public void shouldGetItemWhenEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.item.json")
+    @Specification({
+        "${http}/get.item.implicit.etag/client",
+        "${kafka}/get.item.no.etag/server"})
+    public void shouldGetItemWithImplicitEtag() throws Exception
     {
         k3po.finish();
     }
@@ -247,6 +287,16 @@ public class HttpKafkaProxyIT
         "${http}/get.item.if.none.match/client",
         "${kafka}/get.item.modified/server"})
     public void shouldGetItemIfNoneMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.item.json")
+    @Specification({
+        "${http}/get.item.implicit.etag.if.none.match/client",
+        "${kafka}/get.item.no.etag.modified/server"})
+    public void shouldGetItemWithImplicitEtagIfNoneMatch() throws Exception
     {
         k3po.finish();
     }

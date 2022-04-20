@@ -1371,11 +1371,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpKafkaState.replyOpening(state))
-            {
-                doHttpBegin(traceId, authorization, 0L, httpBeginEx500);
-            }
-
             doHttpAbort(traceId, authorization);
         }
 
@@ -1403,11 +1398,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpKafkaState.replyOpening(state))
-            {
-                doHttpBegin(traceId, authorization, 0L, httpBeginEx500);
-            }
-
             if (HttpKafkaState.initialClosed(state))
             {
                 delegate.doKafkaEnd(traceId, authorization);
@@ -1627,10 +1617,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onKafkaReset(reset);
                 break;
-            case SignalFW.TYPE_ID:
-                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-                onKafkaSignal(signal);
-                break;
             }
         }
 
@@ -1739,15 +1725,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             delegate.onKafkaReset(traceId, authorization);
 
             doKafkaReset(traceId);
-        }
-
-        private void onKafkaSignal(
-            SignalFW signal)
-        {
-            final long traceId = signal.traceId();
-            final long authorization = signal.authorization();
-
-            doKafkaEnd(traceId, authorization);
         }
 
         private void doKafkaReset(

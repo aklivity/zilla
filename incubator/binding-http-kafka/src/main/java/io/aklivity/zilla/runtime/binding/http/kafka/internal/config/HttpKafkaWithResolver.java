@@ -53,7 +53,7 @@ public final class HttpKafkaWithResolver
     private static final Pattern HEADER_VALUE_PREFER_ASYNC_PATTERN =
             Pattern.compile("(^|;)\\s*respond-async(;|$)");
     private static final Pattern HEADER_VALUE_ETAG_PATTERN =
-            Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_]+)(/(?<ifmatch>.*)))?");
+            Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_]+)(/(?<ifmatch>.*))?)");
 
     private final String8FW.Builder stringRW = new String8FW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);

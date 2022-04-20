@@ -55,6 +55,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/delete.item.wait.delayed/client",
+        "${kafka}/delete.item.wait.delayed/server"})
+    public void shouldDeleteItemWaitDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/delete.item.if.match/client",
         "${kafka}/delete.item.if.match/server"})
     public void shouldDeleteItemIfMatch() throws Exception
@@ -67,6 +76,15 @@ public class KafkaIT
         "${kafka}/delete.item.if.match.failed/client",
         "${kafka}/delete.item.if.match.failed/server"})
     public void shouldNotDeleteItemIfMatchFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.item.repeated/client",
+        "${kafka}/delete.item.repeated/server"})
+    public void shouldDeleteItemRepeated() throws Exception
     {
         k3po.finish();
     }
@@ -118,6 +136,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.item.no.etag/client",
+        "${kafka}/get.item.no.etag/server"})
+    public void shouldGetItemWithNoEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.item.read.abort/client",
         "${kafka}/get.item.read.abort/server"})
     public void shouldNotGetItemWhenReadAbort() throws Exception
@@ -154,9 +181,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.item.modifying/client",
+        "${kafka}/get.item.modifying/server"})
+    public void shouldGetItemModifying() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.item.modified/client",
         "${kafka}/get.item.modified/server"})
     public void shouldGetItemModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.item.no.etag.modified/client",
+        "${kafka}/get.item.no.etag.modified/server"})
+    public void shouldGetItemWithNoEtagModified() throws Exception
     {
         k3po.finish();
     }

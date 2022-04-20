@@ -145,6 +145,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/delete.item.prefer.async.wait.delayed/client",
+        "${http}/delete.item.prefer.async.wait.delayed/server"})
+    public void shouldDeleteItemPreferAsyncWaitDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/delete.item.prefer.async.ignored/client",
         "${http}/delete.item.prefer.async.ignored/server"})
     public void shouldDeleteItemPreferAsyncIgnored() throws Exception
@@ -181,6 +190,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.item.implicit.etag/client",
+        "${http}/get.item.implicit.etag/server"})
+    public void shouldGetItemWithImplicitEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.item.read.abort/client",
         "${http}/get.item.read.abort/server"})
     public void shouldNotGetItemWhenReadAbort() throws Exception
@@ -211,6 +229,15 @@ public class HttpIT
         "${http}/get.item.if.none.match/client",
         "${http}/get.item.if.none.match/server"})
     public void shouldGetItemIfNoneMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.item.implicit.etag.if.none.match/client",
+        "${http}/get.item.implicit.etag.if.none.match/server"})
+    public void shouldGetItemWithImplicitEtagIfNoneMatch() throws Exception
     {
         k3po.finish();
     }
