@@ -351,6 +351,16 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("proxy.get.item.child.json")
+    @Specification({
+        "${http}/get.item.child/client",
+        "${kafka}/get.item.child/server"})
+    public void shouldGetItemChild() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.get.items.json")

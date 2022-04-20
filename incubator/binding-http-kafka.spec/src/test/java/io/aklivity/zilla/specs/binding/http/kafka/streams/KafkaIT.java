@@ -244,6 +244,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.item.child/client",
+        "${kafka}/get.item.child/server"})
+    public void shouldGetItemChild() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.items/client",
         "${kafka}/get.items/server"})
     public void shouldGetItems() throws Exception

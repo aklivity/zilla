@@ -57,6 +57,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateProxyGetItemChild()
+    {
+        JsonObject config = schema.validate("proxy.get.item.child.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateProxyGetItems()
     {
         JsonObject config = schema.validate("proxy.get.items.json");

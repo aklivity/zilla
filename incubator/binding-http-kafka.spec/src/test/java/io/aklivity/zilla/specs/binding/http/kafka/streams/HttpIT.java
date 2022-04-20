@@ -289,6 +289,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.item.child/client",
+        "${http}/get.item.child/server"})
+    public void shouldGetItemChild() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.items.prefer.wait/client",
         "${http}/get.items.prefer.wait/server"})
     public void shouldGetItemsPreferWait() throws Exception
