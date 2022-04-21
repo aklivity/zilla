@@ -73,7 +73,7 @@ public class HttpKafkaWithFetchResult
     public void partitions(
         Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
     {
-        if (partitions != null)
+        if (merge == null && partitions != null)
         {
             // TODO: fieldCount incorrect if using builder.set(partitions) instead (generator)
             partitions.forEach(p -> builder.item(i -> i.set(p)));
@@ -123,6 +123,12 @@ public class HttpKafkaWithFetchResult
         builder.item(i -> i
             .name(HTTP_HEADER_NAME_CONTENT_TYPE)
             .value(contentType, 0, contentType.capacity()));
+    }
+
+    public boolean partitions(
+        Array32FW<KafkaOffsetFW> partitions)
+    {
+        return this.partitions != null && this.partitions.equals(partitions);
     }
 
     public String16FW contentType()

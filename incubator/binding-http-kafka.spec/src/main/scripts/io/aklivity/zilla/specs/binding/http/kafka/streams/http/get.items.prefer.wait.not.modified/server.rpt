@@ -22,7 +22,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
                            .header(":path", "/items")
-                           .header("if-none-match", "AQQABAIC")
+                           .header("if-none-match", "AQQAAgIC")
                            .header("prefer", "wait=1")
                            .build()}
 
@@ -34,7 +34,7 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "304")
                             .header("content-type", "application/json")
-                            .header("etag", "AQQABAIC")
+                            .header("etag", "AQQAAgIC")
                             .build()}
 
 write close

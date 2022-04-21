@@ -33,9 +33,15 @@ write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "304")
+                           .header(":status", "200")
                            .header("content-type", "application/json")
-                           .header("etag", "AQQAAgIC")
+                           .header("etag", "AQQABAIC")
                            .build()}
+
+read '['
+     '{ "name": "widget" }'
+     ','
+     '{ "name": "gizmo" }'
+     ']'
 
 read closed

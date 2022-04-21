@@ -19,25 +19,24 @@ accept "zilla://streams/kafka0"
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                  .capabilities("FETCH_ONLY")
-                                  .topic("items-snapshots")
-                                  .partition(-1, -2)
-                                  .build()
-                              .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("items-snapshots")
+                                .partition(-1, -2)
+                                .build()
+                            .build()}
 
 write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .merged()
-                                   .capabilities("FETCH_ONLY")
-                                   .topic("items-snapshots")
-                                   .partition(0, 1, 2)
-                                   .partition(1, 0, 1)
-                                   .partition(-1, -2)
-                                   .build()
-                               .build()}
+                             .typeId(zilla:id("kafka"))
+                             .merged()
+                                 .capabilities("FETCH_ONLY")
+                                 .topic("items-snapshots")
+                                 .partition(0, -2, 1)
+                                 .partition(1, -2, 1)
+                                 .build()
+                             .build()}
 
 connected
 

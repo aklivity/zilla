@@ -34,11 +34,11 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
                            .header("content-type", "application/json")
-                           .header("etag", "AQQABAIC")
+                           .header("etag", "AQQAAgIC")
                            .build()}
 
 read '['
-     '{ "name": "widget" }'
+     '{ "name": "gadget" }'
      ','
      '{ "name": "gizmo" }'
      ']'

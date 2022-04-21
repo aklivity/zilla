@@ -262,6 +262,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.items.modified/client",
+        "${kafka}/get.items.modified/server"})
+    public void shouldGetItemsModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.items.not.modified/client",
         "${kafka}/get.items.not.modified/server"})
     public void shouldNotGetItemsNotModified() throws Exception

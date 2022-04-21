@@ -298,9 +298,18 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/get.items.not.modified/client",
-        "${http}/get.items.not.modified/server"})
-    public void shouldNotGetItemsNotModified() throws Exception
+        "${http}/get.items.if.none.match/client",
+        "${http}/get.items.if.none.match/server"})
+    public void shouldGetItemsIfNoneMatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.if.none.match.not.modified/client",
+        "${http}/get.items.if.none.match.not.modified/server"})
+    public void shouldNotGetItemsIfNoneMatchNotModified() throws Exception
     {
         k3po.finish();
     }
@@ -334,18 +343,18 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/get.items.write.flush/client",
-        "${http}/get.items.write.flush/server"})
-    public void shouldGetItemsWriteFlush() throws Exception
+        "${http}/get.items.write.abort/client",
+        "${http}/get.items.write.abort/server"})
+    public void shouldNotGetItemsWhenWriteAbort() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${http}/get.items.write.abort/client",
-        "${http}/get.items.write.abort/server"})
-    public void shouldNotGetItemsWhenWriteAbort() throws Exception
+        "${http}/get.items.write.flush/client",
+        "${http}/get.items.write.flush/server"})
+    public void shouldGetItemsWriteFlush() throws Exception
     {
         k3po.finish();
     }

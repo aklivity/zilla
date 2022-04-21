@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.stream;
 
 import java.util.Base64;
+import java.util.function.BiConsumer;
 import java.util.function.ToLongFunction;
 
 import org.agrona.DirectBuffer;
@@ -25,6 +26,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.codec.HttpKafkaEtagPartitionV1FW;
@@ -121,6 +123,19 @@ public final class HttpKafkaEtagHelper
     public Array32FW<KafkaOffsetFW> decode(
         final String16FW decodable)
     {
+        return decode(decodable, this::decodePartitionOffset);
+    }
+
+    public Array32FW<KafkaOffsetFW> decodeLatest(
+        final String16FW decodable)
+    {
+        return decode(decodable, this::decodeLatestOffset);
+    }
+
+    private Array32FW<KafkaOffsetFW> decode(
+        final String16FW decodable,
+        BiConsumer<HttpKafkaEtagPartitionV1FW, KafkaOffsetFW.Builder> decodeOffset)
+    {
         Array32FW<KafkaOffsetFW> progress = null;
 
         HttpKafkaEtagFW decoded = null;
@@ -200,8 +215,7 @@ public final class HttpKafkaEtagHelper
 
                     if (partitionV1.partitionId() >= 0)
                     {
-                        progressV1RW.item(item -> item.partitionId(partitionV1.partitionId())
-                                                      .partitionOffset(partitionV1.partitionOffset()));
+                        progressV1RW.item(item -> decodeOffset.accept(partitionV1, item));
                     }
                 }
                 progress = progressV1RW.build();
@@ -210,5 +224,22 @@ public final class HttpKafkaEtagHelper
         }
 
         return progress;
+    }
+
+    private void decodePartitionOffset(
+        HttpKafkaEtagPartitionV1FW partitionV1,
+        KafkaOffsetFW.Builder builder)
+    {
+        builder.partitionId(partitionV1.partitionId())
+               .partitionOffset(partitionV1.partitionOffset());
+    }
+
+    private void decodeLatestOffset(
+        HttpKafkaEtagPartitionV1FW partitionV1,
+        KafkaOffsetFW.Builder builder)
+    {
+        builder.partitionId(partitionV1.partitionId())
+               .partitionOffset(KafkaOffsetType.HISTORICAL.value())
+               .latestOffset(partitionV1.partitionOffset());
     }
 }

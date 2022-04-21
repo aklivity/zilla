@@ -18,44 +18,44 @@ connect "zilla://streams/kafka0"
     option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .merged()
-                                   .capabilities("FETCH_ONLY")
-                                   .topic("items-snapshots")
-                                   .partition(-1, -2)
-                                   .build()
-                               .build()}
+                             .typeId(zilla:id("kafka"))
+                             .merged()
+                                 .capabilities("FETCH_ONLY")
+                                 .topic("items-snapshots")
+                                 .partition(-1, -2)
+                                 .build()
+                             .build()}
 
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                  .capabilities("FETCH_ONLY")
-                                  .topic("items-snapshots")
-                                  .partition(0, 1, 2)
-                                  .partition(1, 0, 1)
-                                  .partition(-1, -2)
-                                  .build()
-                              .build()}
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("items-snapshots")
+                                .partition(0, -2, 1)
+                                .partition(1, -2, 1)
+                                .build()
+                            .build()}
 
 connected
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
-                               .partition(0, 2, 2)
-                               .progress(0, 3)
+                               .partition(0, 1, 1)
+                               .progress(0, 2)
                                .progress(1, 1)
                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                               .header("etag", "revision=43")
+                               .header("content-type", "application/json")
+                               .header("etag", "revision=42")
                                .build()
                            .build()}
-read '{ "name": "widget" }'
+read '{ "name": "gadget" }'
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .partition(1, 1, 1)
-                               .progress(0, 3)
+                               .progress(0, 2)
                                .progress(1, 2)
                                .key("beb6ef9e-8da7-451f-b3c4-136d49a058f3")
                                .header("etag", "revision=237")

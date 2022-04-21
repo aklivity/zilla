@@ -128,7 +128,7 @@ public final class HttpKafkaWithResolver
             final String16FW decodable = stringRW
                 .set(ifNoneMatch.value().value(), 0, progress.length())
                 .build();
-            partitions = etagHelper.decode(decodable);
+            partitions = fetch.merge.isPresent() ? etagHelper.decodeLatest(decodable) : etagHelper.decode(decodable);
         }
 
         final HttpHeaderFW prefer = httpHeaders.matchFirst(h -> HEADER_NAME_PREFER.equals(h.name()));
