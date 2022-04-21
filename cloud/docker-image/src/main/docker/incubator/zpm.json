@@ -19,6 +19,7 @@
     "io.aklivity.zilla:binding-filesystem",
     "io.aklivity.zilla:binding-http",
     "io.aklivity.zilla:binding-http-filesystem",
+    "io.aklivity.zilla:binding-http-kafka",
     "io.aklivity.zilla:binding-kafka",
     "io.aklivity.zilla:binding-mqtt",
     "io.aklivity.zilla:binding-proxy",

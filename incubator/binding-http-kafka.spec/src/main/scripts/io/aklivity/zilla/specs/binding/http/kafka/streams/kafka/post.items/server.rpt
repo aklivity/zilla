@@ -1,0 +1,85 @@
+#
+# Copyright 2021-2022 Aklivity Inc
+#
+# Licensed under the Aklivity Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+#   https://www.aklivity.io/aklivity-community-license/
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("PRODUCE_ONLY")
+                                  .topic("items-commands")
+                                  .partition(-1, -2)
+                                  .build()
+                              .build()}
+
+connected
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .partition(-1, -1)
+                               .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                               .header(":method", "POST")
+                               .header(":scheme", "https")
+                               .header(":authority", "example.com:9090")
+                               .header(":path", "/items")
+                               .header("content-type", "application/json")
+                               .header("idempotency-key", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                               .header("zilla:reply-to", "items-replies")
+                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                               .build()
+                           .build()}
+read '{ "name": "widget" }'
+
+read closed
+write close
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("FETCH_ONLY")
+                                  .topic("items-replies")
+                                  .partition(-1, -2)
+                                  .filter()
+                                    .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                    .build()
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header(":status", "201")
+                                .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .build()
+                            .build()}
+write '{ "name": "widget" }'
+write flush
+
+write close
+read closed
