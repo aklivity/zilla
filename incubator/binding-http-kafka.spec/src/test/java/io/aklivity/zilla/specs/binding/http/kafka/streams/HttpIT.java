@@ -280,15 +280,6 @@ public class HttpIT
 
     @Test
     @Specification({
-        "${http}/get.items/client",
-        "${http}/get.items/server"})
-    public void shouldGetItems() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${http}/get.item.child/client",
         "${http}/get.item.child/server"})
     public void shouldGetItemChild() throws Exception
@@ -298,9 +289,72 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.items/client",
+        "${http}/get.items/server"})
+    public void shouldGetItems() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.not.modified/client",
+        "${http}/get.items.not.modified/server"})
+    public void shouldNotGetItemsNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.items.prefer.wait/client",
         "${http}/get.items.prefer.wait/server"})
     public void shouldGetItemsPreferWait() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.prefer.wait.not.modified/client",
+        "${http}/get.items.prefer.wait.not.modified/server"})
+    public void shouldNotGetItemsPreferWaitNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.read.abort/client",
+        "${http}/get.items.read.abort/server"})
+    public void shouldNotGetItemsWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.write.flush/client",
+        "${http}/get.items.write.flush/server"})
+    public void shouldGetItemsWriteFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.write.abort/client",
+        "${http}/get.items.write.abort/server"})
+    public void shouldNotGetItemsWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/get.items.with.body/client",
+        "${http}/get.items.with.body/server"})
+    public void shouldGetItemsWithBody() throws Exception
     {
         k3po.finish();
     }

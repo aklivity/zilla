@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
-import java.util.Objects;
-
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 
 public final class HttpKafkaIdempotencyConfig
@@ -26,27 +24,5 @@ public final class HttpKafkaIdempotencyConfig
         String8FW header)
     {
         this.header = header;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hashCode(header);
-    }
-
-    @Override
-    public boolean equals(
-        Object obj)
-    {
-        boolean equals = obj instanceof HttpKafkaIdempotencyConfig;
-
-        if (equals)
-        {
-            HttpKafkaIdempotencyConfig that = (HttpKafkaIdempotencyConfig) obj;
-
-            equals = Objects.equals(this.header, that.header);
-        }
-
-        return equals;
     }
 }

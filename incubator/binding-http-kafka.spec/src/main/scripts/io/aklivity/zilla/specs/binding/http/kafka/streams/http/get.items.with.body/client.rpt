@@ -24,10 +24,12 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":scheme", "https")
                             .header(":authority", "example.com:9090")
                             .header(":path", "/items")
+                            .header("content-length", 15)
                             .build()}
 
 connected
 
+write "Ignored content"
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()

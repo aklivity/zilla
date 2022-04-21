@@ -22,11 +22,12 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
                            .header(":path", "/items")
-                           .header("prefer", "wait=86400")
+                           .header("content-length", 15)
                            .build()}
 
 connected
 
+read "Ignored content"
 read closed
 
 write zilla:begin.ext ${http:beginEx()

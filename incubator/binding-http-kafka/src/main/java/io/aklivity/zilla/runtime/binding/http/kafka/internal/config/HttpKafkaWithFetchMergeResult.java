@@ -14,18 +14,25 @@
  */
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
-public final class HttpKafkaCorrelationConfig
+public final class HttpKafkaWithFetchMergeResult
 {
-    public final String16FW replyTo;
-    public final String16FW correlationId;
+    public final String16FW contentType;
+    public final OctetsFW header;
+    public final OctetsFW separator;
+    public final OctetsFW trailer;
 
-    public HttpKafkaCorrelationConfig(
-        String16FW replyTo,
-        String16FW correlationId)
+    public HttpKafkaWithFetchMergeResult(
+        String16FW contentType,
+        OctetsFW header,
+        OctetsFW separator,
+        OctetsFW trailer)
     {
-        this.replyTo = replyTo;
-        this.correlationId = correlationId;
+        this.contentType = contentType;
+        this.header = header;
+        this.separator = separator;
+        this.trailer = trailer;
     }
 }

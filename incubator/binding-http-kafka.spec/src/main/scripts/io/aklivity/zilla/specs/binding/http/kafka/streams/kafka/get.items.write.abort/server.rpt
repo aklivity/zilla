@@ -41,33 +41,5 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 2, 2)
-                                .progress(0, 3)
-                                .progress(1, 1)
-                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header("etag", "revision=43")
-                                .build()
-                            .build()}
-write '{ "name": "widget" }'
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(1, 1, 1)
-                                .progress(0, 3)
-                                .progress(1, 2)
-                                .key("beb6ef9e-8da7-451f-b3c4-136d49a058f3")
-                                .header("etag", "revision=237")
-                                .build()
-                            .build()}
-write '{ "name": "gizmo" }'
-write flush
-
-write close
-read closed
+read aborted
+write abort

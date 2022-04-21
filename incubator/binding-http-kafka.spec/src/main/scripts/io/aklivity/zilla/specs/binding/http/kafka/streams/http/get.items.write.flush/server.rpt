@@ -22,10 +22,11 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
                            .header(":path", "/items")
-                           .header("prefer", "wait=86400")
                            .build()}
 
 connected
+
+read advised zilla:flush
 
 read closed
 
@@ -40,7 +41,11 @@ write '['
       '{ "name": "widget" }'
       ','
       '{ "name": "gizmo" }'
-      ']'
+write flush
+
+write advise zilla:flush
+
+write ']'
 write flush
 
 write close

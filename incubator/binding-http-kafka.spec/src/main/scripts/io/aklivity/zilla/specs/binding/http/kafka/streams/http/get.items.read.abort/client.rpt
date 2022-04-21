@@ -28,19 +28,5 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write close
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("content-type", "application/json")
-                           .header("etag", "AQQABAIC")
-                           .build()}
-
-read '['
-     '{ "name": "widget" }'
-     ','
-     '{ "name": "gizmo" }'
-     ']'
-
-read closed
+read abort
+write aborted

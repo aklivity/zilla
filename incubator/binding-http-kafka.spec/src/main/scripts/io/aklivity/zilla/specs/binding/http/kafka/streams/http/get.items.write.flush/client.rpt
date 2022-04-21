@@ -28,6 +28,8 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
+write advise zilla:flush
+
 write close
 
 read zilla:begin.ext ${http:matchBeginEx()
@@ -41,6 +43,9 @@ read '['
      '{ "name": "widget" }'
      ','
      '{ "name": "gizmo" }'
-     ']'
+
+read advised zilla:flush
+
+read ']'
 
 read closed

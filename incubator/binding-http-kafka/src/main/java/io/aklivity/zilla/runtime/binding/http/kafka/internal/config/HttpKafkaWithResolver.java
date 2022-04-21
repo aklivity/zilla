@@ -31,6 +31,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.stream.HttpKafkaEta
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
@@ -47,6 +48,7 @@ public final class HttpKafkaWithResolver
     private static final String8FW HEADER_NAME_IF_NONE_MATCH = new String8FW("if-none-match");
 
     private static final String16FW HEADER_VALUE_METHOD_GET = new String16FW("GET");
+    private static final String16FW HEADER_VALUE_CONTENT_TYPE_APPLICATION_JSON = new String16FW("application/json");
 
     private static final Pattern HEADER_VALUE_PREFER_WAIT_PATTERN =
             Pattern.compile("(^|;)\\s*wait=(?<wait>\\d+)(;|$)");
@@ -55,7 +57,11 @@ public final class HttpKafkaWithResolver
     private static final Pattern HEADER_VALUE_ETAG_PATTERN =
             Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_]+)(/(?<ifmatch>.*))?)");
 
-    private final String8FW.Builder stringRW = new String8FW.Builder()
+    private static final OctetsFW MERGE_HEADER_JSON_ARRAY = new OctetsFW().wrap(new String8FW("[").value(), 0, 1);
+    private static final OctetsFW MERGE_SEPARATOR_JSON_ARRAY = new OctetsFW().wrap(new String8FW(",").value(), 0, 1);
+    private static final OctetsFW MERGE_TRAILER_JSON_ARRAY = new OctetsFW().wrap(new String8FW("]").value(), 0, 1);
+
+    private final String16FW.Builder stringRW = new String16FW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
@@ -110,16 +116,16 @@ public final class HttpKafkaWithResolver
 
         long timeout = 0L;
         Array32FW<KafkaOffsetFW> partitions = null;
-        String etag = null;
+        String16FW etag = null;
 
         final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
         final HttpHeaderFW ifNoneMatch = httpHeaders.matchFirst(h -> HEADER_NAME_IF_NONE_MATCH.equals(h.name()));
         if (ifNoneMatch != null && etagMatcher.reset(ifNoneMatch.value().asString()).matches())
         {
-            etag = etagMatcher.group("etag");
+            etag = new String16FW(etagMatcher.group("etag"));
 
             final String progress = etagMatcher.group("progress");
-            final String8FW decodable = stringRW
+            final String16FW decodable = stringRW
                 .set(ifNoneMatch.value().value(), 0, progress.length())
                 .build();
             partitions = etagHelper.decode(decodable);
@@ -176,8 +182,23 @@ public final class HttpKafkaWithResolver
             }
         }
 
-        // TODO: merge
-        return new HttpKafkaWithFetchResult(topic, partitions, filters, etag, timeout);
+        HttpKafkaWithFetchMergeResult merge = null;
+        if (fetch.merge.isPresent())
+        {
+            final HttpKafkaWithFetchMergeConfig config = fetch.merge.get();
+
+            // schema requires application/json
+            assert HEADER_VALUE_CONTENT_TYPE_APPLICATION_JSON.asString().equals(config.contentType);
+
+            final String16FW contentType = HEADER_VALUE_CONTENT_TYPE_APPLICATION_JSON;
+            OctetsFW header = MERGE_HEADER_JSON_ARRAY;
+            OctetsFW separator = MERGE_SEPARATOR_JSON_ARRAY;
+            OctetsFW trailer = MERGE_TRAILER_JSON_ARRAY;
+
+            merge = new HttpKafkaWithFetchMergeResult(contentType, header, separator, trailer);
+        }
+
+        return new HttpKafkaWithFetchResult(topic, partitions, filters, etag, timeout, merge);
     }
 
     public HttpKafkaWithProduceResult resolveProduce(

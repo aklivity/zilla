@@ -39,6 +39,8 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write advise zilla:flush
+
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -62,6 +64,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read '{ "name": "gizmo" }'
+
+read advised zilla:flush
 
 read closed
 write close

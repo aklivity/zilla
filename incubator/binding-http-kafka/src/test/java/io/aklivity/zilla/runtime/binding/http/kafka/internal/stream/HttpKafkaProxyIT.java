@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -361,7 +360,6 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
     @Test
     @Configuration("proxy.get.items.json")
     @Specification({
@@ -372,13 +370,72 @@ public class HttpKafkaProxyIT
         k3po.finish();
     }
 
-    @Ignore("Not yet implemented")
+    @Test
+    @Configuration("proxy.get.items.json")
+    @Specification({
+        "${http}/get.items.with.body/client",
+        "${kafka}/get.items/server"})
+    public void shouldGetItemsWithBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.json")
+    @Specification({
+        "${http}/get.items.not.modified/client",
+        "${kafka}/get.items.not.modified/server"})
+    public void shouldNotGetItemsNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("proxy.get.items.json")
     @Specification({
         "${http}/get.items.prefer.wait/client",
         "${kafka}/get.items/server"})
     public void shouldGetItemsPreferWait() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.json")
+    @Specification({
+        "${http}/get.items.prefer.wait.not.modified/client",
+        "${kafka}/get.items.not.modified/server"})
+    public void shouldGetItemsPreferWaitNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.json")
+    @Specification({
+        "${http}/get.items.read.abort/client",
+        "${kafka}/get.items.read.abort/server"})
+    public void shouldNotGetItemsWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.json")
+    @Specification({
+        "${http}/get.items.write.abort/client",
+        "${kafka}/get.items.write.abort/server"})
+    public void shouldNotGetItemsWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.json")
+    @Specification({
+        "${http}/get.items.write.flush/client",
+        "${kafka}/get.items.write.flush/server"})
+    public void shouldGetItemsWriteFlush() throws Exception
     {
         k3po.finish();
     }

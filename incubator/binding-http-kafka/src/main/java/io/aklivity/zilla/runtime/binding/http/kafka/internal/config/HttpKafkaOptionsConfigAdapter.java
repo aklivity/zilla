@@ -69,7 +69,7 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
         HttpKafkaIdempotencyConfig idempotency = httpKafkaOptions.idempotency;
         if (idempotency != null &&
-            !IDEMPOTENCY_DEFAULT.equals(idempotency))
+            !(IDEMPOTENCY_DEFAULT.header.equals(idempotency.header)))
         {
             JsonObjectBuilder newIdempotency = Json.createObjectBuilder();
             newIdempotency.add(IDEMPOTENCY_HEADER_NAME, idempotency.header.asString());

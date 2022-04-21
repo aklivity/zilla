@@ -257,8 +257,42 @@ public class KafkaIT
         "${kafka}/get.items/server"})
     public void shouldGetItems() throws Exception
     {
-        k3po.start();
-        k3po.notifyBarrier("SEND_ASYNC_RESPONSE");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.items.not.modified/client",
+        "${kafka}/get.items.not.modified/server"})
+    public void shouldNotGetItemsNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.items.read.abort/client",
+        "${kafka}/get.items.read.abort/server"})
+    public void shouldNotGetItemsWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.items.write.abort/client",
+        "${kafka}/get.items.write.abort/server"})
+    public void shouldNotGetItemsWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/get.items.write.flush/client",
+        "${kafka}/get.items.write.flush/server"})
+    public void shouldGetItemsWriteFlush() throws Exception
+    {
         k3po.finish();
     }
 

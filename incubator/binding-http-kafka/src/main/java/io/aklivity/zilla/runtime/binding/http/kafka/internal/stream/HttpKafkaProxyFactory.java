@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.BeginFW;
@@ -46,6 +47,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.FlushF
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.SignalFW;
@@ -87,6 +89,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
+    private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
 
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
@@ -191,7 +194,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 final HttpKafkaWithFetchResult resolved = route.with.resolveFetch(httpBeginEx);
 
-                newStream = new HttpFetchProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                if (resolved.merge())
+                {
+                    newStream = new HttpFetchManyProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                }
+                else
+                {
+                    newStream = new HttpFetchProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                }
                 break;
             }
             case PRODUCE:
@@ -248,7 +258,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         protected abstract void onKafkaBegin(
             long traceId,
-            long authorization);
+            long authorization,
+            OctetsFW extension);
 
         protected void onKafkaData(
             long traceId,
@@ -529,7 +540,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         @Override
         protected void onKafkaBegin(
             long traceId,
-            long authorization)
+            long authorization, OctetsFW extension)
         {
             // nop
         }
@@ -599,17 +610,15 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                                 headers.matchFirst(h -> httpEtag.value().equals(h.name().value()));
                         if (etag != null)
                         {
-                            final String8FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
-                            String httpEtag = String.format("%s/%s",
+                            final String16FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
+                            String implicitEtag = String.format("%s/%s",
                                 progress64.asString(),
                                 etag.value().value().getStringWithoutLengthAscii(0, etag.valueLen()));
-                            builder.headersItem(h -> h
-                                .name(etag.name().value(), 0, etag.nameLen())
-                                .value(httpEtag));
+                            builder.headersItem(h -> h.name(httpEtag).value(implicitEtag));
                         }
                         else
                         {
-                            final String8FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
+                            final String16FW progress64 = etagHelper.encode(kafkaMergedDataEx.progress());
 
                             builder.headersItem(h -> h
                                 .name(httpEtag.value(), 0, httpEtag.length())
@@ -646,7 +655,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 HttpBeginExFW httpBeginEx = httpBeginEx404;
 
-                final String etag = fetcher.resolved.etag();
+                final String16FW etag = fetcher.resolved.etag();
                 if (etag != null)
                 {
                     httpBeginEx = httpBeginExRW
@@ -663,6 +672,495 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             if (HttpKafkaState.initialClosed(state))
             {
                 fetcher.doKafkaEnd(traceId, authorization);
+            }
+
+            doHttpEnd(traceId, authorization);
+        }
+
+        @Override
+        protected void onKafkaFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved)
+        {
+            doHttpFlush(traceId, authorization, budgetId, reserved);
+        }
+
+        @Override
+        protected void onKafkaWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding,
+            int capabilities)
+        {
+            doHttpWindow(authorization, traceId, budgetId, padding, capabilities);
+        }
+
+        private void doHttpBegin(
+            long traceId,
+            long authorization,
+            long affinity,
+            Flyweight extension)
+        {
+            state = HttpKafkaState.openingReply(state);
+
+            doBegin(http, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, affinity, extension);
+        }
+
+        private void doHttpAbort(
+            long traceId,
+            long authorization)
+        {
+            if (!HttpKafkaState.replyClosed(state))
+            {
+                replySeq = fetcher.replySeq;
+                state = HttpKafkaState.closeReply(state);
+
+                doAbort(http, routeId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization);
+            }
+        }
+
+        private void doHttpData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload)
+        {
+            doData(http, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, budgetId, flags, reserved, payload, emptyExRO);
+
+            replySeq += reserved;
+
+            assert replySeq <= replyAck + replyMax;
+        }
+
+        private void doHttpEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!HttpKafkaState.replyClosed(state))
+            {
+                replySeq = fetcher.replySeq;
+                state = HttpKafkaState.closeReply(state);
+
+                doEnd(http, routeId, replyId, replySeq, replyAck, replyMax,
+                      traceId, authorization);
+            }
+        }
+
+        private void doHttpFlush(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved)
+        {
+            replySeq = fetcher.replySeq;
+
+            doFlush(http, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, budgetId, reserved);
+        }
+
+        private void doHttpWindow(
+            long authorization,
+            long traceId,
+            long budgetId,
+            int padding,
+            int capabilities)
+        {
+            initialAck = fetcher.initialAck;
+            initialMax = fetcher.initialMax;
+
+            doWindow(http, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, budgetId, padding, capabilities);
+        }
+
+        private void doHttpReset(
+            long traceId)
+        {
+            if (!HttpKafkaState.initialClosed(state))
+            {
+                state = HttpKafkaState.closeInitial(state);
+
+                doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+            }
+        }
+    }
+
+    private final class HttpFetchManyProxy extends HttpProxy
+    {
+        private final KafkaFetchProxy fetcher;
+
+        private long replyBud;
+        private int replyMsgs;
+
+        private String16FW etag;
+
+        private HttpFetchManyProxy(
+            MessageConsumer http,
+            long routeId,
+            long initialId,
+            long resolvedId,
+            HttpKafkaWithFetchResult resolved)
+        {
+            super(http, routeId, initialId);
+            this.fetcher = new KafkaFetchProxy(resolvedId, this, resolved);
+            this.etag = fetcher.resolved.etag();
+        }
+
+        private void onHttpMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onHttpBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onHttpData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onHttpEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onHttpAbort(abort);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onHttpFlush(flush);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onHttpReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onHttpWindow(window);
+                break;
+            }
+        }
+
+        private void onHttpBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+            final long affinity = begin.affinity();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+            assert acknowledge >= initialAck;
+
+            initialSeq = sequence;
+            initialAck = acknowledge;
+            state = HttpKafkaState.openingInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            fetcher.doKafkaBegin(traceId, authorization, affinity);
+        }
+
+        private void onHttpData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+
+            assert initialAck <= initialSeq;
+
+            fetcher.initialSeq = initialSeq;
+            fetcher.initialAck = initialSeq;
+
+            doHttpWindow(authorization, traceId, budgetId, 0, 0);
+        }
+
+        private void onHttpEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = HttpKafkaState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            if (HttpKafkaState.replyClosed(fetcher.state))
+            {
+                fetcher.doKafkaEnd(traceId, authorization);
+            }
+        }
+
+        private void onHttpAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = HttpKafkaState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            fetcher.doKafkaAbort(traceId, authorization);
+        }
+
+        protected void onHttpFlush(
+            FlushFW flush)
+        {
+            final long sequence = flush.sequence();
+            final long acknowledge = flush.acknowledge();
+            final long traceId = flush.traceId();
+            final long authorization = flush.authorization();
+            final long budgetId = flush.budgetId();
+            final int reserved = flush.reserved();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+
+            assert replyAck <= replySeq;
+
+            fetcher.doKafkaFlush(traceId, authorization, budgetId, reserved);
+        }
+
+        private void onHttpReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final int maximum = reset.maximum();
+            final long traceId = reset.traceId();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            state = HttpKafkaState.closeReply(state);
+
+            assert replyAck <= replySeq;
+
+            fetcher.doKafkaReset(traceId);
+        }
+
+        private void onHttpWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+            final long traceId = window.traceId();
+            final long authorization = window.authorization();
+            final long budgetId = window.budgetId();
+            final int padding = window.padding();
+            final int capabilities = window.capabilities();
+
+            assert acknowledge <= sequence;
+            assert sequence <= replySeq;
+            assert acknowledge >= replyAck;
+            assert maximum >= replyMax;
+
+            replyAck = acknowledge;
+            replyMax = maximum;
+            replyBud = budgetId;
+            state = HttpKafkaState.openReply(state);
+
+            assert replyAck <= replySeq;
+
+            final int mergePadding = fetcher.resolved.padding();
+            fetcher.doKafkaWindow(traceId, authorization, budgetId, padding + mergePadding, capabilities);
+        }
+
+        @Override
+        protected void onKafkaReset(
+            long traceId,
+            long authorization)
+        {
+            onKafkaError(traceId, authorization);
+        }
+
+        @Override
+        protected void onKafkaAbort(
+            long traceId,
+            long authorization)
+        {
+            onKafkaError(traceId, authorization);
+        }
+
+        private void onKafkaError(
+            long traceId,
+            long authorization)
+        {
+            doHttpReset(traceId);
+
+            if (!HttpKafkaState.replyOpening(state))
+            {
+                doHttpBegin(traceId, authorization, 0L, httpBeginEx500);
+            }
+
+            doHttpAbort(traceId, authorization);
+        }
+
+        @Override
+        protected void onKafkaBegin(
+            long traceId,
+            long authorization,
+            OctetsFW extension)
+        {
+            final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
+            final KafkaBeginExFW kafkaBeginEx =
+                    beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
+
+            if (kafkaBeginEx != null)
+            {
+                final KafkaMergedBeginExFW kafkaMergedBeginEx = kafkaBeginEx.merged();
+
+                etag = etagHelper.encodeLatest(kafkaMergedBeginEx.partitions());
+            }
+        }
+
+        @Override
+        protected void onKafkaData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            OctetsFW extension)
+        {
+            if (payload != null && payload.sizeof() > 0)
+            {
+                if (!HttpKafkaState.replyOpening(state))
+                {
+                    final HttpBeginExFW.Builder builder = httpBeginExRW
+                            .wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(httpTypeId);
+
+                    builder.headers(fetcher.resolved::headers);
+
+                    if (etag != null)
+                    {
+                        builder.headersItem(h -> h.name(httpEtag).value(etag));
+                    }
+
+                    Flyweight httpBeginEx = builder.build();
+
+                    doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+                }
+
+                int replyPadAdjust = 0;
+
+                if (replyMsgs == 0)
+                {
+                    OctetsFW preamble = fetcher.resolved.header();
+                    int reservedPre = preamble.sizeof();
+                    doHttpData(traceId, authorization, replyBud, reservedPre, 0x03, preamble);
+
+                    replyPadAdjust = reservedPre;
+                }
+                else if (replyMsgs > 0)
+                {
+                    OctetsFW preamble = fetcher.resolved.separator();
+                    int reservedSep = preamble.sizeof();
+                    doHttpData(traceId, authorization, replyBud, reservedSep, 0x03, preamble);
+
+                    replyPadAdjust = reservedSep;
+                }
+
+                // TODO: await http response window if necessary (handle in doHttpData)
+                doHttpData(traceId, authorization, budgetId, reserved - replyPadAdjust, flags, payload);
+
+                replyMsgs++;
+                replyPadAdjust = 0;
+            }
+        }
+
+        @Override
+        protected void onKafkaEnd(
+            long traceId,
+            long authorization)
+        {
+            if (HttpKafkaState.initialClosed(state))
+            {
+                fetcher.doKafkaEnd(traceId, authorization);
+            }
+
+            if (!HttpKafkaState.replyOpening(state))
+            {
+                final HttpBeginExFW.Builder builder = httpBeginExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(httpTypeId);
+
+                if (fetcher.resolved.conditional())
+                {
+                    builder.headersItem(h -> h.set(httpStatus304))
+                           .headersItem(h -> h.name(httpContentType).value(fetcher.resolved.contentType()))
+                           .headersItem(h -> h.name(httpEtag).value(etag));
+                }
+                else
+                {
+                    builder.headers(fetcher.resolved::headers);
+
+                    if (this.etag != null)
+                    {
+                        builder.headersItem(h -> h.name(httpEtag).value(etag));
+                    }
+                }
+
+                Flyweight httpBeginEx = builder.build();
+
+                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+            }
+
+            if (!fetcher.resolved.conditional())
+            {
+                if (replyMsgs == 0)
+                {
+                    OctetsFW preamble = fetcher.resolved.header();
+                    int reservedPre = preamble.sizeof();
+                    doHttpData(traceId, authorization, replyBud, reservedPre, 0x03, preamble);
+                }
+
+                OctetsFW postamble = fetcher.resolved.trailer();
+                final int reservedPost = postamble.sizeof();
+                doHttpData(traceId, authorization, replyBud, reservedPost, 0x03, postamble);
             }
 
             doHttpEnd(traceId, authorization);
@@ -936,6 +1434,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -947,7 +1446,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.onKafkaBegin(traceId, authorization);
+            delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
         private void onKafkaData(
@@ -1377,7 +1876,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         @Override
         protected void onKafkaBegin(
             long traceId,
-            long authorization)
+            long authorization, OctetsFW extension)
         {
             if (!HttpKafkaState.replyOpening(state))
             {
@@ -1627,6 +2126,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -1638,7 +2138,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.onKafkaBegin(traceId, authorization);
+            delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
         private void onKafkaEnd(
@@ -1971,7 +2471,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         @Override
         protected void onKafkaBegin(
             long traceId,
-            long authorization)
+            long authorization, OctetsFW extension)
         {
             // nop
         }
@@ -2308,6 +2808,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= replySeq;
@@ -2319,7 +2820,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.onKafkaBegin(traceId, authorization);
+            delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
         private void onKafkaData(
@@ -2760,7 +3261,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         @Override
         protected void onKafkaBegin(
             long traceId,
-            long authorization)
+            long authorization, OctetsFW extension)
         {
             // nop
         }
