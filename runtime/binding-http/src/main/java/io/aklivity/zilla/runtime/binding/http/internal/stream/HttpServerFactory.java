@@ -149,6 +149,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final int DELEGATE_SIGNAL = 1;
     private static final int EXPIRING_SIGNAL = 2;
 
+    private static final int PADDING_CHUNKED = 10;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
 
     private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
@@ -257,6 +258,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String16FW SCHEME_HTTPS = new String16FW("https");
     private static final String16FW STATUS_200 = new String16FW("200");
     private static final String16FW STATUS_204 = new String16FW("204");
+    private static final String16FW STATUS_304 = new String16FW("304");
     private static final String16FW STATUS_403 = new String16FW("403");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
@@ -404,6 +406,9 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> headersRW =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW());
+
+    private final String16FW.Builder httpStatusRW =
+            new String16FW.Builder().wrap(new UnsafeBuffer(new byte[16]), 0, 16);
 
     private final Array32FW<HttpHeaderFW> headers204;
     private final Array32FW<HttpHeaderFW> headers403;
@@ -1835,7 +1840,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             flushNetworkIfBuffered(traceId, authorization, budgetId);
 
-            if (exchange != null && exchange.responseState == HttpExchangeState.OPEN)
+            if (exchange != null)
             {
                 exchange.doResponseWindow(traceId);
             }
@@ -2169,6 +2174,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         {
             final HttpExchange exchange = new HttpExchange(routeId, authorization, policy, origin);
             exchange.doRequestBegin(traceId, beginEx);
+            exchange.doResponseWindow(traceId);
 
             final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
             exchange.responseClosing = connection != null && connectionClose.reset(connection.value().asString()).matches();
@@ -2264,6 +2270,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
             final String16FW statusValue = status != null ? status.value() : STATUS_200;
 
+            final String16FW httpStatus = httpStatusRW.set(statusValue).build();
+
             codecOffset.value = doEncodeStatus(codecBuffer, 0, statusValue);
             if (server == null && serverHeader != null)
             {
@@ -2271,6 +2279,18 @@ public final class HttpServerFactory implements HttpStreamFactory
                         HEADER_SERVER.value(), serverHeader.value(), false);
             }
             headers.forEach(h -> codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value, h));
+
+            if (contentLength == null &&
+                !exchange.responseChunked &&
+                !exchange.responseClosing &&
+                !STATUS_204.equals(httpStatus) &&
+                !STATUS_304.equals(httpStatus) &&
+                httpStatus.value().getByte(0) != 0x31)
+            {
+                codecOffset.value = doEncodeHeader(codecBuffer, codecOffset.value,
+                        HEADER_TRANSFER_ENCODING.value(), TRANSFER_ENCODING_CHUNKED.value(), false);
+                exchange.responseChunked = true;
+            }
 
             final String origin = exchange.origin;
             final HttpPolicyConfig policy = exchange.policy;
@@ -2466,11 +2486,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             int offset = payload.offset();
             int limit = payload.limit();
 
-            if (exchange.responseChunked && flags != 0)
+            if (exchange.responseChunked /* && flags != 0 */)
             {
                 int chunkLimit = 0;
 
-                if ((flags & 0x01) != 0)
+                //if ((flags & 0x01) != 0)
                 {
                     final String chunkSizeHex = Integer.toHexString(payload.sizeof());
                     chunkLimit += codecBuffer.putStringWithoutLengthAscii(chunkLimit, chunkSizeHex);
@@ -2479,8 +2499,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
 
                 codecBuffer.putBytes(chunkLimit, payload.buffer(), payload.offset(), payload.sizeof());
+                chunkLimit += payload.sizeof();
 
-                if ((flags & 0x02) != 0)
+                //if ((flags & 0x02) != 0)
                 {
                     codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
                     chunkLimit += 2;
@@ -2489,6 +2510,19 @@ public final class HttpServerFactory implements HttpStreamFactory
                 buffer = codecBuffer;
                 offset = 0;
                 limit = chunkLimit;
+            }
+
+            if (encodeSlot != NO_SLOT)
+            {
+                final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
+                final int encodeSlotIndex = encodeSlotOffset;
+                encodeBuffer.putBytes(encodeSlotIndex, buffer, offset, limit - offset);
+                encodeSlotOffset += limit - offset;
+
+                buffer = encodeBuffer;
+                offset = 0;
+                limit = encodeSlotOffset;
+                reserved += encodeSlotIndex;
             }
 
             doNetworkData(traceId, authorization, budgetId, reserved, buffer, offset, limit);
@@ -2597,6 +2631,7 @@ public final class HttpServerFactory implements HttpStreamFactory
             private long responseSeq;
             private long responseAck;
             private int responseMax;
+            private int responsePad;
 
             private HttpExchangeState requestState;
             private HttpExchangeState responseState;
@@ -2618,6 +2653,9 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.responseId = supplyReplyId.applyAsLong(requestId);
                 this.requestState = HttpExchangeState.PENDING;
                 this.responseState = HttpExchangeState.PENDING;
+                this.responseChunked = true;
+                this.responsePad = PADDING_CHUNKED;
+                this.responseRemaining = Integer.MAX_VALUE - encodeMax;
 
                 this.expiringId = expireIfNecessary(guard, sessionId, routeId, replyId, 0);
             }
@@ -2947,10 +2985,13 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 long responseAckMax = Math.max(responseSeq - replyPendingAck() - encodeSlotOffset, responseAck);
                 int responseNoAckMin = (int)(responseSeq - responseAckMax);
-                int minResponseMax = Math.min(responseRemaining - responseNoAckMin + replyPad, replyMax);
+                int minResponseMax =
+                        Math.max(Math.min(responseRemaining - responseNoAckMin + replyPad + responsePad, replyMax), 0);
+                int responsePadMax = responseChunked ? responsePad : 0;
 
                 if (responseAckMax > responseAck ||
-                    minResponseMax > responseMax && encodeSlotOffset == 0)
+                    minResponseMax > responseMax && encodeSlotOffset == 0 ||
+                    responsePadMax < responsePad)
                 {
                     responseAck = responseAckMax;
                     assert responseAck <= responseSeq;
@@ -2958,8 +2999,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                     responseMax = minResponseMax;
                     assert responseMax >= 0;
 
+                    responsePad = responsePadMax;
+                    assert responsePad >= 0;
+
                     doWindow(application, routeId, responseId, responseSeq, responseAck, responseMax,
-                            traceId, sessionId, replyBudgetId, HttpServer.this.replyPad);
+                            traceId, sessionId, replyBudgetId, replyPad + responsePad);
                 }
             }
 

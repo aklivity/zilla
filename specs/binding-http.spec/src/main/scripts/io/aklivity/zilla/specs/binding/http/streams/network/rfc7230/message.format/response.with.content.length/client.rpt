@@ -27,5 +27,5 @@ write http:host
 write close
 
 read http:status "200" /.*/
-read http:header "Content-length" /(?<length>.*)/
+read http:header "Content-Length" /(?<length>.*)/
 read [0..${length}]
