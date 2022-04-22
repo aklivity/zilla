@@ -13,32 +13,29 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/kafka0"
+connect "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("items-snapshots")
-                                .partition(-1, 0, -2)
-                                .build()
-                            .build()}
 
 write zilla:begin.ext ${kafka:beginEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
                                  .capabilities("FETCH_ONLY")
                                  .topic("items-snapshots")
-                                 .partition(0, 0, 1)
-                                 .partition(1, 0, 1)
+                                 .partition(-1, 0, -2)
                                  .build()
                              .build()}
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("FETCH_ONLY")
+                                .topic("items-snapshots")
+                                .partition(0, 0, 0)
+                                .build()
+                            .build()}
+
 connected
 
-write aborted
-read abort
+read closed
+write close

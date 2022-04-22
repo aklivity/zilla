@@ -39,7 +39,16 @@ public class HttpKafkaWithFetchResult
             new KafkaOffsetFW.Builder()
                 .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
-                .partitionOffset(KafkaOffsetType.HISTORICAL.value())
+                .partitionOffset(0L)
+                .latestOffset(KafkaOffsetType.HISTORICAL.value())
+                .build();
+
+    private static final KafkaOffsetFW KAFKA_OFFSET_LIVE =
+            new KafkaOffsetFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+                .partitionId(-1)
+                .partitionOffset(0L)
+                .latestOffset(KafkaOffsetType.LIVE.value())
                 .build();
 
     private final String16FW topic;
@@ -79,7 +88,14 @@ public class HttpKafkaWithFetchResult
             partitions.forEach(p -> builder.item(i -> i.set(p)));
         }
 
-        builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
+        if (merge == null && timeout > 0L)
+        {
+            builder.item(p -> p.set(KAFKA_OFFSET_LIVE));
+        }
+        else
+        {
+            builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
+        }
     }
 
     public void filters(

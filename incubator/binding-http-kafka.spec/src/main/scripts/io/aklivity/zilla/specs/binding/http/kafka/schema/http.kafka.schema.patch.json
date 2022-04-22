@@ -167,13 +167,13 @@
                                                             {
                                                                 "title": "Initial Value",
                                                                 "type": "string",
-                                                                "default": "[]"
+                                                                "const": "[]"
                                                             },
                                                             "path":
                                                             {
                                                                 "title": "Path",
                                                                 "type": "string",
-                                                                "default": "/-"
+                                                                "const": "/-"
                                                             }
                                                         },
                                                         "required":
