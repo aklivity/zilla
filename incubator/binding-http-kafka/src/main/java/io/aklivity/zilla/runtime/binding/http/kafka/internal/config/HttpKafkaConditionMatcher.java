@@ -27,7 +27,7 @@ public final class HttpKafkaConditionMatcher
     public HttpKafkaConditionMatcher(
         HttpKafkaConditionConfig condition)
     {
-        this.method = condition.path != null ? asMatcher(condition.method) : null;
+        this.method = condition.method != null ? asMatcher(condition.method) : null;
         this.path = condition.path != null ? asMatcher(condition.path) : null;
     }
 

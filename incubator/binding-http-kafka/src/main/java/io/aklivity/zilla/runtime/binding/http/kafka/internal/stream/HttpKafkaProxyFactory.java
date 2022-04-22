@@ -3775,6 +3775,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
             .typeId(httpTypeId)
             .headersItem(h -> h.name(":status").value(status))
+            .headersItem(h -> h.name("content-length").value("0"))
             .build();
     }
 

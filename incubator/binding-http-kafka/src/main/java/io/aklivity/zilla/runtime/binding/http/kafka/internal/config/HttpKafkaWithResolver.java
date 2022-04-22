@@ -55,7 +55,7 @@ public final class HttpKafkaWithResolver
     private static final Pattern HEADER_VALUE_PREFER_ASYNC_PATTERN =
             Pattern.compile("(^|;)\\s*respond-async(;|$)");
     private static final Pattern HEADER_VALUE_ETAG_PATTERN =
-            Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_]+)(/(?<ifmatch>.*))?)");
+            Pattern.compile("(?<etag>(?<progress>[a-zA-Z0-9\\-_=]+)(/(?<ifmatch>.*))?)");
 
     private static final OctetsFW MERGE_HEADER_JSON_ARRAY = new OctetsFW().wrap(new String8FW("[").value(), 0, 1);
     private static final OctetsFW MERGE_SEPARATOR_JSON_ARRAY = new OctetsFW().wrap(new String8FW(",").value(), 0, 1);
@@ -119,6 +119,12 @@ public final class HttpKafkaWithResolver
         String16FW etag = null;
 
         final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
+        final HttpHeaderFW prefer = httpHeaders.matchFirst(h -> HEADER_NAME_PREFER.equals(h.name()));
+        if (prefer != null && preferWaitMatcher.reset(prefer.value().asString()).find())
+        {
+            timeout = SECONDS.toMillis(Long.parseLong(preferWaitMatcher.group("wait")));
+        }
+
         final HttpHeaderFW ifNoneMatch = httpHeaders.matchFirst(h -> HEADER_NAME_IF_NONE_MATCH.equals(h.name()));
         if (ifNoneMatch != null && etagMatcher.reset(ifNoneMatch.value().asString()).matches())
         {
@@ -128,13 +134,9 @@ public final class HttpKafkaWithResolver
             final String16FW decodable = stringRW
                 .set(ifNoneMatch.value().value(), 0, progress.length())
                 .build();
-            partitions = fetch.merge.isPresent() ? etagHelper.decodeLatest(decodable) : etagHelper.decode(decodable);
-        }
-
-        final HttpHeaderFW prefer = httpHeaders.matchFirst(h -> HEADER_NAME_PREFER.equals(h.name()));
-        if (prefer != null && preferWaitMatcher.reset(prefer.value().asString()).find())
-        {
-            timeout = SECONDS.toMillis(Long.parseLong(preferWaitMatcher.group("wait")));
+            partitions = fetch.merge.isPresent()
+                ? etagHelper.decodeLatest(decodable)
+                : timeout != 0L ? etagHelper.decodeLive(decodable) : etagHelper.decodeHistorical(decodable);
         }
 
         List<HttpKafkaWithFetchFilterResult> filters = null;

@@ -22,7 +22,7 @@ write zilla:begin.ext ${kafka:beginEx()
                              .merged()
                                  .capabilities("FETCH_ONLY")
                                  .topic("items-snapshots")
-                                 .partition(-1, -2)
+                                 .partition(-1, 0, -2)
                                  .build()
                              .build()}
 
@@ -31,8 +31,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("items-snapshots")
-                                .partition(0, -2, 1)
-                                .partition(1, -2, 1)
+                                .partition(0, 0, 1)
+                                .partition(1, 0, 1)
                                 .build()
                             .build()}
 

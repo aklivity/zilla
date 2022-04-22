@@ -373,6 +373,16 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.get.items.json")
     @Specification({
+        "${http}/get.items.empty/client",
+        "${kafka}/get.items.empty/server"})
+    public void shouldGetItemsEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.get.items.json")
+    @Specification({
         "${http}/get.items.with.body/client",
         "${kafka}/get.items/server"})
     public void shouldGetItemsWithBody() throws Exception
@@ -395,7 +405,7 @@ public class HttpKafkaProxyIT
     @Specification({
         "${http}/get.items.if.none.match.not.modified/client",
         "${kafka}/get.items.not.modified/server"})
-    public void shouldNotGetItemsNotModified() throws Exception
+    public void shouldNotGetItemsIfNoneMatchNotModified() throws Exception
     {
         k3po.finish();
     }

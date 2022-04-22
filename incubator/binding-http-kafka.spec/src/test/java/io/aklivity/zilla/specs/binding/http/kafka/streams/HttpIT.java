@@ -298,6 +298,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/get.items.empty/client",
+        "${http}/get.items.empty/server"})
+    public void shouldGetItemsEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/get.items.if.none.match/client",
         "${http}/get.items.if.none.match/server"})
     public void shouldGetItemsIfNoneMatch() throws Exception

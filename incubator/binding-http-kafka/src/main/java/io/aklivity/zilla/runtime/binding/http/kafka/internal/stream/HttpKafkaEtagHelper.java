@@ -67,7 +67,6 @@ public final class HttpKafkaEtagHelper
     public String16FW encodeLatest(
         final Array32FW<KafkaOffsetFW> progress)
     {
-        // TODO: verify if need offset+1 per partition
         return encode(progress, KafkaOffsetFW::latestOffset);
     }
 
@@ -120,10 +119,16 @@ public final class HttpKafkaEtagHelper
         return encodedBuf;
     }
 
-    public Array32FW<KafkaOffsetFW> decode(
+    public Array32FW<KafkaOffsetFW> decodeLive(
         final String16FW decodable)
     {
-        return decode(decodable, this::decodePartitionOffset);
+        return decode(decodable, this::decodeLiveOffset);
+    }
+
+    public Array32FW<KafkaOffsetFW> decodeHistorical(
+        final String16FW decodable)
+    {
+        return decode(decodable, this::decodeHistoricalOffset);
     }
 
     public Array32FW<KafkaOffsetFW> decodeLatest(
@@ -226,12 +231,22 @@ public final class HttpKafkaEtagHelper
         return progress;
     }
 
-    private void decodePartitionOffset(
+    private void decodeLiveOffset(
         HttpKafkaEtagPartitionV1FW partitionV1,
         KafkaOffsetFW.Builder builder)
     {
         builder.partitionId(partitionV1.partitionId())
-               .partitionOffset(partitionV1.partitionOffset());
+               .partitionOffset(partitionV1.partitionOffset())
+               .latestOffset(KafkaOffsetType.LIVE.value());
+    }
+
+    private void decodeHistoricalOffset(
+        HttpKafkaEtagPartitionV1FW partitionV1,
+        KafkaOffsetFW.Builder builder)
+    {
+        builder.partitionId(partitionV1.partitionId())
+               .partitionOffset(partitionV1.partitionOffset())
+               .latestOffset(KafkaOffsetType.HISTORICAL.value());
     }
 
     private void decodeLatestOffset(
@@ -239,7 +254,7 @@ public final class HttpKafkaEtagHelper
         KafkaOffsetFW.Builder builder)
     {
         builder.partitionId(partitionV1.partitionId())
-               .partitionOffset(KafkaOffsetType.HISTORICAL.value())
+               .partitionOffset(0L)
                .latestOffset(partitionV1.partitionOffset());
     }
 }

@@ -262,6 +262,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/get.items.empty/client",
+        "${kafka}/get.items.empty/server"})
+    public void shouldGetItemsEmpty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/get.items.modified/client",
         "${kafka}/get.items.modified/server"})
     public void shouldGetItemsModified() throws Exception
