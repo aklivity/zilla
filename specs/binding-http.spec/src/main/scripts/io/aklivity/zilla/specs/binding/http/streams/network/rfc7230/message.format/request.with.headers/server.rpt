@@ -25,5 +25,5 @@ read http:method "GET"
 read http:header "some" "header"
 read closed
 
-write http:status "200" "OK"
+write http:status "204" "No Content"
 write close

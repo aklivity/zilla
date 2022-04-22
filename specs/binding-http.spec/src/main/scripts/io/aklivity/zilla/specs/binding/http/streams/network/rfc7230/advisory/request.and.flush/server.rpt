@@ -29,6 +29,6 @@ read advised zilla:flush
 
 read "hello world"
 
-write "HTTP/1.1 200 OK\r\n"
+write "HTTP/1.1 204 No Content\r\n"
       "\r\n"
 write flush

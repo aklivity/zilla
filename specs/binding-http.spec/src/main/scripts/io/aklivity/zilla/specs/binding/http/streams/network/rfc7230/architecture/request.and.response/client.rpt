@@ -28,3 +28,8 @@ write http:host
 
 read http:version "HTTP/1.1"
 read http:status "200" "OK"
+read http:header "Transfer-Encoding" "chunked"
+
+read "Hello, world"
+
+read closed

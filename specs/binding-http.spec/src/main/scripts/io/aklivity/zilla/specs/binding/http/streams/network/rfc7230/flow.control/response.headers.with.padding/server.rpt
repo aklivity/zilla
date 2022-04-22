@@ -24,7 +24,7 @@ read "GET / HTTP/1.1\r\n"
 read "Host: localhost:8080\r\n"
 read "\r\n"
 
-write "HTTP/1.1 200 OK\r\n"
+write "HTTP/1.1 204 No Content\r\n"
 write "Custom-Header-1: custom header 1 value\r\n"
 write "Custom-Header-2: custom header 2 value\r\n"
 write "\r\n"

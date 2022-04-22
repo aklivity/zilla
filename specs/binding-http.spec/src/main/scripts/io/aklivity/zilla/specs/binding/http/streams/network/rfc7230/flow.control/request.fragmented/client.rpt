@@ -31,5 +31,5 @@ write ": header\r\n"
 write "\r\n"
 write flush
 
-read "HTTP/1.1 200 OK\r\n"
+read "HTTP/1.1 204 No Content\r\n"
 read "\r\n"
