@@ -29,6 +29,7 @@
     <module>binding-ws</module>
     <module>binding-kafka</module>
     <module>binding-http-filesystem</module>
+    <module>binding-http-kafka</module>
     <module>binding-sse-kafka</module>
     <module>guard-jwt</module>
     <module>vault-filesystem</module>
@@ -102,6 +103,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-http-filesystem</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-http-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
