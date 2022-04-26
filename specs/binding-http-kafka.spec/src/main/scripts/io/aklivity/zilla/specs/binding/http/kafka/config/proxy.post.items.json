@@ -6,21 +6,6 @@
         {
             "type" : "http-kafka",
             "kind": "proxy",
-            "options":
-            {
-                "idempotency":
-                {
-                    "header": "idempotency-key"
-                },
-                "correlation":
-                {
-                    "headers":
-                    {
-                        "reply-to": "zilla:reply-to",
-                        "correlation-id": "zilla:correlation-id"
-                    }
-                }
-            },
             "routes":
             [
                 {
