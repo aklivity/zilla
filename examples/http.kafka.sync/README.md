@@ -75,3 +75,12 @@ $ echo "{\"greeting\":\"Hello, world `date`\"}" | \
          -H ":status=200" \
          -H "zilla:correlation-id=1"
 ```
+
+## Stop Kafka broker and Zilla engine
+```bash
+$ docker stack rm
+Removing service example_kafka
+Removing service example_zilla
+Removing service example_zookeeper
+Removing network example_net0
+```
