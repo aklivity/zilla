@@ -44,10 +44,11 @@ Created topic items-responses.
 Send a `PUT` request for a specific item.
 Note that the response will not return until you complete the following step.
 ```bash
-$ curl -v -X "PUT" http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
-       -d "{\"greeting\":\"Hello, world `date`\"}" \
+$ curl -v \
+       -X "PUT" http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
        -H "Content-Type: application/json" \
-       -H "Idempotency-Key: 1"
+       -H "Idempotency-Key: 1" \
+       -d "{\"greeting\":\"Hello, world `date`\"}"
 ...
 > PUT /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
 > Idempotency-Key: 1
