@@ -46,8 +46,8 @@ Note that the response will not return until you complete the following step.
 ```bash
 $ curl -v \
        -X "PUT" http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
-       -H "Content-Type: application/json" \
        -H "Idempotency-Key: 1" \
+       -H "Content-Type: application/json" \
        -d "{\"greeting\":\"Hello, world `date`\"}"
 ...
 > PUT /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 HTTP/1.1
