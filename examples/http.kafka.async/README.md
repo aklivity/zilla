@@ -66,6 +66,7 @@ $ curl -v "http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1" -
 Use the returned location to attempt to verify completion of the asynchronous request within `60 seconds`.
 Note that the response will not return until you complete the following step.
 ```bash
+$ curl -v "http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1" -H "Prefer: wait=60"
 > GET /items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1 HTTP/1.1
 > Prefer: wait=60
 ...
