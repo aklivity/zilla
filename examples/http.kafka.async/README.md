@@ -102,7 +102,7 @@ $ echo "{\"greeting\":\"Hello, world `date`\"}" | \
          -H "zilla:correlation-id=1"
 ```
 
-## Stop Kafka broker and Zilla engine
+### Stop Kafka broker and Zilla engine
 ```bash
 $ docker stack rm
 Removing service example_kafka

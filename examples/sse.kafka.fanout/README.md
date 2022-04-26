@@ -51,7 +51,7 @@ $ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t events -k 1
 ```
 Note that only the latest messages with distinct keys are guaranteed to be retained by a compacted Kafka topic, so use different values for `-k` above to retain more than one message in the `events` topic.
 
-## Browser
+### Browser
 
 Browse to `https://localhost:9090/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
 
@@ -64,7 +64,7 @@ Open the browser developer tools console to see additional logging, such as the 
 Additional messages produced to the `events` Kafka topic then arrive at the browser live.
 
 
-## Reliability
+### Reliability
 
 Simulate connection loss by stopping the `zilla` service in the `docker` stack.
 
@@ -84,7 +84,7 @@ Any messages produced to the `events` Kafka topic while the browser was attempti
 
 Additional messages produced to the `events` Kafka topic then arrive at the browser live.
 
-## Stop Kafka broker and Zilla engine
+### Stop Kafka broker and Zilla engine
 ```bash
 $ docker stack rm
 Removing service example_kafka

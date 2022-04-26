@@ -161,7 +161,7 @@ $ curl -v http://localhost:8080/items
 [{"greeting":"Hello, world ..."}]
 ```
 
-## Stop Kafka broker and Zilla engine
+### Stop Kafka broker and Zilla engine
 ```bash
 $ docker stack rm
 Removing service example_kafka
