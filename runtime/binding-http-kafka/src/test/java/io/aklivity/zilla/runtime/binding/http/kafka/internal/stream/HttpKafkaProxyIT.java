@@ -61,6 +61,16 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
+        "${http}/delete.item/client",
+        "${kafka}/delete.item/server"})
+    public void shouldDeleteItemSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
         "${http}/delete.item/client",

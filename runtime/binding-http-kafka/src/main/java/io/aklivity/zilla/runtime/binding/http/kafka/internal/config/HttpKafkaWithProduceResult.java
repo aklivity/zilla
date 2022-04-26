@@ -32,7 +32,10 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 public class HttpKafkaWithProduceResult
 {
     private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_202 =
-        new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("202"));
+            new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("202"));
+    private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_CONTENT_LENGTH_0 =
+            new HttpKafkaWithProduceAsyncHeaderResult(new String8FW("content-length"), new String16FW("0"));
+
     private static final String8FW HTTP_HEADER_NAME_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HTTP_HEADER_NAME_PREFER = new String8FW("prefer");
     private static final String8FW HTTP_HEADER_NAME_IF_MATCH = new String8FW("if-match");
@@ -52,8 +55,8 @@ public class HttpKafkaWithProduceResult
     private final String16FW replyTo;
     private final List<HttpKafkaWithProduceAsyncHeaderResult> async;
     private final String16FW correlationId;
-    private final String16FW idempotencyKey;
     private final long timeout;
+    private final boolean idempotent;
 
     HttpKafkaWithProduceResult(
         HttpKafkaCorrelationConfig correlation,
@@ -73,9 +76,9 @@ public class HttpKafkaWithProduceResult
         this.overrides = overrides;
         this.ifMatch = ifMatch;
         this.replyTo = replyTo;
-        this.idempotencyKey = idempotencyKey;
         this.async = async;
         this.correlationId = correlationId;
+        this.idempotent = idempotencyKey != null;
         this.timeout = timeout;
     }
 
@@ -111,8 +114,16 @@ public class HttpKafkaWithProduceResult
         Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
     {
         headers.forEach(h -> header(h, builder));
-        builder.item(this::replyTo);
-        builder.item(this::correlationId);
+
+        if (replyTo != null)
+        {
+            builder.item(this::replyTo);
+        }
+
+        if (correlationId != null)
+        {
+            builder.item(this::correlationId);
+        }
 
         if (overrides != null)
         {
@@ -142,32 +153,21 @@ public class HttpKafkaWithProduceResult
     private void replyTo(
         KafkaHeaderFW.Builder builder)
     {
-        if (replyTo != null)
-        {
-            builder
-                .nameLen(correlation.replyTo.length())
-                .name(correlation.replyTo.value(), 0, correlation.replyTo.length())
-                .valueLen(replyTo.length())
-                .value(replyTo.value(), 0, replyTo.length());
-        }
+        builder
+            .nameLen(correlation.replyTo.length())
+            .name(correlation.replyTo.value(), 0, correlation.replyTo.length())
+            .valueLen(replyTo.length())
+            .value(replyTo.value(), 0, replyTo.length());
     }
 
     private void correlationId(
         KafkaHeaderFW.Builder builder)
     {
-        if (idempotencyKey != null)
-        {
-            builder
-                .nameLen(correlation.correlationId.length())
-                .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
-                .valueLen(idempotencyKey.length())
-                .value(idempotencyKey.value(), 0, idempotencyKey.length());
-        }
-    }
-
-    public String16FW idempotencyKey()
-    {
-        return idempotencyKey;
+        builder
+            .nameLen(correlation.correlationId.length())
+            .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
+            .valueLen(correlationId.length())
+            .value(correlationId.value(), 0, correlationId.length());
     }
 
     public void correlated(
@@ -198,6 +198,7 @@ public class HttpKafkaWithProduceResult
         if (async != null)
         {
             builder.item(HTTP_STATUS_202::header);
+            builder.item(HTTP_CONTENT_LENGTH_0::header);
             async.forEach(a -> builder.item(a::header));
         }
     }
@@ -207,9 +208,9 @@ public class HttpKafkaWithProduceResult
         return async != null;
     }
 
-    public boolean correlated()
+    public boolean idempotent()
     {
-        return correlationId != null;
+        return idempotent;
     }
 
     public long timeout()
@@ -220,8 +221,6 @@ public class HttpKafkaWithProduceResult
     public void filters(
         Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
     {
-        final String16FW correlationId = this.correlationId != null ? this.correlationId : this.idempotencyKey;
-
         if (correlationId != null)
         {
             builder.item(i -> i
