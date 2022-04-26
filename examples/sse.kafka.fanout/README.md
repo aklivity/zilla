@@ -38,7 +38,7 @@ $ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t zilla
 ```
 
 ## Browser
-Browse to `https://localhost:8080/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
+Browse to `https://localhost:9090/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
 
 Click the `Go` button to attach the browser SSE event source to Kafka via Zilla.
 
