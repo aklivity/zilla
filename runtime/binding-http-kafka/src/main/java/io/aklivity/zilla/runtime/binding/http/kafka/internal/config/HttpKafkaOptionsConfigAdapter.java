@@ -47,6 +47,9 @@ public final class HttpKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             CORRELATION_HEADERS_REPLY_TO_DEFAULT,
             CORRELATION_HEADERS_CORRELATION_ID_DEFAULT);
 
+    public static final HttpKafkaOptionsConfig DEFAULT =
+        new HttpKafkaOptionsConfig(IDEMPOTENCY_DEFAULT, CORRELATION_DEFAULT);
+
     @Override
     public Kind kind()
     {
