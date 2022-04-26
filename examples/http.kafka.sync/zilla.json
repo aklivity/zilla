@@ -115,6 +115,10 @@
                 [
                     "items-requests",
                     "items-responses"
+                ],
+                "bootstrap":
+                [
+                    "items-responses"
                 ]
             },
             "exit": "kafka1"
