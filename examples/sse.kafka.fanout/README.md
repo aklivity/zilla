@@ -28,7 +28,7 @@ Creating service example_zookeeper
 ```
 
 ### Create compacted Kafka topic
-Create the `events` kafka topic.
+When example_kafka service has finished starting up, execute the following command:
 ```bash
 docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
@@ -49,6 +49,7 @@ Hello, world ...
 ```bash
 $ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t events -k 1
 ```
+Note that only the latest messages with distinct keys are guaranteed to be retained by a compacted Kafka topic, so use different values for `-k` above to retain more than one message in the `events` topic.
 
 ## Browser
 
@@ -85,7 +86,7 @@ Additional messages produced to the `events` Kafka topic then arrive at the brow
 
 ## Stop Kafka broker and Zilla engine
 ```bash
-$ docker stack rm 
+$ docker stack rm
 Removing service example_kafka
 Removing service example_zilla
 Removing service example_zookeeper
