@@ -176,6 +176,10 @@
                 "merged":
                 [
                     "zilla"
+                ],
+                "bootstrap":
+                [
+                    "zilla"
                 ]
             },
             "exit": "kafka1"

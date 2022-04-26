@@ -3,15 +3,8 @@ Listens on http port `8080` or https port `9090` and will stream back whatever i
 
 ### Requirements
  - Docker 20.10+
-
-### Start kafka broker and zilla engine
-```bash
-$ docker stack deploy -c stack.yml example
-Creating network example_net0
-Creating service example_zilla
-Creating service example_kafka
-Creating service example_zookeeper
-```
+ - sse-cat (via `node` version `14` or higher)
+ - kcat
 
 ### Install sse-cat client
 Requires Server-Sent Events client, such as `sse-cat` version `2.0.5` or higher on `node` version `14` or higher.
@@ -23,6 +16,15 @@ $ npm install -g sse-cat
 Requires Kafka client, such as `kcat`.
 ```bash
 $ brew install kcat
+```
+
+### Start kafka broker and zilla engine
+```bash
+$ docker stack deploy -c stack.yml example
+Creating network example_net0
+Creating service example_zilla
+Creating service example_kafka
+Creating service example_zookeeper
 ```
 
 ### Verify behavior
