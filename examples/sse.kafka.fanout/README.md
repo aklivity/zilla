@@ -28,16 +28,28 @@ Creating service example_zookeeper
 ```
 
 ### Verify behavior
-Connect `sse-cat` client first, then send `Hello, world` from `kcat` producer client.
+
+Create the `zilla` kafka topic.
+```bash
+docker exec -it $(docker ps -q -f name=example_kafka) \
+    /opt/bitnami/kafka/bin/kafka-topics.sh \
+        --bootstrap-server kafka.internal.net:9092 \
+        --create \
+        --topic zilla
+```
+
+Connect `sse-cat` client first, then send `Hello, world ...` from `kcat` producer client.
+Note that the `Hello, world ...` message will not arrive until after using `kcat` to produce the `Hello, world ...` message in the next step.
 ```bash
 $ sse-cat http://localhost:8080/zilla
-Hello, world
+Hello, world ...
 ```
 ```bash
 $ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t zilla
 ```
 
 ## Browser
+
 Browse to `https://localhost:9090/index.html` and make sure to visit the `localhost` site and trust the `localhost` certificate.
 
 Click the `Go` button to attach the browser SSE event source to Kafka via Zilla.
