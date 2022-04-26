@@ -209,10 +209,71 @@ public final class HttpKafkaWithResolver
         HttpKafkaWithProduceConfig produce = with.produce.get();
 
         final Array32FW<HttpHeaderFW> httpHeaders = httpBeginEx.headers();
+        List<HttpKafkaWithProduceAsyncHeaderResult> async = null;
+        String16FW correlationId = null;
+        long timeout = 0L;
+
+        final HttpHeaderFW prefer = httpHeaders.matchFirst(h -> HEADER_NAME_PREFER.equals(h.name()));
+        final String preferValue = prefer != null ? prefer.value().asString() : null;
+
+        if (produce.async.isPresent())
+        {
+            final HttpHeaderFW httpMethod = httpHeaders.matchFirst(h -> HEADER_NAME_METHOD.equals(h.name()));
+            if (HEADER_VALUE_METHOD_GET.equals(httpMethod.value()))
+            {
+                final HttpHeaderFW httpPath = httpHeaders.matchFirst(h -> HEADER_NAME_PATH.equals(h.name()));
+                correlationId = produce.correlationId(httpPath);
+
+                if (preferValue != null && preferWaitMatcher.reset(preferValue).find())
+                {
+                    timeout = SECONDS.toMillis(Long.parseLong(preferWaitMatcher.group("wait")));
+                }
+            }
+        }
+
+        final String16FW asyncId = correlationId;
+
         final HttpHeaderFW httpIdempotencyKey = httpHeaders.matchFirst(h -> options.idempotency.header.equals(h.name()));
-        String16FW idempotencyKey = httpIdempotencyKey != null
+        final String16FW idempotencyKey = correlationId == null && httpIdempotencyKey != null
                 ? new String16FW(httpIdempotencyKey.value().asString())
-                : null;
+                : correlationId == null
+                    ? new String16FW(UUID.randomUUID().toString())
+                    : null;
+
+        if (correlationId == null)
+        {
+            correlationId = idempotencyKey;
+        }
+
+        if (produce.async.isPresent() &&
+            (asyncId != null || preferValue != null && preferAsyncMatcher.reset(preferValue).find()))
+        {
+            async = new ArrayList<>();
+
+            for (HttpKafkaWithProduceAsyncHeaderConfig header : produce.async.get())
+            {
+                String name0 = header.name;
+                String8FW name = new String8FW(name0);
+
+                String value0 = header.value;
+                Matcher valueMatcher = paramsMatcher.reset(value0);
+                if (valueMatcher.find())
+                {
+                    value0 = valueMatcher.replaceAll(replacer);
+                }
+                if (correlationId != null)
+                {
+                    valueMatcher = correlationIdMatcher.reset(value0);
+                    if (valueMatcher.find())
+                    {
+                        value0 = valueMatcher.replaceAll(correlationId.asString());
+                    }
+                }
+                String16FW value = new String16FW(value0);
+
+                async.add(new HttpKafkaWithProduceAsyncHeaderResult(name, value));
+            }
+        }
 
         // TODO: hoist to constructor if constant
         String topic0 = produce.topic;
@@ -233,11 +294,14 @@ public final class HttpKafkaWithResolver
                 key0 = keyMatcher.replaceAll(replacer);
             }
             keyMatcher = correlationIdMatcher.reset(key0);
-            if (idempotencyKey != null && keyMatcher.find())
+            if (correlationId != null)
             {
-                key0 = keyMatcher.replaceAll(idempotencyKey.asString());
+                if (keyMatcher.find())
+                {
+                    key0 = keyMatcher.replaceAll(correlationId.asString());
+                }
+                key = new String16FW(key0).value();
             }
-            key = new String16FW(key0).value();
         }
 
         List<HttpKafkaWithProduceOverrideResult> overrides = null;
@@ -257,9 +321,12 @@ public final class HttpKafkaWithResolver
                     value0 = valueMatcher.replaceAll(replacer);
                 }
                 valueMatcher = correlationIdMatcher.reset(value0);
-                if (idempotencyKey != null && valueMatcher.find())
+                if (correlationId != null)
                 {
-                    value0 = valueMatcher.replaceAll(idempotencyKey.asString());
+                    if (valueMatcher.find())
+                    {
+                        value0 = valueMatcher.replaceAll(correlationId.asString());
+                    }
                 }
                 DirectBuffer value = new String16FW(value0).value();
 
@@ -285,64 +352,6 @@ public final class HttpKafkaWithResolver
         if (httpIfMatch != null && etagMatcher.reset(httpIfMatch.value().asString()).matches())
         {
             ifMatch = new String16FW(etagMatcher.group("ifmatch"));
-        }
-
-        List<HttpKafkaWithProduceAsyncHeaderResult> async = null;
-        String16FW correlationId = null;
-        long timeout = 0L;
-
-        if (produce.async.isPresent())
-        {
-            final HttpHeaderFW prefer = httpHeaders.matchFirst(h -> HEADER_NAME_PREFER.equals(h.name()));
-            final String preferValue = prefer != null ? prefer.value().asString() : null;
-
-            final HttpHeaderFW httpMethod = httpHeaders.matchFirst(h -> HEADER_NAME_METHOD.equals(h.name()));
-            if (HEADER_VALUE_METHOD_GET.equals(httpMethod.value()))
-            {
-                final HttpHeaderFW httpPath = httpHeaders.matchFirst(h -> HEADER_NAME_PATH.equals(h.name()));
-                correlationId = produce.correlationId(httpPath);
-
-                if (idempotencyKey == null)
-                {
-                    idempotencyKey = correlationId;
-                }
-
-                if (preferValue != null && preferWaitMatcher.reset(preferValue).find())
-                {
-                    timeout = SECONDS.toMillis(Long.parseLong(preferWaitMatcher.group("wait")));
-                }
-            }
-
-            if (correlationId != null || preferValue != null && preferAsyncMatcher.reset(preferValue).find())
-            {
-                if (idempotencyKey == null)
-                {
-                    idempotencyKey = new String16FW(UUID.randomUUID().toString());
-                }
-
-                async = new ArrayList<>();
-
-                for (HttpKafkaWithProduceAsyncHeaderConfig header : produce.async.get())
-                {
-                    String name0 = header.name;
-                    String8FW name = new String8FW(name0);
-
-                    String value0 = header.value;
-                    Matcher valueMatcher = paramsMatcher.reset(value0);
-                    if (valueMatcher.find())
-                    {
-                        value0 = valueMatcher.replaceAll(replacer);
-                    }
-                    valueMatcher = correlationIdMatcher.reset(value0);
-                    if (valueMatcher.find())
-                    {
-                        value0 = valueMatcher.replaceAll(idempotencyKey.asString());
-                    }
-                    String16FW value = new String16FW(value0);
-
-                    async.add(new HttpKafkaWithProduceAsyncHeaderResult(name, value));
-                }
-            }
         }
 
         return new HttpKafkaWithProduceResult(
