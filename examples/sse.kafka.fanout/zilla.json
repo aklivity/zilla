@@ -75,7 +75,7 @@
                             {
                                 ":scheme": "http",
                                 ":authority": "localhost:8080",
-                                ":path": "/zilla"
+                                ":path": "/events"
                             }
                         },
                         {
@@ -83,7 +83,7 @@
                             {
                                 ":scheme": "https",
                                 ":authority": "localhost:9090",
-                                ":path": "/zilla"
+                                ":path": "/events"
                             }
                         }
                     ]
@@ -175,11 +175,11 @@
             {
                 "merged":
                 [
-                    "zilla"
+                    "events"
                 ],
                 "bootstrap":
                 [
-                    "zilla"
+                    "events"
                 ]
             },
             "exit": "kafka1"

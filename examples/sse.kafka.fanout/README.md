@@ -18,7 +18,7 @@ Requires Kafka client, such as `kcat`.
 $ brew install kcat
 ```
 
-### Start kafka broker and zilla engine
+### Start Kafka broker and Zilla engine
 ```bash
 $ docker stack deploy -c stack.yml example
 Creating network example_net0
@@ -27,25 +27,27 @@ Creating service example_kafka
 Creating service example_zookeeper
 ```
 
-### Verify behavior
-
-Create the `zilla` kafka topic.
+### Create compacted Kafka topic
+Create the `events` kafka topic.
 ```bash
 docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
         --bootstrap-server kafka.internal.net:9092 \
         --create \
-        --topic zilla
+        --topic events \
+        --config cleanup.policy=compact
 ```
+Note the `cleanup.policy=compact` topic configuration.
 
+### Verify behavior
 Connect `sse-cat` client first, then send `Hello, world ...` from `kcat` producer client.
 Note that the `Hello, world ...` message will not arrive until after using `kcat` to produce the `Hello, world ...` message in the next step.
 ```bash
-$ sse-cat http://localhost:8080/zilla
+$ sse-cat http://localhost:8080/events
 Hello, world ...
 ```
 ```bash
-$ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t zilla
+$ echo "Hello, world `date`" | kcat -P -b localhost:9092 -t events -k 1
 ```
 
 ## Browser
@@ -54,11 +56,11 @@ Browse to `https://localhost:9090/index.html` and make sure to visit the `localh
 
 Click the `Go` button to attach the browser SSE event source to Kafka via Zilla.
 
-All existing messages in the `zilla` Kafka topic are replayed to the browser.
+All non-compacted messages with distinct keys in the `events` Kafka topic are replayed to the browser.
 
 Open the browser developer tools console to see additional logging, such as the `open` event.
 
-Additional messages produced to the `zilla` Kafka topic then arrive at the browser live.
+Additional messages produced to the `events` Kafka topic then arrive at the browser live.
 
 
 ## Reliability
@@ -77,6 +79,15 @@ Simulate connection recovery by starting the `zilla` service again.
 $ docker service scale example_zilla=1
 ```
 
-Any messages produced to the `zilla` Kafka topic while the browser was attempting to reconnect are now delivered immediately.
+Any messages produced to the `events` Kafka topic while the browser was attempting to reconnect are now delivered immediately.
 
-Additional messages produced to the `zilla` Kafka topic then arrive at the browser live.
+Additional messages produced to the `events` Kafka topic then arrive at the browser live.
+
+## Stop Kafka broker and Zilla engine
+```bash
+$ docker stack rm 
+Removing service example_kafka
+Removing service example_zilla
+Removing service example_zookeeper
+Removing network example_net0
+```
