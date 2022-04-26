@@ -50,7 +50,7 @@ public final class HttpKafkaBindingConfig
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(HttpKafkaOptionsConfig.class::cast)
-                .orElse(null);
+                .orElse(HttpKafkaOptionsConfigAdapter.DEFAULT);
         this.routes = binding.routes.stream().map(r -> new HttpKafkaRouteConfig(options, r)).collect(toList());
         this.helper = new HttpKafkaHeaderHelper();
     }
