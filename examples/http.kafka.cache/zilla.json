@@ -1,0 +1,185 @@
+{
+    "name": "example",
+    "vaults":
+    {
+        "server":
+        {
+            "type": "filesystem",
+            "options":
+            {
+                "keys":
+                {
+                    "store": "localhost.p12",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        }
+    },
+    "bindings":
+    {
+        "tcp0":
+        {
+            "type" : "tcp",
+            "kind": "server",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 9090
+            },
+            "exit": "tls0"
+        },
+        "tcp1":
+        {
+            "type" : "tcp",
+            "kind": "server",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 8080
+            },
+            "exit": "http0"
+        },
+        "tls0":
+        {
+            "type" : "tls",
+            "kind": "server",
+            "vault": "server",
+            "options":
+            {
+                "keys": [ "localhost" ],
+                "sni": [ "localhost" ],
+                "alpn": [ "http/1.1", "h2" ]
+            },
+            "exit": "http0"
+        },
+        "http0":
+        {
+            "type" : "http",
+            "kind": "server",
+            "routes":
+            [
+                {
+                    "exit": "http_kafka0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "http",
+                                ":authority": "localhost:8080"
+                            }
+                        },
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "localhost:9090"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "http_kafka0":
+        {
+            "type" : "http-kafka",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "exit": "kafka0",
+                    "when":
+                    [
+                        {
+                            "method": "GET",
+                            "path": "/items"
+                        }
+                    ],
+                    "with":
+                    {
+                        "capability": "fetch",
+                        "topic": "items-snapshots",
+                        "merge":
+                        {
+                            "content-type": "application/json"
+                        }
+                    }
+                },
+                {
+                    "exit": "kafka0",
+                    "when":
+                    [
+                        {
+                            "method": "GET",
+                            "path": "/items/{id}"
+                        }
+                    ],
+                    "with":
+                    {
+                        "capability": "fetch",
+                        "topic": "items-snapshots",
+                        "filters":
+                        [
+                            {
+                                "key": "${params.id}"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "kafka0":
+        {
+            "type" : "kafka",
+            "kind": "cache_client",
+            "options":
+            {
+                "merged":
+                [
+                    "items-snapshots"
+                ],
+                "bootstrap":
+                [
+                    "items-snapshots"
+                ]
+            },
+            "exit": "kafka1"
+        },
+        "kafka1":
+        {
+            "type" : "kafka",
+            "kind": "cache_server",
+            "exit": "kafka2"
+        },
+        "kafka2":
+        {
+            "type" : "kafka",
+            "kind": "client",
+            "exit": "tcp2"
+        },
+        "tcp2":
+        {
+            "type" : "tcp",
+            "kind": "client",
+            "options":
+            {
+                "host": "kafka.internal.net",
+                "port": 9092
+            },
+            "routes":
+            [
+                {
+                    "exit": "net0",
+                    "when":
+                    [
+                        {
+                            "cidr": "0.0.0.0/0"
+                        }
+                    ]
+                }
+            ],
+            "exit": "net0"
+        }
+    }
+}
