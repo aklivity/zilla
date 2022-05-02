@@ -20,7 +20,7 @@ $ brew install kcat
 
 ### Start Kafka broker and Zilla engine
 ```bash
-$ docker stack deploy -c stack.yml example
+$ docker stack deploy -c stack.yml example --resolve-image never
 Creating network example_net0
 Creating service example_zilla
 Creating service example_kafka
@@ -32,7 +32,7 @@ When example_kafka service has finished starting up, execute the following comma
 ```bash
 docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server kafka.internal.net:9092 \
+        --bootstrap-server localhost:9092 \
         --create \
         --topic events \
         --config cleanup.policy=compact
