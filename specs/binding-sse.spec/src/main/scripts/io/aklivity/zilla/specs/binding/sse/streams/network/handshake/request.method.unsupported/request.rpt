@@ -19,19 +19,20 @@ connect "zilla://streams/net0"
   option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
-                              .header(":method", "POST")
-                              .header(":path", "/events/a8b7c6d5")
-                              .header(":authority", "localhost:8080")
-                              .header("accept", "text/event-stream")
-                              .build()}
+                            .typeId(zilla:id("http"))
+                            .header(":scheme", "http")
+                            .header(":method", "POST")
+                            .header(":path", "/events/a8b7c6d5")
+                            .header(":authority", "localhost:8080")
+                            .header("accept", "text/event-stream")
+                            .build()}
 
 connected
 
 write close
 
-read zilla:begin.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":status", "405")
-                             .build()}
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "405")
+                           .header("content-length", "0")
+                           .build()}
