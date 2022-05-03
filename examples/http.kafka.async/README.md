@@ -72,7 +72,7 @@ $ curl -v \
 ...
 ```
 Use the returned location to attempt to verify completion of the asynchronous request within `60 seconds`.
-Note that the response will not return until you complete the following step.
+Note that the response will not return until you complete the following step to produce the response with `kcat`.
 ```bash
 $ curl -v \
        "http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07;1" \
@@ -104,7 +104,7 @@ $ echo "{\"greeting\":\"Hello, world `date`\"}" | \
 
 ### Stop Kafka broker and Zilla engine
 ```bash
-$ docker stack rm
+$ docker stack rm example
 Removing service example_kafka
 Removing service example_zilla
 Removing service example_zookeeper
