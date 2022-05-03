@@ -86,7 +86,7 @@ Additional messages produced to the `events` Kafka topic then arrive at the brow
 
 ### Stop Kafka broker and Zilla engine
 ```bash
-$ docker stack rm
+$ docker stack rm example
 Removing service example_kafka
 Removing service example_zilla
 Removing service example_zookeeper
