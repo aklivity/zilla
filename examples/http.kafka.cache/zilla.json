@@ -165,7 +165,7 @@
             "options":
             {
                 "host": "kafka.internal.net",
-                "port": 9092
+                "port": 29092
             },
             "routes":
             [
