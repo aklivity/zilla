@@ -339,7 +339,6 @@ public final class SseServerFactory implements SseStreamFactory
         private BudgetDebitor replyDebitor;
         private long replyDebitorIndex = NO_DEBITOR_INDEX;
 
-
         private SseServer(
             MessageConsumer network,
             long routeId,

@@ -54,6 +54,9 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     private static final String SSE_TYPE_NAME = "sse";
     private static final String KAFKA_TYPE_NAME = "kafka";
 
+    private static final String8FW EVENT_TYPE_MESSAGE = new String8FW(null);
+    private static final String8FW EVENT_TYPE_DELETE = new String8FW("delete");
+
     private final OctetsFW emptyExRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -92,6 +95,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final int sseTypeId;
     private final int kafkaTypeId;
+    private final int kafkaReplyMin;
 
     private final Long2ObjectHashMap<SseKafkaBindingConfig> bindings;
 
@@ -107,6 +111,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.sseTypeId = context.supplyTypeId(SSE_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
+        this.kafkaReplyMin = config.maximumKeyLength();
     }
 
     @Override
@@ -356,7 +361,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doKafkaWindow(traceId, authorization, budgetId, padding, capabilities);
+            delegate.doKafkaWindow(traceId, authorization, budgetId, padding, kafkaReplyMin, capabilities);
         }
 
         private void doSseBegin(
@@ -441,7 +446,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             initialMax = delegate.initialMax;
 
             doWindow(sse, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, budgetId, padding, capabilities);
+                    traceId, authorization, budgetId, padding, 0, capabilities);
         }
 
         private void doSseReset(
@@ -628,15 +633,21 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 final KafkaMergedDataExFW kafkaMergedDataEx =
                         kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
                 final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
-                final String8FW encodedBuf = sseEventId.encode(progress);
-                final Flyweight sseDataEx = encodedBuf == null
+                final OctetsFW key = kafkaMergedDataEx != null ? kafkaMergedDataEx.key().value() : null;
+
+                final String8FW encodedId = sseEventId.encode(progress);
+
+                final String8FW eventType = payload == null ? EVENT_TYPE_DELETE : EVENT_TYPE_MESSAGE;
+                final Flyweight sseDataEx = encodedId == null
                         ? emptyExRO
                         : sseDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(sseTypeId)
-                            .id(encodedBuf)
+                            .id(encodedId)
+                            .type(eventType)
                             .build();
 
-                delegate.doSseData(traceId, authorization, budgetId, reserved, flags, payload, sseDataEx);
+                final OctetsFW eventData = payload == null && key != null ? sseEventId.encode(key) : payload;
+                delegate.doSseData(traceId, authorization, budgetId, reserved, flags, eventData, sseDataEx);
             }
         }
 
@@ -757,13 +768,14 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long authorization,
             long budgetId,
             int padding,
+            int minimum,
             int capabilities)
         {
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
 
             doWindow(kafka, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, budgetId, padding, capabilities);
+                    traceId, authorization, budgetId, padding, minimum, capabilities);
         }
     }
 
@@ -950,6 +962,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long authorization,
         long budgetId,
         int padding,
+        int minimum,
         int capabilities)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -962,6 +975,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .authorization(authorization)
                 .budgetId(budgetId)
                 .padding(padding)
+                .minimum(minimum)
                 .capabilities(capabilities)
                 .build();
 
