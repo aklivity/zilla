@@ -28,13 +28,5 @@ connected
 read zilla:data.ext ${sse:matchDataEx()
                          .typeId(zilla:id("sse"))
                          .id("AQQABAIC")
-                         .type(null)
                          .build()}
-read "Hello, world"
-
-read zilla:data.ext ${sse:matchDataEx()
-                         .typeId(zilla:id("sse"))
-                         .id("AQQABgIC")
-                         .type(null)
-                         .build()}
-read "Hello, again"
+read zilla:data.null

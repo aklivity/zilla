@@ -25,9 +25,9 @@ scope sse
 
         struct SseDataEx extends core::stream::Extension
         {
-            int64 timestamp;
+            int64 timestamp = 0;
             string8 id;
-            string8 type;
+            string8 type = null;
         }
 
         struct SseEndEx extends core::stream::Extension

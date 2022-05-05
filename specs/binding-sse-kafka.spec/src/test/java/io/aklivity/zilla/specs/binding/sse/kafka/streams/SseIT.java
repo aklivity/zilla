@@ -82,6 +82,15 @@ public class SseIT
 
     @Test
     @Specification({
+        "${sse}/server.sent.null/client",
+        "${sse}/server.sent.null/server"})
+    public void shouldReceiveServerSentNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${sse}/server.sent.abort/client",
         "${sse}/server.sent.abort/server"})
     public void shouldReceiveServerSentAbort() throws Exception

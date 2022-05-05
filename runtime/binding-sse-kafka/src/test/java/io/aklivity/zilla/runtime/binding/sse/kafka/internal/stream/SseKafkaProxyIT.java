@@ -130,6 +130,16 @@ public class SseKafkaProxyIT
     @Test
     @Configuration("proxy.with.topic.json")
     @Specification({
+        "${sse}/server.sent.null/client",
+        "${kafka}/server.sent.null/server"})
+    public void shouldReceiveServerSentNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
         "${sse}/server.sent.abort/client",
         "${kafka}/server.sent.abort/server"})
     public void shouldReceiveServerSentAbort() throws Exception

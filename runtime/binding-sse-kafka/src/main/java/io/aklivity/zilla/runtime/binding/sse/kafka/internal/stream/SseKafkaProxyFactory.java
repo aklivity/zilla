@@ -379,7 +379,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            Flyweight payload,
+            OctetsFW payload,
             Flyweight extension)
         {
             doData(sse, routeId, replyId, replySeq, replyAck, replyMax,
@@ -633,9 +633,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                         ? emptyExRO
                         : sseDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(sseTypeId)
-                            .timestamp(0L)
                             .id(encodedBuf)
-                            .type((String) null)
                             .build();
 
                 delegate.doSseData(traceId, authorization, budgetId, reserved, flags, payload, sseDataEx);
@@ -806,7 +804,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        Flyweight payload,
+        OctetsFW payload,
         Flyweight extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -820,7 +818,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .flags(flags)
                 .budgetId(budgetId)
                 .reserved(reserved)
-                .payload(payload.buffer(), payload.offset(), payload.sizeof())
+                .payload(payload)
                 .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
