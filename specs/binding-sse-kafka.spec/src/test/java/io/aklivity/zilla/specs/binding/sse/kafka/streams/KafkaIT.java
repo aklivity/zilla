@@ -73,6 +73,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/server.sent.null/client",
+        "${kafka}/server.sent.null/server"})
+    public void shouldReceiveServerSentNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/server.sent.abort/client",
         "${kafka}/server.sent.abort/server"})
     public void shouldReceiveServerSentAbort() throws Exception
