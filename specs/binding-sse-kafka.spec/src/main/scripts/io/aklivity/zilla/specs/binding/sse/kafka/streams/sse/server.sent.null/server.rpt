@@ -31,5 +31,7 @@ write flush
 write zilla:data.ext ${sse:dataEx()
                           .typeId(zilla:id("sse"))
                           .id("AQQABAIC")
+                          .type("delete")
                           .build()}
+write "a2V5"
 write flush

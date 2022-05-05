@@ -18,11 +18,14 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class SseKafkaConfiguration extends Configuration
 {
+    public static final IntPropertyDef SSE_KAFKA_MAXIMUM_KEY_LENGTH;
+
     private static final ConfigurationDef SSE_KAFKA_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.sse.kafka");
+        SSE_KAFKA_MAXIMUM_KEY_LENGTH = config.property("maximum.key.length", 1024);
         SSE_KAFKA_CONFIG = config;
     }
 
@@ -30,5 +33,10 @@ public class SseKafkaConfiguration extends Configuration
         Configuration config)
     {
         super(SSE_KAFKA_CONFIG, config);
+    }
+
+    public int maximumKeyLength()
+    {
+        return SSE_KAFKA_MAXIMUM_KEY_LENGTH.getAsInt(this);
     }
 }

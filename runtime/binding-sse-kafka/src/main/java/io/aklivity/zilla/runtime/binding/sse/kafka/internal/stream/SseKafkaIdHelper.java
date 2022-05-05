@@ -23,8 +23,10 @@ import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafkaEventIdPartitionV1FW;
@@ -40,6 +42,7 @@ public final class SseKafkaIdHelper
             new SseKafkaEventIdFW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
     private final String8FW.Builder stringRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+    private final OctetsFW octetsRO = new OctetsFW();
 
     private final SseKafkaEventIdFW eventIdRO = new SseKafkaEventIdFW();
     private final SseKafkaEventIdPartitionV1FW partitionV1RO = new SseKafkaEventIdPartitionV1FW();
@@ -80,15 +83,27 @@ public final class SseKafkaIdHelper
                     .limit();
         });
 
-        final SseKafkaEventIdFW encodable = eventId;
+        return encode8(eventId);
+    }
 
+    public OctetsFW encode(
+        final Flyweight encodable)
+    {
+        offset.value = encodable.limit();
+        final String8FW encoded = encode8(encodable);
+        return encoded != null ? octetsRO.wrap(encoded.value(), 0, encoded.length()) : null;
+    }
+
+    private String8FW encode8(
+        final Flyweight encodable)
+    {
         String8FW encodedBuf = null;
 
         if (encodable != null)
         {
             final int encodableBytes = offset.value - encodable.offset();
             final byte[] encodableRaw = byteArrays.computeIfAbsent(encodableBytes, byte[]::new);
-            buffer.getBytes(encodable.offset(), encodableRaw);
+            encodable.buffer().getBytes(encodable.offset(), encodableRaw);
 
             final byte[] encodedBase64 = base64RW;
             final int encodedBytes = encoder64.encode(encodableRaw, encodedBase64);

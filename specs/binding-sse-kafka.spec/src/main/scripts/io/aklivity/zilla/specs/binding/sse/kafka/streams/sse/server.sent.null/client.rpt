@@ -28,5 +28,6 @@ connected
 read zilla:data.ext ${sse:matchDataEx()
                          .typeId(zilla:id("sse"))
                          .id("AQQABAIC")
+                         .type("delete")
                          .build()}
-read zilla:data.null
+read "a2V5"
