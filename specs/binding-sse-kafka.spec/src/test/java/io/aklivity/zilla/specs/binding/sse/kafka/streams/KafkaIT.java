@@ -64,9 +64,36 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/handshake.reconnect.with.etag/client",
+        "${kafka}/handshake.reconnect.with.etag/server"})
+    public void shouldCompleteHandshakeThenReconnectWithEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/server.sent.messages/client",
         "${kafka}/server.sent.messages/server"})
     public void shouldReceiveServerSentMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.messages.with.etag/client",
+        "${kafka}/server.sent.messages.with.etag/server"})
+    public void shouldReceiveServerSentMessagesWithEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/server.sent.messages.with.null.key/client",
+        "${kafka}/server.sent.messages.with.null.key/server"})
+    public void shouldReceiveServerSentMessagesWithNullKey() throws Exception
     {
         k3po.finish();
     }

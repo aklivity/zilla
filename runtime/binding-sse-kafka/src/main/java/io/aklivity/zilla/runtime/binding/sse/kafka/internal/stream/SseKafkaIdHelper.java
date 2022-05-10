@@ -24,6 +24,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.OctetsFW;
@@ -34,14 +35,19 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.codec.SseKafka
 
 public final class SseKafkaIdHelper
 {
+    private static final String8FW NULL_KEY = new String8FW("null");
+
     private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW =
             new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
                 .wrap(new UnsafeBuffer(new byte[2048]), 0, 2048);
 
     private final SseKafkaEventIdFW.Builder eventIdRW =
-            new SseKafkaEventIdFW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+            new SseKafkaEventIdFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
 
-    private final String8FW.Builder stringRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+    private final MutableDirectBuffer progressOnlyRW = new UnsafeBuffer(new byte[1024], 0, 1024);
+    private final MutableDirectBuffer keyAndProgressRW = new UnsafeBuffer(new byte[1024], 0, 1024);
+
+    private final String8FW.Builder stringRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
     private final OctetsFW octetsRO = new OctetsFW();
 
     private final SseKafkaEventIdFW eventIdRO = new SseKafkaEventIdFW();
@@ -52,6 +58,7 @@ public final class SseKafkaIdHelper
     private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
 
     private final MutableDirectBuffer bufferRW = new UnsafeBuffer(0L, 0);
+    private final DirectBuffer bufferRO = new UnsafeBuffer(0L, 0);
     private final byte[] base64RW = new byte[256];
 
     private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
@@ -64,8 +71,43 @@ public final class SseKafkaIdHelper
 
     private final MutableInteger offset = new MutableInteger();
 
-    public String8FW encode(
-        final Array32FW<KafkaOffsetFW> progress)
+    public String8FW encodeKeyAndProgress(
+        final OctetsFW key,
+        final Array32FW<KafkaOffsetFW> progress,
+        final KafkaHeaderFW etag)
+    {
+        final MutableDirectBuffer encodedBuf = keyAndProgressRW;
+        int encodedOffset = 0;
+        encodedBuf.putByte(encodedOffset++, (byte) '[');
+        if (key != null)
+        {
+            final OctetsFW encodedKey = encodeKey(key);
+            encodedBuf.putByte(encodedOffset++, (byte) '"');
+            encodedBuf.putBytes(encodedOffset, encodedKey.value(), 0, encodedKey.sizeof());
+            encodedOffset += encodedKey.sizeof();
+            encodedBuf.putByte(encodedOffset++, (byte) '"');
+        }
+        else
+        {
+            encodedBuf.putBytes(encodedOffset, NULL_KEY.value(), 0, NULL_KEY.length());
+            encodedOffset += NULL_KEY.length();
+        }
+        encodedBuf.putByte(encodedOffset++, (byte) ',');
+        encodedBuf.putByte(encodedOffset++, (byte) '"');
+
+        String8FW encodedProgress = encodeProgressOnly(progress, etag);
+        encodedBuf.putBytes(encodedOffset, encodedProgress.value(), 0, encodedProgress.length());
+        encodedOffset += encodedProgress.length();
+
+        encodedBuf.putByte(encodedOffset++, (byte) '"');
+        encodedBuf.putByte(encodedOffset++, (byte) ']');
+
+        return stringRW.set(encodedBuf, 0, encodedOffset).build();
+    }
+
+    public String8FW encodeProgressOnly(
+        final Array32FW<KafkaOffsetFW> progress,
+        final KafkaHeaderFW etag)
     {
         eventIdRW.rewrap();
         SseKafkaEventIdFW eventId = eventIdRW
@@ -83,10 +125,32 @@ public final class SseKafkaIdHelper
                     .limit();
         });
 
-        return encode8(eventId);
+        String8FW encoded = encode8(eventId);
+
+        if (etag != null)
+        {
+            final DirectBuffer encodedValue = encoded.value();
+            final DirectBuffer etagValue = etag.value().value();
+            final int encodedValueLength = encodedValue.capacity();
+            final int etagValueLength = etagValue.capacity();
+            final int encodedLength = encodedValueLength + 1 + etagValueLength;
+
+            final MutableDirectBuffer encodedBuf = progressOnlyRW;
+            int encodedOffset = 0;
+            encodedBuf.putBytes(encodedOffset, encodedValue, 0, encodedValueLength);
+            encodedOffset += encodedValueLength;
+            encodedBuf.putByte(encodedOffset++, (byte) '/');
+            encodedBuf.putBytes(encodedOffset, etagValue, 0, etagValueLength);
+            encodedOffset += etagValueLength;
+            assert encodedOffset == encodedLength;
+
+            encoded = stringRW.set(encodedBuf, 0, encodedLength).build();
+        }
+
+        return encoded;
     }
 
-    public OctetsFW encode(
+    public OctetsFW encodeKey(
         final Flyweight encodable)
     {
         offset.value = encodable.limit();
@@ -101,28 +165,77 @@ public final class SseKafkaIdHelper
 
         if (encodable != null)
         {
-            final int encodableBytes = offset.value - encodable.offset();
-            final byte[] encodableRaw = byteArrays.computeIfAbsent(encodableBytes, byte[]::new);
-            encodable.buffer().getBytes(encodable.offset(), encodableRaw);
-
-            final byte[] encodedBase64 = base64RW;
-            final int encodedBytes = encoder64.encode(encodableRaw, encodedBase64);
-            MutableDirectBuffer encodeBuf = bufferRW;
-            encodeBuf.wrap(encodedBase64, 0, encodedBytes);
-            encodedBuf = stringRW.set(encodeBuf, 0, encodeBuf.capacity()).build();
+            final DirectBuffer buffer = encodable.buffer();
+            final int index = encodable.offset();
+            final int length = offset.value - index;
+            encodedBuf = encode8(buffer, index, length);
         }
 
         return encodedBuf;
     }
 
+    private String8FW encode8(
+        final DirectBuffer buffer,
+        final int index,
+        final int length)
+    {
+        final byte[] encodableRaw = byteArrays.computeIfAbsent(length, byte[]::new);
+        buffer.getBytes(index, encodableRaw);
+
+        final byte[] encodedBase64 = base64RW;
+        final int encodedBytes = encoder64.encode(encodableRaw, encodedBase64);
+        MutableDirectBuffer encodeBuf = bufferRW;
+        encodeBuf.wrap(encodedBase64, 0, encodedBytes);
+        return stringRW.set(encodeBuf, 0, encodeBuf.capacity()).build();
+    }
+
+    public DirectBuffer findProgress(
+        String8FW lastEventId)
+    {
+        // extract from progress64, progress64/etag, ["key64","progress64"], or ["key64","progress64/etag"]
+        DirectBuffer progress64 = null;
+
+        final DirectBuffer id = lastEventId != null ? lastEventId.value() : null;
+        if (id != null)
+        {
+            int progressAt = 0;
+            int progressEnd = id.capacity();
+            int commaAt = indexOfByte(id, progressAt, progressEnd, (byte) ',');
+            if (commaAt != -1)
+            {
+                int openQuoteAt = indexOfByte(id, commaAt, progressEnd, (byte) '"');
+                if (openQuoteAt != -1)
+                {
+                    progressAt = openQuoteAt + 1;
+                    int closeQuoteAt = indexOfByte(id, progressAt, progressEnd, (byte) '"');
+                    if (closeQuoteAt != -1)
+                    {
+                        progressEnd = closeQuoteAt - 1;
+                    }
+                }
+            }
+
+            int slashAt = indexOfByte(id, progressAt, progressEnd, (byte) '/');
+            if (slashAt != -1)
+            {
+                progressEnd = slashAt;
+            }
+
+            bufferRO.wrap(id, progressAt, progressEnd - progressAt);
+            progress64 = bufferRO;
+        }
+
+        return progress64;
+    }
+
     public Array32FW<KafkaOffsetFW> decode(
-        final String8FW decodable)
+        final DirectBuffer progress64)
     {
         Array32FW<KafkaOffsetFW> progress = historical;
 
         SseKafkaEventIdFW decoded = null;
 
-        DirectBuffer decodeBuf = decodable != null ? decodable.value() : null;
+        DirectBuffer decodeBuf = progress64;
         decode:
         if (decodeBuf != null)
         {
@@ -210,5 +323,22 @@ public final class SseKafkaIdHelper
     Array32FW<KafkaOffsetFW> historical()
     {
         return historical;
+    }
+
+    private static int indexOfByte(
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        byte value)
+    {
+        for (int cursor = offset; cursor < limit; cursor++)
+        {
+            if (buffer.getByte(cursor) == value)
+            {
+                return cursor;
+            }
+        }
+
+        return -1;
     }
 }

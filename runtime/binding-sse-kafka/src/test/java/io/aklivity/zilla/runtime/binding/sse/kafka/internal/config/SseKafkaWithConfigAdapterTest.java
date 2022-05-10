@@ -14,8 +14,11 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
+import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_PROGRESS;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
@@ -23,7 +26,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.sameInstance;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -56,13 +59,14 @@ public class SseKafkaWithConfigAdapterTest
 
         assertThat(with, not(nullValue()));
         assertThat(with.topic, equalTo("test"));
-        assertTrue(with.filters.isEmpty());
+        assertThat(with.filters, isEmpty());
+        assertThat(with.eventId, sameInstance(EVENT_ID_DEFAULT));
     }
 
     @Test
     public void shouldWriteWithTopic()
     {
-        SseKafkaWithConfig with = new SseKafkaWithConfig("test", null);
+        SseKafkaWithConfig with = new SseKafkaWithConfig("test", null, EVENT_ID_DEFAULT);
 
         String text = jsonb.toJson(with);
 
@@ -97,6 +101,7 @@ public class SseKafkaWithConfigAdapterTest
                 and(hasField("headers", isPresentAnd(contains(
                     both(hasField("name", equalTo("tag"))).
                     and(hasField("value", equalTo("fixed-tag")))))))));
+        assertThat(with.eventId, sameInstance(EVENT_ID_DEFAULT));
     }
 
     @Test
@@ -108,12 +113,49 @@ public class SseKafkaWithConfigAdapterTest
                     "fixed-key",
                     singletonList(new SseKafkaWithFilterHeaderConfig(
                         "tag",
-                        "fixed-tag")))));
+                        "fixed-tag")))),
+                EVENT_ID_DEFAULT);
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
         assertThat(text,
                 equalTo("{\"topic\":\"test\",\"filters\":[{\"key\":\"fixed-key\",\"headers\":{\"tag\":\"fixed-tag\"}}]}"));
+        assertThat(with.eventId, sameInstance(EVENT_ID_DEFAULT));
+    }
+
+    @Test
+    public void shouldReadWithTopicAndEventId()
+    {
+        String text =
+                "{" +
+                    "\"topic\": \"test\"," +
+                    "\"event\":" +
+                    "{" +
+                        "\"id\": \"[\\\"${base64(key)}\\\",\\\"${progress}\\\"]\"" +
+                    "}" +
+                "}";
+
+        SseKafkaWithConfig with = jsonb.fromJson(text, SseKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.topic, equalTo("test"));
+        assertThat(with.filters, isEmpty());
+        assertThat(with.eventId, sameInstance(EVENT_ID_KEY64_AND_PROGRESS));
+    }
+
+    @Test
+    public void shouldWriteWithTopicAndEventId()
+    {
+        SseKafkaWithConfig with = new SseKafkaWithConfig(
+                "test",
+                null,
+                "[\"${base64(key)}\",\"${progress}\"]");
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text,
+                equalTo("{\"topic\":\"test\",\"event\":{\"id\":\"[\\\"${base64(key)}\\\",\\\"${progress}\\\"]\"}}"));
     }
 }
