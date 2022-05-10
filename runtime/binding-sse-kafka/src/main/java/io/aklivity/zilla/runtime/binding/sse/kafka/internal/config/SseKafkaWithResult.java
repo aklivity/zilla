@@ -26,15 +26,18 @@ public class SseKafkaWithResult
     private final String16FW topic;
     private final Array32FW<KafkaOffsetFW> partitions;
     private final List<SseKafkaWithFilterResult> filters;
+    private final String eventId;
 
     SseKafkaWithResult(
         String16FW topic,
         Array32FW<KafkaOffsetFW> partitions,
-        List<SseKafkaWithFilterResult> filters)
+        List<SseKafkaWithFilterResult> filters,
+        String eventId)
     {
         this.topic = topic;
         this.partitions = partitions;
         this.filters = filters;
+        this.eventId = eventId;
     }
 
     public String16FW topic()
@@ -54,5 +57,10 @@ public class SseKafkaWithResult
         {
             filters.forEach(f -> builder.item(f::filter));
         }
+    }
+
+    public String eventId()
+    {
+        return eventId;
     }
 }

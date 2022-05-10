@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,8 +34,10 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
 {
     private static final String TOPIC_NAME = "topic";
     private static final String FILTERS_NAME = "filters";
-    private static final String KEY_NAME = "key";
-    private static final String HEADERS_NAME = "headers";
+    private static final String FILTERS_KEY_NAME = "key";
+    private static final String FILTERS_HEADERS_NAME = "headers";
+    private static final String EVENT_NAME = "event";
+    private static final String EVENT_ID_NAME = "id";
 
     @Override
     public String type()
@@ -61,7 +65,7 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
 
                 if (filter.key.isPresent())
                 {
-                    newFilter.add(KEY_NAME, filter.key.get());
+                    newFilter.add(FILTERS_KEY_NAME, filter.key.get());
                 }
 
                 if (filter.headers.isPresent())
@@ -73,13 +77,22 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
                         newHeaders.add(header.name, header.value);
                     }
 
-                    newFilter.add(HEADERS_NAME, newHeaders);
+                    newFilter.add(FILTERS_HEADERS_NAME, newHeaders);
                 }
 
                 newFilters.add(newFilter);
             }
 
             object.add(FILTERS_NAME, newFilters);
+        }
+
+        if (!EVENT_ID_DEFAULT.equals(sseKafkaWith.eventId))
+        {
+            JsonObjectBuilder newEvent = Json.createObjectBuilder();
+
+            newEvent.add(EVENT_ID_NAME, sseKafkaWith.eventId);
+
+            object.add(EVENT_NAME, newEvent);
         }
 
         return object.build();
@@ -90,8 +103,8 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
         JsonObject object)
     {
         String newTopic = object.getString(TOPIC_NAME);
-        List<SseKafkaWithFilterConfig> newFilters = null;
 
+        List<SseKafkaWithFilterConfig> newFilters = null;
         if (object.containsKey(FILTERS_NAME))
         {
             JsonArray filters = object.getJsonArray(FILTERS_NAME);
@@ -102,15 +115,15 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
                 JsonObject filter = filters.getJsonObject(i);
 
                 String newKey = null;
-                if (filter.containsKey(KEY_NAME))
+                if (filter.containsKey(FILTERS_KEY_NAME))
                 {
-                    newKey = filter.getString(KEY_NAME);
+                    newKey = filter.getString(FILTERS_KEY_NAME);
                 }
 
                 List<SseKafkaWithFilterHeaderConfig> newHeaders = null;
-                if (filter.containsKey(HEADERS_NAME))
+                if (filter.containsKey(FILTERS_HEADERS_NAME))
                 {
-                    JsonObject headers = filter.getJsonObject(HEADERS_NAME);
+                    JsonObject headers = filter.getJsonObject(FILTERS_HEADERS_NAME);
                     newHeaders = new ArrayList<>(headers.size());
 
                     for (String newHeaderName : headers.keySet())
@@ -124,6 +137,25 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
             }
         }
 
-        return new SseKafkaWithConfig(newTopic, newFilters);
+        String newEventId = SseKafkaWithConfig.EVENT_ID_DEFAULT;
+        if (object.containsKey(EVENT_NAME))
+        {
+            JsonObject event = object.getJsonObject(EVENT_NAME);
+            if (event.containsKey(EVENT_ID_NAME))
+            {
+                final String id = event.getString(EVENT_ID_NAME);
+                switch (id)
+                {
+                case SseKafkaWithConfig.EVENT_ID_KEY64_AND_PROGRESS:
+                    newEventId = SseKafkaWithConfig.EVENT_ID_KEY64_AND_PROGRESS;
+                    break;
+                case SseKafkaWithConfig.EVENT_ID_PROGRESS_ONLY:
+                    newEventId = SseKafkaWithConfig.EVENT_ID_PROGRESS_ONLY;
+                    break;
+                }
+            }
+        }
+
+        return new SseKafkaWithConfig(newTopic, newFilters, newEventId);
     }
 }

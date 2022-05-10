@@ -57,7 +57,8 @@ public final class SseKafkaWithResolver
         SseKafkaIdHelper sseEventId)
     {
         final String8FW lastEventId = sseBeginEx != null ? sseBeginEx.lastEventId() : null;
-        final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(lastEventId);
+        final DirectBuffer progress64 = sseEventId.findProgress(lastEventId);
+        final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(progress64);
 
         // TODO: hoist to constructor if constant
         String topic0 = with.topic;
@@ -113,6 +114,8 @@ public final class SseKafkaWithResolver
             }
         }
 
-        return new SseKafkaWithResult(topic, partitions, filters);
+        String eventId = with.eventId;
+
+        return new SseKafkaWithResult(topic, partitions, filters, eventId);
     }
 }
