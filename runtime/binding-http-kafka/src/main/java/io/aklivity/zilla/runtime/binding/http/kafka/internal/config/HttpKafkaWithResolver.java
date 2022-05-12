@@ -41,6 +41,7 @@ public final class HttpKafkaWithResolver
 {
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
     private static final Pattern CORRELATION_ID_PATTERN = Pattern.compile("\\$\\{correlationId\\}");
+    private static final Pattern IDEMPOTENCY_KEY_PATTERN = Pattern.compile("\\$\\{idempotencyKey\\}");
 
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
@@ -73,6 +74,7 @@ public final class HttpKafkaWithResolver
     private final HttpKafkaWithConfig with;
     private final Matcher paramsMatcher;
     private final Matcher correlationIdMatcher;
+    private final Matcher idempotencyKeyMatcher;
     private final Matcher preferWaitMatcher;
     private final Matcher preferAsyncMatcher;
     private final Matcher etagMatcher;
@@ -87,6 +89,7 @@ public final class HttpKafkaWithResolver
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.correlationIdMatcher = CORRELATION_ID_PATTERN.matcher("");
+        this.idempotencyKeyMatcher = IDEMPOTENCY_KEY_PATTERN.matcher("");
         this.preferWaitMatcher = HEADER_VALUE_PREFER_WAIT_PATTERN.matcher("");
         this.preferAsyncMatcher = HEADER_VALUE_PREFER_ASYNC_PATTERN.matcher("");
         this.etagMatcher = HEADER_VALUE_ETAG_PATTERN.matcher("");
@@ -315,10 +318,10 @@ public final class HttpKafkaWithResolver
                 keyRef = () ->
                 {
                     String key1 = key;
-                    Matcher key1Matcher = correlationIdMatcher.reset(key1);
+                    Matcher key1Matcher = idempotencyKeyMatcher.reset(key1);
                     if (key1Matcher.find())
                     {
-                        key1 = key1Matcher.replaceAll(hash.correlationId().asString());
+                        key1 = key1Matcher.replaceAll(idempotencyKey.asString());
                     }
                     return new String16FW(key1).value();
                 };
