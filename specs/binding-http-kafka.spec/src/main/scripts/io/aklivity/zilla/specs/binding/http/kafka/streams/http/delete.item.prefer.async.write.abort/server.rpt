@@ -28,31 +28,5 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":status", "202")
-                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                            .build()}
-
-write flush
-
 read aborted
-read notify RECEIVED_REQUEST_ABORT
-
-write await SENT_RESPONSE_ABORT
-write abort
-
-accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":method", "GET")
-                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                           .build()}
-
-connected
-
-write await RECEIVED_REQUEST_ABORT
-write abort
-write notify SENT_RESPONSE_ABORT
-read aborted
+write aborted

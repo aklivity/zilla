@@ -15,20 +15,28 @@
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class SseKafkaWithConfig extends WithConfig
 {
+    public static final String EVENT_ID_PROGRESS_ONLY = "${progress}";
+    public static final String EVENT_ID_KEY64_AND_PROGRESS = "[\"${base64(key)}\",\"${progress}\"]";
+    public static final String EVENT_ID_DEFAULT = EVENT_ID_PROGRESS_ONLY;
+
     public final String topic;
     public final Optional<List<SseKafkaWithFilterConfig>> filters;
+    public final String eventId;
 
     public SseKafkaWithConfig(
         String topic,
-        List<SseKafkaWithFilterConfig> filters)
+        List<SseKafkaWithFilterConfig> filters,
+        String eventId)
     {
         this.topic = topic;
         this.filters = Optional.ofNullable(filters);
+        this.eventId = Objects.requireNonNull(eventId);
     }
 }

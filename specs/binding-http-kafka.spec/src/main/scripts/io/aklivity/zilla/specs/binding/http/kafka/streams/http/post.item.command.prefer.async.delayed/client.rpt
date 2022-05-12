@@ -37,7 +37,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "202")
-                           .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8")
+                           .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8-453f1060d0650f320bac6e586fdca904")
                            .build()}
 
 read notify RECEIVED_ASYNC_RESPONSE
@@ -52,7 +52,7 @@ connect await RECEIVED_ASYNC_RESPONSE
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
-                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8")
+                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8-453f1060d0650f320bac6e586fdca904")
                             .build()}
 
 connected
@@ -62,7 +62,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "202")
-                           .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8")
+                           .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8-453f1060d0650f320bac6e586fdca904")
                            .build()}
 
 read notify RECEIVED_ASYNC_RESPONSE_AGAIN
@@ -77,7 +77,7 @@ connect await RECEIVED_ASYNC_RESPONSE_AGAIN
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
-                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8")
+                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename;59410e57-3e0f-4b61-9328-f645a7968ac8-453f1060d0650f320bac6e586fdca904")
                             .build()}
 
 connected

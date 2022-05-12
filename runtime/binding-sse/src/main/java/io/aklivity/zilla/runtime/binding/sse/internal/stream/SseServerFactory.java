@@ -83,10 +83,12 @@ public final class SseServerFactory implements SseStreamFactory
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
     private static final String8FW HEADER_NAME_ACCEPT = new String8FW("accept");
     private static final String8FW HEADER_NAME_LAST_EVENT_ID = new String8FW("last-event-id");
+    private static final String8FW HEADER_NAME_CONTENT_LENGTH = new String8FW("content-length");
 
     private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
     private static final String16FW HEADER_VALUE_STATUS_400 = new String16FW("400");
     private static final String16FW HEADER_VALUE_METHOD_GET = new String16FW("GET");
+    private static final String16FW HEADER_VALUE_CONTENT_LENGTH_0 = new String16FW("0");
 
     private static final Pattern QUERY_PARAMS_PATTERN = Pattern.compile("(?<path>[^?]*)(?<query>[\\?].*)");
     private static final Pattern LAST_EVENT_ID_PATTERN = Pattern.compile("(\\?|&)lastEventId=(?<lastEventId>[^&]*)(&|$)");
@@ -336,7 +338,6 @@ public final class SseServerFactory implements SseStreamFactory
         private long httpReplyAuth;
         private BudgetDebitor replyDebitor;
         private long replyDebitorIndex = NO_DEBITOR_INDEX;
-
 
         private SseServer(
             MessageConsumer network,
@@ -1429,8 +1430,9 @@ public final class SseServerFactory implements SseStreamFactory
         final long traceId = begin.traceId();
 
         doWindow(acceptReply, acceptRouteId, acceptInitialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
-        doHttpBegin(acceptReply, acceptRouteId, acceptReplyId, 0L, 0L, 0, traceId, 0L, affinity,
-            hs -> hs.item(h -> h.name(HEADER_NAME_STATUS).value(status)));
+        doHttpBegin(acceptReply, acceptRouteId, acceptReplyId, 0L, 0L, 0, traceId, 0L, affinity, hs ->
+            hs.item(h -> h.name(HEADER_NAME_STATUS).value(status))
+              .item(h -> h.name(HEADER_NAME_CONTENT_LENGTH).value(HEADER_VALUE_CONTENT_LENGTH_0)));
         doHttpEnd(acceptReply, acceptRouteId, acceptReplyId, 0L, 0L, 0, traceId, 0L);
     }
 

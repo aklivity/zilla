@@ -64,8 +64,9 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
-read [0x00 0x00 0x01]                                      # length
+read [0x00 0x00 0x05]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
      [0x05]                                                # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x01]                                 # stream_id=1
      [0x8d]                                                # :status: 404
+     [0x0f 0x0d] [0x01] "0"                                # content-length

@@ -73,9 +73,54 @@ public class SseIT
 
     @Test
     @Specification({
+        "${sse}/handshake.reconnect.with.etag/client",
+        "${sse}/handshake.reconnect.with.etag/server"})
+    public void shouldCompleteHandshakeThenReconnectWithEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/handshake.reconnect.with.key.and.etag/client",
+        "${sse}/handshake.reconnect.with.key.and.etag/server"})
+    public void shouldCompleteHandshakeThenReconnectWithKeyAndEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${sse}/server.sent.messages/client",
         "${sse}/server.sent.messages/server"})
     public void shouldReceiveServerSentMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.messages.with.etag/client",
+        "${sse}/server.sent.messages.with.etag/server"})
+    public void shouldReceiveServerSentMessagesWithEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.messages.with.null.key/client",
+        "${sse}/server.sent.messages.with.null.key/server"})
+    public void shouldReceiveServerSentMessagesWithNullKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${sse}/server.sent.null/client",
+        "${sse}/server.sent.null/server"})
+    public void shouldReceiveServerSentNull() throws Exception
     {
         k3po.finish();
     }

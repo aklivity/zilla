@@ -41,7 +41,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                .header("zilla:reply-to", "items-replies")
-                               .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
+                               .build()
+                           .build()}
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .partition(-1, -1)
+                               .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-574b10126039a92ff1c4d8599411b65e")
                                .build()
                            .build()}
 read zilla:data.empty
@@ -58,7 +66,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
+                                    .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-574b10126039a92ff1c4d8599411b65e")
                                     .build()
                                   .build()
                               .build()}
@@ -73,7 +81,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(1, 1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header(":status", "204")
-                                .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
+                                .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-574b10126039a92ff1c4d8599411b65e")
                                 .build()
                             .build()}
 write flush

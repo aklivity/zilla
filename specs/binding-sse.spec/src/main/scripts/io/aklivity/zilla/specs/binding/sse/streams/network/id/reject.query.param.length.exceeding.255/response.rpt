@@ -19,23 +19,24 @@ accept "zilla://streams/net0"
   option zilla:transmission "half-duplex"
 accepted
 
-read zilla:begin.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
-                             .header(":method", "GET")
-                             .header(":path", "/events?lastEventId=abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefgh")
-                             .header(":authority", "localhost:8080")
-                             .header("accept", "text/event-stream")
-                             .build()}
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":scheme", "http")
+                           .header(":method", "GET")
+                           .header(":path", "/events?lastEventId=abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqurstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefgh")
+                           .header(":authority", "localhost:8080")
+                           .header("accept", "text/event-stream")
+                           .build()}
 
 connected
 
 read closed
 
 write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "400")
-                              .build()}
+                            .typeId(zilla:id("http"))
+                            .header(":status", "400")
+                            .header("content-length", "0")
+                            .build()}
 write flush
 
 write close

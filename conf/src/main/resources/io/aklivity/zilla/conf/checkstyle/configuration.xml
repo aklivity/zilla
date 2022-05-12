@@ -196,4 +196,10 @@
     <module name="BeforeExecutionExclusionFileFilter">
         <property name="fileNamePattern" value="module\-info\.java$"/>
     </module>
+
+    <module name="TreeWalker">
+        <module name="SuppressWarningsHolder" />
+    </module>
+
+    <module name="SuppressWarningsFilter" />
 </module>

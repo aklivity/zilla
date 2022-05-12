@@ -71,6 +71,19 @@
                                             },
                                             "additionalProperties": false
                                         }
+                                    },
+                                    "event":
+                                    {
+                                        "properties":
+                                        {
+                                            "id":
+                                            {
+                                                "title": "Id",
+                                                "type": "string",
+                                                "enum": [ "${progress}", "[\"${base64(key)}\",\"${progress}\"]" ],
+                                                "default": "${progress}"
+                                            }
+                                        }
                                     }
                                 },
                                 "additionalProperties": false,

@@ -31,9 +31,10 @@ connected
 
 write close
 
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "400")
-                              .build()}
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "400")
+                           .header("content-length", "0")
+                           .build()}
 
 read closed
