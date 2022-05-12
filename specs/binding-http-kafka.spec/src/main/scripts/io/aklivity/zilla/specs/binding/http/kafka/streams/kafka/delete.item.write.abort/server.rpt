@@ -41,34 +41,9 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                .header("zilla:reply-to", "items-replies")
-                               .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                .build()
                            .build()}
 read zilla:data.empty
 
 read aborted
-read notify RECEIVED_REQUEST_ABORT
-
-write await SENT_RESPONSE_ABORT
-write abort
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                  .capabilities("FETCH_ONLY")
-                                  .topic("items-replies")
-                                  .partition(-1, -2)
-                                  .filter()
-                                    .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                                    .build()
-                                  .build()
-                              .build()}
-
-connected
-
-write await RECEIVED_REQUEST_ABORT
-write abort
-write notify SENT_RESPONSE_ABORT
-read aborted
+write aborted

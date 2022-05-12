@@ -42,10 +42,26 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("content-type", "application/json")
                                .header("idempotency-key", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                .header("zilla:reply-to", "items-replies")
-                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                               .build()
+                           .build()}
+read zilla:data.empty
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .partition(-1, -1)
                                .build()
                            .build()}
 read '{ "name": "widget" }'
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .partition(-1, -1)
+                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                               .build()
+                           .build()}
+read zilla:data.empty
 
 read closed
 write close
@@ -59,7 +75,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                    .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
                                     .build()
                                   .build()
                               .build()}
@@ -75,7 +91,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header(":status", "201")
                                 .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
                                 .build()
                             .build()}
 write '{ "name": "widget" }'
