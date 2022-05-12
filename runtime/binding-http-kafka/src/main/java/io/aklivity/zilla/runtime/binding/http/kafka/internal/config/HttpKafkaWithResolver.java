@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -65,6 +66,8 @@ public final class HttpKafkaWithResolver
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
     private final HttpKafkaEtagHelper etagHelper = new HttpKafkaEtagHelper();
+
+    private final byte[] hashBytesRW = new byte[8192];
 
     private final HttpKafkaOptionsConfig options;
     private final HttpKafkaWithConfig with;
@@ -245,6 +248,8 @@ public final class HttpKafkaWithResolver
             correlationId = idempotencyKey;
         }
 
+        HttpKafkaWithProduceHash hash = new HttpKafkaWithProduceHash(correlationId, hashBytesRW);
+
         if (produce.async.isPresent() &&
             (asyncId != null || preferValue != null && preferAsyncMatcher.reset(preferValue).find()))
         {
@@ -261,17 +266,26 @@ public final class HttpKafkaWithResolver
                 {
                     value0 = valueMatcher.replaceAll(replacer);
                 }
+
+                String value = value0;
+                Supplier<String16FW> valueRef = () -> new String16FW(value);
+
                 if (correlationId != null)
                 {
-                    valueMatcher = correlationIdMatcher.reset(value0);
-                    if (valueMatcher.find())
+                    valueRef = () ->
                     {
-                        value0 = valueMatcher.replaceAll(correlationId.asString());
-                    }
-                }
-                String16FW value = new String16FW(value0);
+                        String value1 = value;
+                        Matcher value1Matcher = correlationIdMatcher.reset(value1);
+                        if (value1Matcher.find())
+                        {
+                            value1 = value1Matcher.replaceAll(hash.correlationId().asString());
+                        }
 
-                async.add(new HttpKafkaWithProduceAsyncHeaderResult(name, value));
+                        return new String16FW(value1);
+                    };
+                }
+
+                async.add(new HttpKafkaWithProduceAsyncHeaderResult(name, valueRef));
             }
         }
 
@@ -284,7 +298,7 @@ public final class HttpKafkaWithResolver
         }
         String16FW topic = new String16FW(topic0);
 
-        DirectBuffer key = null;
+        Supplier<DirectBuffer> keyRef = () -> null;
         if (produce.key.isPresent())
         {
             String key0 = produce.key.get();
@@ -293,14 +307,21 @@ public final class HttpKafkaWithResolver
             {
                 key0 = keyMatcher.replaceAll(replacer);
             }
-            keyMatcher = correlationIdMatcher.reset(key0);
+            String key = key0;
+            keyRef = () -> new String16FW(key).value();
+
             if (correlationId != null)
             {
-                if (keyMatcher.find())
+                keyRef = () ->
                 {
-                    key0 = keyMatcher.replaceAll(correlationId.asString());
-                }
-                key = new String16FW(key0).value();
+                    String key1 = key;
+                    Matcher key1Matcher = correlationIdMatcher.reset(key1);
+                    if (key1Matcher.find())
+                    {
+                        key1 = key1Matcher.replaceAll(hash.correlationId().asString());
+                    }
+                    return new String16FW(key1).value();
+                };
             }
         }
 
@@ -320,17 +341,24 @@ public final class HttpKafkaWithResolver
                 {
                     value0 = valueMatcher.replaceAll(replacer);
                 }
-                valueMatcher = correlationIdMatcher.reset(value0);
+
+                String value = value0;
+                Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
                 if (correlationId != null)
                 {
-                    if (valueMatcher.find())
+                    valueRef = () ->
                     {
-                        value0 = valueMatcher.replaceAll(correlationId.asString());
-                    }
+                        String value1 = value;
+                        Matcher value1Matcher = correlationIdMatcher.reset(value1);
+                        if (value1Matcher.find())
+                        {
+                            value1 = value1Matcher.replaceAll(hash.correlationId().asString());
+                        }
+                        return new String16FW(value1).value();
+                    };
                 }
-                DirectBuffer value = new String16FW(value0).value();
 
-                overrides.add(new HttpKafkaWithProduceOverrideResult(name, value));
+                overrides.add(new HttpKafkaWithProduceOverrideResult(name, valueRef, hash::updateHash));
             }
         }
 
@@ -355,7 +383,7 @@ public final class HttpKafkaWithResolver
         }
 
         return new HttpKafkaWithProduceResult(
-                options.correlation, topic, key, overrides, ifMatch, replyTo,
-                idempotencyKey, async, correlationId, timeout);
+                options.correlation, topic, keyRef, overrides, ifMatch, replyTo,
+                idempotencyKey, async, hash, timeout);
     }
 }

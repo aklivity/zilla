@@ -29,5 +29,6 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
+write close
+
 read abort
-write aborted

@@ -36,7 +36,7 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "202")
-                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca")
+                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
                             .build()}
 
 write flush
@@ -49,7 +49,7 @@ accepted
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
-                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca")
+                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
                            .build()}
 
 connected
@@ -59,7 +59,7 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "202")
-                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca")
+                            .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
                             .build()}
 
 write flush
@@ -72,7 +72,7 @@ accepted
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
-                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca")
+                           .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
                            .build()}
 
 connected
