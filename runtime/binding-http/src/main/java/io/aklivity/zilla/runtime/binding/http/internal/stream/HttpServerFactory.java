@@ -167,12 +167,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
                 .item(h -> h.name(":status").value("400"))
+                .item(h -> h.name("content-length").value("0"))
                 .build();
 
     private static final Array32FW<HttpHeaderFW> HEADERS_404_NOT_FOUND =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
                 .item(h -> h.name(":status").value("404"))
+                .item(h -> h.name("content-length").value("0"))
                 .build();
 
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
