@@ -33,7 +33,6 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
-                              .header("transfer-encoding", "chunked")
                               .build()}
 
 write "Chunk A;"

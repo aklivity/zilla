@@ -27,5 +27,5 @@ read http:method "POST"
 read http:header "Content-Length" /(?<length>.*)/
 read [0..${length}]
 
-write http:status "200" "OK"
+write http:status "204" "No Content"
 write close

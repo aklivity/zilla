@@ -27,4 +27,9 @@ read http:version "HTTP/1.1"
 
 write http:status "200" "OK"
 write http:version "HTTP/1.1"
+write http:header "Transfer-Encoding" "chunked"
 write flush
+
+write "Hello, world"
+
+write close

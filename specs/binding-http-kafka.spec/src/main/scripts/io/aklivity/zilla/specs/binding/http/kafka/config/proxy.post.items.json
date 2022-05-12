@@ -1,0 +1,31 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "http0":
+        {
+            "type" : "http-kafka",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "exit": "kafka0",
+                    "when":
+                    [
+                        {
+                            "method": "POST",
+                            "path": "/items"
+                        }
+                    ],
+                    "with":
+                    {
+                        "capability": "produce",
+                        "topic": "items-commands",
+                        "key": "${correlationId}",
+                        "reply-to": "items-replies"
+                    }
+                }
+            ]
+        }
+    }
+}

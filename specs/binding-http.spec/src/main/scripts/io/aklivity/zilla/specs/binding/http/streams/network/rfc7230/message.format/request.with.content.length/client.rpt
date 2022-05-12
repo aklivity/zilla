@@ -26,4 +26,4 @@ write http:content-length
 write "hello world"
 write close
 
-read http:status "200" /.*/
+read http:status "204" /.*/

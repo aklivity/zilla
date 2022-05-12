@@ -568,7 +568,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                         {
                             client.decoder = decodeChunkHeader;
                         }
-                        break;
+                        // skip header
+                        continue;
 
                     case "upgrade":
                         assert client.decoder == decodeHeadersOnly;

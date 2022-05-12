@@ -35,7 +35,6 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
                               .header("content-type", "text/plain")
-                              .header("transfer-encoding", "chunked")
                               .header("trailer", "Connection")
                               .build()}
 

@@ -1048,7 +1048,15 @@ public final class KafkaMergedFactory implements BindingHandler
         private void onMergedInitialBegin(
             BeginFW begin)
         {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
             final long traceId = begin.traceId();
+
+            assert acknowledge == sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            initialAck = acknowledge;
 
             assert state == 0;
             state = KafkaState.openingInitial(state);
