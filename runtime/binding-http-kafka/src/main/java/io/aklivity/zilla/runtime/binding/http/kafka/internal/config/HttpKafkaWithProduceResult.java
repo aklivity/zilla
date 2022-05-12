@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -49,37 +50,48 @@ public class HttpKafkaWithProduceResult
 
     private final HttpKafkaCorrelationConfig correlation;
     private final String16FW topic;
-    private final DirectBuffer key;
+    private final Supplier<DirectBuffer> keyRef;
     private final List<HttpKafkaWithProduceOverrideResult> overrides;
     private final String16FW ifMatch;
     private final String16FW replyTo;
     private final List<HttpKafkaWithProduceAsyncHeaderResult> async;
-    private final String16FW correlationId;
+    private final HttpKafkaWithProduceHash hash;
     private final long timeout;
     private final boolean idempotent;
 
     HttpKafkaWithProduceResult(
         HttpKafkaCorrelationConfig correlation,
         String16FW topic,
-        DirectBuffer key,
+        Supplier<DirectBuffer> keyRef,
         List<HttpKafkaWithProduceOverrideResult> overrides,
         String16FW ifMatch,
         String16FW replyTo,
         String16FW idempotencyKey,
         List<HttpKafkaWithProduceAsyncHeaderResult> async,
-        String16FW correlationId,
+        HttpKafkaWithProduceHash hash,
         long timeout)
     {
         this.correlation = correlation;
         this.topic = topic;
-        this.key = key;
+        this.keyRef = keyRef;
         this.overrides = overrides;
         this.ifMatch = ifMatch;
         this.replyTo = replyTo;
         this.async = async;
-        this.correlationId = correlationId;
+        this.hash = hash;
         this.idempotent = idempotencyKey != null;
         this.timeout = timeout;
+    }
+
+    public void updateHash(
+        DirectBuffer value)
+    {
+        hash.updateHash(value);
+    }
+
+    public void digestHash()
+    {
+        hash.digestHash();
     }
 
     public String16FW topic()
@@ -101,11 +113,14 @@ public class HttpKafkaWithProduceResult
     public void key(
         KafkaKeyFW.Builder builder)
     {
+        final DirectBuffer key = keyRef.get();
         if (key != null)
         {
             builder
                 .length(key.capacity())
                 .value(key, 0, key.capacity());
+
+            hash.updateHash(key);
         }
     }
 
@@ -120,14 +135,18 @@ public class HttpKafkaWithProduceResult
             builder.item(this::replyTo);
         }
 
-        if (correlationId != null)
-        {
-            builder.item(this::correlationId);
-        }
-
         if (overrides != null)
         {
             overrides.forEach(o -> builder.item(o::header));
+        }
+    }
+
+    public void trailers(
+        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
+    {
+        if (hash != null)
+        {
+            builder.item(this::correlationId);
         }
     }
 
@@ -147,6 +166,9 @@ public class HttpKafkaWithProduceResult
                 .name(name.value(), 0, name.length())
                 .valueLen(value.length())
                 .value(value.value(), 0, value.length()));
+
+            hash.updateHash(name.value());
+            hash.updateHash(value.value());
         }
     }
 
@@ -158,11 +180,16 @@ public class HttpKafkaWithProduceResult
             .name(correlation.replyTo.value(), 0, correlation.replyTo.length())
             .valueLen(replyTo.length())
             .value(replyTo.value(), 0, replyTo.length());
+
+        hash.updateHash(correlation.replyTo.value());
+        hash.updateHash(replyTo.value());
     }
 
     private void correlationId(
         KafkaHeaderFW.Builder builder)
     {
+        final String16FW correlationId = hash.correlationId();
+
         builder
             .nameLen(correlation.correlationId.length())
             .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
@@ -221,6 +248,8 @@ public class HttpKafkaWithProduceResult
     public void filters(
         Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
     {
+        final String16FW correlationId = hash.correlationId();
+
         if (correlationId != null)
         {
             builder.item(i -> i

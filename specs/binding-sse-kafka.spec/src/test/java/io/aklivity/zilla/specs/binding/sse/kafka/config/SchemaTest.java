@@ -63,4 +63,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateProxyWithTopicAndEventId()
+    {
+        JsonObject config = schema.validate("proxy.with.topic.and.event.id.json");
+
+        assertThat(config, not(nullValue()));
+    }
 }

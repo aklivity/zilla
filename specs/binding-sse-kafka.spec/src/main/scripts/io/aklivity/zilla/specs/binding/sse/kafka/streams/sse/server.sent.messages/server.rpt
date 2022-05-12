@@ -28,6 +28,14 @@ connected
 
 write flush
 
+write zilla:data.ext ${sse:dataEx()
+                          .typeId(zilla:id("sse"))
+                          .id("AQQABAIC")
+                          .build()}
 write "Hello, world"
 
+write zilla:data.ext ${sse:dataEx()
+                          .typeId(zilla:id("sse"))
+                          .id("AQQABgIC")
+                          .build()}
 write "Hello, again"

@@ -103,6 +103,26 @@ public class SseKafkaProxyIT
     @Test
     @Configuration("proxy.with.topic.json")
     @Specification({
+        "${sse}/handshake.reconnect.with.etag/client",
+        "${kafka}/handshake.reconnect.with.etag/server"})
+    public void shouldCompleteHandshakeThenReconnectWithEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.and.event.id.json")
+    @Specification({
+        "${sse}/handshake.reconnect.with.key.and.etag/client",
+        "${kafka}/handshake.reconnect.with.etag/server"})
+    public void shouldCompleteHandshakeThenReconnectWithKeyAndEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
         "${sse}/handshake.rejected/client"})
     public void shouldRejectHandshakeWithNoBinding() throws Exception
     {
@@ -122,7 +142,47 @@ public class SseKafkaProxyIT
     @Specification({
         "${sse}/server.sent.messages/client",
         "${kafka}/server.sent.messages/server"})
-    public void shouldReceiveServerSentMessaages() throws Exception
+    public void shouldReceiveServerSentMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/server.sent.messages.with.etag/client",
+        "${kafka}/server.sent.messages.with.etag/server"})
+    public void shouldReceiveServerSentMessagesWithEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.and.event.id.json")
+    @Specification({
+        "${sse}/server.sent.messages.with.key.and.etag/client",
+        "${kafka}/server.sent.messages.with.etag/server"})
+    public void shouldReceiveServerSentMessagesWithKeyAndEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.and.event.id.json")
+    @Specification({
+        "${sse}/server.sent.messages.with.null.key/client",
+        "${kafka}/server.sent.messages.with.null.key/server"})
+    public void shouldReceiveServerSentMessagesWithNullKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.topic.json")
+    @Specification({
+        "${sse}/server.sent.null/client",
+        "${kafka}/server.sent.null/server"})
+    public void shouldReceiveServerSentNull() throws Exception
     {
         k3po.finish();
     }

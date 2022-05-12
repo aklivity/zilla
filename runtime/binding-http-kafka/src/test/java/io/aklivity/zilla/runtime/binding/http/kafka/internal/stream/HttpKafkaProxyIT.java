@@ -675,7 +675,7 @@ public class HttpKafkaProxyIT
     @Specification({
         "${http}/put.item.prefer.async.delayed/client",
         "${kafka}/put.item.delayed/server"})
-    public void shouldPutItemPreferAyncDelayed() throws Exception
+    public void shouldPutItemPreferAsyncDelayed() throws Exception
     {
         k3po.finish();
     }
@@ -685,7 +685,7 @@ public class HttpKafkaProxyIT
     @Specification({
         "${http}/put.item.prefer.async.ignored/client",
         "${kafka}/put.item/server"})
-    public void shouldPutItemPreferAyncIgnored() throws Exception
+    public void shouldPutItemPreferAsyncIgnored() throws Exception
     {
         k3po.finish();
     }

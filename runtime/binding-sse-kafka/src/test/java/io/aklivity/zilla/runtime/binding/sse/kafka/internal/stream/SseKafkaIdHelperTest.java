@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
@@ -33,7 +34,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldDecodeBase64() throws Exception
     {
-        String8FW base64 = new String8FW("AQQABAIC");
+        DirectBuffer base64 = new String8FW("AQQABAIC").value();
         Array32FW<KafkaOffsetFW> expected =
             new Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
                 .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024)
@@ -52,7 +53,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldDefaultBase64WhenNull() throws Exception
     {
-        String8FW base64 = new String8FW(null);
+        DirectBuffer base64 = new String8FW(null).value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -62,7 +63,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldDefaultBase64WhenIncomplete() throws Exception
     {
-        String8FW base64 = new String8FW("AQQA");
+        DirectBuffer base64 = new String8FW("AQQA").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -72,7 +73,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldRejectBase64WithInvalidLength() throws Exception
     {
-        String8FW base64 = new String8FW("AQQABAIC===");
+        DirectBuffer base64 = new String8FW("AQQABAIC===").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -82,7 +83,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldRejectBase64WithInvalidChar() throws Exception
     {
-        String8FW base64 = new String8FW("AQQABAI^");
+        DirectBuffer base64 = new String8FW("AQQABAI^").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 
@@ -92,7 +93,7 @@ public class SseKafkaIdHelperTest
     @Test
     public void shouldRejectBase64WithInvalidPaddingChar() throws Exception
     {
-        String8FW base64 = new String8FW("AQQABAIC==^=");
+        DirectBuffer base64 = new String8FW("AQQABAIC==^=").value();
 
         Array32FW<KafkaOffsetFW> decoded = helper.decode(base64);
 

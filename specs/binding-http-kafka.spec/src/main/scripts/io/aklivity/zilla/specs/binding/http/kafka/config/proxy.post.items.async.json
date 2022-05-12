@@ -40,7 +40,7 @@
                     {
                         "capability": "produce",
                         "topic": "items-commands",
-                        "key": "${correlationId}",
+                        "key": "${idempotencyKey}",
                         "reply-to": "items-replies",
                         "async":
                         {

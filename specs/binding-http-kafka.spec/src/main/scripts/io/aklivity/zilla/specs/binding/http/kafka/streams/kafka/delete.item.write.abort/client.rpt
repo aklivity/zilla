@@ -39,35 +39,10 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                 .header("zilla:reply-to", "items-replies")
-                                .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                 .build()
                             .build()}
 write zilla:data.empty
 write flush
 
-write notify SENT_ASYNC_REQUEST
-
 write abort
-read aborted
-
-connect await SENT_ASYNC_REQUEST
-        "zilla://streams/kafka0"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .merged()
-                                   .capabilities("FETCH_ONLY")
-                                   .topic("items-replies")
-                                   .partition(-1, -2)
-                                   .filter()
-                                     .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
-                                     .build()
-                                   .build()
-                               .build()}
-
-connected
-
-read aborted
-write abort
+read abort
