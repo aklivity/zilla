@@ -83,6 +83,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(), 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
+    private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
+            new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+                .build();
 
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
@@ -147,6 +151,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final int initialBudgetMax;
     private final int localIndex;
     private final int cleanupDelay;
+    private final int trailersSizeMax;
 
     public KafkaCacheClientProduceFactory(
         KafkaConfiguration config,
@@ -174,6 +179,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.localIndex = context.index();
         this.cleanupDelay = config.cacheClientCleanupDelay();
         this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer());
+        this.trailersSizeMax = config.cacheClientTrailersSizeMax();
     }
 
     @Override
@@ -620,7 +626,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final int deferred = kafkaProduceDataExFW.deferred();
                 final int sequence = kafkaProduceDataExFW.sequence();
                 final Array32FW<KafkaHeaderFW> headers = kafkaProduceDataExFW.headers();
-                final int headersSizeMax = headers.sizeof();
+                final int headersSizeMax = headers.sizeof() + trailersSizeMax;
                 final long timestamp = kafkaProduceDataExFW.timestamp();
                 final KafkaKeyFW key = kafkaProduceDataExFW.key();
                 final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
@@ -659,7 +665,23 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if ((flags & FLAGS_FIN) != 0x00 && error == NO_ERROR)
             {
-                partition.writeProduceEntryFin(stream.segment, stream.entryMark);
+                Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
+
+                if ((flags & FLAGS_INIT) == 0x00)
+                {
+                    final OctetsFW extension = data.extension();
+                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+
+                    if (dataEx != null && dataEx.typeId() == kafkaTypeId)
+                    {
+                        final KafkaDataExFW kafkaDataEx = extension.get(kafkaDataExRO::wrap);
+                        assert kafkaDataEx.kind() == KafkaDataExFW.KIND_PRODUCE;
+                        final KafkaProduceDataExFW kafkaProduceDataExFW = kafkaDataEx.produce();
+                        trailers = kafkaProduceDataExFW.headers();
+                    }
+                }
+
+                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, trailers);
                 flushClientFanInitialIfNecessary(traceId);
             }
 

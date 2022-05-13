@@ -195,7 +195,7 @@ scope kafka
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
-            KafkaHeader[] headers;      // FIN only
+            KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
         struct KafkaMergedFlushEx

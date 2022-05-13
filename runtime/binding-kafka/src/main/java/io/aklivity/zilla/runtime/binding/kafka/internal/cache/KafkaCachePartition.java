@@ -51,6 +51,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.io.DirectBufferInputStream;
 import org.agrona.io.ExpandableDirectBufferOutputStream;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
@@ -77,6 +78,11 @@ public final class KafkaCachePartition
     public static final int CACHE_ENTRY_FLAGS_ADVANCE = CACHE_ENTRY_FLAGS_COMPLETED | CACHE_ENTRY_FLAGS_DIRTY;
 
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
+
+    private static final Array32FW<KafkaHeaderFW> EMPTY_TRAILERS =
+            new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+                .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+                .build();
 
     private final KafkaCacheEntryFW headEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
@@ -412,6 +418,7 @@ public final class KafkaCachePartition
         assert logAvailable >= logRequired : String.format("%s %d >= %d", headSegment, logAvailable, logRequired);
 
         logFile.appendBytes(headers);
+        logFile.appendBytes(EMPTY_TRAILERS);
 
         final long offsetDelta = (int)(progress - headSegment.baseOffset());
         final long indexEntry = (offsetDelta << 32) | logFile.markValue();
@@ -492,9 +499,6 @@ public final class KafkaCachePartition
 
         final KafkaCacheFile indexFile = segment.indexFile();
         final KafkaCacheFile logFile = segment.logFile();
-        final KafkaCacheFile hashFile = segment.hashFile();
-        final KafkaCacheFile keysFile = segment.keysFile();
-        final KafkaCacheFile nullsFile = segment.nullsFile();
 
         entryMark.value = logFile.capacity();
 
@@ -513,48 +517,18 @@ public final class KafkaCachePartition
 
         position.value = logFile.capacity();
 
-        if (valueLength == -1)
-        {
-            final int timestampDelta = (int)((timestamp - segment.timestamp()) & 0xFFFF_FFFFL);
-            final long nullsEntry = timestampDelta << 32 | entryMark.value;
-            nullsFile.appendLong(nullsEntry);
-        }
-
-        final int deltaBaseOffset = 0;
-        final long keyEntry = keyHash << 32 | deltaBaseOffset;
-        keysFile.appendLong(keyEntry);
-
         final int valueMaxLength = valueLength == -1 ? 0 : valueLength;
         final int logAvailable = logFile.available() - valueMaxLength;
         final int logRequired = headers.sizeof();
         assert logAvailable >= logRequired : String.format("%s %d >= %d", segment, logAvailable, logRequired);
-
         logFile.advance(position.value + valueMaxLength);
         logFile.appendBytes(headers);
+        logFile.appendBytes(EMPTY_TRAILERS); // needed for incomplete tryWrap
 
         final long offsetDelta = (int)(progress - segment.baseOffset());
         final long indexEntry = (offsetDelta << 32) | entryMark.value;
         assert indexFile.available() >= Long.BYTES;
         indexFile.appendLong(indexEntry);
-
-        if (!headers.isEmpty())
-        {
-            final DirectBuffer buffer = headers.buffer();
-            final ByteBuffer byteBuffer = buffer.byteBuffer();
-            assert byteBuffer != null;
-            byteBuffer.clear();
-            headers.forEach(h ->
-            {
-                final long hash = computeHash(h);
-                final long hashEntry = (hash << 32) | entryMark.value;
-                hashFile.appendLong(hashEntry);
-            });
-        }
-        else
-        {
-            final long hashEntry = keyHash << 32 | entryMark.value;
-            hashFile.appendLong(hashEntry);
-        }
     }
 
     public void writeProduceEntryContinue(
@@ -576,12 +550,25 @@ public final class KafkaCachePartition
 
     public void writeProduceEntryFin(
         Node head,
-        MutableInteger entryMark)
+        MutableInteger entryMark,
+        MutableInteger position,
+        Array32FW<KafkaHeaderFW> trailers)
     {
         final KafkaCacheSegment segment = head.segment;
         assert segment != null;
 
         final KafkaCacheFile logFile = segment.logFile();
+
+        if (!trailers.isEmpty())
+        {
+            position.value = logFile.capacity() - EMPTY_TRAILERS.sizeof();
+
+            // append to expand capacity beyond empty trailers, then overwrite
+            logFile.appendBytes(trailers.buffer(), trailers.offset(), trailers.sizeof() - EMPTY_TRAILERS.sizeof());
+            logFile.writeBytes(position.value, trailers);
+        }
+
+        position.value = logFile.capacity();
 
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
     }

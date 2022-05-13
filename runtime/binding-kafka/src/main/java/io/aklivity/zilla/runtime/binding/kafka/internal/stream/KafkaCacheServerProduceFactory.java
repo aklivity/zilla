@@ -1091,6 +1091,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     final int sequence = nextEntry.sequence();
                     final KafkaKeyFW key = nextEntry.key();
                     final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
+                    final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
                     final OctetsFW value = nextEntry.value();
                     final int remaining = value != null ? value.sizeof() - messageOffset : 0;
                     assert remaining >= 0;
@@ -1149,12 +1150,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         switch (flags)
                         {
                         case FLAG_INIT | FLAG_FIN:
-                            doServerInitialDataFull(traceId, timestamp, sequence, checksum, key, headers,
+                            doServerInitialDataFull(traceId, timestamp, sequence, checksum, key, headers, trailers,
                                 fragment, reserved, flags);
                             break;
                         case FLAG_INIT:
                             doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, key,
-                                headers, fragment, reserved, flags);
+                                headers, trailers, fragment, reserved, flags);
                             break;
                         case FLAG_NONE:
                             doServerInitialDataNone(traceId, fragment, reserved, length, flags);
@@ -1198,6 +1199,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long checksum,
             KafkaKeyFW key,
             ArrayFW<KafkaHeaderFW> headers,
+            ArrayFW<KafkaHeaderFW> trailers,
             OctetsFW value,
             int reserved,
             int flags)
@@ -1209,10 +1211,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                                         .sequence(sequence)
                                         .crc32c(checksum)
                                         .key(k -> k.length(key.length()).value(key.value()))
-                                        .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                                                                          .name(h.name())
-                                                                                          .valueLen(h.valueLen())
-                                                                                          .value(h.value())))))
+                                        .headers(hs ->
+                                        {
+                                            headers.forEach(h -> hs.item(i -> i.set(h)));
+                                            trailers.forEach(h -> hs.item(i -> i.set(h)));
+                                        }))
                            .build()
                            .sizeof()));
         }
@@ -1225,6 +1228,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long checksum,
             KafkaKeyFW key,
             ArrayFW<KafkaHeaderFW> headers,
+            ArrayFW<KafkaHeaderFW> trailers,
             OctetsFW value,
             int reserved,
             int flags)
@@ -1237,10 +1241,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                                           .sequence(sequence)
                                           .crc32c(checksum)
                                           .key(k -> k.length(key.length()).value(key.value()))
-                                          .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                                                                            .name(h.name())
-                                                                                            .valueLen(h.valueLen())
-                                                                                            .value(h.value())))))
+                                          .headers(hs ->
+                                          {
+                                              headers.forEach(h -> hs.item(i -> i.set(h)));
+                                              trailers.forEach(h -> hs.item(i -> i.set(h)));
+                                          }))
                            .build()
                            .sizeof()));
         }
