@@ -3,8 +3,6 @@
  */
 package io.aklivity.example.cqrs.processor;
 
-import java.util.UUID;
-
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -14,6 +12,7 @@ import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 import org.apache.kafka.streams.processor.api.Record;
 import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.logging.log4j.util.Strings;
 
 import io.aklivity.example.cqrs.model.Command;
 import io.aklivity.example.cqrs.model.CreateTaskCommand;
@@ -27,7 +26,7 @@ public class AcceptCommandProcessorSupplier implements ProcessorSupplier<String,
     private final String snapshot;
     private final String replyTo;
 
-    private KeyValueStore<String, byte[]> etagStore;
+    private KeyValueStore<String, String> etagStore;
 
     public AcceptCommandProcessorSupplier(String etagStoreName, String snapshot, String replyTo)
     {
@@ -64,12 +63,12 @@ public class AcceptCommandProcessorSupplier implements ProcessorSupplier<String,
             final Headers newResponseHeaders = new RecordHeaders();
             newResponseHeaders.add(correlationId);
             final Headers newSnapshotHeaders = new RecordHeaders();
-            final byte[] etag = UUID.randomUUID().toString().getBytes();
             final Header contentType = new RecordHeader("content-type", "application/json".getBytes());
 
             if (command instanceof CreateTaskCommand)
             {
-                newSnapshotHeaders.add("etag", etag);
+                String etagValue = "1";
+                newSnapshotHeaders.add("etag", etagValue.getBytes());
                 newSnapshotHeaders.add(contentType);
                 final Record newSnapshot = newCommand
                         .withHeaders(newSnapshotHeaders)
@@ -77,19 +76,20 @@ public class AcceptCommandProcessorSupplier implements ProcessorSupplier<String,
                                 .description(((CreateTaskCommand) command).getDescription())
                                 .build());
                 context.forward(newSnapshot, snapshot);
-                etagStore.putIfAbsent(key, etag);
+                etagStore.putIfAbsent(key, etagValue);
 
                 final Header path = headers.lastHeader(":path");
                 newResponseHeaders.add(":status", "201".getBytes());
-                newResponseHeaders.add("content-length", "0".getBytes());
                 newResponseHeaders.add("location", String.format("%s/%s", new String(path.value()),
                         new String(idempotencyKey.value())).getBytes());
-                final Record reply = newCommand.withHeaders(newResponseHeaders).withValue("");
+                final Record reply = newCommand.withHeaders(newResponseHeaders).withValue(Strings.EMPTY);
                 context.forward(reply, replyTo);
             }
             else if (command instanceof UpdateTaskCommand)
             {
-                newSnapshotHeaders.add("etag", etag);
+                final String currentEtag = etagStore.get(key);
+                final String newEtag = Integer.toString(Integer.parseInt(currentEtag) + 1);
+                newSnapshotHeaders.add("etag", newEtag.getBytes());
                 newSnapshotHeaders.add(contentType);
                 final Record newSnapshot = newCommand
                         .withHeaders(newSnapshotHeaders)
@@ -97,21 +97,20 @@ public class AcceptCommandProcessorSupplier implements ProcessorSupplier<String,
                                 .description(((UpdateTaskCommand) command).getDescription())
                                 .build());
                 context.forward(newSnapshot, snapshot);
-                etagStore.put(key, etag);
+                etagStore.put(key, newEtag);
 
-                newResponseHeaders.add(":status", "200".getBytes());
-                newResponseHeaders.add("content-length", "0".getBytes());
-                final Record reply = newCommand.withHeaders(newResponseHeaders).withValue("");
+                newResponseHeaders.add(":status", "204".getBytes());
+                final Record reply = newCommand.withHeaders(newResponseHeaders).withValue(Strings.EMPTY);
                 context.forward(reply, replyTo);
             }
             else if (command instanceof DeleteTaskCommand)
             {
                 final Record newSnapshot = newCommand.withHeaders(newResponseHeaders).withValue(null);
                 context.forward(newSnapshot, snapshot);
+                etagStore.delete(key);
 
                 newResponseHeaders.add(":status", "204".getBytes());
-                newResponseHeaders.add("content-length", "0".getBytes());
-                final Record reply = newCommand.withHeaders(newResponseHeaders).withValue("");
+                final Record reply = newCommand.withHeaders(newResponseHeaders).withValue(Strings.EMPTY);
                 context.forward(reply, replyTo);
             }
             else

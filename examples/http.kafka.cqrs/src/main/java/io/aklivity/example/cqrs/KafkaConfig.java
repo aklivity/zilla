@@ -10,7 +10,9 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.kafka.StreamsBuilderFactoryBeanCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -53,5 +55,12 @@ public class KafkaConfig
         props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
 
         return new KafkaStreamsConfiguration(props);
+    }
+
+    @Bean
+    public StreamsBuilderFactoryBeanCustomizer streamsBuilderFactoryBeanCustomizer()
+    {
+        return sfb -> sfb.setStreamsUncaughtExceptionHandler(exception
+                -> StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD);
     }
 }

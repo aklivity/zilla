@@ -26,10 +26,10 @@ import lombok.extern.slf4j.Slf4j;
 public class CqrsTopology
 {
     private final Serde<String> stringSerde = Serdes.String();
-    private final Serde<byte[]> etagSerde = Serdes.ByteArray();
+    private final Serde<String> etagSerde = Serdes.String();
     private final Serde<Command> commandSerde = SerdeFactory.jsonSerdeFor(Command.class, false);
     private final Serde<Task> taskSerde = SerdeFactory.jsonSerdeFor(Task.class, false);
-    private final Serde<Object> responseSerde = SerdeFactory.jsonSerdeFor(Object.class, false);
+    private final Serde<String> responseSerde = Serdes.String();
 
     @Value("${task.commands.topic}")
     String taskCommandsTopic;

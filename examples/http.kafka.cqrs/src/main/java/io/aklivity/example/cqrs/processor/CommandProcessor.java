@@ -38,7 +38,7 @@ public class CommandProcessor implements ProcessorSupplier<String, Command, Stri
     class RejectCommandProcessor implements Processor<String, Command, String, Command>
     {
         private ProcessorContext context;
-        private KeyValueStore<String, byte[]> etagStore;
+        private KeyValueStore<String, String> etagStore;
 
         @Override
         public void init(final ProcessorContext context)
@@ -57,7 +57,7 @@ public class CommandProcessor implements ProcessorSupplier<String, Command, Stri
             final Header idempotencyKey = headers.lastHeader("idempotency-key");
             final Header path = headers.lastHeader(":path");
             final Header ifMatch = headers.lastHeader("if-match");
-            final byte[] etag = etagStore.get(key);
+            final String etag = etagStore.get(key);
 
             final Headers newHeaders = new RecordHeaders();
             newHeaders.add(correlationId);
@@ -65,7 +65,7 @@ public class CommandProcessor implements ProcessorSupplier<String, Command, Stri
             newHeaders.add(path);
 
             final Record<String, Command> command = record.withHeaders(newHeaders);
-            final String childName = ifMatch == null || Arrays.equals(ifMatch.value(), etag)
+            final String childName = ifMatch == null || etag != null && Arrays.equals(ifMatch.value(), etag.getBytes())
                     ? successName : failureName;
             context.forward(command, childName);
         }

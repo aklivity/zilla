@@ -7,9 +7,9 @@ networks:
 services:
 
   zilla:
-    image: "ghcr.io/aklivity/zilla:0.9.15"
-    command: "start"
+    image: "ghcr.io/aklivity/zilla:develop-SNAPSHOT"
     hostname: "zilla"
+    command: ["start", "-e"]
     volumes:
       - ./.zilla/zilla.properties:/.zilla/zilla.properties:ro
       - ./zilla.json:/zilla.json:ro
@@ -23,10 +23,13 @@ services:
   kafka:
     image: "bitnami/kafka:3"
     hostname: "kafka.internal.net"
+    volumes:
+      - ./.kafka_data/:/bitnami/kafka
     networks:
       - net0
     environment:
       - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_BROKER_ID=1
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper.internal.net:2181
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT
       - KAFKA_CFG_LISTENERS=CLIENT://:9092,INTERNAL://:29092
@@ -39,6 +42,8 @@ services:
   zookeeper:
     image: 'bitnami/zookeeper:3'
     hostname: "zookeeper.internal.net"
+    volumes:
+      - ./.zookeeper_data:/bitnami/zookeeper
     networks:
       - net0
     environment:
@@ -46,6 +51,8 @@ services:
 
   processor:
     image: "http-kafka-cqrs:latest"
+    depends_on:
+      - init-kafka
     networks:
       - net0
     environment:

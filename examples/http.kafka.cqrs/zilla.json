@@ -113,7 +113,7 @@
                     {
                         "capability": "produce",
                         "topic": "task-commands",
-                        "key": "${correlationId}",
+                        "key": "${idempotencyKey}",
                         "reply-to": "task-replies"
                     }
                 },
@@ -183,7 +183,11 @@
                     "exit": "kafka_cache_client0",
                     "with":
                     {
-                        "topic": "task-snapshots"
+                        "topic": "task-snapshots",
+                        "event":
+                        {
+                            "id": "[\"${base64(key)}\",\"${progress}\"]"
+                        }
                     }
                 }
             ]
@@ -240,8 +244,7 @@
                         }
                     ]
                 }
-            ],
-            "exit": "net0"
+            ]
         }
     }
 }
