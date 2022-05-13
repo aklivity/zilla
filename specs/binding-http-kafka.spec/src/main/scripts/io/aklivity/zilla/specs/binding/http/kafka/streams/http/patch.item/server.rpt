@@ -23,6 +23,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "PATCH")
                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                            .header("content-type", "application/json-patch+json")
+                           .header("content-length", "58")
                            .header("idempotency-key", "afe0e568-cfbe-4bf4-a405-98578c98e4ca")
                            .build()}
 

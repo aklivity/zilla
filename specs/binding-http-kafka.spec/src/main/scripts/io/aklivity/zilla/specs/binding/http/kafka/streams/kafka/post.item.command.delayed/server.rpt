@@ -20,19 +20,20 @@ accept "zilla://streams/kafka0"
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                  .capabilities("PRODUCE_ONLY")
-                                  .topic("items-commands")
-                                  .partition(-1, -2)
-                                  .build()
-                              .build()}
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("items-commands")
+                                 .partition(-1, -2)
+                                .build()
+                            .build()}
 
 connected
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
+                               .deferred(20)
                                .partition(-1, -1)
                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                .header(":method", "POST")

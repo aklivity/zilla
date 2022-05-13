@@ -23,6 +23,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "POST")
                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544/rename")
                            .header("content-type", "application/json")
+                           .header("content-length", "20")
                            .header("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                            .header("prefer", "respond-async")
                            .build()}
