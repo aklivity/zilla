@@ -8,8 +8,8 @@ services:
 
   zilla:
     image: "ghcr.io/aklivity/zilla:latest"
-    command: "start"
     hostname: "zilla"
+    command: [ "start", "-e" ]
     volumes:
       - ./.zilla/zilla.properties:/.zilla/zilla.properties:ro
       - ./zilla.json:/zilla.json:ro
