@@ -302,6 +302,17 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.json")
     @Specification({
+        "${app}/message.trailer/client",
+        "${app}/message.header/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageTrailer() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
         "${app}/message.value.repeated/client",
         "${app}/message.value.repeated/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

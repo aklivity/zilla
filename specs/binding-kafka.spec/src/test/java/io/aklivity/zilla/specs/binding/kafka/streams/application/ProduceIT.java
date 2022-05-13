@@ -246,4 +246,13 @@ public class ProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/message.trailer/client",
+        "${app}/message.trailer/server"})
+    public void shouldSendMessageTrailer() throws Exception
+    {
+        k3po.finish();
+    }
 }

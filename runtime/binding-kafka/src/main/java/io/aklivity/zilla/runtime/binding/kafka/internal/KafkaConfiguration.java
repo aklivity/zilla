@@ -54,6 +54,7 @@ public class KafkaConfiguration extends Configuration
     public static final BooleanPropertyDef KAFKA_CACHE_SERVER_BOOTSTRAP;
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_RECONNECT_DELAY;
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_CLEANUP_DELAY;
+    public static final IntPropertyDef KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 
     private static final ConfigurationDef KAFKA_CONFIG;
@@ -90,6 +91,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_MILLIS = config.property("cache.segment.ms", 604800000L);
         KAFKA_CACHE_SEGMENT_BYTES = config.property("cache.segment.bytes", 0x40000000);
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
+        KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CONFIG = config;
     }
 
@@ -236,6 +238,11 @@ public class KafkaConfiguration extends Configuration
     public int cacheServerReconnect()
     {
         return KAFKA_CACHE_SERVER_RECONNECT_DELAY.getAsInt(this);
+    }
+
+    public int cacheClientTrailersSizeMax()
+    {
+        return KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX.getAsInt(this);
     }
 
     private static Path cacheDirectory(

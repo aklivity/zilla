@@ -246,14 +246,17 @@ public final class KafkaCacheCursorFactory
                         final KafkaKeyFW key = nextEntry.key();
                         final int entryOffset = nextEntry.offset();
                         final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
+                        final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
 
                         final int sizeofEntryHeader = key.limit() - nextEntry.offset();
                         writeBuffer.putBytes(0, entryBuffer, entryOffset, sizeofEntryHeader);
                         writeBuffer.putBytes(sizeofEntryHeader, delta.buffer(), delta.offset(), delta.sizeof());
                         writeBuffer.putBytes(sizeofEntryHeader + delta.sizeof(),
                                 headers.buffer(), headers.offset(), headers.sizeof());
+                        writeBuffer.putBytes(sizeofEntryHeader + delta.sizeof() + headers.sizeof(),
+                                trailers.buffer(), trailers.offset(), trailers.sizeof());
 
-                        final int sizeofEntry = sizeofEntryHeader + delta.sizeof() + headers.sizeof();
+                        final int sizeofEntry = sizeofEntryHeader + delta.sizeof() + headers.sizeof() + trailers.sizeof();
                         nextEntry = cacheEntry.wrap(writeBuffer, 0, sizeofEntry);
                     }
                     else
