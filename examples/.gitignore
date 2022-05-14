@@ -1,4 +1,4 @@
 .vault
 .idea
-.iml
+*.iml
 target
