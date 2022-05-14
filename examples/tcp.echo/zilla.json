@@ -2,7 +2,7 @@
     "name": "example",
     "bindings":
     {
-        "tcp0":
+        "tcp_server0":
         {
             "type" : "tcp",
             "kind": "server",
@@ -11,9 +11,9 @@
                 "host": "0.0.0.0",
                 "port": 12345
             },
-            "exit": "echo0"
+            "exit": "echo_server0"
         },
-        "echo0":
+        "echo_server0":
         {
             "type" : "echo",
             "kind": "server"

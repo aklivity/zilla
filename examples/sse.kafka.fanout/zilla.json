@@ -18,7 +18,7 @@
     },
     "bindings":
     {
-        "tcp0":
+        "tcp_server0":
         {
             "type" : "tcp",
             "kind": "server",
@@ -27,9 +27,9 @@
                 "host": "0.0.0.0",
                 "port": 9090
             },
-            "exit": "tls0"
+            "exit": "tls_server0"
         },
-        "tcp1":
+        "tcp_server1":
         {
             "type" : "tcp",
             "kind": "server",
@@ -38,9 +38,9 @@
                 "host": "0.0.0.0",
                 "port": 8080
             },
-            "exit": "http0"
+            "exit": "http_server0"
         },
-        "tls0":
+        "tls_server0":
         {
             "type" : "tls",
             "kind": "server",
@@ -51,9 +51,9 @@
                 "sni": [ "localhost" ],
                 "alpn": [ "http/1.1", "h2" ]
             },
-            "exit": "http0"
+            "exit": "http_server0"
         },
-        "http0":
+        "http_server0":
         {
             "type" : "http",
             "kind": "server",
@@ -67,7 +67,6 @@
             "routes":
             [
                 {
-                    "exit": "sse0",
                     "when":
                     [
                         {
@@ -86,10 +85,10 @@
                                 ":path": "/events"
                             }
                         }
-                    ]
+                    ],
+                    "exit": "sse_server0"
                 },
                 {
-                    "exit": "http_filesystem0",
                     "when":
                     [
                         {
@@ -106,18 +105,19 @@
                                 ":authority": "localhost:9090"
                             }
                         }
-                    ]
+                    ],
+                    "exit": "http_filesystem_proxy0"
                 }
             ]
         },
-        "http_filesystem0":
+        "http_filesystem_proxy0":
         {
             "type" : "http-filesystem",
             "kind": "proxy",
             "routes":
             [
                 {
-                    "exit": "filesystem0",
+                    "exit": "filesystem_server0",
                     "when":
                     [
                         {
@@ -131,7 +131,7 @@
                 }
             ]
         },
-        "filesystem0":
+        "filesystem_server0":
         {
             "type" : "filesystem",
             "kind": "server",
@@ -140,26 +140,26 @@
                 "location": "web/"
             }
         },
-        "sse0":
+        "sse_server0":
         {
             "type" : "sse",
             "kind": "server",
-            "exit": "sse_kafka0"
+            "exit": "sse_kafka_proxy0"
         },
-        "sse_kafka0":
+        "sse_kafka_proxy0":
         {
             "type" : "sse-kafka",
             "kind": "proxy",
             "routes":
             [
                 {
-                    "exit": "kafka0",
                     "when":
                     [
                         {
                             "path": "/{topic}"
                         }
                     ],
+                    "exit": "kafka_cache_client0",
                     "with":
                     {
                         "topic": "${params.topic}"
@@ -167,7 +167,7 @@
                 }
             ]
         },
-        "kafka0":
+        "kafka_cache_client0":
         {
             "type" : "kafka",
             "kind": "cache_client",
@@ -176,27 +176,30 @@
                 "merged":
                 [
                     "events"
-                ],
+                ]
+            },
+            "exit": "kafka_cache_server0"
+        },
+        "kafka_cache_server0":
+        {
+            "type" : "kafka",
+            "kind": "cache_server",
+            "options":
+            {
                 "bootstrap":
                 [
                     "events"
                 ]
             },
-            "exit": "kafka1"
+            "exit": "kafka_client0"
         },
-        "kafka1":
-        {
-            "type" : "kafka",
-            "kind": "cache_server",
-            "exit": "kafka2"
-        },
-        "kafka2":
+        "kafka_client0":
         {
             "type" : "kafka",
             "kind": "client",
-            "exit": "tcp2"
+            "exit": "tcp_client0"
         },
-        "tcp2":
+        "tcp_client0":
         {
             "type" : "tcp",
             "kind": "client",
@@ -216,8 +219,7 @@
                         }
                     ]
                 }
-            ],
-            "exit": "net0"
+            ]
         }
     }
 }

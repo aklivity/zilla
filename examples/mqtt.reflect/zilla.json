@@ -18,7 +18,7 @@
     },
     "bindings":
     {
-        "tcp0":
+        "tcp_server0":
         {
             "type" : "tcp",
             "kind": "server",
@@ -27,9 +27,9 @@
                 "host": "0.0.0.0",
                 "port": 1883
             },
-            "exit": "mqtt0"
+            "exit": "mqtt_server0"
         },
-        "tcp1":
+        "tcp_server1":
         {
             "type" : "tcp",
             "kind": "server",
@@ -38,9 +38,9 @@
                 "host": "0.0.0.0",
                 "port": 8883
             },
-            "exit": "tls0"
+            "exit": "tls_server0"
         },
-        "tls0":
+        "tls_server0":
         {
             "type" : "tls",
             "kind": "server",
@@ -50,32 +50,32 @@
                 "keys": [ "localhost" ],
                 "sni": [ "localhost" ]
             },
-            "exit": "mqtt0"
+            "exit": "mqtt_server0"
         },
-        "mqtt0":
+        "mqtt_server0":
         {
             "type" : "mqtt",
             "kind": "server",
             "routes":
             [
                 {
-                    "exit": "fan0",
                     "when":
                     [
                         {
                             "topic": "zilla"
                         }
-                    ]
+                    ],
+                    "exit": "fan_server0"
                 }   
             ]
         },
-        "fan0":
+        "fan_server0":
         {
             "type" : "fan",
             "kind": "server",
-            "exit": "echo0"
+            "exit": "echo_server0"
         },
-        "echo0":
+        "echo_server0":
         {
             "type" : "echo",
             "kind": "server"
