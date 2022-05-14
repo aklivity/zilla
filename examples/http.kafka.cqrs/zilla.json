@@ -203,28 +203,30 @@
                     "task-commands",
                     "task-replies",
                     "task-snapshots"
-                ],
+                ]
+            },
+            "exit": "kafka_cache_server0"
+        },
+        "kafka_cache_server0":
+        {
+            "type" : "kafka",
+            "kind": "cache_server",
+            "options": {
                 "bootstrap":
                 [
                     "task-replies",
                     "task-snapshots"
                 ]
             },
-            "exit": "kafka_cache_server1"
+            "exit": "kafka_client0"
         },
-        "kafka_cache_server1":
-        {
-            "type" : "kafka",
-            "kind": "cache_server",
-            "exit": "kafka_client2"
-        },
-        "kafka_client2":
+        "kafka_client0":
         {
             "type" : "kafka",
             "kind": "client",
-            "exit": "tcp_client2"
+            "exit": "tcp_client0"
         },
-        "tcp_client2":
+        "tcp_client0":
         {
             "type" : "tcp",
             "kind": "client",
@@ -236,13 +238,13 @@
             "routes":
             [
                 {
-                    "exit": "net0",
                     "when":
                     [
                         {
                             "cidr": "0.0.0.0/0"
                         }
-                    ]
+                    ],
+                    "exit": "net0"
                 }
             ]
         }
