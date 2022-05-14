@@ -22,14 +22,15 @@ Creating service example_zookeeper
 ```
 
 ### Create compacted Kafka topic
-When `example_kafka` service has finished starting up, execute the following command:
+When `example_kafka` service has finished starting up, execute the following commands to create the topic if it does not already exist:
 ```
 $ docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
         --bootstrap-server localhost:9092 \
         --create \
         --topic items-snapshots \
-        --config cleanup.policy=compact
+        --config cleanup.policy=compact \
+        --if-not-exists
 Created topic items-snapshots.
 ```
 Note the `cleanup.policy=compact` topic configuration.
@@ -159,6 +160,17 @@ $ curl -v http://localhost:8080/items
 < Etag: AQIAAg==
 ...
 [{"greeting":"Hello, world ..."}]
+```
+
+### Delete compacted Kafka topic
+Optionally delete the topicsto clean up, otherwise it will still be present when the stack is deployed again next time.
+```
+$ docker exec -it $(docker ps -q -f name=example_kafka) \
+    /opt/bitnami/kafka/bin/kafka-topics.sh \
+        --bootstrap-server localhost:9092 \
+        --delete \
+        --topic items-snapshots \
+        --if-exists
 ```
 
 ### Stop Kafka broker and Zilla engine
