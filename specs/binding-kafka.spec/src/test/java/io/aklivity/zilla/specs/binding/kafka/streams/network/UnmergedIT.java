@@ -92,4 +92,13 @@ public class UnmergedIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unmerged.produce.message.values.null/client",
+        "${net}/unmerged.produce.message.values.null/server"})
+    public void shouldProduceUnmergedMessageValuesNull() throws Exception
+    {
+        k3po.finish();
+    }
 }
