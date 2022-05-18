@@ -1,0 +1,61 @@
+version: "3"
+
+networks:
+  net0:
+    driver: overlay
+
+services:
+
+  zilla:
+    image: "ghcr.io/aklivity/zilla:latest"
+    hostname: "zilla"
+    command: ["start", "-e"]
+    volumes:
+      - ./.zilla/zilla.properties:/.zilla/zilla.properties:ro
+      - ./zilla.json:/zilla.json:ro
+      - ./localhost.p12:/localhost.p12:ro
+    networks:
+      - net0
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+
+  kafka:
+    image: "bitnami/kafka:3"
+    hostname: "kafka.internal.net"
+    volumes:
+      - ./.kafka/:/bitnami/kafka
+    networks:
+      - net0
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_BROKER_ID=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper.internal.net:2181
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092,INTERNAL://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://localhost:9092,INTERNAL://kafka.internal.net:29092
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_ZOOKEEPER_PROTOCOL=PLAINTEXT
+    ports:
+      - "9092:9092"
+
+  zookeeper:
+    image: 'bitnami/zookeeper:3'
+    hostname: "zookeeper.internal.net"
+    volumes:
+      - ./.zookeeper:/bitnami/zookeeper
+    networks:
+      - net0
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  processor:
+    image: "cqrs-processor:latest"
+    networks:
+      - net0
+    environment:
+      SPRING_KAFKA_APPLICATION_ID: cqrs-processor
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka.internal.net:29092
+      TASK_COMMANDS_TOPIC: task-commands
+      TASK_SNAPSHOTS_TOPIC: task-snapshots
+      TASK_REPLIES_TOPIC: task-replies
