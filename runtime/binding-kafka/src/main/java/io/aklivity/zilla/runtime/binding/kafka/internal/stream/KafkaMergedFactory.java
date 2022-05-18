@@ -1492,7 +1492,8 @@ public final class KafkaMergedFactory implements BindingHandler
 
             final long newInitialAck = Math.max(initialSeq - maxInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
+            if (newInitialAck > initialAck || minInitialMax > initialMax ||
+                !KafkaState.initialOpened(state) && !hasProduceCapability(capabilities))
             {
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;

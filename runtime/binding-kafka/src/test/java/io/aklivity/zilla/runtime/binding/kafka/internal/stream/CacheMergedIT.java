@@ -245,6 +245,16 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.json")
     @Specification({
+        "${app}/merged.produce.message.values.null/client",
+        "${app}/unmerged.produce.message.values.null/server"})
+    public void shouldProduceMergedMessageValuesNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.json")
+    @Specification({
         "${app}/merged.produce.message.values/client",
         "${app}/unmerged.produce.message.values/server"})
     public void shouldProduceMergedMessageValues() throws Exception
