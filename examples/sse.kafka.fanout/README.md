@@ -28,14 +28,15 @@ Creating service example_zookeeper
 ```
 
 ### Create compacted Kafka topic
-When example_kafka service has finished starting up, execute the following command:
+When `example_kafka` service has finished starting up, execute the following commands to create the topic if it does not already exist:
 ```bash
 docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
         --bootstrap-server localhost:9092 \
         --create \
         --topic events \
-        --config cleanup.policy=compact
+        --config cleanup.policy=compact \
+        --if-not-exists
 ```
 Note the `cleanup.policy=compact` topic configuration.
 
@@ -83,6 +84,17 @@ $ docker service scale example_zilla=1
 Any messages produced to the `events` Kafka topic while the browser was attempting to reconnect are now delivered immediately.
 
 Additional messages produced to the `events` Kafka topic then arrive at the browser live.
+
+### Delete compacted Kafka topic
+Optionally delete the topic to clean up, otherwise it will still be present when the stack is deployed again next time.
+```
+$ docker exec -it $(docker ps -q -f name=example_kafka) \
+    /opt/bitnami/kafka/bin/kafka-topics.sh \
+        --bootstrap-server localhost:9092 \
+        --delete \
+        --topic items-snapshots \
+        --if-exists
+```
 
 ### Stop Kafka broker and Zilla engine
 ```bash

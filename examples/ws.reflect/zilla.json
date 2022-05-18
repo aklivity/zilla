@@ -18,7 +18,7 @@
     },
     "bindings":
     {
-        "tcp0":
+        "tcp_server0":
         {
             "type" : "tcp",
             "kind": "server",
@@ -27,9 +27,9 @@
                 "host": "0.0.0.0",
                 "port": 8080
             },
-            "exit": "http0"
+            "exit": "http_server0"
         },
-        "tcp1":
+        "tcp_server1":
         {
             "type" : "tcp",
             "kind": "server",
@@ -38,9 +38,9 @@
                 "host": "0.0.0.0",
                 "port": 9090
             },
-            "exit": "tls0"
+            "exit": "tls_server0"
         },
-        "tls0":
+        "tls_server0":
         {
             "type" : "tls",
             "kind": "server",
@@ -50,16 +50,15 @@
                 "keys": [ "localhost" ],
                 "sni": [ "localhost" ]
             },
-            "exit": "http0"
+            "exit": "http_server0"
         },
-        "http0":
+        "http_server0":
         {
             "type" : "http",
             "kind": "server",
             "routes":
             [
                 {
-                    "exit": "ws0",
                     "when":
                     [
                         {
@@ -76,34 +75,35 @@
                                 ":authority": "localhost:9090"
                             }
                         }
-                    ]
+                    ],
+                    "exit": "ws_server0"
                 }
             ]
         },
-        "ws0":
+        "ws_server0":
         {
             "type" : "ws",
             "kind": "server",
             "routes":
             [
                 {
-                    "exit": "fan0",
                     "when":
                     [
                         {
                             "protocol": "echo"
                         }
-                    ]
+                    ],
+                    "exit": "fan_server0"
                 }
             ]
         },
-        "fan0":
+        "fan_server0":
         {
             "type" : "fan",
             "kind": "server",
-            "exit": "echo0"
+            "exit": "echo_server0"
         },
-        "echo0":
+        "echo_server0":
         {
             "type" : "echo",
             "kind": "server"

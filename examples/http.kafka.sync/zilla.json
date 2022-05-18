@@ -18,7 +18,7 @@
     },
     "bindings":
     {
-        "tcp0":
+        "tcp_server0":
         {
             "type" : "tcp",
             "kind": "server",
@@ -27,9 +27,9 @@
                 "host": "0.0.0.0",
                 "port": 9090
             },
-            "exit": "tls0"
+            "exit": "tls_server0"
         },
-        "tcp1":
+        "tcp_server1":
         {
             "type" : "tcp",
             "kind": "server",
@@ -38,9 +38,9 @@
                 "host": "0.0.0.0",
                 "port": 8080
             },
-            "exit": "http0"
+            "exit": "http_server0"
         },
-        "tls0":
+        "tls_server0":
         {
             "type" : "tls",
             "kind": "server",
@@ -51,16 +51,15 @@
                 "sni": [ "localhost" ],
                 "alpn": [ "http/1.1", "h2" ]
             },
-            "exit": "http0"
+            "exit": "http_server0"
         },
-        "http0":
+        "http_server0":
         {
             "type" : "http",
             "kind": "server",
             "routes":
             [
                 {
-                    "exit": "http_kafka0",
                     "when":
                     [
                         {
@@ -77,24 +76,25 @@
                                 ":authority": "localhost:9090"
                             }
                         }
-                    ]
+                    ],
+                    "exit": "http_kafka_proxy0"
                 }
             ]
         },
-        "http_kafka0":
+        "http_kafka_proxy0":
         {
             "type" : "http-kafka",
             "kind": "proxy",
             "routes":
             [
                 {
-                    "exit": "kafka0",
                     "when":
                     [
                         {
                             "path": "/items/{id}"
                         }
                     ],
+                    "exit": "kafka_cache_client0",
                     "with":
                     {
                         "capability": "produce",
@@ -105,7 +105,7 @@
                 }
             ]
         },
-        "kafka0":
+        "kafka_cache_client0":
         {
             "type" : "kafka",
             "kind": "cache_client",
@@ -115,27 +115,30 @@
                 [
                     "items-requests",
                     "items-responses"
-                ],
+                ]
+            },
+            "exit": "kafka_cache_server0"
+        },
+        "kafka_cache_server0":
+        {
+            "type" : "kafka",
+            "kind": "cache_server",
+            "options":
+            {
                 "bootstrap":
                 [
                     "items-responses"
                 ]
             },
-            "exit": "kafka1"
+            "exit": "kafka_client0"
         },
-        "kafka1":
-        {
-            "type" : "kafka",
-            "kind": "cache_server",
-            "exit": "kafka2"
-        },
-        "kafka2":
+        "kafka_client0":
         {
             "type" : "kafka",
             "kind": "client",
-            "exit": "tcp2"
+            "exit": "tcp_client0"
         },
-        "tcp2":
+        "tcp_client0":
         {
             "type" : "tcp",
             "kind": "client",
@@ -147,16 +150,15 @@
             "routes":
             [
                 {
-                    "exit": "net0",
                     "when":
                     [
                         {
                             "cidr": "0.0.0.0/0"
                         }
-                    ]
+                    ],
+                    "exit": "net0"
                 }
-            ],
-            "exit": "net0"
+            ]
         }
     }
 }

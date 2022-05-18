@@ -23,13 +23,14 @@ Creating service example_zookeeper
 ```
 
 ### Create request and response Kafka topics
-When `example_kafka` service has finished starting up, execute the following commands:
+When `example_kafka` service has finished starting up, execute the following commands to create the topics if they do not already exist:
 ```
 $ docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
         --bootstrap-server localhost:9092 \
         --create \
-        --topic items-requests
+        --topic items-requests \
+        --if-not-exists
 Created topic items-requests.
 ```
 ```
@@ -37,7 +38,8 @@ $ docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-topics.sh \
         --bootstrap-server localhost:9092 \
         --create \
-        --topic items-responses
+        --topic items-responses \
+        --if-not-exists
 Created topic items-responses.
 ```
 
@@ -105,6 +107,25 @@ $ echo "{\"greeting\":\"Hello, world `date`\"}" | \
          -k "5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07" \
          -H ":status=200" \
          -H "zilla:correlation-id=1-e75a4e507cc0dc66a28f5a9617392fe8"
+```
+
+### Delete request and response Kafka topics
+Optionally delete the topics to clean up, otherwise they will still be present when the stack is deployed again next time.
+```
+$ docker exec -it $(docker ps -q -f name=example_kafka) \
+    /opt/bitnami/kafka/bin/kafka-topics.sh \
+        --bootstrap-server localhost:9092 \
+        --delete \
+        --topic items-requests \
+        --if-exists
+```
+```
+$ docker exec -it $(docker ps -q -f name=example_kafka) \
+    /opt/bitnami/kafka/bin/kafka-topics.sh \
+        --bootstrap-server localhost:9092 \
+        --delete \
+        --topic items-responses \
+        --if-exists
 ```
 
 ### Stop Kafka broker and Zilla engine

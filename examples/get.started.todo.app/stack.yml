@@ -24,7 +24,7 @@ services:
     image: "bitnami/kafka:3"
     hostname: "kafka.internal.net"
     volumes:
-      - ./.kafka_data/:/bitnami/kafka
+      - ./.kafka/:/bitnami/kafka
     networks:
       - net0
     environment:
@@ -43,7 +43,7 @@ services:
     image: 'bitnami/zookeeper:3'
     hostname: "zookeeper.internal.net"
     volumes:
-      - ./.zookeeper_data:/bitnami/zookeeper
+      - ./.zookeeper:/bitnami/zookeeper
     networks:
       - net0
     environment:
@@ -51,8 +51,6 @@ services:
 
   processor:
     image: "http-kafka-cqrs:latest"
-    depends_on:
-      - init-kafka
     networks:
       - net0
     environment:

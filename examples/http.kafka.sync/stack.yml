@@ -23,6 +23,8 @@ services:
   kafka:
     image: "bitnami/kafka:3"
     hostname: "kafka.internal.net"
+    volumes:
+      - ./.kafka/:/bitnami/kafka
     networks:
       - net0
     environment:
@@ -39,6 +41,8 @@ services:
   zookeeper:
     image: 'bitnami/zookeeper:3'
     hostname: "zookeeper.internal.net"
+    volumes:
+      - ./.zookeeper:/bitnami/zookeeper
     networks:
       - net0
     environment:
