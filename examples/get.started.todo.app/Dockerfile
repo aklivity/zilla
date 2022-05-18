@@ -5,4 +5,4 @@ COPY target/cqrs-processor.jar /
 RUN apk upgrade --no-cache && \
     apk add --no-cache libgcc libstdc++ ncurses-libs
 
-ENTRYPOINT ["java", "-jar", "/sqrs-processor.jar"]
+ENTRYPOINT ["java", "-jar", "/cqrs-processor.jar"]

@@ -50,11 +50,11 @@ services:
       - ALLOW_ANONYMOUS_LOGIN=yes
 
   processor:
-    image: "http-kafka-cqrs:latest"
+    image: "cqrs-processor:latest"
     networks:
       - net0
     environment:
-      SPRING_KAFKA_APPLICATION_ID: http-kafka-cqrs
+      SPRING_KAFKA_APPLICATION_ID: cqrs-processor
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka.internal.net:29092
       TASK_COMMANDS_TOPIC: task-commands
       TASK_SNAPSHOTS_TOPIC: task-snapshots
