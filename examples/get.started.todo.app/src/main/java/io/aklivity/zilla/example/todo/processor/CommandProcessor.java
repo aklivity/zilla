@@ -59,15 +59,18 @@ public class CommandProcessor implements ProcessorSupplier<String, Command, Stri
             final Header ifMatch = headers.lastHeader("if-match");
             final String etag = etagStore.get(key);
 
-            final Headers newHeaders = new RecordHeaders();
-            newHeaders.add(correlationId);
-            newHeaders.add(idempotencyKey);
-            newHeaders.add(path);
+            if (correlationId != null)
+            {
+                final Headers newHeaders = new RecordHeaders();
+                newHeaders.add(correlationId);
+                newHeaders.add(idempotencyKey);
+                newHeaders.add(path);
 
-            final Record<String, Command> command = record.withHeaders(newHeaders);
-            final String childName = ifMatch == null || etag != null && Arrays.equals(ifMatch.value(), etag.getBytes())
-                    ? successName : failureName;
-            context.forward(command, childName);
+                final Record<String, Command> command = record.withHeaders(newHeaders);
+                final String childName = ifMatch == null || etag != null && Arrays.equals(ifMatch.value(), etag.getBytes())
+                        ? successName : failureName;
+                context.forward(command, childName);
+            }
         }
     }
 }
