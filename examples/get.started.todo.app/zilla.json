@@ -78,60 +78,29 @@
                         {
                             "headers":
                             {
-                                "method": "POST",
-                                "path": "/tasks"
-                            }
-                        }
-                    ],
-                    "exit": "http_kafka_proxy0"
-                },
-                {
-                    "when":
-                    [
-                        {
-                            "headers":
-                            {
-                                "method": "PUT",
-                                "path": "/tasks/*"
-                            }
-                        }
-                    ],
-                    "exit": "http_kafka_proxy0"
-                },
-                {
-                    "when":
-                    [
-                        {
-                            "headers":
-                            {
-                                "method": "DELETE",
-                                "path": "/tasks/*"
-                            }
-                        }
-                    ],
-                    "exit": "http_kafka_proxy0"
-                },
-                {
-                    "when":
-                    [
-                        {
-                            "headers":
-                            {
-                                ":scheme": "http",
-                                ":authority": "localhost:8080"
+                                ":method": "POST",
+                                ":path": "/tasks"
                             }
                         },
                         {
                             "headers":
                             {
-                                ":scheme": "https",
-                                ":authority": "localhost:9090"
+                                ":method": "PUT",
+                                ":path": "/tasks/*"
+                            }
+                        },
+                        {
+                            "headers":
+                            {
+                                ":method": "DELETE",
+                                ":path": "/tasks/*"
                             }
                         }
                     ],
-                    "exit": "http_filesystem_proxy0"
+                    "exit": "http_kafka_proxy0"
                 }
-            ]
+            ],
+            "exit": "http_filesystem_proxy0"
         },
         "http_filesystem_proxy0":
         {
@@ -139,6 +108,19 @@
             "kind": "proxy",
             "routes":
             [
+                {
+                    "when":
+                    [
+                        {
+                            "path": "/"
+                        }
+                    ],
+                    "exit": "filesystem_server0",
+                    "with":
+                    {
+                        "path": "index.html"
+                    }
+                },
                 {
                     "when":
                     [
