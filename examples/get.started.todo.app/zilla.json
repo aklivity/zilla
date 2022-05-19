@@ -57,11 +57,6 @@
         {
             "type" : "http",
             "kind": "server",
-            "options": {
-                "access-control": {
-                    "policy": "cross-origin"
-                }
-            },
             "routes":
             [
                 {
@@ -83,6 +78,45 @@
                         {
                             "headers":
                             {
+                                "method": "POST",
+                                "path": "/tasks"
+                            }
+                        }
+                    ],
+                    "exit": "http_kafka_proxy0"
+                },
+                {
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                "method": "PUT",
+                                "path": "/tasks/*"
+                            }
+                        }
+                    ],
+                    "exit": "http_kafka_proxy0"
+                },
+                {
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                "method": "DELETE",
+                                "path": "/tasks/*"
+                            }
+                        }
+                    ],
+                    "exit": "http_kafka_proxy0"
+                },
+                {
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
                                 ":scheme": "http",
                                 ":authority": "localhost:8080"
                             }
@@ -95,9 +129,39 @@
                             }
                         }
                     ],
-                    "exit": "http_kafka_proxy0"
+                    "exit": "http_filesystem_proxy0"
                 }
             ]
+        },
+        "http_filesystem_proxy0":
+        {
+            "type" : "http-filesystem",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "when":
+                    [
+                        {
+                            "path": "/{path}"
+                        }
+                    ],
+                    "exit": "filesystem_server0",
+                    "with":
+                    {
+                        "path": "${params.path}"
+                    }
+                }
+            ]
+        },
+        "filesystem_server0":
+        {
+            "type" : "filesystem",
+            "kind": "server",
+            "options":
+            {
+                "location": "/app/dist/"
+            }
         },
         "http_kafka_proxy0":
         {

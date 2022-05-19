@@ -66,7 +66,7 @@ public class CommandJsonDeserializer <Command> implements Deserializer<Command>
         }
         else
         {
-            return null;
+            return (Command) new DeleteTaskCommand();
         }
     }
 }
