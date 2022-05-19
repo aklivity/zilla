@@ -47,6 +47,16 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.file.extension.default/client",
+        "${app}/read.file.extension.default/server",
+    })
+    public void shouldReadFileExtensionDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload/client",
         "${app}/read.file.payload/server",
     })

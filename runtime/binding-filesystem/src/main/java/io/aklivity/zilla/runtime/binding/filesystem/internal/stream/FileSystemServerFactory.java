@@ -60,6 +60,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final OctetsFW EMPTY_EXTENSION = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
 
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
+    private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
     private final BeginFW beginRO = new BeginFW();
     private final EndFW endRO = new EndFW();
@@ -151,7 +152,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             try
             {
-                String type = Files.probeContentType(path);
+                String type = probeContentTypeOrDefault(path);
                 BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class, symlinks);
                 BasicFileAttributes attributes = view.readAttributes();
                 InputStream input = canReadPayload(capabilities) ? Files.newInputStream(path, symlinks) : null;
@@ -165,6 +166,13 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         }
 
         return newStream;
+    }
+
+    private String probeContentTypeOrDefault(
+        Path path) throws IOException
+    {
+        final String contentType = Files.probeContentType(path);
+        return contentType != null ? contentType : DEFAULT_CONTENT_TYPE;
     }
 
     private final class FileSystemServer
