@@ -57,6 +57,13 @@
         {
             "type" : "http",
             "kind": "server",
+            "options":
+            {
+                "access-control":
+                {
+                    "policy": "cross-origin"
+                }
+            },
             "routes":
             [
                 {
