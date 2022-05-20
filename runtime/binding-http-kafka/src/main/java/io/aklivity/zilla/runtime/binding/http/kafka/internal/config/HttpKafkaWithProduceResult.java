@@ -40,6 +40,9 @@ public class HttpKafkaWithProduceResult
     private static final String8FW HTTP_HEADER_NAME_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HTTP_HEADER_NAME_PREFER = new String8FW("prefer");
     private static final String8FW HTTP_HEADER_NAME_IF_MATCH = new String8FW("if-match");
+    private static final String8FW HTTP_HEADER_NAME_STATUS = new String8FW(":status");
+
+    private static final String16FW HTTP_HEADER_VALUE_204 = new String16FW("204");
 
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
             new KafkaOffsetFW.Builder()
@@ -199,9 +202,19 @@ public class HttpKafkaWithProduceResult
 
     public void correlated(
         Array32FW<KafkaHeaderFW> headers,
-        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder,
+        int contentLength)
     {
         headers.forEach(h -> correlated(h, builder));
+
+        if (!headers.anyMatch(h -> HTTP_HEADER_NAME_CONTENT_LENGTH.value().equals(h.name().value())) &&
+             headers.matchFirst(h -> HTTP_HEADER_NAME_STATUS.value().equals(h.name().value()) &&
+                                     HTTP_HEADER_VALUE_204.value().equals(h.value().value())) == null)
+        {
+            builder.item(i -> i
+                    .name(HTTP_HEADER_NAME_CONTENT_LENGTH)
+                    .value(Integer.toString(contentLength)));
+        }
     }
 
     private void correlated(
@@ -214,8 +227,8 @@ public class HttpKafkaWithProduceResult
         if (!correlation.correlationId.value().equals(name))
         {
             builder.item(i -> i
-                .name(name, 0, name.capacity())
-                .value(value, 0, value.capacity()));
+                    .name(name, 0, name.capacity())
+                    .value(value, 0, value.capacity()));
         }
     }
 
