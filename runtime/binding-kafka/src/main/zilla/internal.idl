@@ -32,6 +32,8 @@ scope internal
           octets[valueLen] value = null;
           kafka::KafkaHeader[] headers;
           kafka::KafkaHeader[] trailers;
+          uint32 paddingLen;
+          octets[paddingLen] padding;
         }
 
         struct KafkaCacheDelta

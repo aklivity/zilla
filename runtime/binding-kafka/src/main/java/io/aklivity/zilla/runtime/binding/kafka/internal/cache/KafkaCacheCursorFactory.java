@@ -249,15 +249,20 @@ public final class KafkaCacheCursorFactory
                         final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
 
                         final int sizeofEntryHeader = key.limit() - nextEntry.offset();
-                        writeBuffer.putBytes(0, entryBuffer, entryOffset, sizeofEntryHeader);
-                        writeBuffer.putBytes(sizeofEntryHeader, delta.buffer(), delta.offset(), delta.sizeof());
-                        writeBuffer.putBytes(sizeofEntryHeader + delta.sizeof(),
-                                headers.buffer(), headers.offset(), headers.sizeof());
-                        writeBuffer.putBytes(sizeofEntryHeader + delta.sizeof() + headers.sizeof(),
-                                trailers.buffer(), trailers.offset(), trailers.sizeof());
 
-                        final int sizeofEntry = sizeofEntryHeader + delta.sizeof() + headers.sizeof() + trailers.sizeof();
-                        nextEntry = cacheEntry.wrap(writeBuffer, 0, sizeofEntry);
+                        int writeLimit = 0;
+                        writeBuffer.putBytes(writeLimit, entryBuffer, entryOffset, sizeofEntryHeader);
+                        writeLimit += sizeofEntryHeader;
+                        writeBuffer.putBytes(writeLimit, delta.buffer(), delta.offset(), delta.sizeof());
+                        writeLimit += delta.sizeof();
+                        writeBuffer.putBytes(writeLimit, headers.buffer(), headers.offset(), headers.sizeof());
+                        writeLimit += headers.sizeof();
+                        writeBuffer.putBytes(writeLimit, trailers.buffer(), trailers.offset(), trailers.sizeof());
+                        writeLimit += trailers.sizeof();
+                        writeBuffer.putInt(writeLimit, 0);
+                        writeLimit += Integer.BYTES;
+
+                        nextEntry = cacheEntry.wrap(writeBuffer, 0, writeLimit);
                     }
                     else
                     {

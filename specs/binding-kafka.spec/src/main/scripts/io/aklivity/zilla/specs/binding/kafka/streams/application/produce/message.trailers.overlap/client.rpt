@@ -70,17 +70,92 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+write option zilla:flags 0x02
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
-                                  .deferred(102400 - 8192 + 512 + 100)
+                                  .deferred(12)
                                   .timestamp(newTimestamp)
                                   .build()
                               .build()}
+write zilla:data.empty
+
+write notify SENT_MESSAGE_ONE_INIT
+write await SENT_MESSAGE_TWO_INIT
+
+write option zilla:flags 0x00
+write "Hello, world"
+write flush
+
+write notify SENT_MESSAGE_ONE_CONT
+write await SENT_MESSAGE_TWO_CONT
+
+write option zilla:flags 0x01
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
+                                  .header("header1", "value1")
                                   .build()
                               .build()}
-write ${kafka:randomBytes(102400)}
+write zilla:data.empty
 write flush
+
+write notify SENT_MESSAGE_ONE_FIN
+
+connect await ROUTED_BROKER_CLIENT
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 0xb1
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
+write await SENT_MESSAGE_ONE_INIT
+
+write option zilla:flags 0x02
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .deferred(12)
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}
+write zilla:data.empty
+
+write notify SENT_MESSAGE_TWO_INIT
+write await SENT_MESSAGE_ONE_CONT
+
+write option zilla:flags 0x00
+write "Hello, world"
+write flush
+
+write notify SENT_MESSAGE_TWO_CONT
+write await SENT_MESSAGE_ONE_FIN
+
+write option zilla:flags 0x01
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write zilla:data.empty
+write flush
+
+write notify SENT_MESSAGE_TWO_FIN
