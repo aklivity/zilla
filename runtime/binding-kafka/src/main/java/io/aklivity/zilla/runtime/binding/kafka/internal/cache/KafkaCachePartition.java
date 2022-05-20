@@ -83,6 +83,9 @@ public final class KafkaCachePartition
             new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
                 .build();
+    private static final int SIZEOF_EMPTY_TRAILERS = EMPTY_TRAILERS.sizeof();
+
+    private static final int SIZEOF_PADDING_LENGTH = Integer.BYTES;
 
     private final KafkaCacheEntryFW headEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
@@ -90,6 +93,8 @@ public final class KafkaCachePartition
 
     private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[5 * Long.BYTES + 3 * Integer.BYTES]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
+
+    private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
 
     private final DirectBufferInputStream ancestorIn = new DirectBufferInputStream();
     private final DirectBufferInputStream headIn = new DirectBufferInputStream();
@@ -419,6 +424,7 @@ public final class KafkaCachePartition
 
         logFile.appendBytes(headers);
         logFile.appendBytes(EMPTY_TRAILERS);
+        logFile.appendInt(0);
 
         final long offsetDelta = (int)(progress - headSegment.baseOffset());
         final long indexEntry = (offsetDelta << 32) | logFile.markValue();
@@ -489,7 +495,8 @@ public final class KafkaCachePartition
         KafkaKeyFW key,
         long keyHash,
         int valueLength,
-        ArrayFW<KafkaHeaderFW> headers)
+        ArrayFW<KafkaHeaderFW> headers,
+        int trailersSizeMax)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
         this.progress = offset;
@@ -523,7 +530,11 @@ public final class KafkaCachePartition
         assert logAvailable >= logRequired : String.format("%s %d >= %d", segment, logAvailable, logRequired);
         logFile.advance(position.value + valueMaxLength);
         logFile.appendBytes(headers);
-        logFile.appendBytes(EMPTY_TRAILERS); // needed for incomplete tryWrap
+
+        final int trailersAt = logFile.capacity();
+        logFile.advance(logFile.capacity() + trailersSizeMax + SIZEOF_PADDING_LENGTH);
+        logFile.writeBytes(trailersAt, EMPTY_TRAILERS); // needed for incomplete tryWrap
+        logFile.writeInt(trailersAt + SIZEOF_EMPTY_TRAILERS, trailersSizeMax - SIZEOF_EMPTY_TRAILERS);
 
         final long offsetDelta = (int)(progress - segment.baseOffset());
         final long indexEntry = (offsetDelta << 32) | entryMark.value;
@@ -559,16 +570,20 @@ public final class KafkaCachePartition
 
         final KafkaCacheFile logFile = segment.logFile();
 
+        final  Array32FW<KafkaHeaderFW> headers = logFile.readBytes(position.value, headersRO::wrap);
+        position.value += headers.sizeof();
+
+        final int trailersAt = position.value;
+        final int trailersSizeMax = SIZEOF_EMPTY_TRAILERS + logFile.readInt(trailersAt + SIZEOF_EMPTY_TRAILERS);
+
         if (!trailers.isEmpty())
         {
-            position.value = logFile.capacity() - EMPTY_TRAILERS.sizeof();
-
-            // append to expand capacity beyond empty trailers, then overwrite
-            logFile.appendBytes(trailers.buffer(), trailers.offset(), trailers.sizeof() - EMPTY_TRAILERS.sizeof());
             logFile.writeBytes(position.value, trailers);
+            position.value += trailers.sizeof();
+            logFile.writeInt(position.value, trailersSizeMax - trailers.sizeof());
         }
 
-        position.value = logFile.capacity();
+        position.value = trailersAt + trailersSizeMax;
 
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
     }

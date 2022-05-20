@@ -648,7 +648,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                     final long keyHash = partition.computeKeyHash(key);
                     partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                        timestamp, stream.initialId, sequence, key, keyHash, valueLength, headers);
+                        timestamp, stream.initialId, sequence, key, keyHash, valueLength, headers, trailersSizeMax);
                     stream.partitionOffset = partitionOffset;
                     partitionOffset++;
                 }

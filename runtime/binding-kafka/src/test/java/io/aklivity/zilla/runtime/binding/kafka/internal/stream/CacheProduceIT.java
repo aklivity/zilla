@@ -313,6 +313,17 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.json")
     @Specification({
+        "${app}/message.trailers.overlap/client",
+        "${app}/message.value.repeated/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldSendMessageTrailersOverlap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
         "${app}/message.value.repeated/client",
         "${app}/message.value.repeated/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

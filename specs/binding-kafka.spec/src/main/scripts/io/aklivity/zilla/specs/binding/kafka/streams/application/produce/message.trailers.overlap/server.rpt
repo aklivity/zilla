@@ -18,7 +18,6 @@ property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
     option zilla:window 8192
-    option zilla:padding 612
     option zilla:transmission "half-duplex"
 
 accepted
@@ -67,16 +66,67 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .partition(0)
                                    .build()
                                .build()}
+write flush
 
+read option zilla:flags 0x02
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
-                                 .deferred(10240 - 8192 + 512 + 100)
+                                 .deferred(12)
                                  .build()
                              .build()}
+read zilla:data.empty
+
+read option zilla:flags 0x00
+read "Hello, world"
+
+read option zilla:flags 0x01
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
+                                 .header("header1", "value1")
                                  .build()
                              .build()}
-read [0..10240]
+read zilla:data.empty
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+write flush
+
+read option zilla:flags 0x02
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .deferred(12)
+                                 .build()
+                             .build()}
+read zilla:data.empty
+
+read option zilla:flags 0x00
+read "Hello, world"
+
+read option zilla:flags 0x01
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .header("header1", "value1")
+                                 .build()
+                             .build()}
+read zilla:data.empty
