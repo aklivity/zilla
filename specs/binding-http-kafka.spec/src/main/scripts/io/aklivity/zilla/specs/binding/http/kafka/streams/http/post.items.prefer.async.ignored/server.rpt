@@ -38,6 +38,7 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "201")
                             .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                            .header("content-length", "20")
                             .build()}
 
 write flush
