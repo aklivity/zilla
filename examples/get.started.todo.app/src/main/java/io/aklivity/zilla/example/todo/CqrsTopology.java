@@ -27,7 +27,7 @@ public class CqrsTopology
 {
     private final Serde<String> stringSerde = Serdes.String();
 
-    private CommandJsonDeserializer<Object> commandDeserializer = new CommandJsonDeserializer<>();
+    private CommandJsonDeserializer commandDeserializer = new CommandJsonDeserializer();
     private final Serde<String> etagSerde = Serdes.String();
     private final Serde<Task> taskSerde = SerdeFactory.jsonSerdeFor(Task.class, false);
     private final Serde<String> responseSerde = Serdes.String();

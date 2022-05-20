@@ -11,12 +11,13 @@ import org.apache.kafka.common.serialization.Deserializer;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.aklivity.zilla.example.todo.model.Command;
 import io.aklivity.zilla.example.todo.model.CreateTaskCommand;
 import io.aklivity.zilla.example.todo.model.DeleteTaskCommand;
 import io.aklivity.zilla.example.todo.model.RenameTaskCommand;
 import io.confluent.kafka.serializers.jackson.Jackson;
 
-public class CommandJsonDeserializer <Command> implements Deserializer<Command>
+public class CommandJsonDeserializer implements Deserializer<Command>
 {
     private ObjectMapper objectMapper;
     public CommandJsonDeserializer()
@@ -75,7 +76,7 @@ public class CommandJsonDeserializer <Command> implements Deserializer<Command>
         }
         else
         {
-            return (Command) new DeleteTaskCommand();
+            return new DeleteTaskCommand();
         }
     }
 }
