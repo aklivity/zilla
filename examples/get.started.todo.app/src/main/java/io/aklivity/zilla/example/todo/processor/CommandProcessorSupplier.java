@@ -16,13 +16,13 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 import io.aklivity.zilla.example.todo.model.Command;
 
-public class CommandProcessor implements ProcessorSupplier<String, Command, String, Command>
+public class CommandProcessorSupplier implements ProcessorSupplier<String, Command, String, Command>
 {
     private final String etagStoreName;
     private final String successName;
     private final String failureName;
 
-    public CommandProcessor(String etagStoreName, String successName, String failureName)
+    public CommandProcessorSupplier(String etagStoreName, String successName, String failureName)
     {
         this.etagStoreName = etagStoreName;
         this.successName = successName;
@@ -32,10 +32,10 @@ public class CommandProcessor implements ProcessorSupplier<String, Command, Stri
     @Override
     public Processor<String, Command, String, Command> get()
     {
-        return new RejectCommandProcessor();
+        return new CommandProcessor();
     }
 
-    class RejectCommandProcessor implements Processor<String, Command, String, Command>
+    class CommandProcessor implements Processor<String, Command, String, Command>
     {
         private ProcessorContext context;
         private KeyValueStore<String, String> etagStore;
@@ -46,7 +46,6 @@ public class CommandProcessor implements ProcessorSupplier<String, Command, Stri
             this.context = context;
             this.etagStore = (KeyValueStore) context.getStateStore(etagStoreName);
         }
-
 
         @Override
         public void process(Record<String, Command> record)
@@ -59,18 +58,15 @@ public class CommandProcessor implements ProcessorSupplier<String, Command, Stri
             final Header ifMatch = headers.lastHeader("if-match");
             final String etag = etagStore.get(key);
 
-            if (correlationId != null)
-            {
-                final Headers newHeaders = new RecordHeaders();
-                newHeaders.add(correlationId);
-                newHeaders.add(idempotencyKey);
-                newHeaders.add(path);
+            final Headers newHeaders = new RecordHeaders();
+            newHeaders.add(correlationId);
+            newHeaders.add(idempotencyKey);
+            newHeaders.add(path);
 
-                final Record<String, Command> command = record.withHeaders(newHeaders);
-                final String childName = ifMatch == null || etag != null && Arrays.equals(ifMatch.value(), etag.getBytes())
-                        ? successName : failureName;
-                context.forward(command, childName);
-            }
+            final Record<String, Command> command = record.withHeaders(newHeaders);
+            final String childName = ifMatch == null || etag != null && Arrays.equals(ifMatch.value(), etag.getBytes())
+                    ? successName : failureName;
+            context.forward(command, childName);
         }
     }
 }

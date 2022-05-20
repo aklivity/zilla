@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import io.aklivity.zilla.example.todo.model.Task;
 import io.aklivity.zilla.example.todo.processor.AcceptCommandProcessorSupplier;
-import io.aklivity.zilla.example.todo.processor.CommandProcessor;
+import io.aklivity.zilla.example.todo.processor.CommandProcessorSupplier;
 import io.aklivity.zilla.example.todo.processor.RejectCommandProcessorSupplier;
 import io.aklivity.zilla.example.todo.serde.CommandJsonDeserializer;
 import io.aklivity.zilla.example.todo.serde.SerdeFactory;
@@ -29,7 +29,6 @@ public class CqrsTopology
 
     private CommandJsonDeserializer<Object> commandDeserializer = new CommandJsonDeserializer<>();
     private final Serde<String> etagSerde = Serdes.String();
-
     private final Serde<Task> taskSerde = SerdeFactory.jsonSerdeFor(Task.class, false);
     private final Serde<String> responseSerde = Serdes.String();
 
@@ -53,6 +52,7 @@ public class CqrsTopology
         final String rejectCommandProcessor = "RejectCommandProcessor";
         final String acceptCommandProcessor = "AcceptCommandProcessor";
         final String commandSnapshot = "CommandSnapshot";
+
         // create store
         final StoreBuilder commandStoreBuilder = Stores.keyValueStoreBuilder(
                 Stores.persistentKeyValueStore(etagStoreName),
@@ -61,7 +61,7 @@ public class CqrsTopology
 
         Topology topologyBuilder = streamsBuilder.build();
         topologyBuilder.addSource(command, stringSerde.deserializer(), commandDeserializer, taskCommandsTopic)
-                .addProcessor(commandProcessor, new CommandProcessor(etagStoreName,
+                .addProcessor(commandProcessor, new CommandProcessorSupplier(etagStoreName,
                         acceptCommandProcessor, rejectCommandProcessor), command)
                 .addProcessor(acceptCommandProcessor,
                         new AcceptCommandProcessorSupplier(etagStoreName, commandSnapshot, replyTo),
