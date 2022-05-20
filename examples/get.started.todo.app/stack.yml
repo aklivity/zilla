@@ -7,13 +7,14 @@ networks:
 services:
 
   zilla:
-    image: "ghcr.io/aklivity/zilla:latest"
+    image: "ghcr.io/aklivity/zilla:develop-SNAPSHOT"
     hostname: "zilla"
     command: ["start", "-e"]
     volumes:
       - ./.zilla/zilla.properties:/.zilla/zilla.properties:ro
       - ./zilla.json:/zilla.json:ro
       - ./localhost.p12:/localhost.p12:ro
+      - ./app/dist:/app/dist:ro
     networks:
       - net0
     ports:

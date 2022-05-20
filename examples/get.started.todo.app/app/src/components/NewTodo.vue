@@ -5,6 +5,7 @@
       <input
           v-model="newTodo"
           name="newTodo"
+          ref="newTodo"
           autocomplete="off"
       >
       <button>Add ToDo</button>
@@ -13,7 +14,6 @@
 </template>
 
 <script>
-import {ref} from 'vue';
 const uuid = require('uuid');
 
 export default {
@@ -21,25 +21,20 @@ export default {
   props: {
     taskCommandUrl: String
   },
-  created () {
-    const newTodo = ref('');
-    return {
-      newTodo
-    }
-  },
   methods: {
     async addTodo() {
-      if (this.newTodo) {
+      const newTodo = this.$refs.newTodo;
+      if (newTodo.value) {
         const requestOptions = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Idempotency-Key": uuid.v4()
           },
-          body: JSON.stringify({"name": this.newTodo})
+          body: JSON.stringify({"name": newTodo.value})
         };
         await fetch(this.taskCommandUrl, requestOptions);
-        this.newTodo = '';
+        newTodo.value = '';
       }
     }
   }

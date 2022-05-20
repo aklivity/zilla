@@ -11,12 +11,13 @@ import org.apache.kafka.common.serialization.Deserializer;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.aklivity.zilla.example.todo.model.Command;
 import io.aklivity.zilla.example.todo.model.CreateTaskCommand;
 import io.aklivity.zilla.example.todo.model.DeleteTaskCommand;
 import io.aklivity.zilla.example.todo.model.RenameTaskCommand;
 import io.confluent.kafka.serializers.jackson.Jackson;
 
-public class CommandJsonDeserializer <Command> implements Deserializer<Command>
+public class CommandJsonDeserializer implements Deserializer<Command>
 {
     private ObjectMapper objectMapper;
     public CommandJsonDeserializer()
@@ -27,22 +28,31 @@ public class CommandJsonDeserializer <Command> implements Deserializer<Command>
     @Override
     public Command deserialize(String topic, Headers headers, byte[] data)
     {
-        final Header header = headers.lastHeader("zilla:domain-model");
-        final String domainModel = new String(header.value());
-        JavaType type = null;
-        switch (domainModel)
+        final Header domainModelHeader = headers.lastHeader("zilla:domain-model");
+        final Header correlationId = headers.lastHeader("zilla:correlation-id");
+        final String domainModel = new String(domainModelHeader.value());
+
+        if (correlationId != null)
         {
-        case "CreateTaskCommand" :
-            type = objectMapper.getTypeFactory().constructType(CreateTaskCommand.class);
-            break;
-        case "RenameTaskCommand" :
-            type = objectMapper.getTypeFactory().constructType(RenameTaskCommand.class);
-            break;
-        case "DeleteTaskCommand" :
-            type = objectMapper.getTypeFactory().constructType(DeleteTaskCommand.class);
-            break;
+            JavaType type = null;
+            switch (domainModel)
+            {
+            case "CreateTaskCommand" :
+                type = objectMapper.getTypeFactory().constructType(CreateTaskCommand.class);
+                break;
+            case "RenameTaskCommand" :
+                type = objectMapper.getTypeFactory().constructType(RenameTaskCommand.class);
+                break;
+            case "DeleteTaskCommand" :
+                type = objectMapper.getTypeFactory().constructType(DeleteTaskCommand.class);
+                break;
+            }
+            return deserialize(data, type);
         }
-        return deserialize(data, type);
+        else
+        {
+            throw new IllegalArgumentException("Missing correlation-id header");
+        }
     }
 
     @Override
@@ -66,7 +76,7 @@ public class CommandJsonDeserializer <Command> implements Deserializer<Command>
         }
         else
         {
-            return null;
+            return new DeleteTaskCommand();
         }
     }
 }

@@ -55,8 +55,7 @@ export default {
         headers: {
           "Content-Type": "application/json",
           "Idempotency-Key": uuid.v4()
-        },
-        body: JSON.stringify({})
+        }
       };
       await fetch(`${this.taskCommandUrl}/${key}`, requestOptions);
     }
