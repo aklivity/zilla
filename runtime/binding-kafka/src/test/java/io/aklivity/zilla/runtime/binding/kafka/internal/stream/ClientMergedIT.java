@@ -181,6 +181,16 @@ public class ClientMergedIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/merged.fetch.message.values/client",
+        "${net}/unmerged.fetch.message.values/server"})
+    public void shouldFetchMergedMessageValuesByDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("TODO")
     @Test
     @Configuration("client.options.merged.json")
@@ -199,6 +209,16 @@ public class ClientMergedIT
         "${app}/merged.produce.message.values/client",
         "${net}/unmerged.produce.message.values/server"})
     public void shouldProduceMergedMessageValues() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/merged.produce.message.values/client",
+        "${net}/unmerged.produce.message.values/server"})
+    public void shouldProduceMergedMessageValuesByDefault() throws Exception
     {
         k3po.finish();
     }
