@@ -185,6 +185,20 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/merged.fetch.message.values/client",
+        "${app}/unmerged.fetch.message.values/server"})
+    public void shouldFetchMergedMessageValuesByDefault() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        Thread.sleep(200); // allow A1, B1, A2, B2 to be merged
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.merged.json")
     @Specification({
         "${app}/merged.fetch.message.values/client",
@@ -238,6 +252,16 @@ public class CacheMergedIT
         "${app}/merged.fetch.partition.offsets.earliest.overflow/client",
         "${app}/unmerged.fetch.partition.offsets.earliest/server"})
     public void shouldFetchMergedPartitionOffsetsEarliestOverflow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/merged.produce.message.values/client",
+        "${app}/unmerged.produce.message.values/server"})
+    public void shouldProduceMergedMessageValuesByDefault() throws Exception
     {
         k3po.finish();
     }
