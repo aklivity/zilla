@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.9.18</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
