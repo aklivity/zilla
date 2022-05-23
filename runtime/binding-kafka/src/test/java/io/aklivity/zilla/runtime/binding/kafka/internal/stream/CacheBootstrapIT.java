@@ -62,7 +62,7 @@ public class CacheBootstrapIT
         "${app}/unmerged.fetch.message.values/server"})
     public void shouldReceiveMergedMessageValues() throws Exception
     {
-        Thread.sleep(200);
+        Thread.sleep(500);
         k3po.start();
         k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
         Thread.sleep(200); // allow A1, B1, A2, B2 to be merged
