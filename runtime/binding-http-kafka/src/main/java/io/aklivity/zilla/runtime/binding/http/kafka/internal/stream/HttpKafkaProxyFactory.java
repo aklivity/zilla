@@ -2567,11 +2567,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     {
                         final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
                         final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedDataEx.headers();
+                        final int contentLength = payload != null ? payload.sizeof() + kafkaMergedDataEx.deferred() : 0;
 
                         httpBeginEx = httpBeginExRW
                                 .wrap(extBuffer, 0, extBuffer.capacity())
                                 .typeId(httpTypeId)
-                                .headers(hs -> delegate.resolved.correlated(kafkaHeaders, hs))
+                                .headers(hs -> delegate.resolved.correlated(kafkaHeaders, hs, contentLength))
                                 .build();
                     }
 
@@ -3383,15 +3384,17 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     final KafkaDataExFW kafkaDataEx =
                             dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
 
+
                     if (kafkaDataEx != null)
                     {
                         final KafkaMergedDataExFW kafkaMergedDataEx = kafkaDataEx.merged();
                         final Array32FW<KafkaHeaderFW> kafkaHeaders = kafkaMergedDataEx.headers();
+                        final int contentLength = payload != null ? payload.sizeof() + kafkaMergedDataEx.deferred() : 0;
 
                         httpBeginEx = httpBeginExRW
                                 .wrap(extBuffer, 0, extBuffer.capacity())
                                 .typeId(httpTypeId)
-                                .headers(hs -> correlater.resolved.correlated(kafkaHeaders, hs))
+                                .headers(hs -> correlater.resolved.correlated(kafkaHeaders, hs, contentLength))
                                 .build();
                     }
 

@@ -18,7 +18,7 @@ property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
     option zilla:window 8192
-    option zilla:padding 512
+    option zilla:padding 612
     option zilla:transmission "half-duplex"
 
 accepted
@@ -71,10 +71,9 @@ write zilla:begin.ext ${kafka:beginEx()
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
-                                 .deferred(10240 - 7580)
+                                 .deferred(10240 - 8192 + 512 + 100)
                                  .build()
                              .build()}
-
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()

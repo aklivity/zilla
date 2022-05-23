@@ -60,6 +60,16 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.json")
     @Specification({
+        "${app}/read.file.extension.default/client",
+    })
+    public void shouldReadFileExtensionDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
         "${app}/read.file.payload/client",
     })
     public void shouldReadFilePayloadOnly() throws Exception

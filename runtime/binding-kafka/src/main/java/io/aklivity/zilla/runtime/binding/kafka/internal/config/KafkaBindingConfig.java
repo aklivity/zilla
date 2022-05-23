@@ -73,8 +73,8 @@ public final class KafkaBindingConfig
         String topic)
     {
         return topic != null &&
-                options != null &&
-                options.merged != null &&
-                options.merged.contains(topic);
+                (options == null ||
+                 options.merged == null ||
+                 options.merged.contains(topic));
     }
 }

@@ -255,4 +255,13 @@ public class ProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/message.trailers.overlap/client",
+        "${app}/message.trailers.overlap/server"})
+    public void shouldSendMessageTrailersOverlap() throws Exception
+    {
+        k3po.finish();
+    }
 }

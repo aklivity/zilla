@@ -155,6 +155,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.produce.message.values.null/client",
+        "${app}/merged.produce.message.values.null/server"})
+    public void shouldProduceMergedMessageValuesNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.produce.message.values/client",
         "${app}/merged.produce.message.values/server"})
     public void shouldProduceMergedMessageValues() throws Exception
@@ -285,6 +294,14 @@ public class MergedIT
         "${app}/unmerged.fetch.partition.leader.aborted/client",
         "${app}/unmerged.fetch.partition.leader.aborted/server"})
     public void shouldFetchUnmergedPartitionLeaderAborted() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.values.null/client",
+        "${app}/unmerged.produce.message.values.null/server"})
+    public void shouldProduceUnmergedMessageValuesNull() throws Exception
     {
         k3po.finish();
     }

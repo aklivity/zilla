@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_META_MAX_AGE_MILLIS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_BYTES_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -32,6 +33,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientMergedIT
 {
@@ -180,11 +182,43 @@ public class ClientMergedIT
     }
 
     @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/merged.fetch.message.values/client",
+        "${net}/unmerged.fetch.message.values/server"})
+    public void shouldFetchMergedMessageValuesByDefault() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("TODO")
+    @Test
+    @Configuration("client.options.merged.json")
+    @Specification({
+        "${app}/merged.produce.message.values.null/client",
+        "${net}/unmerged.produce.message.values.null/server"})
+    @Configure(name = KAFKA_CLIENT_PRODUCE_MAX_BYTES_NAME, value = "100")
+    public void shouldProduceMergedMessageValuesNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.options.merged.json")
     @Specification({
         "${app}/merged.produce.message.values/client",
         "${net}/unmerged.produce.message.values/server"})
     public void shouldProduceMergedMessageValues() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/merged.produce.message.values/client",
+        "${net}/unmerged.produce.message.values/server"})
+    public void shouldProduceMergedMessageValuesByDefault() throws Exception
     {
         k3po.finish();
     }
