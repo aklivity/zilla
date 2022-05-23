@@ -2,8 +2,8 @@
 
 [![Build Status][build-status-image]][build-status]
 
-![Zilla logo](./assets/logo-dark.svg#gh-dark-mode-only)
-![Zilla logo](./assets/logo-white.svg#gh-light-mode-only)
+![Zilla logo](./assets/logo-white.svg#gh-dark-mode-only)
+![Zilla logo](./assets/logo-dark.svg#gh-light-mode-only)
 
 Zilla connects web and mobile applications to event-driven micro-services using standard protocols, such as HTTP, Server-Sent Events and Kafka.
 
