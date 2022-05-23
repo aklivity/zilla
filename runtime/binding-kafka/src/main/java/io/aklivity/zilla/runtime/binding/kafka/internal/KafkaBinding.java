@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class KafkaBinding implements Binding
 {
@@ -47,6 +48,13 @@ public final class KafkaBinding implements Binding
     public URL type()
     {
         return getClass().getResource("schema/kafka.schema.patch.json");
+    }
+
+    @Override
+    public int workers(
+        KindConfig kind)
+    {
+        return kind == KindConfig.CACHE_SERVER ? 1 : Integer.MAX_VALUE;
     }
 
     @Override

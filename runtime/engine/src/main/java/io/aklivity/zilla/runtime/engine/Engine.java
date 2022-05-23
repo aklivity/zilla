@@ -36,15 +36,18 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -92,14 +95,29 @@ public final class Engine implements AutoCloseable
             tasks = newFixedThreadPool(config.taskParallelism(), this::newTaskThread);
         }
 
-        int coreCount = config.workers();
+        int workerCount = config.workers();
 
-        Info info = new Info(config.directory(), coreCount);
+        Info info = new Info(config.directory(), workerCount);
         info.reset();
 
         LabelManager labels = new LabelManager(config.directory());
+        Int2ObjectHashMap<ToIntFunction<KindConfig>> maxWorkersByBindingType = new Int2ObjectHashMap<>();
 
-        Tuning tuning = new Tuning(config.directory(), coreCount);
+        // ensure parity with external labelIds
+        for (EngineAffinity affinity : affinities)
+        {
+            labels.supplyLabelId(affinity.namespace);
+            labels.supplyLabelId(affinity.binding);
+        }
+
+        for (Binding binding : bindings)
+        {
+            String name = binding.name();
+            maxWorkersByBindingType.put(name.intern().hashCode(), binding::workers);
+        }
+        IntFunction<ToIntFunction<KindConfig>> maxWorkers = maxWorkersByBindingType::get;
+
+        Tuning tuning = new Tuning(config.directory(), workerCount);
         tuning.reset();
         for (EngineAffinity affinity : affinities)
         {
@@ -111,7 +129,7 @@ public final class Engine implements AutoCloseable
         this.tuning = tuning;
 
         Collection<DispatchAgent> dispatchers = new LinkedHashSet<>();
-        for (int coreIndex = 0; coreIndex < coreCount; coreIndex++)
+        for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
         {
             DispatchAgent agent =
                 new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity,
@@ -136,8 +154,8 @@ public final class Engine implements AutoCloseable
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
         final Callable<Void> configure =
-                new ConfigureTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId, tuning, dispatchers,
-                        errorHandler, logger, context, config, extensions);
+                new ConfigureTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
+                        dispatchers, errorHandler, logger, context, config, extensions);
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
         dispatchers.forEach(d -> runners.add(d.runner()));
