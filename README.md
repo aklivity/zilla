@@ -2,6 +2,9 @@
 
 [![Build Status][build-status-image]][build-status]
 
+![Zilla logo](./assets/logo-dark.svg#gh-dark-mode-only)
+![Zilla logo](./assets/logo-white.svg#gh-light-mode-only)
+
 Zilla connects web and mobile applications to event-driven micro-services using standard protocols, such as HTTP, Server-Sent Events and Kafka.
 
 Zilla is designed on the fundamental principle that _every data flow is a stream_, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
