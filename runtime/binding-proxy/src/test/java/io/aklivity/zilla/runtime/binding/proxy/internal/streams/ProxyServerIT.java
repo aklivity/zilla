@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.proxy.internal.streams;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -387,6 +388,7 @@ public class ProxyServerIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.json")
     @Specification({
@@ -396,6 +398,7 @@ public class ProxyServerIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.json")
     @Specification({
@@ -414,6 +417,7 @@ public class ProxyServerIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configuration("server.json")
     @Specification({
