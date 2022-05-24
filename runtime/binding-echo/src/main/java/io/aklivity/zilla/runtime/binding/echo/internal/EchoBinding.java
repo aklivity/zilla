@@ -19,7 +19,6 @@ import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class EchoBinding implements Binding
 {
@@ -43,13 +42,6 @@ final class EchoBinding implements Binding
     public URL type()
     {
         return getClass().getResource("schema/echo.schema.patch.json");
-    }
-
-    @Override
-    public int workers(
-        KindConfig kind)
-    {
-        return 1;
     }
 
     @Override
