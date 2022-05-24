@@ -9,9 +9,8 @@ services:
   zilla:
     image: "ghcr.io/aklivity/zilla:latest"
     hostname: "zilla"
-    command: [ "start", "-e" ]
+    command: [ "start", "-v", "-e" ]
     volumes:
-      - ./.zilla/zilla.properties:/.zilla/zilla.properties:ro
       - ./zilla.json:/zilla.json:ro
       - ./localhost.p12:/localhost.p12:ro
     networks:
