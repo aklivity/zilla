@@ -19,7 +19,6 @@ $ docker stack deploy -c stack.yml example --resolve-image never
 Creating network example_net0
 Creating service example_zilla
 Creating service example_kafka
-Creating service example_zookeeper
 ```
 
 ### Create request and response Kafka topics
@@ -133,6 +132,5 @@ $ docker exec -it $(docker ps -q -f name=example_kafka) \
 $ docker stack rm example
 Removing service example_kafka
 Removing service example_zilla
-Removing service example_zookeeper
 Removing network example_net0
 ```
