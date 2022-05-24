@@ -146,11 +146,11 @@ public final class SseKafkaWithConfigAdapter implements WithConfigAdapterSpi, Js
                 final String id = event.getString(EVENT_ID_NAME);
                 switch (id)
                 {
-                case SseKafkaWithConfig.EVENT_ID_KEY64_AND_PROGRESS:
-                    newEventId = SseKafkaWithConfig.EVENT_ID_KEY64_AND_PROGRESS;
+                case SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG:
+                    newEventId = SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
                     break;
-                case SseKafkaWithConfig.EVENT_ID_PROGRESS_ONLY:
-                    newEventId = SseKafkaWithConfig.EVENT_ID_PROGRESS_ONLY;
+                case SseKafkaWithConfig.EVENT_ID_ETAG_ONLY:
+                    newEventId = SseKafkaWithConfig.EVENT_ID_ETAG_ONLY;
                     break;
                 }
             }

@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_PROGRESS;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_PROGRESS_ONLY;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_ETAG_ONLY;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
 
 import java.util.function.LongUnaryOperator;
 
@@ -646,10 +646,10 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 String8FW encodedId = null;
                 switch (delegate.resolved.eventId())
                 {
-                case EVENT_ID_KEY64_AND_PROGRESS:
+                case EVENT_ID_KEY64_AND_ETAG:
                     encodedId = sseEventId.encodeKeyAndProgress(key, progress, etag);
                     break;
-                case EVENT_ID_PROGRESS_ONLY:
+                case EVENT_ID_ETAG_ONLY:
                     encodedId = sseEventId.encodeProgressOnly(progress, etag);
                     break;
                 }

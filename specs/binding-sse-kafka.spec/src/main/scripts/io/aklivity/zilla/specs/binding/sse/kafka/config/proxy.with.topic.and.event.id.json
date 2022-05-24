@@ -21,7 +21,7 @@
                         "topic": "test",
                         "event":
                         {
-                            "id": "[\"${base64(key)}\",\"${progress}\"]"
+                            "id": "[\"${base64(key)}\",\"${etag}\"]"
                         }
                     }
                 }

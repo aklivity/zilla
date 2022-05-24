@@ -22,9 +22,9 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class SseKafkaWithConfig extends WithConfig
 {
-    public static final String EVENT_ID_PROGRESS_ONLY = "${progress}";
-    public static final String EVENT_ID_KEY64_AND_PROGRESS = "[\"${base64(key)}\",\"${progress}\"]";
-    public static final String EVENT_ID_DEFAULT = EVENT_ID_PROGRESS_ONLY;
+    public static final String EVENT_ID_ETAG_ONLY = "${etag}";
+    public static final String EVENT_ID_KEY64_AND_ETAG = "[\"${base64(key)}\",\"${etag}\"]";
+    public static final String EVENT_ID_DEFAULT = EVENT_ID_ETAG_ONLY;
 
     public final String topic;
     public final Optional<List<SseKafkaWithFilterConfig>> filters;
