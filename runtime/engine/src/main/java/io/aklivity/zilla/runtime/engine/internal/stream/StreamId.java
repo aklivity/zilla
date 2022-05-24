@@ -20,22 +20,22 @@ public final class StreamId
     public static int streamIndex(
         long streamId)
     {
-        return isInitial(streamId) ? localIndex(streamId) : remoteIndex(streamId);
+        return isInitial(streamId) ? clientIndex(streamId) : serverIndex(streamId);
     }
 
     public static int throttleIndex(
         long streamId)
     {
-        return isInitial(streamId) ? remoteIndex(streamId) : localIndex(streamId);
+        return isInitial(streamId) ? serverIndex(streamId) : clientIndex(streamId);
     }
 
-    public static int localIndex(
+    public static int clientIndex(
         long streamId)
     {
         return (int)(streamId >> 56) & 0x7f;
     }
 
-    public static int remoteIndex(
+    public static int serverIndex(
         long streamId)
     {
         return (int)(streamId >> 48) & 0x7f;

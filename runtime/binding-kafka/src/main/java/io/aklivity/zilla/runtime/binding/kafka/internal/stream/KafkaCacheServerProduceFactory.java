@@ -159,7 +159,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
         this.cursorFactory = new KafkaCacheCursorFactory(writeBuffer);
-        this.supplyRemoteIndex = context::supplyRemoteIndex;
+        this.supplyRemoteIndex = context::supplyClientIndex;
         this.crc32c = new CRC32C();
     }
 
