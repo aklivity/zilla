@@ -20,7 +20,7 @@ import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
-import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.remoteIndex;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
@@ -467,10 +467,10 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public int supplyRemoteIndex(
+    public int supplyClientIndex(
         long streamId)
     {
-        return StreamId.remoteIndex(streamId);
+        return StreamId.clientIndex(streamId);
     }
 
     @Override
@@ -1371,7 +1371,7 @@ public class DispatchAgent implements EngineContext, Agent
     public MessageConsumer supplyReceiver(
         long streamId)
     {
-        final int remoteIndex = remoteIndex(streamId);
+        final int remoteIndex = serverIndex(streamId);
         return writersByIndex.computeIfAbsent(remoteIndex, supplyWriter);
     }
 
