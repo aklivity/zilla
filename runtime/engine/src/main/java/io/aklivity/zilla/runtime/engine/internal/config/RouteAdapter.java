@@ -72,7 +72,10 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(EXIT_NAME, route.exit);
+        if (route.exit != null)
+        {
+            object.add(EXIT_NAME, route.exit);
+        }
 
         if (!WHEN_DEFAULT.equals(route.when))
         {
@@ -107,7 +110,9 @@ public class RouteAdapter implements JsonbAdapter<RouteConfig, JsonObject>
     public RouteConfig adaptFromJson(
         JsonObject object)
     {
-        String newExit = object.getString(EXIT_NAME);
+        String newExit = object.containsKey(EXIT_NAME)
+                ? object.getString(EXIT_NAME)
+                : null;
         List<ConditionConfig> newWhen = object.containsKey(WHEN_NAME)
                 ? object.getJsonArray(WHEN_NAME)
                     .stream().map(JsonValue::asJsonObject)
