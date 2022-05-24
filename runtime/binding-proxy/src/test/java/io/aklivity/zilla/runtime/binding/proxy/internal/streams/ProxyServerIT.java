@@ -408,6 +408,7 @@ public class ProxyServerIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.json")
     @Specification({
