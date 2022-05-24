@@ -20,7 +20,7 @@ services:
       - "9090:9090"
 
   kafka:
-    image: bitnami/kafka:3.1.0
+    image: "bitnami/kafka:3.1.0"
     hostname: "kafka.internal.net"
     networks:
       - net0
