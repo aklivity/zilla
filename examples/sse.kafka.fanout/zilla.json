@@ -211,7 +211,6 @@
             "routes":
             [
                 {
-                    "exit": "net0",
                     "when":
                     [
                         {
