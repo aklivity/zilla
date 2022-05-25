@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.binding;
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public interface Binding
 {
@@ -29,5 +30,11 @@ public interface Binding
     default URL type()
     {
         return null;
+    }
+
+    default int workers(
+        KindConfig kind)
+    {
+        return Integer.MAX_VALUE;
     }
 }

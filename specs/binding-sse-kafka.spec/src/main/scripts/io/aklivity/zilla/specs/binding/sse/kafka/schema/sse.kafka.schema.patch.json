@@ -80,8 +80,8 @@
                                             {
                                                 "title": "Id",
                                                 "type": "string",
-                                                "enum": [ "${progress}", "[\"${base64(key)}\",\"${progress}\"]" ],
-                                                "default": "${progress}"
+                                                "enum": [ "${etag}", "[\"${base64(key)}\",\"${etag}\"]" ],
+                                                "default": "${etag}"
                                             }
                                         }
                                     }

@@ -18,7 +18,7 @@ import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
 import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_DEFAULT;
-import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_PROGRESS;
+import static io.aklivity.zilla.runtime.binding.sse.kafka.internal.config.SseKafkaWithConfig.EVENT_ID_KEY64_AND_ETAG;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
@@ -132,7 +132,7 @@ public class SseKafkaWithConfigAdapterTest
                     "\"topic\": \"test\"," +
                     "\"event\":" +
                     "{" +
-                        "\"id\": \"[\\\"${base64(key)}\\\",\\\"${progress}\\\"]\"" +
+                        "\"id\": \"[\\\"${base64(key)}\\\",\\\"${etag}\\\"]\"" +
                     "}" +
                 "}";
 
@@ -141,7 +141,7 @@ public class SseKafkaWithConfigAdapterTest
         assertThat(with, not(nullValue()));
         assertThat(with.topic, equalTo("test"));
         assertThat(with.filters, isEmpty());
-        assertThat(with.eventId, sameInstance(EVENT_ID_KEY64_AND_PROGRESS));
+        assertThat(with.eventId, sameInstance(EVENT_ID_KEY64_AND_ETAG));
     }
 
     @Test
@@ -150,12 +150,12 @@ public class SseKafkaWithConfigAdapterTest
         SseKafkaWithConfig with = new SseKafkaWithConfig(
                 "test",
                 null,
-                "[\"${base64(key)}\",\"${progress}\"]");
+                "[\"${base64(key)}\",\"${etag}\"]");
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
         assertThat(text,
-                equalTo("{\"topic\":\"test\",\"event\":{\"id\":\"[\\\"${base64(key)}\\\",\\\"${progress}\\\"]\"}}"));
+                equalTo("{\"topic\":\"test\",\"event\":{\"id\":\"[\\\"${base64(key)}\\\",\\\"${etag}\\\"]\"}}"));
     }
 }

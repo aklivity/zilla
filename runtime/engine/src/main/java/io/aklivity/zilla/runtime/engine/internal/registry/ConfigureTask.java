@@ -35,6 +35,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 
@@ -60,6 +61,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -80,6 +82,7 @@ public class ConfigureTask implements Callable<Void>
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
+    private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
     private final Collection<DispatchAgent> dispatchers;
     private final ErrorHandler errorHandler;
@@ -93,6 +96,7 @@ public class ConfigureTask implements Callable<Void>
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
+        IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
         Collection<DispatchAgent> dispatchers,
         ErrorHandler errorHandler,
@@ -105,6 +109,7 @@ public class ConfigureTask implements Callable<Void>
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
+        this.maxWorkers = maxWorkers;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
         this.errorHandler = errorHandler;
@@ -216,7 +221,7 @@ public class ConfigureTask implements Callable<Void>
             namespace.id = supplyId.applyAsInt(namespace.name);
 
             // TODO: consider qualified name "namespace::name"
-            namespace.resolveId = name -> NamespacedId.id(namespace.id, supplyId.applyAsInt(name));
+            namespace.resolveId = name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
 
             for (GuardConfig guard : namespace.guards)
             {
@@ -261,7 +266,15 @@ public class ConfigureTask implements Callable<Void>
                     }
                 }
 
-                tuning.affinity(binding.id, tuning.affinity(binding.id));
+                long affinity = tuning.affinity(binding.id);
+
+                final long maxbits = maxWorkers.apply(binding.type.intern().hashCode()).applyAsInt(binding.kind);
+                for (int bitindex = 0; Long.bitCount(affinity) > maxbits; bitindex++)
+                {
+                    affinity &= ~(1 << bitindex);
+                }
+
+                tuning.affinity(binding.id, affinity);
             }
 
             CompletableFuture<Void> future = CompletableFuture.completedFuture(null);

@@ -79,7 +79,7 @@ public interface EngineContext
 
     MessageConsumer droppedFrameHandler();
 
-    int supplyRemoteIndex(
+    int supplyClientIndex(
         long streamId);
 
     InetAddress[] resolveHost(

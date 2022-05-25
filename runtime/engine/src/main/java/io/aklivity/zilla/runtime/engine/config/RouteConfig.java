@@ -71,7 +71,7 @@ public class RouteConfig
         List<GuardedConfig> guarded)
     {
         this.order = order;
-        this.exit = requireNonNull(exit);
+        this.exit = exit;
         this.when = requireNonNull(when);
         this.with = with;
         this.guarded = requireNonNull(guarded);
