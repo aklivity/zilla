@@ -9,12 +9,14 @@ Listens on https port `9090` and will echo back whatever is sent to the server f
 ### Install jwt-cli client
 Requires JWT command line client, such as `jwt-cli` version `2.0.0` or higher.
 ```bash
-$ brew install mike-engel/jwt-cli/jwt-cli
+brew install mike-engel/jwt-cli/jwt-cli
 ```
 
 ### Start zilla engine
 ```bash
-$ docker stack deploy -c stack.yml example
+docker stack deploy -c stack.yml example
+```
+```
 Creating network example_net0
 Creating service example_zilla
 ```
