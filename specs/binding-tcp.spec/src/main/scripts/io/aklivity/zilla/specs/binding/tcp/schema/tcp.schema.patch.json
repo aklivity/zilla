@@ -83,27 +83,65 @@
                                 }
                             },
                             "with": false
-                        },
-                        "required":
-                        [
-                            "exit"
-                        ]
+                        }
                     }
                 }
             },
-            "anyOf":
+            "oneOf":
             [
                 {
-                    "required":
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "const": "server"
+                        }
+                    },
+                    "anyOf":
                     [
-                        "exit"
+                        {
+                            "required":
+                            [
+                                "exit"
+                            ]
+                        },
+                        {
+                            "properties":
+                            {
+                                "routes":
+                                {
+                                    "required":
+                                    [
+                                        "exit"
+                                    ]
+                                }
+                            },
+                            "required":
+                            [
+                                "routes"
+                            ]
+                        }
                     ]
                 },
                 {
-                    "required":
-                    [
-                        "routes"
-                    ]
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "const": "client"
+                        },
+                        "routes":
+                        {
+                            "items":
+                            {
+                                "properties":
+                                {
+                                    "exit": false
+                                }
+                            }
+                        },
+                        "exit": false
+                    }
                 }
             ]
         }

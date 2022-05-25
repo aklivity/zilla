@@ -10,8 +10,7 @@
             {
                 "host": "localhost",
                 "port": 8080
-            },
-            "exit": "net0"
+            }
         }
     }
 }
