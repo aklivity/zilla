@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.config;
 
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
 import java.net.InetSocketAddress;
@@ -22,10 +23,13 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 
 public final class TcpBindingConfig
 {
+    private static final List<TcpRouteConfig> DEFAULT_CLIENT_ROUTES = initDefaultClientRoutes();
+
     public final long routeId;
     public final String entry;
     public final KindConfig kind;
@@ -41,7 +45,9 @@ public final class TcpBindingConfig
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.options = TcpOptionsConfig.class.cast(binding.options);
-        this.routes = binding.routes.stream().map(TcpRouteConfig::new).collect(toList());
+        this.routes = binding.kind == KindConfig.CLIENT && binding.routes.isEmpty()
+                ? DEFAULT_CLIENT_ROUTES
+                : binding.routes.stream().map(TcpRouteConfig::new).collect(toList());
     }
 
     public PollerKey[] attach(
@@ -59,5 +65,13 @@ public final class TcpBindingConfig
             .filter(r -> r.matches(remote.getAddress()))
             .findFirst()
             .orElse(null);
+    }
+
+    private static List<TcpRouteConfig> initDefaultClientRoutes()
+    {
+        final RouteConfig route = new RouteConfig(null);
+        route.authorized = id -> true;
+
+        return singletonList(new TcpRouteConfig(route));
     }
 }

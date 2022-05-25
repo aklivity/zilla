@@ -221,7 +221,7 @@ public class ConfigureTask implements Callable<Void>
             namespace.id = supplyId.applyAsInt(namespace.name);
 
             // TODO: consider qualified name "namespace::name"
-            namespace.resolveId = name -> NamespacedId.id(namespace.id, supplyId.applyAsInt(name));
+            namespace.resolveId = name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
 
             for (GuardConfig guard : namespace.guards)
             {
