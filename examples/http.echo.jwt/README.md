@@ -20,7 +20,6 @@ Creating service example_zilla
 ```
 
 ### Verify behavior
-```bash
 Create a token that is valid for about 10 years, but without `echo:stream` scope.
 ```bash
 jwt encode \
