@@ -38,6 +38,16 @@ public class AuthorizationIT
 
     @Test
     @Specification({
+        "${net}/reject.credentials.missing/client",
+        "${net}/reject.credentials.missing/server",
+    })
+    public void shouldRejectCredentialsMissing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reject.credentials.cookie/client",
         "${net}/reject.credentials.cookie/server",
     })

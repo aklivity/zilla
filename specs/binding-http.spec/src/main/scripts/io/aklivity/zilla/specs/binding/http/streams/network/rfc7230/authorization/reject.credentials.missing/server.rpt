@@ -15,10 +15,31 @@
 #
 
 accept "zilla://streams/net0"
-  option zilla:window 65536
-  option zilla:transmission "simplex"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
 accepted
+
+read zilla:begin.ext ${proxy:matchBeginEx()
+                            .typeId(zilla:id("proxy"))
+                            .info()
+                              .secure()
+                                .version("TLSv1.3")
+                                .build()
+                              .build()
+                            .build()}
 
 connected
 
-read aborted
+read "GET / HTTP/1.1" "\r\n"
+     "Host: example.com:9090" "\r\n"
+     "\r\n"
+
+read closed
+
+write "HTTP/1.1 404 Not Found" "\r\n"
+      "Server: Zilla" "\r\n"
+      "Connection: close" "\r\n"
+      "\r\n"
+write flush
+
+write close

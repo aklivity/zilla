@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.tcp.internal.types.stream.WindowFW;
@@ -78,6 +79,7 @@ public class TcpClientFactory implements TcpStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
 
+    private final ExtensionFW extensionRO = new ExtensionFW();
     private final ProxyBeginExFW beginExRO = new ProxyBeginExFW();
     private final ProxyBeginExFW.Builder beginExRW = new ProxyBeginExFW.Builder();
 
@@ -126,8 +128,10 @@ public class TcpClientFactory implements TcpStreamFactory
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long routeId = begin.routeId();
         final long authorization = begin.authorization();
-        final OctetsFW extension = begin.extension();
-        final ProxyBeginExFW beginEx = extension.get(beginExRO::tryWrap);
+        final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+        final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
+                ? begin.extension().get(beginExRO::tryWrap)
+                : null;
 
         InetSocketAddress route = null;
 

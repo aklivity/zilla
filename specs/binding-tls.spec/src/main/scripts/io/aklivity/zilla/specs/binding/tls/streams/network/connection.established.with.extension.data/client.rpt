@@ -18,8 +18,6 @@ connect "zilla://streams/net0"
   option zilla:window 65536
   option zilla:transmission "simplex"
 
-write zilla:begin.ext ${zilla:id("not-proxy")} "extension"
-
 connected
 
 write abort
