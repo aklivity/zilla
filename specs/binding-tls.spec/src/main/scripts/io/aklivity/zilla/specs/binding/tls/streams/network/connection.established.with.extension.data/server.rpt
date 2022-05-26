@@ -19,8 +19,6 @@ accept "zilla://streams/net0"
   option zilla:transmission "simplex"
 accepted
 
-read zilla:begin.ext ${zilla:id("not-proxy")} "extension"
-
 connected
 
 read aborted
