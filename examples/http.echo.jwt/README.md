@@ -22,7 +22,7 @@ Creating service example_zilla
 ```
 
 ### Verify behavior
-Create a token that is valid for about 10 years, but without `echo:stream` scope.
+Create a token that is valid until 2032, but without `echo:stream` scope.
 ```bash
 jwt encode \
     --alg "RS256" \
@@ -50,7 +50,7 @@ The request is rejected as expected, and wihout leaking any information about fa
 < Connection: close
 < 
 ```
-Create a token that is valid for about 10 years, with `echo:stream` scope.
+Create a token that is valid until 2032, with `echo:stream` scope.
 ```bash
 jwt encode \
     --alg "RS256" \
