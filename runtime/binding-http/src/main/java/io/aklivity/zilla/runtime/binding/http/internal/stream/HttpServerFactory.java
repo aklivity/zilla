@@ -1013,7 +1013,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                         CHALLENGE_RESPONSE_CONTENT_TYPE.equals(headers.get(HEADER_NAME_CONTENT_TYPE)) &&
                         CHALLENGE_RESPONSE_CONTENT_LENGTH.equals(headers.get(HEADER_NAME_CONTENT_LENGTH)))
                     {
-                        guard.reauthorize(server.initialId, server.credentials.apply(headers::get));
+                        final String credentialsMatch = server.credentials.apply(headers::get);
+                        if (credentialsMatch != null)
+                        {
+                            guard.reauthorize(server.initialId, credentialsMatch);
+                        }
                         server.doEncodeHeaders(traceId, authorization, budgetId, headers204);
                     }
                     else
@@ -1021,7 +1025,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                         long exchangeAuth = authorization;
                         if (guard != null)
                         {
-                            exchangeAuth = guard.reauthorize(server.initialId, server.credentials.apply(headers::get));
+                            final String credentialsMatch = server.credentials.apply(headers::get);
+                            if (credentialsMatch != null)
+                            {
+                                exchangeAuth = guard.reauthorize(server.initialId, credentialsMatch);
+                            }
                         }
 
                         HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
@@ -4744,7 +4752,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                         CHALLENGE_RESPONSE_CONTENT_TYPE.equals(headers.get(HEADER_NAME_CONTENT_TYPE)) &&
                         endRequest)
                     {
-                        guard.reauthorize(initialId, credentials.apply(headers::get));
+                        final String credentialsMatch = credentials.apply(headers::get);
+                        if (credentialsMatch != null)
+                        {
+                            guard.reauthorize(initialId, credentialsMatch);
+                        }
                         doEncodeHeaders(traceId, authorization, streamId, headers204, true);
                     }
                     else
@@ -4752,7 +4764,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                         long exchangeAuth = authorization;
                         if (guard != null)
                         {
-                            exchangeAuth = guard.reauthorize(initialId, credentials.apply(headers::get));
+                            final String credentialsMatch = credentials.apply(headers::get);
+                            if (credentialsMatch != null)
+                            {
+                                exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
+                            }
                         }
 
                         final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
@@ -5097,7 +5113,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             long exchangeAuth = authorization;
             if (guard != null)
             {
-                exchangeAuth = guard.reauthorize(initialId, credentials.apply(headers::get));
+                final String credentialsMatch = credentials.apply(headers::get);
+                if (credentialsMatch != null)
+                {
+                    exchangeAuth = guard.reauthorize(initialId, credentialsMatch);
+                }
             }
 
             final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
