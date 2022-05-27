@@ -26,12 +26,16 @@ import java.security.cert.X509Certificate;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
+import io.aklivity.zilla.runtime.engine.Configuration;
+
 public class TlsTrustTest
 {
     @Test
     public void shouldConfigureTrustViaCacerts()
     {
-        TrustedCertificateEntry[] entries = TlsTrust.cacerts();
+        TlsConfiguration config = new TlsConfiguration(new Configuration());
+        TrustedCertificateEntry[] entries = TlsTrust.cacerts(config);
 
         assertThat(entries, not(nullValue()));
         assertThat(entries, not(emptyArray()));
