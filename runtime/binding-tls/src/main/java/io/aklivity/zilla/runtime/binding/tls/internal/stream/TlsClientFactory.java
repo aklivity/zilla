@@ -123,8 +123,7 @@ public final class TlsClientFactory implements TlsStreamFactory
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
-    private final String keyManagerAlgorithm;
-    private final boolean ignoreEmptyVaultRefs;
+    private final TlsConfiguration config;
     private final LongFunction<VaultHandler> supplyVault;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -158,8 +157,7 @@ public final class TlsClientFactory implements TlsStreamFactory
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
 
-        this.keyManagerAlgorithm = config.keyManagerAlgorithm();
-        this.ignoreEmptyVaultRefs = config.ignoreEmptyVaultRefs();
+        this.config = config;
         this.proactiveReplyBegin = config.proactiveClientReplyBegin();
         this.supplyVault = context::supplyVault;
         this.supplyInitialId = context::supplyInitialId;
@@ -190,10 +188,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
         VaultHandler vault = supplyVault.apply(tlsBinding.vaultId);
 
-        if (vault != null)
-        {
-            tlsBinding.init(vault, ignoreEmptyVaultRefs, keyManagerAlgorithm, random);
-        }
+        tlsBinding.init(config, vault, random);
 
         bindings.put(binding.id, tlsBinding);
     }
@@ -892,6 +887,8 @@ public final class TlsClientFactory implements TlsStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             final OctetsFW extension = begin.extension();
+            final ExtensionFW typedEx = extension.get(extensionRO::tryWrap);
+            final OctetsFW proxyEx = typedEx != null && typedEx.typeId() == proxyTypeId ? extension : EMPTY_OCTETS;
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -905,7 +902,7 @@ public final class TlsClientFactory implements TlsStreamFactory
 
             state = TlsState.openInitial(state);
 
-            client.doNetBegin(traceId, affinity, extension);
+            client.doNetBegin(traceId, affinity, proxyEx);
         }
 
         private void onAppFlush(
