@@ -27,18 +27,22 @@ import java.security.KeyStore.TrustedCertificateEntry;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
+
 public final class TlsTrust
 {
     private TlsTrust()
     {
     }
 
-    static TrustedCertificateEntry[] cacerts()
+    public static TrustedCertificateEntry[] cacerts(
+        TlsConfiguration config)
     {
-        TrustedCertificateEntry[] certificates = null;
+        String storeType = config.cacertsStoreType();
+        String store = config.cacertsStore();
+        String storePass = config.cacertsStorePass();
 
-        String storeType = System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType());
-        String store = System.getProperty("javax.net.ssl.trustStore");
+        TrustedCertificateEntry[] certificates = null;
 
         if (store == null || !Files.exists(Paths.get(store)))
         {
@@ -62,7 +66,7 @@ public final class TlsTrust
             try
             {
                 KeyStore cacerts = KeyStore.getInstance(storeType);
-                cacerts.load(new FileInputStream(store), (char[]) null);
+                cacerts.load(new FileInputStream(store), storePass != null ? storePass.toCharArray() : null);
 
                 List<TrustedCertificateEntry> trusted = new LinkedList<>();
                 for (String alias : list(cacerts.aliases()))
