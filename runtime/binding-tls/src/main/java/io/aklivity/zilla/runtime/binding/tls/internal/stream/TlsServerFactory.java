@@ -135,8 +135,7 @@ public final class TlsServerFactory implements TlsStreamFactory
     private final BindingHandler streamFactory;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
-    private final String keyManagerAlgorithm;
-    private final boolean ignoreEmptyVaultRefs;
+    private final TlsConfiguration config;
     private final long awaitSyncCloseMillis;
     private final LongFunction<VaultHandler> supplyVault;
     private final LongUnaryOperator supplyInitialId;
@@ -163,6 +162,9 @@ public final class TlsServerFactory implements TlsStreamFactory
         TlsConfiguration config,
         EngineContext context)
     {
+        this.config = config;
+        this.awaitSyncCloseMillis = config.awaitSyncCloseMillis();
+
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
         this.writeBuffer = context.writeBuffer();
@@ -170,9 +172,6 @@ public final class TlsServerFactory implements TlsStreamFactory
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
 
-        this.keyManagerAlgorithm = config.keyManagerAlgorithm();
-        this.ignoreEmptyVaultRefs = config.ignoreEmptyVaultRefs();
-        this.awaitSyncCloseMillis = config.awaitSyncCloseMillis();
         this.supplyVault = context::supplyVault;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -202,10 +201,7 @@ public final class TlsServerFactory implements TlsStreamFactory
 
         VaultHandler vault = supplyVault.apply(tlsBinding.vaultId);
 
-        if (vault != null)
-        {
-            tlsBinding.init(vault, ignoreEmptyVaultRefs, keyManagerAlgorithm, random);
-        }
+        tlsBinding.init(config, vault, random);
 
         bindings.put(binding.id, tlsBinding);
     }

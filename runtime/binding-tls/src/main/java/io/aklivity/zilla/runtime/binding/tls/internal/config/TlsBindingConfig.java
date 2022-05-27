@@ -49,6 +49,7 @@ import javax.security.auth.x500.X500Principal;
 
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.binding.tls.internal.TlsConfiguration;
 import io.aklivity.zilla.runtime.binding.tls.internal.identity.TlsClientX509ExtendedKeyManager;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.tls.internal.types.ProxyInfoFW;
@@ -82,20 +83,20 @@ public final class TlsBindingConfig
     }
 
     public void init(
+        TlsConfiguration config,
         VaultHandler vault,
-        boolean ignoreEmptyVaultRefs,
-        String keyManagerAlgorithm,
         SecureRandom random)
     {
         char[] keysPass = "generated".toCharArray();
-        KeyStore keys = newKeys(vault, ignoreEmptyVaultRefs, keysPass, options.keys, options.signers);
-        KeyStore trust = newTrust(vault, ignoreEmptyVaultRefs, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
+        KeyStore keys = newKeys(config, vault, keysPass, options.keys, options.signers);
+        KeyStore trust = newTrust(config, vault, options.trust, options.trustcacerts && kind == KindConfig.CLIENT);
 
         try
         {
             KeyManager[] keyManagers = null;
             if (keys != null)
             {
+                String keyManagerAlgorithm = config.keyManagerAlgorithm();
                 KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(keyManagerAlgorithm);
                 keyManagerFactory.init(keys, keysPass);
                 keyManagers = keyManagerFactory.getKeyManagers();
@@ -354,17 +355,23 @@ public final class TlsBindingConfig
     }
 
     private KeyStore newKeys(
+        TlsConfiguration config,
         VaultHandler vault,
-        boolean ignoreEmptyNames,
         char[] password,
         List<String> keyNames,
         List<String> signerNames)
     {
         KeyStore store = null;
 
+        keys:
         try
         {
-            if (ignoreEmptyNames)
+            if (vault == null)
+            {
+                break keys;
+            }
+
+            if (config.ignoreEmptyVaultRefs())
             {
                 keyNames = ignoreEmptyNames(keyNames);
                 signerNames = ignoreEmptyNames(signerNames);
@@ -422,8 +429,8 @@ public final class TlsBindingConfig
     }
 
     private KeyStore newTrust(
+        TlsConfiguration config,
         VaultHandler vault,
-        boolean ignoreEmptyNames,
         List<String> trustNames,
         boolean trustcacerts)
     {
@@ -431,7 +438,7 @@ public final class TlsBindingConfig
 
         try
         {
-            if (ignoreEmptyNames)
+            if (config.ignoreEmptyVaultRefs())
             {
                 trustNames = ignoreEmptyNames(trustNames);
             }
@@ -442,7 +449,7 @@ public final class TlsBindingConfig
                 store.load(null, null);
             }
 
-            if (trustNames != null)
+            if (vault != null && trustNames != null)
             {
                 for (String trustName : trustNames)
                 {
@@ -454,7 +461,7 @@ public final class TlsBindingConfig
 
             if (trustcacerts)
             {
-                TrustedCertificateEntry[] cacerts = TlsTrust.cacerts();
+                TrustedCertificateEntry[] cacerts = TlsTrust.cacerts(config);
 
                 for (TrustedCertificateEntry cacert : cacerts)
                 {
