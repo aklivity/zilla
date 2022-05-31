@@ -64,6 +64,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/delete.item.if.match.no.etag/client",
+        "${http}/delete.item.if.match.no.etag/server"})
+    public void shouldNotDeleteItemIfMatchNoEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/delete.item.read.abort/client",
         "${http}/delete.item.read.abort/server"})
     public void shouldNotDeleteItemWhenReadAbort() throws Exception

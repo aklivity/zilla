@@ -382,7 +382,11 @@ public final class HttpKafkaWithResolver
         final HttpHeaderFW httpIfMatch = httpHeaders.matchFirst(h -> HEADER_NAME_IF_MATCH.equals(h.name()));
         if (httpIfMatch != null && etagMatcher.reset(httpIfMatch.value().asString()).matches())
         {
-            ifMatch = new String16FW(etagMatcher.group("ifmatch"));
+            final String group = etagMatcher.group("ifmatch");
+            if (group != null)
+            {
+                ifMatch = new String16FW(group);
+            }
         }
 
         return new HttpKafkaWithProduceResult(
