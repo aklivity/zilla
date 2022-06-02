@@ -2,8 +2,8 @@
 
 [![Build Status][build-status-image]][build-status]
 
-![Zilla logo](./assets/logo-white.svg#gh-dark-mode-only)
-![Zilla logo](./assets/logo-dark.svg#gh-light-mode-only)
+![Zilla logo](./assets/logo-dark-mode.svg#gh-dark-mode-only)
+![Zilla logo](./assets/logo-light-mode.svg#gh-light-mode-only)
 
 Zilla connects web and mobile applications to event-driven micro-services using standard protocols, such as HTTP, Server-Sent Events and Kafka.
 
@@ -17,6 +17,9 @@ For example, when deployed in front of a Kafka cluster, Zilla can be configured 
  - reliable message streaming from a Kafka topic via Server-Sent Events
  - secure HTTP request-response APIs using JWT access tokens
  - secure Server-Sent Events streams using continuous authorization via JWT access tokens
+
+![Zilla diagram](./assets/diagram-dark-mode.svg#gh-dark-mode-only)
+![Zilla diagram](./assets/diagram-light-mode.svg#gh-light-mode-only)
 
 As a developer, you can focus on writing and testing your event-driven micro-services with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
 
