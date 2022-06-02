@@ -32,8 +32,15 @@ Run the latest Zilla release with default empty configuration via docker.
 ```
 docker run ghcr.io/aklivity/zilla:latest start -v
 ```
+```
+{
+  "name": "default"
+}
+started
+```
 
 Configure Zilla to behave as a `tcp` `echo` server in 2mins.
+
 First create a local `zilla.json` with the following contents.
 ```json
 {
