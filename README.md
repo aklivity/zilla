@@ -18,6 +18,9 @@ For example, when deployed in front of a Kafka cluster, Zilla can be configured 
  - secure HTTP request-response APIs using JWT access tokens
  - secure Server-Sent Events streams using continuous authorization via JWT access tokens
 
+![Zilla diagram](./assets/diagram-white.svg#gh-dark-mode-only)
+![Zilla diagram](./assets/diagram-dark.svg#gh-light-mode-only)
+
 As a developer, you can focus on writing and testing your event-driven micro-services with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
 
 Read the [docs](https://docs.aklivity.io/zilla). Try the [examples](https://github.com/aklivity/zilla-examples). Join the [Slack community](https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ).
