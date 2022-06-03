@@ -1,5 +1,5 @@
 # http.kafka.cache
-Listens on http port `8080` or https port `9090` and will serve cached responses from the `zilla` topic in Kafka.
+Listens on http port `8080` or https port `9090` and will serve cached responses from the `items-snapshots` topic in Kafka.
 
 ### Requirements
  - Docker 20.10+
