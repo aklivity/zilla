@@ -1,5 +1,7 @@
 # Zilla Examples
 
+[![Slack Community][community-image]][community-join]
+
 Try out these Zilla example configurations using `docker` in your local development enivronment.
 
 | Name | Description|
@@ -20,5 +22,12 @@ Try out these Zilla example configurations using `docker` in your local developm
 | [ws.echo](ws.echo) | Echoes messages sent to the WebSocket server |
 | [ws.reflect](ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
 
-Read the [docs](https://docs.aklivity.io/zilla). Try the [examples](https://github.com/aklivity/zilla-examples). Join the [Slack community](https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ).
+Read the [docs][zilla-docs].
+Try the [examples][zilla-examples].
+Join the [Slack community][community-join].
 
+[community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
+[community-join]: https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ
+
+[zilla-docs]: https://docs.aklivity.io/zilla
+[zilla-examples]: https://github.com/aklivity/zilla-examples
