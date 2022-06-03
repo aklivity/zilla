@@ -3,25 +3,17 @@
 [![Build Status][build-status-image]][build-status]
 [![Slack Community][community-image]][community-join]
 
+Zilla is an event-driven API gateway that connects web and mobile applications to event-driven micro-services using standard protocols, such as HTTP, Server-Sent Events and Kafka.
+
 <p align="center">
-  </br>
   <img src="./assets/diagram-light-mode.svg#gh-light-mode-only" height="300">
   <img src="./assets/diagram-dark-mode.svg#gh-dark-mode-only" height="300">
-  </br>
 </p>
 
 <!--
-<p align="center">
-  <img src="./assets/logo-dark-mode.svg#gh-dark-mode-only" height="100" style="margin-top: 100px">
-  <img src="./assets/logo-light-mode.svg#gh-light-mode-only" height="100" style="margin-bottom:100px"> 
- </br> </br>
-</p>
 ![Zilla logo](./assets/logo-dark-mode.svg#gh-dark-mode-only)
 ![Zilla logo](./assets/logo-light-mode.svg#gh-light-mode-only)
 -->
-
-
-Zilla is an event-driven API gateway that connects web and mobile applications to event-driven micro-services using standard protocols, such as HTTP, Server-Sent Events and Kafka.
 
 Zilla is designed on the fundamental principle that _every data flow is a stream_, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
 
