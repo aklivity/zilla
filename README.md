@@ -6,7 +6,7 @@
 <p align="center">
   </br>
   <img src="./assets/diagram-light-mode.svg#gh-light-mode-only" height="300">
-  <img src="./assets/diagram-light-mode.svg#gh-dark-mode-only" height="300">
+  <img src="./assets/diagram-dark-mode.svg#gh-dark-mode-only" height="300">
   </br>
 </p>
 
