@@ -28,9 +28,9 @@ For example, when deployed in front of a Kafka cluster, Zilla can be configured 
 
 As a developer, you can focus on writing and testing your event-driven micro-services with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
 
-Read the [docs].
-Try the [examples].
-Join the [Slack community].
+Read the [docs][zilla-docs].
+Try the [examples][zilla-examples].
+Join the [Slack community][community-join].
 
 ## Running Zilla via docker
 Run the latest Zilla release with default empty configuration via docker.
@@ -85,7 +85,7 @@ Hello, world
 Hello, world
 ```
 
-Check out the [docs] and [examples] to learn how to configure Zilla. Ask questions in the [Slack community].
+Check out the [docs] and [examples] to learn how to configure Zilla. Ask questions in the [Slack community][community-join].
 
 ## Roadmap
 
@@ -99,7 +99,7 @@ Zilla is designed from the ground up to be extensible and we anticipate adding s
  - HTTP, proxy, including HTTP/3
  - SSE, proxy (Kafka mapping done)
 
-Please let us know in the [Slack community] if you have additional suggestions.
+Please let us know in the [Slack community][community-join] if you have additional suggestions.
 
 ## Build from source
 ```bash
@@ -120,6 +120,5 @@ See `LICENSE` file in each subfolder for detailed license agreement.
 [community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
 [community-join]: https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ
 
-[docs]: https://docs.aklivity.io/zilla
-[examples]: https://github.com/aklivity/zilla-examples
-[Slack community]: https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ
+[zilla-docs]: https://docs.aklivity.io/zilla
+[zilla-examples]: https://github.com/aklivity/zilla-examples
