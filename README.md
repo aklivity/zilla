@@ -1,7 +1,7 @@
 # Zilla Project
 
 [![Build Status][build-status-image]][build-status]
-[<img src="https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack">](https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ) 
+[![Slack Community][community-image]][community-join]
 
 <p align="center">
   </br>
@@ -130,6 +130,9 @@ See `LICENSE` file in each subfolder for detailed license agreement.
 
 [build-status-image]: https://github.com/aklivity/zilla/workflows/build/badge.svg
 [build-status]: https://github.com/aklivity/zilla/actions
+
+[community-image]: https://img.shields.io/badge/slack-@aklivitycommunity-blue.svg?logo=slack
+[community-join]: https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ
 
 [docs]: https://docs.aklivity.io/zilla
 [examples]: https://github.com/aklivity/zilla-examples
