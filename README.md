@@ -85,7 +85,7 @@ Hello, world
 Hello, world
 ```
 
-Check out the [docs] and [examples] to learn how to configure Zilla. Ask questions in the [Slack community][community-join].
+Check out the [docs][zilla-docs] and [examples][zilla-examples] to learn how to configure Zilla. Follow the [tutorial][zilla-todo-tutorial] to build a CQRS Todo app with Zilla and Kafka Streams. Ask questions in the [Slack community][community-join].
 
 ## Roadmap
 
@@ -122,3 +122,4 @@ See `LICENSE` file in each subfolder for detailed license agreement.
 
 [zilla-docs]: https://docs.aklivity.io/zilla
 [zilla-examples]: https://github.com/aklivity/zilla-examples
+[zilla-todo-tutorial]: https://docs.aklivity.io/zilla/get-started/build-todo-app
