@@ -31,7 +31,7 @@ write zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-write "GET /?access_token=TOKEN HTTP/1.1" "\r\n"
+write "GET /?access_token=TOKEN&parameter=value HTTP/1.1" "\r\n"
       "Host: example.com:9090" "\r\n"
       "\r\n"
 write flush
