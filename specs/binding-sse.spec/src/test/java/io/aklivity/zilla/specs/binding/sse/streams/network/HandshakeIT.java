@@ -47,6 +47,15 @@ public class HandshakeIT
 
     @Test
     @Specification({
+        "${net}/connection.succeeded.with.request.parameter/request",
+        "${net}/connection.succeeded.with.request.parameter/response" })
+    public void shouldHandshakeWithRequestParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/connection.closed/request",
         "${net}/connection.closed/response" })
     public void shouldHandshakeThenClose() throws Exception

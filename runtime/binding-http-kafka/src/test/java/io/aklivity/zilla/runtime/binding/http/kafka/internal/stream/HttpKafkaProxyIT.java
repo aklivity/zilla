@@ -103,6 +103,16 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.delete.item.json")
     @Specification({
+        "${http}/delete.item.if.match.no.etag/client",
+        "${kafka}/delete.item/server"})
+    public void shouldDeleteItemIfMatchNoEtag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.json")
+    @Specification({
         "${http}/delete.item.read.abort/client",
         "${kafka}/delete.item.read.abort/server"})
     public void shouldNotDeleteItemWhenReadAbort() throws Exception

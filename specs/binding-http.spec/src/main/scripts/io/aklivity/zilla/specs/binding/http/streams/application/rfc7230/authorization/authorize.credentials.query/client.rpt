@@ -23,7 +23,7 @@ write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
                             .header(":scheme", "https")
-                            .header(":path", "/?access_token=TOKEN")
+                            .header(":path", "/?access_token=TOKEN&parameter=value")
                             .header(":authority", "example.com:9090")
                             .build()}
 connected

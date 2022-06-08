@@ -119,7 +119,7 @@ public final class HttpAuthorizationConfig
                         Pattern.compile(String.format(
                                     "(\\?|\\&)%s=%s",
                                     parametersName,
-                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
+                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\&]+)")))
                                .matcher("");
 
                 accessor = orElseIfNull(accessor, hs ->
