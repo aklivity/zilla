@@ -54,13 +54,21 @@ public final class HttpConditionMatcher
         Map<String, String> patterns)
     {
         Map<String, Matcher> matchers = new LinkedHashMap<>();
-        patterns.forEach((k, v) -> matchers.put(k, asMatcher(v)));
+        patterns.forEach((k, v) -> matchers.put(k, asMatcher(k, v)));
         return matchers;
     }
 
     private static Matcher asMatcher(
+        String header,
         String wildcard)
     {
-        return Pattern.compile(wildcard.replace(".", "\\.").replace("*", ".*")).matcher("");
+        String pattern = wildcard.replace(".", "\\.").replace("*", ".*");
+
+        if (":path".equals(header) && !pattern.endsWith(".*"))
+        {
+            pattern = pattern + "(\\?.*)?";
+        }
+
+        return Pattern.compile(pattern).matcher("");
     }
 }

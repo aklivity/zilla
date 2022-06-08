@@ -308,6 +308,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/http.path.with.query/client",
+        "${net}/http.path.with.query/server"
+    })
+    public void pathWithQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/http.response.trailer/client",
         "${net}/http.response.trailer/server",
     })
