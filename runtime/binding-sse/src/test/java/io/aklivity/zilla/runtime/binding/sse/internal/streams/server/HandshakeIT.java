@@ -64,6 +64,16 @@ public class HandshakeIT
     @Test
     @Configuration("server.when.json")
     @Specification({
+        "${net}/connection.succeeded.with.request.parameter/request",
+        "${app}/connection.succeeded/server" })
+    public void shouldHandshakeWithRequestParameter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
         "${net}/connection.closed/request",
         "${app}/connection.closed/server" })
     public void shouldHandshakeThenClose() throws Exception

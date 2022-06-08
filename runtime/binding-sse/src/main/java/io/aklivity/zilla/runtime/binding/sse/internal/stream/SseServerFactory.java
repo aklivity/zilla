@@ -251,22 +251,19 @@ public final class SseServerFactory implements SseStreamFactory
             if (matcher.matches())
             {
                 String path = matcher.group("path");
-                String query = matcher.group("query");
 
-                matcher = LAST_EVENT_ID_PATTERN.matcher(query);
-                StringBuffer builder = new StringBuffer(path);
-                while (matcher.find())
+                if (lastEventId == null)
                 {
-                    if (lastEventId == null)
+                    String query = matcher.group("query");
+
+                    matcher = LAST_EVENT_ID_PATTERN.matcher(query);
+                    if (matcher.find())
                     {
                         lastEventId = decodeLastEventId(matcher.group("lastEventId"));
                     }
-
-                    String replacement = matcher.group(3).isEmpty() ? "$3" : "$1";
-                    matcher.appendReplacement(builder, replacement);
                 }
-                matcher.appendTail(builder);
-                pathInfo = new String16FW(builder.toString());
+
+                pathInfo = new String16FW(path);
             }
         }
 
