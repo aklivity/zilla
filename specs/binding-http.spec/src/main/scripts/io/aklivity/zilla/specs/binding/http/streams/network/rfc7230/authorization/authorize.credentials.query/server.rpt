@@ -30,7 +30,7 @@ read zilla:begin.ext ${proxy:matchBeginEx()
 
 connected
 
-read "GET /?access_token=TOKEN HTTP/1.1" "\r\n"
+read "GET /?access_token=TOKEN&parameter=value HTTP/1.1" "\r\n"
      "Host: example.com:9090" "\r\n"
      "\r\n"
 

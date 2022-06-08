@@ -52,14 +52,14 @@ write [0x00 0x00 0x00]                                     # length = 0
       [0x00 0x00 0x00 0x00]                                # stream_id = 0
 write flush
 
-write [0x00 0x00 0x30]                                     # length = 48
+write [0x00 0x00 0x40]                                     # length = 48
       [0x01]                                               # HEADERS frame
       [0x05]                                               # END_HEADERS | END_STREAM
       [0x00 0x00 0x00 0x01]                                # stream_id = 1
       [0x82]                                               # :method: GET
       [0x87]                                               # :scheme: https
       [0x40] [0x05] ":path"
-             [0x14] "/?access_token=TOKEN"                 # :path: /?access_token=TOKEN
+             [0x24] "/?access_token=TOKEN&parameter=value" # :path: /?access_token=TOKEN&parameter=value
       [0x01] [0x10] "example.com:9090"                     # :authority: example.com:9090
 write flush
 

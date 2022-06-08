@@ -164,14 +164,17 @@ public class HttpKafkaWithProduceResult
         {
             final String16FW value = HTTP_HEADER_NAME_IF_MATCH.equals(name) ? ifMatch : header.value();
 
-            builder.item(i -> i
-                .nameLen(name.length())
-                .name(name.value(), 0, name.length())
-                .valueLen(value.length())
-                .value(value.value(), 0, value.length()));
+            if (value != null)
+            {
+                builder.item(i -> i
+                    .nameLen(name.length())
+                    .name(name.value(), 0, name.length())
+                    .valueLen(value.length())
+                    .value(value.value(), 0, value.length()));
 
-            hash.updateHash(name.value());
-            hash.updateHash(value.value());
+                hash.updateHash(name.value());
+                hash.updateHash(value.value());
+            }
         }
     }
 
