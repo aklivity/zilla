@@ -54,10 +54,29 @@ public final class HttpFileSystemBindingConfig
         HttpBeginExFW beginEx)
     {
         HttpHeaderFW pathHeader = beginEx != null ? beginEx.headers().matchFirst(HEADER_NAME_PATH) : null;
-        String path = pathHeader != null ? pathHeader.value().asString() : null;
+        String path = asPathWithoutQuery(pathHeader);
         return routes.stream()
                 .filter(r -> r.authorized(authorization) && r.matches(path))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private String asPathWithoutQuery(
+        HttpHeaderFW pathHeader)
+    {
+        String path = null;
+
+        if (pathHeader != null)
+        {
+            path = pathHeader.value().asString();
+
+            int queryAt = path.indexOf('?');
+            if (queryAt != -1)
+            {
+                path = path.substring(0, queryAt);
+            }
+        }
+
+        return path;
     }
 }

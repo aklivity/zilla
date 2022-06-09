@@ -46,6 +46,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/client.read.file.with.query/client",
+        "${http}/client.read.file.with.query/server"})
+    public void shouldReceiveClientReadFileWithQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/client.read.file.info/client",
         "${http}/client.read.file.info/server"})
     public void shouldReceiveClientReadFileInfo() throws Exception
