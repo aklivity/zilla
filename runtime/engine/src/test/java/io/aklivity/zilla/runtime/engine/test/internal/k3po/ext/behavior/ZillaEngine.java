@@ -710,14 +710,10 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         {
             try
             {
-                if (!channel.isWriteClosed())
-                {
-                    ZillaEngine engine = channel.engine;
-                    int scopeIndex = channel.getLocalScope();
-
-                    ZillaScope scope = engine.supplyScope(scopeIndex);
-                    scope.doFlush(channel, flushFuture);
-                }
+                ZillaEngine engine = channel.engine;
+                int scopeIndex = channel.getLocalScope();
+                ZillaScope scope = engine.supplyScope(scopeIndex);
+                scope.doFlush(channel, flushFuture);
             }
             catch (Exception ex)
             {

@@ -65,6 +65,7 @@ public class ServerStatsIT
         k3po.finish();
 
         EngineStats stats = engine.stats("test", "net0");
+        java.lang.invoke.VarHandle.fullFence();
 
         assertThat(stats.initialOpens(), equalTo(1L));
         assertThat(stats.replyOpens(), equalTo(1L));

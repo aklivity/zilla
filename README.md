@@ -20,11 +20,11 @@ Zilla is designed on the fundamental principle that _every data flow is a stream
 Zilla's declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point to your event-driven architecture.
 
 For example, when deployed in front of a Kafka cluster, Zilla can be configured to support:
- - HTTP request-response interaction with Kafka-based microservices
- - HTTP event-driven caching populated by messages from a Kafka topic
- - reliable message streaming from a Kafka topic via Server-Sent Events
- - secure HTTP request-response APIs using JWT access tokens
- - secure Server-Sent Events streams using continuous authorization via JWT access tokens
+- HTTP request-response interaction with Kafka-based microservices
+- HTTP event-driven caching populated by messages from a Kafka topic
+- reliable message streaming from a Kafka topic via Server-Sent Events
+- secure HTTP request-response APIs using JWT access tokens
+- secure Server-Sent Events streams using continuous authorization via JWT access tokens
 
 As a developer, you can focus on writing and testing your event-driven microservices with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
 
@@ -49,26 +49,26 @@ Configure Zilla to behave as a `tcp` `echo` server in 2mins.
 First create a local `zilla.json` with the following contents.
 ```json
 {
-    "name": "example",
-    "bindings":
+  "name": "example",
+  "bindings":
+  {
+    "tcp_server0":
     {
-        "tcp_server0":
-        {
-            "type" : "tcp",
-            "kind": "server",
-            "options":
-            {
-                "host": "0.0.0.0",
-                "port": 12345
-            },
-            "exit": "echo_server0"
-        },
-        "echo_server0":
-        {
-            "type" : "echo",
-            "kind": "server"
-        }
+      "type" : "tcp",
+      "kind": "server",
+      "options":
+      {
+        "host": "0.0.0.0",
+        "port": 12345
+      },
+      "exit": "echo_server0"
+    },
+    "echo_server0":
+    {
+      "type" : "echo",
+      "kind": "server"
     }
+  }
 }
 
 ```
@@ -90,14 +90,14 @@ Check out the [docs][zilla-docs] and [examples][zilla-examples] to learn how to 
 ## Roadmap
 
 Zilla is designed from the ground up to be extensible and we anticipate adding support for several new capabilities:
- - gRPC, proxy and Kafka mapping
- - GraphQL, proxy and Kafka mapping
- - MQTT, proxy and Kafka mapping
- - AMQP, proxy and Kafka mapping
- - WebSocket, proxy and Kafka mapping
- - WebHooks, Kafka mapping
- - HTTP, proxy, including HTTP/3
- - SSE, proxy (Kafka mapping done)
+- gRPC, proxy and Kafka mapping
+- GraphQL, proxy and Kafka mapping
+- MQTT, proxy and Kafka mapping
+- AMQP, proxy and Kafka mapping
+- WebSocket, proxy and Kafka mapping
+- WebHooks, Kafka mapping
+- HTTP, proxy, including HTTP/3
+- SSE, proxy (Kafka mapping done)
 
 Please let us know in the [Slack community][community-join] if you have additional suggestions.
 

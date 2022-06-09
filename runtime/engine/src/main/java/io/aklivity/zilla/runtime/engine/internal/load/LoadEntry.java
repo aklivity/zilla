@@ -88,13 +88,13 @@ public final class LoadEntry implements EngineStats
     @Override
     public long initialOpens()
     {
-        return buffer.getLong(offset + OFFSET_INITIAL_OPENS);
+        return buffer.getLongVolatile(offset + OFFSET_INITIAL_OPENS);
     }
 
     @Override
     public long initialCloses()
     {
-        return buffer.getLong(offset + OFFSET_INITIAL_CLOSES);
+        return buffer.getLongVolatile(offset + OFFSET_INITIAL_CLOSES);
     }
 
     public LoadEntry initialOpened(
@@ -116,7 +116,7 @@ public final class LoadEntry implements EngineStats
     @Override
     public long initialBytes()
     {
-        return buffer.getLong(offset + OFFSET_INITIAL_BYTES);
+        return buffer.getLongVolatile(offset + OFFSET_INITIAL_BYTES);
     }
 
     public LoadEntry initialBytesRead(
@@ -130,7 +130,7 @@ public final class LoadEntry implements EngineStats
     @Override
     public long initialErrors()
     {
-        return buffer.getLong(offset + OFFSET_INITIAL_ERRORS);
+        return buffer.getLongVolatile(offset + OFFSET_INITIAL_ERRORS);
     }
 
     public LoadEntry initialErrored(
@@ -144,13 +144,13 @@ public final class LoadEntry implements EngineStats
     @Override
     public long replyOpens()
     {
-        return buffer.getLong(offset + OFFSET_REPLY_OPENS);
+        return buffer.getLongVolatile(offset + OFFSET_REPLY_OPENS);
     }
 
     @Override
     public long replyCloses()
     {
-        return buffer.getLong(offset + OFFSET_REPLY_CLOSES);
+        return buffer.getLongVolatile(offset + OFFSET_REPLY_CLOSES);
     }
 
     public LoadEntry replyOpened(
@@ -172,7 +172,7 @@ public final class LoadEntry implements EngineStats
     @Override
     public long replyBytes()
     {
-        return buffer.getLong(offset + OFFSET_REPLY_BYTES);
+        return buffer.getLongVolatile(offset + OFFSET_REPLY_BYTES);
     }
 
     public LoadEntry replyBytesWritten(
@@ -186,7 +186,7 @@ public final class LoadEntry implements EngineStats
     @Override
     public long replyErrors()
     {
-        return buffer.getLong(offset + OFFSET_REPLY_ERRORS);
+        return buffer.getLongVolatile(offset + OFFSET_REPLY_ERRORS);
     }
 
     public LoadEntry replyErrored(

@@ -25,7 +25,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -58,7 +57,6 @@ public class ServerLimitsIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.json")
     @Specification({
