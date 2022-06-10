@@ -63,6 +63,16 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.json")
     @Specification({
+        "${http}/client.read.file.with.query/client",
+        "${filesystem}/client.read.file/server"})
+    public void shouldReceiveClientReadFileWithQuery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.json")
+    @Specification({
         "${http}/client.read.file.info/client",
         "${filesystem}/client.read.file.info/server"})
     public void shouldReceiveClientReadFileInfo() throws Exception
