@@ -1,0 +1,30 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "http0":
+        {
+            "type" : "http-kafka",
+            "kind": "proxy",
+            "routes":
+            [
+                {
+                    "exit": "kafka0",
+                    "when":
+                    [
+                        {
+                            "method": "PUT",
+                            "path": "/items/{id}"
+                        }
+                    ],
+                    "with":
+                    {
+                        "capability": "produce",
+                        "topic": "items-commands",
+                        "key": "${params.id}"
+                    }
+                }
+            ]
+        }
+    }
+}
