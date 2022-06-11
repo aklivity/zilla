@@ -20,41 +20,22 @@
     {
         "jwt0":
         {
-           "type":"jwt",
-           "options":
-           {
-              "issuer": "https://aklivity.us.auth0.com/",
-              "audience": "https://localhost:9090/tasks",
-              "keys":
-              [
-                 {
-                    "alg":"RS256",
-                    "kty":"RSA",
-                    "use":"sig",
-                    "n":"xpUpx4ytuhi0Tz4_l7qqigo_CleAGBs7zalBLHR68tRz3EM2rf6JZapeT7vA6FcdGJskcqNSEYZJsbX0RWsqH_2WwXKOV8HOJJ_XrUmWy1Eeeco8nqM7NoImvubQ_3pxwGq2RaW4Ll3jZ90tWEWoGlk9qo_oJc2WKfnHSjpzuQxX0v5xKxJ3qJN9-SzJ-hit89Uj67o9aC5qOYbZTNgYDOyuawhAN3MlVF_twj7iqogpJprQEeLZTMpsmQbx0DvAju4Za_edJXAkVQeAeQq04SgLU0cagEmk7raNAuk19mWjPAPDq8OldVoecxtsqCGF_I17xdWozI98tJPDS00YWw",
-                    "e":"AQAB",
-                    "kid":"x9YmmTzyWUxAj6683CkM-",
-                    "x5t":"xKsfyirPoDUfrpgvjnKI5wmYzBg",
-                    "x5c":
-                    [
-                       "MIIDBTCCAe2gAwIBAgIJfcoikPv8CQX+MA0GCSqGSIb3DQEBCwUAMCAxHjAcBgNVBAMTFWFrbGl2aXR5LnVzLmF1dGgwLmNvbTAeFw0yMjA1MzEyMTI5MzZaFw0zNjAyMDcyMTI5MzZaMCAxHjAcBgNVBAMTFWFrbGl2aXR5LnVzLmF1dGgwLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMaVKceMrboYtE8+P5e6qooKPwpXgBgbO82pQSx0evLUc9xDNq3+iWWqXk+7wOhXHRibJHKjUhGGSbG19EVrKh/9lsFyjlfBziSf161JlstRHnnKPJ6jOzaCJr7m0P96ccBqtkWluC5d42fdLVhFqBpZPaqP6CXNlin5x0o6c7kMV9L+cSsSd6iTffksyfoYrfPVI+u6PWguajmG2UzYGAzsrmsIQDdzJVRf7cI+4qqIKSaa0BHi2UzKbJkG8dA7wI7uGWv3nSVwJFUHgHkKtOEoC1NHGoBJpO62jQLpNfZlozwDw6vDpXVaHnMbbKghhfyNe8XVqMyPfLSTw0tNGFsCAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUUONbQh3M0n4qXgTRDu7F1XgFSN0wDgYDVR0PAQH/BAQDAgKEMA0GCSqGSIb3DQEBCwUAA4IBAQBdskJlljltBm+JPPEStfa264aKiKvdyjSuwQcvrqXPm5q5/GEmKjMdG3c+3R6BmgWOKCHL3Bg70aFWidqy6sYfbdZ806JctN2FGsJUa5hSTZSjkhn+VkER16/6iCNr5e/KVnZwkWd5U05asshoaMugHTLlFHISxJ2qMUKda2Wi3tkf7eMzc7+1BReY+6etT0ZMf1st1BPalj41cnaBSiLcO67s7XIvH2gkTdYABbzIwXBLuWvQUZ5pX73JdCOuXhfXN/3oE3ICZfOJjGcqeg4eAO8Ns/NFyho8U2xFP8pqhrHqyvxkNHh7eJZaB5gdfUodL4Ldtkmz351zFBCRey0g"
-                    ]
-                 },
-                 {
-                    "alg":"RS256",
-                    "kty":"RSA",
-                    "use":"sig",
-                    "n":"zlx0IeG8Gzw77BPCuR9MvZVSbSTRkfkcAklS23roIr4mxLr8m5I2Q2bOj56qHztV8frPVTZ0GyesxwScdaSRkNomF2nnzibWRabcek50UmHbpgeA3dXAmxCMUR-Tah0w-eCSsbXu6PbtpWmLm_7niSJnRed45x7b876E2G_DitQFErGMZaLmSG7ewF0aHz-gn37Uio2l71-oXnvshpC7Y17-TUYUDKIiko6P1UKsY7fUBEaZk9-he6Khsny7KYUkcZ1F45q0WKlGwiZyZjU8jPhNGPIc8qj6QmjEhJ07IzjDR4x8pZN3F4go6mKB1thWWhGWrkaLI8UmluHDcD33RQ",
-                    "e":"AQAB",
-                    "kid":"sBT98m8u8lpwvV_Cm5ZAX",
-                    "x5t":"vfM0DKkRNUmYxs13GJnM-NlADuU",
-                    "x5c":
-                    [
-                       "MIIDBTCCAe2gAwIBAgIJevGCW7bs17g5MA0GCSqGSIb3DQEBCwUAMCAxHjAcBgNVBAMTFWFrbGl2aXR5LnVzLmF1dGgwLmNvbTAeFw0yMjA1MzEyMTI5MzZaFw0zNjAyMDcyMTI5MzZaMCAxHjAcBgNVBAMTFWFrbGl2aXR5LnVzLmF1dGgwLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM5cdCHhvBs8O+wTwrkfTL2VUm0k0ZH5HAJJUtt66CK+JsS6/JuSNkNmzo+eqh87VfH6z1U2dBsnrMcEnHWkkZDaJhdp584m1kWm3HpOdFJh26YHgN3VwJsQjFEfk2odMPngkrG17uj27aVpi5v+54kiZ0XneOce2/O+hNhvw4rUBRKxjGWi5khu3sBdGh8/oJ9+1IqNpe9fqF577IaQu2Ne/k1GFAyiIpKOj9VCrGO31ARGmZPfoXuiobJ8uymFJHGdReOatFipRsImcmY1PIz4TRjyHPKo+kJoxISdOyM4w0eMfKWTdxeIKOpigdbYVloRlq5GiyPFJpbhw3A990UCAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUt/86Q4B1Xalsr8077ehQ9iqi3rkwDgYDVR0PAQH/BAQDAgKEMA0GCSqGSIb3DQEBCwUAA4IBAQBC6ejNbo9u7+qFvh+j1Zh7YZW+uz06Gd4WnwCU+926JP6U7NMNt3guvPVPYtFXSpKhdAom2t/UjBVZh3l7DATU48rE4E/9pzLu8Urg9AVkfRHhLQi+6JZv7ZXDyEcUPtl6jENYZhT1CS2lPsDQ35Ap4BUgWVV8AOOacLVsomHRtS8Q1MtKbNvR+7tJeUEqRxCE7RNXM+FXMDPtwtn5DeKgdDF1HJh95G2Pw4m2W0ZtV1h6NtTuMZMgJtQSqF2IDwaPghLCqdznecLtwuUrVZxjxpuxX2vdYlmtLi2SPf1coKhRHYb4AMj8NNKmBZs9hgPOJxkvQxu8sh7XFbKSQ0gY"
-                    ]
-                 }
-              ]
-           }
+            "type": "jwt",
+            "options":
+            {
+                "issuer": "https://auth.example.com",
+                "audience": "https://api.example.com",
+                "keys":
+                [
+                    {
+                        "kty":"RSA",
+                        "n": "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==",
+                        "e":"AQAB",
+                        "alg":"RS256",
+                        "kid":"example"
+                    }
+                ]
+            }
         }
     },
     "bindings":
@@ -66,7 +47,7 @@
             "options":
             {
                 "host": "0.0.0.0",
-                "port": 8082
+                "port": 8080
             },
             "exit": "http_server0"
         },
@@ -119,7 +100,7 @@
                 {
                     "guarded":
                     {
-                        "jwt0": [ "read:tasks", "write:tasks" ]
+                        "jwt0": [ "echo:stream" ]
                     },
                     "when":
                     [

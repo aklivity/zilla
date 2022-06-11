@@ -18,6 +18,3 @@ services:
     ports:
       - "8080:8080"
       - "9090:9090"
-      - "4444:4444"
-    environment:
-      - JAVA_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:4444
