@@ -46,6 +46,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/delete.item.no.reply/client",
+        "${kafka}/delete.item.no.reply/server"})
+    public void shouldDeleteItemNoReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/delete.item.delayed/client",
         "${kafka}/delete.item.delayed/server"})
     public void shouldDeleteItemDelayed() throws Exception
@@ -409,6 +418,15 @@ public class KafkaIT
         "${kafka}/put.item/client",
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/put.item.no.reply/client",
+        "${kafka}/put.item.no.reply/server"})
+    public void shouldPutItemNoReply() throws Exception
     {
         k3po.finish();
     }
