@@ -44,7 +44,7 @@ curl -v http://localhost:8080/ \
     -H "Content-Type: text/plain" \
     -d "Hello, world"
 ```
-The request is rejected as expected, and wihout leaking any information about failed security checks.
+The request is rejected as expected, and without leaking any information about failed security checks.
 ```
 < HTTP/1.1 404 Not Found
 < Connection: close
