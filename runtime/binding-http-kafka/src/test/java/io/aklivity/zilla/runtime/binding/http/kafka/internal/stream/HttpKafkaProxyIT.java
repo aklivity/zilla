@@ -61,6 +61,16 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.delete.item.no.reply.json")
+    @Specification({
+        "${http}/delete.item/client",
+        "${kafka}/delete.item.no.reply/server"})
+    public void shouldDeleteItemNoReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
         "${http}/delete.item/client",
@@ -646,6 +656,16 @@ public class HttpKafkaProxyIT
         "${http}/put.item/client",
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.put.item.no.reply.json")
+    @Specification({
+        "${http}/put.item/client",
+        "${kafka}/put.item.no.reply/server"})
+    public void shouldPutItemNoReply() throws Exception
     {
         k3po.finish();
     }

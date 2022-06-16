@@ -34,6 +34,8 @@ public class HttpKafkaWithProduceResult
 {
     private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_202 =
             new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("202"));
+    private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_204 =
+            new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("204"));
     private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_CONTENT_LENGTH_0 =
             new HttpKafkaWithProduceAsyncHeaderResult(new String8FW("content-length"), new String16FW("0"));
 
@@ -132,6 +134,30 @@ public class HttpKafkaWithProduceResult
         Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
     {
         headers.forEach(h -> header(h, builder));
+
+        if (replyTo != null)
+        {
+            builder.item(this::replyTo);
+        }
+
+        if (overrides != null)
+        {
+            overrides.forEach(o -> builder.item(o::header));
+        }
+    }
+
+    public void headers(
+        HttpHeaderFW contentType,
+        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
+    {
+        if (contentType != null)
+        {
+            builder.item(i ->
+                i.nameLen(contentType.name().length())
+                 .name(contentType.name().value(), 0, contentType.name().length())
+                 .valueLen(contentType.value().length())
+                 .value(contentType.value().value(), 0, contentType.value().length()));
+        }
 
         if (replyTo != null)
         {
@@ -246,6 +272,15 @@ public class HttpKafkaWithProduceResult
         }
     }
 
+    public void noreply(
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
+    {
+        if (replyTo == null)
+        {
+            builder.item(HTTP_STATUS_204::header);
+        }
+    }
+
     public boolean async()
     {
         return async != null;
@@ -254,6 +289,11 @@ public class HttpKafkaWithProduceResult
     public boolean idempotent()
     {
         return idempotent;
+    }
+
+    public boolean reply()
+    {
+        return replyTo != null;
     }
 
     public long timeout()
