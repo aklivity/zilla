@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
+import static java.lang.invoke.VarHandle.fullFence;
 import static java.net.StandardSocketOptions.SO_REUSEADDR;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -26,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
+import io.aklivity.zilla.runtime.engine.EngineStats;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -216,7 +218,9 @@ public class ClientIT
     {
         k3po.finish();
         Thread.sleep(250); // TODO: engine quiesce instead of close
-        assertEquals(1, engine.stats("test", "app0").initialErrors());
+        EngineStats stats = engine.stats("test", "app0");
+        fullFence();
+        assertEquals(1, stats.initialErrors());
     }
 
     @Test
