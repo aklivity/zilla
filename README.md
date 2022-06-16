@@ -98,6 +98,8 @@ Zilla is designed from the ground up to be extensible and we anticipate adding s
  - WebHooks, Kafka mapping
  - HTTP, proxy, including HTTP/3
  - SSE, proxy (Kafka mapping done)
+ - OpenAPI integration
+ - AsyncAPI integration
 
 Please let us know in the [Slack community][community-join] if you have additional suggestions.
 
