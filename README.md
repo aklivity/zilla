@@ -49,26 +49,26 @@ Configure Zilla to behave as a `tcp` `echo` server in 2mins.
 First create a local `zilla.json` with the following contents.
 ```json
 {
-  "name": "example",
-  "bindings":
-  {
-    "tcp_server0":
+    "name": "example",
+    "bindings":
     {
-      "type" : "tcp",
-      "kind": "server",
-      "options":
-      {
-        "host": "0.0.0.0",
-        "port": 12345
-      },
-      "exit": "echo_server0"
-    },
-    "echo_server0":
-    {
-      "type" : "echo",
-      "kind": "server"
+        "tcp_server0":
+        {
+            "type" : "tcp",
+            "kind": "server",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 12345
+            },
+            "exit": "echo_server0"
+        },
+        "echo_server0":
+        {
+            "type" : "echo",
+            "kind": "server"
+        }
     }
-  }
 }
 
 ```
