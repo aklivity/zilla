@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
 import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration.TCP_MAX_CONNECTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static java.lang.invoke.VarHandle.fullFence;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -401,6 +402,7 @@ public class ServerIT
         k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
 
         EngineStats stats = engine.stats("test", "net0");
+        fullFence();
 
         assertEquals(3, stats.initialOpens());
         assertEquals(0, stats.initialCloses());

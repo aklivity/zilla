@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal.streams;
 
+import static java.lang.invoke.VarHandle.fullFence;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
@@ -62,6 +63,7 @@ public class ServerStatsIT
         k3po.finish();
 
         EngineStats stats = engine.stats("test", "net0");
+        fullFence();
 
         assertThat(stats.initialBytes(), greaterThan(10240L));
         assertThat(stats.replyBytes(), greaterThan(10240L));
