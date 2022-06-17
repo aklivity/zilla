@@ -90,14 +90,18 @@ Check out the [docs][zilla-docs] and [examples][zilla-examples] to learn how to 
 ## Roadmap
 
 Zilla is designed from the ground up to be extensible and we anticipate adding support for several new capabilities:
-- gRPC, proxy and Kafka mapping
-- GraphQL, proxy and Kafka mapping
-- MQTT, proxy and Kafka mapping
-- AMQP, proxy and Kafka mapping
-- WebSocket, proxy and Kafka mapping
-- WebHooks, Kafka mapping
-- HTTP, proxy, including HTTP/3
-- SSE, proxy (Kafka mapping done)
+ - gRPC, proxy and Kafka mapping
+ - GraphQL, proxy and Kafka mapping
+ - MQTT, proxy and Kafka mapping
+ - AMQP, proxy and Kafka mapping
+ - WebSocket, proxy and Kafka mapping
+ - WebHooks, Kafka mapping
+ - HTTP, proxy, including HTTP/3
+ - SSE, proxy (Kafka mapping done)
+ - OpenAPI integration
+ - AsyncAPI integration
+ - Avro integration
+ - OpenTelemetry integration
 
 Please let us know in the [Slack community][community-join] if you have additional suggestions.
 
