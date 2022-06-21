@@ -224,13 +224,14 @@
                 <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/vault/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/internal/concurrent/bench/**/*.class</include>
+                <include>org/openjdk/jmh/infra/generated/**/*.class</include>
               </includes>
               <excludes>
                 <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.EngineExtSpi</exclude>
                 <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi</exclude>
                 <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi</exclude>
                 <exclude>**/*IT.class</exclude>
-                <exclude>**/*Test.class</exclude>
               </excludes>
             </configuration>
           </execution>
@@ -285,7 +286,7 @@
           <artifactSet>
             <includes>
               <include>org.agrona:agrona</include>
-              <include>io.aklivity.zilla:drive</include>
+              <include>io.aklivity.zilla:engine</include>
               <include>org.openjdk.jmh:jmh-core</include>
               <include>net.sf.jopt-simple:jopt-simple</include>
               <include>org.apache.commons:commons-math3</include>
