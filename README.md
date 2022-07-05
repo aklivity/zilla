@@ -1,9 +1,59 @@
-# Zilla Project
+<div align="center">
+  <img src="./assets/logo-light-mode.svg#gh-light-mode-only" height="100">
+  <img src="./assets/logo-dark-mode.svg#gh-dark-mode-only" height="100">
+</div>
 
-[![Build Status][build-status-image]][build-status]
-[![Slack Community][community-image]][community-join]
+</br>
+<h1 align="center">Event-driven API Gateway</h1>
 
-Zilla is an event-driven API gateway that connects web and mobile applications to event-driven microservices using standard protocols, such as HTTP, Server-Sent Events and Kafka.
+<div align="center">
+  
+  [![Build Status][build-status-image]][build-status]
+  [![Slack Community][community-image]][community-join]
+  
+</div>
+
+<h3 align="center">
+  <a href="https://docs.aklivity.io/zilla/"><b>Documentation</b></a> &bull;
+  <a href="https://docs.aklivity.io/zilla/get-started"><b>Getting Started</b></a> &bull;
+  <a href="https://github.com/aklivity/zilla-examples"><b>Examples</b></a> &bull; 
+  <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
+</h3>
+
+## About Zilla
+Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless and reliable way of interfacing edge clients (mobile apps, browsers, partner systems, etc.) to Apache Kafka-based microservices and data.
+
+With Zilla, apps and services can use standard protocols such as HTTP, SSE and the native Kafka protocol (see roadmap for additional protocols on the way) to directly consume and produce Kafka event-streams over the internet. 
+
+<b>Zilla aims to:</b>
+
+1. Streamline event-driven architectures and make them easier to manage by eliminating the need for intermediary brokers and web servers, sink/source connectors, and change data capture (CDC) tooling.
+2. Simplify creating scalable, asynchronous backends that can support realtime frontend experiences.
+
+## Features
+
+### Kafka Proxies
+Zilla natively supports the Kafka protocol and is able to efficiently transform other protocols to and from it. Connectivity to Kafka brokers over PLAINTEXT, TLS/SSL and TLS/SSL with Client Certificates are supported. 
+
+- <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">HTTP ⇄ Kafka</a></b> — 
+  Transforms HTTP 1.1/HTTP 2  requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. JWT authentication supported.
+- <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">SSE ← Kafka</a></b> — 
+  Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable message down to web clients. Secured via JWTs and Zilla’s continuous authentication  mechanism, which re-authorize clients transparently without abruptly terminating their message streams.
+
+### Other
+- <b>CORS</b> — enable CORS so users can make browser based requests to Zilla APIs.
+- <b>Entitlement-based Messaging</b> — restrict access to endpoints based on client entitlement privileges.
+- <b>SSL/TLS</b> — support for the latest version of TLS.
+
+
+
+
+
+
+
+
+
+
 
 <p align="center">
   <img src="./assets/diagram-light-mode.svg#gh-light-mode-only" >
