@@ -45,6 +45,7 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
@@ -208,6 +209,7 @@ public class KafkaFunctionsTest
                                          .filter()
                                              .header("name", "value")
                                              .build()
+                                         .isolation("READ_UNCOMMITTED")
                                          .deltaType("NONE")
                                          .build()
                                      .build();
@@ -1640,6 +1642,7 @@ public class KafkaFunctionsTest
                                          .filter()
                                              .header("name", "value")
                                              .build()
+                                         .isolation("READ_UNCOMMITTED")
                                          .deltaType("NONE")
                                          .build()
                                      .build();
@@ -1983,7 +1986,39 @@ public class KafkaFunctionsTest
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .fetch(f -> f.timestamp(12345678L)
-                             .partition(p -> p.partitionId(0).partitionOffset(0L).latestOffset(0L))
+                             .partition(p -> p.partitionId(0).partitionOffset(0L).stableOffset(0L).latestOffset(0L))
+                             .key(k -> k.length(5)
+                                        .value(v -> v.set("match".getBytes(UTF_8))))
+                             .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
+
+                             .headersItem(h -> h.nameLen(4)
+                                                .name(n -> n.set("name".getBytes(UTF_8)))
+                                                .valueLen(5)
+                                                .value(v -> v.set("value".getBytes(UTF_8)))))
+                .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFetchDataExtensionWithStableOffset() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchDataEx()
+                                             .typeId(0x01)
+                                             .fetch()
+                                                 .timestamp(12345678L)
+                                                 .partition(0, 0L, 0L, 1L)
+                                                 .key("match")
+                                                 .header("name", "value")
+                                                 .build()
+                                             .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x01)
+                .fetch(f -> f.timestamp(12345678L)
+                             .partition(p -> p.partitionId(0).partitionOffset(0L).stableOffset(0L).latestOffset(1L))
                              .key(k -> k.length(5)
                                         .value(v -> v.set("match".getBytes(UTF_8))))
                              .delta(d -> d.type(t -> t.set(KafkaDeltaType.NONE)))
@@ -2130,6 +2165,31 @@ public class KafkaFunctionsTest
                             .value(v -> v.set("value".getBytes(UTF_8))))))
                 .deltaType(d -> d.set(KafkaDeltaType.NONE)))
             .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchFetchBeginExtensionIsolation() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                             .fetch()
+                                                 .isolation("READ_UNCOMMITTED")
+                                                 .build()
+                                             .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x01)
+                .fetch(f -> f
+                    .topic("test")
+                    .partition(p -> p.partitionId(0).partitionOffset(0L))
+                    .filtersItem(i -> i.conditionsItem(c -> c.key(k -> k.length(3)
+                                                                        .value(v -> v.set("key".getBytes(UTF_8))))))
+                    .isolation(i -> i.set(KafkaIsolation.READ_UNCOMMITTED))
+                    .deltaType(d -> d.set(KafkaDeltaType.NONE)))
+                .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
@@ -2384,6 +2444,40 @@ public class KafkaFunctionsTest
                             .name(n -> n.set("name".getBytes(UTF_8)))
                             .valueLen(5)
                             .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMergedBeginExtensionIsolation() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                             .merged()
+                                                 .isolation("READ_UNCOMMITTED")
+                                                 .build()
+                                             .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .topic("test")
+                .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8))))))
+                .isolation(i -> i.set(KafkaIsolation.READ_UNCOMMITTED)))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

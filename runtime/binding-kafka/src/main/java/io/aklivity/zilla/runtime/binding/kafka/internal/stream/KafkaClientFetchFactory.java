@@ -82,6 +82,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
 
 public final class KafkaClientFetchFactory implements BindingHandler
 {
@@ -263,6 +264,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 final int partitionId = partition.partitionId();
                 final long initialOffset = partition.partitionOffset();
                 final long latestOffset = partition.latestOffset();
+                KafkaIsolation isolation = kafkaFetchBeginEx.isolation().get();
 
                 newStream = new KafkaFetchStream(
                     application,
@@ -273,7 +275,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
                     partitionId,
                     latestOffset,
                     leaderId,
-                    initialOffset)::onApplication;
+                    initialOffset,
+                    isolation)::onApplication;
             }
         }
 
@@ -865,6 +868,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 final int partitionId = partition.partitionId();
                 final int errorCode = partition.errorCode();
 
+                client.stableOffset = partition.lastStableOffset();
                 client.latestOffset = partition.highWatermark() - 1;
 
                 client.decodePartitionError = errorCode;
@@ -1663,7 +1667,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
             int partitionId,
             long latestOffset,
             long leaderId,
-            long initialOffset)
+            long initialOffset,
+            KafkaIsolation isolation)
         {
             this.application = application;
             this.routeId = routeId;
@@ -1671,7 +1676,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
-            this.client = new KafkaFetchClient(resolvedId, topic, partitionId, initialOffset, latestOffset);
+            this.client = new KafkaFetchClient(resolvedId, topic, partitionId, initialOffset, latestOffset, isolation);
         }
 
         private int replyBudget()
@@ -1818,11 +1823,14 @@ public final class KafkaClientFetchFactory implements BindingHandler
             String topic,
             int partitionId,
             long partitionOffset,
-            long latestOffset)
+            long stableOffset,
+            long latestOffset,
+            KafkaIsolation isolation)
         {
             if (!KafkaState.replyOpening(state))
             {
-                doApplicationBegin(traceId, authorization, topic, partitionId, partitionOffset, latestOffset);
+                doApplicationBegin(traceId, authorization, topic,
+                        partitionId, partitionOffset, stableOffset, latestOffset, isolation);
             }
         }
 
@@ -1832,7 +1840,9 @@ public final class KafkaClientFetchFactory implements BindingHandler
             String topic,
             int partitionId,
             long partitionOffset,
-            long latestOffset)
+            long stableOffset,
+            long latestOffset,
+            KafkaIsolation isolation)
         {
             state = KafkaState.openingReply(state);
 
@@ -1843,7 +1853,9 @@ public final class KafkaClientFetchFactory implements BindingHandler
                                                         .fetch(m -> m.topic(topic)
                                                                      .partition(p -> p.partitionId(partitionId)
                                                                                       .partitionOffset(partitionOffset)
-                                                                                      .latestOffset(latestOffset)))
+                                                                                      .stableOffset(stableOffset)
+                                                                                      .latestOffset(latestOffset))
+                                                                     .isolation(i -> i.set(isolation)))
                                                         .build()
                                                         .sizeof()));
         }
@@ -1981,8 +1993,10 @@ public final class KafkaClientFetchFactory implements BindingHandler
             private final long replyId;
             private final String topic;
             private final int partitionId;
+            private final KafkaIsolation isolation;
 
             private long nextOffset;
+            private long stableOffset;
             private long latestOffset;
 
             private int state;
@@ -2033,7 +2047,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 String topic,
                 int partitionId,
                 long initialOffset,
-                long latestOffset)
+                long latestOffset,
+                KafkaIsolation isolation)
             {
                 this.stream = KafkaFetchStream.this;
                 this.routeId = routeId;
@@ -2043,6 +2058,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 this.partitionId = partitionId;
                 this.nextOffset = initialOffset;
                 this.latestOffset = latestOffset;
+                this.isolation = isolation;
                 this.encoder = encodeFetchRequest;
                 this.decoder = decodeReject;
             }
@@ -2483,7 +2499,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
                         .maxWaitTimeMillis(!KafkaState.replyOpened(stream.state) ? 0 : fetchMaxWaitMillis)
                         .minBytes(1)
                         .maxBytes(fetchMaxBytes)
-                        .isolationLevel((byte) 0)
+                        .isolationLevel((byte) isolation.ordinal())
                         .topicCount(1)
                         .build();
 
@@ -2680,7 +2696,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 case ERROR_NONE:
                     assert partitionId == this.partitionId;
                     doApplicationWindow(traceId, 0L, 0, 0, 0);
-                    doApplicationBeginIfNecessary(traceId, authorization, topic, partitionId, nextOffset, latestOffset);
+                    doApplicationBeginIfNecessary(traceId, authorization, topic, partitionId,
+                            nextOffset, stableOffset, latestOffset, isolation);
                     break;
                 case ERROR_OFFSET_OUT_OF_RANGE:
                     assert partitionId == this.partitionId;
@@ -2724,7 +2741,10 @@ public final class KafkaClientFetchFactory implements BindingHandler
                         .fetch(f ->
                         {
                             f.timestamp(timestamp);
-                            f.partition(p -> p.partitionId(decodePartitionId).partitionOffset(offset).latestOffset(latestOffset));
+                            f.partition(p -> p.partitionId(decodePartitionId)
+                                              .partitionOffset(offset)
+                                              .stableOffset(stableOffset)
+                                              .latestOffset(latestOffset));
                             f.key(k -> setKey(k, key));
                             final int headersLimit = headers.capacity();
                             int headerProgress = 0;

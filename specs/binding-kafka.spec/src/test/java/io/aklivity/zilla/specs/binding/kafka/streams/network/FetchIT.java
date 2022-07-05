@@ -273,4 +273,13 @@ public class FetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/isolation.read.committed/client",
+        "${net}/isolation.read.committed/server"})
+    public void shouldReceiveIsolationReadCommitted() throws Exception
+    {
+        k3po.finish();
+    }
 }

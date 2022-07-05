@@ -508,4 +508,14 @@ public class ClientFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
+        "${app}/isolation.read.committed/client",
+        "${net}/isolation.read.committed/server"})
+    public void shouldReceiveMessagesWithIsolationReadCommitted() throws Exception
+    {
+        k3po.finish();
+    }
 }

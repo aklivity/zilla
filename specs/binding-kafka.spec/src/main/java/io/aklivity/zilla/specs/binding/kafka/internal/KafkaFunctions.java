@@ -41,6 +41,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaTypeFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaHeadersFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolationFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaNotFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
@@ -655,8 +657,19 @@ public final class KafkaFunctions
                 long offset,
                 long latestOffset)
             {
+                partition(partitionId, offset, latestOffset, latestOffset);
+                return this;
+            }
+
+            public KafkaMergedBeginExBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset)
+            {
                 mergedBeginExRW.partitionsItem(p -> p.partitionId(partitionId)
                                                      .partitionOffset(offset)
+                                                     .stableOffset(stableOffset)
                                                      .latestOffset(latestOffset));
                 return this;
             }
@@ -674,6 +687,13 @@ public final class KafkaFunctions
                         return KafkaMergedBeginExBuilder.this;
                     }
                 };
+            }
+
+            public KafkaMergedBeginExBuilder isolation(
+                String isolation)
+            {
+                mergedBeginExRW.isolation(d -> d.set(KafkaIsolation.valueOf(isolation)));
+                return this;
             }
 
             public KafkaMergedBeginExBuilder deltaType(
@@ -720,8 +740,19 @@ public final class KafkaFunctions
                 long offset,
                 long latestOffset)
             {
+                partition(partitionId, offset, latestOffset, latestOffset);
+                return this;
+            }
+
+            public KafkaFetchBeginExBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset)
+            {
                 fetchBeginExRW.partition(p -> p.partitionId(partitionId)
                                                .partitionOffset(offset)
+                                               .stableOffset(stableOffset)
                                                .latestOffset(latestOffset));
                 return this;
             }
@@ -739,6 +770,13 @@ public final class KafkaFunctions
                         return KafkaFetchBeginExBuilder.this;
                     }
                 };
+            }
+
+            public KafkaFetchBeginExBuilder isolation(
+                String isolation)
+            {
+                fetchBeginExRW.isolation(d -> d.set(KafkaIsolation.valueOf(isolation)));
+                return this;
             }
 
             public KafkaFetchBeginExBuilder deltaType(
@@ -994,6 +1032,19 @@ public final class KafkaFunctions
             {
                 fetchDataExRW.partition(p -> p.partitionId(partitionId)
                                               .partitionOffset(partitionOffset)
+                                              .stableOffset(latestOffset)
+                                              .latestOffset(latestOffset));
+                return this;
+            }
+            public KafkaFetchDataExBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                long stableOffset,
+                long latestOffset)
+            {
+                fetchDataExRW.partition(p -> p.partitionId(partitionId)
+                                              .partitionOffset(partitionOffset)
+                                              .stableOffset(stableOffset)
                                               .latestOffset(latestOffset));
                 return this;
             }
@@ -1670,7 +1721,29 @@ public final class KafkaFunctions
                 assert partitionRW == null;
                 partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
 
-                partitionRW.partitionId(partitionId).partitionOffset(partitionOffset).latestOffset(latestOffset);
+                partitionRW
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .stableOffset(latestOffset)
+                    .latestOffset(latestOffset);
+
+                return this;
+            }
+
+            public KafkaFetchDataExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                long stableOffset,
+                long latestOffset)
+            {
+                assert partitionRW == null;
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                partitionRW
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset);
 
                 return this;
             }
@@ -2335,6 +2408,7 @@ public final class KafkaFunctions
         {
             private String16FW topic;
             private KafkaDeltaTypeFW deltaType;
+            private KafkaIsolationFW isolation;
 
             private KafkaOffsetFW.Builder partitionRW;
             private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
@@ -2392,6 +2466,16 @@ public final class KafkaFunctions
                 };
             }
 
+            public KafkaFetchBeginExMatcherBuilder isolation(
+                String isolation)
+            {
+                assert this.isolation == null;
+                this.isolation = new KafkaIsolationFW.Builder().wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                        .set(KafkaIsolation.valueOf(isolation))
+                        .build();
+                return this;
+            }
+
             public KafkaFetchBeginExMatcherBuilder deltaType(
                 String deltaType)
             {
@@ -2414,6 +2498,7 @@ public final class KafkaFunctions
                 return matchTopic(fetchBeginEx) &&
                     matchPartition(fetchBeginEx) &&
                     matchFilters(fetchBeginEx) &&
+                    matchIsolation(fetchBeginEx) &&
                     matchDeltaType(fetchBeginEx);
             }
 
@@ -2433,6 +2518,12 @@ public final class KafkaFunctions
                 final KafkaFetchBeginExFW fetchBeginEx)
             {
                 return filtersRW == null || filtersRW.build().equals(fetchBeginEx.filters());
+            }
+
+            private boolean matchIsolation(
+                final KafkaFetchBeginExFW fetchBeginEx)
+            {
+                return isolation == null || isolation.equals(fetchBeginEx.isolation());
             }
 
             private boolean matchDeltaType(
@@ -2548,6 +2639,7 @@ public final class KafkaFunctions
             private KafkaCapabilities capabilities;
             private String16FW topic;
             private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW;
+            private KafkaIsolation isolation;
             private KafkaDeltaType deltaType;
             private Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> filtersRW;
 
@@ -2613,6 +2705,14 @@ public final class KafkaFunctions
                 };
             }
 
+            public KafkaMergedBeginExMatcherBuilder isolation(
+                String isolation)
+            {
+                assert this.isolation == null;
+                this.isolation = KafkaIsolation.valueOf(isolation);
+                return this;
+            }
+
             public KafkaMergedBeginExMatcherBuilder deltaType(
                 String deltaType)
             {
@@ -2634,6 +2734,7 @@ public final class KafkaFunctions
                     matchTopic(mergedBeginEx) &&
                     matchPartitions(mergedBeginEx) &&
                     matchFilters(mergedBeginEx) &&
+                    matchIsolation(mergedBeginEx) &&
                     matchDeltaType(mergedBeginEx);
             }
 
@@ -2659,6 +2760,12 @@ public final class KafkaFunctions
                 final KafkaMergedBeginExFW mergedBeginEx)
             {
                 return filtersRW == null || filtersRW.build().equals(mergedBeginEx.filters());
+            }
+
+            private boolean matchIsolation(
+                final KafkaMergedBeginExFW mergedBeginEx)
+            {
+                return isolation == null || isolation == mergedBeginEx.isolation().get();
             }
 
             private boolean matchDeltaType(
