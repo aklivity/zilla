@@ -184,6 +184,8 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 
 ## Roadmap
 Zilla is designed from the ground up to be extensible and we anticipate adding support for several new capabilities:
+
+**Protocols and Transformations**
  - gRPC, proxy and Kafka mapping
  - GraphQL, proxy and Kafka mapping
  - MQTT, proxy and Kafka mapping
@@ -192,6 +194,8 @@ Zilla is designed from the ground up to be extensible and we anticipate adding s
  - WebHooks, Kafka mapping
  - HTTP, proxy, including HTTP/3
  - SSE, proxy (Kafka mapping done)
+
+**Integrations** 
  - OpenAPI integration
  - AsyncAPI integration
  - Avro integration
@@ -203,10 +207,8 @@ Please let us know in the [Slack community][community-join] if you have addition
 ## Background
 Zilla is designed on the fundamental principle that _every data flow is a stream_, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
 
-## FAQ
-1. 
-2. 
-3. 
+Prior to working on Zilla, we were closely involved in the standarization of WebSocket, and helped bring WebSocket to the enterprise by way of a WebSocket gateway that extended the reach of JMS to mobile and web clients. Many of the learnings and design decisions incorporated into Zilla stem from running...
+
 
 ## Build from source
 ```bash
