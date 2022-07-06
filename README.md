@@ -40,7 +40,7 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
 - <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">HTTP ⇄ Kafka</a></b> — 
   Transforms HTTP 1.1/HTTP 2  requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. JWT authentication supported.
 - <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">SSE ← Kafka</a></b> — 
-  Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable message down to web clients. Secured via JWTs and Zilla’s continuous authentication  mechanism, which re-authorize clients transparently without abruptly terminating their message streams.
+  Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable message down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
 
 ### Other
 - <b>CORS</b> — enable CORS so users can make browser based requests to Zilla APIs.
@@ -53,7 +53,8 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
 </div>
 
 ## Getting Started
-### Start by running the latest Zilla release with default empty configuration via docker.
+### Running Zilla via Docker
+Run the latest Zilla release with default empty configuration via docker.
 
 ```
 docker run ghcr.io/aklivity/zilla:latest start -v
@@ -111,6 +112,13 @@ Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL` and `TLS/SSL with Client 
 
 Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
 
+#### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
+A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo App with Zilla and Kafka streams, and achieve the following:
+- Provide a list of Todo tasks that is shared by all clients
+- Support optimistic locking with conflict detection when attempting to update a Todo task
+- Deliver updates in near real-time when a Todo task is created, modified, or deleted
+- Demonstrate a user interface driving the Tasks API
+- Support scaling Todo task reads and writes
 
 ### Zilla Examples
 You can also quickly test out Zilla buy running preconfigured Zilla configurations for various protocols.
@@ -135,25 +143,21 @@ You can also quickly test out Zilla buy running preconfigured Zilla configuratio
 | [ws.reflect](ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
 
 
-### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
-A [step-by-step guide][zilla-todo-tutorial] showing how to build a CQRS Todo App with Zilla and Kafka streams achieving the following:
-- Provide a list of Todo tasks that is shared by all clients
-- Support optimistic locking with conflict detection when attempting to update a Todo task
-- Deliver updates in near real-time when a Todo task is created, modified, or deleted
-- Demonstrate a user interface driving the Tasks API
-- Support scaling Todo task reads and writes
+## Use Cases
+### Migrate/Bridge REST to Event-Driven
 
-## Sample Use Cases
-#### Migrating/Bridging REST to Event-Driven
+
+**Key Zilla Features:**
 - HTTP request-response interaction with Kafka-based microservices 
 - HTTP event-driven caching populated by messages from a Kafka topic
 - secure HTTP request-response APIs using JWT access tokens
 
-#### Realtime mobile and browser application development
+### Create streaming/push APIs for realtime web apps (live chat/collaboration, geo-tracking, gamming, etc.)
+As a developer, you can focus on writing and testing your event-driven microservices with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
+
+**Key Zilla Features:**
 - reliable message streaming from a Kafka topic via Server-Sent Events
 - secure Server-Sent Events streams using continuous authorization via JWT access tokens
-
-As a developer, you can focus on writing and testing your event-driven microservices with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
 
 
 ## Performance
