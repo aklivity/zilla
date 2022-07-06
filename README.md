@@ -33,6 +33,7 @@ With Zilla, apps and services can use standard protocols such as HTTP, SSE and t
 2. Simplify creating scalable, asynchronous backends that can support realtime frontend experiences.
 
 ## Features
+Zilla is designed on the fundamental principle that every data flow is a stream, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
 
 ### Kafka Proxies
 Zilla natively supports the Kafka protocol and is able to efficiently transform other protocols to and from it. 
@@ -113,17 +114,18 @@ Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL` and `TLS/SSL with Client 
 Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
 <br></br>
 #### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
-<div align="center" style="box-shadow:5px 5px 5px #999;">
-    <img src="./assets/zilla-todo-app-screenshot@2x.png" height="300">
-    <br></br>
-</div>
-
 A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo App with Zilla and Kafka streams, and achieve the following:
 - Provide a list of Todo tasks that is shared by all clients
 - Support optimistic locking with conflict detection when attempting to update a Todo task
 - Deliver updates in near real-time when a Todo task is created, modified, or deleted
 - Demonstrate a user interface driving the Tasks API
 - Support scaling Todo task reads and writes
+
+<div align="center" float="left">
+    <img src="./assets/zilla-todo-app-screenshot-shadow@2x.png" height="300">  
+    <p><i>Vue.js + Zilla + Kafka</i></p>
+</div>
+
 
 ### Zilla Examples
 You can also quickly test out Zilla buy running preconfigured Zilla configurations for various protocols.
@@ -150,20 +152,19 @@ You can also quickly test out Zilla buy running preconfigured Zilla configuratio
 
 ## Use Cases
 ### Migrate/Bridge REST to Event-Driven
-
+Interface REST apps and services to event-streams with app specific API declarations, enabling them as first-class participants inside an event-driven architecture. Achieve a CQRS event-sourcing design pattern with minimal effort.
 
 **Key Zilla Features:**
 - HTTP request-response interaction with Kafka-based microservices 
 - HTTP event-driven caching populated by messages from a Kafka topic
-- secure HTTP request-response APIs using JWT access tokens
+- Secure HTTP request-response APIs using JWT access tokens
 
 ### Create streaming/push APIs for realtime web apps (live chat/collaboration, geo-tracking, gamming, etc.)
 As a developer, you can focus on writing and testing your event-driven microservices with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
 
 **Key Zilla Features:**
-- reliable message streaming from a Kafka topic via Server-Sent Events
-- secure Server-Sent Events streams using continuous authorization via JWT access tokens
-- fan-out — publish a message once and have it delivered to m 
+- Reliable message streaming from a Kafka topic via Server-Sent Events with fan-out capability 
+- Secure Server-Sent Events streams using continuous authorization via JWT access tokens
 
 
 ## Performance
@@ -213,12 +214,6 @@ Zilla is designed from the ground up to be extensible and we anticipate adding s
  - Kubernetes integration
 
 Please let us know in the [Slack community][community-join] if you have additional suggestions.
-
-## Background
-Zilla is designed on the fundamental principle that _every data flow is a stream_, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
-
-Prior to working on Zilla, we were closely involved in the standarization of WebSocket, and helped bring WebSocket to the enterprise by way of a WebSocket gateway that extended the reach of JMS to mobile and web clients. Many of the learnings and design decisions incorporated into Zilla stem from running...
-
 
 ## Build from source
 ```bash
