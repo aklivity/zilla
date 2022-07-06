@@ -5,7 +5,7 @@
 <style type="text/css">
 	.st0{fill:#EAEFEF;stroke:#C2CECE;stroke-width:1.0224;stroke-miterlimit:10;}
 	.st1{font-family:'Arial-BoldMT';}
-	.st2{font-size:30px;}
+	.st2{font-size:21px;}
 	.st3{fill:none;stroke:#0D9B76;stroke-width:2;stroke-miterlimit:10;}
 	.st4{fill:none;stroke:#5A7CD9;stroke-width:2;stroke-miterlimit:10;}
 	.st5{fill:none;stroke:#1ED5A7;stroke-width:2;stroke-miterlimit:10;}
@@ -56,16 +56,13 @@
 	.st50{fill:none;stroke:#A2AAAA;stroke-width:1.1287;stroke-miterlimit:10;}
 	.st51{font-family:'ArialMT';}
 	.st52{font-size:8px;}
-	.st53{fill:url(#SVGID_3_);stroke:#C2CECE;stroke-width:0.25;stroke-miterlimit:10;}
-	.st54{fill:url(#SVGID_4_);stroke:#C2CECE;stroke-width:0.25;stroke-miterlimit:10;}
-	.st55{fill:url(#SVGID_5_);stroke:#C2CECE;stroke-width:0.25;stroke-miterlimit:10;}
-	.st56{fill:url(#SVGID_6_);stroke:#C2CECE;stroke-width:0.25;stroke-miterlimit:10;}
-	.st57{fill:#E52828;}
+	.st53{fill:#0D9B76;stroke:#C2CECE;stroke-width:0.25;stroke-miterlimit:10;}
+	.st54{fill:#E52828;}
 </style>
 <rect x="18.5" y="48.6" class="st0" width="500.4" height="633.4"/>
 <rect x="544.2" y="48.6" class="st0" width="500.4" height="633.4"/>
-<text transform="matrix(1 0 0 1 761.8423 36.7749)" class="st1 st2">after</text>
-<text transform="matrix(1 0 0 1 225.3199 36.023)" class="st1 st2">before</text>
+<text transform="matrix(1 0 0 1 771.5962 36.7749)" class="st1 st2">after</text>
+<text transform="matrix(1 0 0 1 239.0728 36.023)" class="st1 st2">before</text>
 <line class="st3" x1="794.9" y1="478.2" x2="794.9" y2="317"/>
 <path class="st4" d="M795.8,317.5c-6,67.9,9.8,62.2-58.4,62.2c-38.2,0-47.7,30-51.3,99.3"/>
 <path class="st5" d="M794.5,317.5c5.9,67.9-9.7,62.2,58.3,62.2c38,0,47.6,30,51.1,99.3"/>
@@ -2345,71 +2342,35 @@
 	</g>
 	<text transform="matrix(-0.7241 0.6897 -0.6897 -0.7241 854.2819 304.5244)" class="st9 st51 st52">Webhooks</text>
 </g>
-<linearGradient id="SVGID_3_" gradientUnits="userSpaceOnUse" x1="551.9839" y1="542.9987" x2="564.1094" y2="549.9994">
-	<stop  offset="0" style="stop-color:#0D9B76"/>
-	<stop  offset="0.2494" style="stop-color:#1F948D"/>
-	<stop  offset="0.3668" style="stop-color:#3F87B6"/>
-	<stop  offset="0.4907" style="stop-color:#537FD0"/>
-	<stop  offset="0.5928" style="stop-color:#5A7CD9"/>
-	<stop  offset="0.8287" style="stop-color:#30BBB6"/>
-	<stop  offset="1" style="stop-color:#1ED5A7"/>
-</linearGradient>
 <polygon class="st53" points="558.5,538.8 560.7,543.2 565.5,543.9 562,547.4 562.8,552.2 558.5,549.9 554.1,552.2 555,547.4 
 	551.5,543.9 556.3,543.2 "/>
-<linearGradient id="SVGID_4_" gradientUnits="userSpaceOnUse" x1="551.9839" y1="581.9987" x2="564.1094" y2="588.9994">
-	<stop  offset="0" style="stop-color:#0D9B76"/>
-	<stop  offset="0.2494" style="stop-color:#1F948D"/>
-	<stop  offset="0.3668" style="stop-color:#3F87B6"/>
-	<stop  offset="0.4907" style="stop-color:#537FD0"/>
-	<stop  offset="0.5928" style="stop-color:#5A7CD9"/>
-	<stop  offset="0.8287" style="stop-color:#30BBB6"/>
-	<stop  offset="1" style="stop-color:#1ED5A7"/>
-</linearGradient>
-<polygon class="st54" points="558.5,577.8 560.7,582.2 565.5,582.9 562,586.4 562.8,591.2 558.5,588.9 554.1,591.2 555,586.4 
+<polygon class="st53" points="558.5,577.8 560.7,582.2 565.5,582.9 562,586.4 562.8,591.2 558.5,588.9 554.1,591.2 555,586.4 
 	551.5,582.9 556.3,582.2 "/>
-<linearGradient id="SVGID_5_" gradientUnits="userSpaceOnUse" x1="551.9839" y1="618.9987" x2="564.1094" y2="625.9994">
-	<stop  offset="0" style="stop-color:#0D9B76"/>
-	<stop  offset="0.2494" style="stop-color:#1F948D"/>
-	<stop  offset="0.3668" style="stop-color:#3F87B6"/>
-	<stop  offset="0.4907" style="stop-color:#537FD0"/>
-	<stop  offset="0.5928" style="stop-color:#5A7CD9"/>
-	<stop  offset="0.8287" style="stop-color:#30BBB6"/>
-	<stop  offset="1" style="stop-color:#1ED5A7"/>
-</linearGradient>
-<polygon class="st55" points="558.5,614.8 560.7,619.2 565.5,619.9 562,623.4 562.8,628.2 558.5,625.9 554.1,628.2 555,623.4 
+<polygon class="st53" points="558.5,614.8 560.7,619.2 565.5,619.9 562,623.4 562.8,628.2 558.5,625.9 554.1,628.2 555,623.4 
 	551.5,619.9 556.3,619.2 "/>
-<linearGradient id="SVGID_6_" gradientUnits="userSpaceOnUse" x1="551.9839" y1="657.6511" x2="564.1094" y2="664.6517">
-	<stop  offset="0" style="stop-color:#0D9B76"/>
-	<stop  offset="0.2494" style="stop-color:#1F948D"/>
-	<stop  offset="0.3668" style="stop-color:#3F87B6"/>
-	<stop  offset="0.4907" style="stop-color:#537FD0"/>
-	<stop  offset="0.5928" style="stop-color:#5A7CD9"/>
-	<stop  offset="0.8287" style="stop-color:#30BBB6"/>
-	<stop  offset="1" style="stop-color:#1ED5A7"/>
-</linearGradient>
-<polygon class="st56" points="558.5,653.5 560.7,657.9 565.5,658.6 562,662 562.8,666.8 558.5,664.6 554.1,666.8 555,662 
+<polygon class="st53" points="558.5,653.5 560.7,657.9 565.5,658.6 562,662 562.8,666.8 558.5,664.6 554.1,666.8 555,662 
 	551.5,658.6 556.3,657.9 "/>
 <g>
-	<rect x="26.4" y="544" transform="matrix(0.7071 0.7071 -0.7071 0.7071 395.284 136.6999)" class="st57" width="12.4" height="3"/>
+	<rect x="26.4" y="544" transform="matrix(0.7071 0.7071 -0.7071 0.7071 395.284 136.6999)" class="st54" width="12.4" height="3"/>
 	
-		<rect x="26.4" y="544" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -376.1695 182.8466)" class="st57" width="12.4" height="3"/>
+		<rect x="26.4" y="544" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -376.1695 182.8466)" class="st54" width="12.4" height="3"/>
 </g>
 <g>
 	
-		<rect x="26.4" y="583" transform="matrix(0.7071 0.7071 -0.7071 0.7071 422.8612 148.1228)" class="st57" width="12.4" height="3"/>
+		<rect x="26.4" y="583" transform="matrix(0.7071 0.7071 -0.7071 0.7071 422.8612 148.1228)" class="st54" width="12.4" height="3"/>
 	
-		<rect x="26.4" y="583" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -403.7466 194.2694)" class="st57" width="12.4" height="3"/>
+		<rect x="26.4" y="583" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -403.7466 194.2694)" class="st54" width="12.4" height="3"/>
 </g>
 <g>
 	
-		<rect x="26.4" y="620" transform="matrix(0.7071 0.7071 -0.7071 0.7071 449.0241 158.9598)" class="st57" width="12.4" height="3"/>
+		<rect x="26.4" y="620" transform="matrix(0.7071 0.7071 -0.7071 0.7071 449.0241 158.9598)" class="st54" width="12.4" height="3"/>
 	
-		<rect x="26.4" y="620" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -429.9096 205.1065)" class="st57" width="12.4" height="3"/>
+		<rect x="26.4" y="620" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -429.9096 205.1065)" class="st54" width="12.4" height="3"/>
 </g>
 <g>
 	
-		<rect x="26.4" y="661" transform="matrix(0.7071 0.7071 -0.7071 0.7071 478.0155 170.9684)" class="st57" width="12.4" height="3"/>
+		<rect x="26.4" y="661" transform="matrix(0.7071 0.7071 -0.7071 0.7071 478.0155 170.9684)" class="st54" width="12.4" height="3"/>
 	
-		<rect x="26.4" y="661" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -458.901 217.1151)" class="st57" width="12.4" height="3"/>
+		<rect x="26.4" y="661" transform="matrix(0.7071 -0.7071 0.7071 0.7071 -458.901 217.1151)" class="st54" width="12.4" height="3"/>
 </g>
 </svg>
