@@ -43,10 +43,10 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
   Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable message down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
 
 ### Other
-- <b>CORS</b> — enable CORS so users can make browser based requests to Zilla APIs.
-- <b>Entitlement-based Messaging</b> — restrict access to endpoints based on client entitlement privileges.
-- <b>SSL/TLS</b> — support for the latest version of TLS.
-
+- **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
+- **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
+- **SSL/TLS** — support for the latest version of TLS.
+ 
 <div align="center">
   </br>
   <img src="./assets/before-after-zilla.svg">
@@ -158,6 +158,7 @@ As a developer, you can focus on writing and testing your event-driven microserv
 **Key Zilla Features:**
 - reliable message streaming from a Kafka topic via Server-Sent Events
 - secure Server-Sent Events streams using continuous authorization via JWT access tokens
+- fan-out — publish a message once and have it delivered to m 
 
 
 ## Performance
