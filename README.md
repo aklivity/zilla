@@ -46,7 +46,7 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
 - **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
 - **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
 - **SSL/TLS** — support for the latest version of TLS.
- 
+
 <div align="center">
   </br>
   <img src="./assets/before-after-zilla.svg">
@@ -111,8 +111,13 @@ Hello, world
 Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL` and `TLS/SSL with Client Certificates` (`SASL/SCRAM` will be imminently supported).
 
 Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
-
+<br></br>
 #### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
+<div align="center" style="box-shadow:5px 5px 5px #999;">
+    <img src="./assets/zilla-todo-app-screenshot@2x.png" height="300">
+    <br></br>
+</div>
+
 A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo App with Zilla and Kafka streams, and achieve the following:
 - Provide a list of Todo tasks that is shared by all clients
 - Support optimistic locking with conflict detection when attempting to update a Todo task
