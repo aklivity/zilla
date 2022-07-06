@@ -90,6 +90,14 @@ public class SchemaTest
     }
 
     @Test
+    public void shouldValidateClientOptionsSaslPlain()
+    {
+        JsonObject config = schema.validate("client.options.sasl.plain.json");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void shouldValidateClientWhenTopic()
     {
         JsonObject config = schema.validate("client.when.topic.json");

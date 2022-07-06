@@ -63,6 +63,43 @@
                                     }
                                 }
                             }
+                        },
+                        "sasl":
+                        {
+                            "title": "SASL",
+                            "type": "object",
+                            "properties":
+                            {
+                                "mechanism":
+                                {
+                                    "title": "Mechanism",
+                                    "type": "string",
+                                    "enum": [ "plain" ]
+                                }
+                            },
+                            "oneOf":
+                            [
+                                {
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "mechanism":
+                                        {
+                                            "const": "plain"
+                                        },
+                                        "username":
+                                        {
+                                            "title": "Username",
+                                            "type": "string"
+                                        },
+                                        "password":
+                                        {
+                                            "title": "Password",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "additionalProperties": false
