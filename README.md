@@ -50,7 +50,7 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
 
 <div align="center">
   </br>
-  <img src="./assets/before-after-zilla-labled.svg">
+  <img src="./assets/before-after-zilla.svg">
 </div>
 
 ## Getting Started
