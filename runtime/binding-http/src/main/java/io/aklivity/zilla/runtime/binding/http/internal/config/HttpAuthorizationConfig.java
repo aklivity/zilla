@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.config;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public final class HttpAuthorizationConfig
 {
@@ -35,18 +33,12 @@ public final class HttpAuthorizationConfig
         this.credentials = credentials;
     }
 
-    public Function<Function<String, String>, String> credentials()
-    {
-        return credentials != null ? credentials.accessor : DEFAULT_CREDENTIALS;
-    }
-
     public static final class HttpCredentialsConfig
     {
         public final List<HttpPatternConfig> headers;
         public final List<HttpPatternConfig> parameters;
         public final List<HttpPatternConfig> cookies;
 
-        private final Function<Function<String, String>, String> accessor;
 
         public HttpCredentialsConfig(
             List<HttpPatternConfig> headers)
@@ -62,87 +54,6 @@ public final class HttpAuthorizationConfig
             this.headers = headers;
             this.parameters = parameters;
             this.cookies = cookies;
-            this.accessor = asAccessor(headers, parameters, cookies);
-        }
-
-        private Function<Function<String, String>, String> asAccessor(
-            List<HttpPatternConfig> headers,
-            List<HttpPatternConfig> parameters,
-            List<HttpPatternConfig> cookies)
-        {
-            Function<Function<String, String>, String> accessor = DEFAULT_CREDENTIALS;
-
-            if (cookies != null && !cookies.isEmpty())
-            {
-                HttpPatternConfig config = cookies.get(0);
-                String cookieName = config.name;
-
-                Matcher cookieMatch =
-                        Pattern.compile(String.format(
-                                    "(;\\s*)?%s=%s",
-                                    cookieName,
-                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
-                               .matcher("");
-
-                accessor = orElseIfNull(accessor, hs ->
-                {
-                    String cookie = hs.apply("cookie");
-                    return cookie != null && cookieMatch.reset(cookie).find()
-                        ? cookieMatch.group("credentials")
-                        : null;
-                });
-            }
-
-            if (headers != null && !headers.isEmpty())
-            {
-                HttpPatternConfig config = headers.get(0);
-                String headerName = config.name;
-                Matcher headerMatch =
-                        Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
-                               .matcher("");
-
-                accessor = orElseIfNull(accessor, hs ->
-                {
-                    String header = hs.apply(headerName);
-                    return header != null && headerMatch.reset(header).matches()
-                            ? headerMatch.group("credentials")
-                            : null;
-                });
-            }
-
-            if (parameters != null && !parameters.isEmpty())
-            {
-                HttpPatternConfig config = parameters.get(0);
-                String parametersName = config.name;
-
-                Matcher parametersMatch =
-                        Pattern.compile(String.format(
-                                    "(\\?|\\&)%s=%s",
-                                    parametersName,
-                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\&]+)")))
-                               .matcher("");
-
-                accessor = orElseIfNull(accessor, hs ->
-                {
-                    String pathWithQuery = hs.apply(":path");
-                    return pathWithQuery != null && parametersMatch.reset(pathWithQuery).find()
-                        ? parametersMatch.group("credentials")
-                        : null;
-                });
-            }
-
-            return accessor;
-        }
-
-        private static Function<Function<String, String>, String> orElseIfNull(
-            Function<Function<String, String>, String> first,
-            Function<Function<String, String>, String> second)
-        {
-            return hs ->
-            {
-                String result = first.apply(hs);
-                return result != null ? result : second.apply(hs);
-            };
         }
     }
 
