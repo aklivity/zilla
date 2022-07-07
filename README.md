@@ -25,7 +25,7 @@ Zilla is a next-generation API gateway built for event-driven architectures and 
 
 Zilla's declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point to your event-driven architecture.
 
-With Zilla, apps and services can use standard protocols such as HTTP, SSE and the native Kafka protocol (see roadmap for additional protocols on the way) to directly consume and produce Kafka event-streams over the internet. 
+With Zilla, apps and services can use standard protocols such as HTTP, SSE and the native Kafka protocol (see [roadmap](#roadmap) for additional protocols on the way) to directly consume and produce Kafka event-streams over the internet. 
 
 <b>Zilla aims to:</b>
 
