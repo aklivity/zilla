@@ -132,22 +132,22 @@ You can also quickly test out Zilla buy running preconfigured Zilla configuratio
 
 | Name | Description|
 |------|------------|
-| [tcp.echo](tcp.echo) | Echoes bytes sent to the TCP server |
-| [tcp.reflect](tcp.reflect) | Echoes bytes sent to the TCP server, broadcasting to all TCP clients |
-| [tls.echo](tls.echo) | Echoes encrypted bytes sent to the TLS server |
-| [tls.reflect](tls.reflect) | Echoes encrypted bytes sent to the TLS server, broadcasting to all TLS clients |
-| [http.filesystem](http.filesystem) | Serves files from a directory on the local filesystem |
-| [http.echo](http.echo) | Echoes request sent to the HTTP server from an HTTP client |
-| [http.echo.jwt](http.echo.jwt) | Echoes request sent to the HTTP server from a JWT-authorized HTTP client |
-| [http.kafka.sync](http.kafka.sync) | Correlates requests and responses over separate Kaka topics |
-| [http.kafka.async](http.kafka.async) | Correlates requests and responses over separate Kaka topics, asynchronously |
-| [http.kafka.cache](http.kafka.cache) | Serves cached responses from a Kaka topic |
-| [http.kafka.oneway](http.kafka.oneway) | Sends messages to a Kaka topic |
-| [amqp.reflect](amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
-| [mqtt.reflect](mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
-| [sse.kafka.fanout](sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
-| [ws.echo](ws.echo) | Echoes messages sent to the WebSocket server |
-| [ws.reflect](ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
+| [tcp.echo](https://github.com/aklivity/zilla-examples/tree/main/tcp.echo) | Echoes bytes sent to the TCP server |
+| [tcp.reflect](https://github.com/aklivity/zilla-examples/tree/main/tcp.reflect) | Echoes bytes sent to the TCP server, broadcasting to all TCP clients |
+| [tls.echo](https://github.com/aklivity/zilla-examples/tree/main/tls.echo) | Echoes encrypted bytes sent to the TLS server |
+| [tls.reflect](https://github.com/aklivity/zilla-examples/tree/main/tls.reflect) | Echoes encrypted bytes sent to the TLS server, broadcasting to all TLS clients |
+| [http.filesystem](https://github.com/aklivity/zilla-examples/tree/main/http.filesystem) | Serves files from a directory on the local filesystem |
+| [http.echo](https://github.com/aklivity/zilla-examples/tree/main/http.echo) | Echoes request sent to the HTTP server from an HTTP client |
+| [http.echo.jwt](https://github.com/aklivity/zilla-examples/tree/main/http.echo.jwt) | Echoes request sent to the HTTP server from a JWT-authorized HTTP client |
+| [http.kafka.sync](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sync) | Correlates requests and responses over separate Kaka topics |
+| [http.kafka.async](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Correlates requests and responses over separate Kaka topics, asynchronously |
+| [http.kafka.cache](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.cache) | Serves cached responses from a Kaka topic |
+| [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kaka topic |
+| [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
+| [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
+| [sse.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
+| [ws.echo](https://github.com/aklivity/zilla-examples/tree/main/ws.echo) | Echoes messages sent to the WebSocket server |
+| [ws.reflect](https://github.com/aklivity/zilla-examples/tree/main/ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
 
 
 ## Use Cases
