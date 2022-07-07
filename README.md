@@ -46,7 +46,7 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
 ### Other
 - **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
 - **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
-- **SSL/TLS** — support for the latest version of TLS.
+- **SSL/TLS** — support for TLS virtual hosting.
 
 <div align="center">
   </br>
