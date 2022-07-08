@@ -912,7 +912,11 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             final long authorization = begin.authorization();
 
             state = KafkaState.openingInitial(state);
-            doAppWindow(traceId, 0, client.flushable ? encodeMaxBytes : 0);
+
+            if (client.flushable)
+            {
+                doAppWindow(traceId, 0, encodeMaxBytes);
+            }
 
             client.doNetworkBegin(traceId, authorization, affinity);
         }
