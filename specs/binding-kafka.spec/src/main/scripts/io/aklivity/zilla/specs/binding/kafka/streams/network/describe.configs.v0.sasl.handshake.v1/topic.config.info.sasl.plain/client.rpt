@@ -56,3 +56,29 @@ read 20                                 # size
      -1
      -1s                                # authentication bytes
      0L                                 # session lifetime
+
+write 41                                # size
+      32s                               # describe configs
+      0s                                # v0
+      ${newRequestId}
+      -1s                               # no client id
+      1                                 # resources
+        [0x02]                          # topic resource
+        4s "test"                       # "test" topic
+        1                               # configs
+          14s "cleanup.policy"            # name
+
+read 55                                 # size
+     ${newRequestId}
+     [0..4]
+     1                                  # resources
+       0s                                 # no error
+       -1s                                # error message
+       [0x02]                             # topic resource
+       4s "test"                          # "test" topic
+       1                                  # configs
+         14s "cleanup.policy"               # name
+         7s "compact"                       # value
+        [0x00]                              # not read only
+        [0x00]                              # not default
+        [0x00]                              # not sensitive

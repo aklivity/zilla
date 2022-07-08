@@ -30,18 +30,19 @@ import static java.util.Objects.requireNonNull;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
-import java.util.function.LongUnaryOperator;
 import java.util.zip.CRC32C;
 
 import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
@@ -81,7 +82,7 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaClientProduceFactory implements BindingHandler
+public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int PRODUCE_REQUEST_RECORDS_OFFSET_MAX = 512;
 
@@ -156,10 +157,16 @@ public final class KafkaClientProduceFactory implements BindingHandler
     private final ProducePartitionResponseFW producePartitionResponseRO = new ProducePartitionResponseFW();
     private final ProduceResponseTrailerFW produceResponseTrailerRO = new ProduceResponseTrailerFW();
 
-    private final KafkaProduceClientEncoder encodeRecord = this::encodeRecord;
-    private final KafkaProduceClientEncoder encodeRecordInit = this::encodeRecordInit;
-    private final KafkaProduceClientEncoder encodeRecordContFin = this::encodeRecordContFin;
+    private final KafkaProduceClientFlusher flushRecord = this::flushRecord;
+    private final KafkaProduceClientFlusher flushRecordInit = this::flushRecordInit;
+    private final KafkaProduceClientFlusher frameProduceRecordContFin = this::flushRecordContFin;
 
+    private final KafkaProduceClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
+    private final KafkaProduceClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
+    private final KafkaProduceClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
+    private final KafkaProduceClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
+    private final KafkaProduceClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaProduceClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
     private final KafkaProduceClientDecoder decodeProduceResponse = this::decodeProduceResponse;
     private final KafkaProduceClientDecoder decodeProduce = this::decodeProduce;
     private final KafkaProduceClientDecoder decodeProduceTopics = this::decodeProduceTopics;
@@ -167,6 +174,8 @@ public final class KafkaClientProduceFactory implements BindingHandler
     private final KafkaProduceClientDecoder decodeProducePartitions = this::decodeProducePartitions;
     private final KafkaProduceClientDecoder decodeProducePartition = this::decodeProducePartition;
     private final KafkaProduceClientDecoder decodeProduceResponseTrailer = this::decodeProduceResponseTrailer;
+    private final KafkaProduceClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
+    private final KafkaProduceClientDecoder decodeReject = this::decodeReject;
 
     private final int produceMaxWaitMillis;
     private final long produceRequestMaxDelay;
@@ -179,8 +188,6 @@ public final class KafkaClientProduceFactory implements BindingHandler
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
-    private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
     private final int decodeMaxBytes;
@@ -193,6 +200,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
+        super(context);
         this.produceMaxWaitMillis = config.clientProduceMaxResponseMillis();
         this.produceRequestMaxDelay = config.clientProduceMaxRequestMillis();
         this.produceAcks = ProduceAck.valueOf(config.clientProduceAcks());
@@ -204,8 +212,6 @@ public final class KafkaClientProduceFactory implements BindingHandler
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
-        this.supplyInitialId = context::supplyInitialId;
-        this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
         this.decodeMaxBytes = decodePool.slotCapacity();
@@ -247,6 +253,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
             {
                 final long resolvedId = resolved.id;
                 final int partitionId = kafkaProduceBeginEx.partition().partitionId();
+                final KafkaSaslConfig sasl = binding.sasl();
 
                 newStream = new KafkaProduceStream(
                         application,
@@ -255,7 +262,8 @@ public final class KafkaClientProduceFactory implements BindingHandler
                         affinity,
                         resolvedId,
                         topicName,
-                        partitionId)::onApplication;
+                        partitionId,
+                        sasl)::onApplication;
             }
         }
 
@@ -457,10 +465,10 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     @FunctionalInterface
-    private interface KafkaProduceClientEncoder
+    private interface KafkaProduceClientFlusher
     {
-        int encode(
-            KafkaProduceClient client,
+        int flush(
+            KafkaProduceStream.KafkaProduceClient client,
             long traceId,
             long authorization,
             long budgetId,
@@ -472,8 +480,8 @@ public final class KafkaClientProduceFactory implements BindingHandler
             int limit);
     }
 
-    private int encodeRecord(
-        KafkaProduceClient client,
+    private int flushRecord(
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -484,16 +492,16 @@ public final class KafkaClientProduceFactory implements BindingHandler
         int progress,
         int limit)
     {
-        if (client.encodeFlags == FLAGS_INIT)
+        if (client.flushFlags == FLAGS_INIT)
         {
-            client.encoder = encodeRecordInit;
+            client.flusher = flushRecordInit;
         }
 
         return progress;
     }
 
-    private int encodeRecordInit(
-        KafkaProduceClient client,
+    private int flushRecordInit(
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -520,18 +528,18 @@ public final class KafkaClientProduceFactory implements BindingHandler
         if (client.encodeSlot != NO_SLOT &&
             maxEncodeableBytes > encodePool.slotCapacity())
         {
-            client.doEncodeRequestIfNecessary(traceId);
+            client.doEncodeRequestIfNecessary(traceId, budgetId);
         }
 
         client.doEncodeRecordInit(traceId, timestamp, key, payload, headers);
-        client.encoder = encodeRecordContFin;
-        client.encodeFlags = FLAGS_INIT;
+        client.flusher = frameProduceRecordContFin;
+        client.flushFlags = FLAGS_INIT;
 
         return progress;
     }
 
-    private int encodeRecordContFin(
-        KafkaProduceClient client,
+    private int flushRecordContFin(
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -543,17 +551,17 @@ public final class KafkaClientProduceFactory implements BindingHandler
         int limit)
     {
         final int length = payload != null ? payload.sizeof() : 0;
-        client.doEncodeRecordCont(traceId, payload, flags);
-        client.encodeFlags = FLAGS_CON;
+        client.doEncodeRecordCont(traceId, budgetId, payload, flags);
+        client.flushFlags = FLAGS_CON;
 
         progress += length;
 
         if ((flags & FLAGS_FIN) == FLAGS_FIN)
         {
-            client.doEncodeRecordFin(traceId);
+            client.doEncodeRecordFin(traceId, budgetId);
             assert progress == limit;
-            client.encoder = this::encodeRecord;
-            client.encodeFlags = FLAGS_FIN;
+            client.flusher = flushRecord;
+            client.flushFlags = FLAGS_FIN;
         }
 
         return progress;
@@ -563,7 +571,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     private interface KafkaProduceClientDecoder
     {
         int decode(
-            KafkaProduceClient client,
+            KafkaProduceStream.KafkaProduceClient client,
             long traceId,
             long authorization,
             long budgetId,
@@ -575,7 +583,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     private int decodeProduceResponse(
-        KafkaProduceClient client,
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -602,7 +610,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     private int decodeProduce(
-        KafkaProduceClient client,
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -634,7 +642,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     private int decodeProduceTopics(
-        KafkaProduceClient client,
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -657,7 +665,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     private int decodeProduceTopic(
-        KafkaProduceClient client,
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -695,7 +703,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     private int decodeProducePartitions(
-        KafkaProduceClient client,
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -721,7 +729,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     private int decodeProducePartition(
-        KafkaProduceClient client,
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -762,7 +770,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
     }
 
     private int decodeProduceResponseTrailer(
-        KafkaProduceClient client,
+        KafkaProduceStream.KafkaProduceClient client,
         long traceId,
         long authorization,
         long budgetId,
@@ -786,11 +794,41 @@ public final class KafkaClientProduceFactory implements BindingHandler
 
                 client.decoder = decodeProduceResponse;
 
-                client.onDecodeResponse(traceId);
+                client.onDecodeProduceResponse(traceId);
             }
         }
 
         return progress;
+    }
+
+    private int decodeReject(
+        KafkaProduceStream.KafkaProduceClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        client.doNetworkResetIfNecessary(traceId);
+        client.decoder = decodeIgnoreAll;
+        return limit;
+    }
+
+    private int decodeIgnoreAll(
+        KafkaProduceStream.KafkaProduceClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return limit;
     }
 
     private final class KafkaProduceStream
@@ -819,14 +857,15 @@ public final class KafkaClientProduceFactory implements BindingHandler
             long affinity,
             long resolvedId,
             String topic,
-            int partitionId)
+            int partitionId,
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId);
+            this.client = new KafkaProduceClient(this, resolvedId, topic, partitionId, sasl);
         }
 
         private void onApplication(
@@ -915,7 +954,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
             }
             else
             {
-                client.encode(traceId, authorization, budgetId, reserved, flags, payload, extension, progress, limit);
+                client.flush(traceId, authorization, budgetId, reserved, flags, payload, extension, progress, limit);
             }
         }
 
@@ -1033,7 +1072,7 @@ public final class KafkaClientProduceFactory implements BindingHandler
                 state = KafkaState.openedInitial(state);
 
                 doWindow(application, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, client.authorization, 0L, KAFKA_RECORD_FRAMING);
+                        traceId, client.authorization, client.initialBud, KAFKA_RECORD_FRAMING);
             }
         }
 
@@ -1069,978 +1108,1126 @@ public final class KafkaClientProduceFactory implements BindingHandler
 
         private void cleanupApplication(
             long traceId,
+            int error)
+        {
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .error(error)
+                    .build();
+
+            cleanupApplication(traceId, kafkaResetEx);
+        }
+
+        private void cleanupApplication(
+            long traceId,
             Flyweight extension)
         {
             doApplicationResetIfNecessary(traceId, extension);
             doApplicationAbortIfNecessary(traceId);
         }
-    }
 
-    private final class KafkaProduceClient
-    {
-        private MessageConsumer network;
-        private final KafkaProduceStream stream;
-        private final long routeId;
-        private final long initialId;
-        private final long replyId;
-        private final String topic;
-        private final int partitionId;
-        private final KafkaClientRoute clientRoute;
-
-        private int state;
-        private int encodeFlags;
-        private int valueCompleteSize;
-        private long valueChecksum;
-
-        private long authorization;
-        private long initialBudgetId;
-        private long initialSeq;
-        private long initialAck;
-        private int initialMax;
-        private int initialPad;
-
-        private long replySeq;
-        private long replyAck;
-        private int replyMax;
-
-        private int encodeSlot = NO_SLOT;
-        private int encodeSlotOffset;
-        private int encodeSlotLimit;
-        private long encodeSlotTraceId;
-
-        private long encodeableRecordBatchTimestamp;
-        private long encodeableRecordBatchTimestampMax;
-        private long encodeableRecordTimestamp;
-        private int encodeableRecordHeadersBytes;
-        private int encodeableRecordCount;
-        private int encodeableRecordBytes;
-        private int encodeableRecordBytesDeferred;
-        private int encodeableRequestBytes;
-
-        private int decodeSlot = NO_SLOT;
-        private int decodeSlotOffset;
-        private int decodeSlotReserved;
-
-        private int decodableResponseBytes;
-        private int decodableTopics;
-        private int decodablePartitions;
-
-        private int nextRequestId;
-        private int nextResponseId;
-
-        private KafkaProduceClientDecoder decoder;
-        private KafkaProduceClientEncoder encoder;
-        private int signaledRequestId;
-
-        KafkaProduceClient(
-            KafkaProduceStream stream,
-            long routeId,
-            String topic,
-            int partitionId)
+        private final class KafkaProduceClient extends KafkaSaslClient
         {
-            this.stream = stream;
-            this.routeId = routeId;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
-            this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.topic = requireNonNull(topic);
-            this.partitionId = partitionId;
-            this.decoder = decodeProduceResponse;
-            this.encoder = encodeRecord;
-            this.clientRoute = supplyClientRoute.apply(routeId);
-            this.encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
-            this.encodeableRecordBatchTimestampMax = TIMESTAMP_NONE;
-        }
+            private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
+            private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
+            private final LongLongConsumer encodeProduceRequest = this::doEncodeProduceRequestIfNecessary;
 
-        private void onNetwork(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
+            private MessageConsumer network;
+            private final KafkaProduceStream stream;
+            private final String topic;
+            private final int partitionId;
+            private final KafkaClientRoute clientRoute;
+
+            private int state;
+            private int flushFlags;
+            private int valueCompleteSize;
+            private long valueChecksum;
+
+            private long authorization;
+            private long initialBud;
+            private long initialSeq;
+            private long initialAck;
+            private int initialMax;
+            private int initialPad;
+
+            private long replySeq;
+            private long replyAck;
+            private int replyMax;
+
+            private int encodeSlot = NO_SLOT;
+            private int encodeSlotOffset;
+            private int encodeSlotLimit;
+            private long encodeSlotTraceId;
+
+            private long encodeableRecordBatchTimestamp;
+            private long encodeableRecordBatchTimestampMax;
+            private long encodeableRecordTimestamp;
+            private int flushableRecordHeadersBytes;
+            private int encodeableRecordCount;
+            private int encodeableRecordBytes;
+            private int encodeableRecordBytesDeferred;
+            private int flushableRequestBytes;
+
+            private int decodeSlot = NO_SLOT;
+            private int decodeSlotOffset;
+            private int decodeSlotReserved;
+
+            private int decodableResponseBytes;
+            private int decodableTopics;
+            private int decodablePartitions;
+
+            private int nextResponseId;
+
+            private KafkaProduceClientDecoder decoder;
+            private KafkaProduceClientFlusher flusher;
+            private int signaledRequestId;
+
+            private LongLongConsumer encoder;
+            private boolean flushable;
+
+            KafkaProduceClient(
+                KafkaProduceStream stream,
+                long routeId,
+                String topic,
+                int partitionId,
+                KafkaSaslConfig sasl)
             {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onNetworkBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onNetworkData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onNetworkEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onNetworkAbort(abort);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onNetworkReset(reset);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onNetworkWindow(window);
-                break;
-            case SignalFW.TYPE_ID:
-                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-                onNetworkSignal(signal);
-                break;
-            default:
-                break;
+                super(sasl, routeId);
+                this.stream = stream;
+                this.topic = requireNonNull(topic);
+                this.partitionId = partitionId;
+                this.flusher = flushRecord;
+                this.clientRoute = supplyClientRoute.apply(routeId);
+                this.encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
+                this.encodeableRecordBatchTimestampMax = TIMESTAMP_NONE;
+
+                this.flushable = sasl == null;
+                this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeProduceRequest;
+                this.decoder = decodeReject;
             }
-        }
 
-        private void onNetworkBegin(
-            BeginFW begin)
-        {
-            final long traceId = begin.traceId();
-
-            authorization = begin.authorization();
-            state = KafkaState.openingReply(state);
-
-            doNetworkWindow(traceId, 0L, 0, 0, decodeMaxBytes);
-
-            stream.doApplicationBeginIfNecessary(traceId, authorization, topic, partitionId);
-        }
-
-        private void onNetworkData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final long traceId = data.traceId();
-            final long budgetId = data.budgetId();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            authorization = data.authorization();
-            replySeq = sequence + data.reserved();
-
-            assert replyAck <= replySeq;
-
-            if (replySeq > replyAck + replyMax)
+            private void onNetwork(
+                int msgTypeId,
+                DirectBuffer buffer,
+                int index,
+                int length)
             {
-                cleanupNetwork(traceId);
-            }
-            else
-            {
-                if (decodeSlot == NO_SLOT)
+                switch (msgTypeId)
                 {
-                    decodeSlot = decodePool.acquire(initialId);
+                case BeginFW.TYPE_ID:
+                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                    onNetworkBegin(begin);
+                    break;
+                case DataFW.TYPE_ID:
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+                    onNetworkData(data);
+                    break;
+                case EndFW.TYPE_ID:
+                    final EndFW end = endRO.wrap(buffer, index, index + length);
+                    onNetworkEnd(end);
+                    break;
+                case AbortFW.TYPE_ID:
+                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                    onNetworkAbort(abort);
+                    break;
+                case ResetFW.TYPE_ID:
+                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                    onNetworkReset(reset);
+                    break;
+                case WindowFW.TYPE_ID:
+                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                    onNetworkWindow(window);
+                    break;
+                case SignalFW.TYPE_ID:
+                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                    onNetworkSignal(signal);
+                    break;
+                default:
+                    break;
                 }
+            }
 
-                if (decodeSlot == NO_SLOT)
+            private void onNetworkBegin(
+                BeginFW begin)
+            {
+                final long traceId = begin.traceId();
+
+                authorization = begin.authorization();
+                state = KafkaState.openingReply(state);
+
+                doNetworkWindow(traceId, 0L, 0, 0, decodeMaxBytes);
+
+                stream.doApplicationBeginIfNecessary(traceId, authorization, topic, partitionId);
+            }
+
+            private void onNetworkData(
+                DataFW data)
+            {
+                final long sequence = data.sequence();
+                final long acknowledge = data.acknowledge();
+                final long traceId = data.traceId();
+                final long budgetId = data.budgetId();
+
+                assert acknowledge <= sequence;
+                assert sequence >= replySeq;
+
+                authorization = data.authorization();
+                replySeq = sequence + data.reserved();
+
+                assert replyAck <= replySeq;
+
+                if (replySeq > replyAck + replyMax)
                 {
                     cleanupNetwork(traceId);
                 }
                 else
                 {
-                    final OctetsFW payload = data.payload();
-                    int reserved = data.reserved();
-                    int offset = payload.offset();
-                    int limit = payload.limit();
+                    if (decodeSlot == NO_SLOT)
+                    {
+                        decodeSlot = decodePool.acquire(initialId);
+                    }
 
-                    final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
-                    buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
-                    decodeSlotOffset += limit - offset;
-                    decodeSlotReserved += reserved;
+                    if (decodeSlot == NO_SLOT)
+                    {
+                        cleanupNetwork(traceId);
+                    }
+                    else
+                    {
+                        final OctetsFW payload = data.payload();
+                        int reserved = data.reserved();
+                        int offset = payload.offset();
+                        int limit = payload.limit();
 
-                    offset = 0;
-                    limit = decodeSlotOffset;
-                    reserved = decodeSlotReserved;
+                        final MutableDirectBuffer buffer = decodePool.buffer(decodeSlot);
+                        buffer.putBytes(decodeSlotOffset, payload.buffer(), offset, limit - offset);
+                        decodeSlotOffset += limit - offset;
+                        decodeSlotReserved += reserved;
 
-                    decodeNetwork(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+                        offset = 0;
+                        limit = decodeSlotOffset;
+                        reserved = decodeSlotReserved;
+
+                        decodeNetwork(traceId, authorization, budgetId, reserved, buffer, offset, limit);
+                    }
                 }
             }
-        }
 
-        private void onNetworkEnd(
-            EndFW end)
-        {
-            final long traceId = end.traceId();
-
-            state = KafkaState.closedReply(state);
-
-            if (decodeSlot == NO_SLOT)
+            private void onNetworkEnd(
+                EndFW end)
             {
-                stream.doApplicationEnd(traceId);
-            }
-        }
+                final long traceId = end.traceId();
 
-        private void onNetworkAbort(
-            AbortFW abort)
-        {
-            final long traceId = abort.traceId();
-
-            if (KafkaConfiguration.DEBUG)
-            {
-                System.out.format("[client] %s[%s] PRODUCE aborted (%d bytes)\n", topic, partitionId);
-            }
-
-            state = KafkaState.closedReply(state);
-
-            cleanupNetwork(traceId);
-        }
-
-        private void onNetworkReset(
-            ResetFW reset)
-        {
-            final long traceId = reset.traceId();
-
-            if (KafkaConfiguration.DEBUG)
-            {
-                System.out.format("[client] %s[%d] PRODUCE reset (%d bytes)\n", topic, partitionId);
-            }
-
-            state = KafkaState.closedInitial(state);
-
-            cleanupNetwork(traceId);
-        }
-
-        private void onNetworkWindow(
-            WindowFW window)
-        {
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
-            final int maximum = window.maximum();
-            final long budgetId = window.budgetId();
-            final int padding = window.padding();
-
-            authorization = window.authorization();
-
-            assert acknowledge <= sequence;
-            assert sequence <= initialSeq;
-            assert acknowledge >= initialAck;
-            assert maximum >= initialMax;
-
-            this.initialAck = acknowledge;
-            this.initialMax = maximum;
-            this.initialPad = padding;
-            this.initialBudgetId = budgetId;
-
-            assert initialAck <= initialSeq;
-
-            state = KafkaState.openedInitial(state);
-
-            if (encodeSlot != NO_SLOT)
-            {
-                final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
-                final int offset = encodeSlotOffset;
-                final int limit = encodeSlotLimit;
-
-                encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, offset, limit);
-            }
-        }
-
-        private void onNetworkSignal(
-            SignalFW signal)
-        {
-            final long traceId = signal.traceId();
-            final int signalId = signal.signalId();
-
-            if (signalId == SIGNAL_NEXT_REQUEST)
-            {
-                doEncodeRequestIfNecessary(traceId);
-            }
-        }
-
-        private void doNetworkBegin(
-            long traceId,
-            long authorization,
-            long affinity)
-        {
-            state = KafkaState.openingInitial(state);
-
-            Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
-
-            final KafkaBrokerInfo broker = clientRoute.brokers.get(affinity);
-            if (broker != null)
-            {
-                extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
-                                                                .typeId(proxyTypeId)
-                                                                .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
-                                                                        .source("0.0.0.0")
-                                                                        .destination(broker.host)
-                                                                        .sourcePort(0)
-                                                                        .destinationPort(broker.port)))
-                                                                .build()
-                                                                .sizeof());
-            }
-
-            network = newStream(this::onNetwork, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, affinity, extension);
-        }
-
-        private void doNetworkData(
-            long traceId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
-        {
-            if (encodeSlot != NO_SLOT)
-            {
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
-                encodeBuffer.putBytes(encodeSlotLimit, buffer, offset, limit - offset);
-                encodeSlotLimit += limit - offset;
-                encodeSlotTraceId = traceId;
-
-                buffer = encodeBuffer;
-                offset = encodeSlotOffset;
-                limit = encodeSlotLimit;
-            }
-
-            encodeNetwork(traceId, authorization, initialBudgetId, buffer, offset, limit);
-        }
-
-        private void doNetworkEndAfterFlush(
-            long traceId,
-            long authorization)
-        {
-            state = KafkaState.closingInitial(state);
-
-            if (encodeSlot == NO_SLOT)
-            {
-                doNetworkEnd(traceId, authorization);
-            }
-        }
-
-        private void doNetworkEnd(
-            long traceId,
-            long authorization)
-        {
-            state = KafkaState.closedInitial(state);
-            doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, EMPTY_EXTENSION);
-
-            cleanupEncodeSlotIfNecessary();
-        }
-
-        private void doNetworkAbortIfNecessary(
-            long traceId)
-        {
-            if (!KafkaState.initialClosed(state))
-            {
-                doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, EMPTY_EXTENSION);
-                state = KafkaState.closedInitial(state);
-            }
-
-            cleanupEncodeSlotIfNecessary();
-        }
-
-        private void doNetworkResetIfNecessary(
-            long traceId)
-        {
-            if (!KafkaState.replyClosed(state))
-            {
-                doReset(network, routeId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, EMPTY_OCTETS);
                 state = KafkaState.closedReply(state);
-            }
 
-            cleanupDecodeSlotIfNecessary();
-        }
-
-        private void doNetworkWindow(
-            long traceId,
-            long budgetId,
-            int minReplyNoAck,
-            int minReplyPad,
-            int minReplyMax)
-        {
-            final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
-
-            if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
-            {
-                replyAck = newReplyAck;
-                assert replyAck <= replySeq;
-
-                replyMax = minReplyMax;
-
-                state = KafkaState.openedReply(state);
-
-                doWindow(network, routeId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, budgetId, minReplyPad);
-            }
-        }
-
-        private void encode(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            int flags,
-            OctetsFW payload,
-            OctetsFW extension,
-            int progress,
-            int limit)
-        {
-            final int length = limit - progress;
-            if (encodeSlot != NO_SLOT &&
-                encodeableRequestBytes > 0 &&
-                encodeSlotLimit + length + KAFKA_RECORD_FRAMING + encodeableRecordHeadersBytes > encodePool.slotCapacity())
-            {
-                doNetworkData(traceId, EMPTY_BUFFER, 0, 0);
-            }
-
-            KafkaProduceClientEncoder previous = null;
-            encodeFlags = flags & FLAGS_INIT;
-
-            while (progress <= limit && previous != encoder)
-            {
-                previous = encoder;
-                progress = encoder.encode(this, traceId, authorization, budgetId, reserved, flags, payload, extension,
-                    progress, limit);
-            }
-        }
-
-        private void doEncodeRecordInit(
-            long traceId,
-            long timestamp,
-            KafkaKeyFW key,
-            OctetsFW value,
-            Array32FW<KafkaHeaderFW> headers)
-        {
-            encodeableRecordTimestamp = timestamp;
-            if (encodeableRecordBatchTimestamp == TIMESTAMP_NONE)
-            {
-                encodeableRecordBatchTimestamp = timestamp;
-            }
-
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
-            final int encodeLimit = writeBuffer.capacity();
-            int encodeProgress = 0;
-
-            final int headersCount = headers.fieldCount();
-            final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, 0, encodeLimit)
-                                                                 .headerCount(headersCount)
-                                                                 .build();
-            final int recordTrailerSize = recordTrailer.limit();
-
-            final int timestampDelta = (int) (timestamp - encodeableRecordBatchTimestamp);
-            RecordHeaderFW recordHeader = recordHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .length(Integer.MAX_VALUE)
-                    .attributes(RECORD_ATTRIBUTES_NONE)
-                    .timestampDelta(timestampDelta)
-                    .offsetDelta(encodeableRecordCount)
-                    .keyLength(key.length())
-                    .key(key.value())
-                    .valueLength(value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1)
-                    .build();
-
-            final int valueSize = value != null ? value.sizeof() : 0;
-            final int recordHeaderSize = recordHeader.limit();
-            final int headerSize = headers.items().capacity();
-            final int recordSize = recordHeaderSize + valueSize + encodeableRecordBytesDeferred + recordTrailerSize +
-                        headerSize - RECORD_LENGTH_MAX;
-            final int valueLength = value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1;
-
-            recordHeader = recordHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                                         .length(recordSize)
-                                         .attributes(RECORD_ATTRIBUTES_NONE)
-                                         .timestampDelta(timestampDelta)
-                                         .offsetDelta(encodeableRecordCount)
-                                         .keyLength(key.length())
-                                         .key(key.value())
-                                         .valueLength(valueLength)
-                                         .build();
-
-            final int newRecordSize = recordHeader.limit();
-            encodeProgress += newRecordSize;
-            encodeableRecordBytes += newRecordSize + valueSize + encodeableRecordBytesDeferred + recordTrailerSize + headerSize;
-
-            if (encodeSlot == NO_SLOT)
-            {
-                encodeSlot = encodePool.acquire(initialId);
-                encodeSlotOffset = PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
-                encodeSlotLimit = encodeSlotOffset;
-            }
-
-            assert encodeSlot != NO_SLOT;
-            final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
-
-            encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
-            encodeSlotLimit += encodeProgress;
-
-            if (headersCount > 0)
-            {
-                encodeableRecordHeadersBytes = headers.sizeof();
-
-                final int encodeSlotMaxLimit = encodePool.slotCapacity() - encodeableRecordHeadersBytes;
-                encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(), encodeableRecordHeadersBytes);
-            }
-
-            encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
-
-            encodeableRecordCount++;
-        }
-
-        private void doEncodeRecordCont(
-            long traceId,
-            OctetsFW value,
-            int flags)
-        {
-            if (value != null)
-            {
-                final int length = value.sizeof();
-
-                final int encodeableBytes = KAFKA_RECORD_FRAMING + encodeSlotLimit + length + encodeableRecordHeadersBytes;
-                if (encodeableBytes >= encodePool.slotCapacity())
+                if (decodeSlot == NO_SLOT)
                 {
-                    doEncodeRequestIfNecessary(traceId);
+                    stream.doApplicationEnd(traceId);
+                }
+            }
+
+            private void onNetworkAbort(
+                AbortFW abort)
+            {
+                final long traceId = abort.traceId();
+
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[client] %s[%s] PRODUCE aborted (%d bytes)\n", topic, partitionId);
+                }
+
+                state = KafkaState.closedReply(state);
+
+                cleanupNetwork(traceId);
+            }
+
+            private void onNetworkReset(
+                ResetFW reset)
+            {
+                final long traceId = reset.traceId();
+
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[client] %s[%d] PRODUCE reset (%d bytes)\n", topic, partitionId);
+                }
+
+                state = KafkaState.closedInitial(state);
+
+                cleanupNetwork(traceId);
+            }
+
+            private void onNetworkWindow(
+                WindowFW window)
+            {
+                final long sequence = window.sequence();
+                final long acknowledge = window.acknowledge();
+                final int maximum = window.maximum();
+                final long traceId = window.traceId();
+                final long budgetId = window.budgetId();
+                final int padding = window.padding();
+
+                authorization = window.authorization();
+
+                assert acknowledge <= sequence;
+                assert sequence <= initialSeq;
+                assert acknowledge >= initialAck;
+                assert maximum >= initialMax;
+
+                this.initialAck = acknowledge;
+                this.initialMax = maximum;
+                this.initialPad = padding;
+                this.initialBud = budgetId;
+
+                assert initialAck <= initialSeq;
+
+                state = KafkaState.openedInitial(state);
+
+                if (encodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBuffer buffer = encodePool.buffer(encodeSlot);
+                    final int offset = encodeSlotOffset;
+                    final int limit = encodeSlotLimit;
+
+                    encodeNetwork(encodeSlotTraceId, authorization, budgetId, buffer, offset, limit);
+                }
+
+                doEncodeRequestIfNecessary(traceId, budgetId);
+            }
+
+            private void onNetworkSignal(
+                SignalFW signal)
+            {
+                final long traceId = signal.traceId();
+                final int signalId = signal.signalId();
+
+                if (signalId == SIGNAL_NEXT_REQUEST)
+                {
+                    doEncodeRequestIfNecessary(traceId, 0L);
+                }
+            }
+
+            private void doNetworkBegin(
+                long traceId,
+                long authorization,
+                long affinity)
+            {
+                state = KafkaState.openingInitial(state);
+
+                Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
+
+                final KafkaBrokerInfo broker = clientRoute.brokers.get(affinity);
+                if (broker != null)
+                {
+                    extension = e -> e.set((b, o, l) -> proxyBeginExRW.wrap(b, o, l)
+                                                                    .typeId(proxyTypeId)
+                                                                    .address(a -> a.inet(i -> i.protocol(p -> p.set(STREAM))
+                                                                            .source("0.0.0.0")
+                                                                            .destination(broker.host)
+                                                                            .sourcePort(0)
+                                                                            .destinationPort(broker.port)))
+                                                                    .build()
+                                                                    .sizeof());
+                }
+
+                network = newStream(this::onNetwork, routeId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, affinity, extension);
+            }
+
+            @Override
+            protected void doNetworkData(
+                long traceId,
+                long budgetId,
+                DirectBuffer buffer,
+                int offset,
+                int limit)
+            {
+                if (encodeSlot != NO_SLOT)
+                {
+                    final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                    encodeBuffer.putBytes(encodeSlotLimit, buffer, offset, limit - offset);
+                    encodeSlotLimit += limit - offset;
+                    encodeSlotTraceId = traceId;
+
+                    buffer = encodeBuffer;
+                    offset = encodeSlotOffset;
+                    limit = encodeSlotLimit;
+                }
+
+                encodeNetwork(traceId, authorization, budgetId, buffer, offset, limit);
+            }
+
+            private void doNetworkEndAfterFlush(
+                long traceId,
+                long authorization)
+            {
+                state = KafkaState.closingInitial(state);
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    doNetworkEnd(traceId, authorization);
+                }
+            }
+
+            private void doNetworkEnd(
+                long traceId,
+                long authorization)
+            {
+                state = KafkaState.closedInitial(state);
+                doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, EMPTY_EXTENSION);
+
+                cleanupEncodeSlotIfNecessary();
+            }
+
+            private void doNetworkAbortIfNecessary(
+                long traceId)
+            {
+                if (!KafkaState.initialClosed(state))
+                {
+                    doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                            traceId, authorization, EMPTY_EXTENSION);
+                    state = KafkaState.closedInitial(state);
+                }
+
+                cleanupEncodeSlotIfNecessary();
+            }
+
+            private void doNetworkResetIfNecessary(
+                long traceId)
+            {
+                if (!KafkaState.replyClosed(state))
+                {
+                    doReset(network, routeId, replyId, replySeq, replyAck, replyMax,
+                            traceId, authorization, EMPTY_OCTETS);
+                    state = KafkaState.closedReply(state);
+                }
+
+                cleanupDecodeSlotIfNecessary();
+            }
+
+            private void doNetworkWindow(
+                long traceId,
+                long budgetId,
+                int minReplyNoAck,
+                int minReplyPad,
+                int minReplyMax)
+            {
+                final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
+
+                if (newReplyAck > replyAck || minReplyMax > replyMax || !KafkaState.replyOpened(state))
+                {
+                    replyAck = newReplyAck;
+                    assert replyAck <= replySeq;
+
+                    replyMax = minReplyMax;
+
+                    state = KafkaState.openedReply(state);
+
+                    doWindow(network, routeId, replyId, replySeq, replyAck, replyMax,
+                            traceId, authorization, budgetId, minReplyPad);
+                }
+            }
+
+            private void flush(
+                long traceId,
+                long authorization,
+                long budgetId,
+                int reserved,
+                int flags,
+                OctetsFW payload,
+                OctetsFW extension,
+                int progress,
+                int limit)
+            {
+                final int length = limit - progress;
+                if (encodeSlot != NO_SLOT &&
+                    flushableRequestBytes > 0 &&
+                    encodeSlotLimit + length + KAFKA_RECORD_FRAMING + flushableRecordHeadersBytes > encodePool.slotCapacity())
+                {
+                    doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
+                }
+
+                KafkaProduceClientFlusher previous = null;
+                flushFlags = flags & FLAGS_INIT;
+
+                while (progress <= limit && previous != flusher)
+                {
+                    previous = flusher;
+                    progress = flusher.flush(this, traceId, authorization, budgetId, reserved, flags, payload, extension,
+                        progress, limit);
+                }
+            }
+
+            private void doEncodeRecordInit(
+                long traceId,
+                long timestamp,
+                KafkaKeyFW key,
+                OctetsFW value,
+                Array32FW<KafkaHeaderFW> headers)
+            {
+                encodeableRecordTimestamp = timestamp;
+                if (encodeableRecordBatchTimestamp == TIMESTAMP_NONE)
+                {
+                    encodeableRecordBatchTimestamp = timestamp;
+                }
+
+                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                final int encodeLimit = writeBuffer.capacity();
+                int encodeProgress = 0;
+
+                final int headersCount = headers.fieldCount();
+                final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, 0, encodeLimit)
+                                                                     .headerCount(headersCount)
+                                                                     .build();
+                final int recordTrailerSize = recordTrailer.limit();
+
+                final int timestampDelta = (int) (timestamp - encodeableRecordBatchTimestamp);
+                RecordHeaderFW recordHeader = recordHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .length(Integer.MAX_VALUE)
+                        .attributes(RECORD_ATTRIBUTES_NONE)
+                        .timestampDelta(timestampDelta)
+                        .offsetDelta(encodeableRecordCount)
+                        .keyLength(key.length())
+                        .key(key.value())
+                        .valueLength(value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1)
+                        .build();
+
+                final int valueSize = value != null ? value.sizeof() : 0;
+                final int recordHeaderSize = recordHeader.limit();
+                final int headerSize = headers.items().capacity();
+                final int recordSize = recordHeaderSize + valueSize + encodeableRecordBytesDeferred + recordTrailerSize +
+                            headerSize - RECORD_LENGTH_MAX;
+                final int valueLength = value != null ? value.sizeof() + encodeableRecordBytesDeferred : -1;
+
+                recordHeader = recordHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                                             .length(recordSize)
+                                             .attributes(RECORD_ATTRIBUTES_NONE)
+                                             .timestampDelta(timestampDelta)
+                                             .offsetDelta(encodeableRecordCount)
+                                             .keyLength(key.length())
+                                             .key(key.value())
+                                             .valueLength(valueLength)
+                                             .build();
+
+                final int newRecordSize = recordHeader.limit();
+                encodeProgress += newRecordSize;
+                encodeableRecordBytes += newRecordSize + valueSize + encodeableRecordBytesDeferred +
+                        recordTrailerSize + headerSize;
+
+                if (encodeSlot == NO_SLOT)
+                {
+                    encodeSlot = encodePool.acquire(initialId);
+                    encodeSlotOffset = PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
+                    encodeSlotLimit = encodeSlotOffset;
                 }
 
                 assert encodeSlot != NO_SLOT;
                 final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
-                encodeSlotBuffer.putBytes(encodeSlotLimit,  value.buffer(), value.offset(), length);
-                encodeSlotLimit += length;
+                encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
+                encodeSlotLimit += encodeProgress;
 
-                if ((flags & FLAGS_FIN) == 0)
+                if (headersCount > 0)
                 {
-                    doNetworkData(traceId, EMPTY_BUFFER, 0, 0);
+                    flushableRecordHeadersBytes = headers.sizeof();
+
+                    final int encodeSlotMaxLimit = encodePool.slotCapacity() - flushableRecordHeadersBytes;
+                    encodeSlotBuffer.putBytes(encodeSlotMaxLimit, headers.buffer(), headers.offset(),
+                            flushableRecordHeadersBytes);
+                }
+
+                encodeableRecordBatchTimestampMax = Math.max(encodeableRecordBatchTimestamp, encodeableRecordTimestamp);
+
+                encodeableRecordCount++;
+            }
+
+            private void doEncodeRecordCont(
+                long traceId,
+                long budgetId,
+                OctetsFW value,
+                int flags)
+            {
+                if (value != null)
+                {
+                    final int length = value.sizeof();
+
+                    final int encodeableBytes = KAFKA_RECORD_FRAMING + encodeSlotLimit + length + flushableRecordHeadersBytes;
+                    if (encodeableBytes >= encodePool.slotCapacity())
+                    {
+                        doEncodeRequestIfNecessary(traceId, budgetId);
+                    }
+
+                    assert encodeSlot != NO_SLOT;
+                    final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+
+                    encodeSlotBuffer.putBytes(encodeSlotLimit,  value.buffer(), value.offset(), length);
+                    encodeSlotLimit += length;
+
+                    if ((flags & FLAGS_FIN) == 0)
+                    {
+                        doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
+                    }
                 }
             }
-        }
 
-        private void doEncodeRecordFin(
-            long traceId)
-        {
-            assert encodeSlot != NO_SLOT;
-            final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
-
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
-            final int encodeLimit = writeBuffer.capacity();
-            int encodeProgress = 0;
-
-            Array32FW<KafkaHeaderFW> headers = EMPTY_HEADER;
-            if (encodeableRecordHeadersBytes > 0)
+            private void doEncodeRecordFin(
+                long traceId,
+                long budgetId)
             {
-                final int encodeSlotMaxLimit = encodePool.slotCapacity();
-                headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - encodeableRecordHeadersBytes,
-                    encodeSlotMaxLimit);
+                assert encodeSlot != NO_SLOT;
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+
+                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                final int encodeLimit = writeBuffer.capacity();
+                int encodeProgress = 0;
+
+                Array32FW<KafkaHeaderFW> headers = EMPTY_HEADER;
+                if (flushableRecordHeadersBytes > 0)
+                {
+                    final int encodeSlotMaxLimit = encodePool.slotCapacity();
+                    headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - flushableRecordHeadersBytes,
+                        encodeSlotMaxLimit);
+                }
+                final int headersCount = headers.fieldCount();
+                final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .headerCount(headersCount)
+                        .build();
+
+                encodeProgress = recordTrailer.limit();
+
+                if (headersCount > 0)
+                {
+                    final DirectBuffer headerItems = headers.items();
+                    final int headerItemsSize = headerItems.capacity();
+
+                    encodeBuffer.putBytes(encodeProgress, headerItems, 0, headerItemsSize);
+                    encodeProgress += headerItemsSize;
+                }
+
+                encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
+                encodeSlotLimit += encodeProgress;
+
+                if (encodeableRecordBytesDeferred > 0)
+                {
+                    doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
+                }
+                else
+                {
+                    doSignalNextRequestIfNecessary(traceId);
+                }
             }
-            final int headersCount = headers.fieldCount();
-            final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .headerCount(headersCount)
-                    .build();
 
-            encodeProgress = recordTrailer.limit();
-
-            if (headersCount > 0)
+            private void doSignalNextRequestIfNecessary(
+                long traceId)
             {
-                final DirectBuffer headerItems = headers.items();
-                final int headerItemsSize = headerItems.capacity();
-
-                encodeBuffer.putBytes(encodeProgress, headerItems, 0, headerItemsSize);
-                encodeProgress += headerItemsSize;
+                if (signaledRequestId <= nextRequestId &&
+                    nextRequestId == nextResponseId &&
+                    encodeSlot != NO_SLOT)
+                {
+                    if (produceRequestMaxDelay == 0)
+                    {
+                        signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                    }
+                    else
+                    {
+                        signaler.signalAt(currentTimeMillis() + produceRequestMaxDelay, routeId, initialId,
+                                SIGNAL_NEXT_REQUEST, 0);
+                    }
+                    signaledRequestId = nextRequestId + 1;
+                }
             }
 
-            encodeSlotBuffer.putBytes(encodeSlotLimit, encodeBuffer, 0, encodeProgress);
-            encodeSlotLimit += encodeProgress;
-
-            if (encodeableRecordBytesDeferred > 0)
+            private void doEncodeRequestIfNecessary(
+                long traceId,
+                long budget)
             {
-                doNetworkData(traceId, EMPTY_BUFFER, 0, 0);
+                if (nextRequestId == nextResponseId)
+                {
+                    encoder.accept(traceId, budget);
+                }
             }
-            else
-            {
-                doSignalNextRequestIfNecessary(traceId);
-            }
-        }
 
-        private void doSignalNextRequestIfNecessary(
-            long traceId)
-        {
-            if (signaledRequestId <= nextRequestId &&
-                nextRequestId == nextResponseId &&
-                encodeSlot != NO_SLOT)
+            private void doEncodeProduceRequestIfNecessary(
+                long traceId,
+                long budgetId)
             {
-                if (produceRequestMaxDelay == 0)
+                if (flushable && encodeSlot != NO_SLOT)
+                {
+                    doEncodeProduceRequest(traceId, budgetId);
+                }
+            }
+
+            private void doEncodeProduceRequest(
+                long traceId,
+                long budgetId)
+            {
+                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                final int encodeOffset = 0;
+                final int encodeLimit = encodeBuffer.capacity();
+
+                int encodeProgress = encodeOffset;
+
+                final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .length(0)
+                        .apiKey(PRODUCE_API_KEY)
+                        .apiVersion(PRODUCE_API_VERSION)
+                        .correlationId(0)
+                        .clientId(CLIENT_ID_NONE)
+                        .build();
+
+                encodeProgress = requestHeader.limit();
+
+                final ProduceRequestFW produceRequest = produceRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .transactionalId(TRANSACTION_ID_NONE)
+                        .acks(a -> a.set(produceAcks))
+                        .timeout(produceMaxWaitMillis)
+                        .topicCount(1)
+                        .build();
+
+                encodeProgress = produceRequest.limit();
+
+                final ProduceTopicRequestFW topicRequest = topicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .topic(topic)
+                        .partitionCount(1)
+                        .build();
+
+                encodeProgress = topicRequest.limit();
+
+                final int recordBatchLength = FIELD_OFFSET_RECORD_COUNT - FIELD_OFFSET_LENGTH + encodeableRecordBytes;
+                final int recordSetLength = FIELD_OFFSET_LENGTH + BitUtil.SIZE_OF_INT + recordBatchLength;
+
+                final ProducePartitionRequestFW partitionRequest =
+                        partitionRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .partitionId(partitionId)
+                        .recordSetLength(recordSetLength)
+                        .build();
+
+                encodeProgress = partitionRequest.limit();
+
+                final int crcOffset = encodeProgress - encodeOffset + RecordBatchFW.FIELD_OFFSET_CRC;
+                final int crcLimit = encodeProgress - encodeOffset + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
+
+                final short attributes = encodeableRecordBatchTimestampMax == 0L
+                        ? RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP
+                        : RECORD_BATCH_ATTRIBUTES_NONE;
+
+                final RecordBatchFW recordBatch = recordBatchRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                        .baseOffset(0)
+                        .length(recordBatchLength)
+                        .leaderEpoch(-1)
+                        .magic(RECORD_BATCH_MAGIC)
+                        .crc(0)
+                        .attributes(attributes)
+                        .lastOffsetDelta(encodeableRecordCount - 1)
+                        .firstTimestamp(encodeableRecordBatchTimestamp)
+                        .maxTimestamp(encodeableRecordBatchTimestampMax)
+                        .producerId(RECORD_BATCH_PRODUCER_ID_NONE)
+                        .producerEpoch(RECORD_BATCH_PRODUCER_EPOCH_NONE)
+                        .baseSequence(RECORD_BATCH_SEQUENCE_NONE)
+                        .recordCount(encodeableRecordCount)
+                        .build();
+
+                encodeProgress = recordBatch.limit();
+
+                assert encodeProgress <= PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
+
+                final int encodeSizeOf = encodeProgress - encodeOffset;
+                final int requestId = nextRequestId++;
+                final int requestSize = encodeSizeOf - FIELD_OFFSET_API_KEY + encodeableRecordBytes;
+
+                requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
+                        .length(requestSize)
+                        .apiKey(requestHeader.apiKey())
+                        .apiVersion(requestHeader.apiVersion())
+                        .correlationId(requestId)
+                        .clientId(requestHeader.clientId().asString())
+                        .build();
+
+                if (KafkaConfiguration.DEBUG)
+                {
+                    System.out.format("[client] %s[%d] PRODUCE\n", topic, partitionId);
+                }
+
+                assert flushableRequestBytes == 0;
+                flushableRequestBytes = encodeSizeOf + encodeableRecordBytes;
+                encodeableRecordCount = 0;
+                encodeableRecordBytes = 0;
+                encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
+
+                assert encodeSlot != NO_SLOT;
+                final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
+
+                encodeSlotOffset -= encodeSizeOf;
+                assert encodeSlotOffset >= 0;
+                encodeSlotBuffer.putBytes(encodeSlotOffset, encodeBuffer, encodeOffset, encodeSizeOf);
+
+                final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
+                final int encodeSlotBytePosition = encodeSlotByteBuffer.position();
+                encodeSlotByteBuffer.limit(encodeSlotBytePosition + encodeSlotLimit);
+                encodeSlotByteBuffer.position(encodeSlotBytePosition + encodeSlotOffset + crcLimit);
+
+                final CRC32C crc = crc32c;
+                crc.reset();
+                crc.update(encodeSlotByteBuffer);
+
+                long checksum = crc.getValue();
+                if (flushFlags != FLAGS_FIN)
+                {
+                    checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
+                }
+                encodeSlotBuffer.putInt(encodeSlotOffset + crcOffset, (int) checksum, BIG_ENDIAN);
+                doNetworkData(traceId, budgetId, EMPTY_BUFFER, 0, 0);
+
+                decoder = decodeProduceResponse;
+            }
+
+            private long computeChecksum(
+                MutableDirectBuffer encodeBuffer,
+                int encodeLimit,
+                int encodeProgress,
+                MutableDirectBuffer encodeSlotBuffer,
+                long checksum)
+            {
+                final int oldEncodeProgress = encodeProgress;
+
+                checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
+
+                Array32FW<KafkaHeaderFW> headers = EMPTY_HEADER;
+                if (flushableRecordHeadersBytes > 0)
+                {
+                    final int encodeSlotMaxLimit = encodePool.slotCapacity();
+                    headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - flushableRecordHeadersBytes,
+                        encodeSlotMaxLimit);
+                }
+                final int headersCount = headers.fieldCount();
+                final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                                                                     .headerCount(headersCount)
+                                                                     .build();
+
+                encodeProgress = recordTrailer.limit();
+
+                if (headersCount > 0)
+                {
+                    final DirectBuffer headerItems = headers.items();
+                    final int headerItemsSize = headerItems.capacity();
+
+                    encodeBuffer.putBytes(encodeProgress, headerItems, 0, headerItemsSize);
+                    encodeProgress += headerItemsSize;
+                }
+
+                final int length = encodeProgress - oldEncodeProgress;
+                final byte[] encodeByteBuf = encodeBuffer.byteArray();
+                crc32c.reset();
+                crc32c.update(encodeByteBuf, oldEncodeProgress, length);
+                checksum = combineCRC32C(checksum, crc32c.getValue(), length);
+                return checksum;
+            }
+
+            private void encodeNetwork(
+                long traceId,
+                long authorization,
+                long budgetId,
+                DirectBuffer buffer,
+                int offset,
+                int limit)
+            {
+                final int maxLength = limit - offset;
+                final int maxRequestLength = flushable ? Math.min(maxLength, flushableRequestBytes) : maxLength;
+                final int initialWin = initialMax - (int)(initialSeq - initialAck);
+                final int length = Math.max(Math.min(initialWin - initialPad, maxRequestLength), 0);
+
+                if (length > 0)
+                {
+                    final int reserved = length + initialPad;
+
+                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                            traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_OCTETS);
+
+                    initialSeq += reserved;
+
+                    assert initialAck <= initialSeq;
+
+                    if (flushable)
+                    {
+                        flushableRequestBytes -= length;
+                        assert flushableRequestBytes >= 0;
+
+                        if (KafkaConfiguration.DEBUG_PRODUCE)
+                        {
+                            System.out.format("[%d] [%d] [%d] kafka client [%s[%d] flushableRequestBytes %d\n",
+                                    currentTimeMillis(), currentThread().getId(),
+                                    initialId, topic, partitionId, flushableRequestBytes);
+                        }
+                    }
+                }
+
+                final int remaining = maxLength - length;
+                if (remaining > 0)
+                {
+                    if (encodeSlot == NO_SLOT)
+                    {
+                        encodeSlot = encodePool.acquire(initialId);
+                        encodeSlotOffset = 0;
+                        encodeSlotLimit = encodeSlotOffset;
+                    }
+
+                    if (encodeSlot == NO_SLOT)
+                    {
+                        cleanupNetwork(traceId);
+                    }
+                    else
+                    {
+                        if (flushable && flushableRequestBytes == 0)
+                        {
+                            encodeSlotOffset = PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
+                        }
+                        final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
+                        encodeBuffer.putBytes(encodeSlotOffset, buffer, offset + length, remaining);
+                        encodeSlotLimit = encodeSlotOffset + remaining;
+                    }
+                }
+                else
+                {
+                    if (!flushable || flushableRequestBytes == 0)
+                    {
+                        cleanupEncodeSlotIfNecessary();
+                    }
+
+                    if (KafkaState.initialClosing(state))
+                    {
+                        doNetworkEnd(traceId, authorization);
+                    }
+
+                    encodeSlotLimit = encodeSlotOffset;
+                }
+
+                if (flushable)
+                {
+                    if (produceAcks == ProduceAck.NONE && length > 0 && flushableRequestBytes == 0)
+                    {
+                        onDecodeProduceResponse(traceId);
+                    }
+                    else
+                    {
+                        final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + flushableRecordHeadersBytes;
+                        final int encodeRequestBytesBuffered = Math.max(flushableRequestBytes - encodeableRecordBytesDeferred
+                                - Math.max(flushableRecordHeadersBytes, 1), 0);
+                        final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
+                        stream.doAppWindow(traceId, encodeNoAck, encodeMaxBytes);
+                    }
+                }
+            }
+
+            private void decodeNetwork(
+                long traceId,
+                long authorization,
+                long budgetId,
+                int reserved,
+                MutableDirectBuffer buffer,
+                int offset,
+                int limit)
+            {
+                KafkaProduceClientDecoder previous = null;
+                int progress = offset;
+                while (progress <= limit && previous != decoder)
+                {
+                    previous = decoder;
+                    progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
+                }
+
+                if (progress < limit)
+                {
+                    if (decodeSlot == NO_SLOT)
+                    {
+                        decodeSlot = decodePool.acquire(initialId);
+                    }
+
+                    if (decodeSlot == NO_SLOT)
+                    {
+                        cleanupNetwork(traceId);
+                    }
+                    else
+                    {
+                        final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
+                        decodeBuffer.putBytes(0, buffer, progress, limit - progress);
+                        decodeSlotOffset = limit - progress;
+                        decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
+                    }
+
+                    doNetworkWindow(traceId, budgetId, decodeSlotOffset, 0, decodeMaxBytes);
+                }
+                else
+                {
+                    cleanupDecodeSlotIfNecessary();
+
+                    if (KafkaState.replyClosing(state))
+                    {
+                        stream.doApplicationEnd(traceId);
+                    }
+                    else if (reserved > 0)
+                    {
+                        doNetworkWindow(traceId, budgetId, 0, 0, replyMax);
+                    }
+                }
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeResponse(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshake(
+                long traceId)
+            {
+                decoder = decodeSaslHandshake;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechanisms(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanisms;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechansim(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanism;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticateResponse(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticateResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticate(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticate;
+            }
+
+            @Override
+            protected void onDecodeSaslHandshakeResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    client.encoder = client.encodeSaslAuthenticateRequest;
+                    client.decoder = decodeSaslAuthenticateResponse;
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
+            @Override
+            protected void onDecodeSaslAuthenticateResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    client.encoder = client.encodeProduceRequest;
+                    client.decoder = decodeProduceResponse;
+                    client.flushable = true;
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
+            private void onDecodeProducePartition(
+                long traceId,
+                long authorization,
+                int errorCode,
+                int partitionId)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    assert partitionId == this.partitionId;
+                    break;
+                default:
+                    final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                                                                 .typeId(kafkaTypeId)
+                                                                 .error(errorCode)
+                                                                 .build();
+                    stream.doApplicationResetIfNecessary(traceId, resetEx);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
+            @Override
+            protected void onDecodeSaslResponse(
+                long traceId)
+            {
+                nextResponseId++;
+                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
+
+            private void onDecodeProduceResponse(
+                long traceId)
+            {
+                nextResponseId++;
+
+                final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + flushableRecordHeadersBytes;
+                final int encodeRequestBytesBuffered = Math.max(flushableRequestBytes - encodeableRecordBytesDeferred
+                        - Math.max(flushableRecordHeadersBytes, 1), 0);
+                final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
+                stream.doAppWindow(traceId, encodeNoAck, encodeMaxBytes);
+
+                if (encodeSlot != NO_SLOT)
                 {
                     signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
-                else
+            }
+
+            private void cleanupNetwork(
+                long traceId)
+            {
+                doNetworkResetIfNecessary(traceId);
+                doNetworkAbortIfNecessary(traceId);
+
+                stream.cleanupApplication(traceId, EMPTY_OCTETS);
+            }
+
+            private void cleanupDecodeSlotIfNecessary()
+            {
+                if (decodeSlot != NO_SLOT)
                 {
-                    signaler.signalAt(currentTimeMillis() + produceRequestMaxDelay, routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
-                }
-                signaledRequestId = nextRequestId + 1;
-            }
-        }
-
-        private void doEncodeRequestIfNecessary(
-            long traceId)
-        {
-            if (nextRequestId == nextResponseId && encodeSlot != NO_SLOT)
-            {
-                doEncodeProduceRequest(traceId);
-            }
-        }
-
-        private void doEncodeProduceRequest(
-            long traceId)
-        {
-            final MutableDirectBuffer encodeBuffer = writeBuffer;
-            final int encodeOffset = 0;
-            final int encodeLimit = encodeBuffer.capacity();
-
-            int encodeProgress = encodeOffset;
-
-            final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .length(0)
-                    .apiKey(PRODUCE_API_KEY)
-                    .apiVersion(PRODUCE_API_VERSION)
-                    .correlationId(0)
-                    .clientId(CLIENT_ID_NONE)
-                    .build();
-
-            encodeProgress = requestHeader.limit();
-
-            final ProduceRequestFW produceRequest = produceRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .transactionalId(TRANSACTION_ID_NONE)
-                    .acks(a -> a.set(produceAcks))
-                    .timeout(produceMaxWaitMillis)
-                    .topicCount(1)
-                    .build();
-
-            encodeProgress = produceRequest.limit();
-
-            final ProduceTopicRequestFW topicRequest = topicRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .topic(topic)
-                    .partitionCount(1)
-                    .build();
-
-            encodeProgress = topicRequest.limit();
-
-            final int recordBatchLength = FIELD_OFFSET_RECORD_COUNT - FIELD_OFFSET_LENGTH + encodeableRecordBytes;
-            final int recordSetLength = FIELD_OFFSET_LENGTH + BitUtil.SIZE_OF_INT + recordBatchLength;
-
-            final ProducePartitionRequestFW partitionRequest =
-                    partitionRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .partitionId(partitionId)
-                    .recordSetLength(recordSetLength)
-                    .build();
-
-            encodeProgress = partitionRequest.limit();
-
-            final int crcOffset = encodeProgress - encodeOffset + RecordBatchFW.FIELD_OFFSET_CRC;
-            final int crcLimit = encodeProgress - encodeOffset + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-
-            final short attributes = encodeableRecordBatchTimestampMax == 0L
-                    ? RECORD_BATCH_ATTRIBUTES_NO_TIMESTAMP
-                    : RECORD_BATCH_ATTRIBUTES_NONE;
-
-            final RecordBatchFW recordBatch = recordBatchRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .baseOffset(0)
-                    .length(recordBatchLength)
-                    .leaderEpoch(-1)
-                    .magic(RECORD_BATCH_MAGIC)
-                    .crc(0)
-                    .attributes(attributes)
-                    .lastOffsetDelta(encodeableRecordCount - 1)
-                    .firstTimestamp(encodeableRecordBatchTimestamp)
-                    .maxTimestamp(encodeableRecordBatchTimestampMax)
-                    .producerId(RECORD_BATCH_PRODUCER_ID_NONE)
-                    .producerEpoch(RECORD_BATCH_PRODUCER_EPOCH_NONE)
-                    .baseSequence(RECORD_BATCH_SEQUENCE_NONE)
-                    .recordCount(encodeableRecordCount)
-                    .build();
-
-            encodeProgress = recordBatch.limit();
-
-            assert encodeProgress <= PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
-
-            final int encodeSizeOf = encodeProgress - encodeOffset;
-            final int requestId = nextRequestId++;
-            final int requestSize = encodeSizeOf - FIELD_OFFSET_API_KEY + encodeableRecordBytes;
-
-            requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
-                    .length(requestSize)
-                    .apiKey(requestHeader.apiKey())
-                    .apiVersion(requestHeader.apiVersion())
-                    .correlationId(requestId)
-                    .clientId(requestHeader.clientId().asString())
-                    .build();
-
-            if (KafkaConfiguration.DEBUG)
-            {
-                System.out.format("[client] %s[%d] PRODUCE\n", topic, partitionId);
-            }
-
-            assert encodeableRequestBytes == 0;
-            encodeableRequestBytes = encodeSizeOf + encodeableRecordBytes;
-            encodeableRecordCount = 0;
-            encodeableRecordBytes = 0;
-            encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
-
-            assert encodeSlot != NO_SLOT;
-            final MutableDirectBuffer encodeSlotBuffer = encodePool.buffer(encodeSlot);
-
-            encodeSlotOffset -= encodeSizeOf;
-            assert encodeSlotOffset >= 0;
-            encodeSlotBuffer.putBytes(encodeSlotOffset, encodeBuffer, encodeOffset, encodeSizeOf);
-
-            final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
-            final int encodeSlotBytePosition = encodeSlotByteBuffer.position();
-            encodeSlotByteBuffer.limit(encodeSlotBytePosition + encodeSlotLimit);
-            encodeSlotByteBuffer.position(encodeSlotBytePosition + encodeSlotOffset + crcLimit);
-
-            final CRC32C crc = crc32c;
-            crc.reset();
-            crc.update(encodeSlotByteBuffer);
-
-            long checksum = crc.getValue();
-            if (encodeFlags != FLAGS_FIN)
-            {
-                checksum = computeChecksum(encodeBuffer, encodeLimit, encodeProgress, encodeSlotBuffer, checksum);
-            }
-            encodeSlotBuffer.putInt(encodeSlotOffset + crcOffset, (int) checksum, BIG_ENDIAN);
-            doNetworkData(traceId, EMPTY_BUFFER, 0, 0);
-        }
-
-        private long computeChecksum(
-            MutableDirectBuffer encodeBuffer,
-            int encodeLimit,
-            int encodeProgress,
-            MutableDirectBuffer encodeSlotBuffer,
-            long checksum)
-        {
-            final int oldEncodeProgress = encodeProgress;
-
-            checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
-
-            Array32FW<KafkaHeaderFW> headers = EMPTY_HEADER;
-            if (encodeableRecordHeadersBytes > 0)
-            {
-                final int encodeSlotMaxLimit = encodePool.slotCapacity();
-                headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - encodeableRecordHeadersBytes,
-                    encodeSlotMaxLimit);
-            }
-            final int headersCount = headers.fieldCount();
-            final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                                                                 .headerCount(headersCount)
-                                                                 .build();
-
-            encodeProgress = recordTrailer.limit();
-
-            if (headersCount > 0)
-            {
-                final DirectBuffer headerItems = headers.items();
-                final int headerItemsSize = headerItems.capacity();
-
-                encodeBuffer.putBytes(encodeProgress, headerItems, 0, headerItemsSize);
-                encodeProgress += headerItemsSize;
-            }
-
-            final int length = encodeProgress - oldEncodeProgress;
-            final byte[] encodeByteBuf = encodeBuffer.byteArray();
-            crc32c.reset();
-            crc32c.update(encodeByteBuf, oldEncodeProgress, length);
-            checksum = combineCRC32C(checksum, crc32c.getValue(), length);
-            return checksum;
-        }
-
-        private void encodeNetwork(
-            long traceId,
-            long authorization,
-            long budgetId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
-        {
-            final int maxLength = limit - offset;
-            final int maxRequestLength = Math.min(maxLength, encodeableRequestBytes);
-            final int initialWin = initialMax - (int)(initialSeq - initialAck);
-            final int length = Math.max(Math.min(initialWin - initialPad, maxRequestLength), 0);
-
-            if (length > 0)
-            {
-                final int reserved = length + initialPad;
-
-                doData(network, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_OCTETS);
-
-                initialSeq += reserved;
-
-                assert initialAck <= initialSeq;
-
-                encodeableRequestBytes -= length;
-                assert encodeableRequestBytes >= 0;
-
-                if (KafkaConfiguration.DEBUG_PRODUCE)
-                {
-                    System.out.format("[%d] [%d] [%d] kafka client [%s[%d] encodeableRequestBytes %d\n",
-                            currentTimeMillis(), currentThread().getId(),
-                            initialId, topic, partitionId, encodeableRequestBytes);
+                    decodePool.release(decodeSlot);
+                    decodeSlot = NO_SLOT;
+                    decodeSlotOffset = 0;
+                    decodeSlotReserved = 0;
                 }
             }
 
-            final int remaining = maxLength - length;
-            if (remaining > 0)
+            private void cleanupEncodeSlotIfNecessary()
             {
-                assert encodeSlot != NO_SLOT;
-
-                if (encodeableRequestBytes == 0)
+                if (encodeSlot != NO_SLOT)
                 {
-                    encodeSlotOffset = PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
+                    encodePool.release(encodeSlot);
+                    encodeSlot = NO_SLOT;
+                    encodeSlotOffset = 0;
+                    encodeSlotLimit = 0;
+                    encodeSlotTraceId = 0;
                 }
-                final MutableDirectBuffer encodeBuffer = encodePool.buffer(encodeSlot);
-                encodeBuffer.putBytes(encodeSlotOffset, buffer, offset + length, remaining);
-                encodeSlotLimit = encodeSlotOffset + remaining;
-            }
-            else
-            {
-                if (encodeableRequestBytes == 0)
-                {
-                    cleanupEncodeSlotIfNecessary();
-                }
-
-                if (KafkaState.initialClosing(state))
-                {
-                    doNetworkEnd(traceId, authorization);
-                }
-
-                encodeSlotLimit = encodeSlotOffset;
-            }
-
-            if (produceAcks == ProduceAck.NONE && length > 0 && encodeableRequestBytes == 0)
-            {
-                onDecodeResponse(traceId);
-            }
-            else
-            {
-                final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + encodeableRecordHeadersBytes;
-                final int encodeRequestBytesBuffered = Math.max(encodeableRequestBytes - encodeableRecordBytesDeferred
-                        - Math.max(encodeableRecordHeadersBytes, 1), 0);
-                final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
-                stream.doAppWindow(traceId, encodeNoAck, encodeMaxBytes);
-            }
-        }
-
-        private void decodeNetwork(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            MutableDirectBuffer buffer,
-            int offset,
-            int limit)
-        {
-            KafkaProduceClientDecoder previous = null;
-            int progress = offset;
-            while (progress <= limit && previous != decoder)
-            {
-                previous = decoder;
-                progress = decoder.decode(this, traceId, authorization, budgetId, reserved, buffer, offset, progress, limit);
-            }
-
-            if (progress < limit)
-            {
-                if (decodeSlot == NO_SLOT)
-                {
-                    decodeSlot = decodePool.acquire(initialId);
-                }
-
-                if (decodeSlot == NO_SLOT)
-                {
-                    cleanupNetwork(traceId);
-                }
-                else
-                {
-                    final MutableDirectBuffer decodeBuffer = decodePool.buffer(decodeSlot);
-                    decodeBuffer.putBytes(0, buffer, progress, limit - progress);
-                    decodeSlotOffset = limit - progress;
-                    decodeSlotReserved = (limit - progress) * reserved / (limit - offset);
-                }
-
-                doNetworkWindow(traceId, budgetId, decodeSlotOffset, 0, decodeMaxBytes);
-            }
-            else
-            {
-                cleanupDecodeSlotIfNecessary();
-
-                if (KafkaState.replyClosing(state))
-                {
-                    stream.doApplicationEnd(traceId);
-                }
-                else if (reserved > 0)
-                {
-                    doNetworkWindow(traceId, budgetId, 0, 0, replyMax);
-                }
-            }
-        }
-
-        private void onDecodeProducePartition(
-            long traceId,
-            long authorization,
-            int errorCode,
-            int partitionId)
-        {
-            switch (errorCode)
-            {
-            case ERROR_NONE:
-                assert partitionId == this.partitionId;
-                break;
-            default:
-                final KafkaResetExFW resetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                                                             .typeId(kafkaTypeId)
-                                                             .error(errorCode)
-                                                             .build();
-                stream.doApplicationResetIfNecessary(traceId, resetEx);
-                doNetworkEnd(traceId, authorization);
-                break;
-            }
-        }
-
-        private void onDecodeResponse(
-            long traceId)
-        {
-            nextResponseId++;
-
-            final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + encodeableRecordHeadersBytes;
-            final int encodeRequestBytesBuffered = Math.max(encodeableRequestBytes - encodeableRecordBytesDeferred
-                    - Math.max(encodeableRecordHeadersBytes, 1), 0);
-            final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
-            stream.doAppWindow(traceId, encodeNoAck, encodeMaxBytes);
-
-            if (encodeSlot != NO_SLOT)
-            {
-                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
-            }
-        }
-
-        private void cleanupNetwork(
-            long traceId)
-        {
-            doNetworkResetIfNecessary(traceId);
-            doNetworkAbortIfNecessary(traceId);
-
-            stream.cleanupApplication(traceId, EMPTY_OCTETS);
-        }
-
-        private void cleanupDecodeSlotIfNecessary()
-        {
-            if (decodeSlot != NO_SLOT)
-            {
-                decodePool.release(decodeSlot);
-                decodeSlot = NO_SLOT;
-                decodeSlotOffset = 0;
-                decodeSlotReserved = 0;
-            }
-        }
-
-        private void cleanupEncodeSlotIfNecessary()
-        {
-            if (encodeSlot != NO_SLOT)
-            {
-                encodePool.release(encodeSlot);
-                encodeSlot = NO_SLOT;
-                encodeSlotOffset = 0;
-                encodeSlotLimit = 0;
-                encodeSlotTraceId = 0;
             }
         }
     }

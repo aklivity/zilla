@@ -15,26 +15,25 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
-import java.util.List;
-
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public final class KafkaOptionsConfig extends OptionsConfig
+public class KafkaSaslConfig
 {
-    public final List<String> merged;
-    public final List<String> bootstrap;
-    public final List<KafkaTopicConfig> topics;
-    public final KafkaSaslConfig sasl;
+    public final String mechanism;
+    public final String username;
+    public final String password;
 
-    public KafkaOptionsConfig(
-        List<String> merged,
-        List<String> bootstrap,
-        List<KafkaTopicConfig> topics,
-        KafkaSaslConfig sasl)
+    public KafkaSaslConfig(
+        String mechanism,
+        String username,
+        String password)
     {
-        this.merged = merged;
-        this.bootstrap = bootstrap;
-        this.topics = topics;
-        this.sasl = sasl;
+        this.mechanism = mechanism;
+        this.username = username;
+        this.password = password;
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("%s [username=%s]", mechanism, username);
     }
 }

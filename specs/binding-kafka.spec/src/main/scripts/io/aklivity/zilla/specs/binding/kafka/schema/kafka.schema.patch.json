@@ -97,7 +97,12 @@
                                             "title": "Password",
                                             "type": "string"
                                         }
-                                    }
+                                    },
+                                    "required":
+                                    [
+                                        "username",
+                                        "password"
+                                    ]
                                 }
                             ]
                         }

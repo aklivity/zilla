@@ -62,7 +62,13 @@ public class KafkaOptionsConfigAdapterTest
                             "\"defaultOffset\": \"live\"," +
                             "\"deltaType\": \"json_patch\"" +
                         "}" +
-                    "]" +
+                    "]," +
+                    "\"sasl\":" +
+                    "{" +
+                        "\"mechanism\": \"plain\"," +
+                        "\"username\": \"username\"," +
+                        "\"password\": \"password\"" +
+                    "}" +
                 "}";
 
         KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
@@ -71,6 +77,9 @@ public class KafkaOptionsConfigAdapterTest
         assertThat(options.merged, equalTo(singletonList("test")));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
         assertThat(options.topics, equalTo(singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH))));
+        assertThat(options.sasl.mechanism, equalTo("plain"));
+        assertThat(options.sasl.username, equalTo("username"));
+        assertThat(options.sasl.password, equalTo("password"));
     }
 
     @Test
@@ -79,12 +88,14 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
                 singletonList("test"),
-                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)));
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
+                new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"merged\":[\"test\"]," + "\"bootstrap\":[\"test\"]," +
-                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]}"));
+                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
+                "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
 }

@@ -16,9 +16,6 @@
 
 property networkAcceptWindow 8192
 
-property deltaMillis 0L
-property newTimestamp ${kafka:timestamp() + deltaMillis}
-
 accept "zilla://streams/net0"
   option zilla:window ${networkAcceptWindow}
   option zilla:transmission "duplex"
@@ -57,3 +54,28 @@ write 20                                # size
       -1s                               # authentication bytes
       0L                                # session lifetime
 
+read 41                                 # size
+     32s                                # describe configs
+     0s                                 # v0
+     (int:requestId)
+     -1s                                # no client id
+     1                                  # resources
+       [0x02]                           # topic resource
+       4s "test"                        # "test" topic
+       1                                # configs
+         14s "cleanup.policy"             # name
+
+write 55                                # size
+      ${requestId}
+      0
+      1                                 # resources
+        0s                                # no error
+        -1s                               # error message
+        [0x02]                            # topic resource
+        4s "test"                         # "test" topic
+        1                                 # configs
+          14s "cleanup.policy"              # name
+          7s "compact"                      # value
+         [0x00]                             # not read only
+         [0x00]                             # not default
+         [0x00]                             # not sensitive

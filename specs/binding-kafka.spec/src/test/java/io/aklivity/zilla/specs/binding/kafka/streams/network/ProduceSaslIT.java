@@ -26,10 +26,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class SaslHandshakeIT
+public class ProduceSaslIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/sasl.handshake.v1");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/kafka/streams/network/produce.v3.sasl.handshake.v1");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -38,9 +38,9 @@ public class SaslHandshakeIT
 
     @Test
     @Specification({
-        "${net}/mechanism.plain/client",
-        "${net}/mechanism.plain/server" })
-    public void shouldNegotiateMechanismPlain() throws Exception
+        "${net}/message.value.sasl.plain/client",
+        "${net}/message.value.sasl.plain/server"})
+    public void shouldSendMessageValueWithSaslPlain() throws Exception
     {
         k3po.finish();
     }
