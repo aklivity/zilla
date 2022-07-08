@@ -2435,6 +2435,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         private int replyCap;
 
         private DirectBuffer deferredDataEx;
+        private int deferredDataExFlags;
         private OctetsFW deferredPayload;
 
         private KafkaProduceProxy(
@@ -2484,6 +2485,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     buf.putBytes(0, extension.buffer(), extension.offset(), extension.sizeof());
                     deferredDataEx = buf;
                     deferredPayload = payload;
+                    deferredDataExFlags = flags;
                 }
             }
             else
@@ -2690,7 +2692,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         ? kafkaDataExRO.wrap(deferredDataEx, 0, deferredDataEx.capacity())
                         : emptyRO;
 
-                flushKafkaData(traceId, authorization, budgetId, 0, 0x02, deferredPayload, kafkaDataEx);
+                flushKafkaData(traceId, authorization, budgetId, 0, deferredDataExFlags, deferredPayload, kafkaDataEx);
             }
 
             initialAck = acknowledge;
