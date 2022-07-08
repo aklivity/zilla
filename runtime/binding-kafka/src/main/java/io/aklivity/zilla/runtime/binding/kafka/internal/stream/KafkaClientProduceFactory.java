@@ -912,7 +912,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             final long authorization = begin.authorization();
 
             state = KafkaState.openingInitial(state);
-            doAppWindow(traceId, 0, encodeMaxBytes);
+            doAppWindow(traceId, 0, client.flushable ? encodeMaxBytes : 0);
 
             client.doNetworkBegin(traceId, authorization, affinity);
         }
@@ -1052,7 +1052,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax)
+            if (newInitialAck > initialAck || minInitialMax > initialMax || !KafkaState.initialOpened(state))
             {
                 if (KafkaConfiguration.DEBUG_PRODUCE)
                 {
@@ -2143,6 +2143,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     client.encoder = client.encodeProduceRequest;
                     client.decoder = decodeProduceResponse;
                     client.flushable = true;
+                    doAppWindow(traceId, 0, encodeMaxBytes);
                     break;
                 default:
                     cleanupApplication(traceId, errorCode);
