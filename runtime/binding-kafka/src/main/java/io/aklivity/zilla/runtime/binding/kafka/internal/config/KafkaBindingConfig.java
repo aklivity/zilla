@@ -77,4 +77,9 @@ public final class KafkaBindingConfig
                  options.merged == null ||
                  options.merged.contains(topic));
     }
+
+    public KafkaSaslConfig sasl()
+    {
+        return options != null ? options.sasl : null;
+    }
 }

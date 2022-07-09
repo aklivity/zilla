@@ -23,7 +23,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
-import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -34,6 +33,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
@@ -83,7 +83,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaClientFetchFactory implements BindingHandler
+public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int FIELD_LIMIT_RECORD_BATCH_LENGTH = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH;
 
@@ -157,6 +157,12 @@ public final class KafkaClientFetchFactory implements BindingHandler
     private final OctetsFW valueRO = new OctetsFW();
     private final DirectBuffer headersRO = new UnsafeBuffer();
 
+    private final KafkaFetchClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
+    private final KafkaFetchClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
+    private final KafkaFetchClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
+    private final KafkaFetchClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
+    private final KafkaFetchClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaFetchClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
     private final KafkaFetchClientDecoder decodeOffsetsResponse = this::decodeOffsetsResponse;
     private final KafkaFetchClientDecoder decodeOffsets = this::decodeOffsets;
     private final KafkaFetchClientDecoder decodeOffsetsTopics = this::decodeOffsetsTopics;
@@ -185,14 +191,11 @@ public final class KafkaClientFetchFactory implements BindingHandler
     private final int partitionMaxBytes;
     private final int kafkaTypeId;
     private final int proxyTypeId;
-    private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BufferPool decodePool;
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
-    private final LongUnaryOperator supplyReplyId;
     private final LongFunction<MessageConsumer> supplyReceiver;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<BudgetDebitor> supplyDebitor;
@@ -206,19 +209,17 @@ public final class KafkaClientFetchFactory implements BindingHandler
         LongFunction<BudgetDebitor> supplyDebitor,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
+        super(context);
         this.fetchMaxBytes = config.clientFetchMaxBytes();
         this.fetchMaxWaitMillis = config.clientFetchMaxWaitMillis();
         this.partitionMaxBytes = config.clientFetchPartitionMaxBytes();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.signaler = context.signaler();
-        this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
-        this.supplyInitialId = context::supplyInitialId;
-        this.supplyReplyId = context::supplyReplyId;
         this.supplyReceiver = context::supplyReceiver;
         this.supplyBinding = supplyBinding;
         this.supplyDebitor = supplyDebitor;
@@ -263,6 +264,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 final int partitionId = partition.partitionId();
                 final long initialOffset = partition.partitionOffset();
                 final long latestOffset = partition.latestOffset();
+                final KafkaSaslConfig sasl = binding.sasl();
 
                 newStream = new KafkaFetchStream(
                     application,
@@ -273,7 +275,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
                     partitionId,
                     latestOffset,
                     leaderId,
-                    initialOffset)::onApplication;
+                    initialOffset,
+                    sasl)::onApplication;
             }
         }
 
@@ -620,7 +623,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
     {
         if (client.decodableTopics == 0)
         {
-            client.onDecodeResponse(traceId);
+            client.onDecodeFetchResponse(traceId);
             client.encoder = client.encodeFetchRequest;
             client.decoder = decodeFetchResponse;
         }
@@ -811,7 +814,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
         decode:
         if (client.decodableTopics == 0)
         {
-            client.onDecodeResponse(traceId);
+            client.onDecodeFetchResponse(traceId);
             client.decoder = decodeFetchResponse;
             break decode;
         }
@@ -1663,7 +1666,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
             int partitionId,
             long latestOffset,
             long leaderId,
-            long initialOffset)
+            long initialOffset,
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.routeId = routeId;
@@ -1671,7 +1675,7 @@ public final class KafkaClientFetchFactory implements BindingHandler
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
-            this.client = new KafkaFetchClient(resolvedId, topic, partitionId, initialOffset, latestOffset);
+            this.client = new KafkaFetchClient(resolvedId, topic, partitionId, initialOffset, latestOffset, sasl);
         }
 
         private int replyBudget()
@@ -1969,16 +1973,15 @@ public final class KafkaClientFetchFactory implements BindingHandler
             }
         }
 
-        private final class KafkaFetchClient
+        private final class KafkaFetchClient extends KafkaSaslClient
         {
+            private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
+            private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
             private final LongLongConsumer encodeOffsetsRequest = this::doEncodeOffsetsRequest;
             private final LongLongConsumer encodeFetchRequest = this::doEncodeFetchRequest;
 
             private MessageConsumer network;
             private final KafkaFetchStream stream;
-            private final long routeId;
-            private final long initialId;
-            private final long replyId;
             private final String topic;
             private final int partitionId;
 
@@ -2022,7 +2025,6 @@ public final class KafkaClientFetchFactory implements BindingHandler
             private int decodableRecordBytes;
             private int decodableRecordValueBytes;
 
-            private int nextRequestId;
             private int nextResponseId;
 
             private KafkaFetchClientDecoder decoder;
@@ -2033,12 +2035,11 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 String topic,
                 int partitionId,
                 long initialOffset,
-                long latestOffset)
+                long latestOffset,
+                KafkaSaslConfig sasl)
             {
+                super(sasl, routeId);
                 this.stream = KafkaFetchStream.this;
-                this.routeId = routeId;
-                this.initialId = supplyInitialId.applyAsLong(routeId);
-                this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.topic = requireNonNull(topic);
                 this.partitionId = partitionId;
                 this.nextOffset = initialOffset;
@@ -2261,7 +2262,12 @@ public final class KafkaClientFetchFactory implements BindingHandler
             {
                 state = KafkaState.openingInitial(state);
 
-                if (nextOffset == OFFSET_LIVE || nextOffset == OFFSET_HISTORICAL)
+                if (client.sasl != null)
+                {
+                    client.encoder = client.encodeSaslHandshakeRequest;
+                    client.decoder = decodeSaslHandshakeResponse;
+                }
+                else if (nextOffset == OFFSET_LIVE || nextOffset == OFFSET_HISTORICAL)
                 {
                     client.encoder = client.encodeOffsetsRequest;
                     client.decoder = decodeOffsetsResponse;
@@ -2288,7 +2294,8 @@ public final class KafkaClientFetchFactory implements BindingHandler
                         traceId, authorization, affinity, extension);
             }
 
-            private void doNetworkData(
+            @Override
+            protected void doNetworkData(
                 long traceId,
                 long budgetId,
                 DirectBuffer buffer,
@@ -2390,6 +2397,48 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 {
                     encoder.accept(traceId, budgetId);
                 }
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeResponse(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshake(
+                long traceId)
+            {
+                decoder = decodeSaslHandshake;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechanisms(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanisms;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechansim(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanism;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticateResponse(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticateResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticate(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticate;
             }
 
             private void doEncodeOffsetsRequest(
@@ -2649,6 +2698,52 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 }
             }
 
+            @Override
+            protected void onDecodeSaslHandshakeResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    client.encoder = client.encodeSaslAuthenticateRequest;
+                    client.decoder = decodeSaslAuthenticateResponse;
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
+            @Override
+            protected void onDecodeSaslAuthenticateResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    if (nextOffset == OFFSET_LIVE || nextOffset == OFFSET_HISTORICAL)
+                    {
+                        client.encoder = client.encodeOffsetsRequest;
+                        client.decoder = decodeOffsetsResponse;
+                    }
+                    else
+                    {
+                        client.encoder = client.encodeFetchRequest;
+                        client.decoder = decodeFetchResponse;
+                    }
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
             private void onDecodeOffsetsPartition(
                 long traceId,
                 long authorization,
@@ -2801,7 +2896,15 @@ public final class KafkaClientFetchFactory implements BindingHandler
                 doApplicationData(traceId, authorization, FLAG_FIN, reserved, value, kafkaDataEx);
             }
 
-            private void onDecodeResponse(
+            @Override
+            protected void onDecodeSaslResponse(
+                long traceId)
+            {
+                nextResponseId++;
+                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
+
+            private void onDecodeFetchResponse(
                 long traceId)
             {
                 nextResponseId++;
