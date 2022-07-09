@@ -405,18 +405,25 @@ final class ZillaTarget implements AutoCloseable
         ZillaChannel channel,
         ChannelFuture flushFuture)
     {
-        doFlushBegin(channel);
-        if (channel.writeExtBuffer(DATA, true).readable())
+        final boolean writable = !channel.isWriteClosed();
+        final boolean flushed = channel.writeRequests.isEmpty();
+
+        if (writable)
         {
-            if (channel.writeRequests.isEmpty())
+            doFlushBegin(channel);
+        }
+
+        if (writable && channel.writeExtBuffer(DATA, true).readable())
+        {
+            if (flushed)
             {
                 Object message = NULL_BUFFER;
                 MessageEvent newWriteRequest = new DownstreamMessageEvent(channel, flushFuture, message, null);
                 channel.writeRequests.addLast(newWriteRequest);
+                flushThrottledWrites(channel);
             }
-            flushThrottledWrites(channel);
         }
-        else
+        else if (writable || flushed)
         {
             flushThrottledWrites(channel);
             flushFuture.setSuccess();
@@ -996,7 +1003,6 @@ final class ZillaTarget implements AutoCloseable
             channel.targetAck(acknowledge);
 
             unregisterThrottle.accept(streamId);
-
             if (channel.setWriteAborted())
             {
                 if (channel.setWriteClosed())

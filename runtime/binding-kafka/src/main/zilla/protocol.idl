@@ -334,5 +334,42 @@ scope protocol
                 int32 thottleTimeMillis;
             }
         }
+
+        scope sasl
+        {
+            struct SaslHandshakeRequest // v1
+            {
+                string16 mechanism;
+            }
+
+            struct SaslHandshakeResponse // v1
+            {
+                int32 correlationId;
+                int16 errorCode;
+                int32 mechanismCount;
+            }
+
+            struct SaslHandshakeMechanismResponse
+            {
+                string16 mechanism;
+            }
+
+            struct SaslAuthenticateRequest // v1
+            {
+                int32 authBytesLen;
+                octets[authBytesLen] authBytes = null;
+            }
+
+            struct SaslAuthenticateResponse // v1
+            {
+                int32 correlationId;
+                int16 errorCode;
+                string16 errorMessage;
+                int32 authBytesLen;
+                octets[authBytesLen] authBytes = null;
+                int64 sessionLifetimeMs;
+            }
+
+        }
     }
 }

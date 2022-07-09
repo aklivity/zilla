@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.test.counters;
 
+import static java.lang.invoke.VarHandle.fullFence;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
@@ -61,7 +62,7 @@ public class ServerStatsIT
         k3po.finish();
 
         EngineStats stats = engine.stats("test", "net0");
-
+        fullFence();
         assertEquals(0, stats.initialBytes());
         assertEquals(19, stats.replyBytes());
         //assertEquals(0, stats.initialMessages());

@@ -29,13 +29,16 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
-import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind;
 
 public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String MERGED_NAME = "merged";
     private static final String BOOTSTRAP_NAME = "bootstrap";
     private static final String TOPICS_NAME = "topics";
+    private static final String SASL_NAME = "sasl";
+    private static final String SASL_MECHANISM_NAME = "mechanism";
+    private static final String SASL_PLAIN_USERNAME_NAME = "username";
+    private static final String SASL_PLAIN_PASSWORD_NAME = "password";
 
     private final KafkaTopicConfigAdapter topic = new KafkaTopicConfigAdapter();
 
@@ -77,7 +80,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             object.add(BOOTSTRAP_NAME, entries);
         }
 
-
         if (kafkaOptions.topics != null &&
             !kafkaOptions.topics.isEmpty())
         {
@@ -85,6 +87,17 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             kafkaOptions.topics.forEach(t -> entries.add(topic.adaptToJson(t)));
 
             object.add(TOPICS_NAME, entries);
+        }
+
+        if (kafkaOptions.sasl != null)
+        {
+            JsonObjectBuilder sasl = Json.createObjectBuilder();
+
+            sasl.add(SASL_MECHANISM_NAME, kafkaOptions.sasl.mechanism);
+            sasl.add(SASL_PLAIN_USERNAME_NAME, kafkaOptions.sasl.username);
+            sasl.add(SASL_PLAIN_PASSWORD_NAME, kafkaOptions.sasl.password);
+
+            object.add(SASL_NAME, sasl);
         }
 
         return object.build();
@@ -104,6 +117,10 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
 
         JsonArray topicsArray = object.containsKey(TOPICS_NAME)
                 ? object.getJsonArray(TOPICS_NAME)
+                : null;
+
+        JsonObject saslObject = object.containsKey(SASL_NAME)
+                ? object.getJsonObject(SASL_NAME)
                 : null;
 
         List<String> merged = null;
@@ -133,6 +150,17 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             topics = topics0;
         }
 
-        return new KafkaOptionsConfig(merged, bootstrap, topics);
+        KafkaSaslConfig sasl = null;
+
+        if (saslObject != null)
+        {
+            final String mechanism = saslObject.getString(SASL_MECHANISM_NAME);
+            final String username = saslObject.getString(SASL_PLAIN_USERNAME_NAME);
+            final String password = saslObject.getString(SASL_PLAIN_PASSWORD_NAME);
+
+            sasl = new KafkaSaslConfig(mechanism, username, password);
+        }
+
+        return new KafkaOptionsConfig(merged, bootstrap, topics, sasl);
     }
 }

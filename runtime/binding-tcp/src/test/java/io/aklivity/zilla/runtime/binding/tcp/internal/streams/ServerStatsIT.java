@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static java.lang.invoke.VarHandle.fullFence;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -65,6 +66,7 @@ public class ServerStatsIT
         k3po.finish();
 
         EngineStats stats = engine.stats("test", "net0");
+        fullFence();
 
         assertThat(stats.initialOpens(), equalTo(1L));
         assertThat(stats.replyOpens(), equalTo(1L));

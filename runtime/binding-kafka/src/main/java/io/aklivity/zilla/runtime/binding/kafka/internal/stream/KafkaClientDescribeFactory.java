@@ -29,16 +29,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
-import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -68,7 +69,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaClientDescribeFactory implements BindingHandler
+public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
 
@@ -115,8 +116,15 @@ public final class KafkaClientDescribeFactory implements BindingHandler
     private final Map<String, String> newConfigs = new LinkedHashMap<>();
     private final List<String> changedConfigs = new ArrayList<>();
 
-    private final KafkaDescribeClientDecoder decodeResponse = this::decodeResponse;
+    private final KafkaDescribeClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
+    private final KafkaDescribeClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
+    private final KafkaDescribeClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
+    private final KafkaDescribeClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
+    private final KafkaDescribeClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaDescribeClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaDescribeClientDecoder decodeDescribeResponse = this::decodeDescribeResponse;
     private final KafkaDescribeClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
+    private final KafkaDescribeClientDecoder decodeReject = this::decodeReject;
 
     private final long maxAgeMillis;
     private final int kafkaTypeId;
@@ -126,8 +134,6 @@ public final class KafkaClientDescribeFactory implements BindingHandler
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
-    private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
 
     public KafkaClientDescribeFactory(
@@ -136,6 +142,7 @@ public final class KafkaClientDescribeFactory implements BindingHandler
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor)
     {
+        super(context);
         this.maxAgeMillis = Math.min(config.clientDescribeMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.signaler = context.signaler();
@@ -144,8 +151,6 @@ public final class KafkaClientDescribeFactory implements BindingHandler
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
-        this.supplyInitialId = context::supplyInitialId;
-        this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
     }
 
@@ -180,6 +185,8 @@ public final class KafkaClientDescribeFactory implements BindingHandler
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
+            final KafkaSaslConfig sasl = binding.sasl();
+
             final List<String> configs = new ArrayList<>();
             kafkaDescribeBeginEx.configs().forEach(c -> configs.add(c.asString()));
 
@@ -190,7 +197,8 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                     affinity,
                     resolvedId,
                     topicName,
-                    configs)::onApplication;
+                    configs,
+                    sasl)::onApplication;
         }
 
         return newStream;
@@ -434,7 +442,7 @@ public final class KafkaClientDescribeFactory implements BindingHandler
             int limit);
     }
 
-    private int decodeResponse(
+    private int decodeDescribeResponse(
         KafkaDescribeStream.KafkaDescribeClient client,
         long traceId,
         long authorization,
@@ -516,7 +524,7 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                         newConfigs.put(name, value);
                     }
 
-                    client.onDecodeResponse(traceId, newConfigs);
+                    client.onDecodeDescribeResponse(traceId, newConfigs);
                 }
             }
         }
@@ -527,6 +535,22 @@ public final class KafkaClientDescribeFactory implements BindingHandler
         }
 
         return progress;
+    }
+
+    private int decodeReject(
+        KafkaDescribeStream.KafkaDescribeClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        client.doNetworkResetIfNecessary(traceId);
+        client.decoder = decodeIgnoreAll;
+        return limit;
     }
 
     private int decodeIgnoreAll(
@@ -572,14 +596,15 @@ public final class KafkaClientDescribeFactory implements BindingHandler
             long affinity,
             long resolvedId,
             String topic,
-            List<String> configs)
+            List<String> configs,
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaDescribeClient(resolvedId, topic, configs);
+            this.client = new KafkaDescribeClient(resolvedId, topic, configs, sasl);
         }
 
         private void onApplication(
@@ -815,18 +840,31 @@ public final class KafkaClientDescribeFactory implements BindingHandler
 
         private void cleanupApplication(
             long traceId,
+            int error)
+        {
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .error(error)
+                .build();
+
+            cleanupApplication(traceId, kafkaResetEx);
+        }
+
+        private void cleanupApplication(
+            long traceId,
             Flyweight extension)
         {
             doApplicationResetIfNecessary(traceId, extension);
             doApplicationAbortIfNecessary(traceId);
         }
 
-        private final class KafkaDescribeClient
+        private final class KafkaDescribeClient extends KafkaSaslClient
         {
+            private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
+            private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
+            private final LongLongConsumer encodeDescribeRequest = this::doEncodeDescribeRequest;
+
             private MessageConsumer network;
-            private final long routeId;
-            private final long initialId;
-            private final long replyId;
             private final String topic;
             private final Map<String, String> configs;
 
@@ -851,23 +889,24 @@ public final class KafkaClientDescribeFactory implements BindingHandler
             private int decodeSlotOffset;
             private int decodeSlotReserved;
 
-            private int nextRequestId;
             private int nextResponseId;
 
             private KafkaDescribeClientDecoder decoder;
+            private LongLongConsumer encoder;
 
             KafkaDescribeClient(
                 long routeId,
                 String topic,
-                List<String> configs)
+                List<String> configs,
+                KafkaSaslConfig sasl)
             {
-                this.routeId = routeId;
-                this.initialId = supplyInitialId.applyAsLong(routeId);
-                this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.decoder = decodeResponse;
+                super(sasl, routeId);
                 this.topic = requireNonNull(topic);
                 this.configs = new LinkedHashMap<>(configs.size());
                 configs.forEach(c -> this.configs.put(c, null));
+
+                this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
+                this.decoder = decodeReject;
             }
 
             public void onDecodeResource(
@@ -1095,7 +1134,8 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                         traceId, authorization, affinity, EMPTY_EXTENSION);
             }
 
-            private void doNetworkData(
+            @Override
+            protected void doNetworkData(
                 long traceId,
                 long budgetId,
                 DirectBuffer buffer,
@@ -1184,11 +1224,11 @@ public final class KafkaClientDescribeFactory implements BindingHandler
             {
                 if (nextRequestId == nextResponseId)
                 {
-                    doEncodeRequest(traceId, budgetId);
+                    encoder.accept(traceId, budgetId);
                 }
             }
 
-            private void doEncodeRequest(
+            private void doEncodeDescribeRequest(
                 long traceId,
                 long budgetId)
             {
@@ -1249,6 +1289,8 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                         .build();
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+                decoder = decodeDescribeResponse;
             }
 
             private void encodeNetwork(
@@ -1353,7 +1395,95 @@ public final class KafkaClientDescribeFactory implements BindingHandler
                 }
             }
 
-            private void onDecodeResponse(
+            @Override
+            protected void doDecodeSaslHandshakeResponse(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshake(
+                long traceId)
+            {
+                decoder = decodeSaslHandshake;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechanisms(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanisms;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechansim(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanism;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticateResponse(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticateResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticate(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticate;
+            }
+
+            @Override
+            protected void onDecodeSaslHandshakeResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    client.encoder = client.encodeSaslAuthenticateRequest;
+                    client.decoder = decodeSaslAuthenticateResponse;
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
+            @Override
+            protected void onDecodeSaslAuthenticateResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    client.encoder = client.encodeDescribeRequest;
+                    client.decoder = decodeDescribeResponse;
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
+            @Override
+            protected void onDecodeSaslResponse(
+                long traceId)
+            {
+                nextResponseId++;
+                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
+
+            private void onDecodeDescribeResponse(
                 long traceId,
                 Map<String, String> newConfigs)
             {

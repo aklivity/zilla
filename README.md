@@ -1,39 +1,62 @@
-# Zilla Project
+<div align="center">
+  <img src="./assets/logo-light-mode.svg#gh-light-mode-only" height="100">
+  <img src="./assets/logo-dark-mode.svg#gh-dark-mode-only" height="100">
+</div>
 
-[![Build Status][build-status-image]][build-status]
-[![Slack Community][community-image]][community-join]
+</br>
+<h1 align="center">Event-driven API Gateway</h1>
 
-Zilla is an event-driven API gateway that connects web and mobile applications to event-driven microservices using standard protocols, such as HTTP, Server-Sent Events and Kafka.
+<div align="center">
+  
+  [![Build Status][build-status-image]][build-status]
+  [![Slack Community][community-image]][community-join]
+  
+</div>
 
-<p align="center">
-  <img src="./assets/diagram-light-mode.svg#gh-light-mode-only" >
-  <img src="./assets/diagram-dark-mode.svg#gh-dark-mode-only" >
-</p>
+<h3 align="center">
+  <a href="https://docs.aklivity.io/zilla/"><b>Documentation</b></a> &bull;
+  <a href="https://docs.aklivity.io/zilla/get-started"><b>Getting Started</b></a> &bull;
+  <a href="https://github.com/aklivity/zilla-examples"><b>Examples</b></a> &bull; 
+  <a href="https://www.aklivity.io/blog"><b>Blog</b></a>  
+</h3>
 
-<!-- left aligned
-![Zilla diagram](./assets/diagram-dark-mode.svg#gh-dark-mode-only)
-![Zilla diagram](./assets/diagram-light-mode.svg#gh-light-mode-only)
--->
-
-Zilla is designed on the fundamental principle that _every data flow is a stream_, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
+## About Zilla
+Zilla is a next-generation API gateway built for event-driven architectures and streaming. It is the most seamless and reliable way of interfacing edge clients (mobile apps, browsers, partner systems, etc.) to Apache Kafka-based microservices and data.
 
 Zilla's declarative configuration defines a routed graph of protocol decoders, transformers, encoders and caches that combine to provide a secure and stateless API entry point to your event-driven architecture.
 
-For example, when deployed in front of a Kafka cluster, Zilla can be configured to support:
- - HTTP request-response interaction with Kafka-based microservices
- - HTTP event-driven caching populated by messages from a Kafka topic
- - reliable message streaming from a Kafka topic via Server-Sent Events
- - secure HTTP request-response APIs using JWT access tokens
- - secure Server-Sent Events streams using continuous authorization via JWT access tokens
+With Zilla, apps and services can use standard protocols such as HTTP, SSE and the native Kafka protocol (see [roadmap](#roadmap) for additional protocols on the way) to directly consume and produce Kafka event-streams over the internet. 
 
-As a developer, you can focus on writing and testing your event-driven microservices with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
+<b>Zilla aims to:</b>
 
-Read the [docs][zilla-docs].
-Try the [examples][zilla-examples].
-Join the [Slack community][community-join].
+1. Streamline event-driven architectures and make them easier to manage by eliminating the need for intermediary brokers and web servers, sink/source connectors, and change data capture (CDC) tooling.
+2. Simplify creating scalable, asynchronous backends that can support realtime frontend experiences.
 
-## Running Zilla via docker
+## Features
+Zilla is designed on the fundamental principle that every data flow is a stream, and that streams can be composed together to create efficient protocol transformation pipelines. This concept of a stream holds at both the network level for communication protocols and also at the application level for data processing.
+
+### Kafka Proxies
+Zilla natively supports the Kafka protocol and is able to efficiently transform other protocols to and from it. 
+
+- <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">HTTP ⇄ Kafka</a></b> — 
+  Transforms HTTP 1.1/HTTP 2  requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. JWT authentication supported.
+- <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">SSE ← Kafka</a></b> — 
+  Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable message down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
+
+### Other
+- **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
+- **Entitlement-based Messaging** — restrict access to endpoints based on client entitlement privileges.
+- **SSL/TLS** — support for TLS virtual hosting.
+
+<div align="center">
+  </br>
+  <img src="./assets/before-after-zilla.svg">
+</div>
+
+## Getting Started
+### Running Zilla via Docker
 Run the latest Zilla release with default empty configuration via docker.
+
 ```
 docker run ghcr.io/aklivity/zilla:latest start -v
 ```
@@ -44,7 +67,7 @@ docker run ghcr.io/aklivity/zilla:latest start -v
 started
 ```
 
-Configure Zilla to behave as a `tcp` `echo` server in 2mins.
+#### Configure Zilla to behave as a `tcp` `echo` server in 2mins.
 
 First create a local `zilla.json` with the following contents.
 ```json
@@ -85,11 +108,95 @@ Hello, world
 Hello, world
 ```
 
-Check out the [docs][zilla-docs] and [examples][zilla-examples] to learn how to configure Zilla. Follow the [tutorial][zilla-todo-tutorial] to build a CQRS Todo app with Zilla and Kafka Streams. Ask questions in the [Slack community][community-join].
+### Connect your Kafka and Create REST and SSE API Endpoints
+Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL` and `TLS/SSL with Client Certificates` (`SASL/SCRAM` will be imminently supported).
+
+Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
+<br></br>
+#### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
+A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo App with Zilla and Kafka streams, and achieve the following:
+- Provide a list of Todo tasks that is shared by all clients
+- Support optimistic locking with conflict detection when attempting to update a Todo task
+- Deliver updates in near real-time when a Todo task is created, modified, or deleted
+- Demonstrate a user interface driving the Tasks API
+- Support scaling Todo task reads and writes
+
+<div align="center" float="left">
+    <img src="./assets/zilla-todo-app-screenshot-shadow@2x.png" height="300">  
+    <p><i>Vue.js + Zilla + Kafka</i></p>
+</div>
+
+
+### Zilla Examples
+You can also quickly test out Zilla buy running preconfigured Zilla configurations for various protocols.
+
+| Name | Description|
+|------|------------|
+| [tcp.echo](https://github.com/aklivity/zilla-examples/tree/main/tcp.echo) | Echoes bytes sent to the TCP server |
+| [tcp.reflect](https://github.com/aklivity/zilla-examples/tree/main/tcp.reflect) | Echoes bytes sent to the TCP server, broadcasting to all TCP clients |
+| [tls.echo](https://github.com/aklivity/zilla-examples/tree/main/tls.echo) | Echoes encrypted bytes sent to the TLS server |
+| [tls.reflect](https://github.com/aklivity/zilla-examples/tree/main/tls.reflect) | Echoes encrypted bytes sent to the TLS server, broadcasting to all TLS clients |
+| [http.filesystem](https://github.com/aklivity/zilla-examples/tree/main/http.filesystem) | Serves files from a directory on the local filesystem |
+| [http.echo](https://github.com/aklivity/zilla-examples/tree/main/http.echo) | Echoes request sent to the HTTP server from an HTTP client |
+| [http.echo.jwt](https://github.com/aklivity/zilla-examples/tree/main/http.echo.jwt) | Echoes request sent to the HTTP server from a JWT-authorized HTTP client |
+| [http.kafka.sync](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sync) | Correlates requests and responses over separate Kaka topics |
+| [http.kafka.async](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Correlates requests and responses over separate Kaka topics, asynchronously |
+| [http.kafka.cache](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.cache) | Serves cached responses from a Kaka topic |
+| [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kaka topic |
+| [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
+| [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
+| [sse.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
+| [ws.echo](https://github.com/aklivity/zilla-examples/tree/main/ws.echo) | Echoes messages sent to the WebSocket server |
+| [ws.reflect](https://github.com/aklivity/zilla-examples/tree/main/ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
+
+
+## Use Cases
+### Migrate/Bridge REST to Event-Driven
+Interface REST apps and services to event-streams with app specific API declarations, enabling them as first-class participants inside an event-driven architecture. Achieve a CQRS event-sourcing design pattern with minimal effort.
+
+**Key Zilla Features:**
+- HTTP request-response interaction with Kafka-based microservices 
+- HTTP event-driven caching populated by messages from a Kafka topic
+- Secure HTTP request-response APIs using JWT access tokens
+
+### Create streaming/push APIs for realtime web apps (live chat/collaboration, geo-tracking, gamming, etc.)
+As a developer, you can focus on writing and testing your event-driven microservices with technologies such as Kafka consumers and producers, you can define your web and mobile APIs using Zilla, and then you can deploy securely at global scale.
+
+**Key Zilla Features:**
+- Reliable message streaming from a Kafka topic via Server-Sent Events with fan-out capability 
+- Secure Server-Sent Events streams using continuous authorization via JWT access tokens
+
+
+## Performance
+End-to-end latency and throughput testing are are in the works. In the meantime, you can get a sense of the internal efficiencies of Zilla by running the `BufferBM` microbenchmark for the internal data structure that underpins all data flow inside the Zilla runtime.
+
+```
+git clone https://github.com/aklivity/zilla
+cd zilla
+./mvnw clean install
+```
+
+```
+cd runtime/engine/target
+java -jar ./engine-develop-SNAPSHOT-shaded-tests.jar BufferBM
+```
+<b>Note:</b> recommend using Java 15 or lower (for now) to avoid getting errors related to reflective access across Java module boundaries when running the benchmark.
+
+```
+Benchmark                  Mode  Cnt         Score        Error  Units
+BufferBM.batched          thrpt   15  15315188.949 ± 198360.879  ops/s
+BufferBM.multiple         thrpt   15  18366915.039 ± 420092.183  ops/s
+BufferBM.multiple:reader  thrpt   15   3884377.984 ± 112128.903  ops/s
+BufferBM.multiple:writer  thrpt   15  14482537.055 ± 316551.083  ops/s
+BufferBM.single           thrpt   15  15111915.264 ± 294689.110  ops/s
+```
+
+This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Intel i9 chip` and `16 GB of DDR4 RAM`, showing about `14-15 million messages per second`.
 
 ## Roadmap
-
 Zilla is designed from the ground up to be extensible and we anticipate adding support for several new capabilities:
+
+**Protocols and Transformations**
  - gRPC, proxy and Kafka mapping
  - GraphQL, proxy and Kafka mapping
  - MQTT, proxy and Kafka mapping
@@ -98,6 +205,13 @@ Zilla is designed from the ground up to be extensible and we anticipate adding s
  - WebHooks, Kafka mapping
  - HTTP, proxy, including HTTP/3
  - SSE, proxy (Kafka mapping done)
+
+**Integrations** 
+ - OpenAPI integration
+ - AsyncAPI integration
+ - Avro integration
+ - OpenTelemetry integration
+ - Kubernetes integration
 
 Please let us know in the [Slack community][community-join] if you have additional suggestions.
 
@@ -109,7 +223,6 @@ This creates a local `docker` image with version `develop-SNAPSHOT`.
 
 
 ## License
-
 The project is licensed under the [Aklivity Community License](LICENSE-AklivityCommunity), except for selected components
 which are under the [Apache 2.0 license](LICENSE-Apache).
 See `LICENSE` file in each subfolder for detailed license agreement.
@@ -121,5 +234,6 @@ See `LICENSE` file in each subfolder for detailed license agreement.
 [community-join]: https://join.slack.com/t/aklivitycommunity/shared_invite/zt-sy06wvr9-u6cPmBNQplX5wVfd9l2oIQ
 
 [zilla-docs]: https://docs.aklivity.io/zilla
+[zilla-get-started]: https://docs.aklivity.io/zilla/get-started
 [zilla-examples]: https://github.com/aklivity/zilla-examples
 [zilla-todo-tutorial]: https://docs.aklivity.io/zilla/get-started/build-todo-app
