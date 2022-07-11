@@ -128,7 +128,7 @@ A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo 
 
 
 ### Zilla Examples
-You can also quickly test out Zilla buy running preconfigured Zilla configurations for various protocols.
+You can also quickly test out Zilla by running preconfigured Zilla configurations for various protocols.
 
 | Name | Description|
 |------|------------|
