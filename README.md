@@ -41,7 +41,7 @@ Zilla natively supports the Kafka protocol and is able to efficiently transform 
 - <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">HTTP ⇄ Kafka</a></b> — 
   Transforms HTTP 1.1/HTTP 2  requests and responses to Kafka topic streams with control over the topic, message key, message headers, message value and reply-to topic. JWT authentication supported.
 - <b><a href="https://docs.aklivity.io/zilla/reference/zilla.json/binding-http-kafka">SSE ← Kafka</a></b> — 
-  Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable message down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
+  Transforms Kafka topic streams to Server Sent Event (SSE) streams for reliable data streaming/pushing down to web clients. Secured via JWTs and Zilla’s continuous authentication, which re-authorizes clients without abruptly terminating their message streams.
 
 ### Other
 - **CORS** — enable CORS so users can make browser based requests to Zilla APIs.
@@ -109,7 +109,7 @@ Hello, world
 ```
 
 ### Connect your Kafka and Create REST and SSE API Endpoints
-Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL` and `TLS/SSL with Client Certificates` (`SASL/SCRAM` will be imminently supported).
+Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, and `SASL/PLAIN`.
 
 Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
 <br></br>
@@ -128,7 +128,7 @@ A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo 
 
 
 ### Zilla Examples
-You can also quickly test out Zilla buy running preconfigured Zilla configurations for various protocols.
+You can also quickly test out Zilla by running preconfigured Zilla configurations for various protocols.
 
 | Name | Description|
 |------|------------|

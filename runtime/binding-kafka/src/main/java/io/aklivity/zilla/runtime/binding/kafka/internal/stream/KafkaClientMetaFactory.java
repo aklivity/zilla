@@ -811,8 +811,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaMetaClient(resolvedId, topic, sasl);
             this.clientRoute = supplyClientRoute.apply(resolvedId);
+            this.client = new KafkaMetaClient(resolvedId, topic, sasl);
         }
 
         private void onApplication(
@@ -1086,6 +1086,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             private MessageConsumer network;
             private final String topic;
+            private final Int2IntHashMap topicPartitions;
 
             private final Long2ObjectHashMap<KafkaBrokerInfo> newBrokers;
             private final Int2IntHashMap newPartitions;
@@ -1130,6 +1131,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             {
                 super(sasl, routeId);
                 this.topic = requireNonNull(topic);
+                this.topicPartitions = clientRoute.supplyPartitions(topic);
                 this.newBrokers = new Long2ObjectHashMap<>();
                 this.newPartitions = new Int2IntHashMap(-1);
 
@@ -1748,7 +1750,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
                 doApplicationBeginIfNecessary(traceId, authorization, topic);
 
                 // TODO: share partitions across cores
-                final Int2IntHashMap sharedPartitions = clientRoute.partitions;
+                final Int2IntHashMap sharedPartitions = topicPartitions;
                 if (!sharedPartitions.equals(newPartitions))
                 {
                     sharedPartitions.clear();
