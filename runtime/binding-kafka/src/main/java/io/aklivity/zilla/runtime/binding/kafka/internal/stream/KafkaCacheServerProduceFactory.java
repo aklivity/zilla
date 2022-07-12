@@ -34,6 +34,7 @@ import java.util.zip.CRC32C;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -210,7 +211,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 fan = newFan;
             }
 
-            final int leaderId = cacheRoute.leadersByPartitionId.get(partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
+            final int leaderId = leadersByPartitionId.get(partitionId);
             final String cacheName = String.format("%s.%s", supplyNamespace.apply(routeId), supplyLocalName.apply(routeId));
             final KafkaCache cache = supplyCache.apply(cacheName);
             final KafkaCacheTopic topic = cache.supplyTopic(topicName);

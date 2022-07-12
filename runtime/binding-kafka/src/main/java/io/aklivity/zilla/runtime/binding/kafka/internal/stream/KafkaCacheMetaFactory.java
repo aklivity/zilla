@@ -390,6 +390,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private final KafkaCacheTopic topic;
         private final List<KafkaCacheMetaStream> members;
         private final KafkaCacheRoute cacheRoute;
+        private final Int2IntHashMap leadersByPartitionId;
 
         private long initialId;
         private long replyId;
@@ -418,6 +419,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             this.topic = topic;
             this.members = new ArrayList<>();
             this.cacheRoute = supplyCacheRoute.apply(routeId);
+            this.leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topic.name());
         }
 
         private void onMetaFanoutMemberOpening(
@@ -445,7 +447,6 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             long traceId,
             KafkaCacheMetaStream member)
         {
-            final Int2IntHashMap leadersByPartitionId = cacheRoute.leadersByPartitionId;
             if (!leadersByPartitionId.isEmpty())
             {
                 final KafkaDataExFW kafkaDataEx =
@@ -679,7 +680,6 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             if (kafkaMetaDataEx != null)
             {
                 final ArrayFW<KafkaPartitionFW> partitions = kafkaMetaDataEx.partitions();
-                final Int2IntHashMap leadersByPartitionId = cacheRoute.leadersByPartitionId;
                 leadersByPartitionId.clear();
                 partitions.forEach(p -> leadersByPartitionId.put(p.partitionId(), p.leaderId()));
 

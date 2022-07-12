@@ -39,7 +39,7 @@ public final class KafkaCacheRoute
     public final Long2ObjectHashMap<KafkaCacheClientProduceFan> clientProduceFansByTopicPartition;
     public final Long2ObjectHashMap<KafkaCacheServerProduceFan> serverProduceFansByTopicPartition;
     public final Long2ObjectHashMap<KafkaCacheClientBudget> clientBudgetsByTopic;
-    public final Int2IntHashMap leadersByPartitionId;
+    public final Int2ObjectHashMap<Int2IntHashMap> leadersByPartitionId;
 
 
     public KafkaCacheRoute(
@@ -54,8 +54,15 @@ public final class KafkaCacheRoute
         this.clientProduceFansByTopicPartition = new Long2ObjectHashMap<>();
         this.serverProduceFansByTopicPartition = new Long2ObjectHashMap<>();
         this.clientBudgetsByTopic = new Long2ObjectHashMap<>();
-        this.leadersByPartitionId = new Int2IntHashMap(Integer.MIN_VALUE);
+        this.leadersByPartitionId = new Int2ObjectHashMap<>();
     }
+
+    public Int2IntHashMap supplyLeadersByPartitionId(
+        String topic)
+    {
+        return leadersByPartitionId.computeIfAbsent(topicKey(topic), k -> new Int2IntHashMap(Integer.MIN_VALUE));
+    }
+
 
     public int topicKey(
         String topic)

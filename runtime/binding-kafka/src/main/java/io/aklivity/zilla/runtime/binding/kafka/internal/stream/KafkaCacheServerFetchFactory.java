@@ -35,6 +35,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -219,7 +220,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 fanout = newFanout;
             }
 
-            final int leaderId = cacheRoute.leadersByPartitionId.get(partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
+            final int leaderId = leadersByPartitionId.get(partitionId);
 
             newStream = new KafkaCacheServerFetchStream(
                     fanout,
