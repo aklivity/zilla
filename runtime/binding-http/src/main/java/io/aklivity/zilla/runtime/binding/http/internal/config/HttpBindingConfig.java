@@ -101,7 +101,7 @@ public final class HttpBindingConfig
                     Pattern.compile(String.format(
                                     "(;\\s*)?%s=%s",
                                     cookieName,
-                                         config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
+                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
                             .matcher("");
 
             accessor = orElseIfNull(accessor, hs ->

@@ -508,4 +508,14 @@ public class ClientFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.when.topics.json")
+    @Specification({
+        "${app}/partition.leader.distinct/client",
+        "${net}/partition.leader.distinct/server"})
+    public void shouldReceiveDistinctPartitionLeader() throws Exception
+    {
+        k3po.finish();
+    }
 }

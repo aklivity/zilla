@@ -273,4 +273,13 @@ public class FetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/partition.leader.distinct/client",
+        "${net}/partition.leader.distinct/server"})
+    public void shouldReceiveDistinctPartitionLeader() throws Exception
+    {
+        k3po.finish();
+    }
 }
