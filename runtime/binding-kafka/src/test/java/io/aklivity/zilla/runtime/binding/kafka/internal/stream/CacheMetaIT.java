@@ -101,14 +101,4 @@ public class CacheMetaIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("cache.when.topics.json")
-    @Specification({
-        "${app}/unique.topics.partition.info/client",
-        "${app}/unique.topics.partition.info/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldReceiveUniquePartitionInfoForTopics() throws Exception
-    {
-        k3po.finish();
-    }
 }
