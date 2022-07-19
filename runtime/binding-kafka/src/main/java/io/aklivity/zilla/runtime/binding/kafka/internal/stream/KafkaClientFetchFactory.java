@@ -26,6 +26,7 @@ import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -1728,7 +1729,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.openingInitial(state);
 
-            if (clientRoute.partitions.get(client.partitionId) != leaderId)
+            if (client.topicPartitions.get(client.partitionId) != leaderId)
             {
                 client.network = MessageConsumer.NOOP;
                 cleanupApplication(traceId, ERROR_NOT_LEADER_FOR_PARTITION);
@@ -1983,6 +1984,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private MessageConsumer network;
             private final KafkaFetchStream stream;
             private final String topic;
+            private final Int2IntHashMap topicPartitions;
             private final int partitionId;
 
             private long nextOffset;
@@ -2041,6 +2043,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 super(sasl, routeId);
                 this.stream = KafkaFetchStream.this;
                 this.topic = requireNonNull(topic);
+                this.topicPartitions = clientRoute.supplyPartitions(topic);
                 this.partitionId = partitionId;
                 this.nextOffset = initialOffset;
                 this.latestOffset = latestOffset;
@@ -2909,7 +2912,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 nextResponseId++;
 
-                if (clientRoute.partitions.get(partitionId) == leaderId)
+                if (topicPartitions.get(partitionId) == leaderId)
                 {
                     signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
