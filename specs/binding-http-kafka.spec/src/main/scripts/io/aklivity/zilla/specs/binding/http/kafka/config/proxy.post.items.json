@@ -21,6 +21,7 @@
                     {
                         "capability": "produce",
                         "topic": "items-commands",
+                        "acks": "leader_only",
                         "key": "${idempotencyKey}",
                         "reply-to": "items-replies"
                     }

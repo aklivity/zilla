@@ -22,14 +22,19 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
+
 public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<HttpKafkaWithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
     private static final String TOPIC_NAME = "topic";
+    private static final String ACKS_NAME = "acks";
     private static final String KEY_NAME = "key";
     private static final String OVERRIDES_NAME = "overrides";
     private static final String REPLY_TO_NAME = "reply-to";
     private static final String ASYNC_NAME = "async";
+
+    private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
 
     @Override
     public JsonObject adaptToJson(
@@ -42,6 +47,11 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
         object.add(CAPABILITY_NAME, HttpKafkaCapability.PRODUCE.asString());
 
         object.add(TOPIC_NAME, produce.topic);
+
+        if (produce.acks != ACKS_DEFAULT)
+        {
+            object.add(ACKS_NAME, produce.acks.name().toLowerCase());
+        }
 
         if (produce.key.isPresent())
         {
@@ -86,6 +96,10 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
     {
         String newTopic = object.getString(TOPIC_NAME);
 
+        KafkaAckMode newAcks = object.containsKey(ACKS_NAME)
+            ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
+            : ACKS_DEFAULT;
+
         String newKey = object.containsKey(KEY_NAME)
             ? object.getString(KEY_NAME)
             : null;
@@ -122,6 +136,7 @@ public final class HttpKafkaWithProduceConfigAdapter implements JsonbAdapter<Htt
             }
         }
 
-        return new HttpKafkaWithConfig(new HttpKafkaWithProduceConfig(newTopic, newKey, newOverrides, newReplyTo, newAsync));
+        return new HttpKafkaWithConfig(
+                new HttpKafkaWithProduceConfig(newTopic, newAcks, newKey, newOverrides, newReplyTo, newAsync));
     }
 }

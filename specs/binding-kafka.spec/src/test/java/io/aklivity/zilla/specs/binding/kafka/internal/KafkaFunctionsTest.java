@@ -43,6 +43,7 @@ import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
@@ -209,6 +210,7 @@ public class KafkaFunctionsTest
                                              .header("name", "value")
                                              .build()
                                          .deltaType("NONE")
+                                         .ackMode("IN_SYNC_REPLICAS")
                                          .build()
                                      .build();
 
@@ -2422,6 +2424,40 @@ public class KafkaFunctionsTest
         assertNotNull(matcher.match(byteBuf));
     }
 
+
+    @Test
+    public void shouldMatchMergedBeginExtensionAckMode() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+                                             .merged()
+                                                 .ackMode("IN_SYNC_REPLICAS")
+                                                 .build()
+                                             .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .merged(f -> f
+                .topic("test")
+                .partitionsItem(p -> p.partitionId(0).partitionOffset(0L))
+                .filtersItem(i -> i
+                    .conditionsItem(c -> c
+                        .key(k -> k
+                            .length(3)
+                            .value(v -> v.set("key".getBytes(UTF_8)))))
+                    .conditionsItem(c -> c
+                        .header(h -> h
+                            .nameLen(4)
+                            .name(n -> n.set("name".getBytes(UTF_8)))
+                            .valueLen(5)
+                            .value(v -> v.set("value".getBytes(UTF_8)))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
     @Test(expected = Exception.class)
     public void shouldNotMatchBeginExtensionTypeId() throws Exception
     {
@@ -2829,6 +2865,7 @@ public class KafkaFunctionsTest
                                          .deferred(10)
                                          .timestamp(12345678L)
                                          .sequence(0)
+                                         .ackMode("IN_SYNC_REPLICAS")
                                          .key("match")
                                          .header("name", "value")
                                          .build()
@@ -2843,6 +2880,7 @@ public class KafkaFunctionsTest
         assertEquals(10, produceDataEx.deferred());
         assertEquals(12345678L, produceDataEx.timestamp());
         assertEquals(0, produceDataEx.sequence());
+        assertEquals(KafkaAckMode.IN_SYNC_REPLICAS, produceDataEx.ackMode().get());
 
         assertEquals("match", produceDataEx.key()
                                            .value()
@@ -2901,6 +2939,32 @@ public class KafkaFunctionsTest
                 .typeId(0x01)
                 .produce(p -> p.timestamp(12345678L)
                         .sequence(0)
+                        .key(k -> k.length(5)
+                                   .value(v -> v.set("match".getBytes(UTF_8))))
+                        .headersItem(h -> h.nameLen(4)
+                                           .name(n -> n.set("name".getBytes(UTF_8)))
+                                           .valueLen(5)
+                                           .value(v -> v.set("value".getBytes(UTF_8)))))
+                .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchProduceDataExtensionAckMode() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchDataEx()
+                                             .produce()
+                                                 .ackMode("IN_SYNC_REPLICAS")
+                                                 .build()
+                                             .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x01)
+                .produce(p -> p.timestamp(12345678L)
+                        .ackMode(a -> a.set(KafkaAckMode.IN_SYNC_REPLICAS))
                         .key(k -> k.length(5)
                                    .value(v -> v.set("match".getBytes(UTF_8))))
                         .headersItem(h -> h.nameLen(4)

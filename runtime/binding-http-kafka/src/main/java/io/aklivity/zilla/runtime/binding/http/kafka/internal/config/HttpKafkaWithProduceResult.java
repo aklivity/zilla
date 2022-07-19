@@ -22,6 +22,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckModeFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaKeyFW;
@@ -55,6 +57,7 @@ public class HttpKafkaWithProduceResult
 
     private final HttpKafkaCorrelationConfig correlation;
     private final String16FW topic;
+    private final KafkaAckMode acks;
     private final Supplier<DirectBuffer> keyRef;
     private final List<HttpKafkaWithProduceOverrideResult> overrides;
     private final String16FW ifMatch;
@@ -67,6 +70,7 @@ public class HttpKafkaWithProduceResult
     HttpKafkaWithProduceResult(
         HttpKafkaCorrelationConfig correlation,
         String16FW topic,
+        KafkaAckMode acks,
         Supplier<DirectBuffer> keyRef,
         List<HttpKafkaWithProduceOverrideResult> overrides,
         String16FW ifMatch,
@@ -78,6 +82,7 @@ public class HttpKafkaWithProduceResult
     {
         this.correlation = correlation;
         this.topic = topic;
+        this.acks = acks;
         this.keyRef = keyRef;
         this.overrides = overrides;
         this.ifMatch = ifMatch;
@@ -113,6 +118,12 @@ public class HttpKafkaWithProduceResult
     public String16FW replyTo()
     {
         return replyTo;
+    }
+
+    public void acks(
+        KafkaAckModeFW.Builder builder)
+    {
+        builder.set(acks);
     }
 
     public void key(

@@ -4150,7 +4150,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(PRODUCE_ONLY))
                               .topic(resolved.topic())
-                              .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L)))
+                              .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
+                              .ackMode(resolved::acks))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

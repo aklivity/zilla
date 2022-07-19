@@ -200,7 +200,7 @@ write 108                               # size
       ${newRequestId}
       -1s                               # client id
       -1s                               # transactional id
-      0s                                # acks
+      1s                                # acks (leader only)
       ${produceWaitMax}
       1
       4s "test"
@@ -264,7 +264,7 @@ write 108                               # size
       ${newRequestId}
       -1s                               # client id
       -1s                               # transactional id
-      0s                                # acks
+      1s                                # acks (leader only)
       ${produceWaitMax}
       1
       4s "test"
@@ -328,7 +328,7 @@ write 108                               # size
       ${newRequestId}
       -1s                               # client id
       -1s                               # transactional id
-      0s                                # acks
+      1s                                # acks (leader only)
       ${produceWaitMax}
       1
       4s "test"

@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConfigFW;
@@ -197,6 +198,7 @@ public final class KafkaMergedFactory implements BindingHandler
         final String16FW beginTopic = kafkaMergedBeginEx.topic();
         final String topicName = beginTopic.asString();
         final KafkaDeltaType deltaType = kafkaMergedBeginEx.deltaType().get();
+        final KafkaAckMode ackMode = kafkaMergedBeginEx.ackMode().get();
 
         MessageConsumer newStream = null;
 
@@ -232,7 +234,8 @@ public final class KafkaMergedFactory implements BindingHandler
                     capabilities,
                     initialOffsetsById,
                     defaultOffset,
-                    deltaType)::onMergedMessage;
+                    deltaType,
+                    ackMode)::onMergedMessage;
         }
 
         return newStream;
@@ -947,6 +950,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private final Long2LongHashMap nextOffsetsById;
         private final long defaultOffset;
         private final KafkaDeltaType deltaType;
+        private final KafkaAckMode ackMode;
 
         private KafkaOffsetType maximumOffset;
         private List<KafkaMergedFilter> filters;
@@ -982,7 +986,8 @@ public final class KafkaMergedFactory implements BindingHandler
             KafkaCapabilities capabilities,
             Long2LongHashMap initialOffsetsById,
             long defaultOffset,
-            KafkaDeltaType deltaType)
+            KafkaDeltaType deltaType,
+            KafkaAckMode ackMode)
         {
             this.sender = sender;
             this.routeId = routeId;
@@ -1002,6 +1007,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.nextOffsetsById = initialOffsetsById;
             this.defaultOffset = defaultOffset;
             this.deltaType = deltaType;
+            this.ackMode = ackMode;
         }
 
         private void onMergedMessage(
@@ -2774,10 +2780,12 @@ public final class KafkaMergedFactory implements BindingHandler
                 traceId, merged.authorization, leaderId,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
-                        .produce(pr -> pr.transaction((String) null) // TODO: default in kafka.idl
-                                       .topic(merged.topic)
-                                       .partition(part -> part.partitionId(partitionId).
-                                           partitionOffset(HISTORICAL.value())))
+                        .produce(pr -> pr
+                            .transaction((String) null) // TODO: default in kafka.idl
+                            .topic(merged.topic)
+                            .partition(part -> part
+                                .partitionId(partitionId)
+                                .partitionOffset(HISTORICAL.value())))
                         .build()
                         .sizeof()));
         }
@@ -2810,6 +2818,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 final int partitionId = partition.partitionId();
                 assert partitionId == DYNAMIC_PARTITION || partitionId == this.partitionId;
                 final int sequence = (int) partition.partitionOffset();
+                final KafkaAckMode ackMode = merged.ackMode;
 
                 switch (flags)
                 {
@@ -2817,15 +2826,20 @@ public final class KafkaMergedFactory implements BindingHandler
                 case FLAGS_INIT:
                     newKafkaDataEx = kafkaDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)
-                            .produce(pr -> pr.deferred(deferred)
-                                           .timestamp(timestamp)
-                                           .sequence(sequence)
-                                           .key(k -> k.length(key.length())
-                                                      .value(key.value()))
-                                           .headers(hs -> headers.forEach(h -> hs.item(i -> i.nameLen(h.nameLen())
-                                                                                             .name(h.name())
-                                                                                             .valueLen(h.valueLen())
-                                                                                             .value(h.value())))))
+                            .produce(pr -> pr
+                                .deferred(deferred)
+                                .timestamp(timestamp)
+                                .sequence(sequence)
+                                .ackMode(a -> a.set(ackMode))
+                                .key(k -> k
+                                    .length(key.length())
+                                    .value(key.value()))
+                                .headers(hs -> headers.forEach(h -> hs
+                                    .item(i -> i
+                                        .nameLen(h.nameLen())
+                                        .name(h.name())
+                                        .valueLen(h.valueLen())
+                                        .value(h.value())))))
                             .build();
                     break;
                 case FLAGS_FIN:

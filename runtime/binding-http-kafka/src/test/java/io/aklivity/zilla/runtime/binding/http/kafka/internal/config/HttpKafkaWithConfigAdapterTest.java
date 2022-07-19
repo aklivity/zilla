@@ -18,6 +18,8 @@ import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresent;
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAnd;
 import static com.vtence.hamcrest.jpa.HasFieldWithValue.hasField;
+import static io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode.IN_SYNC_REPLICAS;
+import static io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode.LEADER_ONLY;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -209,12 +211,48 @@ public class HttpKafkaWithConfigAdapterTest
     public void shouldWriteWithProduceTopic()
     {
         HttpKafkaWithConfig with = new HttpKafkaWithConfig(
-                new HttpKafkaWithProduceConfig("test", null, null, null, null));
+                new HttpKafkaWithProduceConfig("test", IN_SYNC_REPLICAS, null, null, null, null));
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"capability\":\"produce\",\"topic\":\"test\"}"));
+    }
+
+    @Test
+    public void shouldReadWithProduceTopicAndAcks()
+    {
+        String text =
+                "{" +
+                    "\"capability\": \"produce\"," +
+                    "\"topic\": \"test\"," +
+                    "\"acks\": \"leader_only\"" +
+                "}";
+
+        HttpKafkaWithConfig with = jsonb.fromJson(text, HttpKafkaWithConfig.class);
+
+        assertThat(with, not(nullValue()));
+        assertThat(with.capability, equalTo(HttpKafkaCapability.PRODUCE));
+        assertThat(with.fetch, isEmpty());
+        assertThat(with.produce, isPresent());
+        assertThat(with.produce.get().topic, equalTo("test"));
+        assertThat(with.produce.get().acks, equalTo(LEADER_ONLY));
+        assertThat(with.produce.get().key, not(isPresent()));
+        assertThat(with.produce.get().overrides, isEmpty());
+        assertThat(with.produce.get().replyTo, isEmpty());
+        assertThat(with.produce.get().async, isEmpty());
+    }
+
+    @Test
+    public void shouldWriteWithProduceTopicAndAcks()
+    {
+        HttpKafkaWithConfig with = new HttpKafkaWithConfig(
+                new HttpKafkaWithProduceConfig("test", LEADER_ONLY, null, null, null, null));
+
+        String text = jsonb.toJson(with);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"capability\":\"produce\",\"topic\":\"test\",\"acks\":\"leader_only\"}"));
     }
 
     @Test
@@ -244,7 +282,7 @@ public class HttpKafkaWithConfigAdapterTest
     public void shouldWriteWithProduceTopicAndKey()
     {
         HttpKafkaWithConfig with = new HttpKafkaWithConfig(
-                new HttpKafkaWithProduceConfig("test", "${params.id}", null, null, null));
+                new HttpKafkaWithProduceConfig("test", IN_SYNC_REPLICAS, "${params.id}", null, null, null));
 
         String text = jsonb.toJson(with);
 
@@ -288,6 +326,7 @@ public class HttpKafkaWithConfigAdapterTest
         HttpKafkaWithConfig with = new HttpKafkaWithConfig(
                 new HttpKafkaWithProduceConfig(
                         "test",
+                        IN_SYNC_REPLICAS,
                         null,
                         singletonList(new HttpKafkaWithProduceOverrideConfig("id", "${params.id}")),
                         null,
@@ -326,7 +365,7 @@ public class HttpKafkaWithConfigAdapterTest
     public void shouldWriteWithProduceTopicAndReplyTo()
     {
         HttpKafkaWithConfig with = new HttpKafkaWithConfig(
-                new HttpKafkaWithProduceConfig("test", null, null, "replies", null));
+                new HttpKafkaWithProduceConfig("test", IN_SYNC_REPLICAS, null, null, "replies", null));
 
         String text = jsonb.toJson(with);
 
@@ -370,6 +409,7 @@ public class HttpKafkaWithConfigAdapterTest
         HttpKafkaWithConfig with = new HttpKafkaWithConfig(
                 new HttpKafkaWithProduceConfig(
                         "test",
+                        IN_SYNC_REPLICAS,
                         null,
                         null,
                         null,

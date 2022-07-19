@@ -123,6 +123,13 @@ scope kafka
         int64 ancestorOffset = -1;
     }
 
+    enum KafkaAckMode (int16)
+    {
+        NONE(0),
+        LEADER_ONLY(1),
+        IN_SYNC_REPLICAS(-1)
+    }
+
     enum KafkaCapabilities (uint8)
     {
         PRODUCE_ONLY(1),
@@ -185,6 +192,7 @@ scope kafka
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
             KafkaDeltaType deltaType = NONE;
+            KafkaAckMode ackMode = IN_SYNC_REPLICAS;
         }
 
         struct KafkaMergedDataEx
@@ -269,6 +277,7 @@ scope kafka
             int64 timestamp = 0;
             int32 sequence = -1;
             uint32 crc32c = 0;
+            KafkaAckMode ackMode = IN_SYNC_REPLICAS;
             KafkaKey key;
             KafkaHeader[] headers;
         }

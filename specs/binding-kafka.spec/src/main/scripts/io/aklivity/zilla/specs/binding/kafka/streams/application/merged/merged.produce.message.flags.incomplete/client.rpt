@@ -26,6 +26,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .merged()
                                    .capabilities("PRODUCE_ONLY")
                                    .topic("test")
+                                   .ackMode("LEADER_ONLY")
                                    .build()
                                .build()}
 
