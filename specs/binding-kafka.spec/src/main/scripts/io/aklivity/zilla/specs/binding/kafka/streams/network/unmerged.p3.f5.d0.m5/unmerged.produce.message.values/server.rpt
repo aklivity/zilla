@@ -188,7 +188,7 @@ read 124
      (int:requestId)
      -1s
      -1s
-     [0..2]
+     1s                                 # acks (leader only)
      [0..4]
      1
      4s "test"
@@ -234,7 +234,7 @@ read 124
      (int:requestId2)
      -1s
      -1s
-     [0..2]
+     1s                                 # acks (leader only)
      [0..4]
      1
      4s "test"
@@ -295,7 +295,7 @@ read 124
      (int:requestId)
      -1s
      -1s
-     [0..2]
+     1s                                 # acks (leader only)
      [0..4]
      1
      4s "test"
@@ -402,7 +402,7 @@ read 124
      (int:requestId)
      -1s
      -1s
-     [0..2]
+     1s                                 # acks (leader only)
      [0..4]
      1
      4s "test"
@@ -448,7 +448,7 @@ read 124
      (int:requestId2)
      -1s
      -1s
-     [0..2]
+     1s                                 # acks (leader only)
      [0..4]
      1
      4s "test"

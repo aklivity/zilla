@@ -135,6 +135,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                               .produce()
                                   .timestamp(newTimestamp)
                                   .sequence(1)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 read zilla:data.null
@@ -165,6 +166,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                               .produce()
                                   .timestamp(newTimestamp)
                                   .sequence(1)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 read zilla:data.null
@@ -195,6 +197,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                               .produce()
                                   .timestamp(newTimestamp)
                                   .sequence(1)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 read zilla:data.null

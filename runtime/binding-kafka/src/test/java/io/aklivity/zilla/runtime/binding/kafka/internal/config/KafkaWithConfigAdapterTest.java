@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode.LEADER_ONLY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType.JSON_PATCH;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,7 +48,8 @@ public class KafkaWithConfigAdapterTest
         String text =
                 "{" +
                     "\"defaultOffset\": \"historical\"," +
-                    "\"deltaType\": \"json_patch\"" +
+                    "\"deltaType\": \"json_patch\"," +
+                    "\"acks\": \"leader_only\"" +
                 "}";
 
         KafkaWithConfig with = jsonb.fromJson(text, KafkaWithConfig.class);
@@ -55,16 +57,17 @@ public class KafkaWithConfigAdapterTest
         assertThat(with, not(nullValue()));
         assertThat(with.defaultOffset, equalTo(HISTORICAL));
         assertThat(with.deltaType, equalTo(JSON_PATCH));
+        assertThat(with.ackMode, equalTo(LEADER_ONLY));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        KafkaWithConfig with = new KafkaWithConfig(HISTORICAL, JSON_PATCH);
+        KafkaWithConfig with = new KafkaWithConfig(HISTORICAL, JSON_PATCH, LEADER_ONLY);
 
         String text = jsonb.toJson(with);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"defaultOffset\":\"historical\",\"deltaType\":\"json_patch\"}"));
+        assertThat(text, equalTo("{\"defaultOffset\":\"historical\",\"deltaType\":\"json_patch\",\"acks\":\"leader_only\"}"));
     }
 }

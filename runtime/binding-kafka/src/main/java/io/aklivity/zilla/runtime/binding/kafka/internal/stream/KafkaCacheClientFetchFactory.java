@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerFetchFactory.SIZE_OF_FLUSH_WITH_EXTENSION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_STABLE_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
@@ -31,6 +32,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -225,7 +227,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final KafkaFilterCondition condition = cursorFactory.asCondition(filters);
             final long latestOffset = kafkaFetchBeginEx.partition().latestOffset();
             final KafkaOffsetType maximumOffset = KafkaOffsetType.valueOf((byte) latestOffset);
-            final int leaderId = cacheRoute.leadersByPartitionId.get(partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
+            final int leaderId = leadersByPartitionId.get(partitionId);
 
             newStream = new KafkaCacheClientFetchStream(
                     fanout,
@@ -460,6 +463,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private int replyMax;
 
         private long partitionOffset;
+        private long stableOffset;
         private long latestOffset;
 
         private KafkaCacheClientFetchFanout(
@@ -473,6 +477,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.authorization = authorization;
             this.partition = partition;
             this.partitionOffset = defaultOffset;
+            this.stableOffset = DEFAULT_STABLE_OFFSET;
             this.latestOffset = DEFAULT_LATEST_OFFSET;
             this.members = new ArrayList<>();
             this.leaderId = leaderId;
@@ -645,13 +650,16 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final KafkaOffsetFW partition = kafkaFetchBeginEx.partition();
             final int partitionId = partition.partitionId();
             final long partitionOffset = partition.partitionOffset();
+            final long stableOffset = partition.stableOffset();
+            final long latestOffset = partition.latestOffset();
 
             state = KafkaState.openingReply(state);
 
             assert partitionId == this.partition.id();
             assert partitionOffset >= 0 && partitionOffset >= this.partitionOffset;
             this.partitionOffset = partitionOffset;
-            this.latestOffset = partition.latestOffset();
+            this.stableOffset = stableOffset;
+            this.latestOffset = latestOffset;
 
             members.forEach(s -> s.doClientReplyBeginIfNecessary(traceId));
 
@@ -669,6 +677,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final KafkaOffsetFW partition = kafkaFetchFlushEx.partition();
             final long partitionOffset = partition.partitionOffset();
             final long latestOffset = partition.latestOffset();
+            final long stableOffset = partition.stableOffset();
 
             replySeq += reserved;
 
@@ -676,6 +685,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             assert partitionOffset >= this.partitionOffset;
             this.partitionOffset = partitionOffset;
+            this.stableOffset = stableOffset;
             this.latestOffset = latestOffset;
 
             members.forEach(s -> s.doClientReplyDataIfNecessary(traceId));
@@ -1023,6 +1033,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .fetch(f -> f.topic(group.partition.topic())
                                      .partition(p -> p.partitionId(group.partition.id())
                                                       .partitionOffset(cursor.offset)
+                                                      .stableOffset(group.stableOffset)
                                                       .latestOffset(initialGroupLatestOffset))
                                      .deltaType(t -> t.set(deltaType)))
                         .build()
@@ -1096,6 +1107,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final int replyBudget = Math.max(replyMax - (int)(replySeq - replyAck), 0);
             final int reservedMax = Math.max(Math.min(remaining + replyPad, replyBudget), replyMin);
             final int reservedMin = Math.max(Math.min(lengthMin + replyPad, reservedMax), replyMin);
+            final long stableOffset = group.stableOffset;
             final long latestOffset = group.latestOffset;
 
             assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
@@ -1151,18 +1163,18 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 {
                 case FLAG_INIT | FLAG_FIN:
                     doClientReplyDataFull(traceId, timestamp, key, headers, deltaType, ancestor, fragment,
-                                          reserved, flags, partitionId, partitionOffset, latestOffset);
+                                          reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_INIT:
                     doClientReplyDataInit(traceId, deferred, timestamp, key, deltaType, ancestor, fragment,
-                                          reserved, length, flags, partitionId, partitionOffset, latestOffset);
+                                          reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_NONE:
                     doClientReplyDataNone(traceId, fragment, reserved, length, flags);
                     break;
                 case FLAG_FIN:
                     doClientReplyDataFin(traceId, headers, deltaType, ancestor, fragment,
-                                         reserved, length, flags, partitionId, partitionOffset, latestOffset);
+                                         reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 }
 
@@ -1191,6 +1203,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             int flags,
             int partitionId,
             long partitionOffset,
+            long stableOffset,
             long latestOffset)
         {
             doData(sender, routeId, replyId, replySeq, replyAck, replyMax,
@@ -1200,6 +1213,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .fetch(f -> f.timestamp(timestamp)
                                      .partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
+                                                      .stableOffset(stableOffset)
                                                       .latestOffset(latestOffset))
                                      .key(k -> k.length(key.length())
                                                 .value(key.value()))
@@ -1230,6 +1244,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             int flags,
             int partitionId,
             long partitionOffset,
+            long stableOffset,
             long latestOffset)
         {
             doData(sender, routeId, replyId, replySeq, replyAck, replyMax,
@@ -1240,6 +1255,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                      .timestamp(timestamp)
                                      .partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
+                                                      .stableOffset(stableOffset)
                                                       .latestOffset(latestOffset))
                                      .key(k -> k.length(key.length())
                                                 .value(key.value()))
@@ -1279,6 +1295,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             int flags,
             int partitionId,
             long partitionOffset,
+            long stableOffset,
             long latestOffset)
         {
             doData(sender, routeId, replyId, replySeq, replyAck, replyMax,
@@ -1287,6 +1304,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .typeId(kafkaTypeId)
                         .fetch(f -> f.partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
+                                                      .stableOffset(stableOffset)
                                                       .latestOffset(latestOffset))
                                      .delta(d -> d.type(t -> t.set(deltaType))
                                                   .ancestorOffset(ancestorOffset))

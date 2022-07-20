@@ -702,4 +702,16 @@ public class CacheFetchIT
         k3po.notifyBarrier("SEND_MESSAGE_3");
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/partition.leader.distinct/client",
+        "${app}/partition.leader.distinct/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveDistinctPartitionLeader() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
 }

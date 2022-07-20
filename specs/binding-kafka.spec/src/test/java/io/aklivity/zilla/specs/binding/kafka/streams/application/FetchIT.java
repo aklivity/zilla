@@ -557,4 +557,13 @@ public class FetchIT
         k3po.notifyBarrier("SEND_MESSAGE_3");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/partition.leader.distinct/client",
+        "${app}/partition.leader.distinct/server"})
+    public void shouldReceiveDistinctPartitionLeader() throws Exception
+    {
+        k3po.finish();
+    }
 }

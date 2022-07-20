@@ -34,6 +34,7 @@ import java.util.zip.CRC32C;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -48,6 +49,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
@@ -210,7 +212,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 fan = newFan;
             }
 
-            final int leaderId = cacheRoute.leadersByPartitionId.get(partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
+            final int leaderId = leadersByPartitionId.get(partitionId);
             final String cacheName = String.format("%s.%s", supplyNamespace.apply(routeId), supplyLocalName.apply(routeId));
             final KafkaCache cache = supplyCache.apply(cacheName);
             final KafkaCacheTopic topic = cache.supplyTopic(topicName);
@@ -1089,6 +1092,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     final long partitionOffset = nextEntry.offset$();
                     final long timestamp = nextEntry.timestamp();
                     final int sequence = nextEntry.sequence();
+                    final KafkaAckMode ackMode = KafkaAckMode.valueOf(nextEntry.ackMode());
                     final KafkaKeyFW key = nextEntry.key();
                     final ArrayFW<KafkaHeaderFW> headers = nextEntry.headers();
                     final ArrayFW<KafkaHeaderFW> trailers = nextEntry.trailers();
@@ -1150,11 +1154,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         switch (flags)
                         {
                         case FLAG_INIT | FLAG_FIN:
-                            doServerInitialDataFull(traceId, timestamp, sequence, checksum, key, headers, trailers,
+                            doServerInitialDataFull(traceId, timestamp, sequence, checksum, ackMode, key, headers, trailers,
                                 fragment, reserved, flags);
                             break;
                         case FLAG_INIT:
-                            doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, key,
+                            doServerInitialDataInit(traceId, deferred, timestamp, sequence, checksum, ackMode, key,
                                 headers, trailers, fragment, reserved, flags);
                             break;
                         case FLAG_NONE:
@@ -1197,6 +1201,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long timestamp,
             int sequence,
             long checksum,
+            KafkaAckMode ackMode,
             KafkaKeyFW key,
             ArrayFW<KafkaHeaderFW> headers,
             ArrayFW<KafkaHeaderFW> trailers,
@@ -1210,6 +1215,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                            .produce(f -> f.timestamp(timestamp)
                                         .sequence(sequence)
                                         .crc32c(checksum)
+                                        .ackMode(a -> a.set(ackMode))
                                         .key(k -> k.length(key.length()).value(key.value()))
                                         .headers(hs ->
                                         {
@@ -1226,6 +1232,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long timestamp,
             int sequence,
             long checksum,
+            KafkaAckMode ackMode,
             KafkaKeyFW key,
             ArrayFW<KafkaHeaderFW> headers,
             ArrayFW<KafkaHeaderFW> trailers,
@@ -1240,6 +1247,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                                           .timestamp(timestamp)
                                           .sequence(sequence)
                                           .crc32c(checksum)
+                                          .ackMode(a -> a.set(ackMode))
                                           .key(k -> k.length(key.length()).value(key.value()))
                                           .headers(hs ->
                                           {

@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorRetryValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_STABLE_OFFSET;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.HISTORICAL;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType.LIVE;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
@@ -35,6 +36,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2IntHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -219,7 +221,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 fanout = newFanout;
             }
 
-            final int leaderId = cacheRoute.leadersByPartitionId.get(partitionId);
+            final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
+            final int leaderId = leadersByPartitionId.get(partitionId);
 
             newStream = new KafkaCacheServerFetchStream(
                     fanout,
@@ -451,6 +454,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
         private long partitionOffset;
         private long latestOffset = DEFAULT_LATEST_OFFSET;
+        private long stableOffset = DEFAULT_STABLE_OFFSET;
         private long retainId = NO_CANCEL_ID;
         private long deleteId = NO_CANCEL_ID;
         private long compactId = NO_CANCEL_ID;
@@ -663,6 +667,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             assert partitionId == partition.id();
             assert partitionOffset >= 0L && partitionOffset >= this.partitionOffset;
             this.partitionOffset = partitionOffset;
+            this.stableOffset = progress.stableOffset();
             this.latestOffset = progress.latestOffset();
 
             partition.newHeadIfNecessary(partitionOffset);
@@ -761,9 +766,11 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             if ((flags & FLAGS_FIN) != 0x00)
             {
                 assert kafkaFetchDataEx != null;
-                final int partitionId = kafkaFetchDataEx.partition().partitionId();
-                final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
-                final long latestOffset = kafkaFetchDataEx.partition().latestOffset();
+                final KafkaOffsetFW progress = kafkaFetchDataEx.partition();
+                final int partitionId = progress.partitionId();
+                final long partitionOffset = progress.partitionOffset();
+                final long stableOffset = progress.stableOffset();
+                final long latestOffset = progress.latestOffset();
                 final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
                 final ArrayFW<KafkaHeaderFW> headers = kafkaFetchDataEx.headers();
 
@@ -775,6 +782,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 partition.writeEntryFinish(headers, deltaType);
 
                 this.partitionOffset = partitionOffset;
+                this.stableOffset = stableOffset;
                 this.latestOffset = latestOffset;
 
                 members.forEach(s -> s.doServerReplyFlushIfNecessary(traceId));
@@ -1341,6 +1349,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                         .fetch(f -> f.topic(group.partition.topic())
                                      .partition(p -> p.partitionId(group.partition.id())
                                                       .partitionOffset(partitionOffset)
+                                                      .stableOffset(group.stableOffset)
                                                       .latestOffset(group.latestOffset)))
                         .build()
                         .sizeof()));
@@ -1368,6 +1377,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                         .typeId(kafkaTypeId)
                         .fetch(f -> f.partition(p -> p.partitionId(group.partition.id())
                                                       .partitionOffset(group.partitionOffset)
+                                                      .stableOffset(group.stableOffset)
                                                       .latestOffset(group.latestOffset)))
                         .build()
                         .sizeof()));

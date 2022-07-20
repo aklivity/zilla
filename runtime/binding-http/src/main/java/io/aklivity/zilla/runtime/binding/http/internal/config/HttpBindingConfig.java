@@ -25,7 +25,11 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpCredentialsConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAuthorizationConfig.HttpPatternConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -40,6 +44,7 @@ public final class HttpBindingConfig
     public final KindConfig kind;
     public final List<HttpRouteConfig> routes;
     public final ToLongFunction<String> resolveId;
+    public final Function<Function<String, String>, String> credentials;
 
     public HttpBindingConfig(
         BindingConfig binding)
@@ -50,6 +55,8 @@ public final class HttpBindingConfig
         this.options = HttpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(HttpRouteConfig::new).collect(toList());
         this.resolveId = binding.resolveId;
+        this.credentials = options != null && options.authorization != null ?
+                asAccessor(options.authorization.credentials) : DEFAULT_CREDENTIALS;
     }
 
     public HttpRouteConfig resolve(
@@ -74,6 +81,87 @@ public final class HttpBindingConfig
 
     public Function<Function<String, String>, String> credentials()
     {
-        return options != null && options.authorization != null ? options.authorization.credentials() : DEFAULT_CREDENTIALS;
+        return credentials;
+    }
+
+    private Function<Function<String, String>, String> asAccessor(
+            HttpCredentialsConfig credentials)
+    {
+        Function<Function<String, String>, String> accessor = DEFAULT_CREDENTIALS;
+        List<HttpPatternConfig> headers = credentials.headers;
+        List<HttpPatternConfig> parameters = credentials.parameters;
+        List<HttpPatternConfig> cookies = credentials.cookies;
+
+        if (cookies != null && !cookies.isEmpty())
+        {
+            HttpPatternConfig config = cookies.get(0);
+            String cookieName = config.name;
+
+            Matcher cookieMatch =
+                    Pattern.compile(String.format(
+                                    "(;\\s*)?%s=%s",
+                                    cookieName,
+                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
+                            .matcher("");
+
+            accessor = orElseIfNull(accessor, hs ->
+            {
+                String cookie = hs.apply("cookie");
+                return cookie != null && cookieMatch.reset(cookie).find()
+                        ? cookieMatch.group("credentials")
+                        : null;
+            });
+        }
+
+        if (headers != null && !headers.isEmpty())
+        {
+            HttpPatternConfig config = headers.get(0);
+            String headerName = config.name;
+            Matcher headerMatch =
+                    Pattern.compile(config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)"))
+                            .matcher("");
+
+            accessor = orElseIfNull(accessor, hs ->
+            {
+                String header = hs.apply(headerName);
+                return header != null && headerMatch.reset(header).matches()
+                        ? headerMatch.group("credentials")
+                        : null;
+            });
+        }
+
+        if (parameters != null && !parameters.isEmpty())
+        {
+            HttpPatternConfig config = parameters.get(0);
+            String parametersName = config.name;
+
+            Matcher parametersMatch =
+                    Pattern.compile(String.format(
+                                    "(\\?|\\&)%s=%s",
+                                    parametersName,
+                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\&]+)")))
+                            .matcher("");
+
+            accessor = orElseIfNull(accessor, hs ->
+            {
+                String pathWithQuery = hs.apply(":path");
+                return pathWithQuery != null && parametersMatch.reset(pathWithQuery).find()
+                        ? parametersMatch.group("credentials")
+                        : null;
+            });
+        }
+
+        return accessor;
+    }
+
+    private static Function<Function<String, String>, String> orElseIfNull(
+            Function<Function<String, String>, String> first,
+            Function<Function<String, String>, String> second)
+    {
+        return hs ->
+        {
+            String result = first.apply(hs);
+            return result != null ? result : second.apply(hs);
+        };
     }
 }

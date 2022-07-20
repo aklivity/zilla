@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_
 import java.nio.file.Path;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCleanupPolicy;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.produce.ProduceAck;
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class KafkaConfiguration extends Configuration
@@ -37,7 +36,6 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
-    public static final ShortPropertyDef KAFKA_CLIENT_PRODUCE_ACKS;
     public static final PropertyDef<Path> KAFKA_CACHE_DIRECTORY;
     public static final LongPropertyDef KAFKA_CACHE_PRODUCE_CAPACITY;
     public static final PropertyDef<KafkaCacheCleanupPolicy> KAFKA_CACHE_CLEANUP_POLICY;
@@ -71,7 +69,6 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
-        KAFKA_CLIENT_PRODUCE_ACKS = config.property("client.produce.acks", ProduceAck.IN_SYNC_REPLICAS.value());
         KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
@@ -149,11 +146,6 @@ public class KafkaConfiguration extends Configuration
     public int clientProduceMaxBytes()
     {
         return KAFKA_CLIENT_PRODUCE_MAX_BYTES.getAsInt(this);
-    }
-
-    public short clientProduceAcks()
-    {
-        return KAFKA_CLIENT_PRODUCE_ACKS.getAsShort(this);
     }
 
     public Path cacheDirectory()

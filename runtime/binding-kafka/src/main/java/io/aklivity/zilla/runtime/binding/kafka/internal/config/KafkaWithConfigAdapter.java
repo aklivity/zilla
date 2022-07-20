@@ -21,6 +21,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
@@ -30,6 +31,9 @@ public final class KafkaWithConfigAdapter implements WithConfigAdapterSpi, Jsonb
 {
     private static final String DEFAULT_OFFSET_NAME = "defaultOffset";
     private static final String DELTA_TYPE_NAME = "deltaType";
+    private static final String ACKS_NAME = "acks";
+
+    private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
 
     @Override
     public String type()
@@ -55,6 +59,11 @@ public final class KafkaWithConfigAdapter implements WithConfigAdapterSpi, Jsonb
             object.add(DELTA_TYPE_NAME, kafkaWith.deltaType.toString().toLowerCase());
         }
 
+        if (kafkaWith.ackMode != ACKS_DEFAULT)
+        {
+            object.add(ACKS_NAME, kafkaWith.ackMode.toString().toLowerCase());
+        }
+
         return object.build();
     }
 
@@ -70,6 +79,10 @@ public final class KafkaWithConfigAdapter implements WithConfigAdapterSpi, Jsonb
                 ? KafkaDeltaType.valueOf(object.getString(DELTA_TYPE_NAME).toUpperCase())
                 : null;
 
-        return new KafkaWithConfig(defaultOffset, deltaType);
+        KafkaAckMode ackMode = object.containsKey(ACKS_NAME)
+                ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
+                : ACKS_DEFAULT;
+
+        return new KafkaWithConfig(defaultOffset, deltaType, ackMode);
     }
 }

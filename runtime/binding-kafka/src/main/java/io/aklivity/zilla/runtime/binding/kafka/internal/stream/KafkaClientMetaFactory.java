@@ -23,18 +23,19 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
-import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
+import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -65,7 +66,7 @@ import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public final class KafkaClientMetaFactory implements BindingHandler
+public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
     private static final int ERROR_UNKNOWN_TOPIC = 3;
@@ -110,15 +111,23 @@ public final class KafkaClientMetaFactory implements BindingHandler
     private final TopicMetadataFW topicMetadataRO = new TopicMetadataFW();
     private final PartitionMetadataFW partitionMetadataRO = new PartitionMetadataFW();
 
-    private final KafkaMetaClientDecoder decodeResponse = this::decodeResponse;
-    private final KafkaMetaClientDecoder decodeMetadata = this::decodeMetadata;
-    private final KafkaMetaClientDecoder decodeBrokers = this::decodeBrokers;
-    private final KafkaMetaClientDecoder decodeBroker = this::decodeBroker;
-    private final KafkaMetaClientDecoder decodeCluster = this::decodeCluster;
-    private final KafkaMetaClientDecoder decodeTopics = this::decodeTopics;
-    private final KafkaMetaClientDecoder decodeTopic = this::decodeTopic;
-    private final KafkaMetaClientDecoder decodePartitions = this::decodePartitions;
-    private final KafkaMetaClientDecoder decodePartition = this::decodePartition;
+    private final KafkaMetaClientDecoder decodeSaslHandshakeResponse = this::decodeSaslHandshakeResponse;
+    private final KafkaMetaClientDecoder decodeSaslHandshake = this::decodeSaslHandshake;
+    private final KafkaMetaClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
+    private final KafkaMetaClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
+    private final KafkaMetaClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaMetaClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaMetaClientDecoder decodeMetaResponse = this::decodeMetaResponse;
+    private final KafkaMetaClientDecoder decodeMeta = this::decodeMeta;
+    private final KafkaMetaClientDecoder decodeMetaBrokers = this::decodeMetaBrokers;
+    private final KafkaMetaClientDecoder decodeMetaBroker = this::decodeMetaBroker;
+    private final KafkaMetaClientDecoder decodeMetaCluster = this::decodeMetaCluster;
+    private final KafkaMetaClientDecoder decodeMetaTopics = this::decodeMetaTopics;
+    private final KafkaMetaClientDecoder decodeMetaTopic = this::decodeMetaTopic;
+    private final KafkaMetaClientDecoder decodeMetaPartitions = this::decodeMetaPartitions;
+    private final KafkaMetaClientDecoder decodeMetaPartition = this::decodeMetaPartition;
+    private final KafkaMetaClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
+    private final KafkaMetaClientDecoder decodeReject = this::decodeReject;
 
     private final long maxAgeMillis;
     private final int kafkaTypeId;
@@ -128,8 +137,6 @@ public final class KafkaClientMetaFactory implements BindingHandler
     private final BufferPool encodePool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
-    private final LongUnaryOperator supplyInitialId;
-    private final LongUnaryOperator supplyReplyId;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
     private final LongFunction<KafkaClientRoute> supplyClientRoute;
 
@@ -140,6 +147,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
         LongFunction<BudgetDebitor> supplyDebitor,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
+        super(context);
         this.maxAgeMillis = Math.min(config.clientMetaMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.signaler = context.signaler();
@@ -148,8 +156,6 @@ public final class KafkaClientMetaFactory implements BindingHandler
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.encodePool = context.bufferPool();
-        this.supplyInitialId = context::supplyInitialId;
-        this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
         this.supplyClientRoute = supplyClientRoute;
     }
@@ -184,6 +190,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
         if (resolved != null && kafkaBeginEx != null)
         {
             final long resolvedId = resolved.id;
+            final KafkaSaslConfig sasl = binding.sasl();
 
             newStream = new KafkaMetaStream(
                     application,
@@ -191,7 +198,8 @@ public final class KafkaClientMetaFactory implements BindingHandler
                     initialId,
                     affinity,
                     resolvedId,
-                    topicName)::onApplication;
+                    topicName,
+                    sasl)::onApplication;
         }
 
         return newStream;
@@ -435,7 +443,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
             int limit);
     }
 
-    private int decodeResponse(
+    private int decodeMetaResponse(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -460,13 +468,13 @@ public final class KafkaClientMetaFactory implements BindingHandler
             progress = responseHeader.limit();
 
             client.decodeableResponseBytes = responseHeader.length();
-            client.decoder = decodeMetadata;
+            client.decoder = decodeMeta;
         }
 
         return progress;
     }
 
-    private int decodeMetadata(
+    private int decodeMeta(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -496,13 +504,13 @@ public final class KafkaClientMetaFactory implements BindingHandler
             assert client.decodeableResponseBytes >= 0;
 
             client.decodeableBrokers = metadataResponse.brokerCount();
-            client.decoder = decodeBrokers;
+            client.decoder = decodeMetaBrokers;
         }
 
         return progress;
     }
 
-    private int decodeBrokers(
+    private int decodeMetaBrokers(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -516,17 +524,17 @@ public final class KafkaClientMetaFactory implements BindingHandler
         if (client.decodeableBrokers == 0)
         {
             client.onDecodeBrokers();
-            client.decoder = decodeCluster;
+            client.decoder = decodeMetaCluster;
         }
         else
         {
-            client.decoder = decodeBroker;
+            client.decoder = decodeMetaBroker;
         }
 
         return progress;
     }
 
-    private int decodeBroker(
+    private int decodeMetaBroker(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -562,13 +570,13 @@ public final class KafkaClientMetaFactory implements BindingHandler
             client.decodeableBrokers--;
             assert client.decodeableBrokers >= 0;
 
-            client.decoder = decodeBrokers;
+            client.decoder = decodeMetaBrokers;
         }
 
         return progress;
     }
 
-    private int decodeCluster(
+    private int decodeMetaCluster(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -596,7 +604,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
             assert client.decodeableResponseBytes >= 0;
 
             client.decodeableTopics = cluster.topicCount();
-            client.decoder = decodeTopics;
+            client.decoder = decodeMetaTopics;
 
             assert client.decodeableTopics == 1;
         }
@@ -604,7 +612,7 @@ public final class KafkaClientMetaFactory implements BindingHandler
         return progress;
     }
 
-    private int decodeTopics(
+    private int decodeMetaTopics(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -618,19 +626,19 @@ public final class KafkaClientMetaFactory implements BindingHandler
         if (client.decodeableTopics == 0)
         {
             assert client.decodeableResponseBytes == 0;
-            client.onDecodeResponse(traceId);
+            client.onDecodeMetaResponse(traceId);
 
-            client.decoder = decodeResponse;
+            client.decoder = decodeMetaResponse;
         }
         else
         {
-            client.decoder = decodeTopic;
+            client.decoder = decodeMetaTopic;
         }
 
         return progress;
     }
 
-    private int decodeTopic(
+    private int decodeMetaTopic(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -663,13 +671,13 @@ public final class KafkaClientMetaFactory implements BindingHandler
             assert client.decodeableResponseBytes >= 0;
 
             client.decodeablePartitions = topicMetadata.partitionCount();
-            client.decoder = decodePartitions;
+            client.decoder = decodeMetaPartitions;
         }
 
         return progress;
     }
 
-    private int decodePartitions(
+    private int decodeMetaPartitions(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -685,17 +693,17 @@ public final class KafkaClientMetaFactory implements BindingHandler
             client.decodeableTopics--;
             assert client.decodeableTopics >= 0;
 
-            client.decoder = decodeTopics;
+            client.decoder = decodeMetaTopics;
         }
         else
         {
-            client.decoder = decodePartition;
+            client.decoder = decodeMetaPartition;
         }
 
         return progress;
     }
 
-    private int decodePartition(
+    private int decodeMetaPartition(
         KafkaMetaStream.KafkaMetaClient client,
         long traceId,
         long authorization,
@@ -731,10 +739,40 @@ public final class KafkaClientMetaFactory implements BindingHandler
             client.decodeablePartitions--;
             assert client.decodeablePartitions >= 0;
 
-            client.decoder = decodePartitions;
+            client.decoder = decodeMetaPartitions;
         }
 
         return progress;
+    }
+
+    private int decodeIgnoreAll(
+        KafkaMetaStream.KafkaMetaClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        return limit;
+    }
+
+    private int decodeReject(
+        KafkaMetaStream.KafkaMetaClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        client.doNetworkResetIfNecessary(traceId);
+        client.decoder = decodeIgnoreAll;
+        return limit;
     }
 
     private final class KafkaMetaStream
@@ -765,15 +803,16 @@ public final class KafkaClientMetaFactory implements BindingHandler
             long initialId,
             long affinity,
             long resolvedId,
-            String topic)
+            String topic,
+            KafkaSaslConfig sasl)
         {
             this.application = application;
             this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaMetaClient(resolvedId, topic);
             this.clientRoute = supplyClientRoute.apply(resolvedId);
+            this.client = new KafkaMetaClient(resolvedId, topic, sasl);
         }
 
         private void onApplication(
@@ -1021,19 +1060,33 @@ public final class KafkaClientMetaFactory implements BindingHandler
 
         private void cleanupApplication(
             long traceId,
+            int error)
+        {
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .error(error)
+                    .build();
+
+            cleanupApplication(traceId, kafkaResetEx);
+        }
+
+        private void cleanupApplication(
+            long traceId,
             Flyweight extension)
         {
             doApplicationResetIfNecessary(traceId, extension);
             doApplicationAbortIfNecessary(traceId);
         }
 
-        private final class KafkaMetaClient
+        private final class KafkaMetaClient extends KafkaSaslClient
         {
+            private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
+            private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
+            private final LongLongConsumer encodeMetaRequest = this::doEncodeMetaRequest;
+
             private MessageConsumer network;
-            private final long routeId;
-            private final long initialId;
-            private final long replyId;
             private final String topic;
+            private final Int2IntHashMap topicPartitions;
 
             private final Long2ObjectHashMap<KafkaBrokerInfo> newBrokers;
             private final Int2IntHashMap newPartitions;
@@ -1059,7 +1112,6 @@ public final class KafkaClientMetaFactory implements BindingHandler
             private int decodeSlotOffset;
             private int decodeSlotReserved;
 
-            private int nextRequestId;
             private int nextResponseId;
             private long nextRequestAt = NO_CANCEL_ID;
 
@@ -1070,17 +1122,21 @@ public final class KafkaClientMetaFactory implements BindingHandler
             private int decodeablePartitions;
             private Int2IntHashMap partitions;
 
+            private LongLongConsumer encoder;
+
             KafkaMetaClient(
                 long routeId,
-                String topic)
+                String topic,
+                KafkaSaslConfig sasl)
             {
-                this.routeId = routeId;
-                this.initialId = supplyInitialId.applyAsLong(routeId);
-                this.replyId = supplyReplyId.applyAsLong(initialId);
-                this.decoder = decodeResponse;
+                super(sasl, routeId);
                 this.topic = requireNonNull(topic);
+                this.topicPartitions = clientRoute.supplyPartitions(topic);
                 this.newBrokers = new Long2ObjectHashMap<>();
                 this.newPartitions = new Int2IntHashMap(-1);
+
+                this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeMetaRequest;
+                this.decoder = decodeReject;
             }
 
             private void onNetwork(
@@ -1288,7 +1344,8 @@ public final class KafkaClientMetaFactory implements BindingHandler
                         traceId, authorization, affinity, EMPTY_EXTENSION);
             }
 
-            private void doNetworkData(
+            @Override
+            protected void doNetworkData(
                 long traceId,
                 long budgetId,
                 DirectBuffer buffer,
@@ -1376,11 +1433,11 @@ public final class KafkaClientMetaFactory implements BindingHandler
             {
                 if (nextRequestId == nextResponseId)
                 {
-                    doEncodeRequest(traceId, initialBudgetId);
+                    encoder.accept(traceId, initialBudgetId);
                 }
             }
 
-            private void doEncodeRequest(
+            private void doEncodeMetaRequest(
                 long traceId,
                 long budgetId)
             {
@@ -1426,6 +1483,8 @@ public final class KafkaClientMetaFactory implements BindingHandler
                         .build();
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
+
+                decoder = decodeMetaResponse;
             }
 
             private void cancelNextRequestSignal()
@@ -1540,6 +1599,86 @@ public final class KafkaClientMetaFactory implements BindingHandler
                 }
             }
 
+            @Override
+            protected void doDecodeSaslHandshakeResponse(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshake(
+                long traceId)
+            {
+                decoder = decodeSaslHandshake;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechanisms(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanisms;
+            }
+
+            @Override
+            protected void doDecodeSaslHandshakeMechansim(
+                long traceId)
+            {
+                decoder = decodeSaslHandshakeMechanism;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticateResponse(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticateResponse;
+            }
+
+            @Override
+            protected void doDecodeSaslAuthenticate(
+                long traceId)
+            {
+                decoder = decodeSaslAuthenticate;
+            }
+
+            @Override
+            protected void onDecodeSaslHandshakeResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    client.encoder = client.encodeSaslAuthenticateRequest;
+                    client.decoder = decodeSaslAuthenticateResponse;
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
+            @Override
+            protected void onDecodeSaslAuthenticateResponse(
+                long traceId,
+                long authorization,
+                int errorCode)
+            {
+                switch (errorCode)
+                {
+                case ERROR_NONE:
+                    client.encoder = client.encodeMetaRequest;
+                    client.decoder = decodeMetaResponse;
+                    break;
+                default:
+                    cleanupApplication(traceId, errorCode);
+                    doNetworkEnd(traceId, authorization);
+                    break;
+                }
+            }
+
             private void onDecodeMetadata()
             {
                 newBrokers.clear();
@@ -1596,14 +1735,22 @@ public final class KafkaClientMetaFactory implements BindingHandler
                 }
             }
 
-            private void onDecodeResponse(
+            @Override
+            protected void onDecodeSaslResponse(
+                long traceId)
+            {
+                nextResponseId++;
+                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+            }
+
+            private void onDecodeMetaResponse(
                 long traceId)
             {
                 doApplicationWindow(traceId, 0L, 0, 0, 0);
                 doApplicationBeginIfNecessary(traceId, authorization, topic);
 
                 // TODO: share partitions across cores
-                final Int2IntHashMap sharedPartitions = clientRoute.partitions;
+                final Int2IntHashMap sharedPartitions = topicPartitions;
                 if (!sharedPartitions.equals(newPartitions))
                 {
                     sharedPartitions.clear();
@@ -1629,7 +1776,8 @@ public final class KafkaClientMetaFactory implements BindingHandler
                 }
 
                 nextResponseId++;
-                nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis, routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                nextRequestAt = signaler.signalAt(currentTimeMillis() + maxAgeMillis,
+                        routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void cleanupNetwork(
