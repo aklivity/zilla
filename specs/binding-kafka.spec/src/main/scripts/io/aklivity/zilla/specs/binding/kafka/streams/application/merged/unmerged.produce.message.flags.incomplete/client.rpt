@@ -132,6 +132,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write "Hello, world"

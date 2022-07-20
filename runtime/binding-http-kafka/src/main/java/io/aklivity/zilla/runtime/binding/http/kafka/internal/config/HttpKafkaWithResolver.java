@@ -31,6 +31,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.stream.HttpKafkaEtagHelper;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
@@ -301,6 +302,8 @@ public final class HttpKafkaWithResolver
         }
         String16FW topic = new String16FW(topic0);
 
+        KafkaAckMode acks = produce.acks;
+
         Supplier<DirectBuffer> keyRef = () -> null;
         if (produce.key.isPresent())
         {
@@ -390,7 +393,7 @@ public final class HttpKafkaWithResolver
         }
 
         return new HttpKafkaWithProduceResult(
-                options.correlation, topic, keyRef, overrides, ifMatch, replyTo,
+                options.correlation, topic, acks, keyRef, overrides, ifMatch, replyTo,
                 idempotencyKey, async, hash, timeout);
     }
 }

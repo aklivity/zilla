@@ -54,6 +54,7 @@ import org.agrona.io.ExpandableDirectBufferOutputStream;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
@@ -91,7 +92,7 @@ public final class KafkaCachePartition
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[5 * Long.BYTES + 3 * Integer.BYTES]);
+    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[5 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
@@ -365,6 +366,7 @@ public final class KafkaCachePartition
         entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(5 * Long.BYTES + Integer.BYTES, 0x00);
         entryInfo.putInt(5 * Long.BYTES + 2 * Integer.BYTES, deltaPosition);
+        entryInfo.putShort(5 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);
@@ -492,6 +494,7 @@ public final class KafkaCachePartition
         long timestamp,
         long ownerId,
         int sequence,
+        KafkaAckMode ackMode,
         KafkaKeyFW key,
         long keyHash,
         int valueLength,
@@ -517,6 +520,7 @@ public final class KafkaCachePartition
         entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(5 * Long.BYTES + Integer.BYTES, 0x00);
         entryInfo.putInt(5 * Long.BYTES + 2 * Integer.BYTES, NO_DELTA_POSITION);
+        entryInfo.putShort(5 * Long.BYTES + 3 * Integer.BYTES, ackMode.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);

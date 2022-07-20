@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfi
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
@@ -630,6 +631,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final Array32FW<KafkaHeaderFW> headers = kafkaProduceDataExFW.headers();
                 final int headersSizeMax = headers.sizeof() + trailersSizeMax;
                 final long timestamp = kafkaProduceDataExFW.timestamp();
+                final KafkaAckMode ackMode = kafkaProduceDataExFW.ackMode().get();
                 final KafkaKeyFW key = kafkaProduceDataExFW.key();
                 final int valueLength = valueFragment != null ? valueFragment.sizeof() + deferred : -1;
                 final int maxValueLength = valueLength + headersSizeMax;
@@ -650,7 +652,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                     final long keyHash = partition.computeKeyHash(key);
                     partition.writeProduceEntryStart(partitionOffset, stream.segment, stream.entryMark, stream.position,
-                        timestamp, stream.initialId, sequence, key, keyHash, valueLength, headers, trailersSizeMax);
+                        timestamp, stream.initialId, sequence, ackMode, key, keyHash, valueLength, headers, trailersSizeMax);
                     stream.partitionOffset = partitionOffset;
                     partitionOffset++;
                 }

@@ -135,6 +135,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .produce()
                                   .timestamp(newTimestamp)
                                   .sequence(1)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write flush
@@ -168,6 +169,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .produce()
                                   .timestamp(newTimestamp)
                                   .sequence(1)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write flush
@@ -201,6 +203,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .produce()
                                   .timestamp(newTimestamp)
                                   .sequence(1)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write flush

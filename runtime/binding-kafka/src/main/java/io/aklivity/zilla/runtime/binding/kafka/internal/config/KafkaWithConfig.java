@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
@@ -23,12 +24,15 @@ public final class KafkaWithConfig extends WithConfig
 {
     public final KafkaOffsetType defaultOffset;
     public final KafkaDeltaType deltaType;
+    public final KafkaAckMode ackMode;
 
     public KafkaWithConfig(
         KafkaOffsetType defaultOffset,
-        KafkaDeltaType deltaType)
+        KafkaDeltaType deltaType,
+        KafkaAckMode ackMode)
     {
         this.defaultOffset = defaultOffset;
         this.deltaType = deltaType;
+        this.ackMode = ackMode;
     }
 }

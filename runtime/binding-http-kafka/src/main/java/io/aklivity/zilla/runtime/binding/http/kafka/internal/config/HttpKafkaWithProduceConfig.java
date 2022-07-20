@@ -22,11 +22,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 
 public final class HttpKafkaWithProduceConfig
 {
     public final String topic;
+    public final KafkaAckMode acks;
     public final Optional<String> key;
     public final Optional<List<HttpKafkaWithProduceOverrideConfig>> overrides;
     public final Optional<String> replyTo;
@@ -36,12 +38,14 @@ public final class HttpKafkaWithProduceConfig
 
     public HttpKafkaWithProduceConfig(
         String topic,
+        KafkaAckMode acks,
         String key,
         List<HttpKafkaWithProduceOverrideConfig> overrides,
         String replyTo,
         List<HttpKafkaWithProduceAsyncHeaderConfig> async)
     {
         this.topic = topic;
+        this.acks = acks;
         this.key = Optional.ofNullable(key);
         this.overrides = Optional.ofNullable(overrides);
         this.replyTo = Optional.ofNullable(replyTo);

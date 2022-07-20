@@ -134,6 +134,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write "Hello, world #A1"
@@ -143,6 +144,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write "Hello, world #A2"
@@ -176,6 +178,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write "Hello, world #B1"
@@ -185,6 +188,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write "Hello, world #B2"
@@ -218,6 +222,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write "Hello, world #C1"
@@ -227,6 +232,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
+                                  .ackMode("LEADER_ONLY")
                                   .build()
                               .build()}
 write "Hello, world #C2"

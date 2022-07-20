@@ -282,17 +282,10 @@ scope protocol
 
         scope produce
         {
-            enum ProduceAck (int16)
-            {
-                NONE(0),
-                LEADER_ONLY(1),
-                IN_SYNC_REPLICAS(-1)
-            }
-
             struct ProduceRequest // v3
             {
                 string16 transactionalId;
-                ProduceAck acks;
+                int16 acks;
                 int32 timeout;
                 int32 topicCount;
             }
