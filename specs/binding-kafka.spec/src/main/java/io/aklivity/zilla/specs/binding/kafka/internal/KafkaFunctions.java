@@ -1163,8 +1163,10 @@ public final class KafkaFunctions
                 long partitionOffset,
                 long latestOffset)
             {
-                mergedDataExRW.partition(p -> p.partitionId(partitionId).partitionOffset(partitionOffset)
-                                               .latestOffset(latestOffset));
+                mergedDataExRW.partition(p -> p
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .latestOffset(latestOffset));
                 return this;
             }
 
@@ -1181,8 +1183,10 @@ public final class KafkaFunctions
                 long partitionOffset,
                 long latestOffset)
             {
-                mergedDataExRW.progressItem(p -> p.partitionId(partitionId).partitionOffset(partitionOffset)
-                                                  .latestOffset(latestOffset));
+                mergedDataExRW.progressItem(p -> p
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .latestOffset(latestOffset));
                 return this;
             }
 
@@ -2743,12 +2747,26 @@ public final class KafkaFunctions
                 long offset,
                 long latestOffset)
             {
+                partition(partitionId, offset, latestOffset, latestOffset);
+                return this;
+            }
+
+            public KafkaMergedBeginExMatcherBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset)
+            {
                 if (partitionsRW == null)
                 {
                     this.partitionsRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
                                                  .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
                 }
-                partitionsRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
+                partitionsRW.item(i -> i
+                    .partitionId(partitionId)
+                    .partitionOffset(offset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset));
                 return this;
             }
 
