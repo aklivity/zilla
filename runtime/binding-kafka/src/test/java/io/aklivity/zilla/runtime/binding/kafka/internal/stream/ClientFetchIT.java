@@ -520,6 +520,36 @@ public class ClientFetchIT
     }
 
     @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
+        "${app}/isolation.read.uncommitted.aborted/client",
+        "${net}/isolation.read.uncommitted.aborted/server"})
+    public void shouldReceiveMessagesWithIsolationReadUncommittedWhenAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
+        "${app}/isolation.read.uncommitted.aborting/client",
+        "${net}/isolation.read.uncommitted.aborting/server"})
+    public void shouldReceiveMessagesWithIsolationReadUncommittedWhenAborting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
+        "${app}/isolation.read.uncommitted.committing/client",
+        "${net}/isolation.read.uncommitted.committing/server"})
+    public void shouldReceiveMessagesWithIsolationReadUncommittedWhenCommitting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.when.topics.json")
     @Specification({
         "${app}/partition.leader.distinct/client",

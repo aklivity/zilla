@@ -459,6 +459,9 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
                 case "incomplete":
                     flagValue |= 4;
                     break;
+                case "skip":
+                    flagValue |= 8;
+                    break;
                 case "auto":
                     flagValue = -1;
                     break;

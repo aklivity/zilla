@@ -22,6 +22,7 @@ import static io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditio
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -49,6 +50,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaApi;
@@ -1904,6 +1907,7 @@ public class KafkaFunctionsTest
                                      .typeId(0x01)
                                      .fetch()
                                          .partition(0, 1L)
+                                         .transaction("COMMIT", 1L)
                                          .build()
                                      .build();
 
@@ -1913,8 +1917,13 @@ public class KafkaFunctionsTest
 
         final KafkaFetchFlushExFW fetchFlushEx = flushEx.fetch();
         final KafkaOffsetFW partition = fetchFlushEx.partition();
+        final Array32FW<KafkaTransactionFW> transactions = fetchFlushEx.transactions();
+        KafkaTransactionFW transaction = transactions.matchFirst(t -> true);
         assertEquals(0, partition.partitionId());
         assertEquals(1L, partition.partitionOffset());
+        assertFalse(transactions.isEmpty());
+        assertEquals(KafkaTransactionResult.COMMIT, transaction.result().get());
+        assertEquals(1L, transaction.producerId());
     }
 
     @Test

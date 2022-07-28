@@ -191,6 +191,20 @@ public class ClientMergedIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.options.merged.json")
+    @Specification({
+        "${app}/merged.fetch.isolation.read.committed/client",
+        "${net}/unmerged.fetch.isolation.read.committed/server"})
+    public void shouldFetchMergedMessagesWithIsolationReadCommitted() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B2");
+        k3po.notifyBarrier("SEND_MESSAGE_A3");
+        k3po.notifyBarrier("SEND_MESSAGE_B3");
+        k3po.finish();
+    }
+
     @Ignore("TODO")
     @Test
     @Configuration("client.options.merged.json")

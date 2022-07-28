@@ -1,0 +1,200 @@
+#
+# Copyright 2021-2022 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
+accept "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("FETCH_ONLY")
+                                  .topic("test")
+                                  .partition(0, 1)
+                                  .partition(1, 1)
+                                  .isolation("READ_COMMITTED")
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 1, 2)
+                                  .progress(0, 2)
+                                  .progress(1, 1)
+                                  .key("key1")
+                                  .header("header2", "value2")
+                                  .build()
+                              .build()}
+write "Hello, world #A1"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 1, 2)
+                                  .progress(0, 2)
+                                  .progress(1, 2)
+                                  .header("header1", "value1")
+                                  .header("header2", "value2")
+                                  .build()
+                              .build()}
+write "Hello, world #B1"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 2, 2)
+                                  .progress(0, 3)
+                                  .progress(1, 2)
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world #A2"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 2, 2)
+                                  .progress(0, 3)
+                                  .progress(1, 3)
+                                  .key("key1")
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world #B2"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 3, 6)
+                                  .progress(0, 4)
+                                  .progress(1, 3)
+                                  .key("key1")
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world #A3"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 3, 6)
+                                  .progress(0, 4)
+                                  .progress(1, 4)
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world #B3"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 4, 6)
+                                  .progress(0, 5)
+                                  .progress(1, 4)
+                                  .header("header1", "value1")
+                                  .header("header2", "value2")
+                                  .build()
+                              .build()}
+write "Hello, world #A4"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 4, 6)
+                                  .progress(0, 5)
+                                  .progress(1, 5)
+                                  .key("key1")
+                                  .header("header2", "value2")
+                                  .build()
+                              .build()}
+write "Hello, world #B4"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 5, 6)
+                                  .progress(0, 6)
+                                  .progress(1, 5)
+                                  .header("header3", "one")
+                                  .build()
+                              .build()}
+write "Hello, world #A5"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 5, 6)
+                                  .progress(0, 6)
+                                  .progress(1, 6)
+                                  .header("header3", "one")
+                                  .header("header3", "")
+                                  .build()
+                              .build()}
+write "Hello, world #B5"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 6, 6)
+                                  .progress(0, 7)
+                                  .progress(1, 6)
+                                  .header("header3", "one")
+                                  .header("header3", "")
+                                  .header("header3", "three")
+                                  .header("header3", "")
+                                  .build()
+                              .build()}
+write "Hello, world #A6"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .partition(1, 6, 6)
+                                  .progress(0, 7)
+                                  .progress(1, 7)
+                                  .header("header3", "one")
+                                  .header("header3", "two")
+                                  .header("header3", "three")
+                                  .header("header3", "four")
+                                  .build()
+                              .build()}
+write "Hello, world #B6"
+write flush

@@ -297,6 +297,7 @@ public class MergedIT
     {
         k3po.finish();
     }
+
     @Test
     @Specification({
         "${app}/unmerged.produce.message.values.null/client",
@@ -470,6 +471,15 @@ public class MergedIT
         "${app}/merged.fetch.filter.headers.skip.many/client",
         "${app}/merged.fetch.filter.headers.skip.many/server"})
     public void shouldFetchMergedMessagesWithHeadersSkipManyFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.fetch.isolation.read.committed/client",
+        "${app}/merged.fetch.isolation.read.committed/server"})
+    public void shouldFetchMergedMessagesWithIsolationReadCommitted() throws Exception
     {
         k3po.finish();
     }

@@ -50,6 +50,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkipFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.OctetsFW;
@@ -1025,6 +1026,13 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaFetchDataExBuilder producerId(
+                long timestamp)
+            {
+                fetchDataExRW.producerId(timestamp);
+                return this;
+            }
+
             public KafkaFetchDataExBuilder partition(
                 int partitionId,
                 long partitionOffset)
@@ -1573,20 +1581,41 @@ public final class KafkaFunctions
 
             public KafkaFetchFlushExBuilder partition(
                 int partitionId,
-                long offset)
+                long partitionOffset)
             {
-                fetchFlushExRW.partition(p -> p.partitionId(partitionId).partitionOffset(offset));
+                partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaFetchFlushExBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                long latestOffset)
+            {
+                partition(partitionId, partitionOffset, latestOffset, latestOffset);
                 return this;
             }
 
             public KafkaFetchFlushExBuilder partition(
                 int partitionId,
                 long offset,
+                long stableOffset,
                 long latestOffset)
             {
                 fetchFlushExRW.partition(p -> p.partitionId(partitionId)
                                                .partitionOffset(offset)
+                                               .stableOffset(stableOffset)
                                                .latestOffset(latestOffset));
+                return this;
+            }
+
+            public KafkaFetchFlushExBuilder transaction(
+                String result,
+                long producerId)
+            {
+                fetchFlushExRW.transactionsItem(t -> t
+                    .result(r -> r.set(KafkaTransactionResult.valueOf(result)))
+                    .producerId(producerId));
                 return this;
             }
 
@@ -1697,6 +1726,7 @@ public final class KafkaFunctions
         {
             private Integer deferred;
             private Long timestamp;
+            private Long producerId;
             private KafkaOffsetFW.Builder partitionRW;
             private KafkaKeyFW.Builder keyRW;
             private KafkaDeltaFW.Builder deltaRW;
@@ -1717,6 +1747,13 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 this.timestamp = timestamp;
+                return this;
+            }
+
+            public KafkaFetchDataExMatcherBuilder producerId(
+                long producerId)
+            {
+                this.producerId = producerId;
                 return this;
             }
 
@@ -1830,6 +1867,7 @@ public final class KafkaFunctions
                 final KafkaFetchDataExFW fetchDataEx = dataEx.fetch();
                 return matchDeferred(fetchDataEx) &&
                     matchTimestamp(fetchDataEx) &&
+                    matchProducerId(fetchDataEx) &&
                     matchPartition(fetchDataEx) &&
                     matchKey(fetchDataEx) &&
                     matchDelta(fetchDataEx) &&
@@ -1846,6 +1884,12 @@ public final class KafkaFunctions
                 final KafkaFetchDataExFW fetchDataEx)
             {
                 return timestamp == null || timestamp == fetchDataEx.timestamp();
+            }
+
+            private boolean matchProducerId(
+                final KafkaFetchDataExFW fetchDataEx)
+            {
+                return producerId == null || producerId == fetchDataEx.producerId();
             }
 
             private boolean matchPartition(

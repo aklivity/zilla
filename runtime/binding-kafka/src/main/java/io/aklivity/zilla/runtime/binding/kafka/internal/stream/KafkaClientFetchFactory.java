@@ -27,6 +27,7 @@ import java.util.function.LongFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2IntHashMap;
+import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -41,11 +42,14 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Varint32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.fetch.ControlRecordKeyFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.fetch.ControlRecordKeyType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.fetch.FetchRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.fetch.FetchResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.fetch.PartitionRequestFW;
@@ -73,6 +77,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFetchBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -96,6 +101,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private static final int FLAG_CONT = 0x00;
     private static final int FLAG_FIN = 0x01;
     private static final int FLAG_INIT = 0x02;
+    private static final int FLAG_SKIP = 0x08;
 
     private static final long OFFSET_LIVE = KafkaOffsetType.LIVE.value();
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
@@ -131,6 +137,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
+    private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
     private final ProxyBeginExFW.Builder proxyBeginExRW = new ProxyBeginExFW.Builder();
 
@@ -156,6 +163,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final RecordHeaderFW recordHeaderRO = new RecordHeaderFW();
     private final RecordTrailerFW recordTrailerRO = new RecordTrailerFW();
     private final MessageHeaderFW messageHeaderRO = new MessageHeaderFW();
+    private final ControlRecordKeyFW controlRecordKeyRO = new ControlRecordKeyFW();
     private final OctetsFW valueRO = new OctetsFW();
     private final DirectBuffer headersRO = new UnsafeBuffer();
 
@@ -421,18 +429,19 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         int maximum,
         long traceId,
         long authorization,
-        Consumer<OctetsFW.Builder> extension)
+        Flyweight extension)
     {
-        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                               .routeId(routeId)
-                               .streamId(streamId)
-                               .sequence(sequence)
-                               .acknowledge(acknowledge)
-                               .maximum(maximum)
-                               .traceId(traceId)
-                               .authorization(authorization)
-                               .extension(extension)
-                               .build();
+        final EndFW end = endRW
+                .wrap(writeBuffer, 0, writeBuffer.capacity())
+               .routeId(routeId)
+               .streamId(streamId)
+               .sequence(sequence)
+               .acknowledge(acknowledge)
+               .maximum(maximum)
+               .traceId(traceId)
+               .authorization(authorization)
+               .extension(extension.buffer(), extension.offset(), extension.sizeof())
+               .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
@@ -446,7 +455,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         int maximum,
         long traceId,
         long authorization,
-        Consumer<OctetsFW.Builder> extension)
+        Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .routeId(routeId)
@@ -456,7 +465,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
-                .extension(extension)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
@@ -471,7 +480,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         int maximum,
         long traceId,
         long authorization,
-        Consumer<OctetsFW.Builder> extension)
+        int reserved,
+        Flyweight extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .routeId(routeId)
@@ -482,7 +492,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 .traceId(traceId)
                 .authorization(authorization)
                 .budgetId(0L)
-                .extension(extension)
+                .reserved(reserved)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
@@ -885,6 +896,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 assert client.decodableResponseBytes >= 0;
 
                 client.onDecodeFetchPartition(traceId, authorization, partitionId, errorCode);
+
+                client.decodeAbortedTransactions.clear();
                 client.decoder = decodeFetchTransaction;
             }
         }
@@ -917,6 +930,11 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             if (transaction != null)
             {
                 progress = transaction.limit();
+
+                final long producerId = transaction.producerId();
+                final long firstOffset = transaction.firstOffset();
+
+                client.decodeAbortedTransactions.put(firstOffset, producerId);
 
                 client.decodableResponseBytes -= transaction.sizeof();
                 assert client.decodableResponseBytes >= 0;
@@ -1029,10 +1047,16 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 progress += recordSetProgress;
 
+                final long baseOffset = recordBatch.baseOffset();
+                final long producerId = recordBatch.producerId();
+
                 client.decodableRecordBatchBytes = recordBatch.length();
-                client.decodeRecordBatchOffset = recordBatch.baseOffset();
+                client.decodeRecordBatchOffset = baseOffset;
                 client.decodeRecordBatchLastOffset = recordBatch.baseOffset() + recordBatch.lastOffsetDelta();
                 client.decodeRecordBatchTimestamp = recordBatch.firstTimestamp();
+                client.decodeRecordBatchProducerId = producerId;
+                client.decodeRecordBatchAborted = client.decodeAbortedTransactions.get(baseOffset) == producerId;
+                client.decodeRecordBatchAttributes = attributes;
                 client.decodableRecords = recordBatch.recordCount();
 
                 client.decodableResponseBytes -= recordSetProgress;
@@ -1050,7 +1074,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 client.decodableRecordBatchBytes -= recordBatchProgress;
                 assert client.decodableRecordBatchBytes >= 0;
 
-                if (isCompressedBatch(attributes) || isControlBatch(attributes))
+                if (isCompressedBatch(attributes) || isControlBatch(attributes) && !isTransactionalBatch(attributes))
                 {
                     client.decoder = decodeIgnoreRecordBatch;
                     break decode;
@@ -1154,6 +1178,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 final long offsetAbs = client.decodeRecordBatchOffset + recordHeader.offsetDelta();
                 final long timestampAbs = client.decodeRecordBatchTimestamp + recordHeader.timestampDelta();
+                final long producerId = client.decodeRecordBatchProducerId;
+                final boolean aborted = client.decodeRecordBatchAborted;
                 final OctetsFW key = recordHeader.key();
 
                 client.decodeRecordOffset = offsetAbs;
@@ -1166,6 +1192,27 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 if (offsetAbs < client.nextOffset)
                 {
+                    client.decodableRecordBytes = sizeofRecord;
+                    client.decoder = decodeIgnoreRecord;
+                    break decode;
+                }
+
+                if (isControlBatch(client.decodeRecordBatchAttributes) &&
+                    isTransactionalBatch(client.decodeRecordBatchAttributes))
+                {
+                    final ControlRecordKeyFW controlKey = key.get(controlRecordKeyRO::tryWrap);
+                    if (controlKey != null && controlKey.version() == 0)
+                    {
+                        switch (ControlRecordKeyType.valueOf(controlKey.type()))
+                        {
+                        case ABORT:
+                            client.onDecodeFetchTransactionAbort(traceId, authorization, offsetAbs, producerId);
+                            break;
+                        case COMMIT:
+                            client.onDecodeFetchTransactionCommit(traceId, authorization, offsetAbs, producerId);
+                            break;
+                        }
+                    }
                     client.decodableRecordBytes = sizeofRecord;
                     client.decoder = decodeIgnoreRecord;
                     break decode;
@@ -1216,7 +1263,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                         progress += sizeofRecord;
 
-                        client.onDecodeFetchRecord(traceId, valueReserved, offsetAbs, timestampAbs,
+                        client.onDecodeFetchRecord(traceId, aborted, valueReserved, offsetAbs, timestampAbs, producerId,
                                 key, value, headerCount, headers);
 
                         client.decodableResponseBytes -= sizeofRecord;
@@ -1282,6 +1329,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final int sizeofRecord = recordLength.sizeof() + recordLength.value();
                 final long offsetAbs = client.decodeRecordBatchOffset + recordHeader.offsetDelta();
                 final long timestampAbs = client.decodeRecordBatchTimestamp + recordHeader.timestampDelta();
+                final long producerId = client.decodeRecordBatchProducerId;
+                final boolean aborted = client.decodeRecordBatchAborted;
                 final OctetsFW key = recordHeader.key();
 
                 if (offsetAbs < client.nextOffset)
@@ -1325,8 +1374,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 progress += recordProgress;
 
-                client.onDecodeFetchRecordValueInit(traceId, valueReservedMax, valueDeferred, offsetAbs,
-                        timestampAbs, headersSizeMax, key, valueInit);
+                client.onDecodeFetchRecordValueInit(traceId, aborted, valueReservedMax, valueDeferred, offsetAbs,
+                        timestampAbs, headersSizeMax, producerId, key, valueInit);
 
                 client.decodeRecordOffset = offsetAbs;
                 client.decodableRecordValueBytes = valueLength != -1 ? valueLength - valueProgress : -1;
@@ -1881,6 +1930,20 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             assert replyAck <= replySeq;
         }
 
+        private void doApplicationFlush(
+            long traceId,
+            long authorization,
+            int reserved,
+            Flyweight extension)
+        {
+            doFlush(application, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, reserved, extension);
+
+            replySeq += reserved;
+
+            assert replyAck <= replySeq;
+        }
+
         private void doApplicationEnd(
             long traceId)
         {
@@ -1889,7 +1952,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
             doEnd(application, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, client.authorization, EMPTY_EXTENSION);
+                    traceId, client.authorization, EMPTY_OCTETS);
         }
 
         private void doApplicationAbort(
@@ -1900,7 +1963,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
             doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, client.authorization, EMPTY_EXTENSION);
+                    traceId, client.authorization, EMPTY_OCTETS);
         }
 
         private void doApplicationWindow(
@@ -2031,11 +2094,15 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private int decodablePartitions;
             private int decodePartitionError;
             private int decodePartitionId;
+            private Long2LongHashMap decodeAbortedTransactions;
             private int decodableRecordSetBytes;
             private int decodableRecordBatchBytes;
             private long decodeRecordBatchOffset;
             private long decodeRecordBatchLastOffset;
             private long decodeRecordBatchTimestamp;
+            private long decodeRecordBatchProducerId;
+            private boolean decodeRecordBatchAborted;
+            private int decodeRecordBatchAttributes;
             private int decodableRecords;
             private long decodeRecordOffset;
             private int decodableRecordBytes;
@@ -2065,6 +2132,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 this.isolation = isolation;
                 this.encoder = encodeFetchRequest;
                 this.decoder = decodeReject;
+                this.decodeAbortedTransactions = new Long2LongHashMap(-1L);
             }
 
             private void onNetwork(
@@ -2354,7 +2422,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 state = KafkaState.closedInitial(state);
                 doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, EMPTY_EXTENSION);
+                        traceId, authorization, EMPTY_OCTETS);
 
                 cleanupEncodeSlotIfNecessary();
             }
@@ -2365,7 +2433,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 if (!KafkaState.initialClosed(state))
                 {
                     doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
-                            traceId, authorization, EMPTY_EXTENSION);
+                            traceId, authorization, EMPTY_OCTETS);
                     state = KafkaState.closedInitial(state);
                 }
 
@@ -2812,7 +2880,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         {
                             final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
                             // TODO: improve coordination with meta stream
-                            doFlush(metaInitial, routeId, metaInitialId, 0, 0, 0, traceId, authorization, EMPTY_EXTENSION);
+                            doFlush(metaInitial, routeId, metaInitialId, 0, 0, 0, traceId, authorization, 0, EMPTY_OCTETS);
                         }
                     }
 
@@ -2822,11 +2890,61 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 }
             }
 
+            private void onDecodeFetchTransactionAbort(
+                long traceId,
+                long authorization,
+                long offset,
+                long producerId)
+            {
+                this.nextOffset = offset + 1;
+
+                final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .fetch(f -> f
+                            .partition(p -> p
+                                .partitionId(decodePartitionId)
+                                .partitionOffset(offset)
+                                .stableOffset(stableOffset)
+                                .latestOffset(latestOffset))
+                            .transactionsItem(t -> t
+                                .result(r -> r.set(KafkaTransactionResult.ABORT))
+                                .producerId(producerId)))
+                        .build();
+
+                doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
+            }
+
+            private void onDecodeFetchTransactionCommit(
+                long traceId,
+                long authorization,
+                long offset,
+                long producerId)
+            {
+                this.nextOffset = offset + 1;
+
+                final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .fetch(f -> f
+                            .partition(p -> p
+                                .partitionId(decodePartitionId)
+                                .partitionOffset(offset)
+                                .stableOffset(stableOffset)
+                                .latestOffset(latestOffset))
+                            .transactionsItem(t -> t
+                                .result(r -> r.set(KafkaTransactionResult.COMMIT))
+                                .producerId(producerId)))
+                        .build();
+
+                doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
+            }
+
             private void onDecodeFetchRecord(
                 long traceId,
+                boolean aborted,
                 int reserved,
                 long offset,
                 long timestamp,
+                long producerId,
                 OctetsFW key,
                 OctetsFW value,
                 int headerCount,
@@ -2839,6 +2957,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .fetch(f ->
                         {
                             f.timestamp(timestamp);
+                            f.producerId(producerId);
                             f.partition(p -> p
                                 .partitionId(decodePartitionId)
                                 .partitionOffset(offset)
@@ -2856,16 +2975,19 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         })
                         .build();
 
-                doApplicationData(traceId, authorization, FLAG_INIT | FLAG_FIN, reserved, value, kafkaDataEx);
+                final int flags = aborted ? FLAG_INIT | FLAG_FIN | FLAG_SKIP : FLAG_INIT | FLAG_FIN;
+                doApplicationData(traceId, authorization, flags, reserved, value, kafkaDataEx);
             }
 
             private void onDecodeFetchRecordValueInit(
                 long traceId,
+                boolean aborted,
                 int reserved,
                 int deferred,
                 long offset,
                 long timestamp,
                 int headersSizeMax,
+                long producerId,
                 OctetsFW key,
                 OctetsFW valueInit)
             {
@@ -2874,6 +2996,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .fetch(f -> f.deferred(deferred)
                                      .timestamp(timestamp)
                                      .headersSizeMax(headersSizeMax)
+                                     .producerId(producerId)
                                      .partition(p -> p.partitionId(decodePartitionId)
                                                       .partitionOffset(offset)
                                                       .stableOffset(stableOffset)
@@ -2881,7 +3004,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                      .key(k -> setKey(k, key)))
                         .build();
 
-                doApplicationData(traceId, authorization, FLAG_INIT, reserved, valueInit, kafkaDataEx);
+                final int flags = aborted ? FLAG_INIT | FLAG_SKIP : FLAG_INIT;
+                doApplicationData(traceId, authorization, flags, reserved, valueInit, kafkaDataEx);
             }
 
             private void onDecodeFetchRecordValueCont(
@@ -3053,5 +3177,12 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     {
         // sixth lowest bit indicates whether the RecordBatch includes a control message
         return (attributes & 0x20) != 0;
+    }
+
+    private static boolean isTransactionalBatch(
+        int attributes)
+    {
+        // fifth lowest bit indicates whether the RecordBatch includes is transactional message
+        return (attributes & 0x10) != 0;
     }
 }

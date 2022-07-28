@@ -38,6 +38,18 @@ public class UnmergedIT
 
     @Test
     @Specification({
+        "${net}/unmerged.fetch.isolation.read.committed/client",
+        "${net}/unmerged.fetch.isolation.read.committed/server"})
+    public void shouldFetchUnmergedMessagesWithIsolationReadCommitted() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_MESSAGE_A3");
+        k3po.notifyBarrier("SEND_MESSAGE_B3");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/unmerged.fetch.filter.none/client",
         "${net}/unmerged.fetch.filter.none/server"})
     public void shouldFetchUnmergedMessagesWithNoFilter() throws Exception
