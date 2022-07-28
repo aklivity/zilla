@@ -843,7 +843,9 @@ public final class KafkaCachePartition
                 {
                     final KafkaCacheEntryFW cacheEntry = logFile.readBytes(position, ancestorEntry::wrap);
                     assert cacheEntry != null;
-                    if (key.equals(cacheEntry.key()))
+                    if (!isAbortedEntry(cacheEntry) &&
+                        !isControlEntry(cacheEntry) &&
+                        key.equals(cacheEntry.key()))
                     {
                         ancestor = cacheEntry;
                         markDescendantAndDirty(ancestor, descendantOffset);
@@ -898,6 +900,18 @@ public final class KafkaCachePartition
         {
             Function<KafkaCacheSegment, String> baseOffset = s -> s != null ? Long.toString(s.baseOffset()) : "sentinel";
             return String.format("[%s] %s", getClass().getSimpleName(), baseOffset.apply(segment));
+        }
+
+        private boolean isControlEntry(
+            KafkaCacheEntryFW cacheEntry)
+        {
+            return (cacheEntry.flags() & CACHE_ENTRY_FLAGS_CONTROL) != 0;
+        }
+
+        private boolean isAbortedEntry(
+            KafkaCacheEntryFW cacheEntry)
+        {
+            return (cacheEntry.flags() & CACHE_ENTRY_FLAGS_ABORTED) != 0;
         }
     }
 
