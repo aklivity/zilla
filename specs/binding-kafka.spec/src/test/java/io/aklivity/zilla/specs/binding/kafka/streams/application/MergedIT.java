@@ -101,6 +101,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.filter.none.read.uncommitted/client",
+        "${app}/merged.fetch.filter.none.read.uncommitted/server"})
+    public void shouldFetchMergedMessagesWithNoFilterReadUncommitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.message.values/client",
         "${app}/merged.fetch.message.values/server"})
     public void shouldFetchMergedMessageValues() throws Exception

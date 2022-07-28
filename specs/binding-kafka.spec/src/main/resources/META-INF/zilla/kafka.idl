@@ -210,7 +210,7 @@ scope kafka
             string16 topic;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
-            KafkaIsolation isolation = READ_UNCOMMITTED;
+            KafkaIsolation isolation = READ_COMMITTED;
             KafkaDeltaType deltaType = NONE;
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
         }
