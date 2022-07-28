@@ -40,6 +40,7 @@ public class HttpKafkaWithFetchResult
                 .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
                 .partitionOffset(0L)
+                .stableOffset(KafkaOffsetType.HISTORICAL.value())
                 .latestOffset(KafkaOffsetType.HISTORICAL.value())
                 .build();
 
@@ -48,6 +49,7 @@ public class HttpKafkaWithFetchResult
                 .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
                 .partitionId(-1)
                 .partitionOffset(0L)
+                .stableOffset(KafkaOffsetType.LIVE.value())
                 .latestOffset(KafkaOffsetType.LIVE.value())
                 .build();
 

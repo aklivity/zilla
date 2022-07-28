@@ -237,6 +237,7 @@ public final class HttpKafkaEtagHelper
     {
         builder.partitionId(partitionV1.partitionId())
                .partitionOffset(partitionV1.partitionOffset())
+               .stableOffset(KafkaOffsetType.LIVE.value())
                .latestOffset(KafkaOffsetType.LIVE.value());
     }
 
@@ -246,6 +247,7 @@ public final class HttpKafkaEtagHelper
     {
         builder.partitionId(partitionV1.partitionId())
                .partitionOffset(partitionV1.partitionOffset())
+               .stableOffset(KafkaOffsetType.HISTORICAL.value())
                .latestOffset(KafkaOffsetType.HISTORICAL.value());
     }
 
@@ -255,6 +257,7 @@ public final class HttpKafkaEtagHelper
     {
         builder.partitionId(partitionV1.partitionId())
                .partitionOffset(0L)
+               .stableOffset(partitionV1.partitionOffset())
                .latestOffset(partitionV1.partitionOffset());
     }
 }
