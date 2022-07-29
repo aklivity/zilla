@@ -68,3 +68,11 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .isolation("READ_COMMITTED")
                                   .build()
                               .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .partition(0, 4, 4, 4)
+                                 .build()
+                             .build()}
+read "Hello, world"
