@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeadersFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaNotFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW;
@@ -197,6 +198,7 @@ public final class KafkaMergedFactory implements BindingHandler
         final KafkaCapabilities capabilities = kafkaMergedBeginEx.capabilities().get();
         final String16FW beginTopic = kafkaMergedBeginEx.topic();
         final String topicName = beginTopic.asString();
+        final KafkaIsolation isolation = kafkaMergedBeginEx.isolation().get();
         final KafkaDeltaType deltaType = kafkaMergedBeginEx.deltaType().get();
         final KafkaAckMode ackMode = kafkaMergedBeginEx.ackMode().get();
 
@@ -234,6 +236,7 @@ public final class KafkaMergedFactory implements BindingHandler
                     capabilities,
                     initialOffsetsById,
                     defaultOffset,
+                    isolation,
                     deltaType,
                     ackMode)::onMergedMessage;
         }
@@ -949,6 +952,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private final Long2LongHashMap latestOffsetByPartitionId;
         private final Long2LongHashMap nextOffsetsById;
         private final long defaultOffset;
+        private final KafkaIsolation isolation;
         private final KafkaDeltaType deltaType;
         private final KafkaAckMode ackMode;
 
@@ -986,6 +990,7 @@ public final class KafkaMergedFactory implements BindingHandler
             KafkaCapabilities capabilities,
             Long2LongHashMap initialOffsetsById,
             long defaultOffset,
+            KafkaIsolation isolation,
             KafkaDeltaType deltaType,
             KafkaAckMode ackMode)
         {
@@ -1006,6 +1011,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.latestOffsetByPartitionId = new Long2LongHashMap(-3);
             this.nextOffsetsById = initialOffsetsById;
             this.defaultOffset = defaultOffset;
+            this.isolation = isolation;
             this.deltaType = deltaType;
             this.ackMode = ackMode;
         }
@@ -2438,6 +2444,7 @@ public final class KafkaMergedFactory implements BindingHandler
                                                       .partitionOffset(partitionOffset)
                                                       .latestOffset(merged.maximumOffset.value()))
                                      .filters(fs -> merged.filters.forEach(mf -> fs.item(i -> setFetchFilter(i, mf))))
+                                     .isolation(i -> i.set(merged.isolation))
                                      .deltaType(t -> t.set(merged.deltaType)))
                         .build()
                         .sizeof()));

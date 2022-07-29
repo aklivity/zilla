@@ -31,7 +31,20 @@ scope kafka
     {
         int32 partitionId;
         int64 partitionOffset;
+        int64 stableOffset = -1;
         int64 latestOffset = -1;
+    }
+
+    enum KafkaTransactionResult
+    {
+        ABORT,
+        COMMIT
+    }
+
+    struct KafkaTransaction
+    {
+        KafkaTransactionResult result;
+        int64 producerId = -1;
     }
 
     enum KafkaConditionType (uint8)
@@ -103,6 +116,12 @@ scope kafka
         varint32 nameLen;
         octets[nameLen] name;  // UTF-8
         KafkaValueMatch[] values;
+    }
+
+    enum KafkaIsolation
+    {
+        READ_UNCOMMITTED,
+        READ_COMMITTED
     }
 
     enum KafkaDeltaType
@@ -191,6 +210,7 @@ scope kafka
             string16 topic;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
+            KafkaIsolation isolation = READ_COMMITTED;
             KafkaDeltaType deltaType = NONE;
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
         }
@@ -239,6 +259,7 @@ scope kafka
             string16 topic;
             KafkaOffset partition;
             KafkaFilter[] filters; // ORed
+            KafkaIsolation isolation = READ_UNCOMMITTED;
             KafkaDeltaType deltaType = NONE;
         }
 
@@ -247,6 +268,7 @@ scope kafka
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
             int32 headersSizeMax = 4;   // INIT only
+            int64 producerId = -1;      // INIT only
             KafkaOffset partition;      // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
@@ -256,6 +278,7 @@ scope kafka
         struct KafkaFetchFlushEx
         {
             KafkaOffset partition;
+            KafkaTransaction[] transactions;
         }
 
         struct KafkaProduceFlushEx
@@ -266,7 +289,7 @@ scope kafka
         struct KafkaProduceBeginEx
         {
             string8 transaction; // = null;
-            int64 producerId = 0;
+            int64 producerId = -1;
             string16 topic;
             KafkaOffset partition;
         }

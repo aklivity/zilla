@@ -549,6 +549,74 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/isolation.read.committed/client",
+        "${app}/isolation.read.committed/server"})
+    public void shouldReceiveIsolationReadCommitted() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_MESSAGE_3");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.committed.aborted/client",
+        "${app}/isolation.read.committed.aborted/server"})
+    public void shouldReceiveIsolationReadCommittedWhenAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.committed.aborting/client",
+        "${app}/isolation.read.committed.aborting/server"})
+    public void shouldReceiveIsolationReadCommittedWhenAborting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.committed.committing/client",
+        "${app}/isolation.read.committed.committing/server"})
+    public void shouldReceiveIsolationReadCommittedWhenCommitting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.uncommitted.aborted/client",
+        "${app}/isolation.read.uncommitted.aborted/server"})
+    public void shouldReceiveIsolationReadUncommittedWhenAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.uncommitted.aborting/client",
+        "${app}/isolation.read.uncommitted.aborting/server"})
+    public void shouldReceiveIsolationReadUncommittedWhenAborting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/isolation.read.uncommitted.committing/client",
+        "${app}/isolation.read.uncommitted.committing/server"})
+    public void shouldReceiveIsolationReadUncommittedWhenCommitting() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_UNCOMMITTED");
+        k3po.notifyBarrier("SEND_COMMIT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.leader.distinct/client",
         "${app}/partition.leader.distinct/server"})
     public void shouldReceiveDistinctPartitionLeader() throws Exception

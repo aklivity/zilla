@@ -161,7 +161,7 @@ public class ClientMergedIT
     @Configuration("client.options.merged.json")
     @Specification({
         "${app}/merged.fetch.filter.none/client",
-        "${net}/unmerged.fetch.filter.none/server"})
+        "${net}/unmerged.fetch.filter.none.read.committed/server"})
     public void shouldFetchMergedMessagesWithNoFilter() throws Exception
     {
         k3po.start();
@@ -175,7 +175,7 @@ public class ClientMergedIT
     @Configuration("client.options.merged.json")
     @Specification({
         "${app}/merged.fetch.message.values/client",
-        "${net}/unmerged.fetch.message.values/server"})
+        "${net}/unmerged.fetch.message.values.read.committed/server"})
     public void shouldFetchMergedMessageValues() throws Exception
     {
         k3po.finish();
@@ -185,9 +185,23 @@ public class ClientMergedIT
     @Configuration("client.json")
     @Specification({
         "${app}/merged.fetch.message.values/client",
-        "${net}/unmerged.fetch.message.values/server"})
+        "${net}/unmerged.fetch.message.values.read.committed/server"})
     public void shouldFetchMergedMessageValuesByDefault() throws Exception
     {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.json")
+    @Specification({
+        "${app}/merged.fetch.filter.none.read.uncommitted/client",
+        "${net}/unmerged.fetch.filter.none.read.uncommitted/server"})
+    public void shouldFetchMergedMessagesWithIsolationReadUncommitted() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_MESSAGE_B2");
+        k3po.notifyBarrier("SEND_MESSAGE_A3");
+        k3po.notifyBarrier("SEND_MESSAGE_B3");
         k3po.finish();
     }
 

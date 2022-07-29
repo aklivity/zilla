@@ -1,0 +1,200 @@
+#
+# Copyright 2021-2022 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
+accept "zilla://streams/net0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read 21                                 # size
+     3s                                 # metadata
+     5s                                 # v5
+     (int:requestId)
+     -1s                                # no client id
+     1                                  # topics
+       4s "test"                        #   "test" topic
+     [0x00]                             # allow_auto_topic_creation
+
+write 97                                # size
+      ${requestId}
+      0
+      1                                 # brokers
+        0xb1                                # broker id
+        19s "broker1.example.com"           # host name
+        9092                                # port
+        -1s                                 # no rack
+      9s "cluster 1"                    # cluster id
+      1                                 # controller id
+      1                                 # topics
+        0s                                # no error
+        4s "test"                         #   "test" topic
+        [0x00]                            # not internal
+        1                                 # partitions
+          0s                                # no error
+          0                                 # partition
+          0xb1                              # leader
+          0                                 # no replicas
+          -1                                # no in-sync replicas
+          0                                 # offline replicas
+
+accepted
+
+read zilla:begin.ext ${proxy:beginEx()
+                              .typeId(zilla:id("proxy"))
+                              .addressInet()
+                                .protocol("stream")
+                                .source("0.0.0.0")
+                                .destination("broker1.example.com")
+                                .sourcePort(0)
+                                .destinationPort(9092)
+                                .build()
+                              .build()}
+
+connected
+
+read 65
+     1s
+     5s
+     (int:requestId)
+     -1s
+     -1
+     [0..4]
+     1
+     [0..4]
+     [0x00]
+     1
+     4s "test"
+     1
+     0
+     1L
+     -1L
+     [0..4]
+
+write 193
+      ${requestId}
+      0
+      1
+      4s "test"
+      1                                 # partitions
+      0                                 # partition 0
+      0s                                # no error
+      3L                                # high water mark
+      0L                                # last stable offset
+      -1L                               # no log start offset
+      -1                                # no aborted transaction count
+      133                               # record set size
+      1L                                # first offset
+      121                               # length
+      0x00
+      [0x02]
+      0x4e8723aa
+      16s                               # attributes (transactional)
+      1                                 # last offset delta
+      ${newTimestamp}                   # first timestamp
+      ${newTimestamp}                   # last timestamp
+      1L                                # producer id
+      0s                                # producer epoch
+      0
+      2                                 # records
+      ${kafka:varint(37)}
+      [0x00]
+      ${kafka:varint(0)}                # timestamp delta
+      ${kafka:varint(0)}                # offset delta
+      ${kafka:varint(4)}                # key
+      "key1"
+      ${kafka:varint(12)}               # value
+      "Hello, world"
+      ${kafka:varint(1)}                # headers
+        ${kafka:varint(7)}                  # key
+        "header2"
+        ${kafka:varint(6)}                  # value
+        "value2"
+      ${kafka:varint(33)}
+      [0x00]
+      ${kafka:varint(0)}                # timestamp delta
+      ${kafka:varint(1)}                # offset delta
+      ${kafka:varint(-1)}               # key
+      ${kafka:varint(12)}               # value
+      "Hello, world"
+      ${kafka:varint(1)}                # headers
+        ${kafka:varint(7)}                  # key
+        "header1"
+        ${kafka:varint(6)}                  # value
+        "value1"
+
+read 65
+     1s
+     5s
+     (int:requestId)
+     -1s
+     -1
+     [0..4]
+     1
+     [0..4]
+     [0x00]
+     1
+     4s "test"
+     1
+     0
+     3L
+     -1L
+     [0..4]
+
+write 146
+      ${requestId}
+      0
+      1
+      4s "test"
+      1                                 # partitions
+      0                                 # partition 0
+      0s                                # no error
+      4L                                # high water mark
+      3L                                # last stable offset
+      -1L                               # no log start offset
+      -1                                # no aborted transaction count
+      86                                # record set size
+      3L                                # first offset
+      74                                # length
+      0x00
+      [0x02]
+      0x4e8723aa
+      48s                               # attributes (control, transactional)
+      1                                 # last offset delta
+      ${newTimestamp}                   # first timestamp
+      ${newTimestamp}                   # last timestamp
+      1L                                # producer id
+      0s                                # producer epoch
+      -1                                # base sequence
+      1                                 # records
+      ${kafka:varint(16)}
+      [0x00]
+      ${kafka:varint(0)}                # timestamp delta
+      ${kafka:varint(0)}                # offset delta
+      ${kafka:varint(4)}                # key
+      0s                                    # version 0
+      0s                                    # abort marker
+      ${kafka:varint(6)}                # value
+      [0x00 0x00 0x00 0x00 0x00 0x00]
+      ${kafka:varint(0)}                # headers

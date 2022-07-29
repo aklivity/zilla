@@ -176,6 +176,18 @@ scope protocol
                 int64 producerId;
                 int64 firstOffset;
             }
+
+            enum ControlRecordKeyType
+            {
+                ABORT,
+                COMMIT
+            }
+
+            struct ControlRecordKey
+            {
+                int16 version;
+                int16 type;
+            }
         }
 
         scope offsets

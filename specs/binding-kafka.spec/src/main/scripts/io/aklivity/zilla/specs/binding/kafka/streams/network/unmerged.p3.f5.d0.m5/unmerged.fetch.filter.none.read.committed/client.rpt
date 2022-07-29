@@ -166,59 +166,6 @@ read 150                                # size
 
 read notify PARTITION_COUNT_2
 
-write 21                                # size
-      3s                                # metadata
-      5s                                # v5
-      ${newRequestId}
-      -1s                               # no client id
-      1                                 # topics
-        4s "test"                       #   "test" topic
-      [0x00]                            # allow_auto_topic_creation
-
-read 203                                # size
-     ${newRequestId}
-     [0..4]
-     3                                  # brokers
-       1                                    # broker id
-       19s "broker1.example.com"            # host name
-       9092                                 # port
-       -1s                                  # no rack
-       2
-       19s "broker2.example.com"
-       9092
-       -1s
-       3
-       19s "broker3.example.com"
-       9092
-       -1s
-     9s "cluster 1"                     # cluster id
-     1                                  # controller id
-     1                                  # topics
-       0s                                 # no error
-       4s "test"                          #   "test" topic
-       [0x00]                             # not internal
-       3                                  # partitions
-         0s                                 # no error
-         0                                  # partition
-         1                                  # leader
-         0                                  # no replicas
-         -1                                 # no in-sync replicas
-         0                                  # offline replicas
-         0s
-         1
-         2
-         0
-         -1
-         0
-         0s
-         2
-         3
-         0
-         -1
-         0
-
-read notify PARTITION_COUNT_3
-
 connect await PARTITION_COUNT_2
         "zilla://streams/net0"
   option zilla:window 8192
@@ -247,7 +194,7 @@ write 65                                # size
       ${fetchWaitMax}
       1
       ${fetchBytesMax}
-      [0x00]
+      [0x01]                            # isolation level (read_committed)
       1
       4s "test"
       1
@@ -256,7 +203,7 @@ write 65                                # size
       -1L
       ${partitionBytesMax}
 
-read 228
+read 262
      ${newRequestId}
      [0..4]
      1
@@ -265,12 +212,12 @@ read 228
      0                                  # partition
      0s                                 # no error
      3L                                 # high water mark
-     -1L                                # last stable offset
+     2L                                 # last stable offset
      -1L                                # no log start offset
      -1                                 # no aborted transaction count
-     168                                # record set size
+     202                                # record set size
      1L                                 # first offset
-     72                                 # length
+     91                                 # length
      0x00
      [0x02]
      0x4e8723aa
@@ -282,16 +229,21 @@ read 228
      -1s
      -1
      1                                  # records
-     ${kafka:varint(22)}
+     ${kafka:varint(41)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}
-     ${kafka:varint(16)}
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(16)}                # value
      "Hello, world #A1"
-     ${kafka:varint(0)}
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header2"
+       ${kafka:varint(6)}                   # value
+       "value2"
      2L                                 # first offset
-     72                                 # length
+     87                                 # length
      0x00
      [0x02]
      0x4e8723aa
@@ -303,14 +255,165 @@ read 228
      -1s
      -1
      1                                  # records
-     ${kafka:varint(22)}
+     ${kafka:varint(37)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}
+     ${kafka:varint(-1)}                # key
      ${kafka:varint(16)}
      "Hello, world #A2"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header1"
+       ${kafka:varint(6)}                   # value
+       "value1"
+
+write 65                                # size
+      1s                                # fetch
+      5s                                # v5
+      ${newRequestId}
+      -1s
+      -1
+      ${fetchWaitMax}
+      1
+      ${fetchBytesMax}
+      [0x01]                            # isolation level (read_committed)
+      1
+      4s "test"
+      1
+      0                                 # partition
+      3L                                # offset
+      -1L
+      ${partitionBytesMax}
+
+read 502
+     ${newRequestId}
+     [0..4]
+     1
+     4s "test"
+     1                                  # partitions
+     0                                  # partition
+     0s                                 # no error
+     7L                                 # high water mark
+     6L                                 # last stable offset
+     -1L                                # no log start offset
+     -1                                 # no aborted transaction count
+     442                                # record set size
+     3L                                 # first offset
+     91                                 # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     1                                  # records
+     ${kafka:varint(41)}
+     [0x00]
      ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(16)}
+     "Hello, world #A3"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header1"
+       ${kafka:varint(6)}                   # value
+       "value1"
+     4L                                 # first offset
+     102                                # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     1                                  # records
+     ${kafka:varint(52)}
+     [0x00]
+     ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(-1)}                # key
+     ${kafka:varint(16)}
+     "Hello, world #A4"
+     ${kafka:varint(2)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header1"
+       ${kafka:varint(6)}                   # value
+       "value1"
+       ${kafka:varint(7)}                   # key
+       "header2"
+       ${kafka:varint(6)}                   # value
+       "value2"
+     5L                                 # first offset
+     84                                 # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     1                                  # records
+     ${kafka:varint(34)}
+     [0x00]
+     ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(-1)}                 # key
+     ${kafka:varint(16)}                # value
+     "Hello, world #A5"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(3)}                   # value
+       "one"
+     6L                                 # first offset
+     117                                # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     1                                  # records
+     ${kafka:varint(66)}
+     [0x00]
+     ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(-1)}                 # key
+     ${kafka:varint(16)}                # value
+     "Hello, world #A6"
+     ${kafka:varint(4)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(3)}                   # value
+       "one"
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(0)}                   # value (empty)
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(5)}                   # value
+       "three"
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(0)}                   # value (empty)
 
 connect await PARTITION_COUNT_2
         "zilla://streams/net0"
@@ -340,7 +443,7 @@ write 65                                # size
       ${fetchWaitMax}
       1
       ${fetchBytesMax}
-      [0x00]
+      [0x01]                            # isolation level (read_committed)
       1
       4s "test"
       1
@@ -349,7 +452,7 @@ write 65                                # size
       -1L
       ${partitionBytesMax}
 
-read 228
+read 277
      ${newRequestId}
      [0..4]
      1
@@ -358,12 +461,12 @@ read 228
      1                                  # partition
      0s                                 # no error
      3L                                 # high water mark
-     -1L                                # last stable offset
+     2L                                 # last stable offset
      -1L                                # no log start offset
      -1                                 # no aborted transaction count
-     168                                # record set size
+     217                                # record set size
      1L                                 # first offset
-     72                                 # length
+     102                                # length
      0x00
      [0x02]
      0x4e8723aa
@@ -375,16 +478,24 @@ read 228
      -1s
      -1
      1                                  # records
-     ${kafka:varint(22)}
+     ${kafka:varint(52)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}
+     ${kafka:varint(-1)}                # key
      ${kafka:varint(16)}
      "Hello, world #B1"
-     ${kafka:varint(0)}
+     ${kafka:varint(2)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header1"
+       ${kafka:varint(6)}                   # value
+       "value1"
+       ${kafka:varint(7)}                   # key
+       "header2"
+       ${kafka:varint(6)}                   # value
+       "value2"
      2L                                 # first offset
-     72                                 # length
+     91                                 # length
      0x00
      [0x02]
      0x4e8723aa
@@ -396,33 +507,19 @@ read 228
      -1s
      -1
      1                                  # records
-     ${kafka:varint(22)}
+     ${kafka:varint(41)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}
+     ${kafka:varint(4)}                 # key
+     "key1"
      ${kafka:varint(16)}
      "Hello, world #B2"
-     ${kafka:varint(0)}
-
-connect await PARTITION_COUNT_3
-        "zilla://streams/net0"
-  option zilla:window 8192
-  option zilla:transmission "duplex"
-  option zilla:byteorder "network"
-
-write zilla:begin.ext ${proxy:beginEx()
-                               .typeId(zilla:id("proxy"))
-                               .addressInet()
-                                 .protocol("stream")
-                                 .source("0.0.0.0")
-                                 .destination("broker3.example.com")
-                                 .sourcePort(0)
-                                 .destinationPort(9092)
-                                 .build()
-                               .build()}
-
-connected
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header1"
+       ${kafka:varint(6)}                   # value
+       "value1"
 
 write 65                                # size
       1s                                # fetch
@@ -433,30 +530,30 @@ write 65                                # size
       ${fetchWaitMax}
       1
       ${fetchBytesMax}
-      [0x00]
+      [0x01]                            # isolation level (read_committed)
       1
       4s "test"
       1
-      2                                 # partition
-      1L                                # offset
+      1                                 # partition
+      3L                                # offset
       -1L
       ${partitionBytesMax}
 
-read 228
+read 503
      ${newRequestId}
      [0..4]
      1
      4s "test"
      1                                  # partitions
-     2                                  # partition
+     1                                  # partition
      0s                                 # no error
-     3L                                 # high water mark
-     -1L                                # last stable offset
+     7L                                 # high water mark
+     6L                                 # last stable offset
      -1L                                # no log start offset
      -1                                 # no aborted transaction count
-     168                                # record set size
-     1L                                 # first offset
-     72                                 # length
+     443                                # record set size
+     3L                                 # first offset
+     87                                 # length
      0x00
      [0x02]
      0x4e8723aa
@@ -468,16 +565,20 @@ read 228
      -1s
      -1
      1                                  # records
-     ${kafka:varint(22)}
+     ${kafka:varint(37)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}
+     ${kafka:varint(-1)}                # key
      ${kafka:varint(16)}
-     "Hello, world #C1"
-     ${kafka:varint(0)}
-     2L                                 # first offset
-     72                                 # length
+     "Hello, world #B3"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header1"
+       ${kafka:varint(6)}                   # value
+       "value1"
+     4L                                 # first offset
+     91                                 # length
      0x00
      [0x02]
      0x4e8723aa
@@ -489,11 +590,81 @@ read 228
      -1s
      -1
      1                                  # records
-     ${kafka:varint(22)}
+     ${kafka:varint(41)}
      [0x00]
      ${kafka:varint(0)}
      ${kafka:varint(0)}
-     ${kafka:varint(-1)}
-     ${kafka:varint(16)}
-     "Hello, world #C2"
+     ${kafka:varint(4)}                 # key
+     "key1"
+     ${kafka:varint(16)}                # value
+     "Hello, world #B4"
+     ${kafka:varint(1)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header2"
+       ${kafka:varint(6)}                   # value
+       "value2"
+     5L                                 # first offset
+     93                                 # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     1                                  # records
+     ${kafka:varint(43)}
+     [0x00]
      ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(-1)}                 # key
+     ${kafka:varint(16)}                # value
+     "Hello, world #B5"
+     ${kafka:varint(2)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(3)}                   # value
+       "one"
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(0)}                   # value (empty)
+     6L                                 # first offset
+     124                                # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     1                                  # records
+     ${kafka:varint(73)}
+     [0x00]
+     ${kafka:varint(0)}
+     ${kafka:varint(0)}
+     ${kafka:varint(-1)}                 # key
+     ${kafka:varint(16)}                # value
+     "Hello, world #B6"
+     ${kafka:varint(4)}                 # headers
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(3)}                   # value
+       "one"
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(3)}                   # value
+       "two"
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(5)}                   # value
+       "three"
+       ${kafka:varint(7)}                   # key
+       "header3"
+       ${kafka:varint(4)}                   # value
+       "four"
