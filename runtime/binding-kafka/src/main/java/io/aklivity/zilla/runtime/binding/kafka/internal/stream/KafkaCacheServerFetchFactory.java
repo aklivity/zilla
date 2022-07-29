@@ -141,6 +141,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
 
     private final KafkaCacheEntryFW ancestorEntryRO = new KafkaCacheEntryFW();
+    private final KafkaCacheEntryFW abortedEntryRO = new KafkaCacheEntryFW();
 
     private final int kafkaTypeId;
     private final MutableDirectBuffer writeBuffer;
@@ -734,6 +735,16 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 partition.writeEntry(partitionOffset, 0L, producerId,
                         EMPTY_KEY, EMPTY_HEADERS, EMPTY_OCTETS, null,
                         entryFlags, KafkaDeltaType.NONE);
+
+                if (result == KafkaTransactionResult.ABORT)
+                {
+                    Node stable = partition.seekNotBefore(stableOffset);
+                    while (!stable.sentinel())
+                    {
+                        stable.findAndAbortProducerId(producerId, abortedEntryRO);
+                        stable = stable.next();
+                    }
+                }
             }
 
             this.partitionOffset = partitionOffset;

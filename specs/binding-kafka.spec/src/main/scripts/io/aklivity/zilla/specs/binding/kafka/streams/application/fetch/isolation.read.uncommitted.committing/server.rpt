@@ -105,3 +105,13 @@ write advise zilla:flush ${kafka:flushEx()
                                     .transaction("COMMIT", 1)
                                     .build()
                                 .build()}
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 4, 4, 4)
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush

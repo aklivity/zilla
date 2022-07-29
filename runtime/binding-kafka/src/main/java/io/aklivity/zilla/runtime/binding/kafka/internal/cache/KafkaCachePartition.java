@@ -824,6 +824,22 @@ public final class KafkaCachePartition
             }
         }
 
+        public void findAndAbortProducerId(
+            long producerId,
+            KafkaCacheEntryFW cacheEntry)
+        {
+            final KafkaCacheFile logFile = segment.logFile();
+
+            for (int offsetBytes = 0; offsetBytes < logFile.capacity(); offsetBytes = cacheEntry.limit())
+            {
+                final KafkaCacheEntryFW entry = logFile.readBytes(offsetBytes, cacheEntry::wrap);
+                if (entry.ownerId() == producerId && (entry.flags() & CACHE_ENTRY_FLAGS_CONTROL) == 0x00)
+                {
+                    logFile.writeInt(entry.offset() + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                }
+            }
+        }
+
         public KafkaCacheEntryFW findAndMarkAncestor(
             KafkaKeyFW key,
             long hash,

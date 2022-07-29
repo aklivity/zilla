@@ -2132,7 +2132,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 this.isolation = isolation;
                 this.encoder = encodeFetchRequest;
                 this.decoder = decodeReject;
-                this.decodeAbortedTransactions = new Long2LongHashMap(-1L);
+                this.decodeAbortedTransactions = new Long2LongHashMap(Long.MIN_VALUE);
             }
 
             private void onNetwork(

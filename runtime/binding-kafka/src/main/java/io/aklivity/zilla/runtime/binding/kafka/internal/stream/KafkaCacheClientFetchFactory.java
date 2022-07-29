@@ -1120,10 +1120,24 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                     continue;
                 }
 
-                if ((nextEntry.flags() & CACHE_ENTRY_FLAGS_CONTROL) != 0)
+                final int nextEntryFlags = nextEntry.flags();
+                switch (isolation)
                 {
-                    doClientReplyFlush(traceId, nextEntry);
-                    continue;
+                case READ_COMMITTED:
+                    if ((nextEntryFlags & CACHE_ENTRY_FLAGS_ABORTED) != 0 ||
+                        (nextEntryFlags & CACHE_ENTRY_FLAGS_CONTROL) != 0)
+                    {
+                        cursor.advance(nextEntry.offset$() + 1);
+                        continue;
+                    }
+                    break;
+                case READ_UNCOMMITTED:
+                    if ((nextEntryFlags & CACHE_ENTRY_FLAGS_CONTROL) != 0)
+                    {
+                        doClientReplyFlush(traceId, nextEntry);
+                        continue;
+                    }
+                    break;
                 }
 
                 final long replySeqSnapshot = replySeq;
