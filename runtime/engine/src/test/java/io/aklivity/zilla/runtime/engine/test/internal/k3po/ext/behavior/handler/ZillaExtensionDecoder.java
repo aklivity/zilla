@@ -71,7 +71,7 @@ public final class ZillaExtensionDecoder implements ChannelDecoder
     private boolean decode(
         ZillaChannel channel) throws Exception
     {
-        final ChannelBuffer readExtBuffer = channel.readExtBuffer(readExtKind);
+        final ChannelBuffer readExtBuffer = readExtKind.decodeBuffer(channel);
 
         Iterator<MessageDecoder> iterator = remainingDecoders.iterator();
 
