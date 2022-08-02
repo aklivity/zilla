@@ -15,12 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler;
 
+import java.util.EnumSet;
+
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.kaazing.k3po.driver.internal.behavior.handler.codec.ChannelDecoder;
-import org.kaazing.k3po.driver.internal.netty.channel.ShutdownOutputEvent;
 import org.kaazing.k3po.driver.internal.netty.channel.WriteAbortEvent;
-
-import java.util.EnumSet;
 
 public class WriteAbortedExtHandler extends AbstractReadExtHandler
 {
