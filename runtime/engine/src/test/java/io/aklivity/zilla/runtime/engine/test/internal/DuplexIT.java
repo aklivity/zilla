@@ -737,4 +737,14 @@ public class DuplexIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "server.sent.read.abort.with.ext/client",
+        "server.sent.read.abort.with.ext/server"
+    })
+    public void shouldReceiveServerSentReadAbortWithExt() throws Exception
+    {
+        k3po.finish();
+    }
 }
