@@ -1353,7 +1353,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 int error,
                 long traceId)
         {
-            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state) && messageOffset == 0)
             {
                 doFlushServerReply(error, traceId);
             }
