@@ -62,12 +62,21 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
                                   .timestamp(newTimestamp)
                                   .build()
                               .build()}
+write "Hello, world"
 write flush
 
 read zilla:reset.ext ${kafka:resetEx()
@@ -76,21 +85,3 @@ read zilla:reset.ext ${kafka:resetEx()
                            .build()}
 write aborted
 read abort
-
-
-
-connect await ROUTED_BROKER_CLIENT
-        "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "half-duplex"
-    option zilla:affinity 177
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .produce()
-                                   .topic("test")
-                                   .partition(0)
-                                   .build()
-                               .build()}
-
-connected

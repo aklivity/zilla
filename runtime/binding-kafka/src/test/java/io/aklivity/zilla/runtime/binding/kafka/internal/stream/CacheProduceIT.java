@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -328,6 +329,18 @@ public class CacheProduceIT
         "${app}/message.value.repeated/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/message.value.errored/client",
+        "${app}/message.value.errored/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = "zilla.binding.kafka.cache.client.cleanup.delay", value = "0")
+    public void shouldSendMessageValueErrored() throws Exception
     {
         k3po.finish();
     }

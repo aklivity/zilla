@@ -121,6 +121,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
 
+    private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
+
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
@@ -779,7 +781,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             doClientFanReplyResetIfNecessary(traceId);
 
-            ackOffsetHighWatermark(traceId, offsetHighWatermark);
+            final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : NO_ERROR;
+
+            ackOffsetHighWatermark(error, traceId, offsetHighWatermark);
         }
 
         private void onClientFanInitialWindow(
@@ -939,11 +944,19 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final KafkaProduceFlushExFW kafkaProduceFlushEx = kafkaFlushEx.produce();
             final KafkaOffsetFW partition = kafkaProduceFlushEx.partition();
             final long partitionOffset = partition.partitionOffset();
+            final int error = kafkaProduceFlushEx.error();
 
-            ackOffsetHighWatermark(traceId, partitionOffset);
+            final long currentLastAckOffsetHighWatermark = lastAckOffsetHighWatermark;
+            ackOffsetHighWatermark(error, traceId, partitionOffset);
+
+            if (lastAckOffsetHighWatermark > currentLastAckOffsetHighWatermark)
+            {
+                doClientFanReplyWindow(traceId);
+            }
         }
 
         private void ackOffsetHighWatermark(
+            int error,
             long traceId,
             long partitionOffset)
         {
@@ -952,7 +965,14 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCacheEntryFW entry = markEntryDirty(lastAckOffsetHighWatermark);
                 final long memberStreamId = entry.ownerId();
                 final KafkaCacheClientProduceStream member = members.get(memberStreamId);
-                member.onMessageAck(traceId, entry.offset$());
+                if (error != NO_ERROR)
+                {
+                    member.onMessageError(error, traceId, partitionOffset);
+                }
+                else
+                {
+                    member.onMessageAck(traceId, entry.offset$());
+                }
                 lastAckOffsetHighWatermark++;
             }
         }
@@ -1395,6 +1415,22 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 doClientReplyEndIfNecessary(traceId);
             }
+        }
+
+        private void onMessageError(
+                int error,
+                long traceId,
+                long partitionOffset)
+        {
+            cursor.advance(partitionOffset);
+
+            fan.onClientFanMemberClosed(traceId, this);
+            final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .error(error)
+                    .build();
+
+            doClientInitialReset(traceId, kafkaResetEx);
         }
 
         private void markEntriesDirty(

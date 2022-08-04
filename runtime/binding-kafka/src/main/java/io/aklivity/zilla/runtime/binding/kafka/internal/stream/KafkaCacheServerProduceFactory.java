@@ -81,6 +81,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaCacheServerProduceFactory implements BindingHandler
 {
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
+    private static final int NO_ERROR = -1;
 
     private static final String TRANSACTION_NONE = null;
 
@@ -612,7 +613,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 final KafkaCacheServerProduceStream member = members.get(memberIndex);
                 final long cursorOffset = member.cursor.offset;
-                if (cursorOffset <= member.partitionOffset)
+                if (cursorOffset <= member.partitionOffset && member.isProgressing)
                 {
                     member.doProduceInitialData(traceId);
                 }
@@ -703,14 +704,22 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             doServerFanReplyResetIfNecessary(traceId);
 
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
-            final int error = kafkaResetEx != null ? kafkaResetEx.error() : -1;
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : NO_ERROR;
 
             if (KafkaConfiguration.DEBUG)
             {
                 System.out.format("%d %s PRODUCE disconnect, error %d\n", partitionId, partionTopic, error);
             }
 
-            members.forEach(s -> s.doServerInitialResetIfNecessary(traceId, extension));
+            if (error == ERROR_NOT_LEADER_FOR_PARTITION || error == NO_ERROR)
+            {
+                members.forEach(s -> s.doServerInitialResetIfNecessary(traceId, extension));
+            }
+            else
+            {
+                members.forEach(s -> s.doFlushServerReplyIfNecessary(error, traceId));
+                doServerFanInitialBeginIfNecessary(traceId);
+            }
         }
 
         private void onServerFanInitialWindow(
@@ -763,6 +772,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 members.forEach(s -> s.doServerInitialWindow(traceId));
             }
 
+            members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
             doServerFanInitialDataIfNecessary(traceId);
         }
 
@@ -938,6 +948,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private long partitionOffset = DEFAULT_LATEST_OFFSET;
         private int messageOffset;
 
+        private boolean isProgressing = true;
+
         KafkaCacheServerProduceStream(
             KafkaCacheServerProduceFan fan,
             MessageConsumer sender,
@@ -1112,7 +1124,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         if ((entryFlags & CACHE_ENTRY_FLAGS_DIRTY) != 0)
                         {
                             cursor.advance(partitionOffset + 1);
-                            doFlushServerReply(traceId);
+                            doFlushServerReply(NO_ERROR, traceId);
                             break produce;
                         }
 
@@ -1187,8 +1199,6 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                             {
                                 cursor.advance(partitionOffset + 1);
                             }
-
-                            doFlushServerReply(traceId);
                         }
                     }
                 }
@@ -1339,15 +1349,28 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             }
         }
 
+        private void doFlushServerReplyIfNecessary(
+                int error,
+                long traceId)
+        {
+            if (KafkaState.replyOpening(state) && !KafkaState.replyClosed(state))
+            {
+                doFlushServerReply(error, traceId);
+            }
+        }
+
         private void doFlushServerReply(
+            int error,
             long traceId)
         {
+            isProgressing = error == NO_ERROR;
             doFlush(sender, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
                 ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                                                         .typeId(kafkaTypeId)
                                                         .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                        .partitionOffset(partitionOffset)))
+                                                                                        .partitionOffset(partitionOffset))
+                                                                       .error(error))
                                                         .build()
                                                         .sizeof()));
         }
@@ -1423,12 +1446,14 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             final long acknowledge = window.acknowledge();
             final long budgetId = window.budgetId();
             final int padding = window.padding();
+            final long traceId = window.traceId();
 
             assert sequence == acknowledge;
             assert budgetId == 0L;
             assert padding == 0;
 
             state = KafkaState.openedReply(state);
+            isProgressing = true;
         }
 
         private void onServerReplyReset(
