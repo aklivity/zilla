@@ -1454,6 +1454,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
             state = KafkaState.openedReply(state);
             isProgressing = true;
+            fan.doServerFanInitialDataIfNecessary(traceId);
         }
 
         private void onServerReplyReset(

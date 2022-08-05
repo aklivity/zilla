@@ -62,6 +62,14 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
@@ -71,8 +79,15 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world1"
 write flush
 
+read zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(2)
+                           .build()}
 write aborted
 read abort
+
+
+write notify ERRORED_FIRST_MESSAGE
 
 connect await ROUTED_BROKER_CLIENT
         "zilla://streams/app0"
@@ -90,6 +105,16 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
+write await ERRORED_FIRST_MESSAGE
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
@@ -99,5 +124,4 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world2"
 write flush
 
-write aborted
-read abort
+read closed

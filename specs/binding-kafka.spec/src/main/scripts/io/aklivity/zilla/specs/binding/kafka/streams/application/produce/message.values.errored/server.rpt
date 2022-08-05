@@ -19,6 +19,7 @@ property serverAddress "zilla://streams/app0"
 accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:update "handshake"
 
 accepted
 
@@ -47,6 +48,37 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write flush
 
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+
+write flush
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .build()
+                             .build()}
+read "Hello, world1"
+
+write zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(2)
+                           .build()}
+read abort
+
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
@@ -59,12 +91,15 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .produce()
-                                 .build()
-                             .build()}
-read "Hello, world1"
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+
+write flush
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
@@ -73,10 +108,5 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .build()}
 read "Hello, world2"
 
-write zilla:reset.ext ${kafka:resetEx()
-                           .typeId(zilla:id("kafka"))
-                           .error(2)
-                           .build()}
-read abort
-
-
+read closed
+write close

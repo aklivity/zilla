@@ -22,7 +22,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +34,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class CacheProduceIT
 {
@@ -341,6 +341,18 @@ public class CacheProduceIT
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = "zilla.binding.kafka.cache.client.cleanup.delay", value = "0")
     public void shouldSendMessageValueErrored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/message.values.errored/client",
+        "${app}/message.values.errored/server"})
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\""})
+    @Configure(name = "zilla.binding.kafka.cache.client.cleanup.delay", value = "0")
+    public void shouldSendMessageValuesErrored() throws Exception
     {
         k3po.finish();
     }
