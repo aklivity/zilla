@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffset
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -132,6 +133,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyBudgetId;
+    private final LongSupplier supplyTraceId;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
     private final LongFunction<KafkaBindingConfig> supplyBinding;
@@ -140,6 +142,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final LongToIntFunction supplyRemoteIndex;
     private final KafkaCacheCursorFactory cursorFactory;
     private final CRC32C crc32c;
+    private final int reconnectDelay;
+    private static final int SIGNAL_RECONNECT = 1;
 
     public KafkaCacheServerProduceFactory(
         KafkaConfiguration config,
@@ -158,12 +162,14 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
+        this.supplyTraceId = context::supplyTraceId;
         this.supplyBinding = supplyBinding;
         this.supplyCache = supplyCache;
         this.supplyCacheRoute = supplyCacheRoute;
         this.cursorFactory = new KafkaCacheCursorFactory(writeBuffer);
         this.supplyRemoteIndex = context::supplyClientIndex;
         this.crc32c = new CRC32C();
+        this.reconnectDelay = config.cacheServerReconnect();
     }
 
     @Override
@@ -484,6 +490,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private int replyMax;
 
         private long reconnectAt = NO_CANCEL_ID;
+        private int reconnectAttempt;
         private int memberIndex;
 
         private KafkaCacheServerProduceFan(
@@ -605,6 +612,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void doServerFanInitialDataIfNecessary(
             long traceId)
         {
+            if (reconnectAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(reconnectAt);
+                onServerFanoutSignal(SIGNAL_RECONNECT);
+            }
+
             final int membersCount = members.size();
 
             for (int membersNotProgressing = 0; membersNotProgressing < membersCount; membersNotProgressing++)
@@ -718,7 +731,18 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             else
             {
                 members.forEach(s -> s.doFlushServerReplyIfNecessary(error, traceId));
-                doServerFanInitialBeginIfNecessary(traceId);
+                if (reconnectDelay != 0 && !members.isEmpty())
+                {
+                    if (reconnectAt != NO_CANCEL_ID)
+                    {
+                        signaler.cancel(reconnectAt);
+                    }
+
+                    this.reconnectAt = signaler.signalAt(
+                            currentTimeMillis() + Math.min(50 << reconnectAttempt++, SECONDS.toMillis(reconnectDelay)),
+                            SIGNAL_RECONNECT,
+                            this::onServerFanoutSignal);
+                }
             }
         }
 
@@ -768,6 +792,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             if (!KafkaState.initialOpened(state))
             {
                 onServerFanInitialOpened();
+                this.reconnectAttempt = 0;
 
                 members.forEach(s -> s.doServerInitialWindow(traceId));
             }
@@ -880,6 +905,17 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             }
 
             members.forEach(s -> s.doServerReplyAbortIfNecessary(traceId));
+        }
+
+        private void onServerFanoutSignal(
+            int signalId)
+        {
+            assert signalId == SIGNAL_RECONNECT;
+
+            this.reconnectAt = NO_CANCEL_ID;
+
+            final long traceId = supplyTraceId.getAsLong();
+            doServerFanInitialBeginIfNecessary(traceId);
         }
 
         private void doServerFanReplyResetIfNecessary(

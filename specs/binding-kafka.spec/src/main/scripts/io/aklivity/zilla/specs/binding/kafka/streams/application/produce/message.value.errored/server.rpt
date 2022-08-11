@@ -82,28 +82,4 @@ write zilla:reset.ext ${kafka:resetEx()
                            .error(2)
                            .build()}
 read abort
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .produce()
-                                  .topic("test")
-                                  .partition(0)
-                                  .build()
-                              .build()}
-
-connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .produce()
-                                   .topic("test")
-                                   .partition(0)
-                                   .build()
-                               .build()}
-
-write flush
-
-read closed
-write close
+write aborted

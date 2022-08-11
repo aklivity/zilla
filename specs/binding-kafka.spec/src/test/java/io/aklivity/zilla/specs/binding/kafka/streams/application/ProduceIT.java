@@ -264,4 +264,22 @@ public class ProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/message.value.errored/client",
+        "${app}/message.value.errored/server"})
+    public void shouldSendMessageValueErrored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.values.errored/client",
+        "${app}/message.values.errored/server"})
+    public void shouldSendMessageValuesErrored() throws Exception
+    {
+        k3po.finish();
+    }
 }

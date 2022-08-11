@@ -124,4 +124,5 @@ write zilla:data.ext ${kafka:dataEx()
 write "Hello, world2"
 write flush
 
+write close
 read closed

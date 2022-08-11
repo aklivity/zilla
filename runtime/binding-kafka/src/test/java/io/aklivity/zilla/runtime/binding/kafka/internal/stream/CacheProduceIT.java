@@ -17,11 +17,14 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopicConfig;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -339,7 +342,8 @@ public class CacheProduceIT
         "${app}/message.value.errored/client",
         "${app}/message.value.errored/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    @Configure(name = "zilla.binding.kafka.cache.client.cleanup.delay", value = "0")
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
     public void shouldSendMessageValueErrored() throws Exception
     {
         k3po.finish();
@@ -351,7 +355,8 @@ public class CacheProduceIT
         "${app}/message.values.errored/client",
         "${app}/message.values.errored/server"})
     @ScriptProperty({"serverAddress \"zilla://streams/app1\""})
-    @Configure(name = "zilla.binding.kafka.cache.client.cleanup.delay", value = "0")
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
     public void shouldSendMessageValuesErrored() throws Exception
     {
         k3po.finish();

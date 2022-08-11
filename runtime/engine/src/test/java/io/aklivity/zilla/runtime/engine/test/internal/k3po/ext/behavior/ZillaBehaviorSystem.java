@@ -83,6 +83,7 @@ import org.kaazing.k3po.lang.internal.ast.value.AstValue;
 import org.kaazing.k3po.lang.types.StructuredTypeInfo;
 import org.kaazing.k3po.lang.types.TypeInfo;
 
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAckOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadBeginExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadDataExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadEmptyDataHandler;
@@ -90,7 +91,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadFlagsOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadNullDataHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteAbortedExtHandler;
-import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAckOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteEmptyDataHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteFlagsOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ZillaExtensionDecoder;

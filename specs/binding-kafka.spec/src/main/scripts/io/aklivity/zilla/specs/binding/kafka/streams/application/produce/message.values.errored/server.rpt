@@ -48,6 +48,8 @@ write zilla:data.ext ${kafka:dataEx()
                               .build()}
 write flush
 
+accepted
+
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .produce()
@@ -55,6 +57,8 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .partition(0)
                                   .build()
                               .build()}
+
+connected
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -78,6 +82,7 @@ write zilla:reset.ext ${kafka:resetEx()
                            .error(2)
                            .build()}
 read abort
+write aborted
 
 accepted
 
@@ -107,7 +112,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .build()
                              .build()}
 read "Hello, world2"
-write option zilla:ack 13
+read option zilla:ack 13
 
 read closed
 write close
