@@ -2017,7 +2017,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     {
                         onDecodeProduceResponse(traceId);
                     }
-                    else
+                    else if (encodeableRecordBytesDeferred > 0)
                     {
                         final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + flushableRecordHeadersBytes;
                         final int encodeRequestBytesBuffered = Math.max(flushableRequestBytes - encodeableRecordBytesDeferred
