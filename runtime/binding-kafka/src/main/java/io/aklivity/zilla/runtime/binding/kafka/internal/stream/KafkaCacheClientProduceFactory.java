@@ -566,8 +566,16 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (members.isEmpty())
             {
-                this.groupCleanupId = doClientFanoutInitialSignalAt(currentTimeMillis() + SECONDS.toMillis(cleanupDelay),
-                    SIGNAL_GROUP_CLEANUP);
+                if (cleanupDelay == 0)
+                {
+                    doClientFanInitialAbortIfNecessary(traceId);
+                    doClientFanReplyResetIfNecessary(traceId);
+                }
+                else
+                {
+                    this.groupCleanupId = doClientFanoutInitialSignalAt(currentTimeMillis() + SECONDS.toMillis(cleanupDelay),
+                            SIGNAL_GROUP_CLEANUP);
+                }
             }
         }
 
@@ -842,7 +850,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             SignalFW signal)
         {
             final long traceId = signal.traceId();
-
             if (members.isEmpty())
             {
                 doClientFanInitialAbortIfNecessary(traceId);

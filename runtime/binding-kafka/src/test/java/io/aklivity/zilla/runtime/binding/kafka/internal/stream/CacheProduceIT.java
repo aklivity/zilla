@@ -338,12 +338,12 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.json")
     @Specification({
-        "${app}/message.value.errored/client",
-        "${app}/message.value.errored/server"})
+        "${app}/message.value.rejected/client",
+        "${app}/message.value.rejected/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
-    public void shouldSendMessageValueErrored() throws Exception
+    public void shouldRejectMessageValue() throws Exception
     {
         k3po.finish();
     }
@@ -351,12 +351,12 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.json")
     @Specification({
-        "${app}/message.values.errored/client",
-        "${app}/message.values.errored/server"})
+        "${app}/message.values.rejected/client",
+        "${app}/message.values.rejected/server"})
     @ScriptProperty({"serverAddress \"zilla://streams/app1\""})
     @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
-    public void shouldSendMessageValuesErrored() throws Exception
+    public void shouldRejectMessageValues() throws Exception
     {
         k3po.finish();
     }

@@ -14,23 +14,12 @@
 # under the License.
 #
 
-property serverAddress "zilla://streams/app0"
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
 
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:update "handshake"
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .topic("test")
-                                  .build()
-                              .build()}
-
-connected
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -38,63 +27,73 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .build()
                                .build()}
-write flush
+
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .topic("test")
+                                  .build()
+                              .build()}
+
+read zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, 177)
+                                 .build()
+                             .build()}
+
+read notify ROUTED_BROKER_CLIENT
+
+connect await ROUTED_BROKER_CLIENT
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 177
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
 
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .partition(0, 177)
-                                  .build()
-                              .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
                               .produce()
-                                  .topic("test")
-                                  .partition(0)
+                                  .timestamp(newTimestamp)
                                   .build()
                               .build()}
-
-connected
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .produce()
-                                   .topic("test")
-                                   .partition(0)
-                                   .build()
-                               .build()}
-
+write "Hello, world"
 write flush
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .produce()
-                                 .build()
-                             .build()}
-read "Hello, world1"
-
-write zilla:reset.ext ${kafka:resetEx()
+read zilla:reset.ext ${kafka:resetEx()
                            .typeId(zilla:id("kafka"))
                            .error(2)
                            .build()}
-read abort
 write aborted
+read abort
 
-accepted
 
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .produce()
-                                  .topic("test")
-                                  .partition(0)
-                                  .build()
-                              .build()}
+write notify ERRORED_FIRST_MESSAGE
 
-connected
+connect await ROUTED_BROKER_CLIENT
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 177
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
@@ -104,15 +103,26 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
+write await ERRORED_FIRST_MESSAGE
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}
+write "Hello, Again"
 write flush
 
-read zilla:data.ext ${kafka:matchDataEx()
-                             .typeId(zilla:id("kafka"))
-                             .produce()
-                                 .build()
-                             .build()}
-read "Hello, world2"
-read option zilla:ack 13
-
-read closed
 write close
+read closed

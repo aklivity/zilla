@@ -267,18 +267,18 @@ public class ProduceIT
 
     @Test
     @Specification({
-        "${app}/message.value.errored/client",
-        "${app}/message.value.errored/server"})
-    public void shouldSendMessageValueErrored() throws Exception
+        "${app}/message.value.rejected/client",
+        "${app}/message.value.rejected/server"})
+    public void shouldRejectMessageValue() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/message.values.errored/client",
-        "${app}/message.values.errored/server"})
-    public void shouldSendMessageValuesErrored() throws Exception
+        "${app}/message.values.rejected/client",
+        "${app}/message.values.rejected/server"})
+    public void shouldRejectMessageValues() throws Exception
     {
         k3po.finish();
     }

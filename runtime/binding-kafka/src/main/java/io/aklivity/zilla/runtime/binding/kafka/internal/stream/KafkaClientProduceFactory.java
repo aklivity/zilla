@@ -2017,13 +2017,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     {
                         onDecodeProduceResponse(traceId);
                     }
-                    else if (encodeableRecordBytesDeferred > 0)
+                    else if (encodeableRecordBytesDeferred > 0 && flushableRequestBytes != 0)
                     {
                         final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + flushableRecordHeadersBytes;
                         final int encodeRequestBytesBuffered = Math.max(flushableRequestBytes - encodeableRecordBytesDeferred
                                 - Math.max(flushableRecordHeadersBytes, 1), 0);
                         final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
-                        stream.doAppWindow(traceId, encodeNoAck, encodeMaxBytes);
+                        final int noAck = (int) (stream.initialSeq - stream.initialAck);
+                        stream.doAppWindow(traceId, noAck, noAck + encodeMaxBytes - encodeNoAck);
                     }
                 }
             }

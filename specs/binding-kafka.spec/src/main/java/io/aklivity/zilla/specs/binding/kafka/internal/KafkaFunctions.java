@@ -1660,9 +1660,9 @@ public final class KafkaFunctions
         }
 
         public KafkaResetExBuilder error(
-            int typeId)
+            int error)
         {
-            resetExRW.error(typeId);
+            resetExRW.error(error);
             return this;
         }
 
