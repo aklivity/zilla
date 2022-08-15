@@ -695,7 +695,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     }
                 }
 
-                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, trailers);
+                partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.position, stream.initialSeq, trailers);
                 flushClientFanInitialIfNecessary(traceId);
             }
 
@@ -978,7 +978,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
                 else
                 {
-                    member.onMessageAck(traceId, entry.offset$());
+                    member.onMessageAck(traceId, entry.offset$(), entry.acknowledge());
                 }
                 lastAckOffsetHighWatermark++;
             }
@@ -1216,7 +1216,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 fan.onClientInitialData(this, data);
             }
 
-            doClientInitialWindow(traceId, 0, initialMax);
+            final int noAck = (int) (initialSeq - initialAck);
+            doClientInitialWindow(traceId, noAck, noAck + initialMax);
         }
 
         private void onClientInitialEnd(
@@ -1412,9 +1413,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private void onMessageAck(
             long traceId,
-            long partitionOffset)
+            long partitionOffset,
+            long acknowledge)
         {
             cursor.advance(partitionOffset);
+            doClientInitialWindow(traceId, initialSeq - acknowledge, initialMax);
 
             if (KafkaState.initialClosed(state) && partitionOffset == this.partitionOffset)
             {

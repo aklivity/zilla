@@ -2381,23 +2381,20 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                 doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
-            else
+
+            if (!HttpKafkaState.replyOpening(state))
             {
-                if (!HttpKafkaState.replyOpening(state))
-                {
-                    HttpBeginExFW httpBeginEx = httpBeginExRW
-                            .wrap(extBuffer, 0, extBuffer.capacity())
-                            .typeId(httpTypeId)
-                            .headers(delegate.resolved::noreplyError)
-                            .build();
+                HttpBeginExFW httpBeginEx = httpBeginExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headers(delegate.resolved::noreplyError)
+                        .build();
 
-                    doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
 
-                    state = HttpKafkaState.closingReply(state);
-                }
-                doHttpEnd(traceId, authorization);
+                state = HttpKafkaState.closingReply(state);
             }
-            delegate.doKafkaAbort(traceId, authorization);
+            doHttpEnd(traceId, authorization);
         }
     }
 
@@ -2938,14 +2935,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            doHttpReset(traceId);
-
-            if (!HttpKafkaState.replyOpening(state))
-            {
-                doHttpBegin(traceId, authorization, 0L, httpBeginEx500);
-            }
-
-            doHttpAbort(traceId, authorization);
+            doHttpReset(traceId, authorization);
         }
 
         @Override
@@ -3150,7 +3140,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         }
 
         private void doHttpReset(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!HttpKafkaState.initialClosed(state))
             {
@@ -3158,6 +3149,20 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                 doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
+
+            if (!HttpKafkaState.replyOpening(state))
+            {
+                HttpBeginExFW httpBeginEx = httpBeginExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headers(delegate.resolved::noreplyError)
+                        .build();
+
+                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+
+                state = HttpKafkaState.closingReply(state);
+            }
+            doHttpEnd(traceId, authorization);
         }
     }
 
@@ -3885,12 +3890,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!HttpKafkaState.replyOpening(state))
-            {
-                doHttpBegin(traceId, authorization, 0L, httpBeginEx500);
-            }
-
-            doHttpReset(traceId);
+            doHttpReset(traceId, authorization);
             doHttpAbort(traceId, authorization);
 
             producer.doKafkaAbort(traceId, authorization);
@@ -3982,7 +3982,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         }
 
         private void doHttpReset(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!HttpKafkaState.initialClosed(state))
             {
@@ -3990,6 +3991,20 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                 doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
+
+            if (!HttpKafkaState.replyOpening(state))
+            {
+                HttpBeginExFW httpBeginEx = httpBeginExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headers(producer.resolved::noreplyError)
+                        .build();
+
+                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+
+                state = HttpKafkaState.closingReply(state);
+            }
+            doHttpEnd(traceId, authorization);
         }
     }
 
