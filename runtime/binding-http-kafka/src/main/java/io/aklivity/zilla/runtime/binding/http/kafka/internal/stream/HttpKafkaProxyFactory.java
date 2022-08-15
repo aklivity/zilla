@@ -2117,15 +2117,15 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                 final HttpHeaderFW contentType = headers.matchFirst(h -> httpContentType.equals(h.name()));
                 kafkaDataEx = kafkaDataExRW
-                        .wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(kafkaTypeId)
-                        .merged(m -> m
-                            .deferred(deferred0)
-                            .timestamp(now().toEpochMilli())
-                            .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                            .key(delegate.resolved::key)
-                            .headers(hs -> delegate.resolved.headers(contentType, hs)))
-                        .build();
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .merged(m -> m
+                        .deferred(deferred0)
+                        .timestamp(now().toEpochMilli())
+                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                        .key(delegate.resolved::key)
+                        .headers(hs -> delegate.resolved.headers(contentType, hs)))
+                    .build();
 
                 final int flags = produceNull ? DATA_FLAG_INIT | DATA_FLAG_FIN : DATA_FLAG_INIT;
                 final OctetsFW payload = produceNull ? null : emptyRO;
@@ -2180,6 +2180,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             }
 
             delegate.doKafkaEndDeferred(traceId, authorization);
+
             doHttpErrorDeferred(traceId, authorization);
         }
 
@@ -2390,8 +2391,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         }
 
         private void doHttpErrorDeferred(
-                long traceId,
-                long authorization)
+            long traceId,
+            long authorization)
         {
             if (HttpKafkaState.initialClosed(state) && HttpKafkaState.replyClosed(delegate.state))
             {
