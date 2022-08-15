@@ -96,7 +96,7 @@ public final class ZillaStreamFactory
         ZillaChannel channel,
         long traceId)
     {
-        final ChannelBuffer challengeExt = channel.writeExtBuffer(CHALLENGE, true);
+        final ChannelBuffer challengeExt = CHALLENGE.encodeBuffer(channel);
 
         final long routeId = channel.routeId();
         final long streamId = channel.sourceId();

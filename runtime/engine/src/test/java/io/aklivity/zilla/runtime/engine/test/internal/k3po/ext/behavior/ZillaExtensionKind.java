@@ -24,7 +24,7 @@ public enum ZillaExtensionKind
     FLUSH,
     ABORT,
     END,
-    CHALLENGE,
+    CHALLENGE(false),
     RESET(false);
 
     private final boolean writeAligned;
