@@ -19,6 +19,7 @@ property serverAddress "zilla://streams/app0"
 accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
+    option zilla:update "handshake"
 
 accepted
 
@@ -59,11 +60,54 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+write flush
+
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .produce()
                                  .build()
                              .build()}
-read zilla:data.null
+read "Hello, world"
 
+write zilla:reset.ext ${kafka:resetEx()
+                           .typeId(zilla:id("kafka"))
+                           .error(6)
+                           .build()}
 read abort
+write aborted
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .topic("test")
+                                  .partition(0)
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .produce()
+                                   .topic("test")
+                                   .partition(0)
+                                   .build()
+                               .build()}
+write flush
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .build()
+                             .build()}
+read "Hello, world"
+read option zilla:ack 12

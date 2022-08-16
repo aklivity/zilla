@@ -148,6 +148,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final MutableDirectBuffer extBuffer;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
     private final LongFunction<String> supplyNamespace;
     private final LongFunction<String> supplyLocalName;
@@ -177,6 +178,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
+        this.supplyTraceId = context::supplyTraceId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.supplyNamespace = context::supplyNamespace;
         this.supplyLocalName = context::supplyLocalName;
@@ -492,7 +494,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private long compactId = NO_CANCEL_ID;
         private long groupCleanupId = NO_CANCEL_ID;
         private long partitionIndex = NO_CREDITOR_INDEX;
-        private long reconnectId = NO_CANCEL_ID;
+        private long reconnectAt = NO_CANCEL_ID;
 
         private KafkaCacheClientProduceFan(
             long routeId,
@@ -614,7 +616,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                                        .topic(partition.topic())
                                        .partition(par -> par
                                            .partitionId(partitionId)
-                                           .partitionOffset(offsetHighWatermark)))
+                                           .partitionOffset(DEFAULT_LATEST_OFFSET)))
                         .build()
                         .sizeof()));
             state = KafkaState.openingInitial(state);
@@ -792,13 +794,15 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (reconnectDelay != 0 && !members.isEmpty() && error == ERROR_NOT_LEADER_FOR_PARTITION)
             {
-                if (reconnectId != NO_CANCEL_ID)
+                if (reconnectAt != NO_CANCEL_ID)
                 {
-                    signaler.cancel(reconnectId);
+                    signaler.cancel(reconnectAt);
                 }
 
-                this.reconnectId = doClientFanoutInitialSignalAt(
-                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay), SIGNAL_RECONNECT);
+                this.reconnectAt = signaler.signalAt(
+                        currentTimeMillis() + SECONDS.toMillis(reconnectDelay),
+                        SIGNAL_RECONNECT,
+                        this::onClientFanInitialSignalReconnect);
             }
             else
             {
@@ -831,6 +835,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 members.forEach((s, m) -> m.doClientInitialWindow(traceId, 0, initialMax));
             }
+            doFlushClientInitialIfNecessary(traceId);
         }
 
         private void onClientFanInitialSignal(
@@ -845,9 +850,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 break;
             case SIGNAL_GROUP_CLEANUP:
                 onClientFanInitialSignalCleanup(signal);
-                break;
-            case SIGNAL_RECONNECT:
-                onClientFanInitialSignalReconnect(signal);
                 break;
             }
         }
@@ -880,13 +882,12 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         }
 
         private void onClientFanInitialSignalReconnect(
-            SignalFW signal)
+            long signalId)
         {
-            final long traceId = signal.traceId();
-            final long signalId = signal.signalId();
             assert signalId == SIGNAL_RECONNECT;
 
-            this.reconnectId = NO_CANCEL_ID;
+            this.reconnectAt = NO_CANCEL_ID;
+            final long traceId = supplyTraceId.getAsLong();
 
             doClientFanInitialBeginIfNecessary(traceId);
         }

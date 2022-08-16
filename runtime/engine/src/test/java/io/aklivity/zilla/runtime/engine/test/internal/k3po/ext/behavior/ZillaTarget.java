@@ -856,7 +856,7 @@ final class ZillaTarget implements AutoCloseable
         final long sequence = channel.sourceSeq();
         final long acknowledge = channel.sourceAck();
         final int maximum = channel.sourceMax();
-        final ChannelBuffer extension = RESET.encodeBuffer(channel);
+        final ChannelBuffer extension = channel.readExtBuffer(RESET, true);
 
         final byte[] extensionCopy = writeExtCopy(extension);
 
@@ -968,7 +968,7 @@ final class ZillaTarget implements AutoCloseable
                 final byte[] challengeExtCopy = new byte[challengeExtBytes];
                 buffer.getBytes(offset, challengeExtCopy);
 
-                CHALLENGE.encodeBuffer(channel).writeBytes(challengeExtCopy);
+                channel.writeExtBuffer(CHALLENGE, false).writeBytes(challengeExtCopy);
             }
 
             fireOutputAdvised(channel, ADVISORY_CHALLENGE);
@@ -1039,7 +1039,7 @@ final class ZillaTarget implements AutoCloseable
                 final byte[] resetExtCopy = new byte[resetExtBytes];
                 buffer.getBytes(offset, resetExtCopy);
 
-                RESET.encodeBuffer(channel).writeBytes(resetExtCopy);
+                channel.writeExtBuffer(RESET, false).writeBytes(resetExtCopy);
             }
 
             channel.targetAck(acknowledge);
