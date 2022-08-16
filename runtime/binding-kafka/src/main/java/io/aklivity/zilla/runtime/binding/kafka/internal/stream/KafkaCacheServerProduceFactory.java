@@ -83,6 +83,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 {
     private static final int ERROR_NOT_LEADER_FOR_PARTITION = 6;
     private static final int NO_ERROR = -1;
+    private static final int UNKNOWN_ERROR = -2;
 
     private static final String TRANSACTION_NONE = null;
 
@@ -519,7 +520,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 doServerFanReplyResetIfNecessary(traceId);
                 leaderId = member.leaderId;
 
-                members.forEach(m -> m.cleanupServer(traceId, ERROR_NOT_LEADER_FOR_PARTITION));
+                members.forEach(m -> m.cleanupServer(traceId,  ERROR_NOT_LEADER_FOR_PARTITION));
                 members.clear();
             }
 
@@ -717,14 +718,14 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             doServerFanReplyResetIfNecessary(traceId);
 
             final KafkaResetExFW kafkaResetEx = extension.get(kafkaResetExRO::tryWrap);
-            final int error = kafkaResetEx != null ? kafkaResetEx.error() : NO_ERROR;
+            final int error = kafkaResetEx != null ? kafkaResetEx.error() : UNKNOWN_ERROR;
 
             if (KafkaConfiguration.DEBUG)
             {
                 System.out.format("%d %s PRODUCE disconnect, error %d\n", partitionId, partionTopic, error);
             }
 
-            if (error == ERROR_NOT_LEADER_FOR_PARTITION || error == NO_ERROR)
+            if (error == ERROR_NOT_LEADER_FOR_PARTITION || error == UNKNOWN_ERROR)
             {
                 members.forEach(s -> s.doServerInitialResetIfNecessary(traceId, extension));
             }
