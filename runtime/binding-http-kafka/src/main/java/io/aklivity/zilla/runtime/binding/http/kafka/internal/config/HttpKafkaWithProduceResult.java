@@ -294,13 +294,10 @@ public class HttpKafkaWithProduceResult
         }
     }
 
-    public void noreplyError(
+    public void error(
         Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
     {
-        if (replyTo == null)
-        {
-            builder.item(HTTP_STATUS_400::header);
-        }
+        builder.item(HTTP_STATUS_400::header);
     }
 
     public boolean async()

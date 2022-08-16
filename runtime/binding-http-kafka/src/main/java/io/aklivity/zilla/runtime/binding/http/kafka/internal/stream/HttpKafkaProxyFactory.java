@@ -1883,7 +1883,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            doHttpReset(traceId);
+            doHttpReset(traceId, authorization);
         }
 
         @Override
@@ -1994,7 +1994,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         }
 
         private void doHttpReset(
-            long traceId)
+            long traceId,
+            long authorization)
         {
             if (!HttpKafkaState.initialClosed(state))
             {
@@ -2002,6 +2003,20 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                 doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
+
+            if (!HttpKafkaState.replyOpening(state))
+            {
+                HttpBeginExFW httpBeginEx = httpBeginExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(httpTypeId)
+                        .headers(delegate.resolved::error)
+                        .build();
+
+                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+
+                state = HttpKafkaState.closingReply(state);
+            }
+            doHttpEnd(traceId, authorization);
         }
     }
 
@@ -2387,7 +2402,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 HttpBeginExFW httpBeginEx = httpBeginExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
-                        .headers(delegate.resolved::noreplyError)
+                        .headers(delegate.resolved::error)
                         .build();
 
                 doHttpBegin(traceId, authorization, 0L, httpBeginEx);
@@ -3155,7 +3170,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 HttpBeginExFW httpBeginEx = httpBeginExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
-                        .headers(delegate.resolved::noreplyError)
+                        .headers(delegate.resolved::error)
                         .build();
 
                 doHttpBegin(traceId, authorization, 0L, httpBeginEx);
@@ -3997,7 +4012,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 HttpBeginExFW httpBeginEx = httpBeginExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
-                        .headers(producer.resolved::noreplyError)
+                        .headers(producer.resolved::error)
                         .build();
 
                 doHttpBegin(traceId, authorization, 0L, httpBeginEx);
