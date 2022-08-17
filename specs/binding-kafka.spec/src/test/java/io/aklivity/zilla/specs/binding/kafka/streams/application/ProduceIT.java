@@ -75,9 +75,9 @@ public class ProduceIT
 
     @Test
     @Specification({
-        "${app}/partition.not.leader.message.values/client",
-        "${app}/partition.not.leader.message.values/server"})
-    public void shouldRejectPartitionNotLeaderMessageValues() throws Exception
+        "${app}/partition.not.leader.reconnect.parallel/client",
+        "${app}/partition.not.leader.reconnect.parallel/server"})
+    public void shouldReconnectPartitionNotLeaderParallel() throws Exception
     {
         k3po.finish();
     }
