@@ -808,13 +808,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             {
                 members.forEach((s, m) -> m.doClientInitialResetIfNecessary(traceId, extension));
 
-                if (!KafkaState.initialClosed(state))
-                {
-                    onClientFanInitialClosed();
-                }
+                onClientFanInitialClosed();
 
                 ackOffsetHighWatermark(error, traceId, offsetHighWatermark);
-
             }
         }
 
@@ -900,7 +896,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private void onClientFanInitialClosed()
         {
-            assert !KafkaState.initialClosed(state);
             state = KafkaState.closedInitial(state);
 
             if (partitionIndex != NO_CREDITOR_INDEX)

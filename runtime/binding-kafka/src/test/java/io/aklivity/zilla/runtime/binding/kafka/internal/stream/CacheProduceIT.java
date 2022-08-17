@@ -85,6 +85,7 @@ public class CacheProduceIT
         "${app}/partition.unknown/client",
         "${app}/partition.unknown/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
     public void shouldRejectWhenPartitionUnknown() throws Exception
     {
         k3po.finish();
@@ -94,10 +95,10 @@ public class CacheProduceIT
     @Configuration("cache.json")
     @Specification({
         "${app}/message.value/client",
-        "${app}/partition.not.leader/server"})
+        "${app}/partition.not.leader.message.value/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
-    public void shouldRejectPartitionNotLeader() throws Exception
+    public void shouldRetryPartitionNotLeader() throws Exception
     {
         k3po.finish();
     }
@@ -109,7 +110,7 @@ public class CacheProduceIT
         "${app}/partition.not.leader.message.values/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
-    public void shouldRejectPartitionNotLeaderMessageValues() throws Exception
+    public void shouldRetryPartitionNotLeaderMessageValues() throws Exception
     {
         k3po.finish();
     }

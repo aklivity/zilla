@@ -75,6 +75,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.message.values/client",
+        "${app}/partition.not.leader.message.values/server"})
+    public void shouldRejectPartitionNotLeaderMessageValues() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.key/client",
         "${app}/message.key/server"})
     public void shouldSendMessageKey() throws Exception
