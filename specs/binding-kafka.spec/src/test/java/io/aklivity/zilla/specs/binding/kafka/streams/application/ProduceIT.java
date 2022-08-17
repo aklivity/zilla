@@ -222,6 +222,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.values.sequential/client",
+        "${app}/message.values.sequential/server"})
+    public void shouldSendMessageValueSequential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.header/client",
         "${app}/message.header/server"})
     public void shouldSendMessageHeader() throws Exception
