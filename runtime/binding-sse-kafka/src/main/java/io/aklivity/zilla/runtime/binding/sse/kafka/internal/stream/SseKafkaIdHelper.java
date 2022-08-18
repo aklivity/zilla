@@ -190,12 +190,12 @@ public final class SseKafkaIdHelper
     }
 
     public DirectBuffer findProgress(
-        String8FW lastEventId)
+        String8FW lastId)
     {
         // extract from progress64, progress64/etag, ["key64","progress64"], or ["key64","progress64/etag"]
         DirectBuffer progress64 = null;
 
-        final DirectBuffer id = lastEventId != null ? lastEventId.value() : null;
+        final DirectBuffer id = lastId != null ? lastId.value() : null;
         if (id != null)
         {
             int progressAt = 0;

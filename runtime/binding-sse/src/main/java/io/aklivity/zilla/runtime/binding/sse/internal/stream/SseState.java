@@ -32,7 +32,7 @@ public final class SseState
         return state | INITIAL_OPENING;
     }
 
-    static int openInitial(
+    static int openedInitial(
         int state)
     {
         return openingInitial(state) | INITIAL_OPENED;
@@ -56,7 +56,7 @@ public final class SseState
         return state | INITIAL_CLOSING;
     }
 
-    static int closeInitial(
+    static int closedInitial(
         int state)
     {
         return closingInitial(state) | INITIAL_CLOSED;
@@ -80,7 +80,7 @@ public final class SseState
         return state | REPLY_OPENING;
     }
 
-    static int openReply(
+    static int openedReply(
         int state)
     {
         return openingReply(state) | REPLY_OPENED;
@@ -104,7 +104,7 @@ public final class SseState
         return state | REPLY_CLOSING;
     }
 
-    static int closeReply(
+    static int closedReply(
         int state)
     {
         return closingReply(state) | REPLY_CLOSED;

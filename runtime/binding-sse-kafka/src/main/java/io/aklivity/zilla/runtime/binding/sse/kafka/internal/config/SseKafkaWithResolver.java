@@ -56,8 +56,8 @@ public final class SseKafkaWithResolver
         SseBeginExFW sseBeginEx,
         SseKafkaIdHelper sseEventId)
     {
-        final String8FW lastEventId = sseBeginEx != null ? sseBeginEx.lastEventId() : null;
-        final DirectBuffer progress64 = sseEventId.findProgress(lastEventId);
+        final String8FW lastId = sseBeginEx != null ? sseBeginEx.lastId() : null;
+        final DirectBuffer progress64 = sseEventId.findProgress(lastId);
         final Array32FW<KafkaOffsetFW> partitions = sseEventId.decode(progress64);
 
         // TODO: hoist to constructor if constant

@@ -15,11 +15,13 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static java.util.Collections.singletonMap;
 
+import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.sse.internal.stream.SseClientFactory;
 import io.aklivity.zilla.runtime.binding.sse.internal.stream.SseServerFactory;
 import io.aklivity.zilla.runtime.binding.sse.internal.stream.SseStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -36,7 +38,10 @@ final class SseBindingContext implements BindingContext
         SseConfiguration config,
         EngineContext context)
     {
-        this.factories = singletonMap(SERVER, new SseServerFactory(config, context));
+        Map<KindConfig, SseStreamFactory> factories = new EnumMap<>(KindConfig.class);
+        factories.put(CLIENT, new SseClientFactory(config, context));
+        factories.put(SERVER, new SseServerFactory(config, context));
+        this.factories = factories;
     }
 
     @Override

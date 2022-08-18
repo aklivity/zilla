@@ -42,7 +42,7 @@ public final class SseKafkaBindingConfig
         long authorization,
         SseBeginExFW beginEx)
     {
-        String path = beginEx != null ? beginEx.pathInfo().asString() : null;
+        String path = beginEx != null ? beginEx.path().asString() : null;
         return routes.stream()
             .filter(r -> r.authorized(authorization) && r.matches(path))
             .findFirst()

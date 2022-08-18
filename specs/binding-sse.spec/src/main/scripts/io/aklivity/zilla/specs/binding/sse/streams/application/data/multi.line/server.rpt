@@ -21,8 +21,10 @@ accepted
 
 read zilla:begin.ext ${sse:beginEx()
                           .typeId(zilla:id("sse"))
-                          .pathInfo("/events/a8b7c6d5")
-                          .lastEventId(null)
+                          .scheme("http")
+                          .authority("localhost:8080")
+                          .path("/events/a8b7c6d5")
+                          .lastId(null)
                           .build()}
 
 connected
