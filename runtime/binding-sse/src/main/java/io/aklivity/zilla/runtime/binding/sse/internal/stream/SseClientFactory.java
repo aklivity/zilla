@@ -120,6 +120,8 @@ public class SseClientFactory implements SseStreamFactory
     private final SseClientDecoder decodeLine = this::decodeLine;
     private final SseClientDecoder decodeLineEnding = this::decodeLineEnding;
     private final SseClientDecoder decodeField = this::decodeField;
+    private final SseClientDecoder decodeEventEnding = this::decodeEventEnding;
+    private final SseClientDecoder decodeLineEndingCRLF = this::decodeLineEndingCRLF;
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -461,10 +463,12 @@ public class SseClientFactory implements SseStreamFactory
         private SseClientDecoder decoder;
 
         private int decodableLineBytes;
+        public byte decodedEndOfLine;
 
         private String8FW decodedId;
         private String8FW decodedType;
         private OctetsFW decodedData;
+
 
         private HttpClient(
             long routeId,
@@ -1272,18 +1276,45 @@ public class SseClientFactory implements SseStreamFactory
                     break;
                 case LINE_CR_BYTE:
                 case LINE_LF_BYTE:
-                    final String8FW id = client.decodedId;
-                    final String8FW type = client.decodedType;
-                    final OctetsFW data = client.decodedData;
-                    client.onDecodedEvent(traceId, authorization, budgetId, reserved, id, type, data);
-                    progress = endOfLineAt;
-                    client.decoder = decodeLineEnding;
+                    client.decoder = decodeEventEnding;
                     break;
                 default:
                     client.decoder = decodeField;
                     break;
                 }
             }
+        }
+
+        return progress;
+    }
+
+    private int decodeEventEnding(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final String8FW id = client.decodedId;
+            final String8FW type = client.decodedType;
+            final OctetsFW data = client.decodedData;
+
+            if (id != FIELD_VALUE_NULL ||
+                type != FIELD_VALUE_NULL ||
+                data != null)
+            {
+                client.onDecodedEvent(traceId, authorization, budgetId, reserved, id, type, data);
+            }
+
+            client.decoder = decodeLineEnding;
         }
 
         return progress;
@@ -1304,14 +1335,43 @@ public class SseClientFactory implements SseStreamFactory
 
         if (length != 0)
         {
-            int endOfLineLimit = limitOfEndOfLine(buffer, progress, limit);
+            int endOfLineAt = indexOfEndOfLine(buffer, progress, progress + 1);
 
-            if (endOfLineLimit != -1)
+            if (endOfLineAt != -1)
             {
-                progress = endOfLineLimit;
+                client.decodedEndOfLine = buffer.getByte(progress);
 
-                client.decoder = client.decodableLineBytes != 0 ? decodeLine : decodeEvent;
+                progress++;
+
+                client.decoder = decodeLineEndingCRLF;
             }
+        }
+
+        return progress;
+    }
+
+    private int decodeLineEndingCRLF(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            if (client.decodedEndOfLine == LINE_CR_BYTE &&
+                buffer.getByte(progress) == LINE_LF_BYTE)
+            {
+                progress++;
+            }
+
+            client.decoder = client.decodableLineBytes != 0 ? decodeLine : decodeEvent;
         }
 
         return progress;
@@ -1419,11 +1479,7 @@ public class SseClientFactory implements SseStreamFactory
         {
             if (buffer.getByte(progress) == LINE_CR_BYTE)
             {
-                if (progress == limit - 1)
-                {
-                    progress = -1;
-                }
-                else if (buffer.getByte(progress + 1) == LINE_LF_BYTE)
+                if (buffer.getByte(progress + 1) == LINE_LF_BYTE)
                 {
                     progress++;
                 }

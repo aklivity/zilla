@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.specs.binding.sse.streams.network;
+package io.aklivity.zilla.runtime.binding.sse.internal.streams.client;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -26,50 +26,68 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+
 public class EndOfLineIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/sse/streams/application/end.of.line")
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/sse/streams/network/end.of.line");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .commandBufferCapacity(1024)
+        .responseBufferCapacity(1024)
+        .counterValuesBufferCapacity(4096)
+        .configurationRoot("io/aklivity/zilla/specs/binding/sse/config")
+        .external("net0")
+        .clean();
+
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("client.when.json")
     @Specification({
-        "${net}/carriage.return/request",
+        "${app}/carriage.return/client",
         "${net}/carriage.return/response" })
-    public void shouldReceiveDataWithCarriageReturnEndOfLine() throws Exception
+    public void shouldReceiveMessageWithCarriageReturnEndOfLine() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.when.json")
     @Specification({
-        "${net}/line.feed/request",
+        "${app}/line.feed/client",
         "${net}/line.feed/response" })
-    public void shouldReceiveDataWithLineFeedEndOfLine() throws Exception
+    public void shouldReceiveMessageWithLineFeedEndOfLine() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.when.json")
     @Specification({
-        "${net}/carriage.return.line.feed/request",
+        "${app}/carriage.return.line.feed/client",
         "${net}/carriage.return.line.feed/response" })
-    public void shouldReceiveDataWithCarriageReturnLineFeedEndOfLine() throws Exception
+    public void shouldReceiveMessageWithCarriageReturnLineFeedEndOfLine() throws Exception
     {
         k3po.finish();
     }
 
     @Test
+    @Configuration("client.when.json")
     @Specification({
-        "${net}/carriage.return.line.feed.fragmented/request",
+        "${app}/carriage.return.line.feed.fragmented/client",
         "${net}/carriage.return.line.feed.fragmented/response" })
-    public void shouldReceiveDataWithCarriageReturnLineFeedEndOfLineFragmented() throws Exception
+    public void shouldReceiveMessageWithCarriageReturnLineFeedEndOfLineFragmented() throws Exception
     {
         k3po.start();
+        k3po.awaitBarrier("RECEIVED_MESSAGE_ONE");
         k3po.notifyBarrier("SEND_MESSAGE_TWO");
         k3po.finish();
     }
