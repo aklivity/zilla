@@ -33,4 +33,4 @@ read zilla:data.ext ${sse:matchDataEx()
                          .id(null)
                          .type(null)
                          .build()}
-read zilla:data.empty
+read "Hello, world"

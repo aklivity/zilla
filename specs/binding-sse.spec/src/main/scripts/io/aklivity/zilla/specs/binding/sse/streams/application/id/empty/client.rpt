@@ -32,3 +32,4 @@ read zilla:data.ext ${sse:matchDataEx()
                          .typeId(zilla:id("sse"))
                          .id("")
                          .build()}
+read "Hello, world"

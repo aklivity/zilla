@@ -68,7 +68,9 @@ public class SseClientFactory implements SseStreamFactory
     private static final String16FW HTTP_HEADER_ACCEPT_TEXT_EVENT_STREAM = new String16FW("text/event-stream");
     private static final String16FW HTTP_HEADER_STATUS_200 = new String16FW("200");
 
-    private static final int STREAM_BOM_BYTE = 0xfeff;
+    private static final byte[] STREAM_BOM_BYTES = "\ufeff".getBytes(UTF_8);
+    private static final int STREAM_BOM_BYTES_LENGTH = STREAM_BOM_BYTES.length;
+
     private static final int LINE_CR_BYTE = 0x0d;
     private static final int LINE_LF_BYTE = 0x0a;
     private static final int LINE_COLON_BYTE = 0x3a;
@@ -1195,11 +1197,11 @@ public class SseClientFactory implements SseStreamFactory
     {
         final int length = limit - progress;
 
-        if (length != 0)
+        if (length >= STREAM_BOM_BYTES_LENGTH)
         {
-            if (buffer.getByte(progress) == STREAM_BOM_BYTE)
+            if (matchAllBytes(buffer, progress, limit, STREAM_BOM_BYTES))
             {
-                progress++;
+                progress += STREAM_BOM_BYTES_LENGTH;
             }
 
             client.decoder = decodeEvent;
@@ -1474,6 +1476,22 @@ public class SseClientFactory implements SseStreamFactory
         for (int cursor = offset; matchAll && cursor < limit; cursor++)
         {
             matchAll &= matcher.test(buffer.getByte(cursor));
+        }
+
+        return matchAll;
+    }
+
+    private static boolean matchAllBytes(
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        byte[] bytes)
+    {
+        boolean matchAll = true;
+
+        for (int cursor = offset; matchAll && cursor < limit; cursor++)
+        {
+            matchAll &= buffer.getByte(cursor) == bytes[cursor - offset];
         }
 
         return matchAll;
