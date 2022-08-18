@@ -37,5 +37,7 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-type", "text/event-stream")
                              .build()}
 
+read "\r"
+
 read "data:Hello, world\r"
 read "\r"

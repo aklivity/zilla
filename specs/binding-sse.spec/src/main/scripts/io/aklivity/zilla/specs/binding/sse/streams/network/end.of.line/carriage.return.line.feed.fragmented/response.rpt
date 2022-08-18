@@ -39,6 +39,12 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
+write "\r"
+write flush
+
+write "\n"
+write flush
+
 write "data:Hello, world\r\n"
       "\r"
 write flush
