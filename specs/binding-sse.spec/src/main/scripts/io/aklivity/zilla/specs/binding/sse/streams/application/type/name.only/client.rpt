@@ -14,12 +14,9 @@
 # under the License.
 #
 
-property padding 0
-
 connect "zilla://streams/app0"
-        option zilla:window ${5 + padding}
+        option zilla:window 8192
         option zilla:transmission "duplex"
-        option zilla:alignment "message"
 
 write zilla:begin.ext ${sse:beginEx()
                            .typeId(zilla:id("sse"))
@@ -33,7 +30,6 @@ connected
 
 read zilla:data.ext ${sse:matchDataEx()
                          .typeId(zilla:id("sse"))
-                         .id(null)
-                         .type(null)
+                         .type("")
                          .build()}
 read "Hello, world"

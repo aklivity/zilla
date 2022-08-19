@@ -47,6 +47,15 @@ public class TypeIT
 
     @Test
     @Specification({
+        "${net}/name.only/request",
+        "${net}/name.only/response" })
+    public void shouldReceiveNameOnlyEvent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/non.empty/request",
         "${net}/non.empty/response" })
     public void shouldReceiveNonEmptyEvent() throws Exception

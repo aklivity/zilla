@@ -56,9 +56,9 @@ public class TimestampIT
 
     @Test
     @Specification({
-        "${net}/fragmented/request",
-        "${net}/fragmented/response" })
-    public void shouldReceiveFragmentedMessage() throws Exception
+        "${net}/fragmented.10k/request",
+        "${net}/fragmented.10k/response" })
+    public void shouldReceiveFragmented10kMessage() throws Exception
     {
         k3po.finish();
     }

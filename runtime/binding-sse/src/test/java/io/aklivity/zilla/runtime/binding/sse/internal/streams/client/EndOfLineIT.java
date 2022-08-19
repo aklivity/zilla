@@ -86,9 +86,6 @@ public class EndOfLineIT
         "${net}/carriage.return.line.feed.fragmented/response" })
     public void shouldReceiveMessageWithCarriageReturnLineFeedEndOfLineFragmented() throws Exception
     {
-        k3po.start();
-        k3po.awaitBarrier("RECEIVED_MESSAGE_ONE");
-        k3po.notifyBarrier("SEND_MESSAGE_TWO");
         k3po.finish();
     }
 }

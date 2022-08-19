@@ -49,10 +49,5 @@ write "data:Hello, world\r\n"
       "\r"
 write flush
 
-write await SEND_MESSAGE_TWO
 write "\n"
-write flush
-
-write "data:Hello, again\r\n"
-      "\r\n"
 write flush

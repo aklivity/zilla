@@ -47,6 +47,15 @@ public class TypeIT
 
     @Test
     @Specification({
+        "${app}/name.only/client",
+        "${app}/name.only/server" })
+    public void shouldReceiveNameOnlyType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/non.empty/client",
         "${app}/non.empty/server" })
     public void shouldReceiveNonEmptyType() throws Exception

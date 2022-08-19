@@ -17,7 +17,10 @@ package io.aklivity.zilla.runtime.binding.sse.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.unmodifiableMap;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.IntPredicate;
 import java.util.function.LongUnaryOperator;
 
@@ -82,8 +85,11 @@ public class SseClientFactory implements SseStreamFactory
 
     private static final IntPredicate EOL_MATCHER = v -> v == LINE_CR_BYTE || v == LINE_LF_BYTE;
     private static final IntPredicate COLON_MATCHER = v -> v == LINE_COLON_BYTE;
+    private static final IntPredicate EOF_MATCHER = COLON_MATCHER.or(EOL_MATCHER);
 
     private static final String8FW FIELD_VALUE_NULL = new String8FW(null);
+    private static final String8FW FIELD_VALUE_EMPTY = new String8FW("");
+    private static final OctetsFW FIELD_DATA_EMPTY = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -110,21 +116,37 @@ public class SseClientFactory implements SseStreamFactory
     private final DirectBuffer nameRO = new UnsafeBuffer(0L, 0);
     private final DirectBuffer valueRO = new UnsafeBuffer(0L, 0);
 
+    private final OctetsFW lineDataRO = new OctetsFW();
     private final OctetsFW valueDataRO = new OctetsFW();
 
     private final String8FW.Builder valueIdRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
     private final String8FW.Builder valueTypeRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
+    private final Map<DirectBuffer, SseFieldName> decodeableFieldNames;
+    {
+        final HashMap<DirectBuffer, SseFieldName> fieldNames = new HashMap<>();
+        fieldNames.put(FIELD_NAME_DATA_BYTES, SseFieldName.DATA);
+        fieldNames.put(FIELD_NAME_ID_BYTES, SseFieldName.ID);
+        fieldNames.put(FIELD_NAME_TYPE_BYTES, SseFieldName.TYPE);
+        decodeableFieldNames = unmodifiableMap(fieldNames);
+    }
+
     private final SseClientDecoder decodeBom = this::decodeBom;
     private final SseClientDecoder decodeEvent = this::decodeEvent;
     private final SseClientDecoder decodeLine = this::decodeLine;
     private final SseClientDecoder decodeLineEnding = this::decodeLineEnding;
-    private final SseClientDecoder decodeField = this::decodeField;
+    private final SseClientDecoder decodeIgnoreLine = this::decodeIgnoreLine;
+    private final SseClientDecoder decodeFieldName = this::decodeFieldName;
+    private final SseClientDecoder decodeFieldColon = this::decodeFieldColon;
+    private final SseClientDecoder decodeFieldSpace = this::decodeFieldSpace;
+    private final SseClientDecoder decodeFieldValue = this::decodeFieldValue;
+    private final SseClientDecoder decodeFieldDataValue = this::decodeFieldDataValue;
     private final SseClientDecoder decodeEventEnding = this::decodeEventEnding;
     private final SseClientDecoder decodeLineEndingCRLF = this::decodeLineEndingCRLF;
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
+    private final MutableDirectBuffer lineBuffer;
     private final BufferPool decodePool;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
@@ -141,6 +163,7 @@ public class SseClientFactory implements SseStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.lineBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.decodePool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -297,15 +320,23 @@ public class SseClientFactory implements SseStreamFactory
         private void onAppEnd(
             EndFW end)
         {
-            // TODO Auto-generated method stub
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
             state = SseState.closedInitial(state);
+
+            delegate.doNetEnd(traceId, authorization);
         }
 
         private void onAppAbort(
             AbortFW abort)
         {
-            // TODO Auto-generated method stub
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
             state = SseState.closedInitial(state);
+
+            cleanupApp(traceId, authorization);
         }
 
         private void onAppWindow(
@@ -329,7 +360,7 @@ public class SseClientFactory implements SseStreamFactory
             replyPad = padding;
             state = SseState.openedReply(state);
 
-            assert replyAck <= replyMax;
+            assert replyAck <= replySeq;
 
             delegate.decodeNet(traceId, authorization, budgetId);
         }
@@ -363,11 +394,13 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            int reserved,
             int flags,
             OctetsFW payload,
             Flyweight extension)
         {
+            final int length = payload != null ? payload.sizeof() : 0;
+            final int reserved = length + replyPad;
+
             doData(application, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
@@ -462,13 +495,15 @@ public class SseClientFactory implements SseStreamFactory
 
         private SseClientDecoder decoder;
 
-        private int decodableLineBytes;
-        public byte decodedEndOfLine;
+        private int decodableLineAt;
+        private byte decodedEndOfLine;
+        private SseFieldName decodedFieldName;
+        private int decodedDataFragments;
+        private int decodedDataLines;
 
-        private String8FW decodedId;
-        private String8FW decodedType;
+        private String8FW decodedId = FIELD_VALUE_NULL;
+        private String8FW decodedType = FIELD_VALUE_NULL;
         private OctetsFW decodedData;
-
 
         private HttpClient(
             long routeId,
@@ -863,6 +898,8 @@ public class SseClientFactory implements SseStreamFactory
             }
             else
             {
+                doEncodeDataFragment(traceId, authorization, budgetId, reserved);
+
                 cleanupDecodeSlot();
 
                 if (SseState.replyClosing(state))
@@ -897,11 +934,11 @@ public class SseClientFactory implements SseStreamFactory
             }
         }
 
-        private void onDecodedEvent(
+        private void onDecodedEventFragment(
             long traceId,
             long authorization,
             long budgetId,
-            int reserved,
+            int flags,
             String8FW id,
             String8FW type,
             OctetsFW data)
@@ -912,7 +949,52 @@ public class SseClientFactory implements SseStreamFactory
                     .type(type)
                     .build();
 
-            delegate.doAppData(traceId, authorization, budgetId, reserved, 0x03, data, sseDataEx);
+            if (decodedDataLines > 1 && decodedData != null)
+            {
+                lineBuffer.putByte(0, (byte) LINE_LF_BYTE);
+                lineBuffer.putBytes(1, data.buffer(), data.offset(), data.sizeof());
+                data = lineDataRO.wrap(lineBuffer, 0, 1 + data.sizeof());
+            }
+
+            delegate.doAppData(traceId, authorization, budgetId, flags, data, sseDataEx);
+        }
+
+        private void doEncodeDataFragment(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved)
+        {
+            final String8FW id = decodedId;
+            final String8FW type = decodedType;
+            final OctetsFW data = decodedData;
+
+            if (id != FIELD_VALUE_NULL ||
+                type != FIELD_VALUE_NULL ||
+                data != null)
+            {
+                if (data != null)
+                {
+                    final int flags = decodedDataFragments <= 1 ? 0x02 : 0x00;
+
+                    onDecodedEventFragment(traceId, authorization, budgetId, flags, id, type, data);
+
+                    decodedType = FIELD_VALUE_NULL;
+                    decodedId = FIELD_VALUE_NULL;
+                    decodedData = null;
+                }
+                else
+                {
+                    if (decodedId == valueIdRW.flyweight())
+                    {
+                        decodedId = new String8FW(decodedId.asString());
+                    }
+                    if (decodedType == valueTypeRW.flyweight())
+                    {
+                        decodedType = new String8FW(decodedType.asString());
+                    }
+                }
+            }
         }
 
         private void cleanupDecodeSlot()
@@ -1229,17 +1311,13 @@ public class SseClientFactory implements SseStreamFactory
 
         if (length != 0)
         {
-            final int endOfEventLimit = limitOfEndOfEvent(buffer, progress, limit);
+            client.decodedType = FIELD_VALUE_NULL;
+            client.decodedId = FIELD_VALUE_NULL;
+            client.decodedData = null;
+            client.decodedDataFragments = 0;
+            client.decodedDataLines = 0;
 
-            // TODO: fragmentation
-            if (endOfEventLimit != -1)
-            {
-                client.decodedType = FIELD_VALUE_NULL;
-                client.decodedId = FIELD_VALUE_NULL;
-                client.decodedData = null;
-
-                client.decoder = decodeLine;
-            }
+            client.decoder = decodeLine;
         }
 
         return progress;
@@ -1260,28 +1338,22 @@ public class SseClientFactory implements SseStreamFactory
 
         if (length != 0)
         {
-            final int endOfLineAt = indexOfEndOfLine(buffer, progress, limit);
+            final int lineStart = buffer.getByte(progress);
 
-            if (endOfLineAt != -1)
+            client.decodableLineAt = progress;
+
+            switch (lineStart)
             {
-                final int lineStart = buffer.getByte(progress);
-
-                client.decodableLineBytes = endOfLineAt - progress;
-
-                switch (lineStart)
-                {
-                case LINE_COLON_BYTE:
-                    progress = endOfLineAt;
-                    client.decoder = decodeLineEnding;
-                    break;
-                case LINE_CR_BYTE:
-                case LINE_LF_BYTE:
-                    client.decoder = decodeEventEnding;
-                    break;
-                default:
-                    client.decoder = decodeField;
-                    break;
-                }
+            case LINE_COLON_BYTE:
+                client.decoder = decodeIgnoreLine;
+                break;
+            case LINE_CR_BYTE:
+            case LINE_LF_BYTE:
+                client.decoder = decodeEventEnding;
+                break;
+            default:
+                client.decoder = decodeFieldName;
+                break;
             }
         }
 
@@ -1305,13 +1377,24 @@ public class SseClientFactory implements SseStreamFactory
         {
             final String8FW id = client.decodedId;
             final String8FW type = client.decodedType;
-            final OctetsFW data = client.decodedData;
+            final OctetsFW data =
+                client.decodedData == null &&
+                client.decodedDataLines > 1 &&
+                client.decodedDataFragments > 1
+                    ? FIELD_DATA_EMPTY
+                    : client.decodedData;
 
             if (id != FIELD_VALUE_NULL ||
                 type != FIELD_VALUE_NULL ||
                 data != null)
             {
-                client.onDecodedEvent(traceId, authorization, budgetId, reserved, id, type, data);
+                final int flags = client.decodedDataFragments <= 1 ? 0x03 : 0x01;
+
+                client.onDecodedEventFragment(traceId, authorization, budgetId, flags, id, type, data);
+
+                client.decodedType = FIELD_VALUE_NULL;
+                client.decodedId = FIELD_VALUE_NULL;
+                client.decodedData = null;
             }
 
             client.decoder = decodeLineEnding;
@@ -1365,19 +1448,21 @@ public class SseClientFactory implements SseStreamFactory
 
         if (length != 0)
         {
+            boolean dispatchEvent = client.decodableLineAt == progress - 1;
+
             if (client.decodedEndOfLine == LINE_CR_BYTE &&
                 buffer.getByte(progress) == LINE_LF_BYTE)
             {
                 progress++;
             }
 
-            client.decoder = client.decodableLineBytes != 0 ? decodeLine : decodeEvent;
+            client.decoder = dispatchEvent ? decodeEvent : decodeLine;
         }
 
         return progress;
     }
 
-    private int decodeField(
+    private int decodeFieldName(
         HttpClient client,
         long traceId,
         long authorization,
@@ -1392,100 +1477,216 @@ public class SseClientFactory implements SseStreamFactory
 
         if (length != 0)
         {
-            int limitOfField = progress + client.decodableLineBytes;
-            int indexOfColon = indexOfByte(buffer, progress, limitOfField, COLON_MATCHER);
+            int limitOfFieldName = limitOfFieldName(buffer, progress, limit);
 
-            int indexOfName = progress;
-            int limitOfName = indexOfColon != -1 ? indexOfColon : limitOfField;
-            int indexOfValue = -1;
-            int limitOfValue = -1;
-
-            if (indexOfColon != -1)
+            if (limitOfFieldName != -1)
             {
-                indexOfValue = indexOfColon + 1;
+                DirectBuffer name = nameRO;
+                name.wrap(buffer, progress, limitOfFieldName - progress);
 
-                if (indexOfValue < limitOfField - 1 &&
-                    buffer.getByte(indexOfValue) == LINE_SPACE_BYTE)
+                final SseFieldName fieldName = decodeableFieldNames.getOrDefault(name, SseFieldName.IGNORE);
+
+                progress = limitOfFieldName;
+
+                switch (fieldName)
                 {
-                    indexOfValue++;
+                case ID:
+                    client.decodedId = FIELD_VALUE_EMPTY;
+                    break;
+                case TYPE:
+                    client.decodedType = FIELD_VALUE_EMPTY;
+                    break;
+                case DATA:
+                    client.doEncodeDataFragment(traceId, authorization, budgetId, reserved);
+                    client.decodedData = FIELD_DATA_EMPTY;
+                    break;
+                default:
+                    break;
                 }
 
-                limitOfValue = limitOfField;
+                client.decodedFieldName = fieldName;
+                client.decoder = decodeFieldColon;
             }
-
-            DirectBuffer name = nameRO;
-            name.wrap(buffer, indexOfName, limitOfName - indexOfName);
-
-            DirectBuffer value = null;
-            if (indexOfValue != -1)
-            {
-                value = valueRO;
-                value.wrap(buffer, indexOfValue, limitOfValue - indexOfValue);
-            }
-
-            if (FIELD_NAME_DATA_BYTES.equals(name))
-            {
-                OctetsFW data = valueDataRO;
-                data.wrap(buffer, indexOfValue, limitOfValue);
-                client.decodedData = data;
-            }
-            else if (FIELD_NAME_ID_BYTES.equals(name))
-            {
-                client.decodedId = valueIdRW
-                    .set(buffer, indexOfValue, limitOfValue - indexOfValue)
-                    .build();
-            }
-            else if (FIELD_NAME_TYPE_BYTES.equals(name))
-            {
-                client.decodedType = valueTypeRW
-                    .set(buffer, indexOfValue, limitOfValue - indexOfValue)
-                    .build();
-            }
-
-            progress = limitOfField;
-
-            client.decoder = decodeLineEnding;
         }
 
         return progress;
     }
 
-    private static int limitOfEndOfEvent(
+    private int decodeFieldColon(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
+        int progress,
         int limit)
     {
-        int previous = offset;
-        int progress = limitOfEndOfLine(buffer, previous, limit);
+        final int length = limit - progress;
 
-        while (progress != -1 &&
-               !matchAllBytes(buffer, previous, progress, EOL_MATCHER))
+        if (length > 0)
         {
-            previous = progress;
-            progress = limitOfEndOfLine(buffer, previous, limit);
+            if (buffer.getByte(progress) == LINE_COLON_BYTE)
+            {
+                progress++;
+
+                client.decoder = decodeFieldSpace;
+            }
+            else
+            {
+                client.decoder = decodeLineEnding;
+            }
         }
 
         return progress;
     }
 
-    private static int limitOfEndOfLine(
+    private int decodeFieldSpace(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
+        int progress,
         int limit)
     {
-        int progress = indexOfEndOfLine(buffer, offset, limit);
+        final int length = limit - progress;
 
-        if (progress != -1)
+        if (length > 0)
         {
-            if (buffer.getByte(progress) == LINE_CR_BYTE)
+            if (buffer.getByte(progress) == LINE_SPACE_BYTE)
             {
-                if (buffer.getByte(progress + 1) == LINE_LF_BYTE)
-                {
-                    progress++;
-                }
+                progress++;
             }
 
-            if (progress != -1)
+            switch (client.decodedFieldName)
+            {
+            case DATA:
+                client.decoder = decodeFieldDataValue;
+                break;
+            case ID:
+            case TYPE:
+                client.decoder = decodeFieldValue;
+                break;
+            case IGNORE:
+                client.decoder = decodeIgnoreLine;
+                break;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeFieldValue(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            int limitOfField = indexOfEndOfLine(buffer, progress, limit);
+
+            if (limitOfField != -1)
+            {
+                DirectBuffer value = valueRO;
+                value.wrap(buffer, progress, limitOfField - progress);
+
+                switch (client.decodedFieldName)
+                {
+                case ID:
+                    client.decodedId = valueIdRW
+                        .set(buffer, progress, limitOfField - progress)
+                        .build();
+                    break;
+                case TYPE:
+                    client.decodedType = valueTypeRW
+                        .set(buffer, progress, limitOfField - progress)
+                        .build();
+                    break;
+                default:
+                    break;
+                }
+
+                progress = limitOfField;
+
+                client.decoder = decodeLineEnding;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeFieldDataValue(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            final int replyNoAck = (int) (client.delegate.replySeq - client.delegate.replyAck);
+            final int lengthMax = client.delegate.replyMax - replyNoAck - client.delegate.replyPad;
+
+            if (lengthMax != 0)
+            {
+                int limitMax = Math.min(progress + lengthMax, limit);
+                int endOfLineAt = indexOfEndOfLine(buffer, progress, limitMax);
+                int limitOfData = endOfLineAt != -1 ? endOfLineAt : limitMax;
+
+                client.decodedDataFragments++;
+                client.decodedDataLines += Math.min(endOfLineAt, 0) + 1;
+                client.decodedData = valueDataRO.wrap(buffer, progress, limitOfData);
+
+                progress = limitOfData;
+
+                if (endOfLineAt == -1)
+                {
+                    client.doEncodeDataFragment(traceId, authorization, budgetId, reserved);
+                }
+                else
+                {
+                    client.decoder = decodeLineEnding;
+                }
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeIgnoreLine(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            while (!EOL_MATCHER.test(buffer.getByte(progress)))
             {
                 progress++;
             }
@@ -1500,6 +1701,14 @@ public class SseClientFactory implements SseStreamFactory
         int limit)
     {
         return indexOfByte(buffer, offset, limit, EOL_MATCHER);
+    }
+
+    private static int limitOfFieldName(
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        return indexOfByte(buffer, offset, limit, EOF_MATCHER);
     }
 
     private static int indexOfByte(
@@ -1525,22 +1734,6 @@ public class SseClientFactory implements SseStreamFactory
         DirectBuffer buffer,
         int offset,
         int limit,
-        IntPredicate matcher)
-    {
-        boolean matchAll = true;
-
-        for (int cursor = offset; matchAll && cursor < limit; cursor++)
-        {
-            matchAll &= matcher.test(buffer.getByte(cursor));
-        }
-
-        return matchAll;
-    }
-
-    private static boolean matchAllBytes(
-        DirectBuffer buffer,
-        int offset,
-        int limit,
         byte[] bytes)
     {
         boolean matchAll = true;
@@ -1553,17 +1746,11 @@ public class SseClientFactory implements SseStreamFactory
         return matchAll;
     }
 
-    private int decodeIgnoreAll(
-        HttpClient client,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved,
-        DirectBuffer buffer,
-        int offset,
-        int progress,
-        int limit)
+    private enum SseFieldName
     {
-        return limit;
+        DATA,
+        ID,
+        TYPE,
+        IGNORE
     }
 }

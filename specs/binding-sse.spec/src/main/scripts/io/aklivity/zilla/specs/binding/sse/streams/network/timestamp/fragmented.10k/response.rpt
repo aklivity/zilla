@@ -21,11 +21,11 @@ accepted
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":method", "GET")
                              .header(":scheme", "http")
-                             .header(":authority", "localhost:8080")
+                             .header(":method", "GET")
                              .header(":path", "/events/a8b7c6d5")
-                             .header("accept", "text/event-stream")
+                             .header(":authority", "localhost:8080")
+                             .header("accept", "text/event-stream;ext=timestamp")
                              .build()}
 
 connected
@@ -35,10 +35,11 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
-                              .header("content-type", "text/event-stream")
+                              .header("content-type", "text/event-stream;ext=timestamp")
                               .build()}
 write flush
 
-write "data:Hello, world\n"
+write "timestamp:0x161e350a495\n"
+      "data:" ${http:randomAscii(10240)} "\n"
       "\n"
 write flush

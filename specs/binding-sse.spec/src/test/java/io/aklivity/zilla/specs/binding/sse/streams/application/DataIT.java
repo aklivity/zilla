@@ -65,9 +65,18 @@ public class DataIT
 
     @Test
     @Specification({
-        "${app}/fragmented/client",
-        "${app}/fragmented/server" })
-    public void shouldReceiveFragmentedData() throws Exception
+        "${app}/fragmented.10k/client",
+        "${app}/fragmented.10k/server" })
+    public void shouldReceiveDataFragmented10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/fragmented.100k/client",
+        "${app}/fragmented.100k/server" })
+    public void shouldReceiveDataFragmented100k() throws Exception
     {
         k3po.finish();
     }

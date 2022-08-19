@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.streams.client;
 
-import static io.aklivity.zilla.runtime.binding.sse.internal.stream.SseServerFactory.MAXIMUM_HEADER_SIZE;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -24,7 +24,6 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -45,6 +44,7 @@ public class DataIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/sse/config")
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .external("net0")
         .clean();
 
@@ -74,10 +74,39 @@ public class DataIT
     @Test
     @Configuration("client.when.json")
     @Specification({
-        "${app}/fragmented/client",
-        "${net}/fragmented/response" })
-    @ScriptProperty("padding " + MAXIMUM_HEADER_SIZE)
-    public void shouldReceiveFragmentedMessage() throws Exception
+        "${app}/fragmented.10k/client",
+        "${net}/fragmented.10k/response" })
+    public void shouldReceiveFragmentedMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/fragmented.100k/client",
+        "${net}/fragmented.100k/response" })
+    public void shouldReceiveFragmentedMessage100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/name.only/client",
+        "${net}/name.only/response" })
+    public void shouldReceiveNameOnlyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/multi.line/client",
+        "${net}/multi.line/response" })
+    public void shouldReceiveMultiLineMessage() throws Exception
     {
         k3po.finish();
     }

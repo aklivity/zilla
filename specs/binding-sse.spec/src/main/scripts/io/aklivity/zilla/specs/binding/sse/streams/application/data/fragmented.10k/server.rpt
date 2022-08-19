@@ -35,5 +35,5 @@ write zilla:data.ext ${sse:dataEx()
                           .id(null)
                           .type(null)
                           .build()}
-write "Hello, world"
+write ${http:randomAscii(10240)}
 write flush

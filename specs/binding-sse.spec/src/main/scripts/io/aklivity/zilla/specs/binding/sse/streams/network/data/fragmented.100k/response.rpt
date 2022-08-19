@@ -14,30 +14,31 @@
 # under the License.
 #
 
-connect "zilla://streams/net0"
+accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":method", "GET")
-                              .header(":scheme", "http")
-                              .header(":authority", "localhost:8080")
-                              .header(":path", "/events/a8b7c6d5")
-                              .header("accept", "text/event-stream")
-                              .build()}
-
-connected
-
-write close
+accepted
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":status", "200")
-                             .header("content-type", "text/event-stream")
+                             .header(":method", "GET")
+                             .header(":scheme", "http")
+                             .header(":authority", "localhost:8080")
+                             .header(":path", "/events/a8b7c6d5")
+                             .header("accept", "text/event-stream")
                              .build()}
 
-read "\r\n"
+connected
 
-read "data:Hello, world\r\n"
-read "\r\n"
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("content-type", "text/event-stream")
+                              .build()}
+write flush
+
+write "data:" ${http:randomAscii(102400)} "\n"
+      "\n"
+write flush

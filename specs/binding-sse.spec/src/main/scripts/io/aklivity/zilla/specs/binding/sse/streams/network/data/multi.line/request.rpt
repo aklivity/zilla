@@ -38,5 +38,5 @@ read zilla:begin.ext ${http:beginEx()
                              .build()}
 
 read "data:Hello\n"
-read "data:world\n"
-read "\n"
+     "data:world\n"
+     "\n"

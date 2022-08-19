@@ -14,6 +14,8 @@
 # under the License.
 #
 
+property padding 0
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
@@ -28,4 +30,9 @@ write zilla:begin.ext ${sse:beginEx()
 
 connected
 
-read "Hello, world"
+read zilla:data.ext ${sse:matchDataEx()
+                         .typeId(zilla:id("sse"))
+                         .id(null)
+                         .type(null)
+                         .build()}
+read [0..10240]

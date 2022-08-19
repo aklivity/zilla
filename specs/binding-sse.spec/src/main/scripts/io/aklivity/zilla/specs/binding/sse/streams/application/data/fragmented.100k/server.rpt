@@ -29,5 +29,11 @@ read zilla:begin.ext ${sse:beginEx()
 
 connected
 
-write "Hello, world"
+write zilla:data.ext ${sse:dataEx()
+                          .typeId(zilla:id("sse"))
+                          .timestamp(1519937168533)
+                          .id(null)
+                          .type(null)
+                          .build()}
+write ${http:randomAscii(102400)}
 write flush

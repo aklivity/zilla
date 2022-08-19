@@ -64,6 +64,16 @@ public class TypeIT
     @Test
     @Configuration("client.when.json")
     @Specification({
+        "${app}/name.only/client",
+        "${net}/name.only/response" })
+    public void shouldReceiveNameOnlyType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
         "${app}/non.empty/client",
         "${net}/non.empty/response" })
     public void shouldReceiveNonEmptyType() throws Exception

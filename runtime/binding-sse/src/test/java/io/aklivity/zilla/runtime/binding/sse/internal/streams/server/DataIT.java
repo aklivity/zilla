@@ -15,16 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.sse.internal.streams.server;
 
-import static io.aklivity.zilla.runtime.binding.sse.internal.stream.SseServerFactory.MAXIMUM_HEADER_SIZE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
-import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -71,13 +70,34 @@ public class DataIT
         k3po.finish();
     }
 
+    @Ignore("TODO: multi-line")
     @Test
     @Configuration("server.when.json")
     @Specification({
-        "${net}/fragmented/request",
-        "${app}/fragmented/server" })
-    @ScriptProperty("padding " + MAXIMUM_HEADER_SIZE)
-    public void shouldReceiveFragmentedMessage() throws Exception
+        "${net}/multi.line/request",
+        "${app}/multi.line/server" })
+    public void shouldReceiveMultiLineMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/fragmented.10k/request",
+        "${app}/fragmented.10k/server" })
+    public void shouldReceiveFragmentedMessage10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("TODO: multi-line")
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/fragmented.100k/request",
+        "${app}/fragmented.100k/server" })
+    public void shouldReceiveFragmentedMessage100k() throws Exception
     {
         k3po.finish();
     }

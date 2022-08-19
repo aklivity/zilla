@@ -17,9 +17,8 @@
 property padding 0
 
 connect "zilla://streams/net0"
-  option zilla:window ${5 + padding}
+  option zilla:window 8192
   option zilla:transmission "half-duplex"
-  option zilla:alignment "message"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
@@ -41,5 +40,5 @@ read zilla:begin.ext ${http:beginEx()
                              .build()}
 
 read "timestamp:0x161e350a495\n"
-     "data:Hello, world\n"
+     "data:" [0..10240] "\n"
      "\n"
