@@ -51,6 +51,17 @@ public class ConnectionManagementIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/request.rejected/client",
+        "${app}/request.rejected/server",
+    })
+    public void shouldRejectRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.override.json")
     @Specification({
         "${net}/request.with.header.override/client",

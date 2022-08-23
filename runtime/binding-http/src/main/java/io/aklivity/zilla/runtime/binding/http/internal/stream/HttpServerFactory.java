@@ -2361,6 +2361,12 @@ public final class HttpServerFactory implements HttpStreamFactory
             }
             else
             {
+                if (exchange.requestState == HttpExchangeState.CLOSED &&
+                    exchange.responseState == HttpExchangeState.CLOSED)
+                {
+                    this.exchange = null;
+                }
+
                 final int reserved = length + replyPad;
                 doNetworkData(traceId, authorization, budgetId, reserved, codecBuffer, 0, length);
             }
@@ -2815,6 +2821,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
+                    responseState = HttpExchangeState.CLOSED;
                     doEncodeHeaders(this, traceId, authorization, 0L, HEADERS_404_NOT_FOUND);
                 }
 
