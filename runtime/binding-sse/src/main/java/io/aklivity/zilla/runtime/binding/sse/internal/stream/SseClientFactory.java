@@ -135,6 +135,8 @@ public class SseClientFactory implements SseStreamFactory
     private final SseClientDecoder decodeEvent = this::decodeEvent;
     private final SseClientDecoder decodeLine = this::decodeLine;
     private final SseClientDecoder decodeLineEnding = this::decodeLineEnding;
+    private final SseClientDecoder decodeLineEndingAfterCR = this::decodeLineEndingAfterCR;
+    private final SseClientDecoder decodeLineEnded = this::decodeLineEnded;
     private final SseClientDecoder decodeIgnoreLine = this::decodeIgnoreLine;
     private final SseClientDecoder decodeFieldName = this::decodeFieldName;
     private final SseClientDecoder decodeFieldColon = this::decodeFieldColon;
@@ -142,7 +144,6 @@ public class SseClientFactory implements SseStreamFactory
     private final SseClientDecoder decodeFieldValue = this::decodeFieldValue;
     private final SseClientDecoder decodeFieldDataValue = this::decodeFieldDataValue;
     private final SseClientDecoder decodeEventEnding = this::decodeEventEnding;
-    private final SseClientDecoder decodeLineEndingCRLF = this::decodeLineEndingCRLF;
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -496,10 +497,10 @@ public class SseClientFactory implements SseStreamFactory
         private SseClientDecoder decoder;
 
         private int decodableLineAt;
-        private byte decodedEndOfLine;
+        private int decodedLineEndBytes;
         private SseFieldName decodedFieldName;
-        private int decodedDataFragments;
         private int decodedDataLines;
+        private int decodedDataFlags;
 
         private String8FW decodedId = FIELD_VALUE_NULL;
         private String8FW decodedType = FIELD_VALUE_NULL;
@@ -975,13 +976,14 @@ public class SseClientFactory implements SseStreamFactory
             {
                 if (data != null)
                 {
-                    final int flags = decodedDataFragments <= 1 ? 0x02 : 0x00;
+                    final int flags = 0x02 & ~decodedDataFlags;
 
                     onDecodedEventFragment(traceId, authorization, budgetId, flags, id, type, data);
 
                     decodedType = FIELD_VALUE_NULL;
                     decodedId = FIELD_VALUE_NULL;
                     decodedData = null;
+                    decodedDataFlags |= 0x02; // INIT
                 }
                 else
                 {
@@ -1307,18 +1309,13 @@ public class SseClientFactory implements SseStreamFactory
         int progress,
         int limit)
     {
-        final int length = limit - progress;
+        client.decodedType = FIELD_VALUE_NULL;
+        client.decodedId = FIELD_VALUE_NULL;
+        client.decodedData = null;
+        client.decodedDataLines = 0;
+        client.decodedDataFlags = 0;
 
-        if (length != 0)
-        {
-            client.decodedType = FIELD_VALUE_NULL;
-            client.decodedId = FIELD_VALUE_NULL;
-            client.decodedData = null;
-            client.decodedDataFragments = 0;
-            client.decodedDataLines = 0;
-
-            client.decoder = decodeLine;
-        }
+        client.decoder = decodeLine;
 
         return progress;
     }
@@ -1341,6 +1338,7 @@ public class SseClientFactory implements SseStreamFactory
             final int lineStart = buffer.getByte(progress);
 
             client.decodableLineAt = progress;
+            client.decodedLineEndBytes = 0;
 
             switch (lineStart)
             {
@@ -1379,8 +1377,8 @@ public class SseClientFactory implements SseStreamFactory
             final String8FW type = client.decodedType;
             final OctetsFW data =
                 client.decodedData == null &&
-                client.decodedDataLines > 1 &&
-                client.decodedDataFragments > 1
+                client.decodedDataFlags != 0x03 &&
+                client.decodedDataFlags != 0x00
                     ? FIELD_DATA_EMPTY
                     : client.decodedData;
 
@@ -1388,13 +1386,15 @@ public class SseClientFactory implements SseStreamFactory
                 type != FIELD_VALUE_NULL ||
                 data != null)
             {
-                final int flags = client.decodedDataFragments <= 1 ? 0x03 : 0x01;
+                final int flags = 0x03 & ~client.decodedDataFlags;
 
                 client.onDecodedEventFragment(traceId, authorization, budgetId, flags, id, type, data);
 
                 client.decodedType = FIELD_VALUE_NULL;
                 client.decodedId = FIELD_VALUE_NULL;
                 client.decodedData = null;
+                client.decodedDataLines = 0;
+                client.decodedDataFlags |= 0x01; // FIN
             }
 
             client.decoder = decodeLineEnding;
@@ -1422,18 +1422,19 @@ public class SseClientFactory implements SseStreamFactory
 
             if (endOfLineAt != -1)
             {
-                client.decodedEndOfLine = buffer.getByte(progress);
+                final byte endOfLine = buffer.getByte(progress);
 
                 progress++;
 
-                client.decoder = decodeLineEndingCRLF;
+                client.decodedLineEndBytes++;
+                client.decoder = endOfLine == LINE_CR_BYTE ? decodeLineEndingAfterCR : decodeLineEnded;
             }
         }
 
         return progress;
     }
 
-    private int decodeLineEndingCRLF(
+    private int decodeLineEndingAfterCR(
         HttpClient client,
         long traceId,
         long authorization,
@@ -1448,16 +1449,33 @@ public class SseClientFactory implements SseStreamFactory
 
         if (length != 0)
         {
-            boolean dispatchEvent = client.decodableLineAt == progress - 1;
-
-            if (client.decodedEndOfLine == LINE_CR_BYTE &&
-                buffer.getByte(progress) == LINE_LF_BYTE)
+            if (buffer.getByte(progress) == LINE_LF_BYTE)
             {
                 progress++;
+
+                client.decodedLineEndBytes++;
             }
 
-            client.decoder = dispatchEvent ? decodeEvent : decodeLine;
+            client.decoder = decodeLineEnded;
         }
+
+        return progress;
+    }
+
+    private int decodeLineEnded(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
+    {
+        boolean lineEmpty = progress - client.decodableLineAt == client.decodedLineEndBytes;
+
+        client.decoder = lineEmpty ? decodeEvent : decodeLine;
 
         return progress;
     }
@@ -1651,7 +1669,6 @@ public class SseClientFactory implements SseStreamFactory
                 int endOfLineAt = indexOfEndOfLine(buffer, progress, limitMax);
                 int limitOfData = endOfLineAt != -1 ? endOfLineAt : limitMax;
 
-                client.decodedDataFragments++;
                 client.decodedDataLines += Math.min(endOfLineAt, 0) + 1;
                 client.decodedData = valueDataRO.wrap(buffer, progress, limitOfData);
 

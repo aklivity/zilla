@@ -65,6 +65,15 @@ public class DataIT
 
     @Test
     @Specification({
+        "${net}/multiple/request",
+        "${net}/multiple/response" })
+    public void shouldReceiveMultipleData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/fragmented.10k/request",
         "${net}/fragmented.10k/response" })
     public void shouldReceiveDataFragmented10k() throws Exception

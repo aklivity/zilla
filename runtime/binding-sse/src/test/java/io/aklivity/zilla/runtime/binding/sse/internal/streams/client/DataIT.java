@@ -74,6 +74,16 @@ public class DataIT
     @Test
     @Configuration("client.when.json")
     @Specification({
+        "${app}/multiple/client",
+        "${net}/multiple/response" })
+    public void shouldReceiveMultipleMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
         "${app}/fragmented.10k/client",
         "${net}/fragmented.10k/response" })
     public void shouldReceiveFragmentedMessage10k() throws Exception

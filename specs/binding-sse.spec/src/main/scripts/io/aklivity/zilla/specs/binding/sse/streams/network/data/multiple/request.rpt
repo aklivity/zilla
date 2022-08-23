@@ -19,44 +19,12 @@ connect "zilla://streams/net0"
   option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":method", "GET")
-                            .header(":scheme", "http")
-                            .header(":authority", "localhost:8080")
-                            .header(":path", "/events/a8b7c6d5")
-                            .header("accept", "text/event-stream")
-                            .build()}
-
-connected
-
-write close
-
-read zilla:begin.ext ${http:beginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("content-type", "text/event-stream")
-                           .build()}
-
-read "id:105\n"
-     "data:Hello, world\n"
-     "\n"
-
-read notify RECONNECT_EVENT_STREAM
-read closed
-
-connect await RECONNECT_EVENT_STREAM
-        "zilla://streams/net0"
-  option zilla:window 8192
-  option zilla:transmission "half-duplex"
-
-write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "GET")
                               .header(":scheme", "http")
                               .header(":authority", "localhost:8080")
                               .header(":path", "/events/a8b7c6d5")
                               .header("accept", "text/event-stream")
-                              .header("last-event-id", "105")
                               .build()}
 
 connected
@@ -68,3 +36,9 @@ read zilla:begin.ext ${http:beginEx()
                              .header(":status", "200")
                              .header("content-type", "text/event-stream")
                              .build()}
+
+read "data:Hello, world\n"
+read "\n"
+
+read "data:Hello, again\n"
+read "\n"

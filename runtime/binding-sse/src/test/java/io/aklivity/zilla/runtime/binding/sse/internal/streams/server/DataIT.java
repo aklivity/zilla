@@ -70,6 +70,16 @@ public class DataIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/multiple/request",
+        "${app}/multiple/server" })
+    public void shouldReceiveMultipleMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("TODO: multi-line")
     @Test
     @Configuration("server.when.json")
