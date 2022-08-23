@@ -629,6 +629,8 @@ public final class SseServerFactory implements SseStreamFactory
                     replySeq, replyAck, replyMax, traceId, authorization, affinity,
                     setHttpHeaders);
 
+            state = SseState.openingReply(state);
+
             encodeNetwork(traceId);
         }
 
@@ -1215,6 +1217,8 @@ public final class SseServerFactory implements SseStreamFactory
                     assert sseReplyAck <= sseReplySeq;
 
                     sseReplyMax = httpReplyMax;
+
+                    state = SseState.openedReply(state);
 
                     doWindow(application, routeId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
                             traceId, httpReplyAuth, httpReplyBud, sseReplyPad, 0);

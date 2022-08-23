@@ -327,6 +327,7 @@ public class SseClientFactory implements SseStreamFactory
             state = SseState.closedInitial(state);
 
             delegate.doNetEnd(traceId, authorization);
+            delegate.cleanupNet(traceId, authorization);
         }
 
         private void onAppAbort(
@@ -337,7 +338,7 @@ public class SseClientFactory implements SseStreamFactory
 
             state = SseState.closedInitial(state);
 
-            cleanupApp(traceId, authorization);
+            delegate.cleanupNet(traceId, authorization);
         }
 
         private void onAppWindow(
@@ -382,13 +383,16 @@ public class SseClientFactory implements SseStreamFactory
             long authorization,
             long affinity)
         {
-            replySeq = delegate.replySeq;
-            replyAck = delegate.replyAck;
-            replyMax = delegate.replyMax;
-            state = SseState.openingReply(state);
+            if (!SseState.replyOpening(state))
+            {
+                replySeq = delegate.replySeq;
+                replyAck = delegate.replyAck;
+                replyMax = delegate.replyMax;
+                state = SseState.openingReply(state);
 
-            doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity);
+                doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, affinity);
+            }
         }
 
         private void doAppData(
@@ -414,10 +418,13 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            state = SseState.closedReply(state);
+            if (!SseState.replyClosed(state))
+            {
+                state = SseState.closedReply(state);
 
-            doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization);
+            }
         }
 
         private void doAppFlush(
@@ -434,10 +441,13 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            state = SseState.closedReply(state);
+            if (!SseState.replyClosed(state))
+            {
+                state = SseState.closedReply(state);
 
-            doEnd(application, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                doEnd(application, routeId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization);
+            }
         }
 
         private void doAppWindow(
@@ -456,10 +466,13 @@ public class SseClientFactory implements SseStreamFactory
             long traceId,
             long authorization)
         {
-            state = SseState.closedInitial(state);
+            if (!SseState.initialClosed(state))
+            {
+                state = SseState.closedInitial(state);
 
-            doReset(application, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization);
+                doReset(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization);
+            }
         }
 
         private void cleanupApp(
@@ -467,6 +480,7 @@ public class SseClientFactory implements SseStreamFactory
             long authorization)
         {
             doAppReset(traceId, authorization);
+            doAppBegin(traceId, authorization, 0L);
             doAppAbort(traceId, authorization);
         }
     }
