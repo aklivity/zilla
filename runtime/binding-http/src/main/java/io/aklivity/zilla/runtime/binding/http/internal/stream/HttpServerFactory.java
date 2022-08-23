@@ -5774,11 +5774,13 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long acknowledge = data.acknowledge();
                 final long traceId = data.traceId();
                 final long authorization = data.authorization();
+                final long budgetId = data.budgetId();
                 final int reserved = data.reserved();
 
                 assert acknowledge <= sequence;
                 assert sequence >= responseSeq;
                 assert acknowledge <= responseAck;
+                assert budgetId == Http2Server.this.budgetId;
 
                 if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)
                 {
@@ -5815,7 +5817,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                     if (payload != null)
                     {
                         final int flags = data.flags();
-                        final long budgetId = data.budgetId();
                         final int length = data.length();
 
                         if (HttpConfiguration.DEBUG_HTTP2_BUDGETS)

@@ -1208,7 +1208,7 @@ public final class SseServerFactory implements SseStreamFactory
                 }
 
                 int sseReplyPad = httpReplyPad + MAXIMUM_HEADER_SIZE;
-                int sseReplyAckMax = (int)(sseReplySeq - httpReplyPendingAck);
+                int sseReplyAckMax = Math.max((int)(sseReplySeq - httpReplyPendingAck), 0);
                 if (sseReplyAckMax > sseReplyAck || httpReplyMax > sseReplyMax)
                 {
                     sseReplyAck = sseReplyAckMax;

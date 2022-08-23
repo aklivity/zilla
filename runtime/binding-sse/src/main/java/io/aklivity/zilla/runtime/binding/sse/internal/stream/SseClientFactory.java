@@ -854,7 +854,7 @@ public class SseClientFactory implements SseStreamFactory
             }
             else
             {
-                onNetDecodable(traceId, authorization, budgetId, decodeSlotOffset, 0, decodeMax);
+                onNetDecodable(traceId, authorization, budgetId, decodeSlotOffset, delegate.replyPad, decodeMax);
             }
         }
 
@@ -895,7 +895,7 @@ public class SseClientFactory implements SseStreamFactory
                     assert decodeSlotReserved >= 0;
                 }
 
-                onNetDecodable(traceId, authorization, budgetId, decodeSlotOffset, 0, decodeMax);
+                onNetDecodable(traceId, authorization, budgetId, decodeSlotOffset, delegate.replyPad, decodeMax);
             }
             else
             {
@@ -909,7 +909,7 @@ public class SseClientFactory implements SseStreamFactory
                 }
                 else if (reserved > 0)
                 {
-                    onNetDecodable(traceId, authorization, budgetId, 0, 0, replyMax);
+                    onNetDecodable(traceId, authorization, budgetId, 0, delegate.replyPad, decodeMax);
                 }
             }
         }
