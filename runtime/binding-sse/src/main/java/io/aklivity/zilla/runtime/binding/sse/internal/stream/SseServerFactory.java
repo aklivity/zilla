@@ -1018,7 +1018,7 @@ public final class SseServerFactory implements SseStreamFactory
                     DirectBuffer id = null;
                     DirectBuffer type = null;
                     long timestamp = 0L;
-                    if (flags != 0x00 && extension.sizeof() > 0)
+                    if (extension.sizeof() > 0)
                     {
                         final SseDataExFW sseDataEx = extension.get(sseDataExRO::wrap);
                         id = sseDataEx.id().value();

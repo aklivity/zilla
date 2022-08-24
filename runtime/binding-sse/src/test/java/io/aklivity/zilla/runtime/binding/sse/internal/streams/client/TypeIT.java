@@ -94,6 +94,16 @@ public class TypeIT
     @Test
     @Configuration("client.when.json")
     @Specification({
+        "${app}/non.empty.interleaved/client",
+        "${net}/non.empty.interleaved/response" })
+    public void shouldReceiveNonEmptyTypeInterleaved() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
         "${app}/fragmented/client",
         "${net}/fragmented/response" })
     @ScriptProperty("padding " + MAXIMUM_HEADER_SIZE)

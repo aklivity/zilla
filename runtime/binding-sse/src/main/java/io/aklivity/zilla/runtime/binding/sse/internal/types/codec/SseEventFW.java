@@ -166,9 +166,31 @@ public final class SseEventFW extends Flyweight
         @Override
         public SseEventFW build()
         {
-            if ((flags & 0x02) == 0x00) // INIT
+            final DirectBuffer textAsBytes = data != null ? data.buffer() : null;
+            final int offset = data != null ? data.offset() : 0;
+            final int limit = data != null ? data.limit() : 0;
+
+            int progress = offset;
+            int flags = this.flags;
+
+            if (data != null)
             {
-                buildData(data);
+                if ((flags & 0x02) == 0x00) // no INIT
+                {
+                    int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
+                    if (newlineAt != -1)
+                    {
+                        buildData(textAsBytes, progress, newlineAt - progress, flags | 0x01);
+                        flags |= 0x02; // INIT
+                        progress = newlineAt + 1;
+                    }
+                }
+
+                if (flags == 0x01 && progress == limit) // FIN
+                {
+                    buildData(textAsBytes, progress, limit - progress, flags);
+                    progress = limit;
+                }
             }
 
             buildComment(comment);
@@ -176,11 +198,20 @@ public final class SseEventFW extends Flyweight
             buildId(id);
             buildType(type);
 
-            if ((flags & 0x02) != 0x00) // INIT
+            if (data != null && (flags != 0x01 || progress < limit))
             {
-                buildData(data);
-            }
 
+                for (int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
+                    newlineAt != -1;
+                    progress = newlineAt + 1,
+                        newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a))
+                {
+                    buildData(textAsBytes, progress, newlineAt - progress, flags | 0x01); // FIN
+                    flags |= 0x02; // INIT
+                }
+
+                buildData(textAsBytes, progress, limit - progress, flags);
+            }
 
             if ((flags & 0x01) != 0x00) // FIN
             {
@@ -191,34 +222,6 @@ public final class SseEventFW extends Flyweight
             }
 
             return super.build();
-        }
-
-        private Builder buildData(
-            OctetsFW data)
-        {
-            if (data != null)
-            {
-                final DirectBuffer textAsBytes = data.buffer();
-                final int offset = data.offset();
-                final int length = data.sizeof();
-
-                int progress = offset;
-                int limit = offset + length;
-                int flags = this.flags;
-
-                for (int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
-                     newlineAt != -1;
-                     progress = newlineAt + 1,
-                        newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a))
-                {
-                    buildData(textAsBytes, progress, newlineAt - progress, flags | 0x01); // FIN
-                    flags |= 0x02; // INIT
-                }
-
-                buildData(textAsBytes, progress, limit - progress, flags);
-            }
-
-            return this;
         }
 
         private Builder buildData(
@@ -236,8 +239,11 @@ public final class SseEventFW extends Flyweight
                 limit(limit() + DATA_FIELD_HEADER.length);
             }
 
-            buffer.putBytes(limit(), textAsBytes, offset, length);
-            limit(limit() + length);
+            if (length > 0)
+            {
+                buffer.putBytes(limit(), textAsBytes, offset, length);
+                limit(limit() + length);
+            }
 
             if ((flags & 0x01) != 0x00) // FIN
             {
@@ -254,8 +260,6 @@ public final class SseEventFW extends Flyweight
         {
             if (id != null)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 checkLimit(limit() +
                            ID_FIELD_HEADER.length +
                            id.capacity() +
@@ -280,8 +284,6 @@ public final class SseEventFW extends Flyweight
         {
             if (timestamp > 0L)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 final int timestampSize = Math.max((Long.SIZE - numberOfLeadingZeros(timestamp) + 3) / 4, 1);
 
                 checkLimit(limit() +
@@ -312,8 +314,6 @@ public final class SseEventFW extends Flyweight
         {
             if (type != null)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 checkLimit(limit() +
                            TYPE_FIELD_HEADER.length +
                            type.capacity() +
@@ -338,8 +338,6 @@ public final class SseEventFW extends Flyweight
         {
             if (comment != null)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 checkLimit(limit() +
                             COMMENT_HEADER.length +
                             COMMENT_TRAILER_LENGTH,
