@@ -65,6 +65,15 @@ public class TypeIT
 
     @Test
     @Specification({
+        "${net}/non.empty.trailing/request",
+        "${net}/non.empty.trailing/response" })
+    public void shouldReceiveNonEmptyEventTrailing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/fragmented/request",
         "${net}/fragmented/response" })
     public void shouldReceiveNonEmptyEventWithFragmentedMessage() throws Exception

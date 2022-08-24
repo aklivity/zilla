@@ -65,6 +65,15 @@ public class TypeIT
 
     @Test
     @Specification({
+        "${app}/non.empty.trailing/client",
+        "${app}/non.empty.trailing/server" })
+    public void shouldReceiveNonEmptyTypeTrailing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/fragmented/client",
         "${app}/fragmented/server" })
     public void shouldReceiveNonEmptyTypeWithFragmentedMessage() throws Exception

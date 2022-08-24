@@ -147,6 +147,7 @@ public final class SseServerFactory implements SseStreamFactory
     private final HttpDecodeHelper httpHelper = new HttpDecodeHelper();
 
     private final String8FW challengeEventType;
+    private final OctetsFW challengeEventRO = new OctetsFW();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer challengeBuffer;
@@ -572,11 +573,12 @@ public final class SseServerFactory implements SseStreamFactory
 
                 final String challengeJson = challengeObject.build().toString();
                 final int challengeBytes = challengeBuffer.putStringWithoutLengthUtf8(0, challengeJson);
+                final OctetsFW challengeEvent = challengeEventRO.wrap(challengeBuffer, 0, challengeBytes);
 
                 final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                         .flags(Flags.INIT | Flags.FIN)
                         .type(challengeEventType.value())
-                        .data(challengeBuffer, 0, challengeBytes)
+                        .data(challengeEvent)
                         .build();
 
                 final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())

@@ -28,4 +28,12 @@ write zilla:begin.ext ${sse:beginEx()
 
 connected
 
+read option zilla:flags "init"
+read "Hello, world"
+
+read option zilla:flags "fin"
+read zilla:data.ext ${sse:matchDataEx()
+                         .typeId(zilla:id("sse"))
+                         .type("one")
+                         .build()}
 read zilla:data.empty

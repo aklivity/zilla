@@ -87,9 +87,11 @@ public class SseClientFactory implements SseStreamFactory
     private static final IntPredicate COLON_MATCHER = v -> v == LINE_COLON_BYTE;
     private static final IntPredicate EOF_MATCHER = COLON_MATCHER.or(EOL_MATCHER);
 
+    private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+
     private static final String8FW FIELD_VALUE_NULL = new String8FW(null);
     private static final String8FW FIELD_VALUE_EMPTY = new String8FW("");
-    private static final OctetsFW FIELD_DATA_EMPTY = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private static final OctetsFW FIELD_DATA_EMPTY = EMPTY_OCTETS;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -958,11 +960,15 @@ public class SseClientFactory implements SseStreamFactory
             String8FW type,
             OctetsFW data)
         {
-            final SseDataExFW sseDataEx = sseDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(sseTypeId)
-                    .id(id)
-                    .type(type)
-                    .build();
+            final Flyweight sseDataEx =
+                id != FIELD_VALUE_NULL ||
+                type != FIELD_VALUE_NULL
+                    ? sseDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(sseTypeId)
+                            .id(id)
+                            .type(type)
+                            .build()
+                    : EMPTY_OCTETS;
 
             if (decodedDataLines > 1 && decodedData != null)
             {

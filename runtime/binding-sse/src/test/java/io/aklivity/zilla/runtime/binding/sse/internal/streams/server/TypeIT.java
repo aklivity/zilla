@@ -74,6 +74,16 @@ public class TypeIT
     @Test
     @Configuration("server.when.json")
     @Specification({
+        "${net}/non.empty.trailing/request",
+        "${app}/non.empty.trailing/server" })
+    public void shouldReceiveNonEmptyTypeTrailing() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
         "${net}/fragmented/request",
         "${app}/fragmented/server" })
     @ScriptProperty("padding " + MAXIMUM_HEADER_SIZE)

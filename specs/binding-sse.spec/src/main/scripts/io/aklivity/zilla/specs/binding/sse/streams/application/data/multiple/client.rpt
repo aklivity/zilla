@@ -28,17 +28,6 @@ write zilla:begin.ext ${sse:beginEx()
 
 connected
 
-read zilla:data.ext ${sse:matchDataEx()
-                         .typeId(zilla:id("sse"))
-                         .id(null)
-                         .type(null)
-                         .build()}
 read "Hello, world"
 
-
-read zilla:data.ext ${sse:matchDataEx()
-                         .typeId(zilla:id("sse"))
-                         .id(null)
-                         .type(null)
-                         .build()}
 read "Hello, again"
