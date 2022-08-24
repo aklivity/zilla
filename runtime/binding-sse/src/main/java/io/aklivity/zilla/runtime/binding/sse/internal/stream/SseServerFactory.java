@@ -725,12 +725,10 @@ public final class SseServerFactory implements SseStreamFactory
         {
             final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .flags(flags)
-                    .dataFinOnly(payload)
                     .timestamp(timestamp)
                     .id(id)
                     .type(type)
-                    .dataInit(payload)
-                    .dataContOnly(payload)
+                    .data(payload)
                     .build();
 
             doNetData(traceId, authorization, budgetId, reserved, flags, sseEvent);

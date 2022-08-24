@@ -80,7 +80,6 @@ public class DataIT
         k3po.finish();
     }
 
-    @Ignore("TODO: multi-line")
     @Test
     @Configuration("server.when.json")
     @Specification({

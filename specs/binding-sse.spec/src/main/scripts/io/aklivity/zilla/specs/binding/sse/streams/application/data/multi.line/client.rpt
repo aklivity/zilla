@@ -28,4 +28,4 @@ write zilla:begin.ext ${sse:beginEx()
 
 connected
 
-read "Hello\nworld"
+read "Hello\nworld\n"

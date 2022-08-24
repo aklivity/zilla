@@ -29,5 +29,5 @@ read zilla:begin.ext ${sse:beginEx()
 
 connected
 
-write "Hello\nworld"
+write "Hello\nworld\n"
 write flush

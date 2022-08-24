@@ -41,5 +41,6 @@ write flush
 
 write "data:Hello\n"
 write "data:world\n"
+write "data:\n"
 write "\n"
 write flush

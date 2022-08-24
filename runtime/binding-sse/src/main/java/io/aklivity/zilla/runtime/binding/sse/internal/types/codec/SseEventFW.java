@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.binding.sse.internal.types.codec;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.function.IntPredicate;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
@@ -114,35 +116,27 @@ public final class SseEventFW extends Flyweight
             return this;
         }
 
-        public Builder dataInit(
+        public Builder data(
             OctetsFW data)
         {
-            if (data != null && (flags & 0x02) != 0x00) // INIT
+            final DirectBuffer textAsBytes = data.buffer();
+            final int offset = data.offset();
+            final int length = data.sizeof();
+
+            int progress = offset;
+            int limit = offset + length;
+            int flags = this.flags;
+
+            for (int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
+                 newlineAt != -1;
+                 progress = newlineAt + 1,
+                    newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a))
             {
-                data(data.buffer(), data.offset(), data.sizeof());
+                data(textAsBytes, progress, newlineAt - progress, flags | 0x01); // FIN
+                flags |= 0x02; // INIT
             }
 
-            return this;
-        }
-
-        public Builder dataContOnly(
-            OctetsFW data)
-        {
-            if (data != null && flags == 0x00) // CONT only
-            {
-                data(data.buffer(), data.offset(), data.sizeof());
-            }
-
-            return this;
-        }
-
-        public Builder dataFinOnly(
-            OctetsFW data)
-        {
-            if (data != null && flags == 0x01) // FIN only
-            {
-                data(data.buffer(), data.offset(), data.sizeof());
-            }
+            data(textAsBytes, progress, limit - progress, flags);
 
             return this;
         }
@@ -151,6 +145,15 @@ public final class SseEventFW extends Flyweight
             DirectBuffer textAsBytes,
             int offset,
             int length)
+        {
+            return data(textAsBytes, offset, length, flags);
+        }
+
+        private Builder data(
+            DirectBuffer textAsBytes,
+            int offset,
+            int length,
+            int flags)
         {
             final MutableDirectBuffer buffer = buffer();
 
@@ -295,5 +298,24 @@ public final class SseEventFW extends Flyweight
 
             return super.build();
         }
+    }
+
+    private static int indexOfByte(
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        IntPredicate matcher)
+    {
+        for (int cursor = offset; cursor < limit; cursor++)
+        {
+            final int ch = buffer.getByte(cursor);
+
+            if (matcher.test(ch))
+            {
+                return cursor;
+            }
+        }
+
+        return -1;
     }
 }
