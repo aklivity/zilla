@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -114,6 +115,7 @@ public class JwtGuardHandler implements GuardHandler
                 break authorize;
             }
 
+            signature.setKey(null);
             signature.setKey(key.getKey());
             if (!signature.verifySignature())
             {
@@ -127,7 +129,7 @@ public class JwtGuardHandler implements GuardHandler
             String issuer = claims.getIssuer();
             List<String> audience = claims.getAudience();
 
-            long now = System.currentTimeMillis();
+            long now = Instant.now().toEpochMilli();
             if (notBefore != null && now < notBefore.getValueInMillis() ||
                 notAfter != null && now > notAfter.getValueInMillis() ||
                 issuer == null || !issuer.equals(this.issuer) ||
@@ -330,7 +332,10 @@ public class JwtGuardHandler implements GuardHandler
         boolean challenge(
             long now)
         {
-            final boolean challenge = challengeAt <= now && now < expiresAt && challengedAt < challengeAt;
+            final boolean challenge =
+                subject != null &&
+                challengeAt <= now && now < expiresAt &&
+                challengedAt < challengeAt;
 
             if (challenge)
             {
