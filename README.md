@@ -146,6 +146,7 @@ You can also quickly test out Zilla by running preconfigured Zilla configuration
 | [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
 | [sse.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
+| [sse.proxy.jwt](https://github.com/aklivity/zilla-examples/tree/main/sse.proxy.jwt) | Proxies messages delivered by the SSE server, enforcing streaming security constraints |
 | [ws.echo](https://github.com/aklivity/zilla-examples/tree/main/ws.echo) | Echoes messages sent to the WebSocket server |
 | [ws.reflect](https://github.com/aklivity/zilla-examples/tree/main/ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
 
