@@ -20,10 +20,10 @@ connect "zilla://streams/net0"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/events/a8b7c6d5")
+                              .header(":scheme", "http")
                               .header(":authority", "localhost:8080")
+                              .header(":path", "/events/a8b7c6d5")
                               .header("accept", "text/event-stream")
                               .build()}
 
@@ -38,5 +38,6 @@ read zilla:begin.ext ${http:beginEx()
                              .build()}
 
 read "data:Hello\n"
-read "data:world\n"
-read "\n"
+     "data:world\n"
+     "data:\n"
+     "\n"

@@ -20,8 +20,10 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${sse:beginEx()
                            .typeId(zilla:id("sse"))
-                           .pathInfo("/events/a8b7c6d5")
-                           .lastEventId("100")
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/events/a8b7c6d5")
+                           .lastId("100")
                            .build()}
 
 connected

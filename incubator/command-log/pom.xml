@@ -45,6 +45,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-sse.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>binding-kafka.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -84,7 +90,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream proxy::stream</scopeNames>
+          <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream sse::stream proxy::stream</scopeNames>
           <packageName>io.aklivity.zilla.runtime.command.log.internal.types</packageName>
         </configuration>
         <executions>

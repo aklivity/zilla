@@ -47,6 +47,15 @@ public class ReconnectIT
 
     @Test
     @Specification({
+        "${app}/last.event.id.data.null/client",
+        "${app}/last.event.id.data.null/server" })
+    public void shouldReconnectWithLastEventIdOnDataNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/last.event.id.end/client",
         "${app}/last.event.id.end/server" })
     public void shouldReconnectWithLastEventIdOnEnd() throws Exception

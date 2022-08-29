@@ -19,10 +19,12 @@ accept "zilla://streams/sse0"
 accepted
 
 read zilla:begin.ext ${sse:beginEx()
-                            .typeId(zilla:id("sse"))
-                            .pathInfo("/test/example-key/example-tag")
-                            .lastEventId(null)
-                            .build()}
+                          .typeId(zilla:id("sse"))
+                          .scheme("http")
+                          .authority("localhost:8080")
+                          .path("/test/example-key/example-tag")
+                          .lastId(null)
+                          .build()}
 
 connected
 

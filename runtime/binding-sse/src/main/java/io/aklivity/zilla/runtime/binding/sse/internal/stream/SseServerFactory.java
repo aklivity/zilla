@@ -79,6 +79,8 @@ public final class SseServerFactory implements SseStreamFactory
     private static final String HTTP_TYPE_NAME = "http";
 
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
+    private static final String8FW HEADER_NAME_SCHEME = new String8FW(":scheme");
+    private static final String8FW HEADER_NAME_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
     private static final String8FW HEADER_NAME_ACCEPT = new String8FW("accept");
@@ -145,6 +147,7 @@ public final class SseServerFactory implements SseStreamFactory
     private final HttpDecodeHelper httpHelper = new HttpDecodeHelper();
 
     private final String8FW challengeEventType;
+    private final OctetsFW challengeEventRO = new OctetsFW();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer challengeBuffer;
@@ -240,39 +243,41 @@ public final class SseServerFactory implements SseStreamFactory
         httpHelper.reset();
         headers.forEach(httpHelper::onHttpHeader);
 
-        String16FW pathInfo = httpHelper.path; // TODO: ":pathinfo" ?
-        String16FW lastEventId = httpHelper.lastEventId;
+        String16FW scheme = httpHelper.scheme;
+        String16FW authority = httpHelper.authority;
+        String16FW path = httpHelper.path;
+        String16FW lastId = httpHelper.lastId;
 
         // extract lastEventId query parameter from pathInfo
         // use query parameter value as default for missing Last-Event-ID header
-        if (pathInfo != null)
+        if (path != null)
         {
-            Matcher matcher = QUERY_PARAMS_PATTERN.matcher(pathInfo.asString());
+            Matcher matcher = QUERY_PARAMS_PATTERN.matcher(path.asString());
             if (matcher.matches())
             {
-                String path = matcher.group("path");
+                String pathGroup = matcher.group("path");
 
-                if (lastEventId == null)
+                if (lastId == null)
                 {
-                    String query = matcher.group("query");
+                    String queryGroup = matcher.group("query");
 
-                    matcher = LAST_EVENT_ID_PATTERN.matcher(query);
+                    matcher = LAST_EVENT_ID_PATTERN.matcher(queryGroup);
                     if (matcher.find())
                     {
-                        lastEventId = decodeLastEventId(matcher.group("lastEventId"));
+                        lastId = decodeLastEventId(matcher.group("lastEventId"));
                     }
                 }
 
-                pathInfo = new String16FW(path);
+                path = new String16FW(pathGroup);
             }
         }
 
         MessageConsumer newStream = null;
 
-        if (lastEventId == null || lastEventId.length() <= MAXIMUM_LAST_EVENT_ID_SIZE)
+        if (lastId == null || lastId.length() <= MAXIMUM_LAST_EVENT_ID_SIZE)
         {
             final SseBindingConfig binding = bindings.get(routeId);
-            final SseRouteConfig resolved = binding != null ?  binding.resolve(authorization, pathInfo.asString()) : null;
+            final SseRouteConfig resolved = binding != null ?  binding.resolve(authorization, path.asString()) : null;
 
             if (resolved != null)
             {
@@ -280,7 +285,7 @@ public final class SseServerFactory implements SseStreamFactory
                     HEADER_NAME_ACCEPT.equals(header.name()) &&
                     header.value().asString().contains("ext=timestamp"));
 
-                final String8FW lastEventId8 = httpHelper.asLastEventId(lastEventId);
+                final String8FW lastId8 = httpHelper.asLastId(lastId);
 
                 final SseServer server = new SseServer(
                     network,
@@ -290,7 +295,7 @@ public final class SseServerFactory implements SseStreamFactory
                     timestampRequested);
 
                 server.onNetBegin(begin);
-                server.stream.doAppBegin(traceId, authorization, affinity, pathInfo, lastEventId8);
+                server.stream.doAppBegin(traceId, authorization, affinity, scheme, authority, path, lastId8);
 
                 newStream = server::onNetMessage;
             }
@@ -426,7 +431,7 @@ public final class SseServerFactory implements SseStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseState.closeInitial(state);
+            state = SseState.closedInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -445,7 +450,7 @@ public final class SseServerFactory implements SseStreamFactory
             assert sequence >= initialSeq;
 
             initialSeq = sequence;
-            state = SseState.closeInitial(state);
+            state = SseState.closedInitial(state);
 
             assert initialAck <= initialSeq;
 
@@ -468,7 +473,7 @@ public final class SseServerFactory implements SseStreamFactory
 
             httpReplyAck = acknowledge;
             httpReplyMax = maximum;
-            state = SseState.closeReply(state);
+            state = SseState.closedReply(state);
 
             assert httpReplyAck <= httpReplySeq;
 
@@ -498,7 +503,7 @@ public final class SseServerFactory implements SseStreamFactory
             httpReplyPad = padding;
             httpReplyBud = budgetId;
             httpReplyAuth = authorization;
-            state = SseState.openReply(state);
+            state = SseState.openedReply(state);
 
             assert httpReplyAck <= httpReplySeq;
 
@@ -568,11 +573,12 @@ public final class SseServerFactory implements SseStreamFactory
 
                 final String challengeJson = challengeObject.build().toString();
                 final int challengeBytes = challengeBuffer.putStringWithoutLengthUtf8(0, challengeJson);
+                final OctetsFW challengeEvent = challengeEventRO.wrap(challengeBuffer, 0, challengeBytes);
 
                 final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                         .flags(Flags.INIT | Flags.FIN)
                         .type(challengeEventType.value())
-                        .data(challengeBuffer, 0, challengeBytes)
+                        .data(challengeEvent)
                         .build();
 
                 final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -625,6 +631,8 @@ public final class SseServerFactory implements SseStreamFactory
                     replySeq, replyAck, replyMax, traceId, authorization, affinity,
                     setHttpHeaders);
 
+            state = SseState.openingReply(state);
+
             encodeNetwork(traceId);
         }
 
@@ -660,7 +668,7 @@ public final class SseServerFactory implements SseStreamFactory
         {
             if (!SseState.replyClosed(state))
             {
-                state = SseState.closeReply(state);
+                state = SseState.closedReply(state);
 
                 doHttpAbort(network, routeId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
                         traceId, authorization);
@@ -675,7 +683,7 @@ public final class SseServerFactory implements SseStreamFactory
         {
             if (!SseState.replyClosed(state))
             {
-                state = SseState.closeReply(state);
+                state = SseState.closedReply(state);
 
                 doHttpEnd(network, routeId, replyId, httpReplySeq, httpReplyAck, httpReplyMax,
                         traceId, authorization);
@@ -700,7 +708,7 @@ public final class SseServerFactory implements SseStreamFactory
         {
             if (!SseState.initialClosed(state))
             {
-                state = SseState.closeInitial(state);
+                state = SseState.closedInitial(state);
 
                 doReset(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
@@ -719,12 +727,10 @@ public final class SseServerFactory implements SseStreamFactory
         {
             final SseEventFW sseEvent = sseEventRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
                     .flags(flags)
-                    .dataFinOnly(payload)
                     .timestamp(timestamp)
                     .id(id)
                     .type(type)
-                    .dataInit(payload)
-                    .dataContOnly(payload)
+                    .data(payload)
                     .build();
 
             doNetData(traceId, authorization, budgetId, reserved, flags, sseEvent);
@@ -869,11 +875,13 @@ public final class SseServerFactory implements SseStreamFactory
                 long traceId,
                 long authorization,
                 long affinity,
-                String16FW pathInfo,
-                String8FW lastEventId)
+                String16FW scheme,
+                String16FW authority,
+                String16FW path,
+                String8FW lastId)
             {
                 application = newSseStream(this::onAppMessage, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, affinity, pathInfo, lastEventId);
+                        traceId, authorization, affinity, scheme, authority, path, lastId);
             }
 
             private void doAppEndDeferred(
@@ -894,7 +902,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 if (!SseState.initialClosed(state))
                 {
-                    state = SseState.closeInitial(state);
+                    state = SseState.closedInitial(state);
 
                     doEnd(application, routeId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization);
@@ -907,7 +915,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 if (!SseState.initialClosed(state))
                 {
-                    state = SseState.closeInitial(state);
+                    state = SseState.closedInitial(state);
 
                     doAbort(application, routeId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization);
@@ -1010,7 +1018,7 @@ public final class SseServerFactory implements SseStreamFactory
                     DirectBuffer id = null;
                     DirectBuffer type = null;
                     long timestamp = 0L;
-                    if (flags != 0x00 && extension.sizeof() > 0)
+                    if (extension.sizeof() > 0)
                     {
                         final SseDataExFW sseDataEx = extension.get(sseDataExRO::wrap);
                         id = sseDataEx.id().value();
@@ -1035,7 +1043,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
-                state = SseState.closeReply(state);
+                state = SseState.closedReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1130,7 +1138,7 @@ public final class SseServerFactory implements SseStreamFactory
                 assert sequence >= sseReplySeq;
 
                 sseReplySeq = sequence;
-                state = SseState.closeReply(state);
+                state = SseState.closedReply(state);
 
                 assert sseReplyAck <= sseReplySeq;
 
@@ -1184,7 +1192,7 @@ public final class SseServerFactory implements SseStreamFactory
             {
                 if (!SseState.replyClosed(state))
                 {
-                    state = SseState.closeReply(state);
+                    state = SseState.closedReply(state);
 
                     doReset(application, routeId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
                             traceId);
@@ -1202,13 +1210,15 @@ public final class SseServerFactory implements SseStreamFactory
                 }
 
                 int sseReplyPad = httpReplyPad + MAXIMUM_HEADER_SIZE;
-                int sseReplyAckMax = (int)(sseReplySeq - httpReplyPendingAck);
+                int sseReplyAckMax = Math.max((int)(sseReplySeq - httpReplyPendingAck), 0);
                 if (sseReplyAckMax > sseReplyAck || httpReplyMax > sseReplyMax)
                 {
                     sseReplyAck = sseReplyAckMax;
                     assert sseReplyAck <= sseReplySeq;
 
                     sseReplyMax = httpReplyMax;
+
+                    state = SseState.openedReply(state);
 
                     doWindow(application, routeId, replyId, sseReplySeq, sseReplyAck, sseReplyMax,
                             traceId, httpReplyAuth, httpReplyBud, sseReplyPad, 0);
@@ -1219,13 +1229,17 @@ public final class SseServerFactory implements SseStreamFactory
 
     private final class HttpDecodeHelper
     {
-        private final String8FW.Builder lastEventIdRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+        private final String8FW.Builder lastIdRW = new String8FW.Builder().wrap(new UnsafeBuffer(new byte[256]), 0, 256);
 
+        private final String16FW schemeRO = new String16FW();
+        private final String16FW authorityRO = new String16FW();
         private final String16FW pathRO = new String16FW();
-        private final String16FW lastEventIdRO = new String16FW();
+        private final String16FW lastIdRO = new String16FW();
 
+        private String16FW scheme;
+        private String16FW authority;
         private String16FW path;
-        private String16FW lastEventId;
+        private String16FW lastId;
 
         private void onHttpHeader(
             HttpHeaderFW header)
@@ -1233,27 +1247,37 @@ public final class SseServerFactory implements SseStreamFactory
             final String8FW name = header.name();
             final String16FW value = header.value();
 
-            if (HEADER_NAME_PATH.equals(name))
+            if (HEADER_NAME_SCHEME.equals(name))
+            {
+                scheme = schemeRO.wrap(value.buffer(), value.offset(), value.limit());
+            }
+            else if (HEADER_NAME_AUTHORITY.equals(name))
+            {
+                authority = authorityRO.wrap(value.buffer(), value.offset(), value.limit());
+            }
+            else if (HEADER_NAME_PATH.equals(name))
             {
                 path = pathRO.wrap(value.buffer(), value.offset(), value.limit());
             }
             else if (HEADER_NAME_LAST_EVENT_ID.equals(name))
             {
-                lastEventId = lastEventIdRO.wrap(value.buffer(), value.offset(), value.limit());
+                lastId = lastIdRO.wrap(value.buffer(), value.offset(), value.limit());
             }
         }
 
-        private String8FW asLastEventId(
-            String16FW lastEventId)
+        private String8FW asLastId(
+            String16FW lastId)
         {
-            lastEventIdRW.rewrap();
-            return lastEventId != null ? lastEventIdRW.set(lastEventId).build() : LAST_EVENT_ID_NULL;
+            lastIdRW.rewrap();
+            return lastId != null ? lastIdRW.set(lastId).build() : LAST_EVENT_ID_NULL;
         }
 
         private void reset()
         {
+            scheme = null;
+            authority = null;
             path = null;
-            lastEventId = null;
+            lastId = null;
         }
     }
 
@@ -1443,13 +1467,17 @@ public final class SseServerFactory implements SseStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String16FW pathInfo,
-        String8FW lastEventId)
+        String16FW scheme,
+        String16FW authority,
+        String16FW path,
+        String8FW lastId)
     {
         final SseBeginExFW sseBegin = sseBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                 .typeId(sseTypeId)
-                .pathInfo(pathInfo)
-                .lastEventId(lastEventId)
+                .scheme(scheme)
+                .authority(authority)
+                .path(path)
+                .lastId(lastId)
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
