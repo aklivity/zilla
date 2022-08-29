@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemSymbolicLinksConfig.IGNORE;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
@@ -50,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetF
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class FileSystemServerFactory implements FileSystemStreamFactory
@@ -84,6 +87,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer readBuffer;
+    private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
 
@@ -97,6 +101,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.readBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
 
@@ -198,6 +203,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private int replyPad;
         private long replyBud;
         private long replyBytes;
+        private BudgetDebitor replyDeb;
+        private long replyDebIndex = NO_DEBITOR_INDEX;
 
         private int state;
 
@@ -352,6 +359,12 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             state = FileSystemState.openReply(state);
 
+            if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+            {
+                replyDeb = supplyDebitor.apply(budgetId);
+                replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
+            }
+
             flushAppData(traceId);
         }
 
@@ -442,7 +455,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private void flushAppData(
             long traceId)
         {
-            int replyWin = replyMax - (int)(replySeq - replyAck) - replyPad;
+            final int replyNoAck = (int)(replySeq - replyAck);
+            final int replyWin = replyMax - replyNoAck - replyPad;
 
             if (replyWin > 0)
             {
@@ -452,13 +466,22 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 {
                     try
                     {
+                        int length = Math.min(replyWin, input.available());
+                        int reserved = length + replyPad;
+
+                        if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
+                        {
+                            final int minimum = reserved; // TODO: fragmentation
+                            reserved = replyDeb.claim(0L, replyDebIndex, replyId, minimum, reserved, 0);
+                            length = Math.max(reserved - replyPad, 0);
+                        }
+
                         final byte[] readArray = readBuffer.byteArray();
-                        int bytesRead = input.read(readArray, 0, Math.min(readArray.length, replyWin));
+                        int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
 
                         if (bytesRead != -1)
                         {
                             OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
-                            int reserved = bytesRead + replyPad;
 
                             doAppData(traceId, reserved, payload);
 

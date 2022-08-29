@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.binding.sse.internal.types.codec;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.function.IntPredicate;
+
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
@@ -89,7 +91,12 @@ public final class SseEventFW extends Flyweight
 
     public static final class Builder extends Flyweight.Builder<SseEventFW>
     {
+        private OctetsFW data;
         private int flags;
+        private DirectBuffer id;
+        private long timestamp;
+        private DirectBuffer type;
+        private DirectBuffer comment;
 
         public Builder()
         {
@@ -103,7 +110,14 @@ public final class SseEventFW extends Flyweight
             int maxLimit)
         {
             super.wrap(buffer, offset, maxLimit);
+
+            data = null;
             flags = 0;
+            id = null;
+            timestamp = 0L;
+            type = null;
+            comment = null;
+
             return this;
         }
 
@@ -114,43 +128,107 @@ public final class SseEventFW extends Flyweight
             return this;
         }
 
-        public Builder dataInit(
-            OctetsFW data)
-        {
-            if (data != null && (flags & 0x02) != 0x00) // INIT
-            {
-                data(data.buffer(), data.offset(), data.sizeof());
-            }
-
-            return this;
-        }
-
-        public Builder dataContOnly(
-            OctetsFW data)
-        {
-            if (data != null && flags == 0x00) // CONT only
-            {
-                data(data.buffer(), data.offset(), data.sizeof());
-            }
-
-            return this;
-        }
-
-        public Builder dataFinOnly(
-            OctetsFW data)
-        {
-            if (data != null && flags == 0x01) // FIN only
-            {
-                data(data.buffer(), data.offset(), data.sizeof());
-            }
-
-            return this;
-        }
-
         public Builder data(
+            OctetsFW data)
+        {
+            this.data = data;
+            return this;
+        }
+
+        public Builder id(
+            DirectBuffer id)
+        {
+            this.id = id;
+            return this;
+        }
+
+        public Builder timestamp(
+            long timestamp)
+        {
+            this.timestamp = timestamp;
+            return this;
+        }
+
+        public Builder type(
+            DirectBuffer type)
+        {
+            this.type = type;
+            return this;
+        }
+
+        public Builder comment(
+            DirectBuffer comment)
+        {
+            this.comment = comment;
+            return this;
+        }
+
+        @Override
+        public SseEventFW build()
+        {
+            final DirectBuffer textAsBytes = data != null ? data.buffer() : null;
+            final int offset = data != null ? data.offset() : 0;
+            final int limit = data != null ? data.limit() : 0;
+
+            int progress = offset;
+            int flags = this.flags;
+
+            if (data != null)
+            {
+                if ((flags & 0x02) == 0x00) // no INIT
+                {
+                    int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
+                    if (newlineAt != -1)
+                    {
+                        buildData(textAsBytes, progress, newlineAt - progress, flags | 0x01);
+                        flags |= 0x02; // INIT
+                        progress = newlineAt + 1;
+                    }
+                }
+
+                if (flags == 0x01 && progress == limit) // FIN
+                {
+                    buildData(textAsBytes, progress, limit - progress, flags);
+                    progress = limit;
+                }
+            }
+
+            buildComment(comment);
+            buildTimestamp(timestamp);
+            buildId(id);
+            buildType(type);
+
+            if (data != null && (flags != 0x01 || progress < limit))
+            {
+
+                for (int newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a);
+                    newlineAt != -1;
+                    progress = newlineAt + 1,
+                        newlineAt = indexOfByte(textAsBytes, progress, limit, v -> v == 0x0a))
+                {
+                    buildData(textAsBytes, progress, newlineAt - progress, flags | 0x01); // FIN
+                    flags |= 0x02; // INIT
+                }
+
+                buildData(textAsBytes, progress, limit - progress, flags);
+            }
+
+            if ((flags & 0x01) != 0x00) // FIN
+            {
+                checkLimit(limit() + EVENT_TRAILER_LENGTH, maxLimit());
+
+                buffer().putByte(limit(), EVENT_TRAILER);
+                limit(limit() + EVENT_TRAILER_LENGTH);
+            }
+
+            return super.build();
+        }
+
+        private Builder buildData(
             DirectBuffer textAsBytes,
             int offset,
-            int length)
+            int length,
+            int flags)
         {
             final MutableDirectBuffer buffer = buffer();
 
@@ -161,8 +239,11 @@ public final class SseEventFW extends Flyweight
                 limit(limit() + DATA_FIELD_HEADER.length);
             }
 
-            buffer.putBytes(limit(), textAsBytes, offset, length);
-            limit(limit() + length);
+            if (length > 0)
+            {
+                buffer.putBytes(limit(), textAsBytes, offset, length);
+                limit(limit() + length);
+            }
 
             if ((flags & 0x01) != 0x00) // FIN
             {
@@ -174,13 +255,11 @@ public final class SseEventFW extends Flyweight
             return this;
         }
 
-        public Builder id(
+        private Builder buildId(
             DirectBuffer id)
         {
             if (id != null)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 checkLimit(limit() +
                            ID_FIELD_HEADER.length +
                            id.capacity() +
@@ -200,13 +279,11 @@ public final class SseEventFW extends Flyweight
             return this;
         }
 
-        public Builder timestamp(
+        private Builder buildTimestamp(
             long timestamp)
         {
             if (timestamp > 0L)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 final int timestampSize = Math.max((Long.SIZE - numberOfLeadingZeros(timestamp) + 3) / 4, 1);
 
                 checkLimit(limit() +
@@ -232,13 +309,11 @@ public final class SseEventFW extends Flyweight
             return this;
         }
 
-        public Builder type(
+        private Builder buildType(
             DirectBuffer type)
         {
             if (type != null)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 checkLimit(limit() +
                            TYPE_FIELD_HEADER.length +
                            type.capacity() +
@@ -258,13 +333,11 @@ public final class SseEventFW extends Flyweight
             return this;
         }
 
-        public Builder comment(
+        private Builder buildComment(
             DirectBuffer comment)
         {
             if (comment != null)
             {
-                assert (flags & 0x03) != 0x00; // INIT | FIN
-
                 checkLimit(limit() +
                             COMMENT_HEADER.length +
                             COMMENT_TRAILER_LENGTH,
@@ -281,19 +354,24 @@ public final class SseEventFW extends Flyweight
             }
             return this;
         }
+    }
 
-        @Override
-        public SseEventFW build()
+    private static int indexOfByte(
+        DirectBuffer buffer,
+        int offset,
+        int limit,
+        IntPredicate matcher)
+    {
+        for (int cursor = offset; cursor < limit; cursor++)
         {
-            if ((flags & 0x01) != 0x00) // FIN
+            final int ch = buffer.getByte(cursor);
+
+            if (matcher.test(ch))
             {
-                checkLimit(limit() + EVENT_TRAILER_LENGTH, maxLimit());
-
-                buffer().putByte(limit(), EVENT_TRAILER);
-                limit(limit() + EVENT_TRAILER_LENGTH);
+                return cursor;
             }
-
-            return super.build();
         }
+
+        return -1;
     }
 }

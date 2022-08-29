@@ -101,7 +101,7 @@ public final class HttpBindingConfig
                     Pattern.compile(String.format(
                                     "(;\\s*)?%s=%s",
                                     cookieName,
-                                         config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
+                                    config.pattern.replace("{credentials}", "(?<credentials>[^\\s]+)")))
                             .matcher("");
 
             accessor = orElseIfNull(accessor, hs ->
@@ -124,9 +124,12 @@ public final class HttpBindingConfig
             accessor = orElseIfNull(accessor, hs ->
             {
                 String header = hs.apply(headerName);
-                return header != null && headerMatch.reset(header).matches()
-                        ? headerMatch.group("credentials")
-                        : null;
+                String result = null;
+                if (header != null && headerMatch.reset(header).matches())
+                {
+                    result = headerMatch.group("credentials");
+                }
+                return result;
             });
         }
 
@@ -145,9 +148,12 @@ public final class HttpBindingConfig
             accessor = orElseIfNull(accessor, hs ->
             {
                 String pathWithQuery = hs.apply(":path");
-                return pathWithQuery != null && parametersMatch.reset(pathWithQuery).find()
-                        ? parametersMatch.group("credentials")
-                        : null;
+                String result = null;
+                if (pathWithQuery != null && parametersMatch.reset(pathWithQuery).find())
+                {
+                    result = parametersMatch.group("credentials");
+                }
+                return result;
             });
         }
 

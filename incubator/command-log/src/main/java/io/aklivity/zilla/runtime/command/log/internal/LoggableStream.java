@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.KafkaConfigFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaHeadersFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.KafkaIsolation;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaNotFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaOffsetFW;
@@ -93,6 +94,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -116,6 +118,7 @@ public final class LoggableStream implements AutoCloseable
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final HttpDataExFW httpDataExRO = new HttpDataExFW();
     private final HttpEndExFW httpEndExRO = new HttpEndExFW();
+    private final SseDataExFW sseDataExRO = new SseDataExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
@@ -217,6 +220,11 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
             dataHandlers.put(labels.lookupLabelId("http"), this::onHttpDataEx);
             endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
+        }
+
+        if (hasExtensionType.test("sse"))
+        {
+            dataHandlers.put(labels.lookupLabelId("sse"), this::onSseDataEx);
         }
 
         if (hasExtensionType.test("kafka"))
@@ -753,6 +761,20 @@ public final class LoggableStream implements AutoCloseable
                                          format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
+    private void onSseDataEx(
+        final DataFW data)
+    {
+        final int offset = data.offset() - HEADER_LENGTH;
+        final long timestamp = data.timestamp();
+        final OctetsFW extension = data.extension();
+
+        final SseDataExFW sseDataEx = sseDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp,
+                format("type: %s", sseDataEx.type().asString()));
+        out.printf(verboseFormat, index, offset, timestamp,
+                format("id: %s", sseDataEx.id().asString()));
+    }
+
     private void onKafkaBeginEx(
         final BeginFW begin)
     {
@@ -803,10 +825,16 @@ public final class LoggableStream implements AutoCloseable
         final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
         final KafkaCapabilities capabilities = merged.capabilities().get();
         final Array32FW<KafkaFilterFW> filters = merged.filters();
+        final KafkaIsolation isolation = merged.isolation().get();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s %s", topic.asString(), capabilities));
+        out.printf(verboseFormat, index, offset, timestamp,
+                format("[merged] %s %s %s", topic.asString(), capabilities, isolation));
         partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
+                                         format("%d: %d %d %d",
+                                             p.partitionId(),
+                                             p.partitionOffset(),
+                                             p.stableOffset(),
+                                             p.latestOffset())));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
@@ -830,10 +858,15 @@ public final class LoggableStream implements AutoCloseable
         final String16FW topic = fetch.topic();
         final KafkaOffsetFW partition = fetch.partition();
         final ArrayFW<KafkaFilterFW> filters = fetch.filters();
+        final KafkaIsolation isolation = fetch.isolation().get();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("[fetch] %s", topic.asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("[fetch] %s %s", topic.asString(), isolation));
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d: %d %d", partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
+                   format("%d: %d %d %d",
+                           partition.partitionId(),
+                           partition.partitionOffset(),
+                           partition.stableOffset(),
+                           partition.latestOffset()));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
@@ -970,9 +1003,12 @@ public final class LoggableStream implements AutoCloseable
         final KafkaOffsetFW partition = fetch.partition();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[fetch] (%d) %d %s %d %d %d",
+                   format("[fetch] (%d) %d %s %d %d %d %d",
                            fetch.deferred(), fetch.timestamp(), asString(key.value()),
-                           partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
+                           partition.partitionId(),
+                           partition.partitionOffset(),
+                           partition.stableOffset(),
+                           partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
     }
@@ -1052,7 +1088,11 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, "[merged]");
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
+                   format("%d: %d %d %d",
+                       p.partitionId(),
+                       p.partitionOffset(),
+                       p.stableOffset(),
+                       p.latestOffset())));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
@@ -1064,7 +1104,11 @@ public final class LoggableStream implements AutoCloseable
         final KafkaOffsetFW partition = fetch.partition();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                format("[fetch] %d %d %d", partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
+                format("[fetch] %d %d %d %d",
+                        partition.partitionId(),
+                        partition.partitionOffset(),
+                        partition.stableOffset(),
+                        partition.latestOffset()));
     }
 
     private void onKafkaResetEx(

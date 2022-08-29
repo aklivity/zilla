@@ -1,0 +1,170 @@
+#
+# Copyright 2021-2022 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
+property serverAddress "zilla://streams/app0"
+
+accept ${serverAddress}
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .topic("test")
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("test")
+                                   .build()
+                               .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .meta()
+                                  .partition(0, 177)
+                                  .build()
+                              .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(0, 1)
+                                  .isolation("READ_COMMITTED")
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .topic("test")
+                                   .partition(0, 1, 2, 3)
+                                   .isolation("READ_COMMITTED")
+                                   .build()
+                               .build()}
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 1, 2, 3)
+                                  .key("key1")
+                                  .header("header2", "value2")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 2, 2, 3)
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write await SEND_MESSAGE_3
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 3, 8, 10)
+                                  .key("key1")
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 4, 8, 10)
+                                  .header("header1", "value1")
+                                  .header("header2", "value2")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .partition(0, 5, 8, 10)
+                                  .header("header3", "one")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .partition(0, 6, 8, 10)
+                                  .header("header3", "one")
+                                  .header("header3", "")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .partition(0, 7, 8, 10)
+                                  .header("header3", "one")
+                                  .header("header3", "two")
+                                  .header("header3", "three")
+                                  .header("header3", "four")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .partition(0, 8, 8, 10)
+                                  .header("header3", "one")
+                                  .header("header3", "")
+                                  .header("header3", "three")
+                                  .header("header3", "")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush

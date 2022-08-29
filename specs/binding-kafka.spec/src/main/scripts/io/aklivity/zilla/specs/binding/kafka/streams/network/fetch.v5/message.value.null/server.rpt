@@ -101,7 +101,7 @@ write 128
       0                                 # partition 0
       0s                                # no error
       12L                               # high water mark
-      -1L                               # last stable offset
+      11L                               # last stable offset
       -1L                               # no log start offset
       -1                                # no aborted transaction count
       68                                # record set size

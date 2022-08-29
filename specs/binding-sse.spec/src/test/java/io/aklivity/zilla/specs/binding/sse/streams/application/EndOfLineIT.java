@@ -62,4 +62,13 @@ public class EndOfLineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/carriage.return.line.feed.fragmented/client",
+        "${app}/carriage.return.line.feed.fragmented/server" })
+    public void shouldReceiveDataWithCarriageReturnLineFeedEndOfLineFragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

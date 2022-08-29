@@ -213,7 +213,7 @@ Zilla is designed from the ground up to be extensible and we anticipate adding s
  - OpenTelemetry integration
  - Kubernetes integration
 
-Please let us know in the [Slack community][community-join] if you have additional suggestions.
+Please see the [Roadmap project](https://github.com/orgs/aklivity/projects/4) and let us know in the [Slack community][community-join] if you have additional suggestions.
 
 ## Build from source
 ```bash

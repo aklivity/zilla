@@ -19,8 +19,10 @@ scope sse
     {
         struct SseBeginEx extends core::stream::Extension
         {
-            string16 pathInfo;
-            string8 lastEventId;
+            string16 scheme;
+            string16 authority;
+            string16 path;
+            string8 lastId;
         }
 
         struct SseDataEx extends core::stream::Extension

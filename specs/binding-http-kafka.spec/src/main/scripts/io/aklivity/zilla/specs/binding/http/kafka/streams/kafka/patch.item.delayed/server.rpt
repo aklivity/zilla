@@ -25,6 +25,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("items-commands")
                                 .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
                                 .build()
                             .build()}
 

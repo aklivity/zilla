@@ -36,6 +36,7 @@
                     {
                         "capability": "produce",
                         "topic": "items-commands",
+                        "acks": "leader_only",
                         "key": "${params.id}",
                         "reply-to": "items-replies"
                     }

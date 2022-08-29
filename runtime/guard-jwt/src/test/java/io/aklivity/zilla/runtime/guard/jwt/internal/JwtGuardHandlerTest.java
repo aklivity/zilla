@@ -92,6 +92,29 @@ public class JwtGuardHandlerTest
     }
 
     @Test
+    public void shouldNotChallengeDuringWindowWithoutSubject() throws Exception
+    {
+        Duration challenge = ofSeconds(3L);
+        JwtOptionsConfig options =
+                new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+
+        Instant now = Instant.now();
+
+        JwtClaims claims = new JwtClaims();
+        claims.setClaim("iss", "test issuer");
+        claims.setClaim("aud", "testAudience");
+        claims.setClaim("exp", now.getEpochSecond() + 10L);
+        claims.setClaim("scope", "read:stream write:stream");
+
+        String token = sign(claims.toJson(), "test", RFC7515_RS256, "RS256");
+
+        long sessionId = guard.reauthorize(101L, token);
+
+        assertFalse(guard.challenge(sessionId, now.plusSeconds(8L).toEpochMilli()));
+    }
+
+    @Test
     public void shouldNotChallengeBeforeChallengeWindow() throws Exception
     {
         Duration challenge = ofSeconds(3L);

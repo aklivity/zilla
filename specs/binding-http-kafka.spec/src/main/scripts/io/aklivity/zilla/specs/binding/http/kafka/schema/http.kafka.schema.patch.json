@@ -206,6 +206,12 @@
                                                 "title": "Topic",
                                                 "type": "string"
                                             },
+                                            "acks":
+                                            {
+                                                "title": "Acks",
+                                                "type": "string",
+                                                "enum": [ "none", "leader_only", "in_sync_replicas" ]
+                                            },
                                             "key":
                                             {
                                                 "title": "Key",

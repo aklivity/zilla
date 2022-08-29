@@ -76,17 +76,31 @@ public final class SseFunctions
             return this;
         }
 
-        public SseBeginExBuilder pathInfo(
-            String pathInfo)
+        public SseBeginExBuilder scheme(
+            String scheme)
         {
-            beginExRW.pathInfo(pathInfo);
+            beginExRW.scheme(scheme);
             return this;
         }
 
-        public SseBeginExBuilder lastEventId(
+        public SseBeginExBuilder authority(
+            String authority)
+        {
+            beginExRW.authority(authority);
+            return this;
+        }
+
+        public SseBeginExBuilder path(
+            String path)
+        {
+            beginExRW.path(path);
+            return this;
+        }
+
+        public SseBeginExBuilder lastId(
             String lastEventId)
         {
-            beginExRW.lastEventId(lastEventId);
+            beginExRW.lastId(lastEventId);
             return this;
         }
 

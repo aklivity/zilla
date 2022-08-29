@@ -40,6 +40,6 @@ write zilla:begin.ext ${http:beginEx()
 write flush
 
 write "data:Hello, world\n"
-write "id:  105\n"
+write "id: 105\n"
 write "\n"
 write flush

@@ -702,4 +702,93 @@ public class CacheFetchIT
         k3po.notifyBarrier("SEND_MESSAGE_3");
         k3po.finish();
     }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/isolation.read.committed.aborted/client",
+        "${app}/isolation.read.uncommitted.aborted/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithIsolationReadCommittedWhenAborted() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/isolation.read.committed.aborting/client",
+        "${app}/isolation.read.uncommitted.aborting/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithIsolationReadCommittedWhenAborting() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/isolation.read.committed.committing/client",
+        "${app}/isolation.read.uncommitted.committing/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithIsolationReadCommittedWhenCommitting() throws Exception
+    {
+        partition.append(1L);
+        k3po.start();
+        k3po.notifyBarrier("SEND_COMMIT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/isolation.read.uncommitted.aborted/client",
+        "${app}/isolation.read.uncommitted.aborted/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithIsolationReadUncommittedWhenAborted() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/isolation.read.uncommitted.aborting/client",
+        "${app}/isolation.read.uncommitted.aborting/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithIsolationReadUncommittedWhenAborting() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/isolation.read.uncommitted.committing/client",
+        "${app}/isolation.read.uncommitted.committing/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithIsolationReadUncommittedWhenCommitting() throws Exception
+    {
+        partition.append(1L);
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_UNCOMMITTED");
+        k3po.notifyBarrier("SEND_COMMIT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/partition.leader.distinct/client",
+        "${app}/partition.leader.distinct/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveDistinctPartitionLeader() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
 }

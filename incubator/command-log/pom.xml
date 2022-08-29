@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>0.9.28</version>
+    <version>0.9.29</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -40,6 +40,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-http.spec</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-sse.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -84,7 +90,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream proxy::stream</scopeNames>
+          <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream sse::stream proxy::stream</scopeNames>
           <packageName>io.aklivity.zilla.runtime.command.log.internal.types</packageName>
         </configuration>
         <executions>

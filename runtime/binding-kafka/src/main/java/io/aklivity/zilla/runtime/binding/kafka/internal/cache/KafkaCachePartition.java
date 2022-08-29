@@ -54,6 +54,7 @@ import org.agrona.io.ExpandableDirectBufferOutputStream;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
@@ -75,6 +76,8 @@ public final class KafkaCachePartition
 
     public static final int CACHE_ENTRY_FLAGS_DIRTY = 0x01;
     public static final int CACHE_ENTRY_FLAGS_COMPLETED = 0x02;
+    public static final int CACHE_ENTRY_FLAGS_ABORTED = 0x04;
+    public static final int CACHE_ENTRY_FLAGS_CONTROL = 0x08;
     public static final int CACHE_ENTRY_FLAGS_ADVANCE = CACHE_ENTRY_FLAGS_COMPLETED | CACHE_ENTRY_FLAGS_DIRTY;
 
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
@@ -91,7 +94,7 @@ public final class KafkaCachePartition
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[5 * Long.BYTES + 3 * Integer.BYTES]);
+    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[5 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
@@ -309,14 +312,17 @@ public final class KafkaCachePartition
     public void writeEntry(
         long offset,
         long timestamp,
+        long producerId,
         KafkaKeyFW key,
         ArrayFW<KafkaHeaderFW> headers,
         OctetsFW value,
         KafkaCacheEntryFW ancestor,
+        int entryFlags,
         KafkaDeltaType deltaType)
     {
         final long keyHash = computeHash(key);
-        writeEntryStart(offset, timestamp, key, keyHash, value != null ? value.sizeof() : -1, ancestor, deltaType);
+        final int valueLength = value != null ? value.sizeof() : -1;
+        writeEntryStart(offset, timestamp, producerId, key, keyHash, valueLength, ancestor, entryFlags, deltaType);
         writeEntryContinue(value);
         writeEntryFinish(headers, deltaType);
     }
@@ -324,10 +330,12 @@ public final class KafkaCachePartition
     public void writeEntryStart(
         long offset,
         long timestamp,
+        long producerId,
         KafkaKeyFW key,
         long keyHash,
         int valueLength,
         KafkaCacheEntryFW ancestor,
+        int entryFlags,
         KafkaDeltaType deltaType)
     {
         assert offset > this.progress : String.format("%d > %d", offset, this.progress);
@@ -359,12 +367,13 @@ public final class KafkaCachePartition
 
         entryInfo.putLong(0, progress);
         entryInfo.putLong(Long.BYTES, timestamp);
-        entryInfo.putLong(2 * Long.BYTES, 0x00L);
+        entryInfo.putLong(2 * Long.BYTES, producerId);
         entryInfo.putInt(3 * Long.BYTES, NO_SEQUENCE);
         entryInfo.putLong(3 * Long.BYTES + Integer.BYTES, ancestorOffset);
         entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
-        entryInfo.putInt(5 * Long.BYTES + Integer.BYTES, 0x00);
+        entryInfo.putInt(5 * Long.BYTES + Integer.BYTES, entryFlags);
         entryInfo.putInt(5 * Long.BYTES + 2 * Integer.BYTES, deltaPosition);
+        entryInfo.putShort(5 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);
@@ -492,6 +501,7 @@ public final class KafkaCachePartition
         long timestamp,
         long ownerId,
         int sequence,
+        KafkaAckMode ackMode,
         KafkaKeyFW key,
         long keyHash,
         int valueLength,
@@ -517,6 +527,7 @@ public final class KafkaCachePartition
         entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
         entryInfo.putInt(5 * Long.BYTES + Integer.BYTES, 0x00);
         entryInfo.putInt(5 * Long.BYTES + 2 * Integer.BYTES, NO_DELTA_POSITION);
+        entryInfo.putShort(5 * Long.BYTES + 3 * Integer.BYTES, ackMode.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);
@@ -813,6 +824,22 @@ public final class KafkaCachePartition
             }
         }
 
+        public void findAndAbortProducerId(
+            long producerId,
+            KafkaCacheEntryFW cacheEntry)
+        {
+            final KafkaCacheFile logFile = segment.logFile();
+
+            for (int offsetBytes = 0; offsetBytes < logFile.capacity(); offsetBytes = cacheEntry.limit())
+            {
+                final KafkaCacheEntryFW entry = logFile.readBytes(offsetBytes, cacheEntry::wrap);
+                if (entry.ownerId() == producerId && (entry.flags() & CACHE_ENTRY_FLAGS_CONTROL) == 0x00)
+                {
+                    logFile.writeInt(entry.offset() + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
+                }
+            }
+        }
+
         public KafkaCacheEntryFW findAndMarkAncestor(
             KafkaKeyFW key,
             long hash,
@@ -832,7 +859,9 @@ public final class KafkaCachePartition
                 {
                     final KafkaCacheEntryFW cacheEntry = logFile.readBytes(position, ancestorEntry::wrap);
                     assert cacheEntry != null;
-                    if (key.equals(cacheEntry.key()))
+                    if (!isAbortedEntry(cacheEntry) &&
+                        !isControlEntry(cacheEntry) &&
+                        key.equals(cacheEntry.key()))
                     {
                         ancestor = cacheEntry;
                         markDescendantAndDirty(ancestor, descendantOffset);
@@ -887,6 +916,18 @@ public final class KafkaCachePartition
         {
             Function<KafkaCacheSegment, String> baseOffset = s -> s != null ? Long.toString(s.baseOffset()) : "sentinel";
             return String.format("[%s] %s", getClass().getSimpleName(), baseOffset.apply(segment));
+        }
+
+        private boolean isControlEntry(
+            KafkaCacheEntryFW cacheEntry)
+        {
+            return (cacheEntry.flags() & CACHE_ENTRY_FLAGS_CONTROL) != 0;
+        }
+
+        private boolean isAbortedEntry(
+            KafkaCacheEntryFW cacheEntry)
+        {
+            return (cacheEntry.flags() & CACHE_ENTRY_FLAGS_ABORTED) != 0;
         }
     }
 

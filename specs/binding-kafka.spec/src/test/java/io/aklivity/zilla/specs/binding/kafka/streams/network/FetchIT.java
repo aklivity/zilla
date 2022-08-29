@@ -273,4 +273,31 @@ public class FetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/isolation.read.committed/client",
+        "${net}/isolation.read.committed/server"})
+    public void shouldReceiveIsolationReadCommitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/isolation.read.uncommitted.aborting/client",
+        "${net}/isolation.read.uncommitted.aborting/server"})
+    public void shouldReceiveIsolationReadUncommittedAborting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/partition.leader.distinct/client",
+        "${net}/partition.leader.distinct/server"})
+    public void shouldReceiveDistinctPartitionLeader() throws Exception
+    {
+        k3po.finish();
+    }
 }

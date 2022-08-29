@@ -38,9 +38,21 @@ public class UnmergedIT
 
     @Test
     @Specification({
-        "${net}/unmerged.fetch.filter.none/client",
-        "${net}/unmerged.fetch.filter.none/server"})
-    public void shouldFetchUnmergedMessagesWithNoFilter() throws Exception
+        "${net}/unmerged.fetch.filter.none.read.committed/client",
+        "${net}/unmerged.fetch.filter.none.read.committed/server"})
+    public void shouldFetchUnmergedMessagesWithNoFilterReadCommitted() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("SEND_MESSAGE_A3");
+        k3po.notifyBarrier("SEND_MESSAGE_B3");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unmerged.fetch.filter.none.read.uncommitted/client",
+        "${net}/unmerged.fetch.filter.none.read.uncommitted/server"})
+    public void shouldFetchUnmergedMessagesWithNoFilterReadUncommitted() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("SEND_MESSAGE_A3");
@@ -59,9 +71,18 @@ public class UnmergedIT
 
     @Test
     @Specification({
-        "${net}/unmerged.fetch.message.values/client",
-        "${net}/unmerged.fetch.message.values/server"})
-    public void shouldFetchUnmergedMessageValues() throws Exception
+        "${net}/unmerged.fetch.message.values.read.committed/client",
+        "${net}/unmerged.fetch.message.values.read.committed/server"})
+    public void shouldFetchUnmergedMessageValuesReadCommitted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/unmerged.fetch.message.values.read.uncommitted/client",
+        "${net}/unmerged.fetch.message.values.read.uncommitted/server"})
+    public void shouldFetchUnmergedMessageValuesReadUncommitted() throws Exception
     {
         k3po.finish();
     }
