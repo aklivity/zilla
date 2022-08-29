@@ -1,0 +1,32 @@
+version: "3"
+
+networks:
+  net0:
+    driver: overlay
+
+services:
+
+  zilla:
+    image: "ghcr.io/aklivity/zilla:latest"
+    hostname: "zilla.internal.net"
+    command: [ "start", "-v", "-e" ]
+    volumes:
+      - ./zilla.json:/zilla.json:ro
+      - ./localhost.p12:/localhost.p12:ro
+      - ./web:/web:ro
+    networks:
+      - net0
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+
+  sse:
+    image: "zilla-examples/sse-server:latest"
+    hostname: "sse.internal.net"
+    tty: true
+    command: [ "-v", "-p", "8001", "-i", "7001" ]
+    networks:
+      - net0
+    ports:
+      - "8001:8001"
+      - "7001:7001"
