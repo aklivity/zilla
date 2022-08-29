@@ -21,10 +21,10 @@ accepted
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
                              .header(":method", "GET")
-                             .header(":path", "/events/a8b7c6d5")
+                             .header(":scheme", "http")
                              .header(":authority", "localhost:8080")
+                             .header(":path", "/events/a8b7c6d5")
                              .header("accept", "text/event-stream")
                              .build()}
 
@@ -39,6 +39,6 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write flush
 
-write "data:  Hello, world\n"
+write "data: Hello, world\n"
 write "\n"
 write flush

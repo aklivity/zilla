@@ -65,14 +65,16 @@ public class SseFunctionsTest
     {
         byte[] build = SseFunctions.beginEx()
                                    .typeId(0x01)
-                                   .pathInfo("/events")
-                                   .lastEventId("id-42")
+                                   .scheme("http")
+                                   .authority("localhost:8080")
+                                   .path("/events")
+                                   .lastId("id-42")
                                    .build();
         DirectBuffer buffer = new UnsafeBuffer(build);
         SseBeginExFW beginEx = new SseBeginExFW().wrap(buffer, 0, buffer.capacity());
         assertEquals(0x01, beginEx.typeId());
-        assertEquals("/events", beginEx.pathInfo().asString());
-        assertEquals("id-42", beginEx.lastEventId().asString());
+        assertEquals("/events", beginEx.path().asString());
+        assertEquals("id-42", beginEx.lastId().asString());
     }
 
     @Test

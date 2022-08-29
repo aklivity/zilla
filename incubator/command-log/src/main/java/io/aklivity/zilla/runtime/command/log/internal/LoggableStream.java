@@ -94,6 +94,7 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
@@ -117,6 +118,7 @@ public final class LoggableStream implements AutoCloseable
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final HttpDataExFW httpDataExRO = new HttpDataExFW();
     private final HttpEndExFW httpEndExRO = new HttpEndExFW();
+    private final SseDataExFW sseDataExRO = new SseDataExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
@@ -218,6 +220,11 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
             dataHandlers.put(labels.lookupLabelId("http"), this::onHttpDataEx);
             endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
+        }
+
+        if (hasExtensionType.test("sse"))
+        {
+            dataHandlers.put(labels.lookupLabelId("sse"), this::onSseDataEx);
         }
 
         if (hasExtensionType.test("kafka"))
@@ -752,6 +759,20 @@ public final class LoggableStream implements AutoCloseable
         httpEndEx.trailers()
                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                          format("%s: %s", h.name().asString(), h.value().asString())));
+    }
+
+    private void onSseDataEx(
+        final DataFW data)
+    {
+        final int offset = data.offset() - HEADER_LENGTH;
+        final long timestamp = data.timestamp();
+        final OctetsFW extension = data.extension();
+
+        final SseDataExFW sseDataEx = sseDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp,
+                format("type: %s", sseDataEx.type().asString()));
+        out.printf(verboseFormat, index, offset, timestamp,
+                format("id: %s", sseDataEx.id().asString()));
     }
 
     private void onKafkaBeginEx(

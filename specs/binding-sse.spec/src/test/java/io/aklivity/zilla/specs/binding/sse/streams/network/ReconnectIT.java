@@ -65,6 +65,15 @@ public class ReconnectIT
 
     @Test
     @Specification({
+        "${net}/request.header.last.event.id.and.data.null/request",
+        "${net}/request.header.last.event.id.and.data.null/response" })
+    public void shouldReconnectWithRequestHeaderLastEventIdAfterReceivingIdAndDataNull() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.header.and.parameter.last.event.id/request",
         "${net}/request.header.and.parameter.last.event.id/response" })
     public void shouldReconnectWithRequestHeaderAndParameterLastEventId() throws Exception

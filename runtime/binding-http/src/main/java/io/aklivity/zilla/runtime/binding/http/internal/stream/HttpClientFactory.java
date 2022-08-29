@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
@@ -64,6 +66,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
@@ -164,6 +167,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final MutableDirectBuffer codecBuffer;
     private final BufferPool bufferPool;
     private final BindingHandler streamFactory;
+    private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
@@ -196,6 +200,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
+        this.supplyDebitor = context::supplyDebitor;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
@@ -1858,7 +1863,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long responseSeq;
         private long responseAck;
         private int responseMax;
+        private long responseAuth;
+        private long responseBud;
         private int responsePad;
+        private BudgetDebitor responseDeb;
+        private long responseDebIndex = NO_DEBITOR_INDEX;
 
         private int state;
 
@@ -2127,13 +2136,19 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             int responseNoAck = (int)(responseSeq - responseAck);
             int length = Math.min(responseMax - responseNoAck - responsePad, limit - offset);
+            int reserved = length + responsePad;
+
+            if (responseDebIndex != NO_DEBITOR_INDEX && responseDeb != null)
+            {
+                final int minimum = reserved; // TODO: fragmentation
+                reserved = responseDeb.claim(0L, responseDebIndex, responseId, minimum, reserved, 0);
+                length = Math.max(reserved - responsePad, 0);
+            }
 
             if (length > 0)
             {
-                final int reserved = length + responsePad;
-
                 doData(application, routeId, responseId, responseSeq, responseAck, responseMax,
-                        traceId, authorization, budgetId,
+                        traceId, authorization, responseBud,
                         reserved, buffer, offset, length, extension);
 
                 responseSeq += reserved;
@@ -2221,6 +2236,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long acknowledge = window.acknowledge();
             final long traceId = window.traceId();
             final long authorization = window.authorization();
+            final long budgetId = window.budgetId();
             final int maximum = window.maximum();
             final int padding = window.padding();
 
@@ -2230,13 +2246,27 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             responseAck = acknowledge;
             responseMax = maximum;
+            responseAuth = authorization;
+            responseBud = budgetId;
             responsePad = padding;
 
             assert responseAck <= responseSeq;
 
             state = HttpState.openReply(state);
 
+            if (responseBud != 0L && responseDebIndex == NO_DEBITOR_INDEX)
+            {
+                responseDeb = supplyDebitor.apply(budgetId);
+                responseDebIndex = responseDeb.acquire(budgetId, responseId, this::onResponseFlush);
+            }
+
             client.decodeNetworkIfBuffered(traceId, authorization);
+        }
+
+        private void onResponseFlush(
+            long traceId)
+        {
+            client.decodeNetworkIfBuffered(traceId, responseAuth);
         }
 
         private void onExchangeClosed()

@@ -56,9 +56,18 @@ public class EndOfLineIT
 
     @Test
     @Specification({
-        "${net}/line.feed/request",
-        "${net}/line.feed/response" })
+        "${net}/carriage.return.line.feed/request",
+        "${net}/carriage.return.line.feed/response" })
     public void shouldReceiveDataWithCarriageReturnLineFeedEndOfLine() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/carriage.return.line.feed.fragmented/request",
+        "${net}/carriage.return.line.feed.fragmented/response" })
+    public void shouldReceiveDataWithCarriageReturnLineFeedEndOfLineFragmented() throws Exception
     {
         k3po.finish();
     }

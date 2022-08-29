@@ -19,8 +19,10 @@ connect "zilla://streams/sse0"
 
 write zilla:begin.ext ${sse:beginEx()
                            .typeId(zilla:id("sse"))
-                           .pathInfo("/test/example-key/example-tag")
-                           .lastEventId(null)
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/test/example-key/example-tag")
+                           .lastId(null)
                            .build()}
 
 connected

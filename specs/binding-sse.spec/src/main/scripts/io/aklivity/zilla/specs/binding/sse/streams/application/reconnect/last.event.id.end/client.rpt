@@ -20,8 +20,10 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${sse:beginEx()
                            .typeId(zilla:id("sse"))
-                           .pathInfo("/events/a8b7c6d5")
-                           .lastEventId(null)
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/events/a8b7c6d5")
+                           .lastId(null)
                            .build()}
 
 connected
@@ -42,8 +44,10 @@ connect await RECONNECT_EVENT_STREAM
 
 write zilla:begin.ext ${sse:beginEx()
                            .typeId(zilla:id("sse"))
-                           .pathInfo("/events/a8b7c6d5")
-                           .lastEventId("105")
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .path("/events/a8b7c6d5")
+                           .lastId("105")
                            .build()}
 
 connected

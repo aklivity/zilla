@@ -38,6 +38,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/request.rejected/client",
+        "${net}/request.rejected/server",
+    })
+    public void shouldRejectRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/request.with.connection.close/client",
         "${net}/request.with.connection.close/server" })
     public void shouldCloseConnectionAfterRequestWithConnectionClose() throws Exception

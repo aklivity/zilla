@@ -65,6 +65,33 @@ public class DataIT
 
     @Test
     @Specification({
+        "${net}/multiple/request",
+        "${net}/multiple/response" })
+    public void shouldReceiveMultipleData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/fragmented.10k/request",
+        "${net}/fragmented.10k/response" })
+    public void shouldReceiveDataFragmented10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/fragmented.100k/request",
+        "${net}/fragmented.100k/response" })
+    public void shouldReceiveDataFragmented100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/invalid.utf8/request",
         "${net}/invalid.utf8/response" })
     public void shouldRejectDataWithInvalidUTF8() throws Exception
