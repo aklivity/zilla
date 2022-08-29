@@ -600,19 +600,27 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
     }
 
     public ChannelBuffer readExtBuffer(
-        ZillaExtensionKind readExtKind)
+        ZillaExtensionKind readExtKind,
+        boolean readonly)
     {
         if (this.readExtKind != readExtKind)
         {
-            if (readExtBuffer == null)
+            if (readonly)
             {
-                readExtBuffer = getConfig().getBufferFactory().getBuffer(8192);
+                return ChannelBuffers.EMPTY_BUFFER;
             }
             else
             {
-                readExtBuffer.clear();
+                if (readExtBuffer == null)
+                {
+                    readExtBuffer = getConfig().getBufferFactory().getBuffer(8192);
+                }
+                else
+                {
+                    readExtBuffer.clear();
+                }
+                this.readExtKind = readExtKind;
             }
-            this.readExtKind = readExtKind;
         }
 
         return readExtBuffer;

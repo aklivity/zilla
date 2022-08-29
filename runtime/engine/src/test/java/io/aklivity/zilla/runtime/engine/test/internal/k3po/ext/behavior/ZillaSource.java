@@ -165,7 +165,7 @@ public final class ZillaSource implements AutoCloseable
     {
         final long traceId = supplyTraceId.getAsLong();
 
-        streamFactory.doReset(channel, traceId);
+        streamFactory.doAbortInput(channel, traceId);
         partition.doSystemWindow(channel, traceId);
 
         abortFuture.setSuccess();

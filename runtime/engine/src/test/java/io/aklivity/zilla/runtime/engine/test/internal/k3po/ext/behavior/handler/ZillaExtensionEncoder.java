@@ -72,7 +72,7 @@ public final class ZillaExtensionEncoder implements ChannelEncoder
         ChannelBufferFactory bufferFactory = config.getBufferFactory();
         for (MessageEncoder encoder : encoders)
         {
-            channel.writeExtBuffer(writeExtKind, false).writeBytes(encoder.encode(bufferFactory));
+            writeExtKind.encodeBuffer(channel).writeBytes(encoder.encode(bufferFactory));
         }
     }
 }

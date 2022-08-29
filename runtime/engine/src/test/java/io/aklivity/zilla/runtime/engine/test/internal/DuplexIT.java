@@ -436,6 +436,17 @@ public class DuplexIT
 
     @Test
     @Specification({
+        "client.sent.read.abort.with.ext/client",
+        "client.sent.read.abort.with.ext/server"
+    })
+    public void shouldReceiveClientSentReadAbortWithExt() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
         "client.sent.read.abort.server.replied.read.abort/client",
         "client.sent.read.abort.server.replied.read.abort/server"
     })
@@ -723,6 +734,16 @@ public class DuplexIT
         "server.sent.option.flags.incomplete/server"
     })
     public void shouldReceiveServerSentOptionFlagsIncomplete() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "server.sent.read.abort.with.ext/client",
+        "server.sent.read.abort.with.ext/server"
+    })
+    public void shouldReceiveServerSentReadAbortWithExt() throws Exception
     {
         k3po.finish();
     }

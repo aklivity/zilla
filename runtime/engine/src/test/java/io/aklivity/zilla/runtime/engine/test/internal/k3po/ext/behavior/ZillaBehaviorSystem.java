@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.END;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.RESET;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_BEGIN_EXT;
@@ -27,6 +28,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_DATA_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_DATA_NULL;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_END_EXT;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_RESET_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_FLAGS;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toList;
@@ -86,6 +88,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadEndExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadFlagsOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadNullDataHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteAbortedExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteEmptyDataHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.WriteFlagsOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ZillaExtensionDecoder;
@@ -121,6 +124,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         readConfigFactories.put(CONFIG_DATA_EXT, ZillaBehaviorSystem::newReadDataExtHandler);
         readConfigFactories.put(CONFIG_DATA_NULL, ZillaBehaviorSystem::newReadNullDataHandler);
         readConfigFactories.put(CONFIG_END_EXT, ZillaBehaviorSystem::newReadEndExtHandler);
+        readConfigFactories.put(CONFIG_RESET_EXT, ZillaBehaviorSystem::newReadResetExtHandler);
         this.readConfigFactories = unmodifiableMap(readConfigFactories);
 
         Map<StructuredTypeInfo, WriteConfigFactory> writeConfigFactories = new LinkedHashMap<>();
@@ -128,6 +132,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         writeConfigFactories.put(CONFIG_DATA_EMPTY, ZillaBehaviorSystem::newWriteEmptyDataHandler);
         writeConfigFactories.put(CONFIG_DATA_EXT, ZillaBehaviorSystem::newWriteDataExtHandler);
         writeConfigFactories.put(CONFIG_END_EXT, ZillaBehaviorSystem::newWriteEndExtHandler);
+        writeConfigFactories.put(CONFIG_RESET_EXT, ZillaBehaviorSystem::newWriteResetExtHandler);
         this.writeConfigFactories = unmodifiableMap(writeConfigFactories);
 
         Map<StructuredTypeInfo, ReadAdviseFactory> readAdviseFactories = new LinkedHashMap<>();
@@ -326,6 +331,20 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         return handler;
     }
 
+    private static WriteAbortedExtHandler newReadResetExtHandler(
+            AstReadConfigNode node,
+            Function<AstValueMatcher, MessageDecoder> decoderFactory)
+    {
+        RegionInfo regionInfo = node.getRegionInfo();
+        StructuredTypeInfo type = node.getType();
+        List<MessageDecoder> decoders = node.getMatchers().stream().map(decoderFactory).collect(toList());
+
+        ChannelDecoder decoder = new ZillaExtensionDecoder(RESET, type, decoders);
+        WriteAbortedExtHandler handler = new WriteAbortedExtHandler(decoder);
+        handler.setRegionInfo(regionInfo);
+        return handler;
+    }
+
     private static WriteConfigHandler newWriteBeginExtHandler(
         AstWriteConfigNode node,
         Function<AstValue<?>, MessageEncoder> encoderFactory)
@@ -369,6 +388,19 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         List<MessageEncoder> encoders = node.getValues().stream().map(encoderFactory).collect(toList());
 
         ChannelEncoder encoder = new ZillaExtensionEncoder(END, type, encoders);
+        WriteConfigHandler handler = new WriteConfigHandler(encoder);
+        handler.setRegionInfo(node.getRegionInfo());
+        return handler;
+    }
+
+    private static WriteConfigHandler newWriteResetExtHandler(
+            AstWriteConfigNode node,
+            Function<AstValue<?>, MessageEncoder> encoderFactory)
+    {
+        StructuredTypeInfo type = node.getType();
+        List<MessageEncoder> encoders = node.getValues().stream().map(encoderFactory).collect(toList());
+
+        ChannelEncoder encoder = new ZillaExtensionEncoder(RESET, type, encoders);
         WriteConfigHandler handler = new WriteConfigHandler(encoder);
         handler.setRegionInfo(node.getRegionInfo());
         return handler;
