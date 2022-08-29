@@ -49,6 +49,7 @@ $ export JWT_TOKEN=$(jwt encode \
 Connect `curl` client first, then send `Hello, world ...` from `nc` client.
 Note that the `Hello, world ...` event will not arrive until after using `nc` to send the `Hello, world ...` message in the next step.
 ```bash
+curl -v --cacert test-ca.crt "https://localhost:9090/events?access_token=${JWT_TOKEN}"
 *   Trying 127.0.0.1:9090...
 * Connected to localhost (127.0.0.1) port 9090 (#0)
 * ALPN, offering h2
