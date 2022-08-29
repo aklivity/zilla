@@ -20,6 +20,7 @@ Try out these Zilla example configurations using `docker` in your local developm
 | [amqp.reflect](amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
 | [sse.kafka.fanout](sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
+| [sse.proxy.jwt](sse.proxy.jwt) | Proxies messages delivered by the SSE server, enforcing streaming security constraints |
 | [ws.echo](ws.echo) | Echoes messages sent to the WebSocket server |
 | [ws.reflect](ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
 
