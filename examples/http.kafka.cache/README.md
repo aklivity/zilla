@@ -55,7 +55,7 @@ $ curl -v http://localhost:8080/items \
 > GET /items HTTP/1.1
 > If-None-Match: AQIAAQ==
 ...
-< HTTP/1.1 304 OK
+< HTTP/1.1 304 Not Modified
 < Content-Type: application/json
 < Etag: AQIAAQ==
 ...
