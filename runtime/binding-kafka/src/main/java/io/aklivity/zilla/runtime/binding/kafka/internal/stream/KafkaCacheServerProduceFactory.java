@@ -798,7 +798,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 members.forEach(s -> s.doServerInitialWindow(traceId));
             }
 
-            members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
+            if (initialAck > 0)
+            {
+                members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
+            }
             doServerFanInitialDataIfNecessary(traceId);
         }
 

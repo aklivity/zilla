@@ -2154,7 +2154,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, emptyKafkaDataExRO);
+            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyKafkaDataExRO);
         }
 
         private void onHttpEnd(
