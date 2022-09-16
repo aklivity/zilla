@@ -2179,6 +2179,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             }
 
             delegate.doKafkaEndDeferred(traceId, authorization);
+            doHttpErrorDeferred(traceId, authorization);
         }
 
         private void onHttpAbort(
@@ -2275,7 +2276,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            doHttpReset(traceId, authorization);
+            delegate.doKafkaReset(traceId);
+            doHttpErrorDeferred(traceId, authorization);
         }
 
         @Override
@@ -2386,30 +2388,26 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
-        private void doHttpReset(
+        private void doHttpErrorDeferred(
                 long traceId,
                 long authorization)
         {
-            if (!HttpKafkaState.initialClosed(state))
+            if (HttpKafkaState.initialClosed(state) && HttpKafkaState.replyClosed(delegate.state))
             {
-                state = HttpKafkaState.closeInitial(state);
+                if (!HttpKafkaState.replyOpening(state))
+                {
+                    HttpBeginExFW httpBeginEx = httpBeginExRW
+                            .wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(httpTypeId)
+                            .headers(delegate.resolved::error)
+                            .build();
 
-                doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                    doHttpBegin(traceId, authorization, 0L, httpBeginEx);
+
+                    state = HttpKafkaState.closingReply(state);
+                }
+                doHttpEnd(traceId, authorization);
             }
-
-            if (!HttpKafkaState.replyOpening(state))
-            {
-                HttpBeginExFW httpBeginEx = httpBeginExRW
-                        .wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headers(delegate.resolved::error)
-                        .build();
-
-                doHttpBegin(traceId, authorization, 0L, httpBeginEx);
-
-                state = HttpKafkaState.closingReply(state);
-            }
-            doHttpEnd(traceId, authorization);
         }
     }
 
