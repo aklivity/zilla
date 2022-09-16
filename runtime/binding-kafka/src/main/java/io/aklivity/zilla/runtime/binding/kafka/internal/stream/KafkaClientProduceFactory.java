@@ -1695,6 +1695,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     final int encodeSlotMaxLimit = encodePool.slotCapacity();
                     headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - flushableRecordHeadersBytes,
                         encodeSlotMaxLimit);
+                    flushableRecordHeadersBytes = 0;
                 }
                 final int headersCount = headers.fieldCount();
                 final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)

@@ -31,7 +31,9 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write '{ "name": "widget" }'
+write '{ "name"'
+write ' : '
+write '"widget" }'
 
 write close
 

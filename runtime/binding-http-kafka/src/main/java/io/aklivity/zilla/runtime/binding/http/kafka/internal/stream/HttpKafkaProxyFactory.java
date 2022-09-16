@@ -68,7 +68,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private static final int DATA_FLAG_FIN = 0x01;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
-    private final KafkaDataExFW emptyKafkaDataExRO;
 
     private static final int SIGNAL_WAIT_EXPIRED = 1;
 
@@ -148,7 +147,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         this.httpContentLength = new String8FW("content-length");
         this.httpContentType = new String8FW("content-type");
         this.httpEtag = new String8FW("etag");
-        this.emptyKafkaDataExRO = initEmptyKafkaDataEx(kafkaTypeId);
     }
 
     @Override
@@ -1632,6 +1630,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private final class HttpProduceAsyncProxy extends HttpProxy
     {
         private final KafkaProduceProxy delegate;
+        private int producedFlags;
 
         private HttpProduceAsyncProxy(
             MessageConsumer http,
@@ -1730,7 +1729,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(hs -> delegate.resolved.headers(headers, hs)))
                         .build();
 
-                delegate.doKafkaData(traceId, authorization, 0L, 0, 0x02, emptyRO, kafkaDataEx);
+                delegate.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
+                this.producedFlags |= DATA_FLAG_INIT;
             }
         }
 
@@ -1755,7 +1755,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             delegate.resolved.updateHash(payload.value());
 
-            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, emptyKafkaDataExRO);
+            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyRO);
         }
 
         private void onHttpEnd(
@@ -1784,7 +1784,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         .headers(delegate.resolved::trailers))
                     .build();
 
-            delegate.doKafkaData(traceId, authorization, 0L, 0, 0x01, emptyRO, kafkaDataEx);
+            delegate.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
 
             delegate.doKafkaEndDeferred(traceId, authorization);
         }
@@ -2154,7 +2154,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyKafkaDataExRO);
+            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyRO);
         }
 
         private void onHttpEnd(
@@ -2175,7 +2175,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             if ((producedFlags & DATA_FLAG_FIN) == 0x00)
             {
-                delegate.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, emptyKafkaDataExRO);
+                delegate.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, emptyRO);
             }
 
             delegate.doKafkaEndDeferred(traceId, authorization);
@@ -3524,6 +3524,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     {
         private final KafkaProduceProxy producer;
         private final KafkaCorrelateProxy correlater;
+        private int producedFlags;
 
         private HttpProduceSyncProxy(
             MessageConsumer http,
@@ -3623,8 +3624,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .headers(hs -> producer.resolved.headers(headers, hs)))
                         .build();
 
-
-                producer.doKafkaData(traceId, authorization, 0L, 0, 0x02, emptyRO, kafkaDataEx);
+                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
+                this.producedFlags |= DATA_FLAG_INIT;
             }
         }
 
@@ -3649,7 +3650,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             producer.resolved.updateHash(payload.value());
 
-            producer.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, emptyKafkaDataExRO);
+            producer.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyRO);
         }
 
         private void onHttpEnd(
@@ -3680,7 +3681,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         .headers(producer.resolved::trailers))
                     .build();
 
-            producer.doKafkaData(traceId, authorization, 0L, 0, 0x01, emptyRO, kafkaDataEx);
+            producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
 
             producer.doKafkaEndDeferred(traceId, authorization);
         }
@@ -4348,18 +4349,5 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
             .name(name).value(value)
             .build();
-    }
-
-    private KafkaDataExFW initEmptyKafkaDataEx(
-        int kafkaTypeId)
-    {
-        return new KafkaDataExFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[256]), 0, 256)
-                .typeId(kafkaTypeId)
-                .merged(m ->
-                    m.partition(p ->
-                        p.partitionId(-1)
-                         .partitionOffset(-1L)))
-                .build();
     }
 }
