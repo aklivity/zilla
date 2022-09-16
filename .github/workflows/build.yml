@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ 11, 17 ]
+        java: [ 11 ]
 
     steps:
     - name: Checkout GitHub sources
@@ -32,3 +32,13 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven
       run: ./mvnw -B -U -nsu -Ddocker.logStdout -Ddocker.verbose install jacoco:report-aggregate
+    - name: Archive zip
+      run: |
+        cd runtime/binding-http-kafka/
+        tar -czvf target.tar.gz target
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-artifact
+        path: runtime/binding-http-kafka/target.tar.gz
+        retention-days: 1
