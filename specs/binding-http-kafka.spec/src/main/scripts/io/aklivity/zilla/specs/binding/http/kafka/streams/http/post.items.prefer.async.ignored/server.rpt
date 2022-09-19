@@ -30,7 +30,9 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read '{ "name": "widget" }'
+read '{ "name"'
+read ' : '
+read '"widget" }'
 
 read closed
 

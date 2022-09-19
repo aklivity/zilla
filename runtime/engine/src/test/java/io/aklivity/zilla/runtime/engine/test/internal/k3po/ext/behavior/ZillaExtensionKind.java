@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 public enum ZillaExtensionKind
 {
     BEGIN,
@@ -22,5 +24,30 @@ public enum ZillaExtensionKind
     FLUSH,
     ABORT,
     END,
-    CHALLENGE;
+    CHALLENGE(false),
+    RESET(false);
+
+    private final boolean aligned;
+    ZillaExtensionKind()
+    {
+        this(true);
+    }
+
+    ZillaExtensionKind(
+        boolean aligned)
+    {
+        this.aligned = aligned;
+    }
+
+    public ChannelBuffer encodeBuffer(
+        ZillaChannel channel)
+    {
+        return aligned ? channel.writeExtBuffer(this, false) : channel.readExtBuffer(this, false);
+    }
+
+    public ChannelBuffer decodeBuffer(
+        ZillaChannel channel)
+    {
+        return aligned ? channel.readExtBuffer(this, true) : channel.writeExtBuffer(this, true);
+    }
 }

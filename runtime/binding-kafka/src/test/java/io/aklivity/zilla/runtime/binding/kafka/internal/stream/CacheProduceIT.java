@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -34,6 +36,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class CacheProduceIT
 {
@@ -82,6 +85,7 @@ public class CacheProduceIT
         "${app}/partition.unknown/client",
         "${app}/partition.unknown/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
     public void shouldRejectWhenPartitionUnknown() throws Exception
     {
         k3po.finish();
@@ -90,10 +94,23 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.json")
     @Specification({
-        "${app}/partition.not.leader/client",
-        "${app}/partition.not.leader/server"})
+        "${app}/message.value/client",
+        "${app}/partition.not.leader.reconnect/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    public void shouldRejectPartitionNotLeader() throws Exception
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldRecnnectPartitionNotLeader() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/message.values.parallel/client",
+        "${app}/partition.not.leader.reconnect.parallel/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldRetryPartitionNotLeaderMessageValues() throws Exception
     {
         k3po.finish();
     }
@@ -328,6 +345,32 @@ public class CacheProduceIT
         "${app}/message.value.repeated/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldSendMessageValueRepeated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/message.value.rejected/client",
+        "${app}/message.value.rejected/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    public void shouldRejectMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/message.values.rejected/client",
+        "${app}/message.values.rejected/server"})
+    @ScriptProperty({"serverAddress \"zilla://streams/app1\""})
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "1")
+    public void shouldRejectMessageValues() throws Exception
     {
         k3po.finish();
     }

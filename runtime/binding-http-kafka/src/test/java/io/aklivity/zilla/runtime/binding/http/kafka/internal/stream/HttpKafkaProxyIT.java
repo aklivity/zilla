@@ -71,11 +71,31 @@ public class HttpKafkaProxyIT
     }
 
     @Test
+    @Configuration("proxy.delete.item.no.reply.json")
+    @Specification({
+        "${http}/delete.item.rejected/client",
+        "${kafka}/delete.item.rejected.no.reply/server"})
+    public void shouldRejectDeleteItemNoReply() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.delete.item.async.json")
     @Specification({
         "${http}/delete.item/client",
         "${kafka}/delete.item/server"})
     public void shouldDeleteItemSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
+        "${http}/delete.item.rejected/client",
+        "${kafka}/delete.item.rejected/server"})
+    public void shouldRejectDeleteItemSync() throws Exception
     {
         k3po.finish();
     }
@@ -146,6 +166,16 @@ public class HttpKafkaProxyIT
         "${http}/delete.item.write.flush/client",
         "${kafka}/delete.item.write.flush/server"})
     public void shouldDeleteItemWriteFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.delete.item.async.json")
+    @Specification({
+        "${http}/delete.item.prefer.async.rejected/client",
+        "${kafka}/delete.item.rejected/server"})
+    public void shouldRejectDeleteItemPreferAsync() throws Exception
     {
         k3po.finish();
     }

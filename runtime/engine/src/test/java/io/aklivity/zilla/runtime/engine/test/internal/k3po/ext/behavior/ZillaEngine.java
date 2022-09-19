@@ -100,6 +100,13 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         submitTask(new CloseServerTask(serverChannel), true);
     }
 
+    public void readableAckRequest(
+        ZillaChannel channel,
+        ChannelFuture handlerFuture)
+    {
+        submitTask(new ReadAckTask(channel, handlerFuture));
+    }
+
     public void connect(
         ZillaClientChannel channel,
         ZillaChannelAddress remoteAddress,
@@ -688,6 +695,36 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
             {
                 ChannelFuture writeFuture = writeRequest.getFuture();
                 writeFuture.setFailure(ex);
+            }
+        }
+    }
+
+    private final class ReadAckTask implements Runnable
+    {
+        private final ZillaChannel channel;
+        private final ChannelFuture ackFuture;
+
+        private ReadAckTask(
+                ZillaChannel channel,
+                ChannelFuture future)
+        {
+            this.channel = channel;
+            this.ackFuture = future;
+        }
+
+        @Override
+        public void run()
+        {
+            try
+            {
+                ZillaEngine engine = channel.engine;
+                int scopeIndex = channel.getLocalScope();
+                ZillaScope scope = engine.supplyScope(scopeIndex);
+                scope.doReadAck(channel, ackFuture);
+            }
+            catch (Exception ex)
+            {
+                ackFuture.setFailure(ex);
             }
         }
     }

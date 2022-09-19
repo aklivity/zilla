@@ -1695,6 +1695,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     final int encodeSlotMaxLimit = encodePool.slotCapacity();
                     headers = kafkaHeaderRO.wrap(encodeSlotBuffer, encodeSlotMaxLimit - flushableRecordHeadersBytes,
                         encodeSlotMaxLimit);
+                    flushableRecordHeadersBytes = 0;
                 }
                 final int headersCount = headers.fieldCount();
                 final RecordTrailerFW recordTrailer = recordTrailerRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -2017,13 +2018,14 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     {
                         onDecodeProduceResponse(traceId);
                     }
-                    else
+                    else if (encodeableRecordBytesDeferred > 0 && flushableRequestBytes != 0)
                     {
                         final int encodeBytesBuffered = encodeSlotLimit - encodeSlotOffset + flushableRecordHeadersBytes;
                         final int encodeRequestBytesBuffered = Math.max(flushableRequestBytes - encodeableRecordBytesDeferred
                                 - Math.max(flushableRecordHeadersBytes, 1), 0);
                         final int encodeNoAck = Math.max(encodeRequestBytesBuffered, encodeBytesBuffered);
-                        stream.doAppWindow(traceId, encodeNoAck, encodeMaxBytes);
+                        final int noAck = (int) (stream.initialSeq - stream.initialAck);
+                        stream.doAppWindow(traceId, noAck, noAck + encodeMaxBytes - encodeNoAck);
                     }
                 }
             }

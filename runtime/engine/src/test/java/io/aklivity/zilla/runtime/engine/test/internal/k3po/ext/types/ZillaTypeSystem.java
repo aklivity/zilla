@@ -44,6 +44,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
     public static final TypeInfo<Long> OPTION_AFFINITY = new TypeInfo<>("affinity", Long.class);
     public static final TypeInfo<Byte> OPTION_CAPABILITIES = new TypeInfo<>("capabilities", Byte.class);
     public static final TypeInfo<Integer> OPTION_FLAGS = new TypeInfo<>("flags", Integer.class);
+    public static final TypeInfo<Integer> OPTION_ACK = new TypeInfo<>("ack", Integer.class);
 
     public static final StructuredTypeInfo CONFIG_BEGIN_EXT =
             new StructuredTypeInfo(NAME, "begin.ext", emptyList(), MAX_VALUE);
@@ -55,6 +56,8 @@ public final class ZillaTypeSystem implements TypeSystemSpi
             new StructuredTypeInfo(NAME, "data.null", emptyList(), 0);
     public static final StructuredTypeInfo CONFIG_END_EXT =
             new StructuredTypeInfo(NAME, "end.ext", emptyList(), MAX_VALUE);
+    public static final StructuredTypeInfo CONFIG_RESET_EXT =
+            new StructuredTypeInfo(NAME, "reset.ext", emptyList(), MAX_VALUE);
 
     public static final StructuredTypeInfo ADVISORY_FLUSH =
             new StructuredTypeInfo(NAME, "flush", emptyList(), MAX_VALUE);
@@ -106,6 +109,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
 
         Set<TypeInfo<?>> readOptions = new LinkedHashSet<>();
         readOptions.add(OPTION_FLAGS);
+        readOptions.add(OPTION_ACK);
         this.readOptions = unmodifiableSet(readOptions);
 
         Set<TypeInfo<?>> writeOptions = new LinkedHashSet<>();
@@ -118,6 +122,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         readConfigs.add(CONFIG_DATA_EMPTY);
         readConfigs.add(CONFIG_DATA_NULL);
         readConfigs.add(CONFIG_END_EXT);
+        readConfigs.add(CONFIG_RESET_EXT);
         this.readConfigs = readConfigs;
 
         Set<StructuredTypeInfo> writeConfigs = new LinkedHashSet<>();
@@ -125,6 +130,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         writeConfigs.add(CONFIG_DATA_EXT);
         writeConfigs.add(CONFIG_DATA_EMPTY);
         writeConfigs.add(CONFIG_END_EXT);
+        writeConfigs.add(CONFIG_RESET_EXT);
         this.writeConfigs = writeConfigs;
 
         Set<StructuredTypeInfo> readAdvisories = new LinkedHashSet<>();

@@ -48,12 +48,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .partition(-1, -1)
-                               .build()
-                           .build()}
 read '[ { "op": "replace", "path":"/name", "value": "widget" } ]'
 
 read zilla:data.ext ${kafka:matchDataEx()

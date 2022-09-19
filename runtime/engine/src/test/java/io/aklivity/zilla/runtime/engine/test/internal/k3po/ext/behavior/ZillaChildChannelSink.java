@@ -150,4 +150,15 @@ public class ZillaChildChannelSink extends AbstractChannelSink
             channel.engine.close(channel, handlerFuture);
         }
     }
+
+    @Override
+    protected void setInterestOpsRequested(
+            ChannelPipeline pipeline,
+            ChannelStateEvent evt)
+            throws Exception
+    {
+        ZillaChannel channel = (ZillaChannel) evt.getChannel();
+        final ChannelFuture future = evt.getFuture();
+        channel.engine.readableAckRequest(channel, future);
+    }
 }

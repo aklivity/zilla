@@ -387,4 +387,14 @@ public class SimplexIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "server.sent.option.ack/client",
+        "server.sent.option.ack/server"
+    })
+    public void shouldReceiveClientSentOptionAck() throws Exception
+    {
+        k3po.finish();
+    }
 }

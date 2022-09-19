@@ -284,6 +284,7 @@ scope kafka
         struct KafkaProduceFlushEx
         {
             KafkaOffset partition;
+            int32 error = 0;
         }
 
         struct KafkaProduceBeginEx

@@ -38,6 +38,8 @@ public class HttpKafkaWithProduceResult
             new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("202"));
     private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_204 =
             new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("204"));
+    private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_STATUS_400 =
+            new HttpKafkaWithProduceAsyncHeaderResult(new String8FW(":status"), new String16FW("400"));
     private static final HttpKafkaWithProduceAsyncHeaderResult HTTP_CONTENT_LENGTH_0 =
             new HttpKafkaWithProduceAsyncHeaderResult(new String8FW("content-length"), new String16FW("0"));
 
@@ -290,6 +292,12 @@ public class HttpKafkaWithProduceResult
         {
             builder.item(HTTP_STATUS_204::header);
         }
+    }
+
+    public void error(
+        Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder)
+    {
+        builder.item(HTTP_STATUS_400::header);
     }
 
     public boolean async()

@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.END;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.RESET;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
 import static java.util.Arrays.asList;
@@ -846,6 +847,33 @@ final class ZillaTarget implements AutoCloseable
         streamsBuffer.write(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    void doAbortInput(
+        final ZillaChannel channel,
+        final long traceId)
+    {
+        final long routeId = channel.routeId();
+        final long streamId = channel.sourceId();
+        final long sequence = channel.sourceSeq();
+        final long acknowledge = channel.sourceAck();
+        final int maximum = channel.sourceMax();
+        final ChannelBuffer extension = channel.readExtBuffer(RESET, true);
+
+        final byte[] extensionCopy = writeExtCopy(extension);
+
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .routeId(routeId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .timestamp(supplyTimestamp.getAsLong())
+                .traceId(traceId)
+                .extension(p -> p.set(extensionCopy))
+                .build();
+
+        streamsBuffer.write(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
     void doChallenge(
         final long routeId,
         final long streamId,
@@ -940,7 +968,7 @@ final class ZillaTarget implements AutoCloseable
                 final byte[] challengeExtCopy = new byte[challengeExtBytes];
                 buffer.getBytes(offset, challengeExtCopy);
 
-                channel.readExtBuffer(CHALLENGE).writeBytes(challengeExtCopy);
+                channel.writeExtBuffer(CHALLENGE, false).writeBytes(challengeExtCopy);
             }
 
             fireOutputAdvised(channel, ADVISORY_CHALLENGE);
@@ -999,6 +1027,20 @@ final class ZillaTarget implements AutoCloseable
         {
             final long streamId = reset.streamId();
             final long acknowledge = reset.acknowledge();
+            final OctetsFW resetExt = reset.extension();
+
+            int resetExtBytes = resetExt.sizeof();
+            if (resetExtBytes != 0)
+            {
+                final DirectBuffer buffer = resetExt.buffer();
+                final int offset = resetExt.offset();
+
+                // TODO: avoid allocation
+                final byte[] resetExtCopy = new byte[resetExtBytes];
+                buffer.getBytes(offset, resetExtCopy);
+
+                channel.writeExtBuffer(RESET, false).writeBytes(resetExtCopy);
+            }
 
             channel.targetAck(acknowledge);
 

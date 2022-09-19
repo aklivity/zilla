@@ -68,6 +68,18 @@ public final class ZillaStreamFactory
         this.unregisterStream = unregisterStream;
     }
 
+    public void doAbortInput(
+            ZillaChannel channel,
+            long traceId)
+    {
+        final long routeId = channel.routeId();
+        final long streamId = channel.sourceId();
+        final ZillaTarget sender = supplySender.apply(routeId, streamId);
+
+        sender.doAbortInput(channel, traceId);
+        unregisterStream.accept(streamId);
+    }
+
     public void doReset(
         ZillaChannel channel,
         long traceId)
@@ -84,7 +96,7 @@ public final class ZillaStreamFactory
         ZillaChannel channel,
         long traceId)
     {
-        final ChannelBuffer challengeExt = channel.writeExtBuffer(CHALLENGE, true);
+        final ChannelBuffer challengeExt = channel.readExtBuffer(CHALLENGE, true);
 
         final long routeId = channel.routeId();
         final long streamId = channel.sourceId();
@@ -174,7 +186,7 @@ public final class ZillaStreamFactory
                 final byte[] beginExtCopy = new byte[beginExtBytes];
                 buffer.getBytes(offset, beginExtCopy);
 
-                channel.readExtBuffer(BEGIN).writeBytes(beginExtCopy);
+                channel.readExtBuffer(BEGIN, false).writeBytes(beginExtCopy);
             }
 
             channel.sourceSeq(sequence);
@@ -223,7 +235,7 @@ public final class ZillaStreamFactory
                     final byte[] dataExtCopy = new byte[dataExtBytes];
                     buffer.getBytes(offset, dataExtCopy);
 
-                    channel.readExtBuffer(DATA).writeBytes(dataExtCopy);
+                    channel.readExtBuffer(DATA, false).writeBytes(dataExtCopy);
                 }
 
                 if ((flags & 0x02) != 0x00 && fragments != 0)
@@ -309,7 +321,7 @@ public final class ZillaStreamFactory
                 final byte[] endExtCopy = new byte[endExtBytes];
                 buffer.getBytes(offset, endExtCopy);
 
-                channel.readExtBuffer(END).writeBytes(endExtCopy);
+                channel.readExtBuffer(END, false).writeBytes(endExtCopy);
             }
 
             if (channel.setReadClosed())
@@ -381,7 +393,7 @@ public final class ZillaStreamFactory
                 final byte[] flushExtCopy = new byte[flushExtBytes];
                 buffer.getBytes(offset, flushExtCopy);
 
-                channel.readExtBuffer(FLUSH).writeBytes(flushExtCopy);
+                channel.readExtBuffer(FLUSH, false).writeBytes(flushExtCopy);
             }
 
             fireInputAdvised(channel, ADVISORY_FLUSH);

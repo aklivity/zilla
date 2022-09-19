@@ -73,6 +73,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBegi
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
 
 public final class KafkaFunctions
 {
@@ -104,6 +105,12 @@ public final class KafkaFunctions
     public static KafkaFlushExBuilder flushEx()
     {
         return new KafkaFlushExBuilder();
+    }
+
+    @Function
+    public static KafkaResetExBuilder resetEx()
+    {
+        return new KafkaResetExBuilder();
     }
 
     @Function
@@ -1629,6 +1636,42 @@ public final class KafkaFunctions
                 flushExRO.wrap(writeBuffer, 0, fetchFlushEx.limit());
                 return KafkaFlushExBuilder.this;
             }
+        }
+    }
+
+    public static final class KafkaResetExBuilder
+    {
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+        private final KafkaResetExFW resetExRO = new KafkaResetExFW();
+
+        private final KafkaResetExFW.Builder resetExRW = new KafkaResetExFW.Builder();
+
+        private KafkaResetExBuilder()
+        {
+            resetExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public KafkaResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public KafkaResetExBuilder error(
+            int error)
+        {
+            resetExRW.error(error);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final KafkaResetExFW resetEx = resetExRW.build();
+            final byte[] array = new byte[resetEx.sizeof()];
+            resetEx.buffer().getBytes(resetExRO.offset(), array);
+            return array;
         }
     }
 
