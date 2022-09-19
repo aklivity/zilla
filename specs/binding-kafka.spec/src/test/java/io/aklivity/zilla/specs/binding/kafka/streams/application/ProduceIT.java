@@ -75,6 +75,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/partition.not.leader.reconnect.parallel/client",
+        "${app}/partition.not.leader.reconnect.parallel/server"})
+    public void shouldReconnectPartitionNotLeaderParallel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.key/client",
         "${app}/message.key/server"})
     public void shouldSendMessageKey() throws Exception
@@ -213,6 +222,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.values.sequential/client",
+        "${app}/message.values.sequential/server"})
+    public void shouldSendMessageValueSequential() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.header/client",
         "${app}/message.header/server"})
     public void shouldSendMessageHeader() throws Exception
@@ -261,6 +279,24 @@ public class ProduceIT
         "${app}/message.trailers.overlap/client",
         "${app}/message.trailers.overlap/server"})
     public void shouldSendMessageTrailersOverlap() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.value.rejected/client",
+        "${app}/message.value.rejected/server"})
+    public void shouldRejectMessageValue() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.values.rejected/client",
+        "${app}/message.values.rejected/server"})
+    public void shouldRejectMessageValues() throws Exception
     {
         k3po.finish();
     }

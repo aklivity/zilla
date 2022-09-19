@@ -27,27 +27,27 @@ public enum ZillaExtensionKind
     CHALLENGE(false),
     RESET(false);
 
-    private final boolean writeAligned;
+    private final boolean aligned;
     ZillaExtensionKind()
     {
         this(true);
     }
 
     ZillaExtensionKind(
-        boolean writeAligned)
+        boolean aligned)
     {
-        this.writeAligned = writeAligned;
-    }
-
-    public ChannelBuffer decodeBuffer(
-        ZillaChannel channel)
-    {
-        return writeAligned ? channel.writeExtBuffer(this, false) : channel.readExtBuffer(this, true);
+        this.aligned = aligned;
     }
 
     public ChannelBuffer encodeBuffer(
         ZillaChannel channel)
     {
-        return writeAligned ? channel.writeExtBuffer(this, false) : channel.readExtBuffer(this, false);
+        return aligned ? channel.writeExtBuffer(this, false) : channel.readExtBuffer(this, false);
+    }
+
+    public ChannelBuffer decodeBuffer(
+        ZillaChannel channel)
+    {
+        return aligned ? channel.readExtBuffer(this, true) : channel.writeExtBuffer(this, true);
     }
 }

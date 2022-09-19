@@ -673,4 +673,14 @@ public class HalfDuplexIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "server.sent.option.ack/client",
+        "server.sent.option.ack/server"
+    })
+    public void shouldReceiveServerSentOptionAck() throws Exception
+    {
+        k3po.finish();
+    }
 }

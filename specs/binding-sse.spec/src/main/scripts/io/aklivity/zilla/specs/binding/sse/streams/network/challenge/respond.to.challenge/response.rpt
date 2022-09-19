@@ -33,6 +33,11 @@ connected
 
 read closed
 
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "text/event-stream")
+                            .build()}
 write flush
 
 write advised zilla:challenge ${http:challengeEx()

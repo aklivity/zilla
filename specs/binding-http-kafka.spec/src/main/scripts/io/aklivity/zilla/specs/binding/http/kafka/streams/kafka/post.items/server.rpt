@@ -46,23 +46,26 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:reply-to", "items-replies")
                                .build()
                            .build()}
+
+read option zilla:flags "init"
 read zilla:data.empty
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .partition(-1, -1)
-                               .build()
-                           .build()}
-read '{ "name": "widget" }'
+read option zilla:flags "none"
+read '{ "name"'
+read option zilla:flags "none"
+read ' : '
+read option zilla:flags "none"
+read '"widget" }'
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .partition(-1, -1)
-                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-33f38700cfb14a3b0811ce584d7fd416")
                                .build()
                            .build()}
+
+read option zilla:flags "fin"
 read zilla:data.empty
 
 read closed
@@ -70,14 +73,14 @@ write close
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .capabilities("FETCH_ONLY")
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                                    .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-33f38700cfb14a3b0811ce584d7fd416")
                                     .build()
                                   .build()
                               .build()}
@@ -93,7 +96,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header(":status", "201")
                                 .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-33f38700cfb14a3b0811ce584d7fd416")
                                 .build()
                             .build()}
 write '{ "name": "widget" }'

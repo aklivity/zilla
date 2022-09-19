@@ -178,6 +178,15 @@ public final class ZillaScope implements AutoCloseable
         target.doWrite(channel, writeRequest);
     }
 
+    public void doReadAck(
+        ZillaChannel channel,
+        ChannelFuture windowFuture)
+    {
+        ZillaTarget target = supplyTarget(channel);
+        target.doWindow(channel);
+        windowFuture.setSuccess();
+    }
+
     public void doFlush(
         ZillaChannel channel,
         ChannelFuture flushFuture)

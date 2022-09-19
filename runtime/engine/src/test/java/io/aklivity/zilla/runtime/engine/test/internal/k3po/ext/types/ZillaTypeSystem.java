@@ -44,6 +44,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
     public static final TypeInfo<Long> OPTION_AFFINITY = new TypeInfo<>("affinity", Long.class);
     public static final TypeInfo<Byte> OPTION_CAPABILITIES = new TypeInfo<>("capabilities", Byte.class);
     public static final TypeInfo<Integer> OPTION_FLAGS = new TypeInfo<>("flags", Integer.class);
+    public static final TypeInfo<Integer> OPTION_ACK = new TypeInfo<>("ack", Integer.class);
 
     public static final StructuredTypeInfo CONFIG_BEGIN_EXT =
             new StructuredTypeInfo(NAME, "begin.ext", emptyList(), MAX_VALUE);
@@ -108,6 +109,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
 
         Set<TypeInfo<?>> readOptions = new LinkedHashSet<>();
         readOptions.add(OPTION_FLAGS);
+        readOptions.add(OPTION_ACK);
         this.readOptions = unmodifiableSet(readOptions);
 
         Set<TypeInfo<?>> writeOptions = new LinkedHashSet<>();

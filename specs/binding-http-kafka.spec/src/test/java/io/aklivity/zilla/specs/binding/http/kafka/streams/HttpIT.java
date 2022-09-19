@@ -46,6 +46,15 @@ public class HttpIT
 
     @Test
     @Specification({
+        "${http}/delete.item.rejected/client",
+        "${http}/delete.item.rejected/server"})
+    public void shouldRejectDeleteItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${http}/delete.item.if.match/client",
         "${http}/delete.item.if.match/server"})
     public void shouldDeleteItemIfMatch() throws Exception
@@ -103,6 +112,15 @@ public class HttpIT
         "${http}/delete.item.prefer.async/client",
         "${http}/delete.item.prefer.async/server"})
     public void shouldDeleteItemPreferAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/delete.item.prefer.async.rejected/client",
+        "${http}/delete.item.prefer.async.rejected/server"})
+    public void shouldRejectDeleteItemPreferAsync() throws Exception
     {
         k3po.finish();
     }
