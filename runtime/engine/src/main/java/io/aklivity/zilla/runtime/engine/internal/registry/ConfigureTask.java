@@ -128,7 +128,7 @@ public class ConfigureTask implements Callable<Void>
         {
             configText = CONFIG_TEXT_DEFAULT;
         }
-        else if ("https".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
+        else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
         {
             HttpClient client = HttpClient.newBuilder()
                 .version(HTTP_2)
@@ -143,9 +143,9 @@ public class ConfigureTask implements Callable<Void>
             HttpResponse<String> response = client.send(
                 request,
                 BodyHandlers.ofString());
-            String body = response.body();
 
-            configText = body;
+            configText = response.body();
+
         }
         else
         {
