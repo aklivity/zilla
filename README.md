@@ -181,7 +181,7 @@ cd zilla
 cd runtime/engine/target
 java -jar ./engine-develop-SNAPSHOT-shaded-tests.jar BufferBM
 ```
-<b>Note:</b> recommend using Java 15 or lower (for now) to avoid getting errors related to reflective access across Java module boundaries when running the benchmark.
+<b>Note:</b> with Java 16 or higher add ` --add-opens=java.base/java.io=ALL-UNNAMED` just after `java` to avoid getting errors related to reflective access across Java module boundaries when running the benchmark.
 
 ```
 Benchmark                  Mode  Cnt         Score        Error  Units
