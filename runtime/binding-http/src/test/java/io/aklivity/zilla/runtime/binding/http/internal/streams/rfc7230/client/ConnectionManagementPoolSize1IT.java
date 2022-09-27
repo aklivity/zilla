@@ -238,6 +238,7 @@ public class ConnectionManagementPoolSize1IT
         k3po.finish();
     }
 
+    @Ignore("There is no HTTP_MAXIMUM_QUEUED_REQUESTS_NAME")
     @Configure(name = HTTP_MAXIMUM_QUEUED_REQUESTS_NAME, value = "0")
     @Test
     @Configuration("client.json")

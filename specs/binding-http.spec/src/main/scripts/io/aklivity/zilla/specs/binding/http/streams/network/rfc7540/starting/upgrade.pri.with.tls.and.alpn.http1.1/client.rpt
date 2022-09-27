@@ -30,6 +30,16 @@ write zilla:begin.ext ${proxy:beginEx()
                                .build()
                              .build()}
 
+read zilla:begin.ext ${proxy:matchBeginEx()
+                            .typeId(zilla:id("proxy"))
+                            .info()
+                              .alpn("http/1.1")
+                              .secure()
+                                .version("TLSv1.3")
+                                .build()
+                              .build()
+                            .build()}
+
 connected
 
 write "PRI * HTTP/2.0\r\n"

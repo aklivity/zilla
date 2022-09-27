@@ -14,41 +14,40 @@
 # under the License.
 #
 
-accept "zilla://streams/net0"
-       option zilla:window 8192
-       option zilla:transmission "duplex"
-accepted
-
-read zilla:begin.ext ${proxy:matchBeginEx()
-                            .typeId(zilla:id("proxy"))
-                            .info()
-                              .alpn("http/1.1")
-                              .secure()
-                                .version("TLSv1.3")
-                                .build()
-                              .build()
-                            .build()}
+connect "zilla://streams/net0"
+        option zilla:window 8192
+        option zilla:transmission "duplex"
 
 write zilla:begin.ext ${proxy:beginEx()
                              .typeId(zilla:id("proxy"))
                              .addressNone()
                                .build()
                              .info()
-                               .alpn("http/1.1")
+                               .alpn("h2")
                                .secure()
                                  .version("TLSv1.3")
                                  .build()
                                .build()
                              .build()}
 
+read zilla:begin.ext ${proxy:matchBeginEx()
+                            .typeId(zilla:id("proxy"))
+                            .info()
+                              .alpn("h2")
+                              .secure()
+                                .version("TLSv1.3")
+                                .build()
+                              .build()
+                            .build()}
+
 connected
 
-read "PRI * HTTP/2.0\r\n"
-     "\r\n"
-     "SM\r\n"
-     "\r\n"
-
-write "HTTP/1.1 505 HTTP Version Not Supported\r\n"
-      "Connection: close\r\n"
+write "PRI * HTTP/2.0\r\n"
+      "\r\n"
+      "SM\r\n"
       "\r\n"
 write flush
+
+read "HTTP/1.1 505 HTTP Version Not Supported\r\n"
+     "Connection: close\r\n"
+     "\r\n"
