@@ -21,7 +21,7 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/one")
+                              .header(":path", "/")
                               .header(":authority", "localhost:8080")
                               .build()}
 connected
@@ -43,7 +43,7 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/two")
+                              .header(":path", "/")
                               .header(":authority", "localhost:8080")
                               .build()}
 connect abort
@@ -58,7 +58,7 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":scheme", "http")
                               .header(":method", "GET")
-                              .header(":path", "/three")
+                              .header(":path", "/")
                               .header(":authority", "localhost:8080")
                               .build()}
 connected

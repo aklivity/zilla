@@ -29,18 +29,6 @@ read zilla:begin.ext ${proxy:matchBeginEx()
                               .build()
                             .build()}
 
-write zilla:begin.ext ${proxy:beginEx()
-                             .typeId(zilla:id("proxy"))
-                             .addressNone()
-                               .build()
-                             .info()
-                               .alpn("http/1.1")
-                               .secure()
-                                 .version("TLSv1.3")
-                                 .build()
-                               .build()
-                             .build()}
-
 connected
 
 read "PRI * HTTP/2.0\r\n"

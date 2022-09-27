@@ -27,6 +27,8 @@ read "\r\n"
 write "HTTP/1.1 200 OK\r\n"
       "Custom-Header-1: custom header 1 value\r\n"
       "Custom-Header-2: custom header 2 value\r\n"
+      "Custom-Header-1: custom header 3 value\r\n"
+      "Custom-Header-2: custom header 4 value\r\n"
       "\r\n"
 
 write aborted
