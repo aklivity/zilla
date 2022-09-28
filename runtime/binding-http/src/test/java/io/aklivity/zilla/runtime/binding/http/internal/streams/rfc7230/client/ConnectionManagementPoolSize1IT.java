@@ -238,19 +238,6 @@ public class ConnectionManagementPoolSize1IT
         k3po.finish();
     }
 
-    @Ignore("There is no HTTP_MAXIMUM_QUEUED_REQUESTS_NAME")
-    @Configure(name = HTTP_MAXIMUM_QUEUED_REQUESTS_NAME, value = "0")
-    @Test
-    @Configuration("client.json")
-    @Specification({
-        "${app}/503.with.retry.after/client",
-        "${net}/503.with.retry.after/server" })
-    public void shouldSend503WithRetryAfterForSecondRequest() throws Exception
-    {
-        k3po.finish();
-        assertEquals(1, counters.requestsRejected());
-    }
-
     @Test
     @Configuration("client.json")
     @Specification({

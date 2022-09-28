@@ -27,7 +27,6 @@ import org.junit.Test;
 public class HttpConfigurationTest
 {
     // needed by test annotations
-    public static final String HTTP_MAXIMUM_QUEUED_REQUESTS_NAME = "zilla.binding.http.maximum.requests.queued";
     public static final String HTTP_SERVER_HEADER_NAME = "zilla.binding.http.server.header";
     public static final String HTTP_SERVER_CONCURRENT_STREAMS_NAME = "zilla.binding.http.server.concurrent.streams";
     public static final String HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME = "zilla.binding.http.server.max.header.list.size";

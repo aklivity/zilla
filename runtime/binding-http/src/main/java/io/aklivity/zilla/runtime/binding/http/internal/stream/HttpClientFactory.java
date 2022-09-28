@@ -276,7 +276,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 binding.options != null && binding.options.overrides != null ? binding.options.overrides : EMPTY_OVERRIDES;
 
             final HttpClientPool clientPool = clientPools.computeIfAbsent(resolvedId, HttpClientPool::new);
-            newStream = clientPool.newStream(buffer, index, length, application, overrides, binding.versions());
+            newStream = clientPool.newStream(begin, application, overrides, binding.versions());
         }
 
         return newStream;
@@ -875,9 +875,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         public MessageConsumer newStream(
-            DirectBuffer buffer,
-            int index,
-            int length,
+            BeginFW begin,
             MessageConsumer sender,
             Map<String8FW, String16FW> overrides,
             SortedSet<HttpVersion> versions)
@@ -886,12 +884,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             countRequests.getAsLong();
             this.versions = versions;
 
-            final BeginFW begin = beginRO.wrap(buffer, index, index + length);
             HttpClient client = supplyClient();
 
             MessageConsumer newStream = null;
 
-            final int extensionLength = begin.extension().sizeof();
+            final int extensionLength = begin.extension().sizeof() + 3 * Long.BYTES + Integer.BYTES;
             if (extensionLength > maximumHeadersSize)
             {
                 HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
@@ -956,13 +953,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final MutableDirectBuffer headerBuffer = bufferPool.buffer(headerSlot);
                 final long streamId = headerBuffer.getLong(headerSlotOffset);
-                final int length = headerBuffer.getInt(headerSlotOffset + Long.BYTES);
-                HttpExchange httpExchange = exchanges.get(streamId);
+                final long traceId = headerBuffer.getLong(headerSlotOffset + Long.BYTES);
+                final long authorization = headerBuffer.getLong(headerSlotOffset + 2 * Long.BYTES);
+                final int length = headerBuffer.getInt(headerSlotOffset +  3 * Long.BYTES);
+                final int metadataOffset = headerSlotOffset + 3 * Long.BYTES + Integer.BYTES;
+                final HttpExchange httpExchange = exchanges.get(streamId);
                 if (httpExchange != null)
                 {
-                    httpExchange.doRequestBegin(headerBuffer, headerSlotOffset + Long.BYTES + Integer.BYTES, length);
+                    httpExchange.doRequestBegin(headerBuffer, metadataOffset, length,  traceId, authorization);
                 }
-                headerSlotOffset += Long.BYTES + Integer.BYTES + length;
+                headerSlotOffset += metadataOffset + length;
                 dequeues.getAsLong();
             }
 
@@ -972,7 +972,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private void cleanupHeaderSlotIfNecessary()
         {
-            if (headerSlotOffset == headerSlotLimit && headerSlot != NO_SLOT)
+            if (headerSlot != NO_SLOT && headerSlotOffset == headerSlotLimit)
             {
                 bufferPool.release(headerSlot);
                 headerSlot = NO_SLOT;
@@ -1862,9 +1862,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         private BudgetDebitor responseDeb;
         private long responseDebIndex = NO_DEBITOR_INDEX;
 
-        private long traceId;
-        private long authorization;
-
         private int state;
 
         private boolean requestChunked;
@@ -1930,8 +1927,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
-            traceId = begin.traceId();
-            authorization = begin.authorization();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
             final long streamId = begin.streamId();
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
@@ -1963,6 +1960,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                 int headerSlotLimit = client.pool.headerSlotLimit;
                 headerBuffer.putLong(headerSlotLimit, streamId);
                 headerSlotLimit += Long.BYTES;
+                headerBuffer.putLong(headerSlotLimit, traceId);
+                headerSlotLimit += Long.BYTES;
+                headerBuffer.putLong(headerSlotLimit, authorization);
+                headerSlotLimit += Long.BYTES;
                 headerBuffer.putInt(headerSlotLimit, length);
                 headerSlotLimit += Integer.BYTES;
                 headerBuffer.putBytes(headerSlotLimit, beginEx.buffer(), beginEx.offset(), length);
@@ -1974,7 +1975,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void doRequestBegin(
             DirectBuffer buffer,
             int index,
-            int length)
+            int length,
+            long traceId,
+            long authorization)
         {
             final HttpBeginExFW beginEx = beginExRO.tryWrap(buffer, index, index + length);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
