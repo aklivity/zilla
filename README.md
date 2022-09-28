@@ -141,7 +141,7 @@ You can also quickly test out Zilla by running preconfigured Zilla configuration
 | [http.echo.jwt](https://github.com/aklivity/zilla-examples/tree/main/http.echo.jwt) | Echoes request sent to the HTTP server from a JWT-authorized HTTP client |
 | [http.kafka.sync](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sync) | Correlates requests and responses over separate Kaka topics |
 | [http.kafka.async](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Correlates requests and responses over separate Kaka topics, asynchronously |
-| [http.kafka.cache](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.cache) | Serves cached responses from a Kaka topic |
+| [http.kafka.cache](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.cache) | Serves cached responses from a Kafka topic, detect when updated |
 | [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kaka topic |
 | [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
