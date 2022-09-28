@@ -1,0 +1,17 @@
+{
+    "name": "test",
+    "guards":
+    {
+        "jwt0":
+        {
+            "type": "jwt",
+            "options":
+            {
+                "issuer": "https://auth.example.com",
+                "audience": "https://api.example.com",
+                "keys": "https://auth.example.com/.well_known/jwks.json",
+                "challenge": 30
+            }
+        }
+    }
+}

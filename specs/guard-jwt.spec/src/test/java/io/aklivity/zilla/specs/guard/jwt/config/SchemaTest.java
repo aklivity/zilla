@@ -15,10 +15,15 @@
 package io.aklivity.zilla.specs.guard.jwt.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,5 +43,19 @@ public class SchemaTest
         JsonObject config = schema.validate("guard.json");
 
         assertThat(config, not(nullValue()));
+        JsonValue value = config.getValue("/guards/jwt0/options/keys");
+        assertThat(value, is(instanceOf(JsonArray.class)));
     }
+
+    @Test
+    public void shouldValidateGuardWithUrlAsKey()
+    {
+        JsonObject config = schema.validate("guard-issue-68.json");
+
+        assertThat(config, not(nullValue()));
+        JsonValue value = config.getValue("/guards/jwt0/options/keys");
+        assertThat(value, is(instanceOf(JsonString.class)));
+
+    }
+
 }
