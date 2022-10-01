@@ -1,0 +1,16 @@
+{
+  "name": "test",
+  "guards":
+  {
+    "jwt0":
+    {
+      "type": "jwt",
+      "options":
+      {
+        "issuer": "https://auth.example.com",
+        "audience": "https://api.example.com",
+        "challenge": 30
+      }
+    }
+  }
+}

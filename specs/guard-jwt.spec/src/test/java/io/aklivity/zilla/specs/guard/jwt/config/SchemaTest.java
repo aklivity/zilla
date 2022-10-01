@@ -48,9 +48,9 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateGuardWithUrlAsKey()
+    public void shouldValidateGuardWithDynamicKeys()
     {
-        JsonObject config = schema.validate("guard-issue-68.json");
+        JsonObject config = schema.validate("guard-keys-dynamic.json");
 
         assertThat(config, not(nullValue()));
         JsonValue value = config.getValue("/guards/jwt0/options/keys");
@@ -58,4 +58,13 @@ public class SchemaTest
 
     }
 
+    @Test
+    public void shouldValidateGuardWithImplicitKeys()
+    {
+        JsonObject config = schema.validate("guard-keys-implicit.json");
+
+        assertThat(config, not(nullValue()));
+        JsonObject optionsConfig = (JsonObject) config.getValue("/guards/jwt0/options");
+        assertThat(optionsConfig.containsKey("keys"), is(false));
+    }
 }
