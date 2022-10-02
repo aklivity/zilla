@@ -112,8 +112,15 @@ Hello, world
 Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, and `SASL/PLAIN`.
 
 Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
+<br>
+#### Zilla Studio
+Besides directly creating and modifying a `zilla.json` file, you can use the <a href="https://zilla-studio.aklivity.io/#/">Zilla Studio</a> GUI tool to generate one instead. This simplifies getting started with Zilla even further and helps visualize a Zilla configuration.
+<div align="center" float="left">
+    <img src="./assets/zilla-studio@2x.png" height="300">  
+</div>
 <br></br>
-#### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
+
+### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
 A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo App with Zilla and Kafka streams, and achieve the following:
 - Provide a list of Todo tasks that is shared by all clients
 - Support optimistic locking with conflict detection when attempting to update a Todo task
