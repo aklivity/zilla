@@ -127,12 +127,13 @@ A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo 
 - Deliver updates in near real-time when a Todo task is created, modified, or deleted
 - Demonstrate a user interface driving the Tasks API
 - Support scaling Todo task reads and writes
-
+<!--
 <div align="center" float="left">
     <img src="./assets/zilla-todo-app-screenshot-shadow@2x.png" height="300">  
     <p><i>Vue.js + Zilla + Kafka</i></p>
 </div>
-
+-->
+<br>
 
 ### Zilla Examples
 You can also quickly test out Zilla by running preconfigured Zilla configurations for various protocols.
