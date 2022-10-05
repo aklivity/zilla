@@ -16,7 +16,7 @@ Try out these Zilla example configurations using `docker` in your local developm
 | [http.kafka.sync](http.kafka.sync) | Correlates requests and responses over separate Kafka topics |
 | [http.kafka.async](http.kafka.async) | Correlates requests and responses over separate Kafka topics, asynchronously |
 | [http.kafka.cache](http.kafka.cache) | Serves cached responses from a Kafka topic, detect when updated |
-| [http.kafka.oneway](http.kafka.oneway) | Sends messages to a Kafka topic |
+| [http.kafka.oneway](http.kafka.oneway) | Sends messages to a Kafka topic, fire-and-forget |
 | [amqp.reflect](amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
 | [sse.kafka.fanout](sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
