@@ -39,6 +39,8 @@ import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -96,6 +98,9 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
 
     private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
+
+    private final ExtensionFW extensionRO = new ExtensionFW();
+    private final ProxyBeginExFW beginProxyExRO = new ProxyBeginExFW();
 
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
@@ -917,9 +922,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private MessageConsumer rejectWithStatusCode(
-                MessageConsumer sender,
-                BeginFW begin,
-                HttpBeginExFW beginEx)
+            MessageConsumer sender,
+            BeginFW begin,
+            HttpBeginExFW beginEx)
         {
             MessageConsumer newStream;
             // count all responses
@@ -1145,6 +1150,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             replyAuth = authorization;
+
+            final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+            final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
+                    ? begin.extension().get(beginProxyExRO::tryWrap)
+                    : null;
+
 
             doNetworkWindow(traceId, 0L, 0, 0);
             pool.flushNext();
