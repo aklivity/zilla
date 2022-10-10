@@ -98,7 +98,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core proxy http</scopeNames>
+          <scopeNames>core proxy http internal</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.http.internal.types</packageName>
         </configuration>
         <executions>

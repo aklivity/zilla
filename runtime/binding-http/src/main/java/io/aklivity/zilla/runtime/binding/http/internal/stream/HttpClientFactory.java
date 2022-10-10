@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.queue.HttpQueueEntryFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.DataFW;
@@ -139,6 +140,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final HttpQueueEntryFW queueEntryRO = new HttpQueueEntryFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -151,6 +153,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+
+    private final HttpQueueEntryFW.Builder queueEntryRW = new HttpQueueEntryFW.Builder();
 
     private final AsciiSequenceView asciiRO = new AsciiSequenceView();
 
@@ -182,7 +186,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Matcher versionPart;
     private final Matcher headerLine;
     private final Matcher connectionClose;
-    private final int maximumHeadersSize;
+    private final int maximumRequestQueueSize;
     private final int decodeMax;
 
     private final int maximumConnectionsPerRoute;
@@ -213,7 +217,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.headerLine = HEADER_LINE_PATTERN.matcher("");
         this.versionPart = VERSION_PATTERN.matcher("");
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
-        this.maximumHeadersSize = bufferPool.slotCapacity();
+        this.maximumRequestQueueSize = bufferPool.slotCapacity();
 
         this.clientPools = new Long2ObjectHashMap<>();
         this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
@@ -596,7 +600,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 progress = endOfHeadersAt;
             }
         }
-        else if (limit - offset >= maximumHeadersSize)
+        else if (limit - offset >= maximumRequestQueueSize)
         {
             client.decoder = decodeIgnore;
         }
@@ -611,7 +615,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         final CharSequence startLine = new AsciiSequenceView(buffer, offset, limit - offset);
 
-        return startLine.length() < maximumHeadersSize &&
+        return startLine.length() < maximumRequestQueueSize &&
                 responseLine.reset(startLine).matches() &&
                 versionPart.reset(responseLine.group("version")).matches() ? responseLine.group("status") : null;
     }
@@ -888,8 +892,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             MessageConsumer newStream = null;
 
-            final int extensionLength = begin.extension().sizeof() + 3 * Long.BYTES + Integer.BYTES;
-            if (extensionLength > maximumHeadersSize)
+            final int queuedRequestLength = begin.extension().sizeof() + 3 * Long.BYTES + Integer.BYTES;
+            if (queuedRequestLength > maximumRequestQueueSize)
             {
                 HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                         .typeId(httpTypeId)
@@ -897,7 +901,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         .build();
                 newStream = rejectWithStatusCode(sender, begin, beginEx);
             }
-            else if (client != null && extensionLength <= availableSlotSize())
+            else if (client != null && queuedRequestLength <= availableSlotSize())
             {
                 final HttpExchange exchange = client.newExchange(sender, begin, overrides);
                 exchanges.put(begin.streamId(), exchange);
@@ -952,17 +956,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             while (headerSlotOffset != headerSlotLimit)
             {
                 final MutableDirectBuffer headerBuffer = bufferPool.buffer(headerSlot);
-                final long streamId = headerBuffer.getLong(headerSlotOffset);
-                final long traceId = headerBuffer.getLong(headerSlotOffset + Long.BYTES);
-                final long authorization = headerBuffer.getLong(headerSlotOffset + 2 * Long.BYTES);
-                final int length = headerBuffer.getInt(headerSlotOffset +  3 * Long.BYTES);
-                final int metadataOffset = headerSlotOffset + 3 * Long.BYTES + Integer.BYTES;
+                final HttpQueueEntryFW queueEntry = queueEntryRO.wrap(headerBuffer, headerSlotOffset, headerSlotLimit);
+                final long streamId = queueEntry.streamId();
+                final long traceId = queueEntry.traceId();
+                final long authorization = queueEntry.authorization();
                 final HttpExchange httpExchange = exchanges.get(streamId);
                 if (httpExchange != null)
                 {
-                    httpExchange.doRequestBegin(headerBuffer, metadataOffset, length,  traceId, authorization);
+                    httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
                 }
-                headerSlotOffset += metadataOffset + length;
+                headerSlotOffset += queueEntry.sizeof();
                 dequeues.getAsLong();
             }
 
@@ -1954,32 +1957,27 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                final int length = beginEx.sizeof();
                 client.pool.acquireSlotIfNecessary();
                 final MutableDirectBuffer headerBuffer = bufferPool.buffer(client.pool.headerSlot);
                 int headerSlotLimit = client.pool.headerSlotLimit;
-                headerBuffer.putLong(headerSlotLimit, streamId);
-                headerSlotLimit += Long.BYTES;
-                headerBuffer.putLong(headerSlotLimit, traceId);
-                headerSlotLimit += Long.BYTES;
-                headerBuffer.putLong(headerSlotLimit, authorization);
-                headerSlotLimit += Long.BYTES;
-                headerBuffer.putInt(headerSlotLimit, length);
-                headerSlotLimit += Integer.BYTES;
-                headerBuffer.putBytes(headerSlotLimit, beginEx.buffer(), beginEx.offset(), length);
-                client.pool.headerSlotLimit += headerSlotLimit + length;
+                final HttpQueueEntryFW queueEntry = queueEntryRW.wrap(headerBuffer, headerSlotLimit, headerBuffer.capacity())
+                        .streamId(streamId)
+                        .traceId(traceId)
+                        .authorization(authorization)
+                        .value(beginEx.buffer(), beginEx.offset(), beginEx.sizeof())
+                        .build();
+
+                client.pool.headerSlotLimit += queueEntry.sizeof();
                 enqueues.getAsLong();
             }
         }
 
         private void doRequestBegin(
-            DirectBuffer buffer,
-            int index,
-            int length,
             long traceId,
-            long authorization)
+            long authorization,
+            OctetsFW extension)
         {
-            final HttpBeginExFW beginEx = beginExRO.tryWrap(buffer, index, index + length);
+            final HttpBeginExFW beginEx = extension.get(beginExRO::tryWrap);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
             client.exchange = this;
