@@ -865,9 +865,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final List<HttpClient> clients;
 
         private final Long2ObjectHashMap<HttpExchange> exchanges;
-        private int headerSlot = NO_SLOT;
-        private int headerSlotOffset;
-        private int headerSlotLimit;
+        private int httpQueueSlot = NO_SLOT;
+        private int httpQueueSlotOffset;
+        private int httpQueueSlotLimit;
         private SortedSet<HttpVersion> versions;
 
         private HttpClientPool(
@@ -953,10 +953,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private void flushNext()
         {
-            while (headerSlotOffset != headerSlotLimit)
+            while (httpQueueSlotOffset != httpQueueSlotLimit)
             {
-                final MutableDirectBuffer headerBuffer = bufferPool.buffer(headerSlot);
-                final HttpQueueEntryFW queueEntry = queueEntryRO.wrap(headerBuffer, headerSlotOffset, headerSlotLimit);
+                final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(httpQueueSlot);
+                final HttpQueueEntryFW queueEntry = queueEntryRO.wrap(httpQueueBuffer, httpQueueSlotOffset, httpQueueSlotLimit);
                 final long streamId = queueEntry.streamId();
                 final long traceId = queueEntry.traceId();
                 final long authorization = queueEntry.authorization();
@@ -965,28 +965,28 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
                 }
-                headerSlotOffset += queueEntry.sizeof();
+                httpQueueSlotOffset += queueEntry.sizeof();
                 dequeues.getAsLong();
             }
 
-            headerSlotOffset = 0;
-            headerSlotLimit = 0;
+            httpQueueSlotOffset = 0;
+            httpQueueSlotLimit = 0;
         }
 
         private void cleanupHeaderSlotIfNecessary()
         {
-            if (headerSlot != NO_SLOT && headerSlotOffset == headerSlotLimit)
+            if (httpQueueSlot != NO_SLOT && httpQueueSlotOffset == httpQueueSlotLimit)
             {
-                bufferPool.release(headerSlot);
-                headerSlot = NO_SLOT;
+                bufferPool.release(httpQueueSlot);
+                httpQueueSlot = NO_SLOT;
             }
         }
 
         private void acquireSlotIfNecessary()
         {
-            if (headerSlot == NO_SLOT)
+            if (httpQueueSlot == NO_SLOT)
             {
-                headerSlot = bufferPool.acquire(resolvedId);
+                httpQueueSlot = bufferPool.acquire(resolvedId);
             }
         }
 
@@ -1036,7 +1036,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private int availableSlotSize()
         {
-            return bufferPool.slotCapacity() - headerSlotLimit - Long.BYTES - Integer.BYTES;
+            return bufferPool.slotCapacity() - httpQueueSlotLimit - Long.BYTES - Integer.BYTES;
         }
     }
 
@@ -1958,16 +1958,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 client.pool.acquireSlotIfNecessary();
-                final MutableDirectBuffer headerBuffer = bufferPool.buffer(client.pool.headerSlot);
-                int headerSlotLimit = client.pool.headerSlotLimit;
-                final HttpQueueEntryFW queueEntry = queueEntryRW.wrap(headerBuffer, headerSlotLimit, headerBuffer.capacity())
+                final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(client.pool.httpQueueSlot);
+                int headerSlotLimit = client.pool.httpQueueSlotLimit;
+                final HttpQueueEntryFW queueEntry = queueEntryRW.wrap(httpQueueBuffer, headerSlotLimit, httpQueueBuffer.capacity())
                         .streamId(streamId)
                         .traceId(traceId)
                         .authorization(authorization)
                         .value(beginEx.buffer(), beginEx.offset(), beginEx.sizeof())
                         .build();
 
-                client.pool.headerSlotLimit += queueEntry.sizeof();
+                client.pool.httpQueueSlotLimit += queueEntry.sizeof();
                 enqueues.getAsLong();
             }
         }
