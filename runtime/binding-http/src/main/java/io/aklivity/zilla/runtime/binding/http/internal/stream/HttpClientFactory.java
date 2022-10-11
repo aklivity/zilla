@@ -1178,6 +1178,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long encodeReservedSlotTraceId;
         private int encodeReservedSlotMarkOffset;
 
+        private int initialBudgetReserved;
+
         private final Http2Settings localSettings;
         private final Http2Settings remoteSettings;
         private final HpackContext decodeContext;
@@ -1997,7 +1999,44 @@ public final class HttpClientFactory implements HttpStreamFactory
                 encodeSlotMarkOffset == 0 &&
                 encodeReservedSlotMarkOffset == 0)
             {
+                final int initialWin = initialMax - initialPendingAck();
+                final int maxEncodeLength =
+                        encodeHeadersSlotMarkOffset != 0 ? encodeHeadersSlotMarkOffset : encodeHeadersSlotOffset;
+                final int encodeLength = Math.max(Math.min(initialWin - initialPad, maxEncodeLength), 0);
 
+                if (encodeLength > 0)
+                {
+                    final int encodeReserved = encodeLength + initialPad;
+
+                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax, encodeHeadersSlotTraceId,
+                            authorization, budgetId, encodeReserved, encodeHeadersBuffer, 0, encodeLength, EMPTY_OCTETS);
+
+                    initialSeq += encodeReserved;
+
+                    assert initialSeq <= initialAck + initialMax :
+                            String.format("%d <= %d + %d", initialSeq, initialAck, initialMax);
+
+                    if (encodeHeadersSlotMarkOffset != 0)
+                    {
+                        encodeHeadersSlotMarkOffset -= encodeLength;
+                        assert encodeHeadersSlotMarkOffset >= 0;
+                    }
+
+                    encodeHeadersSlotOffset -= encodeLength;
+                    assert encodeHeadersSlotOffset >= 0;
+
+                    if (encodeHeadersSlotOffset > 0)
+                    {
+                        encodeHeadersBuffer.putBytes(0, encodeHeadersBuffer, encodeLength, encodeHeadersSlotOffset);
+
+                        if (encodeHeadersSlotMarkOffset == 0)
+                        {
+                            encodeHeadersSlotMarkOffset = encodeHeadersSlotOffset;
+                        }
+                    }
+
+                    initialBudgetReserved += encodeReserved;
+                }
             }
         }
 
@@ -2033,23 +2072,22 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (encodeReservedSlotOffset != 0 &&
                 (encodeReservedSlotMarkOffset != 0 || encodeHeadersSlotOffset == 0 && encodeSlotOffset == 0))
             {
-                final int replyWin = replyMax - replyPendingAck();
+                final int initialWin = initialMax - initialPendingAck();
                 final int maxEncodeLength =
                         encodeReservedSlotMarkOffset != 0 ? encodeReservedSlotMarkOffset : encodeReservedSlotOffset;
-                final int encodeLength = Math.max(Math.min(replyWin - replyPad, maxEncodeLength), 0);
+                final int encodeLength = Math.max(Math.min(initialWin - initialPad, maxEncodeLength), 0);
 
                 if (encodeLength > 0)
                 {
-                    final int encodeReserved = encodeLength + replyPad;
+                    final int encodeReserved = encodeLength + initialPad;
 
-
-                    doData(network, routeId, replyId, replySeq, replyAck, replyMax, encodeReservedSlotTraceId,
+                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax, encodeReservedSlotTraceId,
                             authorization, budgetId, encodeReserved, encodeReservedBuffer, 0, encodeLength, EMPTY_OCTETS);
 
-                    replySeq += encodeReserved;
+                    initialSeq += encodeReserved;
 
-                    assert replySeq <= replyAck + replyMax :
-                            String.format("%d <= %d + %d", replySeq, replyAck, replyMax);
+                    assert initialSeq <= initialAck + initialMax :
+                            String.format("%d <= %d + %d", initialSeq, initialAck, initialSeq);
 
                     if (encodeReservedSlotMarkOffset != 0)
                     {
@@ -2072,7 +2110,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         }
                     }
 
-                    replyBudgetReserved += encodeReserved;
+                    initialBudgetReserved += encodeReserved;
                 }
             }
         }
