@@ -272,7 +272,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Matcher versionPart;
     private final Matcher headerLine;
     private final Matcher connectionClose;
-    private final int maximumHeadersSize;
+    private final int maximumRequestQueueSize;
     private final int decodeMax;
 
     private final int proxyTypeId;
@@ -307,7 +307,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.headerLine = HEADER_LINE_PATTERN.matcher("");
         this.versionPart = VERSION_PATTERN.matcher("");
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
-        this.maximumHeadersSize = bufferPool.slotCapacity();
+        this.maximumRequestQueueSize = bufferPool.slotCapacity();
 
         this.clientPools = new Long2ObjectHashMap<>();
         this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
@@ -690,7 +690,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 progress = endOfHeadersAt;
             }
         }
-        else if (limit - offset >= maximumHeadersSize)
+        else if (limit - offset >= decodeMax)
         {
             client.decoder = decodeIgnore;
         }
@@ -705,7 +705,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         final CharSequence startLine = new AsciiSequenceView(buffer, offset, limit - offset);
 
-        return startLine.length() < maximumHeadersSize &&
+        return startLine.length() < decodeMax &&
                 responseLine.reset(startLine).matches() &&
                 versionPart.reset(responseLine.group("version")).matches() ? responseLine.group("status") : null;
     }
@@ -995,7 +995,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             MessageConsumer newStream = null;
 
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
-            if (queuedRequestLength > maximumHeadersSize)
+            if (queuedRequestLength > maximumRequestQueueSize)
             {
 
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
