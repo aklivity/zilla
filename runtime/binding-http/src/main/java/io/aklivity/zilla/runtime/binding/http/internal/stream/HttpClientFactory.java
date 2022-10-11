@@ -598,7 +598,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                         {
                             client.decoder = decodeUpgraded;
                         }
-                        client.pool.cleanupHeaderSlotIfNecessary();
                         break;
                     }
 
@@ -978,9 +977,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             httpQueueSlotOffset = 0;
             httpQueueSlotLimit = 0;
+            cleanupQueueSlotIfNecessary();
         }
 
-        private void cleanupHeaderSlotIfNecessary()
+        private void cleanupQueueSlotIfNecessary()
         {
             if (httpQueueSlot != NO_SLOT && httpQueueSlotOffset == httpQueueSlotLimit)
             {
@@ -2309,7 +2309,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 client.exchange = null;
                 client.pool.flushNext();
-                client.pool.cleanupHeaderSlotIfNecessary();
             }
         }
 
