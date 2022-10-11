@@ -1275,7 +1275,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (beginEx != null
                     && beginEx.infos().anyMatch(proxyInfo -> proxyInfo.alpn().equals("h2")))
             {
-
+                doEncodePreface(this, traceId, authorization);
             }
             else
             {
@@ -2026,12 +2026,64 @@ public final class HttpClientFactory implements HttpStreamFactory
             encodeNetwork(traceId, authorization, budgetId);
         }
 
+        private void encodeNetworkReserved(
+                long authorization,
+                long budgetId)
+        {
+            if (encodeReservedSlotOffset != 0 &&
+                (encodeReservedSlotMarkOffset != 0 || encodeHeadersSlotOffset == 0 && encodeSlotOffset == 0))
+            {
+                final int replyWin = replyMax - replyPendingAck();
+                final int maxEncodeLength =
+                        encodeReservedSlotMarkOffset != 0 ? encodeReservedSlotMarkOffset : encodeReservedSlotOffset;
+                final int encodeLength = Math.max(Math.min(replyWin - replyPad, maxEncodeLength), 0);
+
+                if (encodeLength > 0)
+                {
+                    final int encodeReserved = encodeLength + replyPad;
+
+
+                    doData(network, routeId, replyId, replySeq, replyAck, replyMax, encodeReservedSlotTraceId,
+                            authorization, budgetId, encodeReserved, encodeReservedBuffer, 0, encodeLength, EMPTY_OCTETS);
+
+                    replySeq += encodeReserved;
+
+                    assert replySeq <= replyAck + replyMax :
+                            String.format("%d <= %d + %d", replySeq, replyAck, replyMax);
+
+                    if (encodeReservedSlotMarkOffset != 0)
+                    {
+                        encodeReservedSlotMarkOffset -= encodeLength;
+                        assert encodeReservedSlotMarkOffset >= 0;
+                    }
+
+                    encodeReservedSlotOffset -= encodeLength;
+                    assert encodeReservedSlotOffset >= 0;
+
+                    if (encodeReservedSlotOffset > 0)
+                    {
+                        encodeReservedBuffer.putBytes(0, encodeReservedBuffer, encodeLength, encodeReservedSlotOffset);
+
+                        if (encodeReservedSlotMarkOffset == 0 &&
+                                encodeHeadersSlotOffset == 0 &&
+                                encodeSlotOffset == 0)
+                        {
+                            encodeReservedSlotMarkOffset = encodeReservedSlotOffset;
+                        }
+                    }
+
+                    replyBudgetReserved += encodeReserved;
+                }
+            }
+        }
+
         private void encodeNetwork(
                 long traceId,
                 long authorization,
                 long budgetId)
         {
             encodeNetworkHeaders(authorization, budgetId);
+            encodeNetworkReserved(authorization, budgetId);
         }
 
         private void cleanupNetwork(
