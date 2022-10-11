@@ -15,8 +15,16 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_1_1;
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.KEEP_ALIVE;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.PROXY_CONNECTION;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TRAILERS;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.UPGRADE;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.INCREMENTAL_INDEXING;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.WITHOUT_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
@@ -26,12 +34,15 @@ import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Collections.emptyMap;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -39,12 +50,36 @@ import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2DataFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ErrorCode;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameInfoFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2GoawayFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2HeadersFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PingFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PrefaceFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PriorityFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PushPromiseFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHuffman;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW;
+import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackStringFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.util.HttpUtil;
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
+import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -132,6 +167,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                          .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
                          .build();
+    private static final Array32FW<HttpHeaderFW> HEADERS_400_BAD_REQUEST =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                    .item(h -> h.name(":status").value("400"))
+                    .item(h -> h.name("content-length").value("0"))
+                    .build();
     private static final Map<String8FW, String16FW> EMPTY_OVERRIDES = emptyMap();
 
     private final BeginFW beginRO = new BeginFW();
@@ -176,6 +217,37 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final MutableInteger codecOffset = new MutableInteger();
 
+
+    private final Http2PrefaceFW http2PrefaceRO = new Http2PrefaceFW();
+    private final Http2FrameInfoFW http2FrameInfoRO = new Http2FrameInfoFW();
+    private final Http2SettingsFW http2SettingsRO = new Http2SettingsFW();
+    private final Http2GoawayFW http2GoawayRO = new Http2GoawayFW();
+    private final Http2PingFW http2PingRO = new Http2PingFW();
+    private final Http2DataFW http2DataRO = new Http2DataFW();
+    private final Http2HeadersFW http2HeadersRO = new Http2HeadersFW();
+    private final Http2ContinuationFW http2ContinuationRO = new Http2ContinuationFW();
+    private final Http2WindowUpdateFW http2WindowUpdateRO = new Http2WindowUpdateFW();
+    private final Http2RstStreamFW http2RstStreamRO = new Http2RstStreamFW();
+    private final Http2PriorityFW http2PriorityRO = new Http2PriorityFW();
+
+    private final Http2PrefaceFW.Builder http2PrefaceRW = new Http2PrefaceFW.Builder();
+    private final Http2SettingsFW.Builder http2SettingsRW = new Http2SettingsFW.Builder();
+    private final Http2GoawayFW.Builder http2GoawayRW = new Http2GoawayFW.Builder();
+    private final Http2PingFW.Builder http2PingRW = new Http2PingFW.Builder();
+    private final Http2DataFW.Builder http2DataRW = new Http2DataFW.Builder();
+    private final Http2HeadersFW.Builder http2HeadersRW = new Http2HeadersFW.Builder();
+    private final Http2WindowUpdateFW.Builder http2WindowUpdateRW = new Http2WindowUpdateFW.Builder();
+    private final Http2RstStreamFW.Builder http2RstStreamRW = new Http2RstStreamFW.Builder();
+    private final Http2PushPromiseFW.Builder http2PushPromiseRW = new Http2PushPromiseFW.Builder();
+
+    private final HpackHeaderBlockFW headerBlockRO = new HpackHeaderBlockFW();
+
+    private final MutableInteger payloadRemaining = new MutableInteger(0);
+
+    private final Http2HeadersDecoder headersDecoder = new Http2HeadersDecoder();
+    private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
+
+    private final MutableDirectBuffer frameBuffer;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BufferPool bufferPool;
@@ -213,6 +285,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.streamFactory = context.streamFactory();
         this.supplyDebitor = context::supplyDebitor;
@@ -867,6 +940,18 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit);
     }
 
+    private void doEncodePreface(
+        HttpClient client,
+        long traceId,
+        long authorization)
+    {
+        final Http2PrefaceFW http2Preface = http2PrefaceRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                .preface()
+                .build();
+
+        client.doNetworkReservedData(traceId, authorization, 0L, http2Preface);
+    }
+
     private final class HttpClientPool
     {
         private final long resolvedId;
@@ -1006,12 +1091,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (client == null && clients.size() < eligibleMaximumConnectionsPerRoute)
             {
-                HttpVersion version = null;
-                if (this.versions.size() == 1)
-                {
-                    version = this.versions.contains(HTTP_1_1) ? HTTP_1_1 : HTTP_2;
-                }
-                client = new HttpClient(this, version);
+                client = new HttpClient(this);
                 onCreated(client);
             }
 
@@ -1078,18 +1158,43 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long replySeq;
         private long replyAck;
         private long replyAuth;
-        private HttpVersion version;
+        private int encodeSlotMarkOffset;
+
+        private MutableDirectBuffer encodeHeadersBuffer;
+        private int encodeHeadersSlotOffset;
+        private long encodeHeadersSlotTraceId;
+        private int headersSlot = NO_SLOT;
+        private int headersSlotOffset;
+        private int encodeHeadersSlotMarkOffset;
+
+        private MutableDirectBuffer encodeReservedBuffer;
+        private int encodeReservedSlotOffset;
+        private long encodeReservedSlotTraceId;
+        private int encodeReservedSlotMarkOffset;
+
+        private final Http2Settings localSettings;
+        private final Http2Settings remoteSettings;
+        private final HpackContext decodeContext;
+        private final HpackContext encodeContext;
+        private final Int2ObjectHashMap<HttpExchange> streams;
+        private final LongHashSet applicationHeadersProcessed;
 
         private HttpClient(
-            HttpClientPool pool,
-            HttpVersion version)
+            HttpClientPool pool)
         {
             this.pool = pool;
             this.routeId = pool.resolvedId;
-            this.version = version;
             this.initialId = supplyInitialId.applyAsLong(routeId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.decoder = decodeEmptyLines;
+            this.localSettings = new Http2Settings();
+            this.remoteSettings = new Http2Settings();
+            this.streams = new Int2ObjectHashMap<>();
+            this.applicationHeadersProcessed = new LongHashSet();
+            this.decodeContext = new HpackContext(localSettings.headerTableSize, false);
+            this.encodeContext = new HpackContext(remoteSettings.headerTableSize, true);
+            this.encodeHeadersBuffer = new ExpandableArrayBuffer();
+            this.encodeReservedBuffer = new ExpandableArrayBuffer();
             this.decodeSlot = NO_SLOT;
             this.encodeSlot = NO_SLOT;
         }
@@ -1161,10 +1266,17 @@ public final class HttpClientFactory implements HttpStreamFactory
             final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
                     ? begin.extension().get(beginProxyExRO::tryWrap)
                     : null;
+            if (beginEx != null
+                    && beginEx.infos().anyMatch(proxyInfo -> proxyInfo.alpn().equals("h2")))
+            {
 
-
+            }
+            else
+            {
+                pool.flushNext();
+            }
             doNetworkWindow(traceId, 0L, 0, 0);
-            pool.flushNext();
+
         }
 
         private void onNetworkData(
@@ -1820,6 +1932,102 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
+        private void doEncodeHttp2Headers(
+                long traceId,
+                long authorization,
+                int streamId,
+                Array32FW<HttpHeaderFW> headers,
+                boolean endResponse)
+        {
+            final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(streamId)
+                    .headers(hb -> headersEncoder.encodeHeaders(encodeContext, headers, hb))
+                    .endHeaders()
+                    .endStream(endResponse)
+                    .build();
+
+            doNetworkHeadersData(traceId, authorization, 0L, http2Headers);
+        }
+
+        private void doNetworkHeadersData(
+                long traceId,
+                long authorization,
+                long budgetId,
+                Flyweight payload)
+        {
+            doNetworkHeadersData(traceId, authorization, budgetId, payload.buffer(),
+                    payload.offset(), payload.limit());
+        }
+
+        private void doNetworkHeadersData(
+                long traceId,
+                long authorization,
+                long budgetId,
+                DirectBuffer buffer,
+                int offset,
+                int limit)
+        {
+            if (encodeHeadersSlotOffset == 0)
+            {
+                encodeSlotMarkOffset = encodeSlotOffset;
+                assert encodeSlotMarkOffset >= 0;
+
+                encodeReservedSlotMarkOffset = encodeReservedSlotOffset;
+                assert encodeReservedSlotMarkOffset >= 0;
+            }
+
+            encodeHeadersBuffer.putBytes(encodeHeadersSlotOffset, buffer, offset, limit - offset);
+            encodeHeadersSlotOffset += limit - offset;
+            encodeHeadersSlotTraceId = traceId;
+
+            encodeNetwork(traceId, authorization, budgetId);
+        }
+
+        private void encodeNetworkHeaders(
+                long authorization,
+                long budgetId)
+        {
+            if (encodeHeadersSlotOffset != 0 &&
+                encodeSlotMarkOffset == 0 &&
+                encodeReservedSlotMarkOffset == 0)
+            {
+
+            }
+        }
+
+        private void doNetworkReservedData(
+                long traceId,
+                long authorization,
+                long budgetId,
+                Flyweight payload)
+        {
+            doNetworkReservedData(traceId, authorization, budgetId, payload.buffer(),
+                    payload.offset(), payload.limit());
+        }
+
+        private void doNetworkReservedData(
+                long traceId,
+                long authorization,
+                long budgetId,
+                DirectBuffer buffer,
+                int offset,
+                int limit)
+        {
+            encodeReservedBuffer.putBytes(encodeReservedSlotOffset, buffer, offset, limit - offset);
+            encodeReservedSlotOffset += limit - offset;
+            encodeReservedSlotTraceId = traceId;
+
+            encodeNetwork(traceId, authorization, budgetId);
+        }
+
+        private void encodeNetwork(
+                long traceId,
+                long authorization,
+                long budgetId)
+        {
+            encodeNetworkHeaders(authorization, budgetId);
+        }
+
         private void cleanupNetwork(
             long traceId,
             long authorization)
@@ -1995,7 +2203,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
             client.exchange = this;
-            client.doEncodeHeaders(this, traceId, authorization, 0L, headers, overrides);
+            client.doEncodeHttp2Headers(traceId, authorization, (int) requestId, headers, false);
         }
 
         private void onRequestFlush(
@@ -2326,6 +2534,520 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             doRequestReset(traceId, authorization);
             doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+        }
+    }
+
+    private final class Http2HeadersEncoder
+    {
+        private HpackContext context;
+
+        private final List<String> connectionHeaders = new ArrayList<>();
+
+        private final Consumer<HttpHeaderFW> search = this::connectionHeaders;
+
+        void encodePromise(
+                HpackContext encodeContext,
+                Array32FW<HttpHeaderFW> headers,
+                HpackHeaderBlockFW.Builder headerBlock)
+        {
+            reset(encodeContext);
+            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h, b)));
+        }
+
+        void encodeHeaders(
+                HpackContext encodeContext,
+                Array32FW<HttpHeaderFW> headers,
+                HpackHeaderBlockFW.Builder headerBlock)
+        {
+            reset(encodeContext);
+
+            headers.forEach(search);
+
+            headers.forEach(h ->
+            {
+                if (includeHeader(h))
+                {
+                    headerBlock.header(b -> encodeHeader(h, b));
+                }
+            });
+        }
+
+        void encodeTrailers(
+                HpackContext encodeContext,
+                Array32FW<HttpHeaderFW> headers,
+                HpackHeaderBlockFW.Builder headerBlock)
+        {
+            reset(encodeContext);
+            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h, b)));
+        }
+
+        private void reset(HpackContext encodeContext)
+        {
+            context = encodeContext;
+            connectionHeaders.clear();
+        }
+
+
+
+        private void connectionHeaders(
+                HttpHeaderFW header)
+        {
+            final String8FW name = header.name();
+
+            if (name.value().equals(CONNECTION))
+            {
+                final String16FW value = header.value();
+                final String[] headerValues = value.asString().split(",");
+                for (String headerValue : headerValues)
+                {
+                    connectionHeaders.add(headerValue.trim());
+                }
+            }
+        }
+
+        private boolean includeHeader(
+                HttpHeaderFW header)
+        {
+            final String8FW name = header.name();
+            final DirectBuffer nameBuffer = name.value();
+
+            // Excluding 8.1.2.1 pseudo-header fields
+            if (nameBuffer.equals(context.nameBuffer(1)) ||      // :authority
+                    nameBuffer.equals(context.nameBuffer(2)) ||      // :method
+                    nameBuffer.equals(context.nameBuffer(4)) ||      // :path
+                    nameBuffer.equals(context.nameBuffer(6)))        // :scheme
+            {
+                return false;
+            }
+
+            // Excluding 8.1.2.2 connection-specific header fields
+            if (nameBuffer.equals(context.nameBuffer(57)) ||     // transfer-encoding
+                    nameBuffer.equals(CONNECTION) ||                 // connection
+                    nameBuffer.equals(KEEP_ALIVE) ||                 // keep-alive
+                    nameBuffer.equals(PROXY_CONNECTION) ||           // proxy-connection
+                    nameBuffer.equals(UPGRADE))                      // upgrade
+            {
+                return false;
+            }
+
+            // Excluding header if nominated by connection header field
+            if (connectionHeaders.contains(name.asString()))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void encodeHeader(
+                HttpHeaderFW header,
+                HpackHeaderFieldFW.Builder builder)
+        {
+            final String8FW name = header.name();
+            final String16FW value = header.value();
+
+            final int index = context.index(name.value(), value.value());
+            if (index != -1)
+            {
+                builder.indexed(index);
+            }
+            else
+            {
+                builder.literal(literal -> encodeLiteral(literal, context, name.value(), value.value()));
+            }
+        }
+
+        // TODO dynamic table, Huffman, never indexed
+        private void encodeLiteral(
+                HpackLiteralHeaderFieldFW.Builder builder,
+                HpackContext hpackContext,
+                DirectBuffer nameBuffer,
+                DirectBuffer valueBuffer)
+        {
+            builder.type(WITHOUT_INDEXING);
+            final int nameIndex = hpackContext.index(nameBuffer);
+            if (nameIndex != -1)
+            {
+                builder.name(nameIndex);
+            }
+            else
+            {
+                builder.name(nameBuffer, 0, nameBuffer.capacity());
+            }
+            builder.value(valueBuffer, 0, valueBuffer.capacity());
+        }
+    }
+
+    private final class Http2HeadersDecoder
+    {
+        private HpackContext context;
+        private int headerTableSize;
+        private boolean pseudoHeaders;
+        private MutableBoolean expectDynamicTableSizeUpdate;
+
+        private final Consumer<HpackHeaderFieldFW> decodeHeader;
+        private final Consumer<HpackHeaderFieldFW> decodeTrailer;
+        private int method;
+        private int scheme;
+        private int path;
+
+        Http2ErrorCode connectionError;
+        Http2ErrorCode streamError;
+        Array32FW<HttpHeaderFW> httpErrorHeader;
+
+        final Map<String, String> headers = new LinkedHashMap<>();
+        long contentLength = -1;
+
+        private Http2HeadersDecoder()
+        {
+            BiConsumer<DirectBuffer, DirectBuffer> nameValue =
+                    ((BiConsumer<DirectBuffer, DirectBuffer>) this::collectHeaders)
+                            .andThen(this::validatePseudoHeaders)
+                            .andThen(this::uppercaseHeaders)
+                            .andThen(this::connectionHeaders)
+                            .andThen(this::contentLengthHeader)
+                            .andThen(this::teHeader);
+
+            Consumer<HpackHeaderFieldFW> consumer = this::validateHeaderFieldType;
+            consumer = consumer.andThen(this::dynamicTableSizeUpdate);
+            this.decodeHeader = consumer.andThen(h -> decodeHeaderField(h, nameValue));
+            this.decodeTrailer = h -> decodeHeaderField(h, this::validateTrailerFieldName);
+        }
+
+        void decodeHeaders(
+                HpackContext context,
+                int headerTableSize,
+                MutableBoolean expectDynamicTableSizeUpdate,
+                HpackHeaderBlockFW headerBlock)
+        {
+            reset(context, headerTableSize, expectDynamicTableSizeUpdate);
+            headerBlock.forEach(decodeHeader);
+
+            // All HTTP/2 requests MUST include exactly one valid value for the
+            // ":method", ":scheme", and ":path" pseudo-header fields, unless it is
+            // a CONNECT request (Section 8.3).  An HTTP request that omits
+            // mandatory pseudo-header fields is malformed
+            if (!error() && (method != 1 || scheme != 1 || path != 1))
+            {
+                streamError = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+        }
+
+        void decodeTrailers(
+                HpackContext context,
+                int headerTableSize,
+                MutableBoolean expectDynamicTableSizeUpdate,
+                HpackHeaderBlockFW headerBlock)
+        {
+            reset(context, headerTableSize, expectDynamicTableSizeUpdate);
+            headerBlock.forEach(decodeTrailer);
+        }
+
+        boolean error()
+        {
+            return streamError != null || connectionError != null;
+        }
+
+        boolean httpError()
+        {
+            return httpErrorHeader != null;
+        }
+
+        private void reset(
+                HpackContext context,
+                int headerTableSize,
+                MutableBoolean expectDynamicTableSizeUpdate)
+        {
+            this.context = context;
+            this.headerTableSize = headerTableSize;
+            this.expectDynamicTableSizeUpdate = expectDynamicTableSizeUpdate;
+            this.headers.clear();
+            this.connectionError = null;
+            this.streamError = null;
+            this.httpErrorHeader = null;
+            this.pseudoHeaders = true;
+            this.method = 0;
+            this.scheme = 0;
+            this.path = 0;
+            this.contentLength = -1;
+        }
+
+        private void validateHeaderFieldType(
+                HpackHeaderFieldFW hf)
+        {
+            if (!error() && hf.type() == UNKNOWN)
+            {
+                connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+            }
+        }
+
+        private void dynamicTableSizeUpdate(
+                HpackHeaderFieldFW hf)
+        {
+            if (!error())
+            {
+                switch (hf.type())
+                {
+                    case INDEXED:
+                    case LITERAL:
+                        expectDynamicTableSizeUpdate.value = false;
+                        break;
+                    case UPDATE:
+                        if (!expectDynamicTableSizeUpdate.value)
+                        {
+                            // dynamic table size update MUST occur at the beginning of the first header block
+                            connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                            return;
+                        }
+                        int maxTableSize = hf.tableSize();
+                        if (maxTableSize > headerTableSize)
+                        {
+                            connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                            return;
+                        }
+                        context.updateSize(hf.tableSize());
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        private void validatePseudoHeaders(
+                DirectBuffer name,
+                DirectBuffer value)
+        {
+            if (!error())
+            {
+                if (name.capacity() > 0 && name.getByte(0) == ':')
+                {
+                    // All pseudo-header fields MUST appear in the header block before regular header fields
+                    if (!pseudoHeaders)
+                    {
+                        streamError = Http2ErrorCode.PROTOCOL_ERROR;
+                        return;
+                    }
+                    // request pseudo-header fields MUST be one of :authority, :method, :path, :scheme,
+                    int index = context.index(name);
+                    switch (index)
+                    {
+                        case 1:             // :authority
+                            break;
+                        case 2:             // :method
+                            method++;
+                            break;
+                        case 4:             // :path
+                            if (value.capacity() > 0)       // :path MUST not be empty
+                            {
+                                path++;
+                                if (!HttpUtil.isPathValid(value))
+                                {
+                                    httpErrorHeader = HEADERS_400_BAD_REQUEST;
+                                }
+                            }
+                            break;
+                        case 6:             // :scheme
+                            scheme++;
+                            break;
+                        default:
+                            streamError = Http2ErrorCode.PROTOCOL_ERROR;
+                            return;
+                    }
+                }
+                else
+                {
+                    pseudoHeaders = false;
+                }
+            }
+        }
+
+        private void validateTrailerFieldName(
+                DirectBuffer name,
+                DirectBuffer value)
+        {
+            if (!error())
+            {
+                if (name.capacity() > 0 && name.getByte(0) == ':')
+                {
+                    streamError = Http2ErrorCode.PROTOCOL_ERROR;
+                    return;
+                }
+            }
+        }
+
+        private void connectionHeaders(
+                DirectBuffer name,
+                DirectBuffer value)
+        {
+            if (!error() && name.equals(HpackContext.CONNECTION))
+            {
+                streamError = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+        }
+
+        private void contentLengthHeader(
+                DirectBuffer name,
+                DirectBuffer value)
+        {
+            if (!error() && name.equals(context.nameBuffer(28)))
+            {
+                String contentLength = value.getStringWithoutLengthUtf8(0, value.capacity());
+                this.contentLength = Long.parseLong(contentLength);
+            }
+        }
+
+        // 8.1.2.2 TE header MUST NOT contain any value other than "trailers".
+        private void teHeader(
+                DirectBuffer name,
+                DirectBuffer value)
+        {
+            if (!error() && name.equals(TE) && !value.equals(TRAILERS))
+            {
+                streamError = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+        }
+
+        private void uppercaseHeaders(
+                DirectBuffer name,
+                DirectBuffer value)
+        {
+            if (!error())
+            {
+                for (int i = 0; i < name.capacity(); i++)
+                {
+                    if (name.getByte(i) >= 'A' && name.getByte(i) <= 'Z')
+                    {
+                        streamError = Http2ErrorCode.PROTOCOL_ERROR;
+                    }
+                }
+            }
+        }
+
+        // Collect headers into map to resolve target
+        // TODO avoid this
+        private void collectHeaders(
+                DirectBuffer name,
+                DirectBuffer value)
+        {
+            if (!error())
+            {
+                String nameStr = name.getStringWithoutLengthUtf8(0, name.capacity());
+                String valueStr = value.getStringWithoutLengthUtf8(0, value.capacity());
+                // TODO cookie needs to be appended with ';'
+                headers.merge(nameStr, valueStr, (o, n) -> String.format("%s, %s", o, n));
+            }
+        }
+
+        private void decodeHeaderField(
+                HpackHeaderFieldFW hf,
+                BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+        {
+            if (!error())
+            {
+                decodeHF(hf, nameValue);
+            }
+        }
+
+        private void decodeHF(
+                HpackHeaderFieldFW hf,
+                BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+        {
+            int index;
+            DirectBuffer name = null;
+            DirectBuffer value = null;
+
+            switch (hf.type())
+            {
+                case INDEXED :
+                    index = hf.index();
+                    if (!context.valid(index))
+                    {
+                        connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                        return;
+                    }
+                    name = context.nameBuffer(index);
+                    value = context.valueBuffer(index);
+                    nameValue.accept(name, value);
+                    break;
+
+                case LITERAL :
+                    HpackLiteralHeaderFieldFW hpackLiteral = hf.literal();
+                    if (hpackLiteral.error())
+                    {
+                        connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                        return;
+                    }
+
+                    HpackStringFW hpackValue = hpackLiteral.valueLiteral();
+
+                    switch (hpackLiteral.nameType())
+                    {
+                        case INDEXED:
+                            index = hpackLiteral.nameIndex();
+                            if (!context.valid(index))
+                            {
+                                connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                                return;
+                            }
+                            name = context.nameBuffer(index);
+
+                            value = hpackValue.payload();
+                            if (hpackValue.huffman())
+                            {
+                                MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                                int length = HpackHuffman.decode(value, dst);
+                                if (length == -1)
+                                {
+                                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                                    return;
+                                }
+                                value = new UnsafeBuffer(dst, 0, length);
+                            }
+                            nameValue.accept(name, value);
+                            break;
+                        case NEW:
+                            HpackStringFW hpackName = hpackLiteral.nameLiteral();
+                            name = hpackName.payload();
+                            if (hpackName.huffman())
+                            {
+                                MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                                int length = HpackHuffman.decode(name, dst);
+                                if (length == -1)
+                                {
+                                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                                    return;
+                                }
+                                name = new UnsafeBuffer(dst, 0, length);
+                            }
+
+                            value = hpackValue.payload();
+                            if (hpackValue.huffman())
+                            {
+                                MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                                int length = HpackHuffman.decode(value, dst);
+                                if (length == -1)
+                                {
+                                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                                    return;
+                                }
+                                value = new UnsafeBuffer(dst, 0, length);
+                            }
+                            nameValue.accept(name, value);
+                            break;
+                    }
+                    if (hpackLiteral.literalType() == INCREMENTAL_INDEXING)
+                    {
+                        // make a copy for name and value as they go into dynamic table (outlives current frame)
+                        MutableDirectBuffer nameCopy = new UnsafeBuffer(new byte[name.capacity()]);
+                        nameCopy.putBytes(0, name, 0, name.capacity());
+                        MutableDirectBuffer valueCopy = new UnsafeBuffer(new byte[value.capacity()]);
+                        valueCopy.putBytes(0, value, 0, value.capacity());
+                        context.add(nameCopy, valueCopy);
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
