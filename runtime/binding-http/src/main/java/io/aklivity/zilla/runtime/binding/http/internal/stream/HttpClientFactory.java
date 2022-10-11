@@ -975,8 +975,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 dequeues.getAsLong();
             }
 
-            httpQueueSlotOffset = 0;
-            httpQueueSlotLimit = 0;
             cleanupQueueSlotIfNecessary();
         }
 
@@ -986,10 +984,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 bufferPool.release(httpQueueSlot);
                 httpQueueSlot = NO_SLOT;
+                httpQueueSlotOffset = 0;
+                httpQueueSlotLimit = 0;
             }
         }
 
-        private void acquireSlotIfNecessary()
+        private void acquireQueueSlotIfNecessary()
         {
             if (httpQueueSlot == NO_SLOT)
             {
@@ -1964,7 +1964,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                client.pool.acquireSlotIfNecessary();
+                client.pool.acquireQueueSlotIfNecessary();
                 final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(client.pool.httpQueueSlot);
                 final int headerSlotLimit = client.pool.httpQueueSlotLimit;
                 final HttpQueueEntryFW queueEntry = queueEntryRW
