@@ -98,12 +98,24 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
 
+    private static final Array32FW<HttpHeaderFW> HEADERS_431_REQUEST_TOO_LARGE =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                    .item(h -> h.name(":status").value("431"))
+                    .build();
+
+    private static final Array32FW<HttpHeaderFW> HEADERS_503_RETRY_AFTER =
+            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                    .item(h -> h.name(":status").value("503"))
+                    .item(h -> h.name("retry-after").value("0"))
+                    .build();
+
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
     private static final String8FW HEADER_PATH = new String8FW(":path");
-    private static final String8FW HEADER_RETRY_AFTER = new String8FW("retry-after");
     private static final String8FW HEADER_STATUS = new String8FW(":status");
     private static final String8FW HEADER_TRANSFER_ENCODING = new String8FW("transfer-encoding");
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
@@ -112,8 +124,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String16FW PATH_SLASH = new String16FW("/");
     private static final String16FW RETRY_AFTER_0 = new String16FW("0");
     private static final String16FW STATUS_101 = new String16FW("101");
-    private static final String16FW STATUS_503 = new String16FW("503");
-    private static final String16FW STATUS_431 = new String16FW("431");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
@@ -186,7 +196,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Matcher versionPart;
     private final Matcher headerLine;
     private final Matcher connectionClose;
-    private final int maximumRequestQueueSize;
+    private final int maximumHeadersSize;
     private final int decodeMax;
 
     private final int maximumConnectionsPerRoute;
@@ -217,7 +227,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.headerLine = HEADER_LINE_PATTERN.matcher("");
         this.versionPart = VERSION_PATTERN.matcher("");
         this.connectionClose = CONNECTION_CLOSE_PATTERN.matcher("");
-        this.maximumRequestQueueSize = bufferPool.slotCapacity();
+        this.maximumHeadersSize = bufferPool.slotCapacity();
 
         this.clientPools = new Long2ObjectHashMap<>();
         this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
@@ -600,7 +610,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 progress = endOfHeadersAt;
             }
         }
-        else if (limit - offset >= maximumRequestQueueSize)
+        else if (limit - offset >= maximumHeadersSize)
         {
             client.decoder = decodeIgnore;
         }
@@ -615,7 +625,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         final CharSequence startLine = new AsciiSequenceView(buffer, offset, limit - offset);
 
-        return startLine.length() < maximumRequestQueueSize &&
+        return startLine.length() < maximumHeadersSize &&
                 responseLine.reset(startLine).matches() &&
                 versionPart.reset(responseLine.group("version")).matches() ? responseLine.group("status") : null;
     }
@@ -892,14 +902,11 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             MessageConsumer newStream = null;
 
-            final int queuedRequestLength = begin.extension().sizeof() + 3 * Long.BYTES + Integer.BYTES;
-            if (queuedRequestLength > maximumRequestQueueSize)
+            final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
+            if (queuedRequestLength > maximumHeadersSize)
             {
-                HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_431))
-                        .build();
-                newStream = rejectWithStatusCode(sender, begin, beginEx);
+
+                newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }
             else if (client != null && queuedRequestLength <= availableSlotSize())
             {
@@ -909,12 +916,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
-                        .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_503))
-                        .headersItem(h -> h.name(HEADER_RETRY_AFTER).value(RETRY_AFTER_0))
-                        .build();
-                newStream = rejectWithStatusCode(sender, begin, beginEx);
+                newStream = rejectWithStatusCode(sender, begin, HEADERS_503_RETRY_AFTER);
             }
 
             return newStream;
@@ -923,7 +925,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private MessageConsumer rejectWithStatusCode(
                 MessageConsumer sender,
                 BeginFW begin,
-                HttpBeginExFW beginEx)
+                Array32FW<HttpHeaderFW> headers)
         {
             MessageConsumer newStream;
             // count all responses
@@ -939,6 +941,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
             doWindow(sender, routeId, initialId, 0, 0, 0, traceId, authorization, 0L, 0);
+
+            HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .headers(headers)
+                    .build();
 
             doBegin(sender, routeId, replyId, sequence, acknowledge, maximum, supplyTraceId.getAsLong(), 0L, 0, beginEx);
             doEnd(sender, routeId, replyId, sequence, acknowledge, maximum, supplyTraceId.getAsLong(), 0, EMPTY_OCTETS);
@@ -1036,7 +1043,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private int availableSlotSize()
         {
-            return bufferPool.slotCapacity() - httpQueueSlotLimit - Long.BYTES - Integer.BYTES;
+            return bufferPool.slotCapacity() - httpQueueSlotLimit;
         }
     }
 
@@ -1959,8 +1966,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 client.pool.acquireSlotIfNecessary();
                 final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(client.pool.httpQueueSlot);
-                int headerSlotLimit = client.pool.httpQueueSlotLimit;
-                final HttpQueueEntryFW queueEntry = queueEntryRW.wrap(httpQueueBuffer, headerSlotLimit, httpQueueBuffer.capacity())
+                final int headerSlotLimit = client.pool.httpQueueSlotLimit;
+                final HttpQueueEntryFW queueEntry = queueEntryRW
+                        .wrap(httpQueueBuffer, headerSlotLimit, httpQueueBuffer.capacity())
                         .streamId(streamId)
                         .traceId(traceId)
                         .authorization(authorization)
@@ -2233,8 +2241,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                             .typeId(httpTypeId)
-                            .headersItem(h -> h.name(HEADER_STATUS).value(STATUS_503))
-                            .headersItem(h -> h.name(HEADER_RETRY_AFTER).value(RETRY_AFTER_0))
+                            .headers(HEADERS_503_RETRY_AFTER)
                             .build();
                     doResponseBegin(traceId, authorization, beginEx);
                     doResponseEnd(traceId, authorization, EMPTY_OCTETS);
