@@ -194,6 +194,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final int maximumRequestQueueSize;
     private final int decodeMax;
 
+    private final int proxyTypeId;
+
     private final int maximumConnectionsPerRoute;
     private final LongSupplier countRequests;
     private final LongSupplier countRequestsRejected;
@@ -208,6 +210,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         HttpConfiguration config,
         EngineContext context)
     {
+        this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
