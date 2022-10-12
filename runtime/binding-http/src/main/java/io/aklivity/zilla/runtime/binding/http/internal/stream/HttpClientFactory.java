@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.KEEP_ALIVE;
@@ -26,6 +27,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderF
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.INCREMENTAL_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.WITHOUT_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.util.BufferUtil.limitOfBytes;
+import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.Character.toLowerCase;
@@ -36,6 +38,7 @@ import static java.util.Collections.emptyMap;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -54,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2DataFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ErrorCode;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameInfoFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2FrameType;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2GoawayFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2HeadersFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PingFW;
@@ -61,8 +65,10 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PrefaceFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PriorityFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PushPromiseFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
+import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW;
@@ -81,6 +87,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.collections.MutableBoolean;
 import org.agrona.collections.MutableInteger;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
@@ -131,6 +138,9 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final byte SPACE_BYTE = ' ';
     private static final byte ZERO_BYTE = '0';
 
+    private static final int CLIENT_INITIATED = 1;
+    private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
+
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
 
     private static final DirectBuffer ZERO_CHUNK = new UnsafeBuffer("0\r\n\r\n".getBytes(US_ASCII));
@@ -161,8 +171,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private static final String16FW METHOD_GET = new String16FW("GET");
     private static final String16FW PATH_SLASH = new String16FW("/");
-    private static final String16FW RETRY_AFTER_0 = new String16FW("0");
     private static final String16FW STATUS_101 = new String16FW("101");
+    private static final String8FW ALPN_H2 = new String8FW("h2");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
@@ -183,9 +193,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .item(h -> h.name("content-length").value("0"))
                     .build();
     private static final Map<String8FW, String16FW> EMPTY_OVERRIDES = emptyMap();
-
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
+    private final AtomicBuffer payloadRO = new UnsafeBuffer(0, 0);
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
@@ -226,7 +236,6 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final MutableInteger codecOffset = new MutableInteger();
 
-
     private final Http2PrefaceFW http2PrefaceRO = new Http2PrefaceFW();
     private final Http2FrameInfoFW http2FrameInfoRO = new Http2FrameInfoFW();
     private final Http2SettingsFW http2SettingsRO = new Http2SettingsFW();
@@ -256,10 +265,43 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Http2HeadersDecoder headersDecoder = new Http2HeadersDecoder();
     private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
+    private final Http2ClientDecoder decodeHttp2Settings = this::decodeHttp2Settings;
+    private final Http2ClientDecoder decodeHttp2FrameType = this::decodeHttp2FrameType;
+    private final Http2ClientDecoder decodeHttp2Ping = this::decodeHttp2Ping;
+    private final Http2ClientDecoder decodeHttp2Goaway = this::decodeHttp2Goaway;
+    private final Http2ClientDecoder decodeHttp2WindowUpdate = this::decodeHttp2WindowUpdate;
+    private final Http2ClientDecoder decodeHttp2Headers = this::decodeHttp2Headers;
+    private final Http2ClientDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
+    private final Http2ClientDecoder decodeHttp2Data = this::decodeHttp2Data;
+    private final Http2ClientDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
+    private final Http2ClientDecoder decodeHttp2Priority = this::decodePriority;
+    private final Http2ClientDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
+    private final Http2ClientDecoder decodeHttp2IgnoreOne = this::decodeHttp2IgnoreOne;
+    private final Http2ClientDecoder decodeHttp2IgnoreAll = this::decodeHttp2IgnoreAll;
+
+    private final EnumMap<Http2FrameType, Http2ClientDecoder> decodersByFrameType;
+    {
+        final EnumMap<Http2FrameType, Http2ClientDecoder> decodersByFrameType = new EnumMap<>(Http2FrameType.class);
+        decodersByFrameType.put(Http2FrameType.SETTINGS, decodeHttp2Settings);
+        decodersByFrameType.put(Http2FrameType.PING, decodeHttp2Ping);
+        decodersByFrameType.put(Http2FrameType.GO_AWAY, decodeHttp2Goaway);
+        decodersByFrameType.put(Http2FrameType.WINDOW_UPDATE, decodeHttp2WindowUpdate);
+        decodersByFrameType.put(Http2FrameType.HEADERS, decodeHttp2Headers);
+        decodersByFrameType.put(Http2FrameType.CONTINUATION, decodeHttp2Continuation);
+        decodersByFrameType.put(Http2FrameType.DATA, decodeHttp2Data);
+        decodersByFrameType.put(Http2FrameType.PRIORITY, decodeHttp2Priority);
+        decodersByFrameType.put(Http2FrameType.RST_STREAM, decodeHttp2RstStream);
+        this.decodersByFrameType = decodersByFrameType;
+    }
+    private final HttpConfiguration config;
+    private final Http2Settings initialSettings;
+
     private final MutableDirectBuffer frameBuffer;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
     private final BufferPool bufferPool;
+    private final BufferPool headersPool;
+    private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyInitialId;
@@ -291,11 +333,15 @@ public final class HttpClientFactory implements HttpStreamFactory
         HttpConfiguration config,
         EngineContext context)
     {
+        this.config = config;
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer();
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
+        this.headersPool = bufferPool.duplicate();
+        this.initialSettings = new Http2Settings(config, headersPool);
         this.streamFactory = context.streamFactory();
         this.supplyDebitor = context::supplyDebitor;
         this.supplyInitialId = context::supplyInitialId;
@@ -948,6 +994,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit);
     }
 
+    private enum HttpExchangeState
+    {
+        PENDING,
+        OPEN,
+        CLOSED,
+    }
+
     private void doEncodePreface(
         HttpClient client,
         long traceId,
@@ -958,6 +1011,526 @@ public final class HttpClientFactory implements HttpStreamFactory
                 .build();
 
         client.doNetworkReservedData(traceId, authorization, 0L, http2Preface);
+    }
+
+    private int decodeHttp2Settings(
+            HttpClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+    {
+        int progress = offset;
+
+        final Http2SettingsFW http2Settings = http2SettingsRO.wrap(buffer, offset, limit);
+        final int streamId = http2Settings.streamId();
+        final boolean ack = http2Settings.ack();
+        final int length = http2Settings.length();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+        if (ack && length != 0)
+        {
+            error = Http2ErrorCode.FRAME_SIZE_ERROR;
+        }
+        else if (streamId != 0)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            client.onDecodeHttp2Settings(traceId, authorization, http2Settings);
+            client.http2decoder = decodeHttp2FrameType;
+            progress = http2Settings.limit();
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2IgnoreAll(
+            HttpClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+    {
+        return limit;
+    }
+
+    private int decodeHttp2FrameType(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        final Http2FrameInfoFW http2FrameInfo = http2FrameInfoRO.tryWrap(buffer, offset, limit);
+
+        if (http2FrameInfo != null)
+        {
+            final int length = http2FrameInfo.length();
+            final Http2FrameType type = http2FrameInfo.type();
+            final Http2ClientDecoder decoder = decodersByFrameType.getOrDefault(type, decodeHttp2IgnoreOne);
+            client.decodedStreamId = http2FrameInfo.streamId();
+            client.decodedFlags = http2FrameInfo.flags();
+
+            Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+            if (length > client.localSettings.maxFrameSize)
+            {
+                error = Http2ErrorCode.FRAME_SIZE_ERROR;
+            }
+            else if (decoder == null || client.continuationStreamId != 0 && decoder != decodeHttp2Continuation)
+            {
+                error = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+
+            if (error != Http2ErrorCode.NO_ERROR)
+            {
+                client.onDecodeHttp2Error(traceId, authorization, error);
+                client.http2decoder = decodeHttp2IgnoreAll;
+            }
+            else if (limit - http2FrameInfo.limit() >= length)
+            {
+                client.http2decoder = decoder;
+            }
+        }
+
+        return offset;
+    }
+
+    private int decodeHttp2Ping(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final Http2FrameInfoFW http2FrameInfo = http2FrameInfoRO.wrap(buffer, offset, limit);
+        final int streamId = http2FrameInfo.streamId();
+        final int length = http2FrameInfo.length();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+        if (length != 8)
+        {
+            error = Http2ErrorCode.FRAME_SIZE_ERROR;
+        }
+        else if (streamId != 0)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            final Http2PingFW http2Ping = http2PingRO.wrap(buffer, offset, limit);
+            client.onDecodePing(traceId, authorization, http2Ping);
+            client.http2decoder = decodeHttp2FrameType;
+            progress = http2Ping.limit();
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2Goaway(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final Http2GoawayFW http2Goaway = http2GoawayRO.wrap(buffer, offset, limit);
+        final int streamId = http2Goaway.streamId();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+        if (streamId != 0)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            client.onHttp2DecodeGoaway(traceId, authorization, http2Goaway);
+            client.http2decoder = decodeHttp2IgnoreAll;
+            progress = http2Goaway.limit();
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2WindowUpdate(
+            HttpClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+    {
+        int progress = offset;
+
+        final Http2FrameInfoFW http2FrameInfo = http2FrameInfoRO.wrap(buffer, offset, limit);
+        final int length = http2FrameInfo.length();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+        if (length != 4)
+        {
+            error = Http2ErrorCode.FRAME_SIZE_ERROR;
+        }
+
+        if (error == Http2ErrorCode.NO_ERROR)
+        {
+            final Http2WindowUpdateFW http2WindowUpdate = http2WindowUpdateRO.wrap(buffer, offset, limit);
+            final int streamId = http2WindowUpdate.streamId();
+            final int size = http2WindowUpdate.size();
+
+            if (streamId == 0)
+            {
+                if (client.remoteSharedBudget + size > Integer.MAX_VALUE)
+                {
+                    error = Http2ErrorCode.FLOW_CONTROL_ERROR;
+                }
+            }
+            else
+            {
+                if (streamId > client.maxClientStreamId || size < 1)
+                {
+                    error = Http2ErrorCode.PROTOCOL_ERROR;
+                }
+            }
+
+            if (error == Http2ErrorCode.NO_ERROR)
+            {
+                client.onDecodeHttp2WindowUpdate(traceId, authorization, http2WindowUpdate);
+                client.http2decoder = decodeHttp2FrameType;
+                progress = http2WindowUpdate.limit();
+            }
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2Headers(
+            HttpClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+    {
+        int progress = offset;
+
+        final Http2HeadersFW http2Headers = http2HeadersRO.wrap(buffer, offset, limit);
+        final int streamId = http2Headers.streamId();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+        if ((streamId & 0x01) != 0x01)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
+            {
+                if (client.streams.containsKey(streamId))
+                {
+                    client.onDecodeTrailers(traceId, authorization, http2Headers);
+                }
+                else
+                {
+                    client.onDecodeHttp2Headers(traceId, authorization, http2Headers);
+                }
+                client.http2decoder = decodeHttp2FrameType;
+                progress = http2Headers.limit();
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2Continuation(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final Http2ContinuationFW http2Continuation = http2ContinuationRO.wrap(buffer, offset, limit);
+        final int streamId = http2Continuation.streamId();
+        final int length = http2Continuation.length();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+        if ((streamId & 0x01) != 0x01 ||
+                streamId != client.continuationStreamId)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (client.headersSlotOffset + length > headersPool.slotCapacity())
+        {
+            // TODO: decoded header list size check, recoverable error instead
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            client.onDecodeHttp2Continuation(traceId, authorization, http2Continuation);
+            client.http2decoder = decodeHttp2FrameType;
+            progress = http2Continuation.limit();
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2Data(
+            HttpClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
+    {
+        int progress = offset;
+
+        final int length = limit - progress;
+
+        if (length != 0)
+        {
+            Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+            Http2DataFW http2Data = http2DataRO.wrap(buffer, offset, limit);
+            final int streamId = http2Data.streamId();
+
+            if ((streamId & 0x01) != 0x01)
+            {
+                error = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+
+            if (error != Http2ErrorCode.NO_ERROR)
+            {
+                client.onDecodeHttp2Error(traceId, authorization, error);
+                client.http2decoder = decodeHttp2IgnoreAll;
+            }
+            else
+            {
+                client.decodableDataBytes = http2Data.dataLength();
+                progress = http2Data.dataOffset();
+
+                client.http2decoder = decodeHttp2DataPayload;
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2DataPayload(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final int available = limit - progress;
+        final int decodableMax = Math.min(client.decodableDataBytes, bufferPool.slotCapacity());
+        final int length = Math.min(available, decodableMax);
+
+        if (available >= decodableMax)
+        {
+            payloadRO.wrap(buffer, progress, length);
+            final int deferred = client.decodableDataBytes - length;
+
+            final int decodedPayload = client.onDecodeHttp2Data(
+                    traceId,
+                    authorization,
+                    client.decodedStreamId,
+                    client.decodedFlags,
+                    deferred,
+                    payloadRO);
+            client.decodableDataBytes -= decodedPayload;
+            progress += decodedPayload;
+        }
+
+        if (client.decodableDataBytes == 0)
+        {
+            client.http2decoder = decodeHttp2FrameType;
+        }
+
+        return progress;
+    }
+
+    private int decodePriority(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final Http2FrameInfoFW http2FrameInfo = http2FrameInfoRO.wrap(buffer, offset, limit);
+        final int streamId = http2FrameInfo.streamId();
+        final int length = http2FrameInfo.length();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+        if (length != 5)
+        {
+            error = Http2ErrorCode.FRAME_SIZE_ERROR;
+        }
+        else if (streamId == 0)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            final Http2PriorityFW http2Priority = http2PriorityRO.wrap(buffer, offset, limit);
+            client.onDecodeHttp2Priority(traceId, authorization, http2Priority);
+            client.http2decoder = decodeHttp2FrameType;
+            progress = http2Priority.limit();
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2RstStream(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final Http2FrameInfoFW http2FrameInfo = http2FrameInfoRO.wrap(buffer, offset, limit);
+        final int streamId = http2FrameInfo.streamId();
+        final int length = http2FrameInfo.length();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+        if (streamId == 0)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (length != 4)
+        {
+            error = Http2ErrorCode.FRAME_SIZE_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.http2decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
+            {
+                final Http2RstStreamFW http2RstStream = http2RstStreamRO.wrap(buffer, offset, limit);
+                client.onDecodeHttp2RstStream(traceId, authorization, http2RstStream);
+                client.http2decoder = decodeHttp2FrameType;
+                progress = http2RstStream.limit();
+            }
+        }
+
+        return progress;
+    }
+
+    private int decodeHttp2IgnoreOne(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        final Http2FrameInfoFW http2FrameInfo = http2FrameInfoRO.wrap(buffer, offset, limit);
+        final int progress = http2FrameInfo.limit() + http2FrameInfo.length();
+
+        client.http2decoder = decodeHttp2FrameType;
+        return progress;
+    }
+
+    @FunctionalInterface
+    private interface Http2ClientDecoder
+    {
+        int decode(
+                HttpClient client,
+                long traceId,
+                long authorization,
+                long budgetId,
+                DirectBuffer buffer,
+                int offset,
+                int limit);
     }
 
     private final class HttpClientPool
@@ -996,7 +1569,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
             if (queuedRequestLength > maximumRequestQueueSize)
             {
-
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }
             else if (client != null && queuedRequestLength <= availableSlotSize())
@@ -1137,6 +1709,12 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final class HttpClient
     {
         private final HttpClientPool pool;
+        public int decodedStreamId;
+        public byte decodedFlags;
+        public int continuationStreamId;
+        public int remoteSharedBudget;
+        public int maxClientStreamId;
+        public int decodableDataBytes;
         private MessageConsumer network;
         private final long routeId;
         private final long initialId;
@@ -1180,12 +1758,18 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private int initialBudgetReserved;
 
+        private final int[] streamsActive = new int[2];
         private final Http2Settings localSettings;
         private final Http2Settings remoteSettings;
         private final HpackContext decodeContext;
         private final HpackContext encodeContext;
         private final Int2ObjectHashMap<HttpExchange> streams;
         private final LongHashSet applicationHeadersProcessed;
+
+        private Http2ClientDecoder http2decoder;
+        private Http2ErrorCode decodeError;
+        private MutableBoolean expectDynamicTableSizeUpdate;
+        private long responseSharedBudgetIndex;
 
         private HttpClient(
             HttpClientPool pool)
@@ -1275,7 +1859,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     ? begin.extension().get(beginProxyExRO::tryWrap)
                     : null;
             if (beginEx != null
-                    && beginEx.infos().anyMatch(proxyInfo -> proxyInfo.alpn().equals("h2")))
+                && beginEx.infos().anyMatch(proxyInfo -> ALPN_H2.equals(proxyInfo.alpn())))
             {
                 doEncodePreface(this, traceId, authorization);
             }
@@ -1940,6 +2524,471 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
+        private void doEncodeHttp2PingAck(
+            long traceId,
+            long authorization,
+            DirectBuffer payload)
+        {
+            final Http2PingFW http2Ping = http2PingRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(0)
+                    .ack()
+                    .payload(payload)
+                    .build();
+
+            doNetworkReservedData(traceId, authorization, 0L, http2Ping);
+        }
+
+        private void doEncodeHttp2SettingsAck(
+            long traceId,
+            long authorization)
+        {
+            final Http2SettingsFW http2Settings = http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(0)
+                    .ack()
+                    .build();
+
+            doNetworkReservedData(traceId, authorization, 0L, http2Settings);
+        }
+
+        private void onDecodeHttp2RstStream(
+            long traceId,
+            long authorization,
+            Http2RstStreamFW http2RstStream)
+        {
+            final int streamId = http2RstStream.streamId();
+            final HttpExchange exchange = streams.get(streamId);
+
+            if (exchange != null)
+            {
+                exchange.cleanup(traceId, authorization);
+            }
+        }
+
+        private void onDecodeHttp2Priority(
+            long traceId,
+            long authorization,
+            Http2PriorityFW http2Priority)
+        {
+            final int streamId = http2Priority.streamId();
+            final int parentStream = http2Priority.parentStream();
+
+            final HttpExchange exchange = streams.get(streamId);
+            if (exchange != null)
+            {
+                if (parentStream == streamId)
+                {
+                    doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                }
+            }
+        }
+
+        private int onDecodeHttp2Data(
+            long traceId,
+            long authorization,
+            int streamId,
+            byte flags,
+            int deferred,
+            DirectBuffer payload)
+        {
+            int progress = 0;
+
+            final HttpExchange exchange = streams.get(streamId);
+
+            if (exchange == null)
+            {
+                progress += payload.capacity();
+            }
+            else
+            {
+                Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+                if (HttpState.initialClosing(exchange.state))
+                {
+                    error = Http2ErrorCode.STREAM_CLOSED;
+                }
+
+                if (error != Http2ErrorCode.NO_ERROR)
+                {
+                    exchange.cleanup(traceId, authorization);
+                    doEncodeHttp2RstStream(traceId, streamId, error);
+                    progress += payloadRemaining.value;
+                }
+                else
+                {
+                    final int payloadLength = payload.capacity();
+
+                    if (payloadLength > 0)
+                    {
+                        payloadRemaining.set(payloadLength);
+                        //exchange.doResponseData(traceId, payload, payloadRemaining);
+                        progress += payloadLength - payloadRemaining.value;
+                        deferred += payloadRemaining.value;
+                    }
+
+                    if (deferred == 0 && Http2Flags.endStream(flags))
+                    {
+                        if (exchange.contentLength != -1 && exchange.contentObserved != exchange.contentLength)
+                        {
+                            doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                        }
+                        else
+                        {
+                            exchange.doResponseEnd(traceId, authorization, EMPTY_OCTETS);
+                        }
+                    }
+                }
+            }
+
+            return progress;
+        }
+
+        private void onDecodeHttp2Continuation(
+            long traceId,
+            long authorization,
+            Http2ContinuationFW http2Continuation)
+        {
+            assert headersSlot != NO_SLOT;
+            assert headersSlotOffset != 0;
+
+            final int streamId = http2Continuation.streamId();
+            final DirectBuffer payload = http2Continuation.payload();
+            final boolean endHeaders = http2Continuation.endHeaders();
+            final boolean endRequest = http2Continuation.endStream();
+
+            final MutableDirectBuffer headersBuffer = headersPool.buffer(headersSlot);
+            headersBuffer.putBytes(headersSlotOffset, payload, 0, payload.capacity());
+            headersSlotOffset += payload.capacity();
+
+            if (endHeaders)
+            {
+                if (streams.containsKey(streamId))
+                {
+                    onDecodeHttp2Trailers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset, endRequest);
+                }
+                else
+                {
+                    onDecodeHttp2Headers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset, endRequest);
+                }
+                continuationStreamId = 0;
+
+                cleanupHeadersSlotIfNecessary();
+            }
+        }
+
+        private void onDecodeHttp2Headers(
+            long traceId,
+            long authorization,
+            int streamId,
+            DirectBuffer buffer,
+            int offset,
+            int limit,
+            boolean endRequest)
+        {
+            final HpackHeaderBlockFW headerBlock = headerBlockRO.wrap(buffer, offset, limit);
+            headersDecoder.decodeHeaders(decodeContext, localSettings.headerTableSize, expectDynamicTableSizeUpdate, headerBlock);
+
+            if (headersDecoder.error())
+            {
+                if (headersDecoder.streamError != null)
+                {
+                    doEncodeHttp2RstStream(traceId, streamId, headersDecoder.streamError);
+                }
+                else if (headersDecoder.connectionError != null)
+                {
+                    onDecodeHttp2Error(traceId, authorization, headersDecoder.connectionError);
+                    http2decoder = decodeHttp2IgnoreAll;
+                }
+            }
+            else if (headersDecoder.httpError())
+            {
+                doEncodeHttp2Headers(traceId, authorization, streamId, headersDecoder.httpErrorHeader, true);
+            }
+            //TODO: implement the rest
+        }
+
+
+        private void onDecodeHttp2Trailers(
+            long traceId,
+            long authorization,
+            int streamId,
+            DirectBuffer buffer,
+            int offset,
+            int limit,
+            boolean endRequest)
+        {
+            final HttpExchange exchange = streams.get(streamId);
+            if (exchange != null)
+            {
+                final HpackHeaderBlockFW headerBlock = headerBlockRO.wrap(buffer, offset, limit);
+                headersDecoder.decodeTrailers(decodeContext, localSettings.headerTableSize,
+                        expectDynamicTableSizeUpdate, headerBlock);
+
+                if (headersDecoder.error())
+                {
+                    if (headersDecoder.streamError != null)
+                    {
+                        doEncodeHttp2RstStream(traceId, streamId, headersDecoder.streamError);
+                        exchange.cleanup(traceId, authorization);
+                    }
+                    else if (headersDecoder.connectionError != null)
+                    {
+                        onDecodeHttp2Error(traceId, authorization, headersDecoder.connectionError);
+                        http2decoder = decodeHttp2IgnoreAll;
+                    }
+                }
+                else
+                {
+                    final Map<String, String> trailers = headersDecoder.headers;
+                    final HttpEndExFW endEx = endExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(httpTypeId)
+                            .trailers(ts -> trailers.forEach((n, v) -> ts.item(t -> t.name(n).value(v))))
+                            .build();
+
+                    exchange.doResponseEnd(traceId, authorization, endEx);
+                }
+            }
+        }
+
+        private void onDecodeHttp2Headers(
+            long traceId,
+            long authorization,
+            Http2HeadersFW http2Headers)
+        {
+            final int streamId = http2Headers.streamId();
+            final int parentStreamId = http2Headers.parentStream();
+            final int dataLength = http2Headers.dataLength();
+
+            Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+            if (streamId <= maxClientStreamId ||
+                    parentStreamId == streamId ||
+                    dataLength < 0)
+            {
+                error = Http2ErrorCode.PROTOCOL_ERROR;
+            }
+
+            maxClientStreamId = streamId;
+
+            if (streamsActive[CLIENT_INITIATED] >= localSettings.maxConcurrentStreams)
+            {
+                error = Http2ErrorCode.REFUSED_STREAM;
+            }
+
+            if (error != Http2ErrorCode.NO_ERROR)
+            {
+                doEncodeHttp2RstStream(traceId, streamId, error);
+            }
+
+            final DirectBuffer dataBuffer = http2Headers.buffer();
+            final int dataOffset = http2Headers.dataOffset();
+
+            final boolean endHeaders = http2Headers.endHeaders();
+            final boolean endRequest = http2Headers.endStream();
+
+            if (endHeaders)
+            {
+                onDecodeHttp2Headers(traceId, authorization, streamId, dataBuffer, dataOffset, dataOffset + dataLength, endRequest);
+            }
+            else
+            {
+                assert headersSlot == NO_SLOT;
+                assert headersSlotOffset == 0;
+
+                headersSlot = headersPool.acquire(initialId);
+                if (headersSlot == NO_SLOT)
+                {
+                    cleanupNetwork(traceId, authorization);
+                }
+                else
+                {
+                    final MutableDirectBuffer headersBuffer = headersPool.buffer(headersSlot);
+                    headersBuffer.putBytes(headersSlotOffset, dataBuffer, dataOffset, dataLength);
+                    headersSlotOffset = dataLength;
+
+                    continuationStreamId = streamId;
+                }
+            }
+        }
+
+        private void onDecodeHttp2Settings(
+            long traceId,
+            long authorization,
+            Http2SettingsFW http2Settings)
+        {
+            if (http2Settings.ack())
+            {
+                final int localInitialCredit = initialSettings.initialWindowSize - localSettings.initialWindowSize;
+
+                // initial budget can become negative
+                if (localInitialCredit != 0)
+                {
+                    for (HttpExchange stream: streams.values())
+                    {
+                        stream.localBudget += localInitialCredit;
+                        stream.doRequestWindow(traceId, authorization);
+                    }
+                }
+
+                localSettings.apply(initialSettings);
+            }
+            else
+            {
+                final int remoteInitialBudget = remoteSettings.initialWindowSize;
+                http2Settings.forEach(this::onDecodeSetting);
+
+                Http2ErrorCode decodeError = remoteSettings.error();
+
+                if (decodeError == Http2ErrorCode.NO_ERROR)
+                {
+                    // reply budget can become negative
+                    final long remoteInitialCredit = remoteSettings.initialWindowSize - remoteInitialBudget;
+                    if (remoteInitialCredit != 0)
+                    {
+                        for (HttpExchange stream: streams.values())
+                        {
+                            final long newRemoteBudget = stream.remoteBudget + remoteInitialCredit;
+                            if (newRemoteBudget > MAX_REMOTE_BUDGET)
+                            {
+                                decodeError = Http2ErrorCode.FLOW_CONTROL_ERROR;
+                                break;
+                            }
+                            stream.remoteBudget = (int) newRemoteBudget;
+                        }
+                    }
+                }
+
+                if (decodeError == Http2ErrorCode.NO_ERROR)
+                {
+                    doEncodeHttp2SettingsAck(traceId, authorization);
+                }
+                else
+                {
+                    onDecodeHttp2Error(traceId, authorization, decodeError);
+                    http2decoder = decodeHttp2IgnoreAll;
+                }
+            }
+        }
+
+        private void onDecodeSetting(
+            Http2Setting setting,
+            int value)
+        {
+            switch (setting)
+            {
+            case HEADER_TABLE_SIZE:
+                remoteSettings.headerTableSize = value;
+                break;
+            case ENABLE_PUSH:
+                remoteSettings.enablePush = value;
+                break;
+            case MAX_CONCURRENT_STREAMS:
+                remoteSettings.maxConcurrentStreams = value;
+                break;
+            case INITIAL_WINDOW_SIZE:
+                remoteSettings.initialWindowSize = value;
+                break;
+            case MAX_FRAME_SIZE:
+                remoteSettings.maxFrameSize = value;
+                break;
+            case MAX_HEADER_LIST_SIZE:
+                remoteSettings.maxHeaderListSize = value;
+                break;
+            case UNKNOWN:
+                break;
+            }
+        }
+
+        private void onDecodeHttp2WindowUpdate(
+            long traceId,
+            long authorization,
+            Http2WindowUpdateFW http2WindowUpdate)
+        {
+            final int streamId = http2WindowUpdate.streamId();
+            final int credit = http2WindowUpdate.size();
+
+            if (streamId == 0)
+            {
+                remoteSharedBudget += credit;
+
+                // TODO: instead use HttpState.replyClosed(state)
+                if (responseSharedBudgetIndex != NO_CREDITOR_INDEX)
+                {
+                    //flushResponseSharedBudget(traceId);
+                }
+            }
+            else
+            {
+                final HttpExchange stream = streams.get(streamId);
+                if (stream != null)
+                {
+                    //stream.onResponseWindowUpdate(traceId, authorization, credit);
+                }
+            }
+        }
+
+        private void onDecodeHttp2Error(
+            long traceId,
+            long authorization,
+            Http2ErrorCode error)
+        {
+            this.decodeError = error;
+            //cleanup(traceId, authorization, this::doEncodeGoaway);
+        }
+
+        private void onDecodePing(
+            long traceId,
+            long authorization,
+            Http2PingFW http2Ping)
+        {
+            if (!http2Ping.ack())
+            {
+                doEncodeHttp2PingAck(traceId, authorization, http2Ping.payload());
+            }
+        }
+
+        private void onHttp2DecodeGoaway(
+            long traceId,
+            long authorization,
+            Http2GoawayFW http2Goaway)
+        {
+            final int lastStreamId = http2Goaway.lastStreamId();
+
+            streams.entrySet()
+                    .stream()
+                    .filter(e -> e.getKey() > lastStreamId)
+                    .map(Map.Entry::getValue)
+                    .forEach(ex -> ex.cleanup(traceId, authorization));
+
+            remoteSettings.enablePush = 0;
+        }
+
+        private void onDecodeHttp2Trailers(
+            long traceId,
+            long authorization,
+            Flyweight extension)
+        {
+            exchange.doResponseEnd(traceId, authorization, extension);
+
+            if (exchange.requestState == HttpExchangeState.CLOSED &&
+                    exchange.responseState == HttpExchangeState.CLOSED)
+            {
+                exchange = null;
+            }
+        }
+
+        private void doEncodeHttp2RstStream(
+            long traceId,
+            int streamId,
+            Http2ErrorCode error)
+        {
+            final Http2RstStreamFW http2RstStream = http2RstStreamRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(streamId)
+                    .errorCode(error)
+                    .build();
+
+            doNetworkReservedData(traceId, 0L, 0L, http2RstStream);
+        }
+
         private void doEncodeHttp2Headers(
                 long traceId,
                 long authorization,
@@ -2157,6 +3206,16 @@ public final class HttpClientFactory implements HttpStreamFactory
                 encodeSlotOffset = 0;
             }
         }
+
+        private void cleanupHeadersSlotIfNecessary()
+        {
+            if (headersSlot != NO_SLOT)
+            {
+                bufferPool.release(headersSlot);
+                headersSlot = NO_SLOT;
+                headersSlotOffset = 0;
+            }
+        }
     }
 
 
@@ -2168,6 +3227,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long requestId;
         private final long responseId;
         private final Map<String8FW, String16FW> overrides;
+        public int contentLength;
+        public int contentObserved;
+        public int localBudget;
+        public int remoteBudget;
+        public HttpExchangeState requestState;
+        public HttpExchangeState responseState;
 
         private long requestSeq;
         private long requestAck;
