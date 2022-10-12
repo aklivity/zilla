@@ -47,8 +47,8 @@ public class FlowControlLimitsIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 64)
-        .configure(ENGINE_BUFFER_POOL_CAPACITY, 64)
+        .configure(ENGINE_BUFFER_SLOT_CAPACITY, 128)
+        .configure(ENGINE_BUFFER_POOL_CAPACITY, 256)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
         .external("net0")
         .clean();
@@ -75,7 +75,7 @@ public class FlowControlLimitsIT
         k3po.finish();
     }
 
-    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "8192")
+    @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "16384")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     @Test
     @Configuration("client.json")

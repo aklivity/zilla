@@ -17,8 +17,8 @@
 property serverInitialWindow 8192
 
 accept "zilla://streams/net0"
-  option zilla:window ${serverInitialWindow} 
-  option zilla:transmission "half-duplex"
+  option zilla:window ${serverInitialWindow}
+  option zilla:transmission "duplex"
   option zilla:throttle "none"
 accepted
 connected
