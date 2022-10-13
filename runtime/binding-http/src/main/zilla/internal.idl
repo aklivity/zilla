@@ -19,7 +19,7 @@ scope internal
     {
         struct HttpQueueEntry
         {
-            int64 streamId;
+            int32 streamId;
             int64 traceId;
             int64 authorization;
             int32 valueLength;

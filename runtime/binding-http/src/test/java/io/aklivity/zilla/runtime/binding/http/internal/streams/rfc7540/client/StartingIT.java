@@ -15,9 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import io.aklivity.zilla.runtime.engine.test.EngineRule;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import org.junit.Ignore;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SERVER_CONCURRENT_STREAMS_NAME;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.rules.RuleChain.outerRule;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -26,9 +27,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.rules.RuleChain.outerRule;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class StartingIT
 {
@@ -45,6 +47,7 @@ public class StartingIT
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
+        .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
         .clean();
 
     @Rule
@@ -55,6 +58,7 @@ public class StartingIT
     @Specification({
         "${app}/upgrade.http/client",
         "${net}/upgrade.pri.with.tls.and.alpn.http2/server"})
+    @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "100")
     public void shouldUpgradeViaPriorKnowledgeWithTlsAndAlpn() throws Exception
     {
         k3po.finish();

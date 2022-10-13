@@ -15,14 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig.HttpPolicyConfig.CROSS_ORIGIN;
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
-import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.KEEP_ALIVE;
-import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.PROXY_CONNECTION;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TRAILERS;
-import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.UPGRADE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.INCREMENTAL_INDEXING;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW.LiteralType.WITHOUT_INDEXING;
@@ -53,6 +49,20 @@ import java.util.function.LongUnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.agrona.AsciiSequenceView;
+import org.agrona.DirectBuffer;
+import org.agrona.ExpandableArrayBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
+import org.agrona.collections.MutableBoolean;
+import org.agrona.collections.MutableInteger;
+import org.agrona.concurrent.AtomicBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
+import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ContinuationFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2DataFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2ErrorCode;
@@ -68,33 +78,15 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpAccessControlConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
+import io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderBlockFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHuffman;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackLiteralHeaderFieldFW;
 import io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackStringFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ExtensionFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.binding.http.internal.util.HttpUtil;
-import org.agrona.AsciiSequenceView;
-import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.LongHashSet;
-import org.agrona.collections.MutableBoolean;
-import org.agrona.collections.MutableInteger;
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-
-import io.aklivity.zilla.runtime.binding.http.internal.HttpBinding;
-import io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
-import io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.http.internal.types.HttpHeaderFW;
@@ -106,17 +98,21 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.binding.http.internal.util.HttpUtil;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
 
 public final class HttpClientFactory implements HttpStreamFactory
 {
@@ -265,23 +261,23 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Http2HeadersDecoder headersDecoder = new Http2HeadersDecoder();
     private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
-    private final Http2ClientDecoder decodeHttp2Settings = this::decodeHttp2Settings;
-    private final Http2ClientDecoder decodeHttp2FrameType = this::decodeHttp2FrameType;
-    private final Http2ClientDecoder decodeHttp2Ping = this::decodeHttp2Ping;
-    private final Http2ClientDecoder decodeHttp2Goaway = this::decodeHttp2Goaway;
-    private final Http2ClientDecoder decodeHttp2WindowUpdate = this::decodeHttp2WindowUpdate;
-    private final Http2ClientDecoder decodeHttp2Headers = this::decodeHttp2Headers;
-    private final Http2ClientDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
-    private final Http2ClientDecoder decodeHttp2Data = this::decodeHttp2Data;
-    private final Http2ClientDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
-    private final Http2ClientDecoder decodeHttp2Priority = this::decodePriority;
-    private final Http2ClientDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
-    private final Http2ClientDecoder decodeHttp2IgnoreOne = this::decodeHttp2IgnoreOne;
-    private final Http2ClientDecoder decodeHttp2IgnoreAll = this::decodeHttp2IgnoreAll;
+    private final HttpClientDecoder decodeHttp2Settings = this::decodeHttp2Settings;
+    private final HttpClientDecoder decodeHttp2FrameType = this::decodeHttp2FrameType;
+    private final HttpClientDecoder decodeHttp2Ping = this::decodeHttp2Ping;
+    private final HttpClientDecoder decodeHttp2Goaway = this::decodeHttp2Goaway;
+    private final HttpClientDecoder decodeHttp2WindowUpdate = this::decodeHttp2WindowUpdate;
+    private final HttpClientDecoder decodeHttp2Headers = this::decodeHttp2Headers;
+    private final HttpClientDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
+    private final HttpClientDecoder decodeHttp2Data = this::decodeHttp2Data;
+    private final HttpClientDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
+    private final HttpClientDecoder decodeHttp2Priority = this::decodePriority;
+    private final HttpClientDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
+    private final HttpClientDecoder decodeHttp2IgnoreOne = this::decodeHttp2IgnoreOne;
+    private final HttpClientDecoder decodeHttp2IgnoreAll = this::decodeHttp2IgnoreAll;
 
-    private final EnumMap<Http2FrameType, Http2ClientDecoder> decodersByFrameType;
+    private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
     {
-        final EnumMap<Http2FrameType, Http2ClientDecoder> decodersByFrameType = new EnumMap<>(Http2FrameType.class);
+        final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType = new EnumMap<>(Http2FrameType.class);
         decodersByFrameType.put(Http2FrameType.SETTINGS, decodeHttp2Settings);
         decodersByFrameType.put(Http2FrameType.PING, decodeHttp2Ping);
         decodersByFrameType.put(Http2FrameType.GO_AWAY, decodeHttp2Goaway);
@@ -994,6 +990,19 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit);
     }
 
+    @FunctionalInterface
+    private interface NetworkDecoder
+    {
+        void decode(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            DirectBuffer buffer,
+            int offset,
+            int limit);
+    }
+
     private enum HttpExchangeState
     {
         PENDING,
@@ -1001,26 +1010,15 @@ public final class HttpClientFactory implements HttpStreamFactory
         CLOSED,
     }
 
-    private void doEncodePreface(
+    private int decodeHttp2Settings(
         HttpClient client,
         long traceId,
-        long authorization)
-    {
-        final Http2PrefaceFW http2Preface = http2PrefaceRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-                .preface()
-                .build();
-
-        client.doNetworkReservedData(traceId, authorization, 0L, http2Preface);
-    }
-
-    private int decodeHttp2Settings(
-            HttpClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
     {
         int progress = offset;
 
@@ -1042,12 +1040,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
         else
         {
             client.onDecodeHttp2Settings(traceId, authorization, http2Settings);
-            client.http2decoder = decodeHttp2FrameType;
+            client.decoder = decodeHttp2FrameType;
             progress = http2Settings.limit();
         }
 
@@ -1055,13 +1053,14 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
 
     private int decodeHttp2IgnoreAll(
-            HttpClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
     {
         return limit;
     }
@@ -1071,6 +1070,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1081,7 +1081,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final int length = http2FrameInfo.length();
             final Http2FrameType type = http2FrameInfo.type();
-            final Http2ClientDecoder decoder = decodersByFrameType.getOrDefault(type, decodeHttp2IgnoreOne);
+            final HttpClientDecoder decoder = decodersByFrameType.getOrDefault(type, decodeHttp2IgnoreOne);
             client.decodedStreamId = http2FrameInfo.streamId();
             client.decodedFlags = http2FrameInfo.flags();
 
@@ -1099,11 +1099,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (error != Http2ErrorCode.NO_ERROR)
             {
                 client.onDecodeHttp2Error(traceId, authorization, error);
-                client.http2decoder = decodeHttp2IgnoreAll;
+                client.decoder = decodeHttp2IgnoreAll;
             }
             else if (limit - http2FrameInfo.limit() >= length)
             {
-                client.http2decoder = decoder;
+                client.decoder = decoder;
             }
         }
 
@@ -1115,6 +1115,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1139,13 +1140,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
         else
         {
             final Http2PingFW http2Ping = http2PingRO.wrap(buffer, offset, limit);
             client.onDecodePing(traceId, authorization, http2Ping);
-            client.http2decoder = decodeHttp2FrameType;
+            client.decoder = decodeHttp2FrameType;
             progress = http2Ping.limit();
         }
 
@@ -1157,6 +1158,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1175,12 +1177,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
         else
         {
             client.onHttp2DecodeGoaway(traceId, authorization, http2Goaway);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
             progress = http2Goaway.limit();
         }
 
@@ -1188,13 +1190,14 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
 
     private int decodeHttp2WindowUpdate(
-            HttpClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
     {
         int progress = offset;
 
@@ -1232,7 +1235,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (error == Http2ErrorCode.NO_ERROR)
             {
                 client.onDecodeHttp2WindowUpdate(traceId, authorization, http2WindowUpdate);
-                client.http2decoder = decodeHttp2FrameType;
+                client.decoder = decodeHttp2FrameType;
                 progress = http2WindowUpdate.limit();
             }
         }
@@ -1240,20 +1243,21 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
 
         return progress;
     }
 
     private int decodeHttp2Headers(
-            HttpClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
     {
         int progress = offset;
 
@@ -1270,13 +1274,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
         else
         {
             if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
-                if (client.streams.containsKey(streamId))
+                if (client.pool.exchanges.containsKey(streamId))
                 {
                     client.onDecodeTrailers(traceId, authorization, http2Headers);
                 }
@@ -1284,7 +1288,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     client.onDecodeHttp2Headers(traceId, authorization, http2Headers);
                 }
-                client.http2decoder = decodeHttp2FrameType;
+                client.decoder = decodeHttp2FrameType;
                 progress = http2Headers.limit();
             }
         }
@@ -1297,6 +1301,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1324,12 +1329,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
         else
         {
             client.onDecodeHttp2Continuation(traceId, authorization, http2Continuation);
-            client.http2decoder = decodeHttp2FrameType;
+            client.decoder = decodeHttp2FrameType;
             progress = http2Continuation.limit();
         }
 
@@ -1337,13 +1342,14 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
 
     private int decodeHttp2Data(
-            HttpClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            DirectBuffer buffer,
-            int offset,
-            int limit)
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
     {
         int progress = offset;
 
@@ -1363,14 +1369,14 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (error != Http2ErrorCode.NO_ERROR)
             {
                 client.onDecodeHttp2Error(traceId, authorization, error);
-                client.http2decoder = decodeHttp2IgnoreAll;
+                client.decoder = decodeHttp2IgnoreAll;
             }
             else
             {
                 client.decodableDataBytes = http2Data.dataLength();
                 progress = http2Data.dataOffset();
 
-                client.http2decoder = decodeHttp2DataPayload;
+                client.decoder = decodeHttp2DataPayload;
             }
         }
 
@@ -1382,6 +1388,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1410,7 +1417,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         if (client.decodableDataBytes == 0)
         {
-            client.http2decoder = decodeHttp2FrameType;
+            client.decoder = decodeHttp2FrameType;
         }
 
         return progress;
@@ -1421,6 +1428,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1445,13 +1453,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
         else
         {
             final Http2PriorityFW http2Priority = http2PriorityRO.wrap(buffer, offset, limit);
             client.onDecodeHttp2Priority(traceId, authorization, http2Priority);
-            client.http2decoder = decodeHttp2FrameType;
+            client.decoder = decodeHttp2FrameType;
             progress = http2Priority.limit();
         }
 
@@ -1463,6 +1471,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1488,7 +1497,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         if (error != Http2ErrorCode.NO_ERROR)
         {
             client.onDecodeHttp2Error(traceId, authorization, error);
-            client.http2decoder = decodeHttp2IgnoreAll;
+            client.decoder = decodeHttp2IgnoreAll;
         }
         else
         {
@@ -1496,7 +1505,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final Http2RstStreamFW http2RstStream = http2RstStreamRO.wrap(buffer, offset, limit);
                 client.onDecodeHttp2RstStream(traceId, authorization, http2RstStream);
-                client.http2decoder = decodeHttp2FrameType;
+                client.decoder = decodeHttp2FrameType;
                 progress = http2RstStream.limit();
             }
         }
@@ -1509,6 +1518,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         long traceId,
         long authorization,
         long budgetId,
+        int reserved,
         DirectBuffer buffer,
         int offset,
         int limit)
@@ -1516,21 +1526,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         final Http2FrameInfoFW http2FrameInfo = http2FrameInfoRO.wrap(buffer, offset, limit);
         final int progress = http2FrameInfo.limit() + http2FrameInfo.length();
 
-        client.http2decoder = decodeHttp2FrameType;
+        client.decoder = decodeHttp2FrameType;
         return progress;
-    }
-
-    @FunctionalInterface
-    private interface Http2ClientDecoder
-    {
-        int decode(
-                HttpClient client,
-                long traceId,
-                long authorization,
-                long budgetId,
-                DirectBuffer buffer,
-                int offset,
-                int limit);
     }
 
     private final class HttpClientPool
@@ -1538,7 +1535,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long resolvedId;
         private final List<HttpClient> clients;
 
-        private final Long2ObjectHashMap<HttpExchange> exchanges;
+        private final Int2ObjectHashMap<HttpExchange> exchanges;
         private int httpQueueSlot = NO_SLOT;
         private int httpQueueSlotOffset;
         private int httpQueueSlotLimit;
@@ -1549,7 +1546,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             this.resolvedId = resolvedId;
             this.clients = new LinkedList<>();
-            this.exchanges = new Long2ObjectHashMap();
+            this.exchanges = new Int2ObjectHashMap();
         }
 
         public MessageConsumer newStream(
@@ -1573,8 +1570,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else if (client != null && queuedRequestLength <= availableSlotSize())
             {
-                final HttpExchange exchange = client.newExchange(sender, begin, overrides);
-                exchanges.put(begin.streamId(), exchange);
+                final int nextStreamId = client.nextStreamId();
+                final HttpExchange exchange = client.newExchange(sender, begin, overrides, nextStreamId);
+                exchanges.put(nextStreamId, exchange);
                 newStream = exchange::onApplication;
             }
             else
@@ -1627,7 +1625,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(httpQueueSlot);
                 final HttpQueueEntryFW queueEntry = queueEntryRO.wrap(httpQueueBuffer, httpQueueSlotOffset, httpQueueSlotLimit);
-                final long streamId = queueEntry.streamId();
+                final int streamId = queueEntry.streamId();
                 final long traceId = queueEntry.traceId();
                 final long authorization = queueEntry.authorization();
                 final HttpExchange httpExchange = exchanges.get(streamId);
@@ -1758,18 +1756,17 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private int initialBudgetReserved;
 
-        private final int[] streamsActive = new int[2];
+        private final long[] streamsActive = new long[2];
         private final Http2Settings localSettings;
         private final Http2Settings remoteSettings;
         private final HpackContext decodeContext;
         private final HpackContext encodeContext;
-        private final Int2ObjectHashMap<HttpExchange> streams;
         private final LongHashSet applicationHeadersProcessed;
-
-        private Http2ClientDecoder http2decoder;
         private Http2ErrorCode decodeError;
         private MutableBoolean expectDynamicTableSizeUpdate;
         private long responseSharedBudgetIndex;
+
+        private int streamId = 1;
 
         private HttpClient(
             HttpClientPool pool)
@@ -1781,7 +1778,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.decoder = decodeEmptyLines;
             this.localSettings = new Http2Settings();
             this.remoteSettings = new Http2Settings();
-            this.streams = new Int2ObjectHashMap<>();
             this.applicationHeadersProcessed = new LongHashSet();
             this.decodeContext = new HpackContext(localSettings.headerTableSize, false);
             this.encodeContext = new HpackContext(remoteSettings.headerTableSize, true);
@@ -1804,12 +1800,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         private HttpExchange newExchange(
             MessageConsumer sender,
             BeginFW begin,
-            Map<String8FW, String16FW> overrides)
+            Map<String8FW, String16FW> overrides,
+            int streamId)
         {
             final long routeId = begin.routeId();
             final long initialId = begin.streamId();
 
-            return new HttpExchange(this, sender, routeId, initialId, overrides);
+            return new HttpExchange(this, sender, routeId, initialId, overrides, streamId);
         }
 
         private void onNetwork(
@@ -1858,10 +1855,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
                     ? begin.extension().get(beginProxyExRO::tryWrap)
                     : null;
-            if (beginEx != null
-                && beginEx.infos().anyMatch(proxyInfo -> ALPN_H2.equals(proxyInfo.alpn())))
+
+            if (beginEx != null &&
+                    beginEx.infos().anyMatch(proxyInfo -> ALPN_H2.equals(proxyInfo.alpn())))
             {
-                doEncodePreface(this, traceId, authorization);
+                this.decoder = decodeHttp2Settings;
+                doEncodePreface(traceId, authorization);
+                doEncodeHttp2Settings(traceId, authorization);
             }
             else
             {
@@ -1999,10 +1999,11 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             flushNetworkIfBuffered(traceId, authorization, budgetId);
 
-            if (exchange != null && !HttpState.initialClosed(exchange.state))
-            {
-                exchange.doRequestWindow(traceId, budgetId);
-            }
+            //TODO: HTTP1 case
+            //if (exchange != null && !HttpState.initialClosed(exchange.state))
+            //{
+            //    exchange.doRequestWindow(traceId, budgetId);
+            //}
         }
 
         private void flushNetworkIfBuffered(
@@ -2020,10 +2021,10 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void doNetworkBegin(
-                long traceId,
-                long authorization,
-                long affinity,
-                HttpExchange httpExchange)
+            long traceId,
+            long authorization,
+            long affinity,
+            HttpExchange httpExchange)
         {
             if (!HttpState.initialOpening(state))
             {
@@ -2524,6 +2525,46 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
         }
 
+        private void doEncodePreface(
+            long traceId,
+            long authorization)
+        {
+            final Http2PrefaceFW http2Preface = http2PrefaceRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .preface()
+                    .build();
+
+            doNetworkReservedData(traceId, authorization, 0L, http2Preface);
+        }
+
+        private void doEncodeHttp2Trailers(
+            long traceId,
+            long authorization,
+            int streamId,
+            Array32FW<HttpHeaderFW> trailers)
+        {
+            if (trailers.isEmpty())
+            {
+                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                        .streamId(streamId)
+                        .endStream()
+                        .build();
+
+                doNetworkReservedData(traceId, authorization, 0L, http2Data);
+            }
+            else
+            {
+                final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                        .streamId(streamId)
+                        .headers(hb -> headersEncoder.encodeTrailers(encodeContext, trailers, hb))
+                        .endHeaders()
+                        .endStream()
+                        .build();
+
+                doNetworkReservedData(traceId, authorization, 0L, http2Headers);
+            }
+        }
+
+
         private void doEncodeHttp2PingAck(
             long traceId,
             long authorization,
@@ -2536,6 +2577,20 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Ping);
+        }
+
+        private void doEncodeHttp2Settings(
+            long traceId,
+            long authorization)
+        {
+            final Http2SettingsFW http2Settings = http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(0)
+                    .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
+                    .initialWindowSize(initialSettings.initialWindowSize)
+                    .maxHeaderListSize(initialSettings.maxHeaderListSize)
+                    .build();
+
+            doNetworkReservedData(traceId, authorization, 0L, http2Settings);
         }
 
         private void doEncodeHttp2SettingsAck(
@@ -2556,7 +2611,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Http2RstStreamFW http2RstStream)
         {
             final int streamId = http2RstStream.streamId();
-            final HttpExchange exchange = streams.get(streamId);
+            final HttpExchange exchange = pool.exchanges.get(streamId);
 
             if (exchange != null)
             {
@@ -2572,7 +2627,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final int streamId = http2Priority.streamId();
             final int parentStream = http2Priority.parentStream();
 
-            final HttpExchange exchange = streams.get(streamId);
+            final HttpExchange exchange = pool.exchanges.get(streamId);
             if (exchange != null)
             {
                 if (parentStream == streamId)
@@ -2592,7 +2647,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             int progress = 0;
 
-            final HttpExchange exchange = streams.get(streamId);
+            final HttpExchange exchange = pool.exchanges.get(streamId);
 
             if (exchange == null)
             {
@@ -2661,7 +2716,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (endHeaders)
             {
-                if (streams.containsKey(streamId))
+                if (pool.exchanges.containsKey(streamId))
                 {
                     onDecodeHttp2Trailers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset, endRequest);
                 }
@@ -2696,7 +2751,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 else if (headersDecoder.connectionError != null)
                 {
                     onDecodeHttp2Error(traceId, authorization, headersDecoder.connectionError);
-                    http2decoder = decodeHttp2IgnoreAll;
+                    decoder = decodeHttp2IgnoreAll;
                 }
             }
             else if (headersDecoder.httpError())
@@ -2716,7 +2771,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit,
             boolean endRequest)
         {
-            final HttpExchange exchange = streams.get(streamId);
+            final HttpExchange exchange = pool.exchanges.get(streamId);
             if (exchange != null)
             {
                 final HpackHeaderBlockFW headerBlock = headerBlockRO.wrap(buffer, offset, limit);
@@ -2733,7 +2788,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     else if (headersDecoder.connectionError != null)
                     {
                         onDecodeHttp2Error(traceId, authorization, headersDecoder.connectionError);
-                        http2decoder = decodeHttp2IgnoreAll;
+                        decoder = decodeHttp2IgnoreAll;
                     }
                 }
                 else
@@ -2787,7 +2842,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (endHeaders)
             {
-                onDecodeHttp2Headers(traceId, authorization, streamId, dataBuffer, dataOffset, dataOffset + dataLength, endRequest);
+                onDecodeHttp2Headers(traceId, authorization, streamId, dataBuffer, dataOffset,
+                        dataOffset + dataLength, endRequest);
             }
             else
             {
@@ -2822,7 +2878,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 // initial budget can become negative
                 if (localInitialCredit != 0)
                 {
-                    for (HttpExchange stream: streams.values())
+                    for (HttpExchange stream: pool.exchanges.values())
                     {
                         stream.localBudget += localInitialCredit;
                         stream.doRequestWindow(traceId, authorization);
@@ -2844,7 +2900,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     final long remoteInitialCredit = remoteSettings.initialWindowSize - remoteInitialBudget;
                     if (remoteInitialCredit != 0)
                     {
-                        for (HttpExchange stream: streams.values())
+                        for (HttpExchange stream: pool.exchanges.values())
                         {
                             final long newRemoteBudget = stream.remoteBudget + remoteInitialCredit;
                             if (newRemoteBudget > MAX_REMOTE_BUDGET)
@@ -2860,11 +2916,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (decodeError == Http2ErrorCode.NO_ERROR)
                 {
                     doEncodeHttp2SettingsAck(traceId, authorization);
+                    pool.flushNext();
                 }
                 else
                 {
                     onDecodeHttp2Error(traceId, authorization, decodeError);
-                    http2decoder = decodeHttp2IgnoreAll;
+                    decoder = decodeHttp2IgnoreAll;
                 }
             }
         }
@@ -2918,7 +2975,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                final HttpExchange stream = streams.get(streamId);
+                final HttpExchange stream = pool.exchanges.get(streamId);
                 if (stream != null)
                 {
                     //stream.onResponseWindowUpdate(traceId, authorization, credit);
@@ -2953,7 +3010,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final int lastStreamId = http2Goaway.lastStreamId();
 
-            streams.entrySet()
+            pool.exchanges.entrySet()
                     .stream()
                     .filter(e -> e.getKey() > lastStreamId)
                     .map(Map.Entry::getValue)
@@ -2990,11 +3047,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void doEncodeHttp2Headers(
-                long traceId,
-                long authorization,
-                int streamId,
-                Array32FW<HttpHeaderFW> headers,
-                boolean endResponse)
+            long traceId,
+            long authorization,
+            int streamId,
+            Array32FW<HttpHeaderFW> headers,
+            boolean endResponse)
         {
             final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
@@ -3007,22 +3064,22 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void doNetworkHeadersData(
-                long traceId,
-                long authorization,
-                long budgetId,
-                Flyweight payload)
+            long traceId,
+            long authorization,
+            long budgetId,
+            Flyweight payload)
         {
             doNetworkHeadersData(traceId, authorization, budgetId, payload.buffer(),
                     payload.offset(), payload.limit());
         }
 
         private void doNetworkHeadersData(
-                long traceId,
-                long authorization,
-                long budgetId,
-                DirectBuffer buffer,
-                int offset,
-                int limit)
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
         {
             if (encodeHeadersSlotOffset == 0)
             {
@@ -3041,8 +3098,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void encodeNetworkHeaders(
-                long authorization,
-                long budgetId)
+            long authorization,
+            long budgetId)
         {
             if (encodeHeadersSlotOffset != 0 &&
                 encodeSlotMarkOffset == 0 &&
@@ -3090,22 +3147,22 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void doNetworkReservedData(
-                long traceId,
-                long authorization,
-                long budgetId,
-                Flyweight payload)
+            long traceId,
+            long authorization,
+            long budgetId,
+            Flyweight payload)
         {
             doNetworkReservedData(traceId, authorization, budgetId, payload.buffer(),
                     payload.offset(), payload.limit());
         }
 
         private void doNetworkReservedData(
-                long traceId,
-                long authorization,
-                long budgetId,
-                DirectBuffer buffer,
-                int offset,
-                int limit)
+            long traceId,
+            long authorization,
+            long budgetId,
+            DirectBuffer buffer,
+            int offset,
+            int limit)
         {
             encodeReservedBuffer.putBytes(encodeReservedSlotOffset, buffer, offset, limit - offset);
             encodeReservedSlotOffset += limit - offset;
@@ -3115,8 +3172,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void encodeNetworkReserved(
-                long authorization,
-                long budgetId)
+            long authorization,
+            long budgetId)
         {
             if (encodeReservedSlotOffset != 0 &&
                 (encodeReservedSlotMarkOffset != 0 || encodeHeadersSlotOffset == 0 && encodeSlotOffset == 0))
@@ -3165,12 +3222,21 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void encodeNetwork(
-                long traceId,
-                long authorization,
-                long budgetId)
+            long traceId,
+            long authorization,
+            long budgetId)
         {
             encodeNetworkHeaders(authorization, budgetId);
             encodeNetworkReserved(authorization, budgetId);
+        }
+
+        private int nextStreamId()
+        {
+            if (streamId != 1)
+            {
+                streamId = streamId + 2;
+            }
+            return streamId;
         }
 
         private void cleanupNetwork(
@@ -3227,6 +3293,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long requestId;
         private final long responseId;
         private final Map<String8FW, String16FW> overrides;
+        private int streamId;
         public int contentLength;
         public int contentObserved;
         public int localBudget;
@@ -3258,7 +3325,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             MessageConsumer application,
             long routeId,
             long requestId,
-            Map<String8FW, String16FW> overrides)
+            Map<String8FW, String16FW> overrides,
+            int streamId)
         {
             this.client = client;
             this.application = application;
@@ -3266,6 +3334,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.requestId = requestId;
             this.responseId = supplyReplyId.applyAsLong(requestId);
             this.overrides = overrides;
+            this.streamId = streamId;
         }
 
         private void onApplication(
@@ -3315,7 +3384,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
-            final long streamId = begin.streamId();
+            final long initialId = begin.streamId();
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
 
@@ -3365,7 +3434,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
             client.exchange = this;
-            client.doEncodeHttp2Headers(traceId, authorization, (int) requestId, headers, false);
+            client.doEncodeHttp2Headers(traceId, authorization, streamId, headers, false);
         }
 
         private void onRequestFlush(
@@ -3453,7 +3522,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
 
             state = HttpState.closeInitial(state);
-            client.doEncodeTrailers(this, traceId, authorization, 0L, trailers);
+            client.doEncodeHttp2Trailers(traceId, authorization, streamId, trailers);
         }
 
         private void onRequestAbort(
@@ -3680,7 +3749,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private void onExchangeClosed()
         {
-            final HttpExchange exchange = this.client.pool.exchanges.remove(requestId);
+            final HttpExchange exchange = this.client.pool.exchanges.remove(streamId);
             if (exchange != null && client.exchange == this)
             {
                 client.exchange = null;
@@ -3706,18 +3775,18 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final Consumer<HttpHeaderFW> search = this::connectionHeaders;
 
         void encodePromise(
-                HpackContext encodeContext,
-                Array32FW<HttpHeaderFW> headers,
-                HpackHeaderBlockFW.Builder headerBlock)
+            HpackContext encodeContext,
+            Array32FW<HttpHeaderFW> headers,
+            HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
             headers.forEach(h -> headerBlock.header(b -> encodeHeader(h, b)));
         }
 
         void encodeHeaders(
-                HpackContext encodeContext,
-                Array32FW<HttpHeaderFW> headers,
-                HpackHeaderBlockFW.Builder headerBlock)
+            HpackContext encodeContext,
+            Array32FW<HttpHeaderFW> headers,
+            HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
 
@@ -3725,10 +3794,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             headers.forEach(h ->
             {
-                if (includeHeader(h))
-                {
-                    headerBlock.header(b -> encodeHeader(h, b));
-                }
+                headerBlock.header(b -> encodeHeader(h, b));
             });
         }
 
@@ -3763,40 +3829,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     connectionHeaders.add(headerValue.trim());
                 }
             }
-        }
-
-        private boolean includeHeader(
-                HttpHeaderFW header)
-        {
-            final String8FW name = header.name();
-            final DirectBuffer nameBuffer = name.value();
-
-            // Excluding 8.1.2.1 pseudo-header fields
-            if (nameBuffer.equals(context.nameBuffer(1)) ||      // :authority
-                    nameBuffer.equals(context.nameBuffer(2)) ||      // :method
-                    nameBuffer.equals(context.nameBuffer(4)) ||      // :path
-                    nameBuffer.equals(context.nameBuffer(6)))        // :scheme
-            {
-                return false;
-            }
-
-            // Excluding 8.1.2.2 connection-specific header fields
-            if (nameBuffer.equals(context.nameBuffer(57)) ||     // transfer-encoding
-                    nameBuffer.equals(CONNECTION) ||                 // connection
-                    nameBuffer.equals(KEEP_ALIVE) ||                 // keep-alive
-                    nameBuffer.equals(PROXY_CONNECTION) ||           // proxy-connection
-                    nameBuffer.equals(UPGRADE))                      // upgrade
-            {
-                return false;
-            }
-
-            // Excluding header if nominated by connection header field
-            if (connectionHeaders.contains(name.asString()))
-            {
-                return false;
-            }
-
-            return true;
         }
 
         private void encodeHeader(
@@ -3948,27 +3980,27 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 switch (hf.type())
                 {
-                    case INDEXED:
-                    case LITERAL:
-                        expectDynamicTableSizeUpdate.value = false;
-                        break;
-                    case UPDATE:
-                        if (!expectDynamicTableSizeUpdate.value)
-                        {
-                            // dynamic table size update MUST occur at the beginning of the first header block
-                            connectionError = Http2ErrorCode.COMPRESSION_ERROR;
-                            return;
-                        }
-                        int maxTableSize = hf.tableSize();
-                        if (maxTableSize > headerTableSize)
-                        {
-                            connectionError = Http2ErrorCode.COMPRESSION_ERROR;
-                            return;
-                        }
-                        context.updateSize(hf.tableSize());
-                        break;
-                    default:
-                        break;
+                case INDEXED:
+                case LITERAL:
+                    expectDynamicTableSizeUpdate.value = false;
+                    break;
+                case UPDATE:
+                    if (!expectDynamicTableSizeUpdate.value)
+                    {
+                        // dynamic table size update MUST occur at the beginning of the first header block
+                        connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                        return;
+                    }
+                    int maxTableSize = hf.tableSize();
+                    if (maxTableSize > headerTableSize)
+                    {
+                        connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                        return;
+                    }
+                    context.updateSize(hf.tableSize());
+                    break;
+                default:
+                    break;
                 }
             }
         }
@@ -3991,27 +4023,27 @@ public final class HttpClientFactory implements HttpStreamFactory
                     int index = context.index(name);
                     switch (index)
                     {
-                        case 1:             // :authority
-                            break;
-                        case 2:             // :method
-                            method++;
-                            break;
-                        case 4:             // :path
-                            if (value.capacity() > 0)       // :path MUST not be empty
+                    case 1:             // :authority
+                        break;
+                    case 2:             // :method
+                        method++;
+                        break;
+                    case 4:             // :path
+                        if (value.capacity() > 0)       // :path MUST not be empty
+                        {
+                            path++;
+                            if (!HttpUtil.isPathValid(value))
                             {
-                                path++;
-                                if (!HttpUtil.isPathValid(value))
-                                {
-                                    httpErrorHeader = HEADERS_400_BAD_REQUEST;
-                                }
+                                httpErrorHeader = HEADERS_400_BAD_REQUEST;
                             }
-                            break;
-                        case 6:             // :scheme
-                            scheme++;
-                            break;
-                        default:
-                            streamError = Http2ErrorCode.PROTOCOL_ERROR;
-                            return;
+                        }
+                        break;
+                    case 6:             // :scheme
+                        scheme++;
+                        break;
+                    default:
+                        streamError = Http2ErrorCode.PROTOCOL_ERROR;
+                        return;
                     }
                 }
                 else
@@ -4118,95 +4150,95 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             switch (hf.type())
             {
-                case INDEXED :
-                    index = hf.index();
+            case INDEXED :
+                index = hf.index();
+                if (!context.valid(index))
+                {
+                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                    return;
+                }
+                name = context.nameBuffer(index);
+                value = context.valueBuffer(index);
+                nameValue.accept(name, value);
+                break;
+
+            case LITERAL :
+                HpackLiteralHeaderFieldFW hpackLiteral = hf.literal();
+                if (hpackLiteral.error())
+                {
+                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                    return;
+                }
+
+                HpackStringFW hpackValue = hpackLiteral.valueLiteral();
+
+                switch (hpackLiteral.nameType())
+                {
+                case INDEXED:
+                    index = hpackLiteral.nameIndex();
                     if (!context.valid(index))
                     {
                         connectionError = Http2ErrorCode.COMPRESSION_ERROR;
                         return;
                     }
                     name = context.nameBuffer(index);
-                    value = context.valueBuffer(index);
+
+                    value = hpackValue.payload();
+                    if (hpackValue.huffman())
+                    {
+                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        int length = HpackHuffman.decode(value, dst);
+                        if (length == -1)
+                        {
+                            connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                            return;
+                        }
+                        value = new UnsafeBuffer(dst, 0, length);
+                    }
                     nameValue.accept(name, value);
                     break;
-
-                case LITERAL :
-                    HpackLiteralHeaderFieldFW hpackLiteral = hf.literal();
-                    if (hpackLiteral.error())
+                case NEW:
+                    HpackStringFW hpackName = hpackLiteral.nameLiteral();
+                    name = hpackName.payload();
+                    if (hpackName.huffman())
                     {
-                        connectionError = Http2ErrorCode.COMPRESSION_ERROR;
-                        return;
+                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        int length = HpackHuffman.decode(name, dst);
+                        if (length == -1)
+                        {
+                            connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                            return;
+                        }
+                        name = new UnsafeBuffer(dst, 0, length);
                     }
 
-                    HpackStringFW hpackValue = hpackLiteral.valueLiteral();
-
-                    switch (hpackLiteral.nameType())
+                    value = hpackValue.payload();
+                    if (hpackValue.huffman())
                     {
-                        case INDEXED:
-                            index = hpackLiteral.nameIndex();
-                            if (!context.valid(index))
-                            {
-                                connectionError = Http2ErrorCode.COMPRESSION_ERROR;
-                                return;
-                            }
-                            name = context.nameBuffer(index);
-
-                            value = hpackValue.payload();
-                            if (hpackValue.huffman())
-                            {
-                                MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
-                                int length = HpackHuffman.decode(value, dst);
-                                if (length == -1)
-                                {
-                                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
-                                    return;
-                                }
-                                value = new UnsafeBuffer(dst, 0, length);
-                            }
-                            nameValue.accept(name, value);
-                            break;
-                        case NEW:
-                            HpackStringFW hpackName = hpackLiteral.nameLiteral();
-                            name = hpackName.payload();
-                            if (hpackName.huffman())
-                            {
-                                MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
-                                int length = HpackHuffman.decode(name, dst);
-                                if (length == -1)
-                                {
-                                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
-                                    return;
-                                }
-                                name = new UnsafeBuffer(dst, 0, length);
-                            }
-
-                            value = hpackValue.payload();
-                            if (hpackValue.huffman())
-                            {
-                                MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
-                                int length = HpackHuffman.decode(value, dst);
-                                if (length == -1)
-                                {
-                                    connectionError = Http2ErrorCode.COMPRESSION_ERROR;
-                                    return;
-                                }
-                                value = new UnsafeBuffer(dst, 0, length);
-                            }
-                            nameValue.accept(name, value);
-                            break;
+                        MutableDirectBuffer dst = new UnsafeBuffer(new byte[4096]); // TODO
+                        int length = HpackHuffman.decode(value, dst);
+                        if (length == -1)
+                        {
+                            connectionError = Http2ErrorCode.COMPRESSION_ERROR;
+                            return;
+                        }
+                        value = new UnsafeBuffer(dst, 0, length);
                     }
-                    if (hpackLiteral.literalType() == INCREMENTAL_INDEXING)
-                    {
-                        // make a copy for name and value as they go into dynamic table (outlives current frame)
-                        MutableDirectBuffer nameCopy = new UnsafeBuffer(new byte[name.capacity()]);
-                        nameCopy.putBytes(0, name, 0, name.capacity());
-                        MutableDirectBuffer valueCopy = new UnsafeBuffer(new byte[value.capacity()]);
-                        valueCopy.putBytes(0, value, 0, value.capacity());
-                        context.add(nameCopy, valueCopy);
-                    }
+                    nameValue.accept(name, value);
                     break;
-                default:
-                    break;
+                }
+                if (hpackLiteral.literalType() == INCREMENTAL_INDEXING)
+                {
+                    // make a copy for name and value as they go into dynamic table (outlives current frame)
+                    MutableDirectBuffer nameCopy = new UnsafeBuffer(new byte[name.capacity()]);
+                    nameCopy.putBytes(0, name, 0, name.capacity());
+                    MutableDirectBuffer valueCopy = new UnsafeBuffer(new byte[value.capacity()]);
+                    valueCopy.putBytes(0, value, 0, value.capacity());
+                    context.add(nameCopy, valueCopy);
+                }
+                break;
+            default:
+                break;
             }
         }
     }

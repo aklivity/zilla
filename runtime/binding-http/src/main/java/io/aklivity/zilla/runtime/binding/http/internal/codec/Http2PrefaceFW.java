@@ -21,7 +21,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.http.internal.types.Flyweight;
 
-import static java.nio.ByteOrder.BIG_ENDIAN;
 
 /*
  *  Flyweight for HTTP2 client preface
