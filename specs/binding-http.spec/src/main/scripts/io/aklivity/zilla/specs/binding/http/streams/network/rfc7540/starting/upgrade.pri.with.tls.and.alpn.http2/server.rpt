@@ -83,11 +83,6 @@ read [0x00 0x00 0x00]                   # length = 12
      [0x01]                             # END_STREAM
      [0x00 0x00 0x00 0x01]              # stream_id = 1
 
-read [0x00 0x00 0x00]                   # length = 0
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x01]                             # ACK
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-
 write [0x00 0x00 0x04]                                      # length
       [0x08]                                                # WINDOW_UPDATE frame
       [0x00]                                                # no flags
