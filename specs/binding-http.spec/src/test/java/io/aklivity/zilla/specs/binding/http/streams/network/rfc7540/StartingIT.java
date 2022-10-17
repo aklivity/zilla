@@ -125,4 +125,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.pri.with.tls.and.alpn.http2/client",
+        "${net}/upgrade.pri.with.tls.and.alpn.http2/server",
+    })
+    public void shouldUpgradeViaPriorKnowledgeWithTlsAndAlpn() throws Exception
+    {
+        k3po.finish();
+    }
 }
