@@ -16,6 +16,7 @@
 
 connect "zilla://streams/app0"
     option zilla:window 8192
+    option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
@@ -26,4 +27,12 @@ write zilla:begin.ext ${http:beginEx()
                               .header("Custom-Header-1", "custom header 1 value")
                               .header("Custom-Header-2", "custom header 2 value")
                               .build()}
-connect aborted
+connected
+
+write close
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "431")
+                             .build()}
+read closed

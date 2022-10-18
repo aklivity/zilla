@@ -25,7 +25,6 @@ public class HttpConfiguration extends Configuration
             EngineConfiguration.DEBUG_BUDGETS || Boolean.getBoolean("zilla.binding.http.debug.budgets");
 
     public static final IntPropertyDef HTTP_MAXIMUM_CONNECTIONS;
-    public static final IntPropertyDef HTTP_MAXIMUM_QUEUED_REQUESTS;
     public static final IntPropertyDef HTTP_SERVER_CONCURRENT_STREAMS;
     public static final LongPropertyDef HTTP_SERVER_MAX_HEADER_LIST_SIZE;
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
@@ -39,7 +38,6 @@ public class HttpConfiguration extends Configuration
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.http");
         HTTP_MAXIMUM_CONNECTIONS = config.property("maximum.connections", 10);
-        HTTP_MAXIMUM_QUEUED_REQUESTS = config.property("maximum.requests.queued", 10000);
         HTTP_SERVER_CONCURRENT_STREAMS = config.property("server.concurrent.streams", Integer.MAX_VALUE);
         HTTP_SERVER_MAX_HEADER_LIST_SIZE = config.property("server.max.header.list.size", 8_192L);
         HTTP_SERVER_HEADER = config.property("server.header");
@@ -62,11 +60,6 @@ public class HttpConfiguration extends Configuration
     public int maximumConnectionsPerRoute()
     {
         return HTTP_MAXIMUM_CONNECTIONS.getAsInt(this);
-    }
-
-    public int maximumRequestsQueuedPerRoute()
-    {
-        return HTTP_MAXIMUM_QUEUED_REQUESTS.getAsInt(this);
     }
 
     public int serverConcurrentStreams()

@@ -17,7 +17,7 @@
 accept "http://localhost:8080/"
   option http:transport "zilla://streams/net0"
   option zilla:window 8192
-  option zilla:transmission "half-duplex"
+  option zilla:transmission "duplex"
 accepted
 connected
 

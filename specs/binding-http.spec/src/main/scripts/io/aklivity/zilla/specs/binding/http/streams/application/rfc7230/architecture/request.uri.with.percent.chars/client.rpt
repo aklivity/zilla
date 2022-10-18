@@ -34,3 +34,4 @@ read zilla:begin.ext ${http:beginEx()
                              .header(":status", "200")
                              .build()}
 
+read closed
