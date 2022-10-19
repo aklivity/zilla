@@ -2807,10 +2807,10 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             Flyweight newKafkaDataEx = EMPTY_OCTETS;
 
-            if (flags != FLAGS_NONE && flags != FLAGS_INCOMPLETE)
+            final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+            if (flags != FLAGS_NONE && flags != FLAGS_INCOMPLETE && dataEx != null)
             {
-                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                final KafkaDataExFW kafkaDataEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
+                final KafkaDataExFW kafkaDataEx = dataEx.typeId() == kafkaTypeId ?
                         extension.get(kafkaDataExRO::tryWrap) : null;
 
                 assert kafkaDataEx != null;
