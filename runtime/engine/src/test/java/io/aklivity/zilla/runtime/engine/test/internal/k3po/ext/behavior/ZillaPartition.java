@@ -271,28 +271,39 @@ final class ZillaPartition implements AutoCloseable
             final ChannelFuture beginFuture = future(childChannel);
             final ChannelFuture windowFuture = future(childChannel);
 
+            childChannel.beginInputFuture().addListener(future ->
+            {
+                fireChannelBound(childChannel, childChannel.getLocalAddress());
+                if (future.isSuccess())
+                {
+                    ZillaChannelConfig childConfig = childChannel.getConfig();
+                    switch (childConfig.getTransmission())
+                    {
+                    case DUPLEX:
+                        sender.doBeginReply(childChannel);
+                        break;
+                    default:
+                        windowFuture.setSuccess();
+                        break;
+                    }
+                }
+            });
+
             final MessageHandler newStream = streamFactory.newStream(childChannel, sender, beginFuture);
             registerStream.accept(initialId, newStream);
             newStream.onMessage(begin.typeId(), (MutableDirectBuffer) begin.buffer(), begin.offset(), begin.sizeof());
-
-            fireChannelBound(childChannel, childChannel.getLocalAddress());
 
             ChannelFuture handshakeFuture = beginFuture;
 
             sender.doPrepareReply(childChannel, windowFuture, handshakeFuture);
 
-            ZillaChannelConfig childConfig = childChannel.getConfig();
-            switch (childConfig.getTransmission())
+            windowFuture.addListener(future ->
             {
-            case DUPLEX:
-                sender.doBeginReply(childChannel);
-                break;
-            default:
-                windowFuture.setSuccess();
-                break;
-            }
-
-            fireChannelConnected(childChannel, childChannel.getRemoteAddress());
+                if (future.isSuccess())
+                {
+                    fireChannelConnected(childChannel, childChannel.getRemoteAddress());
+                }
+            });
         }
     }
 
