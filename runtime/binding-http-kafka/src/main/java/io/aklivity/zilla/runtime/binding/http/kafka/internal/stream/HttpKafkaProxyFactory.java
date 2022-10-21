@@ -2582,6 +2582,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            doKafkaWindow(traceId);
             delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
