@@ -1938,9 +1938,20 @@ public final class TlsServerFactory implements TlsStreamFactory
 
                 assert initialAck <= initialSeq;
 
-                state = TlsState.openInitial(state);
 
-                flushNetWindow(traceId, budgetId, initialPad);
+                if (TlsState.initialClosing(state))
+                {
+                    state = TlsState.closeInitial(state);
+                    stream = nullIfClosed(state, stream);
+                    doEnd(app, routeId, initialId, initialSeq, initialAck, initialMax,
+                            traceId, authorization, EMPTY_EXTENSION);
+                }
+                else
+                {
+                    state = TlsState.openInitial(state);
+
+                    flushNetWindow(traceId, budgetId, initialPad);
+                }
             }
 
             private void onAppReset(
@@ -2082,11 +2093,19 @@ public final class TlsServerFactory implements TlsStreamFactory
             private void doAppEnd(
                 long traceId)
             {
-                state = TlsState.closeInitial(state);
-                stream = nullIfClosed(state, stream);
-                doEnd(app, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization, EMPTY_EXTENSION);
+                if (TlsState.initialOpened(state))
+                {
+                    state = TlsState.closeInitial(state);
+                    stream = nullIfClosed(state, stream);
+                    doEnd(app, routeId, initialId, initialSeq, initialAck, initialMax,
+                            traceId, authorization, EMPTY_EXTENSION);
+                }
+                else
+                {
+                    state = TlsState.closingInitial(state);
+                }
             }
+
 
             private void doAppAbort(
                 long traceId)
