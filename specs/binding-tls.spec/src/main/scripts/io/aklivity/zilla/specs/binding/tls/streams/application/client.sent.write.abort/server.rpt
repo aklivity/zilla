@@ -28,6 +28,4 @@ read zilla:begin.ext ${proxy:matchBeginEx()
 
 connected
 
-
-
 read aborted
