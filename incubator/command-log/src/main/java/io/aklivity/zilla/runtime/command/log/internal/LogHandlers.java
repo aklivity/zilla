@@ -1,116 +1,99 @@
-/*
- * Copyright 2021-2022 Aklivity Inc.
- *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
 package io.aklivity.zilla.runtime.command.log.internal;
 
+import io.aklivity.zilla.runtime.command.common.Handlers;
+import io.aklivity.zilla.runtime.command.common.Logger;
+import io.aklivity.zilla.runtime.command.common.internal.types.AmqpPropertiesFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ArrayFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaCapabilities;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaConditionFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaConfigFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaFilterFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaHeadersFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaIsolation;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaKeyFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaNotFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaPartitionFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaSkipFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.KafkaValueMatchFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.MqttCapabilities;
+import io.aklivity.zilla.runtime.command.common.internal.types.MqttCapabilitiesFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.MqttUserPropertyFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressInet4FW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressInet6FW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressInetFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressUnixFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ProxyInfoFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.ProxySecureInfoFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.String16FW;
+import io.aklivity.zilla.runtime.command.common.internal.types.StringFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.AmqpBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.AmqpDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.ChallengeFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.HttpDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaDescribeBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaDescribeDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFetchBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFetchDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFetchFlushExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMergedBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMetaBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMetaDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaProduceBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaProduceDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.MqttBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.SseDataExFW;
+import io.aklivity.zilla.runtime.command.common.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.command.common.labels.LabelManager;
 import static java.lang.String.format;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
-import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.command.log.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.log.internal.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.log.internal.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.command.log.internal.types.AmqpPropertiesFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ArrayFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaCapabilities;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaConditionFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaConfigFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaFilterFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaHeaderFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaHeadersFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaIsolation;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaKeyFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaNotFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaOffsetFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaPartitionFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaSkipFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.KafkaValueMatchFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttCapabilities;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttCapabilitiesFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttUserPropertyFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressInet4FW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressInet6FW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressInetFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressUnixFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ProxyInfoFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.ProxySecureInfoFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.String16FW;
-import io.aklivity.zilla.runtime.command.log.internal.types.StringFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.AmqpBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.AmqpDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.ChallengeFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.ExtensionFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpEndExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBootstrapBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDescribeBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDescribeDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFetchFlushExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaFlushExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMergedFlushExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMetaBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaMetaDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaProduceDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaResetExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.SignalFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.SseDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-
-public final class LoggableStream implements AutoCloseable
+public class LogHandlers implements Handlers
 {
-    private final FrameFW frameRO = new FrameFW();
-    private final BeginFW beginRO = new BeginFW();
-    private final DataFW dataRO = new DataFW();
-    private final EndFW endRO = new EndFW();
-    private final AbortFW abortRO = new AbortFW();
+    private final LabelManager labels;
+    private final String streamFormat;
+    private final String throttleFormat;
+    private final String verboseFormat;
+    private final Logger out;
+    private final int index;
 
-    private final ResetFW resetRO = new ResetFW();
-    private final WindowFW windowRO = new WindowFW();
-    private final SignalFW signalRO = new SignalFW();
-    private final ChallengeFW challengeRO = new ChallengeFW();
-    private final FlushFW flushRO = new FlushFW();
+    private final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers;
+    private final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers;
+    private final Int2ObjectHashMap<Consumer<EndFW>> endHandlers;
+    private final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers;
+    private final Int2ObjectHashMap<Consumer<ResetFW>> resetHandlers;
 
     private final ExtensionFW extensionRO = new ExtensionFW();
 
@@ -129,86 +112,25 @@ public final class LoggableStream implements AutoCloseable
     private final AmqpBeginExFW amqpBeginExRO = new AmqpBeginExFW();
     private final AmqpDataExFW amqpDataExRO = new AmqpDataExFW();
 
-    private final int index;
-    private final LabelManager labels;
-    private final String streamFormat;
-    private final String throttleFormat;
-    private final String verboseFormat;
-    private final StreamsLayout layout;
-    private final RingBufferSpy streamsBuffer;
-    private final Logger out;
-    private final LongPredicate nextTimestamp;
 
-    private final Int2ObjectHashMap<MessageConsumer> frameHandlers;
-    private final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers;
-    private final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers;
-    private final Int2ObjectHashMap<Consumer<EndFW>> endHandlers;
-    private final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers;
-    private final Int2ObjectHashMap<Consumer<ResetFW>> resetHandlers;
-
-    LoggableStream(
+    public LogHandlers(
         int index,
         LabelManager labels,
-        StreamsLayout layout,
-        Logger logger,
-        Predicate<String> hasFrameType,
-        Predicate<String> hasExtensionType,
-        LongPredicate nextTimestamp)
+        Logger out,
+        Predicate<String> hasExtensionType)
     {
         this.index = index;
         this.labels = labels;
         this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
         this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
         this.verboseFormat = "[%02d/%08x] [%d] %s\n";
+        this.out = out;
 
-        this.layout = layout;
-        this.streamsBuffer = layout.streamsBuffer();
-        this.out = logger;
-        this.nextTimestamp = nextTimestamp;
-
-        final Int2ObjectHashMap<MessageConsumer> frameHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<EndFW>> endHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<ResetFW>> resetHandlers = new Int2ObjectHashMap<>();
-
-        if (hasFrameType.test("BEGIN"))
-        {
-            frameHandlers.put(BeginFW.TYPE_ID, (t, b, i, l) -> onBegin(beginRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("DATA"))
-        {
-            frameHandlers.put(DataFW.TYPE_ID, (t, b, i, l) -> onData(dataRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("END"))
-        {
-            frameHandlers.put(EndFW.TYPE_ID, (t, b, i, l) -> onEnd(endRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("ABORT"))
-        {
-            frameHandlers.put(AbortFW.TYPE_ID, (t, b, i, l) -> onAbort(abortRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("WINDOW"))
-        {
-            frameHandlers.put(WindowFW.TYPE_ID, (t, b, i, l) -> onWindow(windowRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("RESET"))
-        {
-            frameHandlers.put(ResetFW.TYPE_ID, (t, b, i, l) -> onReset(resetRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("CHALLENGE"))
-        {
-            frameHandlers.put(ChallengeFW.TYPE_ID, (t, b, i, l) -> onChallenge(challengeRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("SIGNAL"))
-        {
-            frameHandlers.put(SignalFW.TYPE_ID, (t, b, i, l) -> onSignal(signalRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("FLUSH"))
-        {
-            frameHandlers.put(FlushFW.TYPE_ID, (t, b, i, l) -> onFlush(flushRO.wrap(b, i, i + l)));
-        }
 
         if (hasExtensionType.test("proxy") || hasExtensionType.test("tcp") || hasExtensionType.test("tls"))
         {
@@ -248,7 +170,6 @@ public final class LoggableStream implements AutoCloseable
             dataHandlers.put(labels.lookupLabelId("amqp"), this::onAmqpDataEx);
         }
 
-        this.frameHandlers = frameHandlers;
         this.beginHandlers = beginHandlers;
         this.dataHandlers = dataHandlers;
         this.endHandlers = endHandlers;
@@ -256,47 +177,8 @@ public final class LoggableStream implements AutoCloseable
         this.resetHandlers = resetHandlers;
     }
 
-    int process()
-    {
-        return streamsBuffer.spy(this::handleFrame, 1);
-    }
-
     @Override
-    public void close() throws Exception
-    {
-        layout.close();
-    }
-
-    @Override
-    public String toString()
-    {
-        return String.format("data%d (spy)", index);
-    }
-
-    private boolean handleFrame(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-        final long timestamp = frame.timestamp();
-
-        if (!nextTimestamp.test(timestamp))
-        {
-            return false;
-        }
-
-        final MessageConsumer handler = frameHandlers.get(msgTypeId);
-        if (handler != null)
-        {
-            handler.accept(msgTypeId, buffer, index, length);
-        }
-
-        return true;
-    }
-
-    private void onBegin(
+    public void onBegin(
         final BeginFW begin)
     {
         final int offset = begin.offset() - HEADER_LENGTH;
@@ -310,13 +192,13 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
+            sequence - acknowledge, maximum, format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
 
 
         final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
@@ -330,7 +212,8 @@ public final class LoggableStream implements AutoCloseable
         }
     }
 
-    private void onData(
+    @Override
+    public  void onData(
         final DataFW data)
     {
         final int offset = data.offset() - HEADER_LENGTH;
@@ -347,14 +230,14 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
             sequence - acknowledge + reserved, maximum, format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]",
-                    budgetId, length, reserved, flags, authorization));
+                budgetId, length, reserved, flags, authorization));
 
         final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -367,7 +250,8 @@ public final class LoggableStream implements AutoCloseable
         }
     }
 
-    private void onEnd(
+    @Override
+    public  void onEnd(
         final EndFW end)
     {
         final int offset = end.offset() - HEADER_LENGTH;
@@ -380,13 +264,13 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = end.traceId();
         final long authorization = end.authorization();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, format("END [0x%016x]", authorization));
+            sequence - acknowledge, maximum, format("END [0x%016x]", authorization));
 
         final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -399,7 +283,8 @@ public final class LoggableStream implements AutoCloseable
         }
     }
 
-    private void onAbort(
+    @Override
+    public  void onAbort(
         final AbortFW abort)
     {
         final int offset = abort.offset() - HEADER_LENGTH;
@@ -412,16 +297,17 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = abort.traceId();
         final long authorization = abort.authorization();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, format("ABORT [0x%016x]", authorization));
+            sequence - acknowledge, maximum, format("ABORT [0x%016x]", authorization));
     }
 
-    private void onReset(
+    @Override
+    public  void onReset(
         final ResetFW reset)
     {
         final int offset = reset.offset() - HEADER_LENGTH;
@@ -433,13 +319,13 @@ public final class LoggableStream implements AutoCloseable
         final int maximum = reset.maximum();
         final long traceId = reset.traceId();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, "RESET");
+            sequence - acknowledge, maximum, "RESET");
 
         final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -452,7 +338,8 @@ public final class LoggableStream implements AutoCloseable
         }
     }
 
-    private void onWindow(
+    @Override
+    public  void onWindow(
         final WindowFW window)
     {
         final int offset = window.offset() - HEADER_LENGTH;
@@ -467,16 +354,17 @@ public final class LoggableStream implements AutoCloseable
         final int minimum = window.minimum();
         final int padding = window.padding();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, format("WINDOW [0x%016x] [%d] [%d]", budgetId, minimum, padding));
+            sequence - acknowledge, maximum, format("WINDOW [0x%016x] [%d] [%d]", budgetId, minimum, padding));
     }
 
-    private void onSignal(
+    @Override
+    public  void onSignal(
         final SignalFW signal)
     {
         final int offset = signal.offset() - HEADER_LENGTH;
@@ -490,16 +378,17 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = signal.authorization();
         final long signalId = signal.signalId();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, format("SIGNAL [%d] [0x%016x]", signalId, authorization));
+            sequence - acknowledge, maximum, format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
-    private void onChallenge(
+    @Override
+    public  void onChallenge(
         final ChallengeFW challenge)
     {
         final int offset = challenge.offset() - HEADER_LENGTH;
@@ -512,16 +401,17 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = challenge.traceId();
         final long authorization = challenge.authorization();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, format("CHALLENGE [0x%016x]", authorization));
+            sequence - acknowledge, maximum, format("CHALLENGE [0x%016x]", authorization));
     }
 
-    private void onFlush(
+    @Override
+    public  void onFlush(
         final FlushFW flush)
     {
         final int offset = flush.offset() - HEADER_LENGTH;
@@ -535,13 +425,13 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = flush.authorization();
         final long budgetId = flush.budgetId();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int) (routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
-                sequence - acknowledge, maximum, format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
+            sequence - acknowledge, maximum, format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
 
         final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -604,7 +494,7 @@ public final class LoggableStream implements AutoCloseable
         final int destinationPort = address.destinationPort();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("%s:%d\t%s:%d", source, sourcePort, destination, destinationPort));
+            format("%s:%d\t%s:%d", source, sourcePort, destination, destinationPort));
     }
 
     private void onProxyBeginExAddressInet4(
@@ -618,13 +508,13 @@ public final class LoggableStream implements AutoCloseable
         final int destinationPort = address.destinationPort();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d.%d.%d.%d:%d\t%d.%d.%d.%d:%d",
-                          source.getByte(0) & 0xff, source.getByte(1) & 0xff,
-                          source.getByte(2) & 0xff, source.getByte(3) & 0xff,
-                          sourcePort,
-                          destination.getByte(0) & 0xff, destination.getByte(1) & 0xff,
-                          destination.getByte(2) & 0xff, destination.getByte(3) & 0xff,
-                          destinationPort));
+            format("%d.%d.%d.%d:%d\t%d.%d.%d.%d:%d",
+                source.getByte(0) & 0xff, source.getByte(1) & 0xff,
+                source.getByte(2) & 0xff, source.getByte(3) & 0xff,
+                sourcePort,
+                destination.getByte(0) & 0xff, destination.getByte(1) & 0xff,
+                destination.getByte(2) & 0xff, destination.getByte(3) & 0xff,
+                destinationPort));
     }
 
     private void onProxyBeginExAddressInet6(
@@ -638,17 +528,17 @@ public final class LoggableStream implements AutoCloseable
         final int destinationPort = address.destinationPort();
 
         out.printf(verboseFormat, index, offset, timestamp,
-               format("[%x:%x:%x:%x:%x:%x:%x:%x]:%d\t[%x:%x:%x:%x:%x:%x:%x:%x]:%d",
-                      source.getShort(0, BIG_ENDIAN) & 0xffff, source.getShort(2, BIG_ENDIAN) & 0xffff,
-                      source.getShort(4, BIG_ENDIAN) & 0xffff, source.getShort(6, BIG_ENDIAN) & 0xffff,
-                      source.getShort(8, BIG_ENDIAN) & 0xffff, source.getShort(10, BIG_ENDIAN) & 0xffff,
-                      source.getShort(12, BIG_ENDIAN) & 0xffff, source.getShort(14, BIG_ENDIAN) & 0xffff,
-                      sourcePort,
-                      destination.getShort(0, BIG_ENDIAN) & 0xffff, destination.getShort(2, BIG_ENDIAN) & 0xffff,
-                      destination.getShort(4, BIG_ENDIAN) & 0xffff, destination.getShort(6, BIG_ENDIAN) & 0xffff,
-                      destination.getShort(8, BIG_ENDIAN) & 0xffff, destination.getShort(10, BIG_ENDIAN) & 0xffff,
-                      destination.getShort(12, BIG_ENDIAN) & 0xffff, destination.getShort(14, BIG_ENDIAN) & 0xffff,
-                      destinationPort));
+            format("[%x:%x:%x:%x:%x:%x:%x:%x]:%d\t[%x:%x:%x:%x:%x:%x:%x:%x]:%d",
+                source.getShort(0, BIG_ENDIAN) & 0xffff, source.getShort(2, BIG_ENDIAN) & 0xffff,
+                source.getShort(4, BIG_ENDIAN) & 0xffff, source.getShort(6, BIG_ENDIAN) & 0xffff,
+                source.getShort(8, BIG_ENDIAN) & 0xffff, source.getShort(10, BIG_ENDIAN) & 0xffff,
+                source.getShort(12, BIG_ENDIAN) & 0xffff, source.getShort(14, BIG_ENDIAN) & 0xffff,
+                sourcePort,
+                destination.getShort(0, BIG_ENDIAN) & 0xffff, destination.getShort(2, BIG_ENDIAN) & 0xffff,
+                destination.getShort(4, BIG_ENDIAN) & 0xffff, destination.getShort(6, BIG_ENDIAN) & 0xffff,
+                destination.getShort(8, BIG_ENDIAN) & 0xffff, destination.getShort(10, BIG_ENDIAN) & 0xffff,
+                destination.getShort(12, BIG_ENDIAN) & 0xffff, destination.getShort(14, BIG_ENDIAN) & 0xffff,
+                destinationPort));
     }
 
     private void onProxyBeginExAddressUnix(
@@ -660,7 +550,7 @@ public final class LoggableStream implements AutoCloseable
         final String destination = asString(address.destination());
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("%s\t%s", source, destination));
+            format("%s\t%s", source, destination));
     }
 
     private void onProxyBeginExInfo(
@@ -672,19 +562,19 @@ public final class LoggableStream implements AutoCloseable
         {
         case ALPN:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("alpn: %s", info.alpn().asString()));
+                format("alpn: %s", info.alpn().asString()));
             break;
         case AUTHORITY:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("authority: %s", info.authority().asString()));
+                format("authority: %s", info.authority().asString()));
             break;
         case IDENTITY:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("identity: %s", asString(info.identity().value())));
+                format("identity: %s", asString(info.identity().value())));
             break;
         case NAMESPACE:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("namespace: %s", info.namespace().asString()));
+                format("namespace: %s", info.namespace().asString()));
             break;
         case SECURE:
             onProxyBeginExSecureInfo(offset, timestamp, info.secure());
@@ -701,23 +591,23 @@ public final class LoggableStream implements AutoCloseable
         {
         case CIPHER:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("cipher: %s", info.cipher().asString()));
+                format("cipher: %s", info.cipher().asString()));
             break;
         case KEY:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("key: %s", info.key().asString()));
+                format("key: %s", info.key().asString()));
             break;
         case NAME:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("name: %s", info.name().asString()));
+                format("name: %s", info.name().asString()));
             break;
         case VERSION:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("version: %s", info.version().asString()));
+                format("version: %s", info.version().asString()));
             break;
         case SIGNATURE:
             out.printf(verboseFormat, index, offset, timestamp,
-                       format("signature: %s", info.signature().asString()));
+                format("signature: %s", info.signature().asString()));
             break;
         }
     }
@@ -731,8 +621,8 @@ public final class LoggableStream implements AutoCloseable
 
         final HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpBeginEx.headers()
-                   .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                           format("%s: %s", h.name().asString(), h.value().asString())));
+            .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+                format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onHttpDataEx(
@@ -744,8 +634,8 @@ public final class LoggableStream implements AutoCloseable
 
         final HttpDataExFW httpDataEx = httpDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpDataEx.promise()
-                   .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                       format("%s: %s", h.name().asString(), h.value().asString())));
+            .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+                format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onHttpEndEx(
@@ -757,8 +647,8 @@ public final class LoggableStream implements AutoCloseable
 
         final HttpEndExFW httpEndEx = httpEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpEndEx.trailers()
-                 .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%s: %s", h.name().asString(), h.value().asString())));
+            .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+                format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onSseDataEx(
@@ -770,9 +660,9 @@ public final class LoggableStream implements AutoCloseable
 
         final SseDataExFW sseDataEx = sseDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         out.printf(verboseFormat, index, offset, timestamp,
-                format("type: %s", sseDataEx.type().asString()));
+            format("type: %s", sseDataEx.type().asString()));
         out.printf(verboseFormat, index, offset, timestamp,
-                format("id: %s", sseDataEx.id().asString()));
+            format("id: %s", sseDataEx.id().asString()));
     }
 
     private void onKafkaBeginEx(
@@ -828,13 +718,13 @@ public final class LoggableStream implements AutoCloseable
         final KafkaIsolation isolation = merged.isolation().get();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                format("[merged] %s %s %s", topic.asString(), capabilities, isolation));
+            format("[merged] %s %s %s", topic.asString(), capabilities, isolation));
         partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%d: %d %d %d",
-                                             p.partitionId(),
-                                             p.partitionOffset(),
-                                             p.stableOffset(),
-                                             p.latestOffset())));
+            format("%d: %d %d %d",
+                p.partitionId(),
+                p.partitionOffset(),
+                p.stableOffset(),
+                p.latestOffset())));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
@@ -862,11 +752,11 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, format("[fetch] %s %s", topic.asString(), isolation));
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d: %d %d %d",
-                           partition.partitionId(),
-                           partition.partitionOffset(),
-                           partition.stableOffset(),
-                           partition.latestOffset()));
+            format("%d: %d %d %d",
+                partition.partitionId(),
+                partition.partitionOffset(),
+                partition.stableOffset(),
+                partition.latestOffset()));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
@@ -949,8 +839,8 @@ public final class LoggableStream implements AutoCloseable
         final StringFW transaction = produce.transaction();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[produce] %s %d %d %d %s", topic.asString(), partitionId, partitionOffset,
-                   latestOffset, transaction.asString()));
+            format("[produce] %s %d %d %d %s", topic.asString(), partitionId, partitionOffset,
+                latestOffset, transaction.asString()));
     }
 
     private void onKafkaDataEx(
@@ -990,7 +880,7 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, "[describe]");
         configs.forEach(c -> out.printf(verboseFormat, index, offset, timestamp,
-                                        format("%s: %s", c.name().asString(), c.value().asString())));
+            format("%s: %s", c.name().asString(), c.value().asString())));
     }
 
     private void onKafkaFetchDataEx(
@@ -1003,14 +893,14 @@ public final class LoggableStream implements AutoCloseable
         final KafkaOffsetFW partition = fetch.partition();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[fetch] (%d) %d %s %d %d %d %d",
-                           fetch.deferred(), fetch.timestamp(), asString(key.value()),
-                           partition.partitionId(),
-                           partition.partitionOffset(),
-                           partition.stableOffset(),
-                           partition.latestOffset()));
+            format("[fetch] (%d) %d %s %d %d %d %d",
+                fetch.deferred(), fetch.timestamp(), asString(key.value()),
+                partition.partitionId(),
+                partition.partitionOffset(),
+                partition.stableOffset(),
+                partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                        format("%s: %s", asString(h.name()), asString(h.value()))));
+            format("%s: %s", asString(h.name()), asString(h.value()))));
     }
 
     private void onKafkaMergedDataEx(
@@ -1024,13 +914,13 @@ public final class LoggableStream implements AutoCloseable
         final ArrayFW<KafkaOffsetFW> progress = merged.progress();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[merged] (%d) %d %s %d %d %d",
-                           merged.deferred(), merged.timestamp(), asString(key.value()),
-                           partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
+            format("[merged] (%d) %d %s %d %d %d",
+                merged.deferred(), merged.timestamp(), asString(key.value()),
+                partition.partitionId(), partition.partitionOffset(), partition.latestOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                        format("%s: %s", asString(h.name()), asString(h.value()))));
+            format("%s: %s", asString(h.name()), asString(h.value()))));
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
+            format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
     }
 
     private void onKafkaMetaDataEx(
@@ -1042,7 +932,7 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, "[meta]");
         partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                                           format("%d: %d", p.partitionId(), p.leaderId())));
+            format("%d: %d", p.partitionId(), p.leaderId())));
     }
 
     private void onKafkaProduceDataEx(
@@ -1054,9 +944,9 @@ public final class LoggableStream implements AutoCloseable
         final ArrayFW<KafkaHeaderFW> headers = produce.headers();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[produce] (%d) %s", produce.deferred(), asString(key.value())));
+            format("[produce] (%d) %s", produce.deferred(), asString(key.value())));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                        format("%s: %s", asString(h.name()), asString(h.value()))));
+            format("%s: %s", asString(h.name()), asString(h.value()))));
     }
 
     private void onKafkaFlushEx(
@@ -1088,11 +978,11 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, "[merged]");
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d: %d %d %d",
-                       p.partitionId(),
-                       p.partitionOffset(),
-                       p.stableOffset(),
-                       p.latestOffset())));
+            format("%d: %d %d %d",
+                p.partitionId(),
+                p.partitionOffset(),
+                p.stableOffset(),
+                p.latestOffset())));
         filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
@@ -1104,11 +994,11 @@ public final class LoggableStream implements AutoCloseable
         final KafkaOffsetFW partition = fetch.partition();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                format("[fetch] %d %d %d %d",
-                        partition.partitionId(),
-                        partition.partitionOffset(),
-                        partition.stableOffset(),
-                        partition.latestOffset()));
+            format("[fetch] %d %d %d %d",
+                partition.partitionId(),
+                partition.partitionOffset(),
+                partition.stableOffset(),
+                partition.latestOffset()));
     }
 
     private void onKafkaResetEx(
@@ -1146,7 +1036,7 @@ public final class LoggableStream implements AutoCloseable
         out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));
         out.printf(verboseFormat, index, offset, timestamp, format("subscriptionId: %s", subscriptionId));
         properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                format("%s: %s", p.key().asString(), p.value().asString())));
+            format("%s: %s", p.key().asString(), p.value().asString())));
     }
 
     private void onMqttDataEx(
@@ -1174,7 +1064,7 @@ public final class LoggableStream implements AutoCloseable
         out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", deferred));
         out.printf(verboseFormat, index, offset, timestamp, format("expiryInterval: %d", expiryInterval));
         properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                format("%s: %s", p.key().asString(), p.value().asString())));
+            format("%s: %s", p.key().asString(), p.value().asString())));
     }
 
     private void onMqttFlushEx(
@@ -1185,7 +1075,7 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = flush.extension();
 
         final MqttFlushExFW mqttFlushEx = mqttFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final int flags =  mqttFlushEx.flags();
+        final int flags = mqttFlushEx.flags();
         final MqttCapabilitiesFW capabilities = mqttFlushEx.capabilities();
 
         out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));

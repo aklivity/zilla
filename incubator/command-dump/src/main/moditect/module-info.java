@@ -13,16 +13,6 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.log.internal.layouts;
-
-
-public abstract class Layout implements AutoCloseable
+module io.aklivity.zilla.runtime.command.dump
 {
-    @Override
-    public abstract void close();
-
-    public abstract static class Builder<T extends Layout>
-    {
-        public abstract T build();
-    }
 }

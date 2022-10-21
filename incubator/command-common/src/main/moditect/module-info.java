@@ -13,10 +13,6 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.log.internal;
-
-@FunctionalInterface
-public interface Logger
+module io.aklivity.zilla.runtime.command.common
 {
-    void printf(String format, Object... args);
 }

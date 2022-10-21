@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.log.internal.spy;
+package io.aklivity.zilla.runtime.command.common.spy;
 
 import org.agrona.DirectBuffer;
 

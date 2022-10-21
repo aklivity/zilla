@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>command-log</artifactId>
-  <name>zilla::incubator::command-log</name>
+  <artifactId>command-common</artifactId>
+  <name>zilla::incubator::command-common</name>
 
   <licenses>
     <license>
@@ -73,11 +73,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>command-common</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>commons-cli</groupId>
       <artifactId>commons-cli</artifactId>
       <version>1.3.1</version>
@@ -101,12 +96,19 @@
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+      <plugin>
         <groupId>${project.groupId}</groupId>
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
           <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream sse::stream proxy::stream</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.command.log.internal.types</packageName>
+          <packageName>io.aklivity.zilla.runtime.command.common.internal.types</packageName>
         </configuration>
         <executions>
           <execution>
@@ -115,13 +117,6 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <artifactId>maven-checkstyle-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -160,24 +155,6 @@
               </limits>
             </rule>
           </rules>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <configuration>
-          <transformers>
-            <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-              <mainClass>io.aklivity.zilla.runtime.command.log.internal.LogCommand</mainClass>
-              <manifestEntries>
-                <Name>io/aklivity/zilla/runtime/command/log/</Name>
-                <Specification-Title>${project.name}</Specification-Title>
-                <Specification-Version>${project.version}</Specification-Version>
-                <Specification-Vendor>aklivity.io</Specification-Vendor>
-              </manifestEntries>
-            </transformer>
-          </transformers>
         </configuration>
       </plugin>
     </plugins>

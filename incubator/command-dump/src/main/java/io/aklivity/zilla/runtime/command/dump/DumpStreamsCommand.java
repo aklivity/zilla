@@ -1,20 +1,9 @@
-/*
- * Copyright 2021-2022 Aklivity Inc.
- *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-package io.aklivity.zilla.runtime.command.log.internal;
+package io.aklivity.zilla.runtime.command.dump;
 
+import io.aklivity.zilla.runtime.command.common.LoggableStream;
+import io.aklivity.zilla.runtime.command.common.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -26,19 +15,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.command.common.Handlers;
-import io.aklivity.zilla.runtime.command.common.LoggableStream;
-import io.aklivity.zilla.runtime.command.common.Logger;
 import org.agrona.LangUtil;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 
-import io.aklivity.zilla.runtime.command.common.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.common.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy.SpyPosition;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-
-public final class LogStreamsCommand implements Runnable
+public class DumpStreamsCommand implements Runnable
 {
     private static final Pattern STREAMS_PATTERN = Pattern.compile("data(\\d+)");
 
@@ -49,35 +30,31 @@ public final class LogStreamsCommand implements Runnable
 
     private final Path directory;
     private final Predicate<String> hasFrameType;
-    private final Predicate<String> hasExtensionType;
-    private final LabelManager labels;
     private final boolean verbose;
     private final boolean continuous;
     private final long affinity;
-    private final SpyPosition position;
-    private final Logger out;
+    private final RingBufferSpy.SpyPosition position;
 
     private long nextTimestamp = Long.MAX_VALUE;
 
-    LogStreamsCommand(
+    private DumpHandlers dumpHandlers;
+
+
+    //TODO refactor common parts with LogStreamsCommand
+    DumpStreamsCommand(
         EngineConfiguration config,
-        Logger out,
         Predicate<String> hasFrameType,
-        Predicate<String> hasExtensionType,
         boolean verbose,
         boolean continuous,
         long affinity,
-        SpyPosition position)
+        RingBufferSpy.SpyPosition position)
     {
         this.directory = config.directory();
-        this.labels = new LabelManager(directory);
         this.verbose = verbose;
         this.continuous = continuous;
         this.affinity = affinity;
         this.position = position;
-        this.out = out;
         this.hasFrameType = hasFrameType;
-        this.hasExtensionType = hasExtensionType;
     }
 
     private boolean isStreamsFile(
@@ -102,14 +79,14 @@ public final class LogStreamsCommand implements Runnable
         final int index = parseInt(matcher.group(1));
 
         StreamsLayout layout = new StreamsLayout.Builder()
-                .path(path)
-                .readonly(true)
-                .spyAt(position)
-                .build();
+            .path(path)
+            .readonly(true)
+            .spyAt(position)
+            .build();
 
-        Handlers logHandlers = new LogHandlers(index, labels, out, hasExtensionType);
+        this.dumpHandlers = new DumpHandlers();
 
-        return new LoggableStream(index, layout, hasFrameType, this::nextTimestamp, logHandlers);
+        return new LoggableStream(index, layout, hasFrameType, this::nextTimestamp, dumpHandlers);
     }
 
     private void onDiscovered(
@@ -117,7 +94,7 @@ public final class LogStreamsCommand implements Runnable
     {
         if (verbose)
         {
-            out.printf("Discovered: %s\n", path);
+            System.out.printf("Discovered: %s\n", path);
         }
     }
 
@@ -127,9 +104,9 @@ public final class LogStreamsCommand implements Runnable
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             LoggableStream[] loggables = files.filter(this::isStreamsFile)
-                 .peek(this::onDiscovered)
-                 .map(this::newLoggable)
-                 .toArray(LoggableStream[]::new);
+                .peek(this::onDiscovered)
+                .map(this::newLoggable)
+                .toArray(LoggableStream[]::new);
 
             final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
 
@@ -144,10 +121,9 @@ public final class LogStreamsCommand implements Runnable
                 {
                     workCount += loggables[i].process();
                 }
-
                 idleStrategy.idle(workCount);
-
             } while (workCount != exitWorkCount);
+            dumpHandlers.writePacketsToPcap();
         }
         catch (IOException ex)
         {

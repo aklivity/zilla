@@ -12,8 +12,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>command-log</artifactId>
-  <name>zilla::incubator::command-log</name>
+  <artifactId>command-dump</artifactId>
+  <name>zilla::incubator::command-dump</name>
 
   <licenses>
     <license>
@@ -101,22 +101,6 @@
         <artifactId>maven-notice-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>flyweight-maven-plugin</artifactId>
-        <version>${project.version}</version>
-        <configuration>
-          <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream sse::stream proxy::stream</scopeNames>
-          <packageName>io.aklivity.zilla.runtime.command.log.internal.types</packageName>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
       </plugin>
@@ -169,9 +153,9 @@
           <transformers>
             <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
             <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-              <mainClass>io.aklivity.zilla.runtime.command.log.internal.LogCommand</mainClass>
+              <mainClass>io.aklivity.zilla.runtime.command.dump.internal.DumpCommand</mainClass>
               <manifestEntries>
-                <Name>io/aklivity/zilla/runtime/command/log/</Name>
+                <Name>io/aklivity/zilla/runtime/command/dump/</Name>
                 <Specification-Title>${project.name}</Specification-Title>
                 <Specification-Version>${project.version}</Specification-Version>
                 <Specification-Vendor>aklivity.io</Specification-Vendor>
