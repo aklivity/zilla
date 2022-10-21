@@ -40,13 +40,12 @@ write "PRI * HTTP/2.0\r\n"
 write flush
 
 # server connection preface - SETTINGS frame
-read [0x00 0x00 0x12]                   # length = 18
+read [0x00 0x00 0x0c]                   # length = 18
      [0x04]                             # HTTP2 SETTINGS frame
      [0x00]                             # flags = 0x00
      [0x00 0x00 0x00 0x00]              # stream_id = 0
      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
-     [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
 
 write [0x00 0x00 0x12]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame

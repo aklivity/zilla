@@ -1652,7 +1652,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (httpExchange != null)
                 {
                     httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
-                    httpExchange.flushRequestWindow(traceId, 0);
                 }
                 httpQueueSlotOffset += queueEntry.sizeof();
                 dequeues.getAsLong();
@@ -1798,7 +1797,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.routeId = pool.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routeId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.budgetId = supplyBudgetId.getAsLong();
+            this.budgetId = 0; //supplyBudgetId.getAsLong();
             this.decoder = decodeEmptyLines;
             this.localSettings = new Http2Settings();
             this.remoteSettings = new Http2Settings();
@@ -1882,15 +1881,17 @@ public final class HttpClientFactory implements HttpStreamFactory
                     : null;
 
             if (beginEx != null &&
-                beginEx.infos().anyMatch(proxyInfo -> ALPN_H2.equals(proxyInfo.alpn())))
+                beginEx.infos().anyMatch(proxyInfo -> ALPN_H2.equals(proxyInfo.alpn())) ||
+                pool.versions.size() == 1 && pool.versions.contains(HTTP_2))
             {
-                doEncodePreface(traceId, authorization);
-                doEncodeHttp2Settings(traceId, authorization);
-                this.decoder = decodeHttp2Settings;
                 for (HttpExchange stream: pool.exchanges.values())
                 {
                     stream.remoteBudget += 65_535;
+                    stream.flushRequestWindow(traceId, 0);
                 }
+                doEncodePreface(traceId, authorization);
+                doEncodeHttp2Settings(traceId, authorization);
+                this.decoder = decodeHttp2Settings;
             }
             pool.flushNext();
 
@@ -2683,7 +2684,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .streamId(0)
                     .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
                     .initialWindowSize(initialSettings.initialWindowSize)
-                    .maxHeaderListSize(initialSettings.maxHeaderListSize)
                     .build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Settings);
@@ -3239,6 +3239,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
                         .payload(buffer, progress, length)
+                        .endStream()
                         .build();
                 frameOffset = http2Data.limit();
                 progress += length;

@@ -22,7 +22,7 @@ connect "zilla://streams/app0"
 write zilla:begin.ext ${http:beginEx()
                         .typeId(zilla:id("http"))
                         .header(":scheme", "http")
-                        .header(":method", "GET")
+                        .header(":method", "POST")
                         .header(":path", "/")
                         .header(":authority", "localhost:8080")
                         .header("content-type", "text/plain;charset=UTF-8")
