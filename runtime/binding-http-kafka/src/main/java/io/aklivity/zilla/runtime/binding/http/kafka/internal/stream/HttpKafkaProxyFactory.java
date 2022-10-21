@@ -886,6 +886,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
+            doHttpWindow(traceId, authorization, 0, 0, 0);
             fetcher.doKafkaBegin(traceId, authorization, affinity);
         }
 
@@ -2276,7 +2277,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long traceId,
             long authorization, OctetsFW extension)
         {
-            // nop
+            delegate.doKafkaWindow(traceId);
         }
 
         @Override
@@ -2405,6 +2406,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         private int replyCap;
 
         private DirectBuffer deferredDataEx;
+        private OctetsFW deferredPayload;
 
         private KafkaProduceProxy(
             long routeId,
@@ -2441,9 +2443,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            if (!HttpKafkaState.initialOpened(state) && payload != null)
+            if (!HttpKafkaState.initialOpened(state))
             {
-                assert payload.sizeof() == 0;
+                assert payload == null || payload.sizeof() == 0;
                 assert (flags & 0x02) != 0;
 
                 if (extension.sizeof() > 0)
@@ -2452,6 +2454,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     final UnsafeBuffer buf = new UnsafeBuffer(new byte[extension.sizeof()]);
                     buf.putBytes(0, extension.buffer(), extension.offset(), extension.sizeof());
                     deferredDataEx = buf;
+                    deferredPayload = payload;
                 }
             }
             else
@@ -2650,7 +2653,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         ? kafkaDataExRO.wrap(deferredDataEx, 0, deferredDataEx.capacity())
                         : emptyRO;
 
-                flushKafkaData(traceId, authorization, budgetId, 0, 0x02, emptyRO, kafkaDataEx);
+                flushKafkaData(traceId, authorization, budgetId, 0, 0x02, deferredPayload, kafkaDataEx);
             }
 
             initialAck = acknowledge;
