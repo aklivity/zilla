@@ -228,6 +228,17 @@ public class ClientMergedIT
     }
 
     @Test
+    @Ignore // TODO
+    @Configuration("client.options.merged.json")
+    @Specification({
+        "${app}/merged.produce.message.value.10k/client",
+        "${net}/unmerged.produce.message.value.10k/server"})
+    public void shouldProduceMergedMessageValues10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.json")
     @Specification({
         "${app}/merged.produce.message.values/client",

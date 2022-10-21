@@ -182,6 +182,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.produce.message.value.10k/client",
+        "${app}/merged.produce.message.value.10k/server"})
+    public void shouldProduceMergedMessageValues10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.produce.message.values.dynamic/client",
         "${app}/merged.produce.message.values.dynamic/server"})
     public void shouldProduceMergedMessageValuesDynamic() throws Exception
@@ -321,6 +330,15 @@ public class MergedIT
         "${app}/unmerged.produce.message.values/client",
         "${app}/unmerged.produce.message.values/server"})
     public void shouldProduceUnmergedMessageValues() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.produce.message.value.10k/client",
+        "${app}/unmerged.produce.message.value.10k/server"})
+    public void shouldProduceUnmergedMessageValues10k() throws Exception
     {
         k3po.finish();
     }
