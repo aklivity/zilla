@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
+import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONTENT_LENGTH;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TRAILERS;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
@@ -1886,7 +1887,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 for (HttpExchange stream: pool.exchanges.values())
                 {
-                    stream.remoteBudget += 65_535;
+                    stream.remoteBudget += bufferPool.slotCapacity();
                     stream.flushRequestWindow(traceId, 0);
                 }
                 doEncodePreface(traceId, authorization);
@@ -3225,7 +3226,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             long budgetId,
             int reserved,
             int streamId,
-            OctetsFW payload)
+            OctetsFW payload,
+            boolean endRequest)
         {
             final DirectBuffer buffer = payload.buffer();
             final int offset = payload.offset();
@@ -3236,11 +3238,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             while (progress < limit)
             {
                 final int length = Math.min(limit - progress, remoteSettings.maxFrameSize);
-                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+                final Http2DataFW.Builder http2DataBuilder = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
-                        .payload(buffer, progress, length)
-                        .endStream()
-                        .build();
+                        .payload(buffer, progress, length);
+
+                if (endRequest && progress + length >= limit)
+                {
+                    http2DataBuilder.endStream();
+                }
+
+                final Http2DataFW http2Data = http2DataBuilder.build();
                 frameOffset = http2Data.limit();
                 progress += length;
             }
@@ -3594,6 +3601,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private long responseSeq;
         private long responseAck;
+        private long responseMax;
         private long responseAuth;
         private long responseBud;
         private int responsePad;
@@ -3671,7 +3679,6 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
-            final long initialId = begin.streamId();
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
 
@@ -3685,14 +3692,18 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             assert requestAck <= requestSeq;
 
+            final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
+                    header.name().value().equals(CONTENT_LENGTH));
+            contentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : 0;
+
             state = HttpState.openingInitial(state);
             client.doNetworkBegin(traceId, authorization, 0, this);
 
-            if (client.exchange == null && HttpState.replyOpened(client.state))
+            if (HttpState.replyOpened(client.state))
             {
                 assert client.exchange == null;
                 client.exchange = this;
-                client.doEncodeHttp2Headers(traceId, authorization, streamId, headers, false);
+                client.doEncodeHttp2Headers(traceId, authorization, streamId, headers, contentLength == 0);
             }
             else
             {
@@ -3721,7 +3732,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
             client.exchange = this;
-            client.doEncodeHttp2Headers(traceId, authorization, streamId, headers, false);
+            client.doEncodeHttp2Headers(traceId, authorization, streamId, headers, contentLength == 0);
         }
 
         private void onRequestFlush(
@@ -3789,8 +3800,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 remoteBudget -= length;
                 client.remoteSharedBudget -= length;
+                contentObserved += length;
 
-                client.doEncodeHttp2Data(traceId, authorization, flags, budgetId, reserved, streamId, payload);
+                client.doEncodeHttp2Data(traceId, authorization, flags, budgetId, reserved, streamId, payload,
+                        contentLength == contentObserved);
 
                 final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                 final int remotePadding = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
@@ -3824,7 +3837,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
 
             state = HttpState.closeInitial(state);
-            client.doEncodeHttp2Trailers(traceId, authorization, streamId, trailers);
+            if (contentLength != contentObserved)
+            {
+                client.doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
+            }
         }
 
         private void onRequestAbort(
@@ -4022,10 +4038,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             assert acknowledge <= sequence;
             assert acknowledge >= responseAck;
-            assert maximum >= requestMax;
+            assert maximum >= responseMax;
 
             responseAck = acknowledge;
-            requestMax = maximum;
+            responseMax = maximum;
             responseAuth = authorization;
             responseBud = budgetId;
             responsePad = padding;
