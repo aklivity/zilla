@@ -204,42 +204,37 @@ public final class KafkaMergedFactory implements BindingHandler
 
         MessageConsumer newStream = null;
 
-        final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+        final long resolvedId = routeId;
+        final ArrayFW<KafkaOffsetFW> partitions = kafkaMergedBeginEx.partitions();
 
-        if (binding != null && binding.merged(topicName))
+        final KafkaOffsetFW partition = partitions.matchFirst(p -> p.partitionId() == -1L);
+        final long defaultOffset = partition != null ? partition.partitionOffset() : HISTORICAL.value();
+
+        final Long2LongHashMap initialOffsetsById = new Long2LongHashMap(-3L);
+        partitions.forEach(p ->
         {
-            final long resolvedId = routeId;
-            final ArrayFW<KafkaOffsetFW> partitions = kafkaMergedBeginEx.partitions();
-
-            final KafkaOffsetFW partition = partitions.matchFirst(p -> p.partitionId() == -1L);
-            final long defaultOffset = partition != null ? partition.partitionOffset() : HISTORICAL.value();
-
-            final Long2LongHashMap initialOffsetsById = new Long2LongHashMap(-3L);
-            partitions.forEach(p ->
+            final long partitionId = p.partitionId();
+            if (partitionId >= 0L)
             {
-                final long partitionId = p.partitionId();
-                if (partitionId >= 0L)
-                {
-                    final long partitionOffset = p.partitionOffset();
-                    initialOffsetsById.put(partitionId, partitionOffset);
-                }
-            });
+                final long partitionOffset = p.partitionOffset();
+                initialOffsetsById.put(partitionId, partitionOffset);
+            }
+        });
 
-            newStream = new KafkaMergedStream(
-                    sender,
-                    routeId,
-                    initialId,
-                    affinity,
-                    authorization,
-                    topicName,
-                    resolvedId,
-                    capabilities,
-                    initialOffsetsById,
-                    defaultOffset,
-                    isolation,
-                    deltaType,
-                    ackMode)::onMergedMessage;
-        }
+        newStream = new KafkaMergedStream(
+                sender,
+                routeId,
+                initialId,
+                affinity,
+                authorization,
+                topicName,
+                resolvedId,
+                capabilities,
+                initialOffsetsById,
+                defaultOffset,
+                isolation,
+                deltaType,
+                ackMode)::onMergedMessage;
 
         return newStream;
     }

@@ -47,10 +47,6 @@ public class KafkaOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"merged\":" +
-                    "[" +
-                        "\"test\"" +
-                    "]," +
                     "\"bootstrap\":" +
                     "[" +
                         "\"test\"" +
@@ -74,7 +70,6 @@ public class KafkaOptionsConfigAdapterTest
         KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.merged, equalTo(singletonList("test")));
         assertThat(options.bootstrap, equalTo(singletonList("test")));
         assertThat(options.topics, equalTo(singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH))));
         assertThat(options.sasl.mechanism, equalTo("plain"));
@@ -87,14 +82,13 @@ public class KafkaOptionsConfigAdapterTest
     {
         KafkaOptionsConfig options = new KafkaOptionsConfig(
                 singletonList("test"),
-                singletonList("test"),
                 singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
                 new KafkaSaslConfig("plain", "username", "password"));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"merged\":[\"test\"]," + "\"bootstrap\":[\"test\"]," +
+        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }

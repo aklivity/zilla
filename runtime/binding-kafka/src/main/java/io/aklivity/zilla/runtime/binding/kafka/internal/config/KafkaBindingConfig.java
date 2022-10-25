@@ -69,15 +69,6 @@ public final class KafkaBindingConfig
                 options.bootstrap.contains(topic);
     }
 
-    public boolean merged(
-        String topic)
-    {
-        return topic != null &&
-                (options == null ||
-                 options.merged == null ||
-                 options.merged.contains(topic));
-    }
-
     public KafkaSaslConfig sasl()
     {
         return options != null ? options.sasl : null;
