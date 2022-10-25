@@ -1,28 +1,28 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package io.aklivity.zilla.runtime.command.dump;
-
-import io.aklivity.zilla.runtime.command.common.Handlers;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ChallengeFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.SignalFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.WindowFW;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.agrona.DirectBuffer;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapDumper;
-import org.pcap4j.core.PcapHandle;
 import org.pcap4j.core.PcapNativeException;
-import org.pcap4j.core.Pcaps;
 import org.pcap4j.packet.EthernetPacket;
 import org.pcap4j.packet.IpV6Packet;
 import org.pcap4j.packet.IpV6SimpleFlowLabel;
@@ -30,7 +30,6 @@ import org.pcap4j.packet.IpV6SimpleTrafficClass;
 import org.pcap4j.packet.Packet;
 import org.pcap4j.packet.TcpPacket;
 import org.pcap4j.packet.UnknownPacket;
-import org.pcap4j.packet.namednumber.DataLinkType;
 import org.pcap4j.packet.namednumber.EtherType;
 import org.pcap4j.packet.namednumber.IpNumber;
 import org.pcap4j.packet.namednumber.IpVersion;
@@ -40,26 +39,23 @@ import org.pcap4j.util.MacAddress;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 
-public class DumpHandlers implements Handlers, AutoCloseable
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
+
+public class DumpHandlers implements Handlers
 {
-    private final PcapHandle phb;
     private final PcapDumper dumper;
-    private final PcapDumper dumper2;
 
-    List<Packet> packets = new ArrayList<>();
-    int count = 0;
-
-    public DumpHandlers()
+    public DumpHandlers(PcapDumper dumper)
     {
-        try
-        {
-            phb = Pcaps.openDead(DataLinkType.EN10MB, 65536);
-            dumper = phb.dumpOpen("tmp.pcap");
-            dumper2 = phb.dumpOpen("tmp2.pcap");
-        } catch (NotOpenException | PcapNativeException e)
-        {
-            throw new RuntimeException(e);
-        }
+        this.dumper = dumper;
     }
 
     @Override
@@ -159,20 +155,23 @@ public class DumpHandlers implements Handlers, AutoCloseable
         writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address).rst(true), address));
     }
 
-    private Inet6Address createAddress(long bindingId, long streamId) {
+    private Inet6Address createAddress(long bindingId, long streamId)
+    {
         InetAddress address;
         try
         {
             address = Inet6Address.getByAddress(
                 Bytes.concat(Longs.toByteArray(bindingId), Longs.toByteArray(streamId)));
-        } catch (UnknownHostException e)
+        }
+        catch (UnknownHostException e)
         {
             throw new RuntimeException(e);
         }
         return (Inet6Address) address;
     }
 
-    private TcpPacket.Builder createPseudoTcpPacketBuilder(Inet6Address address) {
+    private TcpPacket.Builder createPseudoTcpPacketBuilder(Inet6Address address)
+    {
         TcpPacket.Builder tcpBuilder = new TcpPacket.Builder();
         return tcpBuilder
             .srcAddr(address)
@@ -184,7 +183,8 @@ public class DumpHandlers implements Handlers, AutoCloseable
             .correctChecksumAtBuild(true);
     }
 
-    private EthernetPacket createPseudoEthernetPacket(TcpPacket.Builder tcpBuilder, Inet6Address address) {
+    private EthernetPacket createPseudoEthernetPacket(TcpPacket.Builder tcpBuilder, Inet6Address address)
+    {
         IpV6Packet.Builder ipv6Builder = new IpV6Packet.Builder()
             .srcAddr(address)
             .dstAddr(address)
@@ -203,7 +203,8 @@ public class DumpHandlers implements Handlers, AutoCloseable
         return ethernetBuilder.build();
     }
 
-    private TcpPacket.Builder createPseudoTcpPacketBuilderWithData(byte[] data, Inet6Address address) {
+    private TcpPacket.Builder createPseudoTcpPacketBuilderWithData(byte[] data, Inet6Address address)
+    {
         UnknownPacket packet = UnknownPacket.newPacket(data, 0, data.length);
         return createPseudoTcpPacketBuilder(address)
             .payloadBuilder(packet.getBuilder());
@@ -213,29 +214,12 @@ public class DumpHandlers implements Handlers, AutoCloseable
     {
         try
         {
-            packets.add(packet);
             dumper.dump(packet);
-        } catch (NotOpenException e)
+            dumper.flush();
+        }
+        catch (NotOpenException | PcapNativeException e)
         {
             throw new RuntimeException(e);
         }
-    }
-
-    public void writePacketsToPcapAtOnce() {
-        for (Packet packet : packets) {
-            try {
-                dumper2.dump(packet);
-            } catch (NotOpenException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        dumper2.close();
-    }
-
-    @Override
-    public void close()
-    {
-        dumper.close();
-        phb.close();
     }
 }

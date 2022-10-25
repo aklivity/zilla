@@ -33,9 +33,9 @@ import org.agrona.LangUtil;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 
-import io.aklivity.zilla.runtime.command.common.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.common.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.command.dump.labels.LabelManager;
+import io.aklivity.zilla.runtime.command.dump.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public final class LogStreamsCommand implements Runnable

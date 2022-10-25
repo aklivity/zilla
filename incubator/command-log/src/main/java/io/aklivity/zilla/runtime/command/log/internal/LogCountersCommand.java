@@ -28,7 +28,7 @@ import io.aklivity.zilla.runtime.command.common.Logger;
 import org.agrona.LangUtil;
 import org.agrona.concurrent.status.CountersReader;
 
-import io.aklivity.zilla.runtime.command.common.layouts.MetricsLayout;
+import io.aklivity.zilla.runtime.command.dump.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public final class LogCountersCommand implements Runnable

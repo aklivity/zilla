@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.common.labels;
+package io.aklivity.zilla.runtime.command.dump.labels;
 
 import static java.nio.channels.Channels.newReader;
 import static java.nio.charset.StandardCharsets.UTF_8;

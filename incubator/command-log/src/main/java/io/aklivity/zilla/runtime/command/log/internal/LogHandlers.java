@@ -68,12 +68,11 @@ import io.aklivity.zilla.runtime.command.common.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.common.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.common.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.command.common.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.command.common.labels.LabelManager;
+import io.aklivity.zilla.runtime.command.dump.labels.LabelManager;
 import static java.lang.String.format;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
-import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 

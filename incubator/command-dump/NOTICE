@@ -26,6 +26,7 @@ This project includes:
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   org.leadpony.justify under The Apache Software License, Version 2.0
   Pcap4J Core under MIT License
+  zilla::incubator::command-common under The Apache Software License, Version 2.0
   zilla::runtime::engine under The Apache Software License, Version 2.0
 
 

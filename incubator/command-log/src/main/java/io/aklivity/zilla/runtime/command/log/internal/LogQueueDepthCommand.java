@@ -26,8 +26,8 @@ import java.util.stream.Stream;
 import io.aklivity.zilla.runtime.command.common.Logger;
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.command.common.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.command.dump.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public final class LogQueueDepthCommand implements Runnable

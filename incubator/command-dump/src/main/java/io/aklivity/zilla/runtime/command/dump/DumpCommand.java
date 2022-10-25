@@ -1,9 +1,20 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package io.aklivity.zilla.runtime.command.dump;
 
-import io.aklivity.zilla.runtime.command.common.Logger;
-import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.apache.commons.cli.Option.builder;
 
@@ -20,7 +31,11 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
-public class DumpCommand
+import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+
+public final class DumpCommand
 {
     public static void main(
         String[] args) throws Exception
@@ -80,8 +95,7 @@ public class DumpCommand
             if (matcher.matches())
             {
                 final String option = matcher.group("option");
-//                final boolean continuous = !"nowait".equals(option);
-                final boolean continuous = false;
+                final boolean continuous = !"nowait".equals(option);
                 final RingBufferSpy.SpyPosition position = continuous && option != null ?
                     RingBufferSpy.SpyPosition.valueOf(option.toUpperCase()) :
                     RingBufferSpy.SpyPosition.ZERO;

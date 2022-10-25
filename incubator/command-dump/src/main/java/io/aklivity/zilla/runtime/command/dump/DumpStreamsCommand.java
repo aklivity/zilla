@@ -1,9 +1,20 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package io.aklivity.zilla.runtime.command.dump;
 
-import io.aklivity.zilla.runtime.command.common.LoggableStream;
-import io.aklivity.zilla.runtime.command.common.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -18,6 +29,16 @@ import java.util.stream.Stream;
 import org.agrona.LangUtil;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
+import org.pcap4j.core.NotOpenException;
+import org.pcap4j.core.PcapDumper;
+import org.pcap4j.core.PcapHandle;
+import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.Pcaps;
+import org.pcap4j.packet.namednumber.DataLinkType;
+
+import io.aklivity.zilla.runtime.command.dump.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class DumpStreamsCommand implements Runnable
 {
@@ -40,6 +61,9 @@ public class DumpStreamsCommand implements Runnable
     private DumpHandlers dumpHandlers;
 
 
+    private PcapHandle phb;
+    private PcapDumper dumper;
+
     //TODO refactor common parts with LogStreamsCommand
     DumpStreamsCommand(
         EngineConfiguration config,
@@ -55,6 +79,15 @@ public class DumpStreamsCommand implements Runnable
         this.affinity = affinity;
         this.position = position;
         this.hasFrameType = hasFrameType;
+        try
+        {
+            phb = Pcaps.openDead(DataLinkType.EN10MB, 65536);
+            dumper = phb.dumpOpen("tmp.pcap");
+        }
+        catch (PcapNativeException | NotOpenException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     private boolean isStreamsFile(
@@ -84,7 +117,7 @@ public class DumpStreamsCommand implements Runnable
             .spyAt(position)
             .build();
 
-        this.dumpHandlers = new DumpHandlers();
+        this.dumpHandlers = new DumpHandlers(dumper);
 
         return new LoggableStream(index, layout, hasFrameType, this::nextTimestamp, dumpHandlers);
     }
@@ -123,8 +156,8 @@ public class DumpStreamsCommand implements Runnable
                 }
                 idleStrategy.idle(workCount);
             } while (workCount != exitWorkCount);
-            dumpHandlers.close();
-            dumpHandlers.writePacketsToPcapAtOnce();
+            dumper.close();
+            phb.close();
         }
         catch (IOException ex)
         {

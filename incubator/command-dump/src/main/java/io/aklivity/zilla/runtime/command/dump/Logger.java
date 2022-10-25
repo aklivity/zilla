@@ -13,28 +13,10 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.common.spy;
+package io.aklivity.zilla.runtime.command.dump;
 
-import org.agrona.DirectBuffer;
-
-import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
-
-public interface RingBufferSpy
+@FunctionalInterface
+public interface Logger
 {
-    enum SpyPosition
-    {
-        ZERO,
-        HEAD,
-        TAIL
-    }
-
-    void spyAt(SpyPosition position);
-
-    int spy(MessagePredicate handler);
-    int spy(MessagePredicate handler, int messageCountLimit);
-
-    long producerPosition();
-    long consumerPosition();
-
-    DirectBuffer buffer();
+    void printf(String format, Object... args);
 }

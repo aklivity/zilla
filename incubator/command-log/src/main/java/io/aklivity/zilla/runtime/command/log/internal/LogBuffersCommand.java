@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.command.common.Logger;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.command.common.layouts.BufferPoolLayout;
+import io.aklivity.zilla.runtime.command.dump.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.buffer.DefaultBufferPool;
 

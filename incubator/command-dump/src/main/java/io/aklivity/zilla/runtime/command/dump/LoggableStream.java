@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.common;
+package io.aklivity.zilla.runtime.command.dump;
 
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
@@ -21,18 +21,18 @@ import java.util.function.Predicate;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ChallengeFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.SignalFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.command.common.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.command.dump.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public final class LoggableStream implements AutoCloseable

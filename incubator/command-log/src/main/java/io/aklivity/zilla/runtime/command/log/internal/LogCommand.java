@@ -32,7 +32,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
-import io.aklivity.zilla.runtime.command.common.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 

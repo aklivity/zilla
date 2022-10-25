@@ -13,16 +13,28 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.common.layouts;
+package io.aklivity.zilla.runtime.command.dump.spy;
 
+import org.agrona.DirectBuffer;
 
-public abstract class Layout implements AutoCloseable
+import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
+
+public interface RingBufferSpy
 {
-    @Override
-    public abstract void close();
-
-    public abstract static class Builder<T extends Layout>
+    enum SpyPosition
     {
-        public abstract T build();
+        ZERO,
+        HEAD,
+        TAIL
     }
+
+    void spyAt(SpyPosition position);
+
+    int spy(MessagePredicate handler);
+    int spy(MessagePredicate handler, int messageCountLimit);
+
+    long producerPosition();
+    long consumerPosition();
+
+    DirectBuffer buffer();
 }
