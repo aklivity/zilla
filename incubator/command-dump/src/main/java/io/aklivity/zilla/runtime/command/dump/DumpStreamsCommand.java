@@ -123,7 +123,8 @@ public class DumpStreamsCommand implements Runnable
                 }
                 idleStrategy.idle(workCount);
             } while (workCount != exitWorkCount);
-            dumpHandlers.writePacketsToPcap();
+            dumpHandlers.close();
+            dumpHandlers.writePacketsToPcapAtOnce();
         }
         catch (IOException ex)
         {
