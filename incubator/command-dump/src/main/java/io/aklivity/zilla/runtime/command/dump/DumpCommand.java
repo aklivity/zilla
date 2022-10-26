@@ -48,12 +48,17 @@ public final class DumpCommand
         options.addOption(builder("t").hasArg()
             .required(false)
             .longOpt("type")
-            .desc("streams* | streams-[nowait|zero|head|tail] | counters | queues | routes")
+            .desc("streams* | streams-[nowait|zero|head|tail]")
+            .build());
+        options.addOption(builder("f").hasArgs()
+            .required(false)
+            .longOpt("frameTypes")
+            .desc("log specific frame types only, e.g BEGIN")
             .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
+        options.addOption(builder("p").longOpt("pcap").hasArg().desc("pcap file location to dump stream").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose").build());
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
-        options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
         options.addOption(builder("a").hasArg().longOpt("affinity").desc("affinity mask").build());
 
         final CommandLine cmdline = parser.parse(options, args);
@@ -83,6 +88,7 @@ public final class DumpCommand
             String type = cmdline.getOptionValue("type", "streams");
             final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
             final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0xffff_ffff_ffff_ffffL)));
+            final String pcapLocation = cmdline.getOptionValue("pcap", "");
 
             Properties properties = new Properties();
             properties.setProperty(ENGINE_DIRECTORY.name(), directory);
@@ -105,7 +111,7 @@ public final class DumpCommand
                 final Predicate<String> hasFrameTypes =
                     frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
 
-                command = new DumpStreamsCommand(config, hasFrameTypes, verbose, continuous, affinity, position);
+                command = new DumpStreamsCommand(config, hasFrameTypes, verbose, continuous, affinity, position, pcapLocation);
             }
             do
             {

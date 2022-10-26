@@ -1,74 +1,20 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package io.aklivity.zilla.runtime.command.log.internal;
 
-import io.aklivity.zilla.runtime.command.common.Handlers;
-import io.aklivity.zilla.runtime.command.common.Logger;
-import io.aklivity.zilla.runtime.command.common.internal.types.AmqpPropertiesFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ArrayFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaCapabilities;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaConditionFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaConfigFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaFilterFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaHeaderFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaHeadersFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaIsolation;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaKeyFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaNotFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaOffsetFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaPartitionFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaSkipFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.KafkaValueMatchFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.MqttCapabilities;
-import io.aklivity.zilla.runtime.command.common.internal.types.MqttCapabilitiesFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.MqttUserPropertyFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressInet4FW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressInet6FW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressInetFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ProxyAddressUnixFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ProxyInfoFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.ProxySecureInfoFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.String16FW;
-import io.aklivity.zilla.runtime.command.common.internal.types.StringFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.AmqpBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.AmqpDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ChallengeFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.DataFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ExtensionFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.FlushFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.HttpDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.HttpEndExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaBootstrapBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaDescribeBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaDescribeDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFetchBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFetchDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFetchFlushExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaFlushExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMergedBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMergedDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMergedFlushExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMetaBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaMetaDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaProduceBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaProduceDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.KafkaResetExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.MqttBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.MqttDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.MqttFlushExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ProxyBeginExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.SignalFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.SseDataExFW;
-import io.aklivity.zilla.runtime.command.common.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.command.dump.labels.LabelManager;
 import static java.lang.String.format;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
@@ -78,6 +24,76 @@ import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
+
+import io.aklivity.zilla.runtime.command.dump.Handlers;
+import io.aklivity.zilla.runtime.command.dump.Logger;
+import io.aklivity.zilla.runtime.command.dump.internal.types.AmqpPropertiesFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ArrayFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaCapabilities;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaConditionFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaConfigFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaFilterFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaHeadersFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaIsolation;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaKeyFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaNotFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaPartitionFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaSkipFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.KafkaValueMatchFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.MqttCapabilities;
+import io.aklivity.zilla.runtime.command.dump.internal.types.MqttCapabilitiesFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.MqttUserPropertyFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ProxyAddressFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ProxyAddressInet4FW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ProxyAddressInet6FW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ProxyAddressInetFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ProxyAddressUnixFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ProxyInfoFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.ProxySecureInfoFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.String16FW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.StringFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AmqpBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AmqpDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ExtensionFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.HttpDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaBootstrapBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaDescribeBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaDescribeDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaFetchBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaFetchDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaFetchFlushExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaMergedBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaMergedDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaMergedFlushExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaMetaBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaMetaDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaProduceBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaProduceDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.MqttBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.MqttFlushExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SseDataExFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.command.dump.labels.LabelManager;
 
 public class LogHandlers implements Handlers
 {

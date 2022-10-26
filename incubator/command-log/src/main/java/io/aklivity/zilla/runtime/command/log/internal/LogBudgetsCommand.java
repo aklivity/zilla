@@ -27,10 +27,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.command.common.Logger;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.command.dump.Logger;
 import io.aklivity.zilla.runtime.command.dump.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 

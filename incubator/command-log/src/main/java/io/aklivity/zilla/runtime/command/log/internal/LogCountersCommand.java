@@ -24,10 +24,10 @@ import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.command.common.Logger;
 import org.agrona.LangUtil;
 import org.agrona.concurrent.status.CountersReader;
 
+import io.aklivity.zilla.runtime.command.dump.Logger;
 import io.aklivity.zilla.runtime.command.dump.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
