@@ -21,6 +21,24 @@
             }
         }
     },
+    "telemetry":
+    {
+        "attributes":
+        {
+            "test": "test attribute"
+        },
+        "metrics":
+        {
+            "test": "counter"
+        },
+        "exporters":
+        {
+            "test":
+            {
+                "type": "test"
+            }
+        }
+    },
     "bindings":
     {
         "net0":
