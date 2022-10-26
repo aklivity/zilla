@@ -171,13 +171,6 @@
         {
             "type" : "kafka",
             "kind": "cache_client",
-            "options":
-            {
-                "merged":
-                [
-                    "events"
-                ]
-            },
             "exit": "kafka_cache_server0"
         },
         "kafka_cache_server0":
