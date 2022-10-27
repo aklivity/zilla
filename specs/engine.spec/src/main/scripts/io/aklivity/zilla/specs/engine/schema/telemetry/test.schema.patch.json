@@ -6,8 +6,17 @@
     },
     {
         "op": "add",
-        "path": "/$defs/telemetry/metric/enum/-",
-        "value": "test"
+        "path": "/$defs/telemetry/metric/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "test":
+                {
+                   "const": "counter"
+                }
+            }
+        }
     },
     {
         "op": "add",

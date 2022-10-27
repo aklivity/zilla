@@ -74,26 +74,7 @@
                 },
                 "metrics":
                 {
-                    "title": "Metrics",
-                    "type": "object",
-                    "patternProperties":
-                    {
-                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                        {
-                            "type": "string",
-                            "enum":
-                            [
-                                "counter",
-                                "updown",
-                                "histogram"
-                            ]
-                        }
-                    },
-                    "propertyNames":
-                    {
-                        "$ref": "#/$defs/telemetry/metric"
-                    },
-                    "additionalProperties": false
+                    "$ref": "#/$defs/telemetry/metric"
                 },
                 "exporters":
                 {
@@ -277,8 +258,21 @@
             "metric":
             {
                 "title": "Metric",
-                "type": "string",
-                "enum":
+                "type": "object",
+                "patternProperties":
+                {
+                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                    {
+                        "type": "string",
+                        "enum":
+                        [
+                            "counter",
+                            "updown",
+                            "histogram"
+                        ]
+                    }
+                },
+                "oneOf":
                 [
                 ]
             },
