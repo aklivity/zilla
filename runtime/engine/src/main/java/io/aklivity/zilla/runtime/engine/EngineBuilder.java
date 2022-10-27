@@ -28,6 +28,8 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
+import io.aklivity.zilla.runtime.engine.telemetry.Telemetry;
+import io.aklivity.zilla.runtime.engine.telemetry.TelemetryFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -102,8 +104,16 @@ public class EngineBuilder
             vaults.add(vault);
         }
 
+        final Set<Telemetry> telemetries = new LinkedHashSet<>();
+        final TelemetryFactory telemetryFactory = TelemetryFactory.instantiate();
+        for (String name : telemetryFactory.names())
+        {
+            Telemetry telemetry = telemetryFactory.create(name, config);
+            telemetries.add(telemetry);
+        }
+
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, guards, vaults, errorHandler, configURL, affinities);
+        return new Engine(config, bindings, guards, vaults, telemetries, errorHandler, configURL, affinities);
     }
 }

@@ -44,5 +44,6 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
+    uses io.aklivity.zilla.runtime.engine.telemetry.TelemetryFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 }

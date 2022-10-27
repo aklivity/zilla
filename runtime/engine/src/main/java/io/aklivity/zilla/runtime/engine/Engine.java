@@ -57,6 +57,7 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigureTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.telemetry.Telemetry;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable
@@ -82,6 +83,7 @@ public final class Engine implements AutoCloseable
         Collection<Binding> bindings,
         Collection<Guard> guards,
         Collection<Vault> vaults,
+        Collection<Telemetry> telemetries,
         ErrorHandler errorHandler,
         URL configURL,
         Collection<EngineAffinity> affinities)
@@ -149,6 +151,7 @@ public final class Engine implements AutoCloseable
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(telemetries.stream().map(Telemetry::type).filter(Objects::nonNull).collect(toList()));
 
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
