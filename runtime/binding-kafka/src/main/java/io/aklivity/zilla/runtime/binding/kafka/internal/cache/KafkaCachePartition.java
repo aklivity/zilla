@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexRecord.SIZEOF_INDEX_RECORD;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType.JSON_PATCH;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_ACKNOWLEDGE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DELTA_POSITION;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_DESCENDANT;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW.FIELD_OFFSET_FLAGS;
@@ -69,6 +70,7 @@ public final class KafkaCachePartition
     private static final long NO_ANCESTOR_OFFSET = -1L;
     private static final long NO_DESCENDANT_OFFSET = -1L;
     private static final int NO_SEQUENCE = -1;
+    private static final int NO_ACKNOWLEDGE = 0;
     private static final int NO_DELTA_POSITION = -1;
 
     private static final String FORMAT_FETCH_PARTITION_DIRECTORY = "%s-%d";
@@ -94,7 +96,7 @@ public final class KafkaCachePartition
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[5 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES]);
+    private final MutableDirectBuffer entryInfo = new UnsafeBuffer(new byte[6 * Long.BYTES + 3 * Integer.BYTES + Short.BYTES]);
     private final MutableDirectBuffer valueInfo = new UnsafeBuffer(new byte[Integer.BYTES]);
 
     private final Array32FW<KafkaHeaderFW> headersRO = new Array32FW<KafkaHeaderFW>(new KafkaHeaderFW());
@@ -368,12 +370,13 @@ public final class KafkaCachePartition
         entryInfo.putLong(0, progress);
         entryInfo.putLong(Long.BYTES, timestamp);
         entryInfo.putLong(2 * Long.BYTES, producerId);
-        entryInfo.putInt(3 * Long.BYTES, NO_SEQUENCE);
-        entryInfo.putLong(3 * Long.BYTES + Integer.BYTES, ancestorOffset);
-        entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
-        entryInfo.putInt(5 * Long.BYTES + Integer.BYTES, entryFlags);
-        entryInfo.putInt(5 * Long.BYTES + 2 * Integer.BYTES, deltaPosition);
-        entryInfo.putShort(5 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
+        entryInfo.putLong(3 * Long.BYTES, NO_ACKNOWLEDGE);
+        entryInfo.putInt(4 * Long.BYTES, NO_SEQUENCE);
+        entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, ancestorOffset);
+        entryInfo.putLong(5 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
+        entryInfo.putInt(6 * Long.BYTES + Integer.BYTES, entryFlags);
+        entryInfo.putInt(6 * Long.BYTES + 2 * Integer.BYTES, deltaPosition);
+        entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, KafkaAckMode.NONE.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);
@@ -522,12 +525,13 @@ public final class KafkaCachePartition
         entryInfo.putLong(0, progress);
         entryInfo.putLong(Long.BYTES, timestamp);
         entryInfo.putLong(2 * Long.BYTES, ownerId);
-        entryInfo.putInt(3 * Long.BYTES, sequence);
-        entryInfo.putLong(3 * Long.BYTES + Integer.BYTES, NO_ANCESTOR_OFFSET);
-        entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
-        entryInfo.putInt(5 * Long.BYTES + Integer.BYTES, 0x00);
-        entryInfo.putInt(5 * Long.BYTES + 2 * Integer.BYTES, NO_DELTA_POSITION);
-        entryInfo.putShort(5 * Long.BYTES + 3 * Integer.BYTES, ackMode.value());
+        entryInfo.putLong(3 * Long.BYTES, NO_ACKNOWLEDGE);
+        entryInfo.putInt(4 * Long.BYTES, sequence);
+        entryInfo.putLong(4 * Long.BYTES + Integer.BYTES, NO_ANCESTOR_OFFSET);
+        entryInfo.putLong(5 * Long.BYTES + Integer.BYTES, NO_DESCENDANT_OFFSET);
+        entryInfo.putInt(6 * Long.BYTES + Integer.BYTES, 0x00);
+        entryInfo.putInt(6 * Long.BYTES + 2 * Integer.BYTES, NO_DELTA_POSITION);
+        entryInfo.putShort(6 * Long.BYTES + 3 * Integer.BYTES, ackMode.value());
 
         logFile.appendBytes(entryInfo);
         logFile.appendBytes(key);
@@ -574,6 +578,7 @@ public final class KafkaCachePartition
         Node head,
         MutableInteger entryMark,
         MutableInteger position,
+        long acknowledge,
         Array32FW<KafkaHeaderFW> trailers)
     {
         final KafkaCacheSegment segment = head.segment;
@@ -596,6 +601,7 @@ public final class KafkaCachePartition
 
         position.value = trailersAt + trailersSizeMax;
 
+        logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_COMPLETED);
     }
 

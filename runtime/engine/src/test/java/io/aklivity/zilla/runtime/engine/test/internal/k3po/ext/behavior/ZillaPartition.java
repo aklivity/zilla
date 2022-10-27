@@ -255,7 +255,7 @@ final class ZillaPartition implements AutoCloseable
                 final byte[] beginExtCopy = new byte[beginExtBytes];
                 buffer.getBytes(offset, beginExtCopy);
 
-                BEGIN.decodeBuffer(childChannel).writeBytes(beginExtCopy);
+                childChannel.readExtBuffer(BEGIN, false).writeBytes(beginExtCopy);
             }
 
             childChannel.setWriteClosed();

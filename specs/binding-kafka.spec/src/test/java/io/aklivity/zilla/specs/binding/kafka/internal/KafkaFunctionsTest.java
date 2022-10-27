@@ -71,6 +71,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaBegi
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMetaDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaResetExFW;
 
 public class KafkaFunctionsTest
 {
@@ -2998,6 +2999,21 @@ public class KafkaFunctionsTest
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
                                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null);
+    }
+
+    @Test
+    public void shouldGenerateProduceResetExtension()
+    {
+        byte[] build = KafkaFunctions.resetEx()
+                .typeId(0x01)
+                .error(87)
+                .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaResetExFW resetEx = new KafkaResetExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0x01, resetEx.typeId());
+        assertEquals(87, resetEx.error());
     }
 
 

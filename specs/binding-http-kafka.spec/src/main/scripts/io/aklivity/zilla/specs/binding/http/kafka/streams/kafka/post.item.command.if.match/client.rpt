@@ -58,13 +58,6 @@ write zilla:data.ext ${kafka:dataEx()
 write '{ "name": "widget" }'
 write flush
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .partition(-1, -1)
-                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-4358cfb47f09329d52781d1c76c160a1")
-                                .build()
-                            .build()}
 write zilla:data.empty
 write flush
 

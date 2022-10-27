@@ -93,7 +93,7 @@ public class ServerResetAndAbortIT
         targetClass = "^java.nio.channels.SocketChannel",
         targetMethod = "shutdownInput()",
         helper = "io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper$CountDownHelper",
-        condition = "callerEquals(\"TcpServerFactory$TcpServer.onAppReset\", true, 2)",
+        condition = "callerEquals(\"TcpServerFactory$TcpServer.onAppReset\", true, 3)",
         action = "countDown()"
     )
     public void shouldShutdownOutputAndInputWhenServerSendsAbortAndReset() throws Exception
@@ -126,7 +126,7 @@ public class ServerResetAndAbortIT
         targetClass = "^java.nio.channels.SocketChannel",
         targetMethod = "shutdownInput()",
         helper = "io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper$CountDownHelper",
-        condition = "callerEquals(\"TcpServerFactory$TcpServer.onAppReset\", true, 2)",
+        condition = "callerEquals(\"TcpServerFactory$TcpServer.onAppReset\", true, 3)",
         action = "countDown()"
     )
     public void shouldShutdownInputWhenServerSendsReset() throws Exception
@@ -168,7 +168,7 @@ public class ServerResetAndAbortIT
         targetClass = "^java.nio.channels.SocketChannel",
         targetMethod = "shutdownInput()",
         helper = "io.aklivity.zilla.runtime.binding.tcp.internal.SocketChannelHelper$CountDownHelper",
-        condition = "callerEquals(\"TcpServerFactory$TcpServer.onAppReset\", true, 2)",
+        condition = "callerEquals(\"TcpServerFactory$TcpServer.onAppReset\", true, 3)",
         action = "countDown()"
     )
     public void shouldShutdownOutputAndInputWhenServerSendsResetAndEnd() throws Exception

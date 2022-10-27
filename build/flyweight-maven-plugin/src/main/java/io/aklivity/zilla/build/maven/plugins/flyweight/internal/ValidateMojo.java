@@ -31,7 +31,8 @@ import org.apache.maven.plugins.annotations.Mojo;
 @Mojo(name = "validate",
       defaultPhase = PROCESS_RESOURCES,
       requiresDependencyResolution = COMPILE,
-      requiresProject = true)
+      requiresProject = true,
+      threadSafe = true)
 public final class ValidateMojo extends AbstractMojo
 {
     @Override

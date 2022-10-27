@@ -13,7 +13,7 @@ under the License.
 
 This project includes:
   agrona under The Apache License, Version 2.0
-  ANTLR 4 Runtime under The BSD License
+  ANTLR 4 Runtime under BSD-3-Clause
   ICU4J under Unicode/ICU License
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   Java Unified Expression Language API under The Apache Software License, Version 2.0

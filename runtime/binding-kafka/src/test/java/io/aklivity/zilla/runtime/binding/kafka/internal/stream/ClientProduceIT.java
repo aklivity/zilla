@@ -287,4 +287,14 @@ public class ClientProduceIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.when.topic.json")
+    @Specification({
+        "${app}/message.values.sequential/client",
+        "${net}/message.values.sequential/server"})
+    public void shouldSendMessageValueSequential() throws Exception
+    {
+        k3po.finish();
+    }
 }

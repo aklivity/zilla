@@ -1,6 +1,6 @@
-# Cog Maven Plugin
+# Flyweight Maven Plugin
 
-The Cog Maven plugin is used to generate flyweight classes from IDL files defining data structures.
+The Flyweight Maven plugin is used to generate flyweight classes from IDL files defining data structures.
   
 ## Rules for using the generated flyweight Builders
  
@@ -75,4 +75,4 @@ Arrays of varints are supported using the syntax illustrated here:
             varint64[] varint64Array;
         }
 ```
-Specifying a default value is not supported. Varint array fields are accessed and set using the generated ArrayFW flyweight class. [IntegerVariableArraysFWTest](src/test/java/io/aklivity/zilla/build/maven/plugins/cog/internal/generated/IntegerVariableArraysFWTest.java) illustrates the usage. The actual length in bytes of the array is stored automatically as a four byte signed integer (int32), using the byteorder specified in the ArrayFW.Builder or ArrayFW constructor, and is followed by the actual values. 
+Specifying a default value is not supported. Varint array fields are accessed and set using the generated ArrayFW flyweight class. [IntegerVariableArraysFWTest](src/test/java/io/aklivity/zilla/build/maven/plugins/flyweight/internal/generated/IntegerVariableArraysFWTest.java) illustrates the usage. The actual length in bytes of the array is stored automatically as a four byte signed integer (int32), using the byteorder specified in the ArrayFW.Builder or ArrayFW constructor, and is followed by the actual values. 

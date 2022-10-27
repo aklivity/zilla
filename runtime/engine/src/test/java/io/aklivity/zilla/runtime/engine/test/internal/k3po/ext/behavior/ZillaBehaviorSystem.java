@@ -29,6 +29,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_DATA_NULL;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_END_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_RESET_EXT;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_ACK;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_FLAGS;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toList;
@@ -82,6 +83,7 @@ import org.kaazing.k3po.lang.internal.ast.value.AstValue;
 import org.kaazing.k3po.lang.types.StructuredTypeInfo;
 import org.kaazing.k3po.lang.types.TypeInfo;
 
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAckOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadBeginExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadDataExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadEmptyDataHandler;
@@ -112,6 +114,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
     {
         Map<TypeInfo<?>, ReadOptionFactory> readOptionFactories = new LinkedHashMap<>();
         readOptionFactories.put(OPTION_FLAGS, ZillaBehaviorSystem::newReadFlagsHandler);
+        readOptionFactories.put(OPTION_ACK, ZillaBehaviorSystem::newReadAckHandler);
         this.readOptionFactories = unmodifiableMap(readOptionFactories);
 
         Map<TypeInfo<?>, WriteOptionFactory> writeOptionsFactories = new LinkedHashMap<>();
@@ -265,6 +268,16 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         AstValue<?> flagsValue = node.getOptionValue();
         int value = flagsValue.accept(new GenerateFlagsOptionValueVisitor(), null);
         WriteFlagsOptionHandler handler = new WriteFlagsOptionHandler(value);
+        handler.setRegionInfo(node.getRegionInfo());
+        return handler;
+    }
+
+    private static ChannelHandler newReadAckHandler(
+            AstReadOptionNode node)
+    {
+        AstValue<?> ackValue = node.getOptionValue();
+        int value = ackValue.accept(new GenerateAckOptionValueVisitor(), null);
+        ReadAckOptionHandler handler = new ReadAckOptionHandler(value);
         handler.setRegionInfo(node.getRegionInfo());
         return handler;
     }
@@ -547,6 +560,73 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         public Integer visit(
             AstLiteralURIValue value,
             State state)
+        {
+            return -1;
+        }
+    }
+
+    private static final class GenerateAckOptionValueVisitor implements AstValue.Visitor<Integer, State>
+    {
+        @Override
+        public Integer visit(
+                AstExpressionValue<?> value,
+                State state)
+        {
+            return (int) value.getValue();
+        }
+
+        @Override
+        public Integer visit(
+                AstLiteralTextValue value,
+                State state)
+        {
+            return -1;
+        }
+
+        @Override
+        public Integer visit(
+                AstLiteralBytesValue value,
+                State state)
+        {
+            return -1;
+        }
+
+        @Override
+        public Integer visit(
+                AstLiteralByteValue value,
+                State state)
+        {
+            return -1;
+        }
+
+        @Override
+        public Integer visit(
+                AstLiteralShortValue value,
+                State state)
+        {
+            return -1;
+        }
+
+        @Override
+        public Integer visit(
+                AstLiteralIntegerValue value,
+                State state)
+        {
+            return value.getValue();
+        }
+
+        @Override
+        public Integer visit(
+                AstLiteralLongValue value,
+                State state)
+        {
+            return value.getValue().intValue();
+        }
+
+        @Override
+        public Integer visit(
+                AstLiteralURIValue value,
+                State state)
         {
             return -1;
         }
