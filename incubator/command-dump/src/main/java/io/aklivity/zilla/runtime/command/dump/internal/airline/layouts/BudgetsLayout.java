@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.dump.layouts;
+package io.aklivity.zilla.runtime.command.dump.internal.airline.layouts;
 
 import static java.lang.Integer.numberOfTrailingZeros;
 import static org.agrona.BitUtil.CACHE_LINE_LENGTH;

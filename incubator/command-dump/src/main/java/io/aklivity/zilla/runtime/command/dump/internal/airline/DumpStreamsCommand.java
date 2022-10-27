@@ -13,12 +13,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.dump;
+package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static java.lang.Integer.parseInt;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 
@@ -29,8 +30,8 @@ import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.Pcaps;
 import org.pcap4j.packet.namednumber.DataLinkType;
 
-import io.aklivity.zilla.runtime.command.dump.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class DumpStreamsCommand extends StreamsCommand implements Runnable
@@ -41,7 +42,7 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
     private PcapHandle phb;
     private PcapDumper dumper;
 
-    DumpStreamsCommand(
+    public DumpStreamsCommand(
         EngineConfiguration config,
         Predicate<String> hasFrameType,
         boolean verbose,
@@ -54,11 +55,13 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
         try
         {
             phb = Pcaps.openDead(DataLinkType.EN10MB, 65536);
-            dumper = phb.dumpOpen(Paths.get(pcapLocation, "tmp.pcap").toString());
+            String timeStamp = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(System.currentTimeMillis());
+            String fileName = "zilla_dump" + timeStamp + ".pcap";
+            dumper = phb.dumpOpen(Paths.get(pcapLocation, fileName).toString());
         }
         catch (PcapNativeException | NotOpenException e)
         {
-            throw new RuntimeException(e);
+            System.out.println("Failed to open dump file: " + e.getMessage());
         }
     }
 

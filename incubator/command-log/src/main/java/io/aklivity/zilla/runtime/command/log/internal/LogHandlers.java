@@ -25,8 +25,9 @@ import java.util.function.Predicate;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.command.dump.Handlers;
-import io.aklivity.zilla.runtime.command.dump.Logger;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.Handlers;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.Logger;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.types.AmqpPropertiesFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.ArrayFW;
@@ -93,7 +94,6 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SseDataExFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.command.dump.labels.LabelManager;
 
 public class LogHandlers implements Handlers
 {

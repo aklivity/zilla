@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.dump;
+package io.aklivity.zilla.runtime.command.dump.internal;
 
 import static org.pcap4j.core.PcapHandle.TimestampPrecision.NANO;
 
@@ -35,7 +35,8 @@ import org.pcap4j.packet.Packet;
 
 import com.google.common.io.Files;
 
-import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.DumpStreamsCommand;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
@@ -55,7 +56,7 @@ public class TestDumpCommand
         boolean verbose = true;
         boolean continuous = false;
         long affinity = -1;
-        SpyPosition position = SpyPosition.ZERO;
+        RingBufferSpy.SpyPosition position = RingBufferSpy.SpyPosition.ZERO;
         Runnable command = new DumpStreamsCommand(config, hasFrameTypes, verbose, continuous, affinity, position,
             tempDir.getAbsolutePath());
         command.run();

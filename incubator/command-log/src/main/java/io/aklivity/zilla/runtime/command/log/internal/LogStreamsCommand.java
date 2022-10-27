@@ -22,13 +22,13 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.command.dump.Handlers;
-import io.aklivity.zilla.runtime.command.dump.LoggableStream;
-import io.aklivity.zilla.runtime.command.dump.Logger;
-import io.aklivity.zilla.runtime.command.dump.StreamsCommand;
-import io.aklivity.zilla.runtime.command.dump.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.dump.layouts.StreamsLayout;
-import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.Handlers;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.LoggableStream;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.Logger;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.StreamsCommand;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public final class LogStreamsCommand extends StreamsCommand implements Runnable

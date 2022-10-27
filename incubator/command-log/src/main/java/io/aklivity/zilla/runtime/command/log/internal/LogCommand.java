@@ -31,8 +31,8 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
-import io.aklivity.zilla.runtime.command.dump.Logger;
-import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.Logger;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy.SpyPosition;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 

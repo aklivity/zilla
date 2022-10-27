@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.dump;
+package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -186,6 +186,7 @@ public class DumpHandlers implements Handlers
         }
         catch (UnknownHostException e)
         {
+            System.out.println("Couldn't create pseudo IPv6 address: " + e.getMessage());
             throw new RuntimeException(e);
         }
         return (Inet6Address) address;
@@ -247,6 +248,7 @@ public class DumpHandlers implements Handlers
         }
         catch (NotOpenException | PcapNativeException e)
         {
+            System.out.println("Cannot dump packet to pcap file: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }

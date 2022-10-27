@@ -13,15 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-module io.aklivity.zilla.runtime.command.dump
+package io.aklivity.zilla.runtime.command.dump.internal;
+
+import com.github.rvesse.airline.builder.CliBuilder;
+
+import io.aklivity.zilla.runtime.command.ZillaCommandSpi;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
+
+public class ZillaDumpCommandSpi implements ZillaCommandSpi
 {
-    requires io.aklivity.zilla.runtime.command;
-    requires io.aklivity.zilla.runtime.engine;
-    requires org.pcap4j.core;
-
-    opens io.aklivity.zilla.runtime.command.dump.internal.airline
-        to com.github.rvesse.airline;
-
-    provides io.aklivity.zilla.runtime.command.ZillaCommandSpi
-        with io.aklivity.zilla.runtime.command.dump.internal.ZillaDumpCommandSpi;
+    @Override
+    public void mixin(
+        CliBuilder<Runnable> builder)
+    {
+        builder.withCommand(ZillaDumpCommand.class);
+    }
 }

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.dump;
+package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;

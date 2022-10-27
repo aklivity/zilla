@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.dump.layouts;
+package io.aklivity.zilla.runtime.command.dump.internal.airline.layouts;
 
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
@@ -25,9 +25,9 @@ import java.nio.file.Path;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.command.dump.spy.OneToOneRingBufferSpy;
-import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy.SpyPosition;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.OneToOneRingBufferSpy;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy.SpyPosition;
 
 public final class StreamsLayout extends Layout
 {

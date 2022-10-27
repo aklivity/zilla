@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.dump;
+package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.apache.commons.cli.Option.builder;
@@ -31,7 +31,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
-import io.aklivity.zilla.runtime.command.dump.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
@@ -53,7 +53,7 @@ public final class DumpCommand
         options.addOption(builder("f").hasArgs()
             .required(false)
             .longOpt("frameTypes")
-            .desc("log specific frame types only, e.g BEGIN")
+            .desc("dump specific frame types only, e.g BEGIN")
             .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("p").longOpt("pcap").hasArg().desc("pcap file location to dump stream").build());

@@ -26,8 +26,8 @@ import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.command.dump.Logger;
-import io.aklivity.zilla.runtime.command.dump.layouts.BufferPoolLayout;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.Logger;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.internal.buffer.DefaultBufferPool;
 
