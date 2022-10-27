@@ -865,7 +865,7 @@ public final class ProxyServerFactory implements ProxyStreamFactory
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
             assert acknowledge >= initialAck;
-            assert maximum >= initialMax;
+            assert maximum + acknowledge >= initialMax + initialAck;
 
             this.initialAck = acknowledge;
             this.initialMax = maximum;

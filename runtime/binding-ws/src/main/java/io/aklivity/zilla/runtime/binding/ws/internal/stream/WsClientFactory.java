@@ -1113,7 +1113,7 @@ public final class WsClientFactory implements WsStreamFactory
                 assert acknowledge <= sequence;
                 assert sequence <= initialSeq;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 initialBudgetId = budgetId;
                 initialAck = acknowledge;

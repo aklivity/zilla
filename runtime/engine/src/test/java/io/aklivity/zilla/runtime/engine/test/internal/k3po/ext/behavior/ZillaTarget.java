@@ -32,6 +32,7 @@ import static org.jboss.netty.channel.Channels.fireChannelConnected;
 import static org.jboss.netty.channel.Channels.fireChannelDisconnected;
 import static org.jboss.netty.channel.Channels.fireChannelInterestChanged;
 import static org.jboss.netty.channel.Channels.fireChannelUnbound;
+import static org.jboss.netty.channel.Channels.fireExceptionCaught;
 import static org.jboss.netty.channel.Channels.fireWriteComplete;
 import static org.jboss.netty.channel.Channels.future;
 import static org.jboss.netty.channel.Channels.succeededFuture;
@@ -80,6 +81,7 @@ final class ZillaTarget implements AutoCloseable
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
@@ -91,7 +93,6 @@ final class ZillaTarget implements AutoCloseable
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ChallengeFW.Builder challengeRW = new ChallengeFW.Builder();
-    private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final int scopeIndex;
     private final Path streamsPath;
@@ -993,33 +994,18 @@ final class ZillaTarget implements AutoCloseable
             }
 
             final long targetMax = channel.targetMax();
+            final long targetAck = channel.targetAck();
             channel.writableWindow(acknowledge, padding, minimum, maximum, traceId);
             channel.capabilities(capabilities);
 
-            // window maximum reduced
-            if (channel.targetMax() < targetMax)
+            if (channel.targetMax() + channel.targetAck() < targetMax + targetAck)
             {
-                final long routeId = channel.routeId();
-                final long streamId = channel.targetId();
-                final long sequence = channel.targetSeq();
-                final long authorization = channel.targetAuth();
-
-                final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
-                        .streamId(streamId)
-                        .sequence(sequence)
-                        .acknowledge(acknowledge)
-                        .maximum(maximum)
-                        .timestamp(supplyTimestamp.getAsLong())
-                        .traceId(supplyTraceId.getAsLong())
-                        .authorization(authorization)
-                        .budgetId(budgetId)
-                        .build();
-
-                streamsBuffer.write(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+                fireExceptionCaught(channel, new ChannelException("window maximum plus acknowledge has decreased"));
             }
-
-            flushThrottledWrites(channel);
+            else
+            {
+                flushThrottledWrites(channel);
+            }
         }
 
         private void onReset(
