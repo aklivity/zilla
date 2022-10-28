@@ -117,14 +117,6 @@
         {
             "type" : "kafka",
             "kind": "cache_client",
-            "options":
-            {
-                "merged":
-                [
-                    "items-requests",
-                    "items-responses"
-                ]
-            },
             "exit": "kafka_cache_server0"
         },
         "kafka_cache_server0":

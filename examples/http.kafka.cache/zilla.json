@@ -135,10 +135,6 @@
             "kind": "cache_client",
             "options":
             {
-                "merged":
-                [
-                    "items-snapshots"
-                ],
                 "bootstrap":
                 [
                     "items-snapshots"
