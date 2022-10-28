@@ -49,18 +49,20 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
-read [0x00 0x00 0x13]                   # length = 19
-     [0x01]                             # HEADERS frame
-     [0x04]                             # END_HEADERS
-     [0x00 0x00 0x00 0x01]              # stream_id = 1
-     [0x83]                             # :method: POST
-     [0x86]                             # :scheme: http
-     [0x84]                             # :path: /
-     [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
+read [0x00 0x00 0x33]                                      # length = 51
+     [0x01]                                                # HEADERS frame
+     [0x04]                                                # END_HEADERS
+     [0x00 0x00 0x00 0x01]                                 # stream_id = 1
+     [0x83]                                                # :method: POST
+     [0x86]                                                # :scheme: http
+     [0x84]                                                # :path: /
+     [0x01] [0x0e] "localhost:8080"                        # :authority: localhost:8080
+     [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
+     [0x0f 0x0d] [0x02] "13"                               # content-length
 
 read [0x00 0x00 0x0c]                   # length = 12
      [0x00]                             # HTTP2 DATA frame
-     [0x00]                             # no flags
+     [0x00]                             # END_STREAM
      [0x00 0x00 0x00 0x01]              # stream_id = 1
      "Hello, world"
 

@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SERVER_CONCURRENT_STREAMS_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -58,7 +58,7 @@ public class FlowControlIT
     @Specification({
         "${app}/stream.flow/client",
         "${net}/stream.flow/server" })
-    @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "60")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "60")
     public void streamFlow() throws Exception
     {
         k3po.finish();

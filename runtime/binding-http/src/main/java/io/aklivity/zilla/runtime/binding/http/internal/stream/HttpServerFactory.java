@@ -5961,7 +5961,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                     final int remotePad = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
                     final int responsePad = replyPad + remotePad;
-                    final int newResponseWin = remoteBudget + responsePad;
+                    final int newResponseWin = remoteBudget + responsePad; //TODO: Bug add test and verify the fix
                     final int responseWin = responseMax - (int)(responseSeq - responseAck);
                     final int responseCredit = (int)(newResponseWin - responseWin);
 

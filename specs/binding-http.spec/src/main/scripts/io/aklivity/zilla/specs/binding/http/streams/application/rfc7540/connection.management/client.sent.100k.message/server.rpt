@@ -27,12 +27,12 @@ read zilla:begin.ext ${http:beginEx()
                              .header(":path", "/")
                              .header(":authority", "localhost:8080")
                              .header("content-type", "text/plain;charset=UTF-8")
-                             .header("content-length", "75535")
+                             .header("content-length", "100000")
                              .build()}
 
 connected
 
-read [0..75535]
+read [0..100000]
 read closed
 
 write zilla:begin.ext ${http:beginEx()

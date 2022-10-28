@@ -60,12 +60,6 @@ read [0x00 0x00 0x33]                                      # length = 51
      [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
      [0x0f 0x0d] [0x02] "12"                               # content-length
 
-read [0x00 0x00 0x0c]                   # length = 12
-     [0x00]                             # HTTP2 DATA frame
-     [0x01]                             # END_STREAM
-     [0x00 0x00 0x00 0x01]              # stream_id = 1
-     "Hello, world"
-
 read [0x00 0x00 0x00]                   # length = 0
      [0x04]                             # HTTP2 SETTINGS frame
      [0x01]                             # ACK
@@ -94,6 +88,8 @@ write [0x00 0x00 0x59]                                      # length
       [0x0f 0x0d] [0x03] "113"                              # content-length
 write flush
 
-read aborted
-
-write abort
+read [0x00 0x00 0x04]                          # length = 4
+     [0x03]                                    # HTTP2 RST_STREAM frame
+     [0x00]                                    # no flags
+     [0x00 0x00 0x00 0x01]                     # stream_id=1
+     [0x00 0x00 0x00 0x01]                     # PROTOCOL_ERROR

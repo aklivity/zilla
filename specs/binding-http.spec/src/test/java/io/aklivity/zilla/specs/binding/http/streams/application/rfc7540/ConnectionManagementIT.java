@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.http.streams.application.rfc7540;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -136,12 +137,13 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
-        "${app}/ignore.rst.stream/client",
-        "${app}/ignore.rst.stream/server"
+        "${app}/ignore.client.rst.stream/client",
+        "${app}/ignore.client.rst.stream/server"
     })
-    public void ignoreRstStream() throws Exception
+    public void ignoreClientRstStream() throws Exception
     {
         k3po.finish();
     }

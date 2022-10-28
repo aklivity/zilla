@@ -26,6 +26,7 @@ public class HttpConfiguration extends Configuration
 
     public static final IntPropertyDef HTTP_MAXIMUM_CONNECTIONS;
     public static final IntPropertyDef HTTP_SERVER_CONCURRENT_STREAMS;
+    public static final IntPropertyDef HTTP_STREAM_INITIAL_WINDOW;
     public static final LongPropertyDef HTTP_SERVER_MAX_HEADER_LIST_SIZE;
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
     public static final IntPropertyDef HTTP_STREAMS_CLEANUP_DELAY;
@@ -39,6 +40,7 @@ public class HttpConfiguration extends Configuration
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.http");
         HTTP_MAXIMUM_CONNECTIONS = config.property("maximum.connections", 10);
         HTTP_SERVER_CONCURRENT_STREAMS = config.property("server.concurrent.streams", Integer.MAX_VALUE);
+        HTTP_STREAM_INITIAL_WINDOW = config.property("stream.initial.window", 0);
         HTTP_SERVER_MAX_HEADER_LIST_SIZE = config.property("server.max.header.list.size", 8_192L);
         HTTP_SERVER_HEADER = config.property("server.header");
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
@@ -65,6 +67,10 @@ public class HttpConfiguration extends Configuration
     public int serverConcurrentStreams()
     {
         return HTTP_SERVER_CONCURRENT_STREAMS.getAsInt(this);
+    }
+    public int streamInitialWindow()
+    {
+        return HTTP_STREAM_INITIAL_WINDOW.getAsInt(this);
     }
 
     public long serverMaxHeaderListSize()

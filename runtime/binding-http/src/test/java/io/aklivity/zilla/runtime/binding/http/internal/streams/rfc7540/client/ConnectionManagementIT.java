@@ -13,11 +13,12 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
+package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAMS_CLEANUP_DELAY_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -30,6 +31,7 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
@@ -37,8 +39,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class ConnectionManagementIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/connection.management")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/connection.management");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/connection.management")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/connection.management");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -49,244 +51,204 @@ public class ConnectionManagementIT
         .counterValuesBufferCapacity(8192)
         .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
-        .external("app0")
+        .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
+        .external("net0")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/connection.established/client" })
-    public void connectionEstablished() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/http.get.exchange/client",
-        "${app}/http.get.exchange/server" })
+        "${app}/http.get.exchange/client",
+        "${net}/http.get.exchange/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void httpGetExchange() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.override.json")
+    @Configuration("client.override.json")
     @Specification({
-        "${net}/http.get.exchange.with.header.override/client",
-        "${app}/http.get.exchange.with.header.override/server" })
+        "${app}/http.get.exchange.with.header.override/client",
+        "${net}/http.get.exchange.with.header.override/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void httpGetExchangeWithHeaderOverride() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/http.unknown.authority/client" })
-    public void httpUnknownAuthority() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.path.prefix.json")
-    @Specification({
-        "${net}/http.unknown.path/client" })
-    public void httpUnknownPath() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/http.post.exchange/client",
-        "${app}/http.post.exchange/server" })
+        "${app}/http.post.exchange/client",
+        "${net}/http.post.exchange/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void httpPostExchange() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/http.post.exchange.before.settings.exchange/client",
-        "${app}/http.post.exchange.before.settings.exchange/server" })
+        "${app}/client.sent.100k.message/client",
+        "${net}/client.sent.100k.message/server" })
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
-    public void httpPostExchangeBeforeSettingsExchange() throws Exception
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void clientSent100kMessage() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/http.post.exchange.streaming/client",
-        "${app}/http.post.exchange.streaming/server" })
+        "${app}/http.post.exchange.streaming/client",
+        "${net}/http.post.exchange.streaming/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void httpPostExchangeWhenStreaming() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/connection.has.two.streams/client",
-        "${app}/connection.has.two.streams/server" })
+        "${app}/connection.has.two.streams/client",
+        "${net}/connection.has.two.streams/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionHasTwoStreams() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/http.push.promise/client",
-        "${app}/http.push.promise/server" })
-    public void pushResources() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/push.promise.on.different.stream/client",
-        "${app}/push.promise.on.different.stream/server" })
-    public void pushPromiseOnDifferentStream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/multiple.data.frames/client",
-        "${app}/multiple.data.frames/server" })
+        "${app}/multiple.data.frames/client",
+        "${net}/multiple.data.frames/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void multipleDataFrames() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/reset.http2.stream/client",
-        "${app}/reset.http2.stream/server" })
+        "${app}/reset.http2.stream/client",
+        "${net}/reset.http2.stream/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void resetHttp2Stream() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/ignore.client.rst.stream/client",
-        "${app}/ignore.client.rst.stream/server" })
+        "${app}/ignore.server.rst.stream/client",
+        "${net}/ignore.server.rst.stream/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void ignoreRsttStream() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/client.sent.read.abort.on.open.request/client",
-        "${app}/client.sent.read.abort.on.open.request/server"
+        "${app}/client.sent.read.abort.on.closed.request/client",
+        "${net}/client.sent.reset.http2.frame.on.closed.request/server"
     })
-    public void clientSentReadAbortOnOpenRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/client.sent.read.abort.on.closed.request/client",
-        "${app}/client.sent.read.abort.on.closed.request/server"
-    })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentReadAbortOnClosedRequest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/client.sent.write.abort.on.open.request/client",
-        "${app}/client.sent.write.abort.on.open.request/server"
+        "${app}/client.sent.write.abort.on.open.request/client",
+        "${net}/client.sent.reset.http2.frame.on.open.request/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteAbortOnOpenRequest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/client.sent.write.abort.on.closed.request/client",
-        "${app}/client.sent.write.abort.on.closed.request/server"
+        "${app}/client.sent.write.abort.on.closed.request/client",
+        "${net}/client.sent.reset.http2.frame.on.closed.request/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteAbortOnClosedRequest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/client.sent.write.close/client",
-        "${app}/client.sent.write.close/server"
+        "${app}/client.sent.write.close/client",
+        "${net}/client.sent.reset.http2.frame.on.open.request/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteClose() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/server.sent.read.abort.on.open.request/client",
-        "${app}/server.sent.read.abort.on.open.request/server"
+        "${app}/server.sent.read.abort.on.open.request/client",
+        "${net}/server.sent.read.abort.on.open.request/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentReadAbortOnOpenRequest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/server.sent.read.abort.before.correlated/client",
-        "${app}/server.sent.read.abort.before.correlated/server"
+        "${app}/server.sent.read.abort.before.correlated/client",
+        "${net}/server.sent.read.abort.before.correlated/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentReadAbortBeforeCorrelated() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/rst.stream.last.frame/client",
-        "${app}/rst.stream.last.frame/server"
+        "${app}/rst.stream.last.frame/client",
+        "${net}/rst.stream.last.frame/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void rstStreamLastFrame() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/server.sent.write.abort.on.open.request/client",
-        "${app}/server.sent.write.abort.on.open.request/server"
+        "${app}/server.sent.write.abort.on.open.request/client",
+        "${net}/server.sent.write.abort.on.open.request/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentWriteAbortOnOpenRequest() throws Exception
     {
         k3po.finish();
@@ -386,4 +348,25 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/http.push.promise/client",
+        "${app}/http.push.promise/server" })
+    public void pushResources() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/push.promise.on.different.stream/client",
+        "${app}/push.promise.on.different.stream/server" })
+    public void pushPromiseOnDifferentStream() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

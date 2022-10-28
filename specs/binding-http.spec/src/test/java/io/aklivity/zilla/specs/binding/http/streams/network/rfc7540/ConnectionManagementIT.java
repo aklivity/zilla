@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.http.streams.network.rfc7540;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -46,6 +47,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/http.get.exchange/client",
@@ -56,6 +58,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/http.get.exchange.with.header.override/client",
@@ -168,10 +171,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/ignore.rst.stream/client",
-        "${net}/ignore.rst.stream/server",
+        "${net}/ignore.client.rst.stream/client",
+        "${net}/ignore.client.rst.stream/server",
     })
-    public void ignoreRstStream() throws Exception
+    public void ignoreClientRstStream() throws Exception
     {
         k3po.finish();
     }
@@ -206,6 +209,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/client.sent.write.abort.on.open.request/client",

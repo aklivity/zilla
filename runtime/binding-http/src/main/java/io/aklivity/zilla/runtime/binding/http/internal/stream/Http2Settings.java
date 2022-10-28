@@ -40,7 +40,7 @@ public class Http2Settings
         BufferPool bufferPool)
     {
         this.maxConcurrentStreams = config.serverConcurrentStreams();
-        this.initialWindowSize = 0;
+        this.initialWindowSize = config.streamInitialWindow();
         this.maxFrameSize = Math.min(DEFAULT_MAX_FRAME_SIZE, bufferPool.slotCapacity() >> 1);
         this.maxHeaderListSize = Math.min(config.serverMaxHeaderListSize(), bufferPool.slotCapacity() >> 1);
     }

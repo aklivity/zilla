@@ -51,6 +51,7 @@ public class ConnectionManagementIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Ignore
     @Configuration("client.override.json")
     @Specification({
         "${app}/request.with.header.override/client",
