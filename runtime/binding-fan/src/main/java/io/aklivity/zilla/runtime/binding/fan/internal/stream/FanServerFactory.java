@@ -347,7 +347,7 @@ public final class FanServerFactory implements FanStreamFactory
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
             assert acknowledge >= initialAck;
-            assert maximum >= initialMax;
+            assert maximum + acknowledge >= initialMax + initialAck;
 
             final long credit = Math.max(maximum - initialMax + acknowledge - initialAck, 0);
             this.initialAck = acknowledge;

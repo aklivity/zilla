@@ -3053,7 +3053,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert acknowledge <= sequence;
                 assert sequence <= initialSeq;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 initialAck = acknowledge;
                 initialMax = maximum;
@@ -3498,7 +3498,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert acknowledge <= sequence;
                 assert sequence <= initialSeq;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 initialAck = acknowledge;
                 initialMax = maximum;
@@ -4031,7 +4031,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert acknowledge <= sequence;
                 assert sequence <= initialSeq;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 this.state = MqttState.openInitial(state);
                 this.budgetId = budgetId;

@@ -1506,7 +1506,7 @@ public final class TlsClientFactory implements TlsStreamFactory
                 assert acknowledge <= sequence;
                 assert sequence <= initialSeq;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 state = TlsState.openInitial(state);
                 initialAck = acknowledge;
