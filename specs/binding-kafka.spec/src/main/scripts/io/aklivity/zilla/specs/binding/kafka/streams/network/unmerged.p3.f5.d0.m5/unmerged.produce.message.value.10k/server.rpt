@@ -125,47 +125,27 @@ read 21                                 # size
        4s "test"                        #   "test" topic
      [0x00]                             # allow_auto_topic_creation
 
-write 203                               # size
+write 97                                # size
       ${requestId}
       0
-      3                                 # brokers
+      1                                 # brokers
         1                                   # broker id
         19s "broker1.example.com"           # host name
         9092                                # port
         -1s                                 # no rack
-        2
-        19s "broker2.example.com"
-        9092
-        -1s
-        3
-        19s "broker3.example.com"
-        9092
-        -1s
       9s "cluster 1"                    # cluster id
       1                                 # controller id
       1                                 # topics
         0s                                # no error
         4s "test"                         #   "test" topic
         [0x00]                            # not internal
-        3                                 # partitions
+        1                                 # partitions
           0s                                # no error
           0                                 # partition
           1                                 # leader
           0                                 # no replicas
           -1                                # no in-sync replicas
           0                                 # offline replicas
-          0s
-          1
-          2
-          0
-          -1
-          0
-          0s
-          2
-          3
-          0
-          -1
-          0
 
 accepted
 
@@ -182,163 +162,10 @@ read zilla:begin.ext ${proxy:beginEx()
 
 connected
 
-read 124
+read 10352
      0s
      3s
      (int:requestId)
-     -1s
-     -1s
-     1s                                 # acks (leader only)
-     [0..4]
-     1
-     4s "test"
-     1
-     0                                  # partition
-     84                                 # record set size
-     0L                                 # first offset
-     72                                 # length
-     -1
-     [0x02]
-     [0..4]
-     0s
-     0                                  # last offset delta
-     (long:timestamp)                   # first timestamp
-     ${timestamp}                       # last timestamp
-     -1L
-     -1s
-     -1
-     1                                  # records
-     ${kafka:varint(22)}
-     [0x00]
-     ${kafka:varint(0)}
-     ${kafka:varint(0)}
-     ${kafka:varint(-1)}                # key
-     ${kafka:varint(16)}                # value
-     "Hello, world #A1"
-     ${kafka:varint(0)}                 # headers
-
-write 44
-      ${requestId}
-      1                                 # topics
-      4s "test"
-      1                                 # partitions
-      0                                 # partition 0
-      0s                                # no error
-      20L                               # base offset
-      0L                                # log append time
-      0                                 # throttle
-
-read 124
-     0s
-     3s
-     (int:requestId2)
-     -1s
-     -1s
-     1s                                 # acks (leader only)
-     [0..4]
-     1
-     4s "test"
-     1
-     0                                  # partition
-     84                                 # record set size
-     0L                                 # first offset
-     72                                 # length
-     -1
-     [0x02]
-     [0..4]
-     0s
-     0                                  # last offset delta
-     (long:timestamp2)                  # first timestamp
-     ${timestamp2}                      # last timestamp
-     -1L
-     -1s
-     -1
-     1                                  # records
-     ${kafka:varint(22)}
-     [0x00]
-     ${kafka:varint(0)}
-     ${kafka:varint(0)}
-     ${kafka:varint(-1)}                # key
-     ${kafka:varint(16)}                # value
-     "Hello, world #A2"
-     ${kafka:varint(0)}                 # headers
-
-write 44
-      ${requestId2}
-      1                                 # topics
-      4s "test"
-      1                                 # partitions
-      0                                 # partition 0
-      0s                                # no error
-      20L                               # base offset
-      0L                                # log append time
-      0                                 # throttle
-
-accepted
-
-read zilla:begin.ext ${proxy:beginEx()
-                              .typeId(zilla:id("proxy"))
-                              .addressInet()
-                                .protocol("stream")
-                                .source("0.0.0.0")
-                                .destination("broker2.example.com")
-                                .sourcePort(0)
-                                .destinationPort(9092)
-                                .build()
-                              .build()}
-
-connected
-
-read 124
-     0s
-     3s
-     (int:requestId)
-     -1s
-     -1s
-     1s                                 # acks (leader only)
-     [0..4]
-     1
-     4s "test"
-     1
-     1                                  # partition
-     84                                 # record set size
-     0L                                 # first offset
-     72                                 # length
-     -1
-     [0x02]
-     [0..4]
-     0s
-     0                                  # last offset delta
-     (long:timestamp)                   # first timestamp
-     ${timestamp}                       # last timestamp
-     -1L
-     -1s
-     -1
-     1                                  # records
-     ${kafka:varint(22)}
-     [0x00]
-     ${kafka:varint(0)}
-     ${kafka:varint(0)}
-     ${kafka:varint(-1)}                # key
-     ${kafka:varint(16)}                # value
-     "Hello, world #B1"
-     ${kafka:varint(0)}                 # headers
-
-write 44
-      ${requestId}
-      1                                 # topics
-      4s "test"
-      1                                 # partitions
-      1                                 # partition
-      0s                                # no error
-      20L                               # base offset
-      0L                                # log append time
-      0                                 # throttle
-
-read 124
-     0s
-     3s
-     (int:requestId2)
      -1s
      -1s
      [0..2]
@@ -346,114 +173,7 @@ read 124
      1
      4s "test"
      1
-     1                                  # partition
-     84                                 # record set size
-     0L                                 # first offset
-     72                                 # length
-     -1
-     [0x02]
-     [0..4]
-     0s
-     0                                  # last offset delta
-     (long:timestamp2)                  # first timestamp
-     ${timestamp2}                      # last timestamp
-     -1L
-     -1s
-     -1
-     1                                  # records
-     ${kafka:varint(22)}
-     [0x00]
-     ${kafka:varint(0)}
-     ${kafka:varint(0)}
-     ${kafka:varint(-1)}                # key
-     ${kafka:varint(16)}                # value
-     "Hello, world #B2"
-     ${kafka:varint(0)}                 # headers
-
-write 44
-      ${requestId2}
-      1                                 # topics
-      4s "test"
-      1                                 # partitions
-      1                                 # partition
-      0s                                # no error
-      20L                               # base offset
-      0L                                # log append time
-      0                                 # throttle
-
-accepted
-
-read zilla:begin.ext ${proxy:beginEx()
-                              .typeId(zilla:id("proxy"))
-                              .addressInet()
-                                .protocol("stream")
-                                .source("0.0.0.0")
-                                .destination("broker3.example.com")
-                                .sourcePort(0)
-                                .destinationPort(9092)
-                                .build()
-                              .build()}
-
-connected
-
-read 124
-     0s
-     3s
-     (int:requestId)
-     -1s
-     -1s
-     1s                                 # acks (leader only)
-     [0..4]
-     1
-     4s "test"
-     1
-     2                                  # partition
-     84                                 # record set size
-     0L                                 # first offset
-     72                                 # length
-     -1
-     [0x02]
-     [0..4]
-     0s
-     0                                  # last offset delta
-     (long:timestamp)                   # first timestamp
-     ${timestamp}                       # last timestamp
-     -1L
-     -1s
-     -1
-     1                                  # records
-     ${kafka:varint(22)}
-     [0x00]
-     ${kafka:varint(0)}
-     ${kafka:varint(0)}
-     ${kafka:varint(-1)}                # key
-     ${kafka:varint(16)}                # value
-     "Hello, world #C1"
-     ${kafka:varint(0)}                 # headers
-
-write 44
-      ${requestId}
-      1                                 # topics
-      4s "test"
-      1                                 # partitions
-      2                                 # partition
-      0s                                # no error
-      20L                               # base offset
-      0L                                # log append time
-      0                                 # throttle
-
-read 10352
-     0s
-     3s
-     (int:requestId2)
-     -1s
-     -1s
-     1s                                 # acks (leader only)
-     [0..4]
-     1
-     4s "test"
-     1
-     2                                  # partition
+     0
      10312                              # record set size
      0L                                 # first offset
      10300                              # length
@@ -462,8 +182,8 @@ read 10352
      [0..4]
      0s
      0                                  # last offset delta
-     (long:timestamp2)                  # first timestamp
-     ${timestamp2}                      # last timestamp
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
      -1L
      -1s
      -1
@@ -478,13 +198,12 @@ read 10352
      ${kafka:varint(0)}                 # headers
 
 write 44
-      ${requestId2}
+      ${requestId}
       1                                 # topics
       4s "test"
       1                                 # partitions
-      2                                 # partition
+      0                                 # partition 0
       0s                                # no error
       20L                               # base offset
       0L                                # log append time
       0                                 # throttle
-

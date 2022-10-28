@@ -18,7 +18,6 @@ package io.aklivity.zilla.specs.binding.kafka.streams.network;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -98,7 +97,6 @@ public class UnmergedIT
     }
 
     @Test
-    @Ignore // TODO
     @Specification({
         "${net}/unmerged.produce.message.value.10k/client",
         "${net}/unmerged.produce.message.value.10k/server"})
