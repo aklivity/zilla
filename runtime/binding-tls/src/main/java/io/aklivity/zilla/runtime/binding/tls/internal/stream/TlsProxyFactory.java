@@ -1466,7 +1466,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 assert acknowledge <= sequence;
                 assert sequence <= initialSeq;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 initialAck = acknowledge;
                 initialMax = maximum;

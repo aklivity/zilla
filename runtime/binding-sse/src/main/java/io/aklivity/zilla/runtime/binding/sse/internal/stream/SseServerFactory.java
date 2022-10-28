@@ -1160,7 +1160,7 @@ public final class SseServerFactory implements SseStreamFactory
 
                 assert acknowledge <= sequence;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 initialAck = acknowledge;
                 initialMax = maximum;
