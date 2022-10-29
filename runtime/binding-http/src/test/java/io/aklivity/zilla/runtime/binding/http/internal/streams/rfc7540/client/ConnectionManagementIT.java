@@ -233,11 +233,10 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/rst.stream.last.frame/client",
-        "${net}/rst.stream.last.frame/server"
+        "${app}/client.rst.stream.last.frame/client",
+        "${net}/client.rst.stream.last.frame/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void rstStreamLastFrame() throws Exception
+    public void clientResetStreamLastFrame() throws Exception
     {
         k3po.finish();
     }
@@ -327,16 +326,6 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.override.json")
-    @Specification({
-        "${net}/http.push.promise.header.override/client",
-        "${app}/http.push.promise.header.override/server" })
-    public void pushResourcesWithOverrideHeader() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configure(name = HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME, value = "1")
     @Configure(name = HTTP_STREAMS_CLEANUP_DELAY_NAME, value = "10")
     @Configuration("server.json")
@@ -345,6 +334,16 @@ public class ConnectionManagementIT
         "${app}/client.sent.write.abort.then.read.abort.on.open.request/server"
     })
     public void clientSentWriteAbortThenReadAbortOnOpenRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.override.json")
+    @Specification({
+        "${net}/http.push.promise.header.override/client",
+        "${app}/http.push.promise.header.override/server" })
+    public void pushResourcesWithOverrideHeader() throws Exception
     {
         k3po.finish();
     }

@@ -2719,6 +2719,27 @@ public final class HttpClientFactory implements HttpStreamFactory
             doNetworkReservedData(traceId, authorization, 0L, http2Settings);
         }
 
+        private void doEncodeWindowUpdates(
+                long traceId,
+                long authorization,
+                int streamId,
+                int size)
+        {
+            final int frameOffset = http2WindowUpdateRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(0)
+                    .size(size)
+                    .build()
+                    .limit();
+
+            final int frameLimit = http2WindowUpdateRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+                    .streamId(streamId)
+                    .size(size)
+                    .build()
+                    .limit();
+
+            doNetworkReservedData(traceId, authorization, 0L, frameBuffer, 0, frameLimit);
+        }
+
         private void onDecodeHttp2RstStream(
             long traceId,
             long authorization,
@@ -2790,10 +2811,18 @@ public final class HttpClientFactory implements HttpStreamFactory
                     if (payloadLength > 0)
                     {
                         payloadRemaining.set(payloadLength);
-                        payloadRemaining.value -= exchange.doResponseData(traceId, authorization, budgetId, payload, 0,
-                                payloadLength,  EMPTY_OCTETS);
-                        progress += payloadLength - payloadRemaining.value;
-                        deferred += payloadRemaining.value;
+                        if (exchange.localBudget < payloadRemaining.value)
+                        {
+                            doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.FLOW_CONTROL_ERROR);
+                            exchange.cleanup(traceId, authorization);
+                        }
+                        else
+                        {
+                            payloadRemaining.value -= exchange.doResponseData(traceId, authorization, budgetId, payload, 0,
+                                    payloadLength,  EMPTY_OCTETS);
+                            progress += payloadLength - payloadRemaining.value;
+                            deferred += payloadRemaining.value;
+                        }
                     }
 
                     if (deferred == 0 && Http2Flags.endStream(flags))
@@ -3014,7 +3043,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     for (HttpExchange stream: pool.exchanges.values())
                     {
                         stream.localBudget += localInitialCredit;
-                        stream.flushRequestWindow(traceId, 0);
+                        stream.flushResponseWindowUpdate(traceId, authorization);
                     }
                 }
 
@@ -3630,7 +3659,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private long responseSeq;
         private long responseAck;
-        private long responseMax;
+        private int responseMax;
         private long responseAuth;
         private long responseBud;
         private int responsePad;
@@ -3659,6 +3688,17 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.responseId = supplyReplyId.applyAsLong(requestId);
             this.overrides = overrides;
             this.streamId = streamId;
+            localBudget = client.localSettings.initialWindowSize;
+        }
+
+        private int initialWindow()
+        {
+            return requestMax - (int)(requestSeq - requestAck);
+        }
+
+        private int replyWindow()
+        {
+            return responseMax - (int)(responseSeq - responseAck);
         }
 
         private void onApplication(
@@ -3980,6 +4020,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         reserved, buffer, offset, length, extension);
 
                 responseSeq += reserved;
+                localBudget -= length;
 
                 assert responseSeq <= responseAck + requestMax;
 
@@ -4091,6 +4132,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             client.decodeNetworkIfBuffered(traceId, authorization);
+
+            if (!HttpState.replyClosed(state))
+            {
+                flushResponseWindowUpdate(traceId, authorization);
+            }
         }
 
         private void onResponseFlush(
@@ -4124,7 +4170,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             else
             {
                 remoteBudget = (int) newRemoteBudget;
-
                 flushRequestWindow(traceId, 0);
             }
         }
@@ -4156,6 +4201,19 @@ public final class HttpClientFactory implements HttpStreamFactory
                     doWindow(application, routeId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
                             client.budgetId, requestPad);
                 }
+            }
+        }
+
+        private void flushResponseWindowUpdate(
+            long traceId,
+            long authorization)
+        {
+            final int replyWindow = replyWindow();
+            final int size = replyWindow - localBudget;
+            if (size > 0)
+            {
+                localBudget = replyWindow;
+                client.doEncodeWindowUpdates(traceId, authorization, streamId, size);
             }
         }
 
