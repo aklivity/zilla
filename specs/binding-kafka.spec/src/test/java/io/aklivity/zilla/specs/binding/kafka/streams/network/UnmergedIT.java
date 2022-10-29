@@ -104,6 +104,14 @@ public class UnmergedIT
     {
         k3po.finish();
     }
+    @Test
+    @Specification({
+        "${net}/unmerged.produce.message.value.100k/client",
+        "${net}/unmerged.produce.message.value.100k/server"})
+    public void shouldProduceUnmergedMessageValue100k() throws Exception
+    {
+        k3po.finish();
+    }
 
     @Test
     @Specification({

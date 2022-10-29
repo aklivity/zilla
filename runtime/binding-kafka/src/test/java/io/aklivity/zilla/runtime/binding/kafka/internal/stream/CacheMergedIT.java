@@ -315,6 +315,16 @@ public class CacheMergedIT
     @Test
     @Configuration("cache.options.merged.json")
     @Specification({
+        "${app}/merged.produce.message.value.100k/client",
+        "${app}/unmerged.produce.message.value.100k/server"})
+    public void shouldProduceMergedMessageValue100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.json")
+    @Specification({
         "${app}/merged.produce.message.values.dynamic/client",
         "${app}/unmerged.produce.message.values.dynamic/server"})
     public void shouldProduceMergedMessageValuesDynamic() throws Exception

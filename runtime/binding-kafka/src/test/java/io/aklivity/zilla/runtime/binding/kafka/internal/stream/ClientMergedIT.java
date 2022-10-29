@@ -243,6 +243,20 @@ public class ClientMergedIT
     }
 
     @Test
+    @Configuration("client.options.merged.json")
+    @Specification({
+        "${app}/merged.produce.message.value.100k/client",
+        "${net}/unmerged.produce.message.value.100k/server"})
+    @Configure(
+        name = "zilla.binding.kafka.client.produce.max.bytes",
+        value = "200000")
+    @ScriptProperty("padding ${512 + 100}")
+    public void shouldProduceMergedMessageValue100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.json")
     @Specification({
         "${app}/merged.produce.message.values/client",
