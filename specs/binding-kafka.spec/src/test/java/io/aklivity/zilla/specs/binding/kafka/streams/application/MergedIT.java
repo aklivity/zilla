@@ -184,7 +184,7 @@ public class MergedIT
     @Specification({
         "${app}/merged.produce.message.value.10k/client",
         "${app}/merged.produce.message.value.10k/server"})
-    public void shouldProduceMergedMessageValues10k() throws Exception
+    public void shouldProduceMergedMessageValue10k() throws Exception
     {
         k3po.finish();
     }

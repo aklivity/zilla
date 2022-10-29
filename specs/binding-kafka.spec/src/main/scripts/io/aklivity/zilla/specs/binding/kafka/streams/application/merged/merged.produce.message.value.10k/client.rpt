@@ -16,6 +16,7 @@
 
 property deltaMillis 0L
 property newTimestamp ${kafka:timestamp() + deltaMillis}
+property padding 0
 
 connect "zilla://streams/app0"
     option zilla:window 8192
@@ -35,7 +36,7 @@ connected
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
-                                  .deferred(10240 - 8192 + 512 + 100)
+                                  .deferred(10240 - 8192 + padding)
                                   .timestamp(newTimestamp)
                                   .partition(0, 1)
                                   .build()
