@@ -2804,7 +2804,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 else
                 {
                     final int payloadLength = payload.capacity();
-                    exchange.responseContentObserved += payloadLength;
 
                     if (payloadLength > 0)
                     {
@@ -2816,8 +2815,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            payloadRemaining.value -= exchange.doResponseData(traceId, authorization, budgetId, payload, 0,
-                                    payloadLength,  EMPTY_OCTETS);
+                            final int remainingProgress = exchange.doResponseData(traceId, authorization, budgetId,
+                                    payload, 0, payloadLength, EMPTY_OCTETS);
+                            payloadRemaining.value -= remainingProgress;
+                            exchange.responseContentObserved += remainingProgress;
                             progress += payloadLength - payloadRemaining.value;
                             deferred += payloadRemaining.value;
                         }
