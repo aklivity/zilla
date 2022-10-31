@@ -4966,6 +4966,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
+                    //TODO: Missing test and has bug where headers is always empty
                     final Map<String, String> trailers = headersDecoder.headers;
                     final HttpEndExFW endEx = endExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)

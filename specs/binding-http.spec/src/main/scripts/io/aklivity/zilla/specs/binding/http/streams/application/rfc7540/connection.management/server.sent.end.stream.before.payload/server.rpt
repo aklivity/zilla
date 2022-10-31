@@ -15,9 +15,8 @@
 #
 
 accept "zilla://streams/app0"
-        option zilla:window 8192
+        option zilla:window 12
         option zilla:transmission "half-duplex"
-        option zilla:update "handshake"
 accepted
 
 read zilla:begin.ext ${http:beginEx()
@@ -34,6 +33,14 @@ connected
 read "Hello, world"
 read closed
 
-write notify REQUEST_COMPLETED
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("server", "CERN/3.0 libwww/2.17")
+                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
+                              .header("content-type", "text/html; charset=UTF-8")
+                              .header("content-length", "113")
+                              .build()}
 
-write aborted
+
+write abort

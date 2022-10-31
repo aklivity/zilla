@@ -95,8 +95,14 @@ read [0x00 0x00 0x59]                                      # length
      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
      [0x0f 0x0d] [0x03] "113"                              # content-length
 
-read [0x00 0x00 0x04]                           # length = 4
-     [0x03]                                     # HTTP2 RST_STREAM frame
-     [0x00]                                     # no flags
-     [0x00 0x00 0x00 0x01]                      # stream_id=1
-     [0x00 0x00 0x00 0x00]                      # NO_ERROR
+# HTTP2 stream_id=1 ends
+read [0x00 0x00 0x00]                  # length = 0
+     [0x00]                            # HTTP2 DATA frame
+     [0x01]                            # END_STREAM
+     [0x00 0x00 0x00 0x01]             # stream_id = 1
+
+write [0x00 0x00 0x04]                          # length = 4
+      [0x03]                                    # HTTP2 RST_STREAM frame
+      [0x00]                                    # no flags
+      [0x00 0x00 0x00 0x01]                     # stream_id=1
+      [0x00 0x00 0x00 0x01]                     # PROTOCOL_ERROR

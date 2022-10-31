@@ -14,23 +14,17 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+accept "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
+accepted
 
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":method", "GET")
+                             .header(":scheme", "https")
+                             .header(":path", "/")
+                             .header(":authority", "localhost:443")
+                             .build()}
+reject
 
-write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":method", "POST")
-                              .header(":scheme", "http")
-                              .header(":path", "/")
-                              .header(":authority", "localhost:8080")
-                              .header("content-type", "text/plain;charset=UTF-8")
-                              .header("content-length", "12")
-                              .build()}
-connected
-
-write "Hello, world"
-write close
-
-read abort

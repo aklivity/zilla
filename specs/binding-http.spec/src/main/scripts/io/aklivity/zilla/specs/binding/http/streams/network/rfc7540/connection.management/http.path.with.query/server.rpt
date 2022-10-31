@@ -36,11 +36,6 @@ read "PRI * HTTP/2.0\r\n"
      "SM\r\n"
      "\r\n"
 
-read [0x00 0x00 0x00]                   # length = 0
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x01]                             # ACK
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-
 read  [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
@@ -62,6 +57,11 @@ read [0x00 0x00 0x18]                   # length = 24
      [0x87]                             # :scheme: https
      [0x04] [0x09] "/api?.p=v"          # :path: /api?.p=v
      [0x01] [0x09] "localhost"          # :authority: localhost
+
+read [0x00 0x00 0x00]                   # length = 0
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x01]                             # ACK
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
 
 write [0x00 0x00 0x59]                                      # length
       [0x01]                                                # HTTP2 HEADERS frame

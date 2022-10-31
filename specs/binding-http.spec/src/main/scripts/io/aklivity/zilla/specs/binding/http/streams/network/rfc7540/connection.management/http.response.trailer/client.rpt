@@ -35,12 +35,6 @@ read [0x00 0x00 0x12]                   # length = 18
      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
 
-write [0x00 0x00 0x00]                  # length = 0
-      [0x04]                            # HTTP2 SETTINGS frame
-      [0x01]                            # ACK
-      [0x00 0x00 0x00 0x00]             # stream_id = 0
-write flush
-
 write [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
@@ -57,6 +51,12 @@ write [0x00 0x00 0x13]                  # length = 19
       [0x86]                            # :scheme: http
       [0x84]                            # :path: /
       [0x01] [0x0e] "localhost:8080"    # :authority: localhost:8080
+write flush
+
+write [0x00 0x00 0x00]                  # length = 0
+      [0x04]                            # HTTP2 SETTINGS frame
+      [0x01]                            # ACK
+      [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
 read [0x00 0x00 0x00]                   # length = 0

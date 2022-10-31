@@ -1,0 +1,31 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "app0":
+        {
+            "type" : "http",
+            "kind": "client",
+            "options":
+            {
+                "versions": [ "h2" ]
+            },
+            "routes":
+            [
+                {
+                    "exit": "net0",
+                    "when":
+                    [
+                        {
+                            "headers":
+                            {
+                                ":scheme": "https",
+                                ":authority": "localhost:443"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

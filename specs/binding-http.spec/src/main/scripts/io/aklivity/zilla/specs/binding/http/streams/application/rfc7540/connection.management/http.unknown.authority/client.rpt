@@ -18,19 +18,12 @@ connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
 
-
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":method", "POST")
-                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":scheme", "https")
                               .header(":path", "/")
-                              .header(":authority", "localhost:8080")
-                              .header("content-type", "text/plain;charset=UTF-8")
-                              .header("content-length", "12")
+                              .header(":authority", "unkownhost:443")
                               .build()}
-connected
+connect aborted
 
-write "Hello, world"
-write close
-
-read abort

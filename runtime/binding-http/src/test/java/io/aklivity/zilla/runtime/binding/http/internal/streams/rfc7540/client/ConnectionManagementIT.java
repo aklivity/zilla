@@ -16,13 +16,12 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAMS_CLEANUP_DELAY_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -244,7 +243,7 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/server.sent.write.abort.on.open.request/client",
+        "${app}/server.sent.write.http2.rst.frame.on.open.request/client",
         "${net}/server.sent.write.abort.on.open.request/server"
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
@@ -254,90 +253,104 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/server.sent.write.abort.on.closed.request/client",
-        "${app}/server.sent.write.abort.on.closed.request/server"
+        "${app}/server.sent.write.abort.on.closed.request/client",
+        "${net}/server.sent.write.abort.on.closed.request/server"
     })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentWriteAbortOnClosedRequest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/server.sent.write.close/client",
-        "${app}/server.sent.write.close/server"
+        "${app}/server.sent.end.stream.before.payload/client",
+        "${net}/server.sent.end.stream.before.payload/server"
     })
-    public void serverSentWriteClose() throws Exception
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void serverSentEndStreamBeforePayload() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.authority.json")
+    @Configuration("client.authority.json")
     @Specification({
-        "${net}/http.authority.default.port/client",
-        "${app}/http.authority.default.port/server" })
+        "${app}/http.authority.default.port/client",
+        "${net}/http.authority.default.port/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void defaultPortToAuthority() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.path.prefix.json")
+    @Configuration("client.path.prefix.json")
     @Specification({
-        "${net}/http.path.prefix/client",
-        "${app}/http.path.prefix/server" })
+        "${app}/http.path.prefix/client",
+        "${net}/http.path.prefix/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pathPrefix() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.path.json")
+    @Configuration("client.path.json")
     @Specification({
-        "${net}/http.path.with.query/client",
-        "${app}/http.path.with.query/server" })
+        "${app}/http.path.with.query/client",
+        "${net}/http.path.with.query/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pathWithQuery() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/http.response.trailer/client",
-        "${app}/http.response.trailer/server" })
+        "${app}/http.unknown.authority/client" })
+    public void httpUnknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.path.prefix.json")
+    @Specification({
+        "${app}/http.unknown.path/client" })
+    public void httpUnknownPath() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/http.response.trailer/client",
+        "${net}/http.response.trailer/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldProxyResponseTrailer() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/client.sent.end.before.response.received/client",
-        "${app}/client.sent.end.before.response.received/server" })
+        "${app}/server.sent.end.before.response.received/client",
+        "${net}/server.sent.end.before.response.received/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldSendResetOnIncompleteResponse() throws Exception
     {
         k3po.finish();
     }
 
-    @Test
-    @Configure(name = HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME, value = "1")
-    @Configure(name = HTTP_STREAMS_CLEANUP_DELAY_NAME, value = "10")
-    @Configuration("server.json")
-    @Specification({
-        "${net}/client.sent.write.abort.then.read.abort.on.open.request/client",
-        "${app}/client.sent.write.abort.then.read.abort.on.open.request/server"
-    })
-    public void clientSentWriteAbortThenReadAbortOnOpenRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
+    @Ignore("Implement push promise")
     @Test
     @Configuration("server.override.json")
     @Specification({
@@ -348,6 +361,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore("Implement push promise")
     @Test
     @Configuration("server.json")
     @Specification({
@@ -358,6 +372,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore("Implement push promise")
     @Test
     @Configuration("server.json")
     @Specification({
