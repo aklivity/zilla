@@ -206,7 +206,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         final KafkaBindingConfig binding = supplyBinding.apply(routeId);
 
-        if (binding != null && binding.merged(topicName))
+        if (binding != null)
         {
             final long resolvedId = routeId;
             final ArrayFW<KafkaOffsetFW> partitions = kafkaMergedBeginEx.partitions();

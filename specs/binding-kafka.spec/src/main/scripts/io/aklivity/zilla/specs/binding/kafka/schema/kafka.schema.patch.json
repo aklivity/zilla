@@ -26,7 +26,8 @@
                             "items":
                             {
                                 "type": "string"
-                            }
+                            },
+                            "deprecated": true
                         },
                         "bootstrap":
                         {
