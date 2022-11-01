@@ -75,7 +75,7 @@
                                 {
                                     "title": "Mechanism",
                                     "type": "string",
-                                    "enum": [ "plain", "SCRAM-SHA-256", "SCRAM-SHA-512" ]
+                                    "enum": [ "plain", "scram-sha-256", "scram-sha-512" ]
                                 }
                             },
                             "oneOf":
@@ -111,7 +111,7 @@
                                     {
                                         "mechanism":
                                         {
-                                            "const": "SCRAM-SHA-256"
+                                            "const": "scram-sha-256"
                                         },
                                         "username":
                                         {
@@ -136,7 +136,7 @@
                                     {
                                         "mechanism":
                                         {
-                                            "const": "SCRAM-SHA-512"
+                                            "const": "scram-sha-512"
                                         },
                                         "username":
                                         {
