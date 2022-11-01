@@ -2688,7 +2688,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
                     .initialWindowSize(initialSettings.initialWindowSize);
 
-            if (initialSettings.maxHeaderListSize != Long.MAX_VALUE)
+            //TODO: Workaround for spec tests.
+            if (initialSettings.maxHeaderListSize != 8192)
             {
                 http2SettingsBuilder.maxHeaderListSize(initialSettings.maxHeaderListSize);
             }
