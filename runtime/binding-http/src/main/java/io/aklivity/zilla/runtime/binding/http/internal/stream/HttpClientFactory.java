@@ -2683,11 +2683,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            final Http2SettingsFW http2Settings = http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+            final Http2SettingsFW.Builder http2SettingsBuilder = http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
                     .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
-                    .initialWindowSize(initialSettings.initialWindowSize)
-                    .build();
+                    .initialWindowSize(initialSettings.initialWindowSize);
+
+            if (initialSettings.maxHeaderListSize != Long.MAX_VALUE)
+            {
+                http2SettingsBuilder.maxHeaderListSize(initialSettings.maxHeaderListSize);
+            }
+            final Http2SettingsFW http2Settings = http2SettingsBuilder.build();
 
             doNetworkReservedData(traceId, authorization, 0L, http2Settings);
         }
