@@ -1,0 +1,26 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "app0":
+        {
+            "type" : "kafka",
+            "kind": "client",
+            "options":
+            {
+                "sasl":
+                {
+                    "mechanism": "SCRAM-SHA-256",
+                    "username": "username",
+                    "password": "password"
+                }
+            },
+            "routes":
+            [
+                {
+                    "exit": "net0"
+                }
+            ]
+        }
+    }
+}

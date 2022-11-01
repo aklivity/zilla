@@ -75,7 +75,7 @@
                                 {
                                     "title": "Mechanism",
                                     "type": "string",
-                                    "enum": [ "plain" ]
+                                    "enum": [ "plain", "SCRAM-SHA-256", "SCRAM-SHA-512" ]
                                 }
                             },
                             "oneOf":
@@ -87,6 +87,56 @@
                                         "mechanism":
                                         {
                                             "const": "plain"
+                                        },
+                                        "username":
+                                        {
+                                            "title": "Username",
+                                            "type": "string"
+                                        },
+                                        "password":
+                                        {
+                                            "title": "Password",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "username",
+                                        "password"
+                                    ]
+                                },
+                                {
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "mechanism":
+                                        {
+                                            "const": "SCRAM-SHA-256"
+                                        },
+                                        "username":
+                                        {
+                                            "title": "Username",
+                                            "type": "string"
+                                        },
+                                        "password":
+                                        {
+                                            "title": "Password",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required":
+                                    [
+                                        "username",
+                                        "password"
+                                    ]
+                                },
+                                {
+                                    "additionalProperties": false,
+                                    "properties":
+                                    {
+                                        "mechanism":
+                                        {
+                                            "const": "SCRAM-SHA-512"
                                         },
                                         "username":
                                         {
