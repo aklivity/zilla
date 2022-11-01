@@ -28,6 +28,7 @@ public class HttpConfiguration extends Configuration
     public static final IntPropertyDef HTTP_SERVER_CONCURRENT_STREAMS;
     public static final IntPropertyDef HTTP_STREAM_INITIAL_WINDOW;
     public static final LongPropertyDef HTTP_SERVER_MAX_HEADER_LIST_SIZE;
+    public static final IntPropertyDef HTTP_CLIENT_MAX_FRAME_SIZE;
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
     public static final IntPropertyDef HTTP_STREAMS_CLEANUP_DELAY;
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_APPLICATION_HEADERS;
@@ -42,6 +43,7 @@ public class HttpConfiguration extends Configuration
         HTTP_SERVER_CONCURRENT_STREAMS = config.property("server.concurrent.streams", Integer.MAX_VALUE);
         HTTP_STREAM_INITIAL_WINDOW = config.property("stream.initial.window", 0);
         HTTP_SERVER_MAX_HEADER_LIST_SIZE = config.property("server.max.header.list.size", 8_192L);
+        HTTP_CLIENT_MAX_FRAME_SIZE = config.property("client.max.frame.size", 16_384);
         HTTP_SERVER_HEADER = config.property("server.header");
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
         HTTP_STREAMS_CLEANUP_DELAY = config.property("streams.cleanup.delay", 100);
@@ -76,6 +78,10 @@ public class HttpConfiguration extends Configuration
     public long serverMaxHeaderListSize()
     {
         return HTTP_SERVER_MAX_HEADER_LIST_SIZE.getAsLong(this);
+    }
+    public int clientMaxFrameSize()
+    {
+        return HTTP_CLIENT_MAX_FRAME_SIZE.getAsInt(this);
     }
 
     public int maxConcurrentStreamsCleanup()

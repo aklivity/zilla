@@ -16,10 +16,12 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_CLIENT_MAX_FRAME_SIZE_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -56,116 +58,134 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/continuation.frames/client",
-        "${net}/continuation.frames/server" })
+        "${app}/server.continuation.frames/client",
+        "${net}/server.continuation.frames/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void continuationFrames() throws Exception
     {
         k3po.finish();
     }
 
+    @Ignore("Implement dynamic header list")
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/dynamic.table.requests/client",
-        "${app}/dynamic.table.requests/server" })
+        "${app}/dynamic.table.requests/client",
+        "${net}/dynamic.table.requests/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void dynamicTableRequests() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/max.frame.size/client",
-        "${app}/max.frame.size/server" })
+        "${app}/max.frame.size/client",
+        "${net}/max.frame.size/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "29000")
+    @Configure(name = HTTP_CLIENT_MAX_FRAME_SIZE_NAME, value = "20000")
     public void maxFrameSize() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/max.frame.size.error/client",
-        "${app}/max.frame.size.error/server" })
+        "${app}/client.frame.error/client",
+        "${net}/client.max.frame.size.error/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void maxFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/ping.frame.size.error/client" })
+        "${app}/client.frame.error/client",
+        "${net}/client.ping.frame.size.error/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pingFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/connection.window.frame.size.error/client" })
+        "${app}/client.frame.error/client",
+        "${net}/client.connection.window.frame.size.error/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionWindowFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/window.frame.size.error/client",
-        "${app}/window.frame.size.error/server" })
+        "${app}/client.frame.error/client",
+        "${net}/client.window.frame.size.error/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void windowFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/rst.stream.frame.size.error/client",
-        "${app}/rst.stream.frame.size.error/server" })
+        "${app}/client.rst.stream.frame.size.error/client",
+        "${net}/client.rst.stream.frame.size.error/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void rstStreamFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/priority.frame.size.error/client",
-        "${app}/priority.frame.size.error/server" })
+        "${app}/client.priority.frame.size.error/client",
+        "${net}/client.priority.frame.size.error/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void priorityFrameSizeError() throws Exception
     {
         k3po.finish();
     }
 
+    @Ignore("Implement Connection header")
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/connection.headers/client",
-        "${app}/connection.headers/server" })
+        "${app}/connection.headers/client",
+        "${net}/connection.headers/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionHeaders() throws Exception
     {
         k3po.finish();
     }
 
+    @Ignore("Implement push promise")
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/stream.id.order/client",
-        "${app}/stream.id.order/server" })
+        "${app}/stream.id.order/client",
+        "${net}/stream.id.order/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void streamIdOrder() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/invalid.hpack.index/client" })
+        "${app}/client.frame.error/client",
+        "${net}/client.invalid.hpack.index/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void invalidHpackIndex() throws Exception
     {
         k3po.finish();

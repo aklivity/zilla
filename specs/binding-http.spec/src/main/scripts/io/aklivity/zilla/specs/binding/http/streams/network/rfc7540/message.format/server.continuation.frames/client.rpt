@@ -15,8 +15,7 @@
 #
 
 connect "zilla://streams/net0"
-        option zilla:window 60000
-        option zilla:padding 1000
+        option zilla:window 8192
         option zilla:transmission "duplex"
 connected
 
@@ -36,31 +35,40 @@ read [0x00 0x00 0x12]                   # length = 18
      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
 
-write [0x00 0x00 0x12]                   # length = 18
+write [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
       [0x00 0x00 0x00 0x00]              # stream_id = 0
       [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-      [0x00 0x04 0x00 0x00 0x71 0x48]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 29000
-      [0x00 0x05 0x00 0x00 0x4e 0x20]    # SETTINGS_MAX_FRAME_SIZE(0x05) = 20000
+      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
 write flush
+
 
 read [0x00 0x00 0x00]                   # length = 0
      [0x04]                             # HTTP2 SETTINGS frame
      [0x01]                             # ACK
      [0x00 0x00 0x00 0x00]              # stream_id = 0
 
+
+write [0x00 0x00 0x33]                                      # length = 51
+      [0x01]                                                # HEADERS frame
+      [0x04]                                                # END_HEADERS
+      [0x00 0x00 0x00 0x01]                                 # stream_id = 1
+      [0x83]                                                # :method: POST
+      [0x86]                                                # :scheme: http
+      [0x84]                                                # :path: /
+      [0x01] [0x0e] "localhost:8080"                        # :authority: localhost:8080
+      [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
+      [0x0f 0x0d] [0x02] "12"                               # content-length
+
 #
-# request headers with HEADERS frames
+# request body DATA frame
 #
-write [0x00 0x00 0x13]                  # length = 19
-      [0x01]                            # HEADERS frame
-      [0x05]                            # END_HEADERS | END_STREAM
+write [0x00 0x00 0x0c]                  # length = 12
+      [0x00]                            # HTTP2 DATA frame
+      [0x01]                            # END_STREAM
       [0x00 0x00 0x00 0x01]             # stream_id = 1
-      [0x82]                            # :method: GET
-      [0x86]                            # :scheme: http
-      [0x84]                            # :path: /
-      [0x01] [0x0e] "localhost:8080"    # :authority: localhost:8080
+      "Hello, world"
 write flush
 
 write [0x00 0x00 0x00]                  # length = 0
@@ -69,10 +77,22 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x00]                                 # stream_id=0
+     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
+
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x01]                                 # stream_id=1
+     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
+
 #
-# response HEADERS frame
+# request headers with HEADERS, CONTINUATION frames
 #
-read [0x00 0x00 0x5b]                                      # length
+read [0x00 0x00 0x59]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
      [0x04]                                                # END_HEADERS
      [0x00 0x00 0x00 0x01]                                 # stream_id=1
@@ -80,42 +100,16 @@ read [0x00 0x00 0x5b]                                      # length
      [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
      [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
-     [0x0f 0x0d] [0x05] "30000"                            # content-length
+     [0x0f 0x0d] [0x03] "113"                              # content-length
 
 #
 # response DATA frame
 #
-read [0x00 0x4e 0x20]                          # length = 20000
+read [0x00 0x00 0x71]                          # length = 113
      [0x00]                                    # HTTP2 DATA frame
      [0x00]                                    # no flags
      [0x00 0x00 0x00 0x01]                     # stream_id=1
-read [0..20000]
-
-#
-# response DATA frame 9000 = max(30000 - 20000, 29000 - 20000)
-#
-read [0x00 0x23 0x28]                          # length = 9000
-     [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # no flags
-     [0x00 0x00 0x00 0x01]                     # stream_id=1
-read [0..9000]
-
-# connection-level flow control
-write [0x00 0x00 0x04]                         # length
-     [0x08]                                    # WINDOW_UPDATE frame
-     [0x00]                                    # no flags
-     [0x00 0x00 0x00 0x00]                     # stream_id=0
-     [0x00 0x00 0x79 0x18]                     # window size increment = 1000
-
-# stream-level flow control
-write [0x00 0x00 0x04]                         # length
-     [0x08]                                    # WINDOW_UPDATE frame
-     [0x00]                                    # no flags
-     [0x00 0x00 0x00 0x01]                     # stream_id=1
-     [0x00 0x00 0x79 0x18]                     # window size increment = 1000
-
-read [0x00 0x03 0xe8]                          # length = 1000
-     [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # no flags
-     [0x00 0x00 0x00 0x01]                     # stream_id=1
-read [0..1000]
+     "<html>"
+     "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
+     "<body><script src=\"script.js\"></script></body>"
+     "</html>"

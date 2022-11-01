@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CLIENT_MAX_FRAME_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
@@ -32,6 +33,7 @@ public class HttpConfigurationTest
     public static final String HTTP_SERVER_CONCURRENT_STREAMS_NAME = "zilla.binding.http.server.concurrent.streams";
     public static final String HTTP_STREAM_INITIAL_WINDOW_NAME = "zilla.binding.http.stream.initial.window";
     public static final String HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME = "zilla.binding.http.server.max.header.list.size";
+    public static final String HTTP_CLIENT_MAX_FRAME_SIZE_NAME = "zilla.binding.http.client.max.frame.size";
     public static final String HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME = "zilla.binding.http.max.concurrent.streams.cleanup";
     public static final String HTTP_STREAMS_CLEANUP_DELAY_NAME = "zilla.binding.http.streams.cleanup.delay";
 
@@ -42,6 +44,7 @@ public class HttpConfigurationTest
         assertEquals(HTTP_SERVER_CONCURRENT_STREAMS.name(), HTTP_SERVER_CONCURRENT_STREAMS_NAME);
         assertEquals(HTTP_STREAM_INITIAL_WINDOW.name(), HTTP_STREAM_INITIAL_WINDOW_NAME);
         assertEquals(HTTP_SERVER_MAX_HEADER_LIST_SIZE.name(), HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME);
+        assertEquals(HTTP_CLIENT_MAX_FRAME_SIZE.name(), HTTP_CLIENT_MAX_FRAME_SIZE_NAME);
         assertEquals(HTTP_MAX_CONCURRENT_STREAMS_CLEANUP.name(), HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME);
         assertEquals(HTTP_STREAMS_CLEANUP_DELAY.name(), HTTP_STREAMS_CLEANUP_DELAY_NAME);
     }

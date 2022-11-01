@@ -15,27 +15,30 @@
 #
 
 connect "zilla://streams/app0"
-        option zilla:window 60000
+        option zilla:window 8192
         option zilla:transmission "half-duplex"
 
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":method", "GET")
+                              .header(":method", "POST")
                               .header(":scheme", "http")
-                              .header(":path", "/")
+                              .header(":path", "/echo")
                               .header(":authority", "localhost:8080")
+                              .header("content-type", "text/plain;charset=UTF-8")
+                              .header("content-length", "12")
                               .build()}
-
 connected
+
+write "Hello, world"
+write flush
+
+write close
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":status", "200")
-                             .header("server", "CERN/3.0 libwww/2.17")
-                             .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
-                             .header("content-type", "text/html; charset=UTF-8")
-                             .header("content-length", "30000")
+                             .header(":status", "503")
+                             .header("retry-after", "0")
                              .build()}
 
-read [0..30000]
+read closed

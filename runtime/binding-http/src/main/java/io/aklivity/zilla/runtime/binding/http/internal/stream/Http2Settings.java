@@ -25,7 +25,7 @@ public class Http2Settings
     private static final int DEFAULT_ENABLE_PUSH = 1;
     private static final int DEFAULT_MAX_CONCURRENT_STREAMS = Integer.MAX_VALUE;
     private static final int DEFAULT_INITIAL_WINDOW_SIZE = 65_535;
-    private static final int DEFAULT_MAX_FRAME_SIZE = 16_384;
+    public static final int DEFAULT_MAX_FRAME_SIZE = 16_384;
     private static final long DEFAULT_MAX_HEADER_LIST_SIZE = Long.MAX_VALUE;
 
     public int headerTableSize = DEFAULT_HEADER_TABLE_SIZE;
@@ -41,7 +41,7 @@ public class Http2Settings
     {
         this.maxConcurrentStreams = config.serverConcurrentStreams();
         this.initialWindowSize = config.streamInitialWindow();
-        this.maxFrameSize = Math.min(DEFAULT_MAX_FRAME_SIZE, bufferPool.slotCapacity() >> 1);
+        this.maxFrameSize = Math.min(config.clientMaxFrameSize(), bufferPool.slotCapacity() >> 1);
         this.maxHeaderListSize = Math.min(config.serverMaxHeaderListSize(), bufferPool.slotCapacity() >> 1);
     }
 
@@ -55,6 +55,7 @@ public class Http2Settings
         this.maxConcurrentStreams = settings.maxConcurrentStreams;
         this.initialWindowSize = settings.initialWindowSize;
         this.maxHeaderListSize = settings.maxHeaderListSize;
+        this.maxFrameSize = settings.maxFrameSize;
     }
 
     public Http2ErrorCode error()

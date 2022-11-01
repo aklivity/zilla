@@ -49,11 +49,6 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
-read [0x00 0x00 0x00]                   # length = 0
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x01]                             # ACK
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-
 #
 # C.3.1.  First Request
 #
@@ -64,20 +59,20 @@ read [0x00 0x00 0x13]                  # length = 29
      [0x82]                            # :method: GET
      [0x86]                            # :scheme: http
      [0x84]                            # :path: /
-     [0x41 0x0e] "localhost:8080"     # :authority: localhost:8080
+     [0x01 0x0e] "localhost:8080"      # :authority: localhost:8080
 
 #
 # C.3.2.  Second Request
 #
-read [0x00 0x00 0x0e]                  # length = 14
+read [0x00 0x00 0x1e]                  # length = 14
      [0x01]                            # HEADERS frame
      [0x05]                            # END_HEADERS | END_STREAM
      [0x00 0x00 0x00 0x03]             # stream_id = 3
      [0x82]                            # :method: GET
      [0x86]                            # :scheme: http
      [0x84]                            # :path: /
-     [0xbe]                            # :authority: www.example.com
-     [0x58 0x08] "no-cache"            # cache-control: no-cache
+     [0x01 0x0e] "localhost:8080"      # :authority: localhost:8080
+     [0x58 [0x0f 0x09]] "no-cache"     # cache-control: no-cache
 
 #
 # C.3.3.  Third Request
@@ -89,9 +84,13 @@ read [0x00 0x00 0x1d]                                  # length = 29
      [0x82]                                            # :method: GET
      [0x87]                                            # :scheme: https
      [0x85]                                            # :path: /index.html
-     [0xbf]                                            # :authority: www.example.com
+     [0x01 0x0e] "localhost:8080"                      # :authority: localhost:8080
      [0x40 0x0a] "custom-key" [0x0c] "custom-value"    # custom-key: custom-value
 
+read [0x00 0x00 0x00]                   # length = 0
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x01]                             # ACK
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
 
 # First Response
 write [0x00 0x00 0x59]                                      # length

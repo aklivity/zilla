@@ -2689,9 +2689,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .initialWindowSize(initialSettings.initialWindowSize);
 
             //TODO: Workaround for spec tests.
-            if (initialSettings.maxHeaderListSize != 8192)
+            if (initialSettings.maxFrameSize != Http2Settings.DEFAULT_MAX_FRAME_SIZE)
             {
-                http2SettingsBuilder.maxHeaderListSize(initialSettings.maxHeaderListSize);
+                http2SettingsBuilder.maxFrameSize(initialSettings.maxFrameSize);
             }
             final Http2SettingsFW http2Settings = http2SettingsBuilder.build();
 
@@ -2855,7 +2855,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (endHeaders)
             {
-                if (pool.exchanges.containsKey(streamId))
+                final HttpExchange exchange = pool.exchanges.get(streamId);
+                if (exchange != null && HttpState.replyOpening(exchange.state))
                 {
                     onDecodeHttp2Trailers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset, endResponse);
                 }
@@ -4267,6 +4268,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             reset(encodeContext);
 
+            headers.forEach(search);
+
             Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
             headersMap.putAll(overrides);
@@ -4339,10 +4342,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         // TODO dynamic table, Huffman, never indexed
         private void encodeLiteral(
-                HpackLiteralHeaderFieldFW.Builder builder,
-                HpackContext hpackContext,
-                DirectBuffer nameBuffer,
-                DirectBuffer valueBuffer)
+            HpackLiteralHeaderFieldFW.Builder builder,
+            HpackContext hpackContext,
+            DirectBuffer nameBuffer,
+            DirectBuffer valueBuffer)
         {
             builder.type(WITHOUT_INDEXING);
             final int nameIndex = hpackContext.index(nameBuffer);
@@ -4362,14 +4365,11 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         private HpackContext context;
         private int headerTableSize;
-        private boolean pseudoHeaders;
         private MutableBoolean expectDynamicTableSizeUpdate;
 
         private final Consumer<HpackHeaderFieldFW> decodeHeader;
         private final Consumer<HpackHeaderFieldFW> decodeTrailer;
-        private int method;
-        private int scheme;
-        private int path;
+
 
         Http2ErrorCode connectionError;
         Http2ErrorCode streamError;
@@ -4435,10 +4435,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.connectionError = null;
             this.streamError = null;
             this.httpErrorHeader = null;
-            this.pseudoHeaders = true;
-            this.method = 0;
-            this.scheme = 0;
-            this.path = 0;
             this.contentLength = -1;
         }
 
