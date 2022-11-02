@@ -15,13 +15,14 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_CLIENT_MAX_FRAME_SIZE_NAME;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SERVER_CONCURRENT_STREAMS_NAME;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_USER_AGENT_HEADER_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaEngine;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -34,11 +35,12 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
-public class SettingsIT
+
+public class ConfigIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/settings")
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/settings/");
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/http/streams/application/rfc7540/config")
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/http/streams/network/rfc7540/config");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -47,6 +49,8 @@ public class SettingsIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
+        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
+        .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
         .clean();
@@ -55,14 +59,13 @@ public class SettingsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configure(name = HTTP_USER_AGENT_HEADER_NAME, value = "zilla")
     @Configuration("client.json")
     @Specification({
-        "${app}/client.max.frame.size/client",
-        "${net}/client.max.frame.size/server" })
-    @Configure(name = HTTP_CLIENT_MAX_FRAME_SIZE_NAME, value = "4096")
-    @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "100")
+        "${app}/user.agent.header/client",
+        "${net}/user.agent.header/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void maxHeaderSize() throws Exception
+    public void userAgent() throws Exception
     {
         k3po.finish();
     }

@@ -55,7 +55,7 @@ public class FlowControlIT
     @Configuration("server.json")
     @Specification({
         "${net}/stream.flow/client",
-        "${app}/stream.flow/server" })
+        "${app}/server.stream.flow/server" })
     public void streamFlow() throws Exception
     {
         k3po.finish();

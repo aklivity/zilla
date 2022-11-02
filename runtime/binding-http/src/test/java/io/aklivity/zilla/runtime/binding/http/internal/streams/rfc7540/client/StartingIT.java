@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_SERVER_CONCURRENT_STREAMS_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -59,6 +60,7 @@ public class StartingIT
         "${app}/upgrade.http/client",
         "${net}/upgrade.pri.with.tls.and.alpn.http2/server"})
     @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "100")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldUpgradeViaPriorKnowledgeWithTlsAndAlpn() throws Exception
     {
         k3po.finish();

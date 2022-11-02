@@ -29,13 +29,13 @@ read zilla:begin.ext ${http:beginEx()
 connected
 
 write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "200")
-                              .header("server", "CERN/3.0 libwww/2.17")
-                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
-                              .header("content-type", "text/html; charset=UTF-8")
-                              .header("content-length", "113")
-                              .build()}
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("server", "CERN/3.0 libwww/2.17")
+                            .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
+                            .header("content-type", "text/html; charset=UTF-8")
+                            .header("content-length", "113")
+                            .build()}
 
 write "<html>"
       "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"

@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_MAX_HEADER_LIST_SIZE;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_STREAMS_CLEANUP_DELAY;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_STREAM_INITIAL_WINDOW;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_USER_AGENT;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -30,6 +31,7 @@ public class HttpConfigurationTest
 {
     // needed by test annotations
     public static final String HTTP_SERVER_HEADER_NAME = "zilla.binding.http.server.header";
+    public static final String HTTP_USER_AGENT_HEADER_NAME = "zilla.binding.http.user.agent.header";
     public static final String HTTP_SERVER_CONCURRENT_STREAMS_NAME = "zilla.binding.http.server.concurrent.streams";
     public static final String HTTP_STREAM_INITIAL_WINDOW_NAME = "zilla.binding.http.stream.initial.window";
     public static final String HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME = "zilla.binding.http.server.max.header.list.size";
@@ -41,6 +43,7 @@ public class HttpConfigurationTest
     public void shouldVerifyConstants() throws Exception
     {
         assertEquals(HTTP_SERVER_HEADER.name(), HTTP_SERVER_HEADER_NAME);
+        assertEquals(HTTP_USER_AGENT.name(), HTTP_USER_AGENT_HEADER_NAME);
         assertEquals(HTTP_SERVER_CONCURRENT_STREAMS.name(), HTTP_SERVER_CONCURRENT_STREAMS_NAME);
         assertEquals(HTTP_STREAM_INITIAL_WINDOW.name(), HTTP_STREAM_INITIAL_WINDOW_NAME);
         assertEquals(HTTP_SERVER_MAX_HEADER_LIST_SIZE.name(), HTTP_SERVER_MAX_HEADER_LIST_SIZE_NAME);

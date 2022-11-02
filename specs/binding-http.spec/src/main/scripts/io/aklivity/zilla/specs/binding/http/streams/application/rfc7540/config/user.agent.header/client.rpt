@@ -21,17 +21,12 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":method", "POST")
+                              .header(":method", "GET")
                               .header(":scheme", "http")
                               .header(":path", "/")
                               .header(":authority", "localhost:8080")
-                              .header("content-type", "text/plain;charset=UTF-8")
-                              .header("content-length", "12")
                               .build()}
 connected
-
-write "Hello, world"
-write flush
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
@@ -41,8 +36,9 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-type", "text/html; charset=UTF-8")
                              .header("content-length", "113")
                              .build()}
-
 read "<html>"
      "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
      "<body><script src=\"script.js\"></script></body>"
      "</html>"
+
+read closed

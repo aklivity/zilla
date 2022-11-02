@@ -57,7 +57,7 @@ public class FlowControlIT
     @Configuration("client.json")
     @Specification({
         "${app}/stream.flow/client",
-        "${net}/stream.flow/server" })
+        "${net}/client.stream.flow/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "60")
     public void streamFlow() throws Exception
     {

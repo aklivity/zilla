@@ -164,7 +164,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .build();
 
     private static final String8FW HEADER_AUTHORITY = new String8FW(":authority");
-    private static final String8FW HEADER_SCHEME = new String8FW(":scheme");
+    private static final String8FW USER_AGENT = new String8FW("user-agent");
     private static final String8FW HEADER_CONNECTION = new String8FW("connection");
     private static final String8FW HEADER_CONTENT_LENGTH = new String8FW("content-length");
     private static final String8FW HEADER_METHOD = new String8FW(":method");
@@ -4284,6 +4284,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     headersMap.put(HEADER_AUTHORITY,  new String16FW(authorityValue.substring(0, columnIndex)));
                 }
+            }
+
+            final String16FW userAgentHeader = config.userAgentHeader();
+            if (userAgentHeader != null)
+            {
+                headersMap.put(USER_AGENT, userAgentHeader);
             }
 
             headersMap.forEach((n, v) ->
