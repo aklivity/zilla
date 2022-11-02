@@ -39,8 +39,6 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-length", "113")
                              .build()}
 
-read [0..384]
+write aborted
 
-write abort
-
-read abort
+read aborted
