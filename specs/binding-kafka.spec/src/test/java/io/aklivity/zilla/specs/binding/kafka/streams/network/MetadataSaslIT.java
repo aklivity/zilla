@@ -47,8 +47,8 @@ public class MetadataSaslIT
 
     @Test
     @Specification({
-            "${net}/topic.partition.info.sasl.scram/client",
-            "${net}/topic.partition.info.sasl.scram/server" })
+        "${net}/topic.partition.info.sasl.scram/client",
+        "${net}/topic.partition.info.sasl.scram/server" })
     public void shouldRequestTopicPartitionWithSaslScram() throws Exception
     {
         k3po.finish();

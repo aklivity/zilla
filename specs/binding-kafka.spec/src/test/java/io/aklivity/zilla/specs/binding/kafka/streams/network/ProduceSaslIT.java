@@ -47,8 +47,8 @@ public class ProduceSaslIT
 
     @Test
     @Specification({
-            "${net}/message.value.sasl.scram/client",
-            "${net}/message.value.sasl.scram/server"})
+        "${net}/message.value.sasl.scram/client",
+        "${net}/message.value.sasl.scram/server"})
     public void shouldSendMessageValueWithSaslScram() throws Exception
     {
         k3po.finish();

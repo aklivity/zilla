@@ -64,8 +64,8 @@ public class ClientMetaSaslIT
     @Test
     @Configuration("client.options.sasl.scram-256.json")
     @Specification({
-            "${app}/topic.partition.info/client",
-            "${net}/topic.partition.info.sasl.scram/server"})
+        "${app}/topic.partition.info/client",
+        "${net}/topic.partition.info.sasl.scram/server"})
     public void shouldRequestTopicPartitionInfoWithSaslScram() throws Exception
     {
         k3po.finish();

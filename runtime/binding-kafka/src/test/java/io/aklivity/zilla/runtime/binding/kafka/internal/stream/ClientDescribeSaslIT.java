@@ -64,8 +64,8 @@ public class ClientDescribeSaslIT
     @Test
     @Configuration("client.options.sasl.scram-256.json")
     @Specification({
-            "${app}/topic.config.info/client",
-            "${net}/topic.config.info.sasl.scram/server"})
+        "${app}/topic.config.info/client",
+        "${net}/topic.config.info.sasl.scram/server"})
     public void shouldReceiveTopicConfigInfoWithSaslScram() throws Exception
     {
         k3po.finish();

@@ -47,8 +47,8 @@ public class FetchSaslIT
 
     @Test
     @Specification({
-            "${net}/partition.offset.sasl.scram/client",
-            "${net}/partition.offset.sasl.scram/server"})
+        "${net}/partition.offset.sasl.scram/client",
+        "${net}/partition.offset.sasl.scram/server"})
     public void shouldRequestPartitionOffsetWithSaslScram() throws Exception
     {
         k3po.finish();
