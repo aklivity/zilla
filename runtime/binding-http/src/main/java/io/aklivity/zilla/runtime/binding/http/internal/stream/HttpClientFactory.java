@@ -49,6 +49,7 @@ import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1827,17 +1828,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             MessageConsumer newStream = null;
 
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
-            if (queuedRequestLength > maximumRequestQueueSize)
+            if (client == null || queuedRequestLength > maximumRequestQueueSize)
             {
                 newStream = rejectWithStatusCode(sender, begin, HEADERS_431_REQUEST_TOO_LARGE);
             }
-            else if (client != null && queuedRequestLength <= availableSlotSize())
+            else if (queuedRequestLength <= availableSlotSize())
             {
                 final int nextStreamId = client.nextStreamId();
                 final HttpExchange exchange = client.newExchange(sender, begin, overrides, nextStreamId);
                 exchanges.put(nextStreamId, exchange);
                 newStream = exchange::onApplication;
-                client.exchange = exchange;
             }
             else
             {
@@ -1895,7 +1895,19 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpExchange httpExchange = exchanges.get(streamId);
                 if (httpExchange != null)
                 {
-                    httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
+                    final HttpEncoder encoder = httpExchange.client.encoder;
+                    HttpClient client = encoder == HttpEncoder.HTTP_2 ||
+                            encoder == HttpEncoder.HTTP_1_1 && httpExchange.client.exchange == null ?
+                            httpExchange.client : supplyClient();
+
+                    if (client != null)
+                    {
+                        httpExchange.doRequestBegin(traceId, authorization, queueEntry.value());
+                    }
+                    else
+                    {
+                        httpExchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+                    }
                 }
                 httpQueueSlotOffset += queueEntry.sizeof();
                 dequeues.getAsLong();
@@ -1925,13 +1937,18 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private HttpClient supplyClient()
         {
-            final boolean isHttp2 = this.versions.size() == 1 && versions.contains(HTTP_2);
-            HttpClient client = clients.stream().filter(c -> c.exchange == null || c.encoder == HttpEncoder.HTTP_2)
-                    .findFirst().orElse(null);
-            final int eligibleMaximumConnectionsPerRoute = isHttp2 ?
-                    1 : maximumConnectionsPerRoute;
+            HttpClient client = null;
+            if (clients.size() == 1)
+            {
+                client = clients.stream().filter(
+                        c -> !HttpState.replyOpened(c.state) ||
+                        c.encoder == HttpEncoder.HTTP_2 ||
+                        c.encoder == HttpEncoder.HTTP_1_1 && c.exchange == null)
+                        .findFirst()
+                        .orElse(null);
+            }
 
-            if (client == null && clients.size() < eligibleMaximumConnectionsPerRoute)
+            if (client == null && clients.size() < maximumConnectionsPerRoute)
             {
                 client = new HttpClient(this);
                 onCreated(client);
@@ -1948,9 +1965,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 connectionInUse.accept(1L);
             }
 
-            final int eligibleMaximumConnectionsPerRoute = this.versions.size() == 1 && versions.contains(HTTP_2) ?
-                    1 : maximumConnectionsPerRoute;
-            assert clients.size() <= eligibleMaximumConnectionsPerRoute;
+            assert clients.size() <= maximumConnectionsPerRoute;
         }
 
         private void onUpgradedOrClosed(
@@ -4024,6 +4039,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final HttpBeginExFW beginEx = extension.get(beginExRO::tryWrap);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
+            client.exchange = this;
             client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, overrides);
         }
 

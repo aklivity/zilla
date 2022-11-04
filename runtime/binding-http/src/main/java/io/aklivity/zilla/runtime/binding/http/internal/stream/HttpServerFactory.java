@@ -2352,6 +2352,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             if (length > maximumHeadersSize)
             {
+                exchange.doResponseWindow(traceId);
                 exchange.onNetworkReset(traceId);
 
                 replyCloseOnFlush = true;
@@ -2728,7 +2729,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
             }
 
-            private void doRequestAbort(
+            private void    doRequestAbort(
                 long traceId,
                 Flyweight extension)
             {
