@@ -11,8 +11,8 @@
                 "sasl":
                 {
                     "mechanism": "scram-sha-256",
-                    "username": "username",
-                    "password": "password"
+                    "username": "user",
+                    "password": "pencil"
                 }
             },
             "routes":
