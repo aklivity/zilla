@@ -42,7 +42,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.SortedSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -1003,24 +1002,265 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit);
     }
 
-    @FunctionalInterface
-    private interface NetworkDecoder
+    private enum HttpEncoder
     {
-        void decode(
+        HTTP_1_1
+        {
+            @Override
+            public void doEncodeRequestHeaders(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                long budgetId,
+                Array32FW<HttpHeaderFW> headers,
+                Map<String8FW, String16FW> overrides)
+            {
+                client.doEncodeHeaders(exchange, traceId, authorization, budgetId, headers, overrides);
+            }
+
+            @Override
+            public void doEncodeRequestData(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                int flags,
+                long budgetId,
+                int reserved,
+                int encodeMax,
+                int length,
+                OctetsFW payload)
+            {
+                exchange.requestRemaining -= length;
+                assert exchange.requestRemaining >= 0;
+
+                client.doEncodeBody(exchange, traceId, authorization, flags, budgetId, reserved, payload);
+            }
+
+            @Override
+            public void doEncodeRequestEnd(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                long budgetId, Array32FW<HttpHeaderFW> trailers)
+            {
+                client.doEncodeTrailers(exchange, traceId, authorization, 0L, trailers);
+            }
+
+            @Override
+            public void doEncodeRequestAbort(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                client.doNetworkAbort(traceId, authorization);
+
+                exchange.doResponseAbort(traceId, authorization, EMPTY_OCTETS);
+
+                client.doNetworkReset(traceId, authorization);
+            }
+
+            @Override
+            public void doEncodeResponseReset(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                client.cleanupNetwork(traceId, authorization);
+            }
+
+            @Override
+            public void doEncodeNetworkWindow(
+                HttpClient client,
+                long traceId,
+                long authorization,
+                long budgetId,
+                long acknowledge,
+                int maximum)
+            {
+                client.flushNetworkIfBuffered(traceId, authorization, budgetId);
+                HttpExchange exchange = client.pool.exchanges.values().stream().findFirst().orElse(null);
+
+                if (exchange != null && !HttpState.initialClosed(exchange.state))
+                {
+                    exchange.doRequestWindow(traceId, budgetId);
+                }
+            }
+        },
+        HTTP_2
+        {
+            @Override
+            public void doEncodeRequestHeaders(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                long budgetId,
+                Array32FW<HttpHeaderFW> headers,
+                Map<String8FW, String16FW> overrides)
+            {
+                final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
+                client.doEncodeHttp2Headers(traceId, authorization, exchange.streamId, headers, overrides, endRequest);
+            }
+
+            @Override
+            public void doEncodeRequestData(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                int flags,
+                long budgetId,
+                int reserved,
+                int encodeMax,
+                int length,
+                OctetsFW payload)
+            {
+                exchange.remoteBudget -= length;
+                client.remoteSharedBudget -= length;
+                exchange.requestContentObserved += length;
+
+                final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
+                client.doEncodeHttp2Data(traceId, authorization, flags, budgetId, reserved, exchange.streamId, payload,
+                        endRequest);
+
+                final int remotePaddableMax = Math.min(exchange.remoteBudget, encodeMax);
+                final int remotePadding = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
+                final int requestPadding = client.initialPad + remotePadding;
+
+                final int requestWin = exchange.initialWindow();
+                final int minimumClaim = 1024;
+                final int requestCreditMin = (requestWin <= requestPadding + minimumClaim)
+                        ? 0 : exchange.remoteBudget >> 1;
+
+                exchange.flushRequestWindow(traceId, requestCreditMin);
+            }
+
+            @Override
+            public void doEncodeRequestEnd(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                long budgetId, Array32FW<HttpHeaderFW> trailers)
+            {
+                if (exchange.requestContentLength != exchange.requestContentObserved)
+                {
+                    client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
+                }
+                //TODO: Implement trailers
+            }
+
+            @Override
+            public void doEncodeRequestAbort(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                exchange.cleanup(traceId, authorization);
+            }
+
+            @Override
+            public void doEncodeResponseReset(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                exchange.cleanup(traceId, authorization);
+            }
+
+            @Override
+            public void doEncodeNetworkWindow(
+                HttpClient client,
+                long traceId,
+                long authorization,
+                long budgetId,
+                long acknowledge,
+                int maximum)
+            {
+                int credit = (int) (acknowledge - client.initialAck) + (maximum - client.initialMax);
+                assert credit >= 0;
+
+                assert client.initialAck <= client.initialSeq;
+
+                if (client.initialBudgetReserved > 0)
+                {
+                    final int reservedCredit = Math.min(credit, client.initialBudgetReserved);
+                    client.initialBudgetReserved -= reservedCredit;
+                    credit -= reservedCredit;
+                }
+
+                if (credit > 0)
+                {
+                    client.initialSharedBudget += credit;
+                    assert client.initialSharedBudget <= client.initialMax;
+                    credit -= credit;
+                }
+
+                assert credit == 0;
+
+                client.encodeNetwork(traceId, authorization, budgetId);
+
+                client.flushRequestSharedBudget(traceId);
+            }
+        };
+
+        public abstract void doEncodeRequestHeaders(
+            HttpClient client,
+            HttpExchange exchange,
             long traceId,
             long authorization,
             long budgetId,
-            int reserved,
-            DirectBuffer buffer,
-            int offset,
-            int limit);
-    }
+            Array32FW<HttpHeaderFW> headers,
+            Map<String8FW, String16FW> overrides);
 
-    private enum HttpExchangeState
-    {
-        PENDING,
-        OPEN,
-        CLOSED,
+        public abstract void doEncodeRequestData(
+            HttpClient client,
+            HttpExchange exchange,
+            long traceId,
+            long authorization,
+            int flags,
+            long budgetId,
+            int reserved,
+            int encodeMax,
+            int length,
+            OctetsFW payload);
+
+        public abstract void doEncodeRequestEnd(
+            HttpClient client,
+            HttpExchange exchange,
+            long traceId,
+            long authorization,
+            long budgetId,
+            Array32FW<HttpHeaderFW> trailers);
+
+        public abstract void doEncodeRequestAbort(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization);
+
+        public abstract void doEncodeResponseReset(
+            HttpClient client,
+            HttpExchange exchange,
+            long traceId,
+            long authorization);
+
+        public abstract void doEncodeNetworkWindow(
+            HttpClient client,
+            long traceId,
+            long authorization,
+            long budgetId,
+            long acknowledge,
+            int maximum);
     }
 
     private int decodeHttp2Settings(
@@ -1597,6 +1837,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpExchange exchange = client.newExchange(sender, begin, overrides, nextStreamId);
                 exchanges.put(nextStreamId, exchange);
                 newStream = exchange::onApplication;
+                client.exchange = exchange;
             }
             else
             {
@@ -1685,7 +1926,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private HttpClient supplyClient()
         {
             final boolean isHttp2 = this.versions.size() == 1 && versions.contains(HTTP_2);
-            HttpClient client = clients.stream().filter(c -> isHttp2).findFirst().orElse(null);
+            HttpClient client = clients.stream().filter(c -> c.exchange == null || c.encoder == HttpEncoder.HTTP_2)
+                    .findFirst().orElse(null);
             final int eligibleMaximumConnectionsPerRoute = isHttp2 ?
                     1 : maximumConnectionsPerRoute;
 
@@ -1738,23 +1980,21 @@ public final class HttpClientFactory implements HttpStreamFactory
         public int maxClientStreamId = -1;
         public int decodableDataBytes;
         private MessageConsumer network;
-        private final long routeId;
-        private final long initialId;
-        private final long replyId;
-        private final long budgetId;
         private int decodeSlot;
         private int decodeSlotOffset;
         private int decodeSlotReserved;
         private long decodeSlotBudgetId;
-
-        private int encodeSlot;
-        private int encodeSlotOffset;
-
         private HttpClientDecoder decoder;
+        private Http2ErrorCode decodeError;
         private int decodableChunkSize;
         private int decodableContentLength;
 
+        private final long routeId;
+        private final long budgetId;
+        private final long replyId;
+        private final long initialId;
         private int state;
+
         private long initialSeq;
         private long initialAck;
         private int initialMax;
@@ -1763,20 +2003,21 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long replySeq;
         private long replyAck;
         private long replyAuth;
-        private int encodeSlotMarkOffset;
 
         private MutableDirectBuffer encodeHeadersBuffer;
+        private int encodeSlot;
+        private int encodeSlotOffset;
+        private int encodeSlotMarkOffset;
         private int encodeHeadersSlotOffset;
         private long encodeHeadersSlotTraceId;
         private int headersSlot = NO_SLOT;
         private int headersSlotOffset;
         private int encodeHeadersSlotMarkOffset;
-
         private MutableDirectBuffer encodeReservedBuffer;
         private int encodeReservedSlotOffset;
         private long encodeReservedSlotTraceId;
         private int encodeReservedSlotMarkOffset;
-
+        private HttpEncoder encoder = HttpEncoder.HTTP_1_1;
         private int initialBudgetReserved;
 
         private final long[] streamsActive = new long[2];
@@ -1785,13 +2026,14 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final HpackContext decodeContext;
         private final HpackContext encodeContext;
         private final LongHashSet applicationHeadersProcessed;
-        private Http2ErrorCode decodeError;
-        private LongLongConsumer cleanupHandler;
         private final MutableBoolean expectDynamicTableSizeUpdate = new MutableBoolean(true);
         private int requestSharedBudget;
         private int encodeSlotReserved;
         private int initialSharedBudget;
         private long requestSharedBudgetIndex;
+        private LongLongConsumer cleanupHandler;
+
+        private HttpExchange exchange;
 
         private HttpClient(
             HttpClientPool pool)
@@ -1895,6 +2137,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 doEncodePreface(traceId, authorization);
                 doEncodeHttp2Settings(traceId, authorization);
                 this.decoder = decodeHttp2Settings;
+                this.encoder = HttpEncoder.HTTP_2;
             }
             pool.flushNext();
 
@@ -1959,22 +2202,15 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             pool.exchanges.forEach((id, exchange) ->
             {
+                state = HttpState.closeReply(state);
                 if (!HttpState.replyOpening(exchange.state) ||
                         decodeSlot == NO_SLOT)
                 {
-                    state = HttpState.closeReply(state);
                     exchange.cleanup(traceId, authorization);
-
+                    cleanupDecodeSlotIfNecessary();
                 }
             });
-            cleanupDecodeSlotIfNecessary();
             doNetworkEnd(traceId, authorization);
-
-            if (!HttpState.initialClosing(state))
-            {
-                state = HttpState.closingInitial(state);
-                cleanup(traceId, authorization, this::doNetworkEnd);
-            }
         }
 
         private void onNetworkSignal(
@@ -2044,36 +2280,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             initialMax = maximum;
             initialPad = padding;
 
-            int credit = (int) (acknowledge - initialAck) + (maximum - initialMax);
-            assert credit >= 0;
-
-            assert initialAck <= initialSeq;
-
-            if (initialBudgetReserved > 0)
-            {
-                final int reservedCredit = Math.min(credit, initialBudgetReserved);
-                initialBudgetReserved -= reservedCredit;
-                credit -= reservedCredit;
-            }
-
-            if (credit > 0)
-            {
-                initialSharedBudget += credit;
-                assert initialSharedBudget <= initialMax;
-                credit -= credit;
-            }
-
-            assert credit == 0;
-
-            encodeNetwork(traceId, authorization, budgetId);
-
-            flushRequestSharedBudget(traceId);
-
-            //TODO: HTTP1 case
-            //if (exchange != null && !HttpState.initialClosed(exchange.state))
-            //{
-            //    exchange.doRequestWindow(traceId, budgetId);
-            //}
+            encoder.doEncodeNetworkWindow(this, traceId, authorization, budgetId, acknowledge, maximum);
         }
 
         private void flushNetworkIfBuffered(
@@ -2340,10 +2547,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
             }
 
-            Optional<HttpExchange> exchange = pool.exchanges.values().stream().findFirst();
-            if (exchange.isPresent() && !HttpState.replyClosed(state))
+            if (exchange != null && !HttpState.replyClosed(exchange.state))
             {
-                doNetworkWindow(traceId, budgetId, exchange.get().responsePad, decodeSlotReserved);
+                doNetworkWindow(traceId, budgetId, exchange.responsePad, decodeSlotReserved);
             }
         }
 
@@ -2366,7 +2572,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             HttpBeginExFW beginEx)
         {
-            final HttpExchange exchange = pool.exchanges.values().stream().findFirst().get();
             exchange.doResponseBegin(traceId, authorization, beginEx);
 
             final HttpHeaderFW connection = beginEx.headers().matchFirst(h -> HEADER_CONNECTION.equals(h.name()));
@@ -2387,7 +2592,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            final HttpExchange exchange = pool.exchanges.values().stream().findFirst().get();
             exchange.doResponseEnd(traceId, authorization, extension);
         }
 
@@ -2400,7 +2604,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            final HttpExchange exchange = pool.exchanges.values().stream().findFirst().get();
             return exchange.doResponseData(traceId, authorization, budgetId, buffer, offset, limit, extension);
         }
 
@@ -2409,7 +2612,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Flyweight extension)
         {
-            final HttpExchange exchange = pool.exchanges.values().stream().findFirst().get();
             exchange.doResponseEnd(traceId, authorization, extension);
         }
 
@@ -3182,10 +3384,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
             else
             {
-                final HttpExchange stream = pool.exchanges.get(streamId);
-                if (stream != null)
+                final HttpExchange exchange = pool.exchanges.get(streamId);
+                if (exchange != null)
                 {
-                    stream.onRequestWindowUpdate(traceId, authorization, credit);
+                    exchange.onRequestWindowUpdate(traceId, authorization, credit);
                 }
             }
         }
@@ -3285,12 +3487,12 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void doEncodeHttp2Headers(
-                long traceId,
-                long authorization,
-                int streamId,
-                Array32FW<HttpHeaderFW> headers,
-                Map<String8FW, String16FW> overrides,
-                boolean endRequest)
+            long traceId,
+            long authorization,
+            int streamId,
+            Array32FW<HttpHeaderFW> headers,
+            Map<String8FW, String16FW> overrides,
+            boolean endRequest)
         {
             final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(streamId)
@@ -3615,9 +3817,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization)
         {
             cleanup(traceId, authorization, this::doNetworkResetAndAbort);
-
-            pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
-            cleanupStreams(traceId, authorization);
         }
 
         private void doNetworkResetAndAbort(
@@ -3716,6 +3915,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.overrides = overrides;
             this.streamId = streamId;
             localBudget = client.localSettings.initialWindowSize;
+        }
+
+        private int initialWindow()
+        {
+            return requestMax - (int)(requestSeq - requestAck);
         }
 
         private int replyWindow()
@@ -3820,8 +4024,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final HttpBeginExFW beginEx = extension.get(beginExRO::tryWrap);
             final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : DEFAULT_HEADERS;
 
-            client.doEncodeHttp2Headers(traceId, authorization, streamId, headers, overrides,
-                    requestContentLength == requestContentObserved);
+            client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, overrides);
         }
 
         private void onRequestFlush(
@@ -3883,26 +4086,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int length = data.length();
                 final OctetsFW payload = data.payload();
 
-                //TODO: HTTP1 version
-                //requestRemaining -= data.length();
-                //assert requestRemaining >= 0;
-
-                remoteBudget -= length;
-                client.remoteSharedBudget -= length;
-                requestContentObserved += length;
-
-                client.doEncodeHttp2Data(traceId, authorization, flags, budgetId, reserved, streamId, payload,
-                        requestContentLength == requestContentObserved);
-
-                final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
-                final int remotePadding = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
-                final int requestPadding = client.initialPad + remotePadding;
-
-                final int requestWin = requestMax - (int)(requestSeq - requestAck);
-                final int minimumClaim = 1024;
-                final int requestCreditMin = (requestWin <= requestPadding + minimumClaim) ? 0 : remoteBudget >> 1;
-
-                flushRequestWindow(traceId, requestCreditMin);
+                client.encoder.doEncodeRequestData(client, this, traceId, authorization,
+                        flags, budgetId, reserved, encodeMax, length, payload);
             }
         }
 
@@ -3926,10 +4111,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : DEFAULT_TRAILERS;
 
             state = HttpState.closeInitial(state);
-            if (requestContentLength != requestContentObserved)
-            {
-                client.doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.NO_ERROR);
-            }
+            client.encoder.doEncodeRequestEnd(client, this, traceId, authorization, 0, trailers);
+
         }
 
         private void onRequestAbort(
@@ -3949,11 +4132,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             assert requestAck <= requestSeq;
 
             state = HttpState.closeInitial(state);
-            //TDDO: Http1 implementation
-            //client.doNetworkAbort(traceId, authorization);
-            //client.doNetworkReset(traceId, authorization);
-            client.doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
-            cleanup(traceId, streamId);
+            client.encoder.doEncodeRequestAbort(client, this, traceId, authorization);
         }
 
         private void doRequestReset(
@@ -4112,10 +4291,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             final long authorization = reset.authorization();
 
             state = HttpState.closeReply(state);
-            //TODO: Http1 implementation
-            //client.cleanupNetwork(traceId, authorization);
-            client.doEncodeHttp2RstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
-            cleanup(traceId, streamId);
+            if (HttpState.closed(state))
+            {
+                onExchangeClosed();
+            }
+            client.encoder.doEncodeResponseReset(client, this, traceId, authorization);
         }
 
         private void onResponseWindow(
@@ -4168,6 +4348,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             final HttpExchange exchange = this.client.pool.exchanges.remove(streamId);
             if (exchange != null)
             {
+                client.exchange = null;
                 client.pool.flushNext();
             }
         }
