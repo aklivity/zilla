@@ -2139,10 +2139,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 this.decoder = decodeHttp2Settings;
                 this.encoder = HttpEncoder.HTTP_2;
             }
-            pool.flushNext();
-
             doNetworkWindow(traceId, 0L, 0, 0);
-
+            pool.flushNext();
         }
 
         private void onNetworkData(
@@ -2200,16 +2198,18 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             state = HttpState.closingReply(state);
 
-            pool.exchanges.forEach((id, exchange) ->
+            if (!pool.exchanges.isEmpty() && !HttpState.replyOpening(exchange.state) ||
+                decodeSlot == NO_SLOT)
             {
                 state = HttpState.closeReply(state);
-                if (!HttpState.replyOpening(exchange.state) ||
-                        decodeSlot == NO_SLOT)
+
+                pool.exchanges.forEach((id, exchange) ->
                 {
                     exchange.cleanup(traceId, authorization);
                     cleanupDecodeSlotIfNecessary();
-                }
-            });
+                });
+            }
+
             doNetworkEnd(traceId, authorization);
         }
 
@@ -4219,8 +4219,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 responseSeq += reserved;
                 localBudget -= length;
 
-                assert responseSeq <= responseAck + requestMax;
-
+                assert responseSeq <= responseAck + responseMax;
             }
 
             return offset + length;
