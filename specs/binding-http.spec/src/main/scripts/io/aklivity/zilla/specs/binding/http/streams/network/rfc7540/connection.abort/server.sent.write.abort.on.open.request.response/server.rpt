@@ -75,3 +75,10 @@ write [0x00 0x00 0x59]                                      # length
      [0x0f 0x0d] [0x03] "113"                              # content-length
 write flush
 
+write ${data}
+
+write [0x00 0x00 0x04]                          # length = 4
+      [0x03]                                    # HTTP2 RST_STREAM frame
+      [0x00]                                    # no flags
+      [0x00 0x00 0x00 0x01]                     # stream_id=1
+      [0x00 0x00 0x00 0x00]                     # NO_ERROR

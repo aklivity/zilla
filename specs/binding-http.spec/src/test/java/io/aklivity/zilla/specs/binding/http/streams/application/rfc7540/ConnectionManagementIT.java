@@ -160,10 +160,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/rst.stream.last.frame/client",
-        "${app}/rst.stream.last.frame/server"
+        "${app}/server.rst.stream.last.frame/client",
+        "${app}/server.rst.stream.last.frame/server"
     })
-    public void rstStreamLastFrame() throws Exception
+    public void serverRstStreamLastFrame() throws Exception
     {
         k3po.finish();
     }

@@ -25,8 +25,6 @@ write zilla:begin.ext ${http:beginEx()
                               .header(":scheme", "http")
                               .header(":path", "/")
                               .header(":authority", "localhost:8080")
-                              .header("content-type", "text/plain;charset=UTF-8")
-                              .header("content-length", "12")
                               .build()}
 connected
 

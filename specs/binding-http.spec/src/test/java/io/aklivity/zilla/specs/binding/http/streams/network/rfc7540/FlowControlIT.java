@@ -38,10 +38,10 @@ public class FlowControlIT
 
     @Test
     @Specification({
-        "${net}/stream.flow/client",
-        "${net}/stream.flow/server",
+        "${net}/server.stream.flow/client",
+        "${net}/server.stream.flow/server",
     })
-    public void streamFlow() throws Exception
+    public void serverStreamFlow() throws Exception
     {
         k3po.finish();
     }
