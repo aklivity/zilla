@@ -1,0 +1,110 @@
+#
+# Copyright 2021-2022 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+property networkAcceptWindow 8192
+
+accept "zilla://streams/net0"
+  option zilla:window ${networkAcceptWindow}
+  option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+accepted
+
+connected
+
+read 25                                 # size
+     17s                                # sasl.handshake
+     1s                                 # v1
+     (int:requestId)
+      -1s                               # no client id
+      13s "SCRAM-SHA-256"               # mechanism
+
+write 25                                # size
+      ${requestId}
+      0s                                # no error
+      1                                 # mechanisms
+        13s "SCRAM-SHA-256"             # SCRAM
+
+read 18                                 # size
+     36s                                # sasl.authenticate
+     1s                                 # v1
+     (int:requestId)
+     -1s                                # no client id
+     36                                 # authentication bytes
+     "n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL"
+
+write 90                                # size
+      ${requestId}
+      0s                                # no error
+      -1
+      70s "r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096"  # authentication bytes
+      0L                                # session lifetime
+
+read 96                                 # size
+     36s                                # sasl.authenticate
+     1s                                 # v1
+     (int:requestId)
+     -1s                                # no client id
+     82                                 # authentication bytes
+     "c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts="
+
+write 50                                # size
+      ${requestId}
+      0s                                # no error
+      -1
+      30s "v=rmF9pqV8S7suAoZWja4dJRkFsKQ="  # authentication bytes
+      0L                                # session lifetime
+
+read 21                                 # size
+     3s                                 # metadata
+     5s                                 # v5
+     (int:requestId)
+     -1s                                # no client id
+     1                                  # topics
+       4s "test"                        #   "test" topic
+     [0x00]                             # allow_auto_topic_creation
+
+write 150                               # size
+      ${requestId}
+      0
+      2                                 # brokers
+        1                                   # broker id
+        19s "broker1.example.com"           # host name
+        9092                                # port
+        -1s                                 # no rack
+        2
+        19s "broker2.example.com"
+        9092
+        -1s
+      9s "cluster 1"                    # cluster id
+      1                                 # controller id
+      1                                 # topics
+        0s                                # no error
+        4s "test"                         #   "test" topic
+        [0x00]                            # not internal
+        2                                 # partitions
+          0s                                # no error
+          0                                 # partition
+          1                                 # leader
+          0                                 # no replicas
+          -1                                # no in-sync replicas
+          0                                 # offline replicas
+          0s
+          1
+          2
+          0
+          -1
+          0

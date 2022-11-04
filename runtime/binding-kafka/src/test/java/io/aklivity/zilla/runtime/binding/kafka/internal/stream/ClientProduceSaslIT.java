@@ -62,4 +62,14 @@ public class ClientProduceSaslIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.options.sasl.scram-256.json")
+    @Specification({
+            "${app}/message.value/client",
+            "${net}/message.value.sasl.scram/server"})
+    public void shouldSendMessageValueWithSaslScram() throws Exception
+    {
+        k3po.finish();
+    }
 }

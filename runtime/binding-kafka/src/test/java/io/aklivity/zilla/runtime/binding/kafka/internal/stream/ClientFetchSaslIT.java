@@ -60,4 +60,14 @@ public class ClientFetchSaslIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.options.sasl.scram-256.json")
+    @Specification({
+            "${app}/partition.offset/client",
+            "${net}/partition.offset.sasl.scram/server"})
+    public void shouldRequestPartitionOffsetWithSaslScram() throws Exception
+    {
+        k3po.finish();
+    }
 }
