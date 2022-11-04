@@ -2208,9 +2208,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                     exchange.cleanup(traceId, authorization);
                     cleanupDecodeSlotIfNecessary();
                 });
-            }
 
-            doNetworkEnd(traceId, authorization);
+                doNetworkEnd(traceId, authorization);
+            }
         }
 
         private void onNetworkSignal(

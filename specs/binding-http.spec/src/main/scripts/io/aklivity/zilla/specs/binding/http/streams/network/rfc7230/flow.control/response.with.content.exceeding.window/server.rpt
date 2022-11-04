@@ -29,11 +29,11 @@ read "\r\n"
 
 write "HTTP/1.1 200 OK\r\n"
 write flush
-write "Content-Length: 66\r\n"
+write "Content-Length: 130\r\n"
 write "\r\n"
 write flush
 
-write "this string is more than 64 characters in length, really and truly"
+write "this string is more than 128 characters in length, really and truly. Specified behavior did not match really and truly. Believe me."
 write flush
 write close
 
