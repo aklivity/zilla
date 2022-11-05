@@ -15,33 +15,31 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
+import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.agrona.DirectBuffer;
-import org.pcap4j.core.NotOpenException;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.pcap4j.core.PcapDumper;
-import org.pcap4j.core.PcapNativeException;
-import org.pcap4j.packet.EthernetPacket;
-import org.pcap4j.packet.IpV6Packet;
-import org.pcap4j.packet.IpV6SimpleFlowLabel;
-import org.pcap4j.packet.IpV6SimpleTrafficClass;
-import org.pcap4j.packet.Packet;
 import org.pcap4j.packet.TcpPacket;
-import org.pcap4j.packet.UnknownPacket;
-import org.pcap4j.packet.namednumber.EtherType;
-import org.pcap4j.packet.namednumber.IpNumber;
-import org.pcap4j.packet.namednumber.IpVersion;
 import org.pcap4j.packet.namednumber.TcpPort;
-import org.pcap4j.util.MacAddress;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
 
+import io.aklivity.zilla.runtime.command.dump.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.command.dump.internal.types.PcapGlobalHeaderFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.PcapPacketHeaderFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.TcpHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
@@ -54,126 +52,243 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 
 public class DumpHandlers implements Handlers
 {
-    private final PcapDumper dumper;
+
+    public enum Flag
+    {
+        URG,
+        ACK,
+        PSH,
+        RST,
+        SYN,
+        FIN
+    }
+    private final MutableDirectBuffer writeBuffer;
     private static final AtomicInteger SEQUENCE = new AtomicInteger(0);
 
-    public DumpHandlers(PcapDumper dumper)
+    private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
+    private final PcapGlobalHeaderFW.Builder pcapGlobalHeaderRW = new PcapGlobalHeaderFW.Builder();
+    private final PcapPacketHeaderFW.Builder pcapPacketHeaderRW = new PcapPacketHeaderFW.Builder();
+    private final FileChannel channel;
+
+    private final int tcpHeaderSize = 20;
+
+    private final byte[] pseudoEthernetFrame = HexFormat.of().parseHex("fe0000000002fe000000000186dd61212345001406000000" +
+        "000000000000000000000000000000000000000000000000000000000000");
+
+    public DumpHandlers(FileChannel channel, int bufferSlotCapacity)
     {
-        this.dumper = dumper;
+        this.writeBuffer = new UnsafeBuffer(new byte[bufferSlotCapacity]);
+        this.channel = channel;
+
+        PcapGlobalHeaderFW globalHeaderFW = pcapGlobalHeaderRW.wrap(writeBuffer, 0, bufferSlotCapacity)
+            .magic_number(2712847316L)
+            .version_major((short) 2)
+            .version_minor((short) 4)
+            .thiszone(0)
+            .sigfigs(0)
+            .snaplen(65535)
+            .link_type(1) //Ipv6 link type number
+            .build();
+        writeToPcapFile(globalHeaderFW);
     }
     @Override
     public void onBegin(BeginFW begin)
     {
-        final long routeId = begin.routeId();
         final long streamId = begin.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address, port).syn(true),
-            address));
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.SYN);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
+    }
+
+    private void writeToPcapFile(Flyweight flyweight)
+    {
+        try
+        {
+            byte[] bytes = new byte[flyweight.sizeof()];
+            flyweight.buffer().getBytes(flyweight.offset(), bytes);
+            channel.write(ByteBuffer.wrap(bytes));
+            channel.force(true);
+        }
+        catch (IOException e)
+        {
+            System.out.println("Could not write to file. Reason: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void writeToPcapFile(byte[] bytes)
+    {
+        try
+        {
+            channel.write(ByteBuffer.wrap(bytes));
+            channel.force(true);
+        }
+        catch (IOException e)
+        {
+            System.out.println("Could not write to file. Reason: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    private PcapPacketHeaderFW createPcapPacketHeader(long length)
+    {
+        return pcapPacketHeaderRW.wrap(writeBuffer, tcpHeaderSize, writeBuffer.capacity())
+            .ts_sec(System.currentTimeMillis() / 1000)
+            .ts_usec(0)
+            .incl_len(length)
+            .orig_len(length)
+            .build();
+    }
+
+    private TcpHeaderFW createTcpHeader(long streamId, Flag flag)
+    {
+        short port = getPort(streamId);
+        short other = getOtherFields(flag);
+        return tcpHeaderRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .src_port(port)
+            .dst_port(port)
+            .sequence_number(1000)
+            .acknowledgment_number(2000)
+            .other_fields(other)
+            .window((short) 1024)
+            .checksum((short) 0)
+            .urgent_pointer((short) 0)
+            .build();
+    }
+
+    private short getOtherFields(Flag flag)
+    {
+        byte flags = 0;
+        if (flag == Flag.FIN)
+        {
+            flags = (byte) 1;
+        }
+        if (flag == Flag.SYN)
+        {
+            flags = (byte) (flags | 2);
+        }
+        if (flag == Flag.RST)
+        {
+            flags = (byte) (flags | 4);
+        }
+        if (flag == Flag.PSH)
+        {
+            flags = (byte) (flags | 8);
+        }
+        if (flag == Flag.ACK)
+        {
+            flags = (byte) (flags | 16);
+        }
+        if (flag == Flag.URG)
+        {
+            flags = (byte) (flags | 32);
+        }
+        byte dataOffsetAndReserved = 80; //20 bytes as header + 3 bit of reserved 0
+        byte[] bytes = new byte[] {flags, dataOffsetAndReserved};
+        ByteBuffer buffer = ByteBuffer.allocate(2).put(bytes);
+        return buffer.getShort(0);
     }
 
     @Override
     public void onData(DataFW data)
     {
-        final long routeId = data.routeId();
         final long streamId = data.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
         byte[] bytes = new byte[data.offset() + data.limit()];
+
         if (data.payload() != null)
         {
             DirectBuffer buffer = data.payload().buffer();
             buffer.getBytes(0, bytes, data.offset(), data.limit());
-            Inet6Address address = createAddress(bindingId, streamId);
-            TcpPort port = getPort(streamId);
-            writePacketsToPcap(
-                createPseudoEthernetPacket(createPseudoTcpPacketBuilderWithData(bytes, address, port).psh(true), address));
+
+            TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
+            PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length +
+                tcpHeader.sizeof() + bytes.length);
+            writeToPcapFile(pcapHeader);
+            writeToPcapFile(pseudoEthernetFrame);
+            writeToPcapFile(tcpHeader);
+            writeToPcapFile(bytes);
         }
     }
 
     @Override
     public void onEnd(EndFW end)
     {
-        final long routeId = end.routeId();
         final long streamId = end.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address, port).fin(true),
-            address));
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.FIN);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
     }
 
     @Override
     public void onAbort(AbortFW abort)
     {
-        final long routeId = abort.routeId();
         final long streamId = abort.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address, port).rst(true),
-            address));
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
     }
 
     @Override
     public void onReset(ResetFW reset)
     {
-        final long routeId = reset.routeId();
         final long streamId = reset.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address, port).rst(true),
-            address));
+
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
     }
 
     @Override
     public void onWindow(WindowFW window)
     {
-        final long routeId = window.routeId();
         final long streamId = window.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        TcpPacket.Builder builder = createPseudoTcpPacketBuilder(address, port).ack(true);
-        writePacketsToPcap(createPseudoEthernetPacket(builder,
-            address));
+
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.ACK);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
     }
 
     @Override
     public void onSignal(SignalFW signal)
     {
-        final long routeId = signal.routeId();
         final long streamId = signal.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address, port).psh(true),
-            address));
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
     }
 
     @Override
     public void onChallenge(ChallengeFW challenge)
     {
-        final long routeId = challenge.routeId();
         final long streamId = challenge.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address, port).psh(true),
-            address));
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
     }
 
     @Override
     public void onFlush(FlushFW flush)
     {
-        final long routeId = flush.routeId();
         final long streamId = flush.streamId();
-        final int bindingId = (int) (routeId >> 0) & 0xffff_ffff;
-        Inet6Address address = createAddress(bindingId, streamId);
-        TcpPort port = getPort(streamId);
-        writePacketsToPcap(createPseudoEthernetPacket(createPseudoTcpPacketBuilder(address, port).rst(true),
-            address));
+        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
+        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(pseudoEthernetFrame.length + tcpHeader.sizeof());
+        writeToPcapFile(pcapHeader);
+        writeToPcapFile(pseudoEthernetFrame);
+        writeToPcapFile(tcpHeader);
     }
 
     private Inet6Address createAddress(long bindingId, long streamId)
@@ -192,17 +307,10 @@ public class DumpHandlers implements Handlers
         return (Inet6Address) address;
     }
 
-    private TcpPort getPort(long streamId)
+    private short getPort(long streamId)
     {
         byte[] streamIdBytes =  Longs.toByteArray(streamId);
-        short port = Shorts.fromByteArray(Arrays.copyOfRange(streamIdBytes, streamIdBytes.length - 2, streamIdBytes.length));
-        return new TcpPort(port, "name");
-    }
-
-    private TcpPacket.Builder createPseudoTcpPacketBuilderWithData(byte[] data, Inet6Address address, TcpPort port)
-    {
-        UnknownPacket packet = UnknownPacket.newPacket(data, 0, data.length);
-        return createPseudoTcpPacketBuilder(address, port).payloadBuilder(packet.getBuilder());
+        return Shorts.fromByteArray(Arrays.copyOfRange(streamIdBytes, streamIdBytes.length - 2, streamIdBytes.length));
     }
 
     private TcpPacket.Builder createPseudoTcpPacketBuilder(Inet6Address address, TcpPort port)
@@ -217,39 +325,5 @@ public class DumpHandlers implements Handlers
             .sequenceNumber(SEQUENCE.incrementAndGet())
             .correctLengthAtBuild(true)
             .correctChecksumAtBuild(true);
-    }
-
-    private EthernetPacket createPseudoEthernetPacket(TcpPacket.Builder tcpBuilder, Inet6Address address)
-    {
-        IpV6Packet.Builder ipv6Builder = new IpV6Packet.Builder()
-            .srcAddr(address)
-            .dstAddr(address)
-            .correctLengthAtBuild(true)
-            .version(IpVersion.IPV6)
-            .trafficClass(IpV6SimpleTrafficClass.newInstance((byte) 0x12))
-            .flowLabel(IpV6SimpleFlowLabel.newInstance(0x12345))
-            .nextHeader(IpNumber.TCP)
-            .payloadBuilder(tcpBuilder);
-
-        EthernetPacket.Builder ethernetBuilder = new EthernetPacket.Builder();
-        ethernetBuilder.dstAddr(MacAddress.getByName("fe:00:00:00:00:02"))
-            .srcAddr(MacAddress.getByName("fe:00:00:00:00:01")).type(EtherType.IPV6)
-            .payloadBuilder(ipv6Builder).paddingAtBuild(true);
-
-        return ethernetBuilder.build();
-    }
-
-    public void writePacketsToPcap(Packet packet)
-    {
-        try
-        {
-            dumper.dump(packet);
-            dumper.flush();
-        }
-        catch (NotOpenException | PcapNativeException e)
-        {
-            System.out.println("Cannot dump packet to pcap file: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
     }
 }

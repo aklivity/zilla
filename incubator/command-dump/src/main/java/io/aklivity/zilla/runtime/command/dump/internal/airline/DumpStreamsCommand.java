@@ -17,18 +17,15 @@ package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static java.lang.Integer.parseInt;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
-
-import org.pcap4j.core.NotOpenException;
-import org.pcap4j.core.PcapDumper;
-import org.pcap4j.core.PcapHandle;
-import org.pcap4j.core.PcapNativeException;
-import org.pcap4j.core.Pcaps;
-import org.pcap4j.packet.namednumber.DataLinkType;
 
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
@@ -38,9 +35,8 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
 {
     private DumpHandlers dumpHandlers;
 
-
-    private PcapHandle phb;
-    private PcapDumper dumper;
+    private FileChannel channel;
+    private RandomAccessFile writer;
 
     public DumpStreamsCommand(
         EngineConfiguration config,
@@ -54,12 +50,14 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
         super(config, hasFrameType, verbose, continuous, affinity, position);
         try
         {
-            phb = Pcaps.openDead(DataLinkType.EN10MB, 65536);
             String timeStamp = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(System.currentTimeMillis());
             String fileName = "zilla_dump" + timeStamp + ".pcap";
-            dumper = phb.dumpOpen(Paths.get(pcapLocation, fileName).toString());
+            Path path = Paths.get(pcapLocation, fileName);
+            this.writer = new RandomAccessFile(path.toString(), "rw");
+            this.channel = writer.getChannel();
+            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024);
         }
-        catch (PcapNativeException | NotOpenException e)
+        catch (FileNotFoundException e)
         {
             System.out.println("Failed to open dump file: " + e.getMessage());
         }
@@ -78,16 +76,21 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
             .readonly(true)
             .spyAt(position)
             .build();
-
-        this.dumpHandlers = new DumpHandlers(dumper);
-
         return new LoggableStream(index, layout, hasFrameType, this::nextTimestamp, dumpHandlers);
     }
 
     @Override
     protected void closeResources()
     {
-        dumper.close();
-        phb.close();
+        try
+        {
+            channel.close();
+            writer.close();
+        }
+        catch (IOException e)
+        {
+            System.out.println("Could not close file. Reason: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 }

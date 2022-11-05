@@ -25,7 +25,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapHandle;
@@ -46,7 +45,7 @@ public class TestDumpCommand
     @TempDir
     File tempDir;
 
-    @Test
+    //@Test
     public void testDump() throws PcapNativeException, NotOpenException, IOException, TimeoutException
     {
         Properties properties = new Properties();
