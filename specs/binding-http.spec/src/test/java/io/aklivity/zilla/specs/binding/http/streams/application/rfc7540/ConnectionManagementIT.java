@@ -170,6 +170,26 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${app}/client.rst.stream.last.frame/client",
+        "${app}/client.rst.stream.last.frame/server"
+    })
+    public void clientRstStreamLastFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.sent.100k.message/client",
+        "${app}/client.sent.100k.message/server"
+    })
+    public void clientSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/client.sent.read.abort.on.closed.request/client",
         "${app}/client.sent.read.abort.on.closed.request/server"
     })
@@ -264,6 +284,26 @@ public class ConnectionManagementIT
         "${app}/http.authority.default.port/server"
     })
     public void authorityWithoutPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.authority/client",
+        "${app}/http.unknown.authority/server"
+    })
+    public void unknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.path/client",
+        "${app}/http.unknown.path/server"
+    })
+    public void unknownPath() throws Exception
     {
         k3po.finish();
     }

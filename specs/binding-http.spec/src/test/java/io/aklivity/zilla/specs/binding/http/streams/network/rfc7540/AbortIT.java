@@ -48,6 +48,16 @@ public class AbortIT
 
     @Test
     @Specification({
+        "${net}/h2.client.sent.error.on.open.request.response/client",
+        "${net}/h2.client.sent.error.on.open.request.response/server",
+    })
+    public void h2ClientSentErrorOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/client.sent.write.abort.on.open.request.response/client",
         "${net}/client.sent.write.abort.on.open.request.response/server",
     })

@@ -58,6 +58,16 @@ public class AbortIT
 
     @Test
     @Specification({
+        "${app}/h2.client.sent.write.abort.on.open.request.response/client",
+        "${app}/h2.client.sent.write.abort.on.open.request.response/server"
+    })
+    public void h2ClientSentWriteAbortOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/server.sent.read.abort.on.open.request.response/client",
         "${app}/server.sent.read.abort.on.open.request.response/server"
     })
@@ -68,10 +78,30 @@ public class AbortIT
 
     @Test
     @Specification({
+        "${app}/h2.server.sent.read.abort.on.open.request.response/client",
+        "${app}/h2.server.sent.read.abort.on.open.request.response/server"
+    })
+    public void h2ServerSentReadAbortOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/server.sent.write.abort.on.open.request.response/client",
         "${app}/server.sent.write.abort.on.open.request.response/server"
     })
     public void serverSentWriteAbortOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/h2.server.sent.write.abort.on.open.request.response/client",
+        "${app}/h2.server.sent.write.abort.on.open.request.response/server"
+    })
+    public void h2ServerSentWriteAbortOnOpenRequestResponse() throws Exception
     {
         k3po.finish();
     }
