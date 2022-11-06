@@ -22,6 +22,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -31,6 +32,7 @@ import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
 
+import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapGlobalHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapPacketHeaderFW;
@@ -40,6 +42,7 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
@@ -47,6 +50,9 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 
 public class DumpHandlers implements Handlers
 {
+
+    private final LabelManager labelManager;
+    private final Predicate<String> hasExtensionType;
 
     public enum Flag
     {
@@ -62,6 +68,8 @@ public class DumpHandlers implements Handlers
     private final PcapGlobalHeaderFW.Builder pcapGlobalHeaderRW = new PcapGlobalHeaderFW.Builder();
     private final PcapPacketHeaderFW.Builder pcapPacketHeaderRW = new PcapPacketHeaderFW.Builder();
     private final FileChannel channel;
+
+    private final ExtensionFW extensionRO = new ExtensionFW();
 
     private static final int TCP_HEADER_SIZE = 20;
 
@@ -79,10 +87,13 @@ public class DumpHandlers implements Handlers
         return data;
     }
 
-    public DumpHandlers(FileChannel channel, int bufferSlotCapacity)
+    public DumpHandlers(FileChannel channel, int bufferSlotCapacity, LabelManager labelManager,
+                        Predicate<String> hasExtensionType)
     {
         this.writeBuffer = new UnsafeBuffer(new byte[bufferSlotCapacity]);
         this.channel = channel;
+        this.labelManager = labelManager;
+        this.hasExtensionType = hasExtensionType;
 
         PcapGlobalHeaderFW globalHeaderFW = pcapGlobalHeaderRW.wrap(writeBuffer, 0, bufferSlotCapacity)
             .magic_number(2712847316L)
@@ -99,46 +110,67 @@ public class DumpHandlers implements Handlers
     @Override
     public void onBegin(BeginFW begin)
     {
-        final long streamId = begin.streamId();
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.SYN);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
-            begin.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(tcpHeader);
+        final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+        if (extension != null)
+        {
+            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            {
+                final long streamId = begin.streamId();
+                TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.SYN);
+                PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
+                    begin.timestamp());
+                writeToPcapFile(pcapHeader);
+                writeToPcapFile(PSEUDO_ETHERNET_FRAME);
+                writeToPcapFile(tcpHeader);
+            }
+        }
     }
 
     @Override
     public void onData(DataFW data)
     {
-        final long streamId = data.streamId();
-        byte[] bytes = new byte[data.offset() + data.limit()];
-
-        if (data.payload() != null)
+        final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
+        if (extension != null)
         {
-            DirectBuffer buffer = data.payload().buffer();
-            buffer.getBytes(0, bytes, data.offset(), data.limit());
+            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            {
+                final long streamId = data.streamId();
+                byte[] bytes = new byte[data.offset() + data.limit()];
 
-            TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
-            PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length +
-                tcpHeader.sizeof() + bytes.length, data.timestamp());
-            writeToPcapFile(pcapHeader);
-            writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-            writeToPcapFile(tcpHeader);
-            writeToPcapFile(bytes);
+                if (data.payload() != null)
+                {
+                    DirectBuffer buffer = data.payload().buffer();
+                    buffer.getBytes(0, bytes, data.offset(), data.limit());
+
+                    TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
+                    PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length +
+                        tcpHeader.sizeof() + bytes.length, data.timestamp());
+                    writeToPcapFile(pcapHeader);
+                    writeToPcapFile(PSEUDO_ETHERNET_FRAME);
+                    writeToPcapFile(tcpHeader);
+                    writeToPcapFile(bytes);
+                }
+            }
         }
     }
 
     @Override
     public void onEnd(EndFW end)
     {
-        final long streamId = end.streamId();
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.FIN);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
-            end.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(tcpHeader);
+        final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
+        if (extension != null)
+        {
+            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            {
+                final long streamId = end.streamId();
+                TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.FIN);
+                PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
+                    end.timestamp());
+                writeToPcapFile(pcapHeader);
+                writeToPcapFile(PSEUDO_ETHERNET_FRAME);
+                writeToPcapFile(tcpHeader);
+            }
+        }
     }
 
     @Override
@@ -156,14 +188,21 @@ public class DumpHandlers implements Handlers
     @Override
     public void onReset(ResetFW reset)
     {
-        final long streamId = reset.streamId();
+        final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
+        if (extension != null)
+        {
+            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            {
+                final long streamId = reset.streamId();
 
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
-            reset.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(tcpHeader);
+                TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
+                PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
+                    reset.timestamp());
+                writeToPcapFile(pcapHeader);
+                writeToPcapFile(PSEUDO_ETHERNET_FRAME);
+                writeToPcapFile(tcpHeader);
+            }
+        }
     }
 
     @Override
@@ -206,13 +245,20 @@ public class DumpHandlers implements Handlers
     @Override
     public void onFlush(FlushFW flush)
     {
-        final long streamId = flush.streamId();
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
-            flush.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(tcpHeader);
+        final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
+        if (extension != null)
+        {
+            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            {
+                final long streamId = flush.streamId();
+                TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
+                PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof(),
+                    flush.timestamp());
+                writeToPcapFile(pcapHeader);
+                writeToPcapFile(PSEUDO_ETHERNET_FRAME);
+                writeToPcapFile(tcpHeader);
+            }
+        }
     }
 
     private Inet6Address createAddress(long bindingId, long streamId)

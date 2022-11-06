@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.regex.Matcher;
 
+import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -52,7 +53,7 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
             Path path = Paths.get(pcapLocation, fileName);
             this.writer = new RandomAccessFile(path.toString(), "rw");
             this.channel = writer.getChannel();
-            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024);
+            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024, new LabelManager(config.directory()), t -> true);
         }
         catch (FileNotFoundException e)
         {

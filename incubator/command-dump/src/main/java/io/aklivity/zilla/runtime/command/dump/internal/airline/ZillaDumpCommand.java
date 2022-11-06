@@ -24,9 +24,14 @@ import java.net.URI;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -37,6 +42,7 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -54,6 +60,10 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     @Option(name = {"--continuous"})
     public boolean continuous = true;
+
+    @Option(name = {"-t", "--bindingTypes"},
+        description = "Dump specific bindings types only, e.g http")
+    public List<String> bindingTypes = new ArrayList<>();
 
     @Option(name = {"-d", "--directory"},
         description = "Configuration directory")
@@ -87,11 +97,16 @@ public final class ZillaDumpCommand extends ZillaCommand
     @Override
     public void run()
     {
+        this.directoryPath = Path.of(directory);
+        LabelManager labelManager = new LabelManager(directoryPath);
+        final Predicate<String> hasExtensionType =
+            bindingTypes == null || bindingTypes.isEmpty() ? t -> true : t -> bindingTypes.contains(t);
         try
         {
+
             this.writer = new RandomAccessFile(pcapLocation.getPath(), "rw");
             this.channel = writer.getChannel();
-            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024);
+            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024, labelManager, hasExtensionType);
         }
         catch (IOException e)
         {
@@ -107,7 +122,6 @@ public final class ZillaDumpCommand extends ZillaCommand
         properties.setProperty(ENGINE_DIRECTORY.name(), directory.getPath());
 
         this.config = new EngineConfiguration(new Configuration(), properties);
-        this.directoryPath = Path.of(directory);
         this.position = RingBufferSpy.SpyPosition.ZERO;
 
         runDumpCommand();

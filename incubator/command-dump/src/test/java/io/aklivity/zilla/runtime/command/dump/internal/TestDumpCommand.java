@@ -17,19 +17,17 @@ package io.aklivity.zilla.runtime.command.dump.internal;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
-import  java.nio.file.*;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -38,18 +36,17 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 public class TestDumpCommand
 {
 
-    File tempDir;
+    private static String baseDir = "src/test/resources/io/aklivity/zilla/runtime/command/dump/internal";
+    @TempDir
+    private File tempDir;
 
-    @Test
-    public void testDump() throws IOException, URISyntaxException
+    private ZillaDumpCommand dumpCommand;
+    @BeforeEach
+    public void init()
     {
-        Set<PosixFilePermission> ownerWritable = PosixFilePermissions.fromString("rwxrwxrwx");
-        FileAttribute<?> permissions = PosixFilePermissions.asFileAttribute(ownerWritable);
-        File tempDir = Files.createTempDirectory("temp", permissions).toFile();
-
-        ZillaDumpCommand dumpCommand = new ZillaDumpCommand();
+        dumpCommand = new ZillaDumpCommand();
         Properties properties = new Properties();
-        properties.put("zilla.engine.directory", "src/test/resources/zilla_test_stream");
+        properties.put("zilla.engine.directory", baseDir + "/engine");
         final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
         dumpCommand.directory = config.directory().toUri();
 
@@ -57,11 +54,31 @@ public class TestDumpCommand
         dumpCommand.affinity = -1;
         dumpCommand.continuous = false;
         dumpCommand.pcapLocation = Paths.get(tempDir.getPath(), "test.pcap").toUri();
+    }
+    @Test
+    public void testDumpWithoutExtensionFilter() throws IOException
+    {
         dumpCommand.run();
 
         File[] files = tempDir.listFiles();
         Assertions.assertEquals(1, files.length);
-        File expectedDump = new File("src/test/resources/expected_dump.pcap");
+        File expectedDump = new File(baseDir + "/expected_dump_without_filter.pcap");
+        byte[] expected = Files.readAllBytes(expectedDump.toPath());
+        byte[] actual =  Files.readAllBytes(files[0].toPath());
+        Assertions.assertTrue(Arrays.equals(expected, actual));
+    }
+
+    @Test
+    public void testDumpWithKafkaExtensionFilter() throws IOException
+    {
+        List<String> extensionTypes = new ArrayList<>();
+        extensionTypes.add("kafka");
+        dumpCommand.bindingTypes = extensionTypes;
+        dumpCommand.run();
+
+        File[] files = tempDir.listFiles();
+        Assertions.assertEquals(1, files.length);
+        File expectedDump = new File(baseDir + "/expected_dump_with_kafka_filter.pcap");
         byte[] expected = Files.readAllBytes(expectedDump.toPath());
         byte[] actual =  Files.readAllBytes(files[0].toPath());
         Assertions.assertTrue(Arrays.equals(expected, actual));
