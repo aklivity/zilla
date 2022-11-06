@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.command.log.internal;
 
-import static io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.BudgetsLayout.budgetIdOffset;
-import static io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.BudgetsLayout.budgetRemainingOffset;
+import static io.aklivity.zilla.runtime.command.log.internal.layouts.BudgetsLayout.budgetIdOffset;
+import static io.aklivity.zilla.runtime.command.log.internal.layouts.BudgetsLayout.budgetRemainingOffset;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,8 +30,7 @@ import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.command.dump.internal.airline.Logger;
-import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.BudgetsLayout;
+import io.aklivity.zilla.runtime.command.log.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public final class LogBudgetsCommand implements Runnable

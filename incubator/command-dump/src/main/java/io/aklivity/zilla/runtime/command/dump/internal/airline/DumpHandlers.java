@@ -28,9 +28,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.pcap4j.core.PcapDumper;
-import org.pcap4j.packet.TcpPacket;
-import org.pcap4j.packet.namednumber.TcpPort;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -311,19 +308,5 @@ public class DumpHandlers implements Handlers
     {
         byte[] streamIdBytes =  Longs.toByteArray(streamId);
         return Shorts.fromByteArray(Arrays.copyOfRange(streamIdBytes, streamIdBytes.length - 2, streamIdBytes.length));
-    }
-
-    private TcpPacket.Builder createPseudoTcpPacketBuilder(Inet6Address address, TcpPort port)
-    {
-        TcpPacket.Builder tcpBuilder = new TcpPacket.Builder();
-        return tcpBuilder
-            .srcAddr(address)
-            .srcPort(port)
-            .dstAddr(address)
-            .dstPort(port)
-            .window((short) 1024)
-            .sequenceNumber(SEQUENCE.incrementAndGet())
-            .correctLengthAtBuild(true)
-            .correctChecksumAtBuild(true);
     }
 }
