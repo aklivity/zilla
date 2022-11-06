@@ -13,6 +13,7 @@ under the License.
 
 This project includes:
   agrona under The Apache License, Version 2.0
+  ANTLR 4 Runtime under BSD-3-Clause
   Apache Commons CLI under Apache License, Version 2.0
   Checker Qual under The MIT License
   error-prone annotations under Apache 2.0
@@ -20,12 +21,21 @@ This project includes:
   Guava InternalFutureFailureAccess and InternalFutures under The Apache Software License, Version 2.0
   Guava ListenableFuture only under The Apache Software License, Version 2.0
   Guava: Google Core Libraries for Java under Apache License, Version 2.0
+  Hamcrest Core under New BSD License
   ICU4J under Unicode/ICU License
   J2ObjC Annotations under The Apache Software License, Version 2.0
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  Java Unified Expression Language API under The Apache Software License, Version 2.0
+  Java Unified Expression Language Implementation under The Apache Software License, Version 2.0
   JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
+  JUnit under Eclipse Public License 1.0
+  k3po/lang under The Apache Software License, Version 2.0
+  Kaazing Corporation License under The Apache Software License, Version 2.0
   org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::runtime::engine under The Apache Software License, Version 2.0
+  zilla::specs::binding-http.spec under The Apache Software License, Version 2.0
+  zilla::specs::binding-proxy.spec under The Apache Software License, Version 2.0
+  zilla::specs::engine.spec under The Apache Software License, Version 2.0
   zilla::specs::pcap.spec under The Apache Software License, Version 2.0
 
 

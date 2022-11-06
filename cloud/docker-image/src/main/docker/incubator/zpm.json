@@ -7,8 +7,8 @@
 
   "imports":
   [
-    "io.aklivity.zilla:runtime:develop-SNAPSHOT",
-    "io.aklivity.zilla:incubator:develop-SNAPSHOT"
+    "io.aklivity.zilla:runtime:${VERSION}",
+    "io.aklivity.zilla:incubator:${VERSION}"
   ],
 
   "dependencies":

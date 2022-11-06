@@ -84,7 +84,7 @@ public final class LoggableStream implements AutoCloseable
     }
 
     @Override
-    public void close() throws Exception
+    public void close()
     {
         layout.close();
     }
