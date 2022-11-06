@@ -1,17 +1,16 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2022 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
@@ -24,7 +23,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
@@ -40,14 +38,13 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
 
     public DumpStreamsCommand(
         EngineConfiguration config,
-        Predicate<String> hasFrameType,
         boolean verbose,
-        boolean continuous,
+        int count,
         long affinity,
         RingBufferSpy.SpyPosition position,
         String pcapLocation)
     {
-        super(config, hasFrameType, verbose, continuous, affinity, position);
+        super(config, verbose, count, affinity, position);
         try
         {
             String timeStamp = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(System.currentTimeMillis());
@@ -76,7 +73,7 @@ public class DumpStreamsCommand extends StreamsCommand implements Runnable
             .readonly(true)
             .spyAt(position)
             .build();
-        return new LoggableStream(index, layout, hasFrameType, this::nextTimestamp, dumpHandlers);
+        return new LoggableStream(index, layout, this::nextTimestamp, dumpHandlers);
     }
 
     @Override

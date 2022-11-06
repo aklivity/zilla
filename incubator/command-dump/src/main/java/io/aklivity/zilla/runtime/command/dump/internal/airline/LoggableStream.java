@@ -1,22 +1,20 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2022 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import java.util.function.LongPredicate;
-import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -58,7 +56,6 @@ public final class LoggableStream implements AutoCloseable
     public LoggableStream(
         int index,
         StreamsLayout layout,
-        Predicate<String> hasFrameType,
         LongPredicate nextTimestamp,
         Handlers handlers)
     {
@@ -69,42 +66,15 @@ public final class LoggableStream implements AutoCloseable
 
         final Int2ObjectHashMap<MessageConsumer> frameHandlers = new Int2ObjectHashMap<>();
 
-        if (hasFrameType.test("BEGIN"))
-        {
-            frameHandlers.put(BeginFW.TYPE_ID, (t, b, i, l) -> handlers.onBegin(beginRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("DATA"))
-        {
-            frameHandlers.put(DataFW.TYPE_ID, (t, b, i, l) -> handlers.onData(dataRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("END"))
-        {
-            frameHandlers.put(EndFW.TYPE_ID, (t, b, i, l) -> handlers.onEnd(endRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("ABORT"))
-        {
-            frameHandlers.put(AbortFW.TYPE_ID, (t, b, i, l) -> handlers.onAbort(abortRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("WINDOW"))
-        {
-            frameHandlers.put(WindowFW.TYPE_ID, (t, b, i, l) -> handlers.onWindow(windowRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("RESET"))
-        {
-            frameHandlers.put(ResetFW.TYPE_ID, (t, b, i, l) -> handlers.onReset(resetRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("CHALLENGE"))
-        {
-            frameHandlers.put(ChallengeFW.TYPE_ID, (t, b, i, l) -> handlers.onChallenge(challengeRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("SIGNAL"))
-        {
-            frameHandlers.put(SignalFW.TYPE_ID, (t, b, i, l) -> handlers.onSignal(signalRO.wrap(b, i, i + l)));
-        }
-        if (hasFrameType.test("FLUSH"))
-        {
-            frameHandlers.put(FlushFW.TYPE_ID, (t, b, i, l) -> handlers.onFlush(flushRO.wrap(b, i, i + l)));
-        }
+        frameHandlers.put(BeginFW.TYPE_ID, (t, b, i, l) -> handlers.onBegin(beginRO.wrap(b, i, i + l)));
+        frameHandlers.put(DataFW.TYPE_ID, (t, b, i, l) -> handlers.onData(dataRO.wrap(b, i, i + l)));
+        frameHandlers.put(EndFW.TYPE_ID, (t, b, i, l) -> handlers.onEnd(endRO.wrap(b, i, i + l)));
+        frameHandlers.put(AbortFW.TYPE_ID, (t, b, i, l) -> handlers.onAbort(abortRO.wrap(b, i, i + l)));
+        frameHandlers.put(WindowFW.TYPE_ID, (t, b, i, l) -> handlers.onWindow(windowRO.wrap(b, i, i + l)));
+        frameHandlers.put(ResetFW.TYPE_ID, (t, b, i, l) -> handlers.onReset(resetRO.wrap(b, i, i + l)));
+        frameHandlers.put(ChallengeFW.TYPE_ID, (t, b, i, l) -> handlers.onChallenge(challengeRO.wrap(b, i, i + l)));
+        frameHandlers.put(SignalFW.TYPE_ID, (t, b, i, l) -> handlers.onSignal(signalRO.wrap(b, i, i + l)));
+        frameHandlers.put(FlushFW.TYPE_ID, (t, b, i, l) -> handlers.onFlush(flushRO.wrap(b, i, i + l)));
         this.frameHandlers = frameHandlers;
     }
 

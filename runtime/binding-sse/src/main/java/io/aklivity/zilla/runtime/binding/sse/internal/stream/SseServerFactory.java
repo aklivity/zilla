@@ -733,8 +733,6 @@ public final class SseServerFactory implements SseStreamFactory
                     .data(payload)
                     .build();
 
-            sseEvent.buffer().byteArray()
-
             doNetData(traceId, authorization, budgetId, reserved, flags, sseEvent);
 
             initialCommentPending = false;
