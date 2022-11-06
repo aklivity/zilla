@@ -15,14 +15,29 @@
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
+import static java.lang.Integer.parseInt;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.URI;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import org.agrona.LangUtil;
+import org.agrona.concurrent.BackoffIdleStrategy;
+import org.agrona.concurrent.IdleStrategy;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 
 import io.aklivity.zilla.runtime.command.ZillaCommand;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
@@ -37,6 +52,9 @@ public final class ZillaDumpCommand extends ZillaCommand
     @Option(name = {"--version"})
     public boolean version = false;
 
+    @Option(name = {"--continuous"})
+    public boolean continuous = true;
+
     @Option(name = {"-d", "--directory"},
         description = "Configuration directory")
     public URI directory;
@@ -45,19 +63,42 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "PCAP file location to dump stream")
     public URI pcapLocation;
 
-    @Option(name = {"-c"},
-        description = "Exit after receiving count packets.")
-    public int count = -1;
-
     @Option(name = {"-a", "--affinity"},
         description = "Affinity mask")
     public long affinity = 0xffff_ffff_ffff_ffffL;
 
     private final Logger out = System.out::printf;
 
+    private long nextTimestamp = Long.MAX_VALUE;
+    private RingBufferSpy.SpyPosition position;
+    private static final long MAX_PARK_NS = MILLISECONDS.toNanos(100L);
+    private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
+    private static final int MAX_YIELDS = 30;
+    private static final int MAX_SPINS = 20;
+    private static final Pattern STREAMS_PATTERN = Pattern.compile("data(\\d+)");
+
+    private EngineConfiguration config;
+    private Path directoryPath;
+    private DumpHandlers dumpHandlers;
+
+    private FileChannel channel;
+    private RandomAccessFile writer;
+
     @Override
     public void run()
     {
+        try
+        {
+            this.writer = new RandomAccessFile(pcapLocation.getPath(), "rw");
+            this.channel = writer.getChannel();
+            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024);
+        }
+        catch (IOException e)
+        {
+            System.out.println("Failed to open dump file: " + e.getMessage());
+        }
+
+
         if (version)
         {
             out.printf("version: %s\n", DumpCommand.class.getPackage().getSpecificationVersion());
@@ -65,13 +106,106 @@ public final class ZillaDumpCommand extends ZillaCommand
         Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), directory.getPath());
 
-        final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
+        this.config = new EngineConfiguration(new Configuration(), properties);
+        this.directoryPath = Path.of(directory);
+        this.position = RingBufferSpy.SpyPosition.ZERO;
 
-        final RingBufferSpy.SpyPosition position = RingBufferSpy.SpyPosition.ZERO;
-
-
-        Runnable command = new DumpStreamsCommand(config, verbose, count, affinity, position,
-            pcapLocation.getPath());
-        command.run();
+        runDumpCommand();
     }
+
+    public void runDumpCommand()
+    {
+        try (Stream<Path> files = Files.walk(directoryPath, 3))
+        {
+            LoggableStream[] loggables = files.filter(this::isStreamsFile)
+                .peek(this::onDiscovered)
+                .map(this::newLoggable)
+                .toArray(LoggableStream[]::new);
+
+            final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
+            final int exitWorkCount = continuous ? -1 : 0;
+            int workCount;
+            do
+            {
+                workCount = 0;
+                for (int i = 0; i < loggables.length; i++)
+                {
+                    workCount += loggables[i].process();
+                }
+                idleStrategy.idle(workCount);
+            } while (workCount != exitWorkCount);
+            closeResources();
+        }
+        catch (IOException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+    }
+
+    private boolean isStreamsFile(
+        Path path)
+    {
+        final int depth = path.getNameCount() - directoryPath.getNameCount();
+        if (depth != 1 || !Files.isRegularFile(path))
+        {
+            return false;
+        }
+
+        final Matcher matcher = STREAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString());
+        return matcher.matches() && ((1L << parseInt(matcher.group(1))) & affinity) != 0L;
+    }
+
+    private void onDiscovered(
+        Path path)
+    {
+        if (verbose)
+        {
+            System.out.printf("Discovered: %s\n", path);
+        }
+    }
+
+    private boolean nextTimestamp(
+        final long timestamp)
+    {
+        if (timestamp != nextTimestamp)
+        {
+            nextTimestamp = Math.min(timestamp, nextTimestamp);
+            return false;
+        }
+        else
+        {
+            nextTimestamp = Long.MAX_VALUE;
+            return true;
+        }
+    }
+
+    private LoggableStream newLoggable(Path path)
+    {
+        final String filename = path.getFileName().toString();
+        final Matcher matcher = STREAMS_PATTERN.matcher(filename);
+        matcher.matches();
+        final int index = parseInt(matcher.group(1));
+
+        StreamsLayout layout = new StreamsLayout.Builder()
+            .path(path)
+            .readonly(true)
+            .spyAt(position)
+            .build();
+        return new LoggableStream(index, layout, this::nextTimestamp, dumpHandlers);
+    }
+
+    private void closeResources()
+    {
+        try
+        {
+            channel.close();
+            writer.close();
+        }
+        catch (IOException e)
+        {
+            System.out.println("Could not close file. Reason: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
 }

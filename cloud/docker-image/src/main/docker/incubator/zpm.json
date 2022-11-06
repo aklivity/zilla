@@ -7,8 +7,8 @@
 
   "imports":
   [
-    "io.aklivity.zilla:runtime:${VERSION}",
-    "io.aklivity.zilla:incubator:${VERSION}"
+    "io.aklivity.zilla:runtime:develop-SNAPSHOT",
+    "io.aklivity.zilla:incubator:develop-SNAPSHOT"
   ],
 
   "dependencies":
@@ -34,6 +34,7 @@
     "io.aklivity.zilla:command-tune",
     "io.aklivity.zilla:command-load",
     "io.aklivity.zilla:command-dump",
+    "io.aklivity.zilla:pcap.spec",
     "io.aklivity.zilla:engine",
     "io.aklivity.zilla:guard-jwt",
     "io.aklivity.zilla:vault-filesystem",

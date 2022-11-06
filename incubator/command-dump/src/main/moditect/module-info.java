@@ -16,7 +16,6 @@ module io.aklivity.zilla.runtime.command.dump
 {
     requires io.aklivity.zilla.runtime.command;
     requires io.aklivity.zilla.runtime.engine;
-    requires org.pcap4j.core;
 
     opens io.aklivity.zilla.runtime.command.dump.internal.airline
         to com.github.rvesse.airline;

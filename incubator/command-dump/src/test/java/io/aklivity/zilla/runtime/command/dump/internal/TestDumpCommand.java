@@ -14,71 +14,55 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal;
 
-import static org.pcap4j.core.PcapHandle.TimestampPrecision.NANO;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import  java.nio.file.*;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Properties;
-import java.util.concurrent.TimeoutException;
+import java.util.Set;
 
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.io.TempDir;
-import org.pcap4j.core.NotOpenException;
-import org.pcap4j.core.PcapHandle;
-import org.pcap4j.core.PcapNativeException;
-import org.pcap4j.core.Pcaps;
-import org.pcap4j.packet.Packet;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.io.Files;
-
-import io.aklivity.zilla.runtime.command.dump.internal.airline.DumpStreamsCommand;
-import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 public class TestDumpCommand
 {
 
-    @TempDir
     File tempDir;
 
-    //@Test
-    public void testDump() throws PcapNativeException, NotOpenException, IOException, TimeoutException
+    @Test
+    public void testDump() throws IOException, URISyntaxException
     {
+        Set<PosixFilePermission> ownerWritable = PosixFilePermissions.fromString("rwxrwxrwx");
+        FileAttribute<?> permissions = PosixFilePermissions.asFileAttribute(ownerWritable);
+        File tempDir = Files.createTempDirectory("temp", permissions).toFile();
+
+        ZillaDumpCommand dumpCommand = new ZillaDumpCommand();
         Properties properties = new Properties();
         properties.put("zilla.engine.directory", "src/test/resources/zilla_test_stream");
         final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
-        boolean verbose = true;
-        long affinity = -1;
-        RingBufferSpy.SpyPosition position = RingBufferSpy.SpyPosition.ZERO;
-        Runnable command = new DumpStreamsCommand(config, verbose, 1, affinity, position,
-            tempDir.getAbsolutePath());
-        command.run();
+        dumpCommand.directory = config.directory().toUri();
+
+        dumpCommand.verbose = true;
+        dumpCommand.affinity = -1;
+        dumpCommand.continuous = false;
+        dumpCommand.pcapLocation = Paths.get(tempDir.getPath(), "test.pcap").toUri();
+        dumpCommand.run();
 
         File[] files = tempDir.listFiles();
         Assertions.assertEquals(1, files.length);
-        File file = new File("src/test/resources/expected_dump.pcap");
-        // We need to copy the file, because Pcap library cannot read from resources dir. //TODO: why?
-        Files.copy(file, new File(tempDir.getAbsolutePath() + "expected_dump.pcap"));
-
-        PcapHandle expectedPhb = Pcaps.openOffline(tempDir.getAbsolutePath() + "expected_dump.pcap", NANO);
-        PcapHandle actualPhb = Pcaps.openOffline(files[0].getPath(), NANO);
-        Packet expected = expectedPhb.getNextPacketEx().getPacket();
-        while (true)
-        {
-            try
-            {
-                Packet actual = actualPhb.getNextPacketEx().getPacket();
-                Assertions.assertEquals(expected, actual);
-                expected = expectedPhb.getNextPacketEx().getPacket();
-            }
-            catch (EOFException e)
-            {
-                break;
-            }
-        }
-        expectedPhb.close();
-        actualPhb.close();
+        File expectedDump = new File("src/test/resources/expected_dump.pcap");
+        byte[] expected = Files.readAllBytes(expectedDump.toPath());
+        byte[] actual =  Files.readAllBytes(files[0].toPath());
+        Assertions.assertEquals(expected, actual);
     }
 }

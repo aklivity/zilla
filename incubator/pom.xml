@@ -26,6 +26,7 @@
     <module>command-load</module>
     <module>command-log</module>
     <module>command-dump</module>
+    <module>pcap.spec</module>
     <module>command-tune</module>
   </modules>
 
@@ -59,6 +60,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-dump</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>pcap.spec</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
