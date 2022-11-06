@@ -25,13 +25,11 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -45,8 +43,6 @@ import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 @Command(name = "dump", description = "Dump stream content")
 public final class ZillaDumpCommand extends ZillaCommand
@@ -87,7 +83,6 @@ public final class ZillaDumpCommand extends ZillaCommand
     private static final int MAX_SPINS = 20;
     private static final Pattern STREAMS_PATTERN = Pattern.compile("data(\\d+)");
 
-    private EngineConfiguration config;
     private Path directoryPath;
     private DumpHandlers dumpHandlers;
 
@@ -116,12 +111,11 @@ public final class ZillaDumpCommand extends ZillaCommand
 
         if (version)
         {
-            out.printf("version: %s\n", DumpCommand.class.getPackage().getSpecificationVersion());
+            out.printf("version: %s\n", ZillaDumpCommand.class.getPackage().getSpecificationVersion());
         }
         Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), directory.getPath());
 
-        this.config = new EngineConfiguration(new Configuration(), properties);
         this.position = RingBufferSpy.SpyPosition.ZERO;
 
         runDumpCommand();

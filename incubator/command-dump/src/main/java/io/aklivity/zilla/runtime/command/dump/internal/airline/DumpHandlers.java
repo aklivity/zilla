@@ -12,13 +12,9 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import java.io.IOException;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
@@ -28,7 +24,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
 
@@ -48,9 +43,8 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
 
-public class DumpHandlers implements Handlers
+public class DumpHandlers
 {
-
     private final LabelManager labelManager;
     private final Predicate<String> hasExtensionType;
 
@@ -107,7 +101,7 @@ public class DumpHandlers implements Handlers
         writeToPcapFile(globalHeaderFW);
     }
 
-    @Override
+
     public void onBegin(BeginFW begin)
     {
         final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
@@ -126,7 +120,6 @@ public class DumpHandlers implements Handlers
         }
     }
 
-    @Override
     public void onData(DataFW data)
     {
         final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
@@ -154,7 +147,6 @@ public class DumpHandlers implements Handlers
         }
     }
 
-    @Override
     public void onEnd(EndFW end)
     {
         final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
@@ -173,7 +165,6 @@ public class DumpHandlers implements Handlers
         }
     }
 
-    @Override
     public void onAbort(AbortFW abort)
     {
         final long streamId = abort.streamId();
@@ -185,7 +176,6 @@ public class DumpHandlers implements Handlers
         writeToPcapFile(tcpHeader);
     }
 
-    @Override
     public void onReset(ResetFW reset)
     {
         final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
@@ -205,7 +195,6 @@ public class DumpHandlers implements Handlers
         }
     }
 
-    @Override
     public void onWindow(WindowFW window)
     {
         final long streamId = window.streamId();
@@ -218,7 +207,6 @@ public class DumpHandlers implements Handlers
         writeToPcapFile(tcpHeader);
     }
 
-    @Override
     public void onSignal(SignalFW signal)
     {
         final long streamId = signal.streamId();
@@ -230,7 +218,6 @@ public class DumpHandlers implements Handlers
         writeToPcapFile(tcpHeader);
     }
 
-    @Override
     public void onChallenge(ChallengeFW challenge)
     {
         final long streamId = challenge.streamId();
@@ -242,7 +229,6 @@ public class DumpHandlers implements Handlers
         writeToPcapFile(tcpHeader);
     }
 
-    @Override
     public void onFlush(FlushFW flush)
     {
         final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
@@ -259,22 +245,6 @@ public class DumpHandlers implements Handlers
                 writeToPcapFile(tcpHeader);
             }
         }
-    }
-
-    private Inet6Address createAddress(long bindingId, long streamId)
-    {
-        InetAddress address;
-        try
-        {
-            address = Inet6Address.getByAddress(
-                Bytes.concat(Longs.toByteArray(bindingId), Longs.toByteArray(streamId)));
-        }
-        catch (UnknownHostException e)
-        {
-            System.out.println("Couldn't create pseudo IPv6 address: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
-        return (Inet6Address) address;
     }
 
     private void writeToPcapFile(Flyweight flyweight)

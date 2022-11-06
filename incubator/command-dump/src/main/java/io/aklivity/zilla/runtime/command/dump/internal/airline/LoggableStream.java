@@ -57,7 +57,7 @@ public final class LoggableStream implements AutoCloseable
         int index,
         StreamsLayout layout,
         LongPredicate nextTimestamp,
-        Handlers handlers)
+        DumpHandlers handlers)
     {
         this.index = index;
         this.layout = layout;

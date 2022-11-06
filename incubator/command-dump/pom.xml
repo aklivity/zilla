@@ -111,8 +111,8 @@
         <artifactId>license-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>src/test/resources/*</exclude>
-            <exclude>src/test/resources/zilla_test_stream/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/*</exclude>
+            <exclude>src/test/resources/io/aklivity/zilla/runtime/command/dump/internal/engine/*</exclude>
           </excludes>
         </configuration>
       </plugin>
