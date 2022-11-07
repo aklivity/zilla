@@ -369,4 +369,24 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.read.abort.before.correlated/client",
+        "${net}/client.sent.read.abort.before.correlated/server",
+    })
+    public void clientSentReadAbortBeforeCorrelated() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.reset.http2.frame.on.closed.request/client",
+        "${net}/client.sent.reset.http2.frame.on.closed.request/server",
+    })
+    public void clientSentResetHttp2FrameOnClosedRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

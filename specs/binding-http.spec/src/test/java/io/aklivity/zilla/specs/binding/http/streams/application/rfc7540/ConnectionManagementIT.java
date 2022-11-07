@@ -367,4 +367,24 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.authority/client",
+        "${app}/http.unknown.authority/server"
+    })
+    public void httpUnknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.path/client",
+        "${app}/http.unknown.path/server"
+    })
+    public void httpUnknownPath() throws Exception
+    {
+        k3po.finish();
+    }
 }
