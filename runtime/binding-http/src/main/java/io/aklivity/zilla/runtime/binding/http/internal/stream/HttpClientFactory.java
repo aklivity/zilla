@@ -251,12 +251,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Http2RstStreamFW.Builder http2RstStreamRW = new Http2RstStreamFW.Builder();
     private final Http2PushPromiseFW.Builder http2PushPromiseRW = new Http2PushPromiseFW.Builder();
 
-    private final HpackHeaderBlockFW headerBlockRO = new HpackHeaderBlockFW();
-
-    private final MutableInteger payloadRemaining = new MutableInteger(0);
-
-    private final Http2HeadersDecoder headersDecoder = new Http2HeadersDecoder();
-    private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
 
     private final HttpClientDecoder decodeHttp2Settings = this::decodeHttp2Settings;
     private final HttpClientDecoder decodeHttp2FrameType = this::decodeHttp2FrameType;
@@ -267,10 +261,15 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final HttpClientDecoder decodeHttp2Continuation = this::decodeHttp2Continuation;
     private final HttpClientDecoder decodeHttp2Data = this::decodeHttp2Data;
     private final HttpClientDecoder decodeHttp2DataPayload = this::decodeHttp2DataPayload;
-    private final HttpClientDecoder decodeHttp2Priority = this::decodePriority;
+    private final HttpClientDecoder decodeHttp2Priority = this::decodeHttp2Priority;
     private final HttpClientDecoder decodeHttp2RstStream = this::decodeHttp2RstStream;
     private final HttpClientDecoder decodeHttp2IgnoreOne = this::decodeHttp2IgnoreOne;
     private final HttpClientDecoder decodeHttp2IgnoreAll = this::decodeHttp2IgnoreAll;
+
+    private final Http2HeadersEncoder headersEncoder = new Http2HeadersEncoder();
+    private final Http2HeadersDecoder headersDecoder = new Http2HeadersDecoder();
+    private final HpackHeaderBlockFW headerBlockRO = new HpackHeaderBlockFW();
+    private final MutableInteger payloadRemaining = new MutableInteger(0);
 
     private final EnumMap<Http2FrameType, HttpClientDecoder> decodersByFrameType;
     {
@@ -302,20 +301,19 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId; //TODO: Check budgetId
-    private final int httpTypeId;
     private final Long2ObjectHashMap<HttpClientPool> clientPools;
     private final Long2ObjectHashMap<HttpBindingConfig> bindings;
     private final Matcher responseLine;
     private final Matcher versionPart;
     private final Matcher headerLine;
     private final Matcher connectionClose;
-    private final int maximumRequestQueueSize;
+    private final int httpTypeId;
+    private final int proxyTypeId;
     private final int encodeMax;
     private final int decodeMax;
-
-    private final int proxyTypeId;
-
+    private final int maximumRequestQueueSize;
     private final int maximumConnectionsPerRoute;
+
     private final LongSupplier countRequests;
     private final LongSupplier countRequestsRejected;
     private final LongSupplier countRequestsAbandoned;
@@ -1113,8 +1111,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 OctetsFW payload)
             {
                 exchange.remoteBudget -= length;
-                client.remoteSharedBudget -= length;
                 exchange.requestContentObserved += length;
+                client.remoteSharedBudget -= length;
 
                 final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
                 client.doEncodeHttp2Data(traceId, authorization, flags, budgetId, reserved, exchange.streamId, payload,
@@ -1677,7 +1675,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         return progress;
     }
 
-    private int decodePriority(
+    private int decodeHttp2Priority(
         HttpClient client,
         long traceId,
         long authorization,
@@ -1933,7 +1931,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 client = clients.stream().filter(
                         c -> !HttpState.replyOpened(c.state) ||
                         c.encoder == HttpEncoder.HTTP_2 ||
-                        c.encoder == HttpEncoder.HTTP_1_1 && c.exchange == null)
+                        c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1)
                         .findFirst()
                         .orElse(null);
             }
@@ -2026,19 +2024,20 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int initialBudgetReserved;
 
         private final long[] streamsActive = new long[2];
+        private final MutableBoolean expectDynamicTableSizeUpdate = new MutableBoolean(true);
         private final Http2Settings localSettings;
         private final Http2Settings remoteSettings;
         private final HpackContext decodeContext;
         private final HpackContext encodeContext;
         private final LongHashSet applicationHeadersProcessed;
-        private final MutableBoolean expectDynamicTableSizeUpdate = new MutableBoolean(true);
+
+        private HttpExchange exchange;
+        private LongLongConsumer cleanupHandler;
         private int requestSharedBudget;
         private int encodeSlotReserved;
         private int initialSharedBudget;
         private long requestSharedBudgetIndex;
-        private LongLongConsumer cleanupHandler;
 
-        private HttpExchange exchange;
 
         private HttpClient(
             HttpClientPool pool)
@@ -2136,15 +2135,19 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 for (HttpExchange stream: pool.exchanges.values())
                 {
-                    stream.remoteBudget += bufferPool.slotCapacity();
+                    stream.remoteBudget += encodeMax;
                     stream.flushRequestWindow(traceId, 0);
                 }
+
                 doEncodePreface(traceId, authorization);
                 doEncodeHttp2Settings(traceId, authorization);
+
                 this.decoder = decodeHttp2Settings;
                 this.encoder = HttpEncoder.HTTP_2;
             }
+
             doNetworkWindow(traceId, 0L, 0, 0);
+
             pool.flushNext();
         }
 
@@ -2868,7 +2871,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
                     .initialWindowSize(initialSettings.initialWindowSize);
 
-            //TODO: Workaround for spec tests.
             if (initialSettings.maxFrameSize != Http2Settings.DEFAULT_MAX_FRAME_SIZE)
             {
                 http2SettingsBuilder.maxFrameSize(initialSettings.maxFrameSize);

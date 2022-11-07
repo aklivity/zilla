@@ -1416,7 +1416,6 @@ public final class HttpServerFactory implements HttpStreamFactory
         final int endOfTrailersAt = limitOfBytes(buffer, offset, limit, CRLFCRLF_BYTES);
         if (endOfTrailersAt != -1)
         {
-            // TODO
             final HttpEndExFW httpEndEx = endExRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                                                      .typeId(httpTypeId)
                                                      .build();
