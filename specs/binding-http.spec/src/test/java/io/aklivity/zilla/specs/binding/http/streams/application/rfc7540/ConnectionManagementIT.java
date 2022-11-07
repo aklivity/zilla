@@ -357,4 +357,14 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.write.http2.rst.frame.on.open.request/client",
+        "${app}/server.sent.write.http2.rst.frame.on.open.request/server"
+    })
+    public void serverSentWriteHttp2RstFrameOnOpenRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

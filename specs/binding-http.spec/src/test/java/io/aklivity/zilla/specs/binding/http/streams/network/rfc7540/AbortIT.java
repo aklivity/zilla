@@ -85,4 +85,24 @@ public class AbortIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/h2.server.sent.read.abort.on.open.request.response/client",
+        "${net}/h2.server.sent.read.abort.on.open.request.response/server",
+    })
+    public void h2ServerSentReadAbortOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/h2.server.sent.write.abort.on.open.request.response/client",
+        "${net}/h2.server.sent.write.abort.on.open.request.response/server",
+    })
+    public void h2ServerSentWriteAbortOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

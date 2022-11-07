@@ -93,7 +93,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.frame.error/client",
+        "${app}/client.error.frame/client",
         "${net}/client.max.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void maxFrameSizeError() throws Exception
@@ -104,7 +104,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.frame.error/client",
+        "${app}/client.error.frame/client",
         "${net}/client.ping.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pingFrameSizeError() throws Exception
@@ -115,7 +115,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.frame.error/client",
+        "${app}/client.error.frame/client",
         "${net}/client.connection.window.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionWindowFrameSizeError() throws Exception
@@ -126,7 +126,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.frame.error/client",
+        "${app}/client.error.frame/client",
         "${net}/client.window.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void windowFrameSizeError() throws Exception
@@ -137,7 +137,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.rst.stream.frame.size.error/client",
+        "${app}/client.error.frame.with.request.payload/client",
         "${net}/client.rst.stream.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void rstStreamFrameSizeError() throws Exception
@@ -148,7 +148,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.priority.frame.size.error/client",
+        "${app}/client.error.frame.with.request.payload/client",
         "${net}/client.priority.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void priorityFrameSizeError() throws Exception
@@ -183,7 +183,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.frame.error/client",
+        "${app}/client.error.frame/client",
         "${net}/client.invalid.hpack.index/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void invalidHpackIndex() throws Exception

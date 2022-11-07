@@ -88,6 +88,16 @@ public class MessageFormatIT
 
     @Test
     @Specification({
+        "${app}/client.error.frame.with.request.payload/client",
+        "${app}/client.error.frame.with.request.payload/server"
+    })
+    public void clientErrorFrameWithRequestPayload() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/rst.stream.frame.size.error/client",
         "${app}/rst.stream.frame.size.error/server"
     })
@@ -132,6 +142,16 @@ public class MessageFormatIT
         "${app}/stream.id.order/server"
     })
     public void streamIdOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.error.frame/client",
+        "${app}/client.error.frame/server"
+    })
+    public void clientErrorFrame() throws Exception
     {
         k3po.finish();
     }

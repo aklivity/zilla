@@ -71,11 +71,11 @@ write [0x00 0x00 0x37]                                          # length = 54
       [0x00]                            # NO_END_STREAM
       [0x00 0x00 0x00 0x01]             # stream_id = 1
       ${http:randomBytes(16384)}
-      [0x00 0x3f 0xff]                  # length = 16383
+      [0x00 0x3f 0xdc]                  # length = 16348
       [0x00]                            # HTTP2 DATA frame
       [0x00]                            # NO_END_STREAM
       [0x00 0x00 0x00 0x01]             # stream_id = 1
-      ${http:randomBytes(16383)}
+      ${http:randomBytes(16348)}
 write flush
 
 read [0x00 0x00 0x04]                  # length
@@ -124,7 +124,14 @@ read [0x00 0x00 0x04]                  # length
      [0x08]                            # WINDOW_UPDATE frame
      [0x00]                            # no flags
      [0x00 0x00 0x00 0x01]             # stream_id=1
-     [0x00 0x00 0x3f 0xff]             # window size increment = 16383
+     [0x00 0x00 0x3f 0xdc]             # window size increment = 16348
+
+write [0x00 0x00 0x1b]                  # length = 27
+      [0x00]                            # HTTP2 DATA frame
+      [0x00]                            # NO_END_STREAM
+      [0x00 0x00 0x00 0x01]             # stream_id = 1
+      ${http:randomBytes(27)}
+write flush
 
 write [0x00 0x00 0x00]                  # length = 0
       [0x04]                            # HTTP2 SETTINGS frame
