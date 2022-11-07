@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
-import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONNECTION;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONTENT_LENGTH;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TRAILERS;
@@ -34,7 +33,6 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Collections.emptyMap;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -189,12 +187,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                          .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
                          .build();
-    private static final Array32FW<HttpHeaderFW> HEADERS_400_BAD_REQUEST =
-            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                    .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                    .item(h -> h.name(":status").value("400"))
-                    .item(h -> h.name("content-length").value("0"))
-                    .build();
     private static final Map<String8FW, String16FW> EMPTY_OVERRIDES = emptyMap();
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -214,7 +206,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
-    private AbortFW.Builder abortRW = new AbortFW.Builder();
+    private final AbortFW.Builder abortRW = new AbortFW.Builder();
 
     private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
     private final HttpEndExFW.Builder endExRW = new HttpEndExFW.Builder();
@@ -309,7 +301,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final LongSupplier supplyBudgetId;
+    private final LongSupplier supplyBudgetId; //TODO: Check budgetId
     private final int httpTypeId;
     private final Long2ObjectHashMap<HttpClientPool> clientPools;
     private final Long2ObjectHashMap<HttpBindingConfig> bindings;
@@ -1152,7 +1144,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
                 }
-                //TODO: Implement trailers
             }
 
             @Override
@@ -1795,10 +1786,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final class HttpClientPool
     {
-        private final long resolvedId;
-        private final List<HttpClient> clients;
-
         private final Int2ObjectHashMap<HttpExchange> exchanges;
+        private final List<HttpClient> clients;
+        private final long resolvedId;
+
         private int httpQueueSlot = NO_SLOT;
         private int httpQueueSlotOffset;
         private int httpQueueSlotLimit;
@@ -1824,7 +1815,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             HttpClient client = supplyClient();
 
-            MessageConsumer newStream = null;
+            MessageConsumer newStream;
 
             final int queuedRequestLength = HttpQueueEntryFW.FIELD_OFFSET_VALUE_LENGTH + begin.extension().sizeof();
             if (client == null || queuedRequestLength > maximumRequestQueueSize)
@@ -2018,7 +2009,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long replyAck;
         private long replyAuth;
 
-        private MutableDirectBuffer encodeHeadersBuffer;
+        private final MutableDirectBuffer encodeHeadersBuffer;
         private int encodeSlot;
         private int encodeSlotOffset;
         private int encodeSlotMarkOffset;
@@ -2648,7 +2639,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             exchange.requestRemaining = contentLength != null ? parseInt(contentLength.asString()) : Integer.MAX_VALUE;
 
             final String16FW transferEncoding = headersMap.get(HEADER_TRANSFER_ENCODING);
-            exchange.requestChunked = transferEncoding != null && TRANSFER_ENCODING_CHUNKED.equals(transferEncoding);
+            exchange.requestChunked = TRANSFER_ENCODING_CHUNKED.equals(transferEncoding);
 
             final String16FW connection = headersMap.get(HEADER_CONNECTION);
             final String16FW upgrade = headersMap.get(HEADER_UPGRADE);
@@ -2830,7 +2821,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                     codecOffset.value += CRLF_BYTES.length;
 
                     buffer = codecBuffer;
-                    offset = 0;
                     limit = codecOffset.value;
                 }
 
@@ -2854,35 +2844,6 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             doNetworkReservedData(traceId, authorization, 0L, http2Preface);
         }
-
-        private void doEncodeHttp2Trailers(
-            long traceId,
-            long authorization,
-            int streamId,
-            Array32FW<HttpHeaderFW> trailers)
-        {
-            if (trailers.isEmpty())
-            {
-                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-                        .streamId(streamId)
-                        .endStream()
-                        .build();
-
-                doNetworkReservedData(traceId, authorization, 0L, http2Data);
-            }
-            else
-            {
-                final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
-                        .streamId(streamId)
-                        .headers(hb -> headersEncoder.encodeTrailers(encodeContext, trailers, hb))
-                        .endHeaders()
-                        .endStream()
-                        .build();
-
-                doNetworkReservedData(traceId, authorization, 0L, http2Headers);
-            }
-        }
-
 
         private void doEncodeHttp2PingAck(
             long traceId,
@@ -3077,7 +3038,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpExchange exchange = pool.exchanges.get(streamId);
                 if (exchange != null && HttpState.replyOpening(exchange.state))
                 {
-                    onDecodeHttp2Trailers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset, endResponse);
+                    onDecodeHttp2Trailers(traceId, authorization, streamId, headersBuffer, 0, headersSlotOffset);
                 }
                 else
                 {
@@ -3145,8 +3106,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             int streamId,
             DirectBuffer buffer,
             int offset,
-            int limit,
-            boolean endResponse)
+            int limit)
         {
             final HttpExchange exchange = pool.exchanges.get(streamId);
             if (exchange != null)
@@ -3265,12 +3225,11 @@ public final class HttpClientFactory implements HttpStreamFactory
             final int dataOffset = http2Trailers.dataOffset();
 
             final boolean endHeaders = http2Trailers.endHeaders();
-            final boolean endResponse = http2Trailers.endStream();
 
             if (endHeaders)
             {
                 onDecodeHttp2Trailers(traceId, authorization, streamId, dataBuffer, dataOffset,
-                        dataOffset + dataLength, endResponse);
+                        dataOffset + dataLength);
             }
             else
             {
@@ -3886,7 +3845,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long responseId;
         private final Map<String8FW, String16FW> overrides;
         private final long sessionId;
-        private int streamId;
+        private final int streamId;
         public int requestContentLength;
         public int requestContentObserved;
 
@@ -4001,8 +3960,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             requestSeq = sequence;
             requestAck = acknowledge;
             requestAuth = authorization;
-
-            assert requestAck <= requestSeq;
 
             final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
                     header.name().value().equals(CONTENT_LENGTH));
@@ -4445,9 +4402,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         private HpackContext context;
 
-        private final List<String> connectionHeaders = new ArrayList<>();
-
-        private final Consumer<HttpHeaderFW> search = this::connectionHeaders;
 
         void encodePromise(
             HpackContext encodeContext,
@@ -4465,8 +4419,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             HpackHeaderBlockFW.Builder headerBlock)
         {
             reset(encodeContext);
-
-            headers.forEach(search);
 
             Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
@@ -4490,42 +4442,13 @@ public final class HttpClientFactory implements HttpStreamFactory
                 headersMap.put(USER_AGENT, userAgentHeader);
             }
 
-            headersMap.forEach((n, v) ->
-            {
-                headerBlock.header(b -> encodeHeader(n, v, b));
-            });
-        }
-
-        void encodeTrailers(
-            HpackContext encodeContext,
-            Array32FW<HttpHeaderFW> headers,
-            HpackHeaderBlockFW.Builder headerBlock)
-        {
-            reset(encodeContext);
-            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h.name(), h.value(), b)));
+            headersMap.forEach((n, v) -> headerBlock.header(b -> encodeHeader(n, v, b)));
         }
 
         private void reset(
             HpackContext encodeContext)
         {
             context = encodeContext;
-            connectionHeaders.clear();
-        }
-
-        private void connectionHeaders(
-            HttpHeaderFW header)
-        {
-            final String8FW name = header.name();
-
-            if (name.value().equals(CONNECTION))
-            {
-                final String16FW value = header.value();
-                final String[] headerValues = value.asString().split(",");
-                for (String headerValue : headerValues)
-                {
-                    connectionHeaders.add(headerValue.trim());
-                }
-            }
         }
 
         private void encodeHeader(
