@@ -2212,19 +2212,22 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             state = HttpState.closingReply(state);
 
-            if (!pool.exchanges.isEmpty() && !HttpState.replyOpening(exchange.state) ||
-                decodeSlot == NO_SLOT)
+            pool.exchanges.forEach((id, exchange) ->
             {
-                state = HttpState.closeReply(state);
-
-                pool.exchanges.forEach((id, exchange) ->
+                if (!HttpState.replyOpening(exchange.state) || decodeSlot == NO_SLOT)
                 {
                     exchange.cleanup(traceId, authorization);
                     cleanupDecodeSlotIfNecessary();
-                });
+                }
+            });
 
+            if (!pool.exchanges.isEmpty() || decodeSlot == NO_SLOT)
+            {
+                state = HttpState.closeReply(state);
                 doNetworkEnd(traceId, authorization);
             }
+
+            doNetworkEnd(traceId, authorization);
         }
 
         private void onNetworkSignal(
