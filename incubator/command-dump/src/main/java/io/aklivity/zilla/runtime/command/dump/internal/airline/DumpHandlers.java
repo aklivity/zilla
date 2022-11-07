@@ -24,9 +24,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import com.google.common.primitives.Longs;
-import com.google.common.primitives.Shorts;
-
 import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapGlobalHeaderFW;
@@ -338,7 +335,20 @@ public class DumpHandlers
 
     private short getPort(long streamId)
     {
-        byte[] streamIdBytes =  Longs.toByteArray(streamId);
-        return Shorts.fromByteArray(Arrays.copyOfRange(streamIdBytes, streamIdBytes.length - 2, streamIdBytes.length));
+        byte[] streamIdBytes =  longToBytes(streamId);
+        return byteArrayToShort(Arrays.copyOfRange(streamIdBytes, streamIdBytes.length - 2, streamIdBytes.length));
+    }
+
+    private byte[] longToBytes(long x)
+    {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(x);
+        return buffer.array();
+    }
+
+    private short byteArrayToShort(byte[] array)
+    {
+        assert array.length == 2;
+        return (short) ((array[0] << 8) | (array[1] & 0xFF));
     }
 }

@@ -43,6 +43,8 @@ import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 @Command(name = "dump", description = "Dump stream content")
 public final class ZillaDumpCommand extends ZillaCommand
@@ -92,7 +94,10 @@ public final class ZillaDumpCommand extends ZillaCommand
     @Override
     public void run()
     {
-        this.directoryPath = Path.of(directory);
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_DIRECTORY.name(), directory.getPath());
+        final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
+        this.directoryPath = config.directory();
         LabelManager labelManager = new LabelManager(directoryPath);
         final Predicate<String> hasExtensionType =
             bindingTypes == null || bindingTypes.isEmpty() ? t -> true : t -> bindingTypes.contains(t);
@@ -113,8 +118,6 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             out.printf("version: %s\n", ZillaDumpCommand.class.getPackage().getSpecificationVersion());
         }
-        Properties properties = new Properties();
-        properties.setProperty(ENGINE_DIRECTORY.name(), directory.getPath());
 
         this.position = RingBufferSpy.SpyPosition.ZERO;
 
