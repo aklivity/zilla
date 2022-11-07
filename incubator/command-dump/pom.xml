@@ -38,7 +38,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>pcap.spec</artifactId>
+      <artifactId>engine.spec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

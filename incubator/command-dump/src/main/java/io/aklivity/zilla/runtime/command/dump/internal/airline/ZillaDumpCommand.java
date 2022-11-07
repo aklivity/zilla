@@ -139,7 +139,6 @@ public final class ZillaDumpCommand extends ZillaCommand
                 for (int i = 0; i < loggables.length; i++)
                 {
                     workCount += loggables[i].process();
-                    loggables[i].close();
                 }
                 idleStrategy.idle(workCount);
             } while (workCount != exitWorkCount);
