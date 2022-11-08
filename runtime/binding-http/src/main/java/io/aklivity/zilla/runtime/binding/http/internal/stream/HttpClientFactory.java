@@ -32,7 +32,6 @@ import static java.lang.Integer.parseInt;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Collections.emptyMap;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -138,7 +137,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final byte ZERO_BYTE = '0';
 
     private static final int CLIENT_INITIATED = 1;
-    private static final int CLEANUP_SIGNAL = 0;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
 
     private static final byte[] HTTP_1_1_BYTES = "HTTP/1.1".getBytes(US_ASCII);
@@ -2241,15 +2239,6 @@ public final class HttpClientFactory implements HttpStreamFactory
             doNetworkEnd(traceId, authorization);
         }
 
-        private void onNetworkSignal(
-            long traceId,
-            long authorization,
-            int signalId)
-        {
-            assert signalId == CLEANUP_SIGNAL;
-            cleanupStreams(traceId, authorization);
-        }
-
         private void onNetworkAbort(
             AbortFW abort)
         {
@@ -3778,9 +3767,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void cleanup(
-                long traceId,
-                long authorization,
-                LongLongConsumer cleanupHandler)
+            long traceId,
+            long authorization,
+            LongLongConsumer cleanupHandler)
         {
             assert this.cleanupHandler == null;
             this.cleanupHandler = cleanupHandler;
@@ -3796,18 +3785,13 @@ public final class HttpClientFactory implements HttpStreamFactory
                     iterator.hasNext() && remaining > 0; remaining--)
             {
                 final HttpExchange stream = iterator.next();
-                stream.cleanup(traceId, authorization);
+                if (stream.client == this)
+                {
+                    stream.cleanup(traceId, authorization);
+                }
             }
 
-            if (!pool.exchanges.isEmpty())
-            {
-                final long timeMillis = Instant.now().plusMillis(config.streamsCleanupDelay()).toEpochMilli();
-                signaler.signalAt(timeMillis, CLEANUP_SIGNAL, s -> onNetworkSignal(traceId, authorization, s));
-            }
-            else
-            {
-                cleanupHandler.accept(traceId, authorization);
-            }
+            cleanupHandler.accept(traceId, authorization);
         }
 
         private void cleanupNetwork(
