@@ -140,16 +140,6 @@ write [0x00 0x00 0x48]                                      # length
       [0x0f 0x0d] [0x02] "31"                               # content-length
 write flush
 
-# First promised response BODY stream-id=2
-write [0x00 0x00 0x15]                          # length = 21
-      [0x00]                                    # HTTP2 DATA frame
-      [0x00]                                    # END_STREAM
-      [0x00 0x00 0x00 0x02]                     # stream_id=2
-      "h1 {"
-      "    color: blue;"
-      "}"
-write flush
-
 # Second promised response HEADERS stream-id=4
 write [0x00 0x00 0x4f]                                      # length
       [0x01]                                                # HTTP2 HEADERS frame
@@ -160,6 +150,16 @@ write [0x00 0x00 0x4f]                                      # length
       [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
       [0x0f 0x10] [0x0f] "text/javascript"                  # content-type
       [0x0f 0x0d] [0x02] "15"                               # content-length
+write flush
+
+# First promised response BODY stream-id=2
+write [0x00 0x00 0x15]                          # length = 21
+      [0x00]                                    # HTTP2 DATA frame
+      [0x00]                                    # END_STREAM
+      [0x00 0x00 0x00 0x02]                     # stream_id=2
+      "h1 {"
+      "    color: blue;"
+      "}"
 write flush
 
 # First promised response BODY stream-id=4

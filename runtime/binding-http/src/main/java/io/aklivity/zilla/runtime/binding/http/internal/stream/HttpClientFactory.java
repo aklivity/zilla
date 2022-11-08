@@ -2912,7 +2912,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             doNetworkReservedData(traceId, authorization, 0L, http2Settings);
         }
 
-        private void doEncodeWindowUpdates(
+        private void doEncodeHttp2WindowUpdates(
                 long traceId,
                 long authorization,
                 int streamId,
@@ -4414,7 +4414,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (size > 0)
             {
                 localBudget = replyWindow;
-                client.doEncodeWindowUpdates(traceId, authorization, streamId, size);
+                client.doEncodeHttp2WindowUpdates(traceId, authorization, streamId, size);
             }
         }
 
@@ -4560,10 +4560,10 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         void decodeTrailers(
-                HpackContext context,
-                int headerTableSize,
-                MutableBoolean expectDynamicTableSizeUpdate,
-                HpackHeaderBlockFW headerBlock)
+            HpackContext context,
+            int headerTableSize,
+            MutableBoolean expectDynamicTableSizeUpdate,
+            HpackHeaderBlockFW headerBlock)
         {
             reset(context, headerTableSize, expectDynamicTableSizeUpdate);
             headerBlock.forEach(decodeTrailer);
