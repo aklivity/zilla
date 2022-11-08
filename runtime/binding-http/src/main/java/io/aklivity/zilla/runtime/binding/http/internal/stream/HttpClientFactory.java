@@ -1070,14 +1070,19 @@ public final class HttpClientFactory implements HttpStreamFactory
                 long authorization,
                 long budgetId,
                 long acknowledge,
-                int maximum)
+                int maximum,
+                int padding)
             {
+                client.initialAck = acknowledge;
+                client.initialMax = maximum;
+                client.initialPad = padding;
+
                 client.flushNetworkIfBuffered(traceId, authorization, budgetId);
                 HttpExchange exchange = client.pool.exchanges.values().stream().findFirst().orElse(null);
 
                 if (exchange != null && !HttpState.initialClosed(exchange.state))
                 {
-                    exchange.doRequestWindow(traceId, budgetId);
+                    exchange.doRequestWindow(traceId);
                 }
             }
         },
@@ -1110,8 +1115,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 int length,
                 OctetsFW payload)
             {
-                exchange.remoteBudget -= length;
                 exchange.requestContentObserved += length;
+                exchange.remoteBudget -= length;
                 client.remoteSharedBudget -= length;
 
                 final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
@@ -1173,10 +1178,15 @@ public final class HttpClientFactory implements HttpStreamFactory
                 long authorization,
                 long budgetId,
                 long acknowledge,
-                int maximum)
+                int maximum,
+                int padding)
             {
                 int credit = (int) (acknowledge - client.initialAck) + (maximum - client.initialMax);
                 assert credit >= 0;
+
+                client.initialAck = acknowledge;
+                client.initialMax = maximum;
+                client.initialPad = padding;
 
                 assert client.initialAck <= client.initialSeq;
 
@@ -1249,7 +1259,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             long budgetId,
             long acknowledge,
-            int maximum);
+            int maximum,
+            int padding);
     }
 
     private int decodeHttp2Settings(
@@ -1993,9 +2004,9 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int decodableContentLength;
 
         private final long routeId;
-        private final long budgetId;
         private final long replyId;
         private final long initialId;
+        private long budgetId;
         private int state;
 
         private long initialSeq;
@@ -2036,7 +2047,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int requestSharedBudget;
         private int encodeSlotReserved;
         private int initialSharedBudget;
-        private long requestSharedBudgetIndex;
+        private long requestSharedBudgetIndex = NO_CREDITOR_INDEX;
 
 
         private HttpClient(
@@ -2046,7 +2057,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             this.routeId = pool.resolvedId;
             this.initialId = supplyInitialId.applyAsLong(routeId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.budgetId = 0; //supplyBudgetId.getAsLong();
+            this.budgetId = 0;
             this.decoder = decodeEmptyLines;
             this.localSettings = new Http2Settings();
             this.remoteSettings = new Http2Settings();
@@ -2133,11 +2144,17 @@ public final class HttpClientFactory implements HttpStreamFactory
                 beginEx.infos().anyMatch(proxyInfo -> ALPN_H2.equals(proxyInfo.alpn())) ||
                 pool.versions.size() == 1 && pool.versions.contains(HTTP_2))
             {
+                remoteSharedBudget = encodeMax;
                 for (HttpExchange stream: pool.exchanges.values())
                 {
                     stream.remoteBudget += encodeMax;
                     stream.flushRequestWindow(traceId, 0);
                 }
+
+                assert !HttpState.initialOpened(state);
+                this.budgetId = supplyBudgetId.getAsLong();
+                assert requestSharedBudgetIndex == NO_CREDITOR_INDEX;
+                requestSharedBudgetIndex = creditor.acquire(budgetId);
 
                 doEncodePreface(traceId, authorization);
                 doEncodeHttp2Settings(traceId, authorization);
@@ -2260,6 +2277,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             state = HttpState.closeInitial(state);
 
+            cleanupBudgetCreditorIfNecessary();
             cleanupEncodeSlotIfNecessary();
 
             pool.exchanges.forEach((id, exchange) -> exchange.cleanup(traceId, authorization));
@@ -2287,11 +2305,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             assert acknowledge >= initialAck;
             assert maximum >= initialMax;
 
-            initialAck = acknowledge;
-            initialMax = maximum;
-            initialPad = padding;
-
-            encoder.doEncodeNetworkWindow(this, traceId, authorization, budgetId, acknowledge, maximum);
+            encoder.doEncodeNetworkWindow(this, traceId, authorization, budgetId, acknowledge, maximum, padding);
         }
 
         private void flushNetworkIfBuffered(
@@ -2428,7 +2442,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (!HttpState.initialClosed(state))
             {
                 state = HttpState.closeInitial(state);
+
+                cleanupBudgetCreditorIfNecessary();
                 cleanupEncodeSlotIfNecessary();
+
                 doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, EMPTY_OCTETS);
 
                 if (HttpState.closed(state))
@@ -2445,7 +2462,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (!HttpState.initialClosed(state))
             {
                 state = HttpState.closeInitial(state);
+
+                cleanupBudgetCreditorIfNecessary();
                 cleanupEncodeSlotIfNecessary();
+
                 doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, EMPTY_OCTETS);
 
                 if (HttpState.closed(state))
@@ -2615,7 +2635,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             int limit,
             Flyweight extension)
         {
-            return exchange.doResponseData(traceId, authorization, budgetId, buffer, offset, limit, extension);
+            return exchange.doResponseData(traceId, authorization, buffer, offset, limit, extension);
         }
 
         private void onDecodeTrailers(
@@ -2990,8 +3010,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                         }
                         else
                         {
-                            final int remainingProgress = exchange.doResponseData(traceId, authorization, budgetId,
-                                    payload, 0, payloadLength, EMPTY_OCTETS);
+                            final int remainingProgress = exchange.doResponseData(traceId, authorization, payload,
+                                    0, payloadLength, EMPTY_OCTETS);
                             payloadRemaining.value -= remainingProgress;
                             exchange.responseContentObserved += remainingProgress;
                             progress += payloadLength - payloadRemaining.value;
@@ -3419,15 +3439,15 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (initialSharedCredit > 0)
             {
-                final long responseSharedPrevious =
+                final long requestSharedPrevious =
                         creditor.credit(traceId, requestSharedBudgetIndex, initialSharedCredit);
 
                 requestSharedBudget += initialSharedCredit;
 
-                final long responseSharedBudgetUpdated = responseSharedPrevious + initialSharedCredit;
-                assert responseSharedBudgetUpdated <= slotCapacity
+                final long requestSharedBudgetUpdated = requestSharedPrevious + initialSharedCredit;
+                assert requestSharedBudgetUpdated <= slotCapacity
                         : String.format("%d <= %d, remoteSharedBudget = %d",
-                        responseSharedBudgetUpdated, slotCapacity, remoteSharedBudget);
+                        requestSharedBudgetUpdated, slotCapacity, remoteSharedBudget);
 
                 assert requestSharedBudget <= slotCapacity
                         : String.format("%d <= %d", requestSharedBudget, slotCapacity);
@@ -3835,6 +3855,15 @@ public final class HttpClientFactory implements HttpStreamFactory
                 headersSlotOffset = 0;
             }
         }
+
+        private void cleanupBudgetCreditorIfNecessary()
+        {
+            if (requestSharedBudgetIndex != NO_CREDITOR_INDEX)
+            {
+                creditor.release(requestSharedBudgetIndex);
+                requestSharedBudgetIndex = NO_CREDITOR_INDEX;
+            }
+        }
     }
 
 
@@ -4129,8 +4158,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void doRequestWindow(
-            long traceId,
-            long budgetId)
+            long traceId)
         {
             long requestAckMax = Math.max(requestSeq - client.initialPendingAck() - client.encodeSlotOffset, requestAck);
             int requestNoAckMin = (int)(requestSeq - requestAckMax);
@@ -4149,7 +4177,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 state = HttpState.openInitial(state);
 
                 doWindow(application, routeId, requestId, requestSeq, requestAck, requestMax,
-                        traceId, requestAuth, budgetId, client.initialPad);
+                        traceId, requestAuth, client.budgetId, client.initialPad);
             }
         }
 
@@ -4170,7 +4198,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int doResponseData(
             long traceId,
             long authorization,
-            long budgetId,
             DirectBuffer buffer,
             int offset,
             int limit,
