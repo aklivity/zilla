@@ -300,7 +300,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final LongSupplier supplyBudgetId; //TODO: Check budgetId
+    private final LongSupplier supplyBudgetId;
     private final Long2ObjectHashMap<HttpClientPool> clientPools;
     private final Long2ObjectHashMap<HttpBindingConfig> bindings;
     private final Matcher responseLine;
@@ -3463,7 +3463,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             final Http2GoawayFW http2Goaway = http2GoawayRW.wrap(frameBuffer, 0, frameBuffer.capacity())
                     .streamId(0)
-                    .lastStreamId(0) // TODO: maxClientStreamId?
+                    .lastStreamId(0)
                     .errorCode(decodeError)
                     .build();
 
@@ -4725,8 +4725,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         }
 
         private void decodeHF(
-                HpackHeaderFieldFW hf,
-                BiConsumer<DirectBuffer, DirectBuffer> nameValue)
+            HpackHeaderFieldFW hf,
+            BiConsumer<DirectBuffer, DirectBuffer> nameValue)
         {
             int index;
             DirectBuffer name = null;
