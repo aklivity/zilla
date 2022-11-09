@@ -29,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.aklivity.zilla.runtime.command.dump.internal.airline.ZillaDumpCommand;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
@@ -72,8 +71,8 @@ public class TestDumpCommand
     public void testDumpWithKafkaExtensionFilter() throws IOException
     {
         List<String> extensionTypes = new ArrayList<>();
-        extensionTypes.add("kafka");
-        dumpCommand.bindingTypes = extensionTypes;
+        extensionTypes.add("kafka0");
+        dumpCommand.bindingNames = extensionTypes;
         dumpCommand.run();
 
         File[] files = tempDir.listFiles();

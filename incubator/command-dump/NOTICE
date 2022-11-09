@@ -12,12 +12,7 @@ specific language governing permissions and limitations
 under the License.
 
 This project includes:
-  Airline - IO Library under The Apache License, Version 2.0
-  Airline - Library under The Apache License, Version 2.0
-  Apache Commons Collections under GPL 3
-  Apache Commons Lang under GPL 3
-  Jakarta Dependency Injection under The Apache Software License, Version 2.0
-  zilla::runtime::command under The Apache Software License, Version 2.0
+
 
 This project also includes code under copyright of the following entities:
   https://github.com/reaktivity/

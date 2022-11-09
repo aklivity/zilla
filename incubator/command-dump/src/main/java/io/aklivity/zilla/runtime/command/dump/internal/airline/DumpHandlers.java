@@ -104,7 +104,10 @@ public class DumpHandlers
         final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
         if (extension != null)
         {
-            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            //int nameSpaceId = (int) (begin.routeId() >> 32);
+            //Get the lower 32 bits from the long
+            int bindingId = (int) begin.routeId();
+            if (hasExtensionType.test(labelManager.lookupLabel(bindingId)))
             {
                 final long streamId = begin.streamId();
                 TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.SYN);
@@ -122,7 +125,8 @@ public class DumpHandlers
         final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
         if (extension != null)
         {
-            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            int bindingId = (int) data.routeId();
+            if (hasExtensionType.test(labelManager.lookupLabel(bindingId)))
             {
                 final long streamId = data.streamId();
                 byte[] bytes = new byte[data.offset() + data.limit()];
@@ -149,7 +153,8 @@ public class DumpHandlers
         final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
         if (extension != null)
         {
-            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            int bindingId = (int) end.routeId();
+            if (hasExtensionType.test(labelManager.lookupLabel(bindingId)))
             {
                 final long streamId = end.streamId();
                 TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.FIN);
@@ -178,7 +183,8 @@ public class DumpHandlers
         final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
         if (extension != null)
         {
-            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            int bindingId = (int) reset.routeId();
+            if (hasExtensionType.test(labelManager.lookupLabel(bindingId)))
             {
                 final long streamId = reset.streamId();
 
@@ -231,7 +237,8 @@ public class DumpHandlers
         final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
         if (extension != null)
         {
-            if (hasExtensionType.test(labelManager.lookupLabel(extension.typeId())))
+            int bindingId = (int) flush.routeId();
+            if (hasExtensionType.test(labelManager.lookupLabel(bindingId)))
             {
                 final long streamId = flush.streamId();
                 TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);

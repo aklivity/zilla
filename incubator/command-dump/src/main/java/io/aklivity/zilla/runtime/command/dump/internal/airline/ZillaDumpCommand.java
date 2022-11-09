@@ -53,9 +53,9 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Show verbose output")
     public boolean verbose;
 
-    @Option(name = {"-t", "--bindingTypes"},
-        description = "Dump specific bindings types only, e.g http")
-    public List<String> bindingTypes = new ArrayList<>();
+    @Option(name = {"-b", "--bindingNames"},
+        description = "Dump specific bindings only, e.g http0,kafka0")
+    public List<String> bindingNames = new ArrayList<>();
 
     @Option(name = {"-d", "--directory"},
         description = "Configuration directory")
@@ -93,14 +93,14 @@ public final class ZillaDumpCommand extends ZillaCommand
         final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
         this.directoryPath = config.directory();
         LabelManager labelManager = new LabelManager(directoryPath);
-        final Predicate<String> hasExtensionType =
-            bindingTypes == null || bindingTypes.isEmpty() ? t -> true : t -> bindingTypes.contains(t);
+        final Predicate<String> hasBindingName =
+            bindingNames == null || bindingNames.isEmpty() ? t -> true : t -> bindingNames.contains(t);
         try
         {
 
             this.writer = new RandomAccessFile(pcapLocation.getPath(), "rw");
             this.channel = writer.getChannel();
-            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024, labelManager, hasExtensionType);
+            this.dumpHandlers = new DumpHandlers(channel, 64 * 1024, labelManager, hasBindingName);
         }
         catch (IOException e)
         {
