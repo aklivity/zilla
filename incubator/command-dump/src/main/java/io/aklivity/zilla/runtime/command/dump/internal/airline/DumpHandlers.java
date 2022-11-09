@@ -104,7 +104,6 @@ public class DumpHandlers
         final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
         if (extension != null)
         {
-            //int nameSpaceId = (int) (begin.routeId() >> 32);
             //Get the lower 32 bits from the long
             int bindingId = (int) begin.routeId();
             if (hasExtensionType.test(labelManager.lookupLabel(bindingId)))
