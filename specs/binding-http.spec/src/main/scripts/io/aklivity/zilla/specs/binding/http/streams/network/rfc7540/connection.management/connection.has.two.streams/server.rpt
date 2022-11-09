@@ -83,6 +83,14 @@ write [0x00 0x00 0x58]                                      # length
       [0x0f 0x0d] [0x02] "15"                               # content-length
 write flush
 
+write [0x00 0x00 0x0f]                  # length = 15
+      [0x00]                            # HTTP2 DATA frame
+      [0x00]                            # no flags
+      [0x00 0x00 0x00 0x01]             # stream_id=1
+      "function f() {"
+      "}"
+write flush
+
 write [0x00 0x00 0x58]                                      # length
       [0x01]                                                # HTTP2 HEADERS frame
       [0x04]                                                # END_HEADERS
@@ -92,14 +100,6 @@ write [0x00 0x00 0x58]                                      # length
       [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
       [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
       [0x0f 0x0d] [0x02] "31"                               # content-length
-write flush
-
-write [0x00 0x00 0x0f]                  # length = 15
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # no flags
-      [0x00 0x00 0x00 0x01]             # stream_id=1
-      "function f() {"
-      "}"
 write flush
 
 write [0x00 0x00 0x15]                  # length = 31

@@ -5766,7 +5766,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : HEADERS_200_OK;
 
                 doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, false);
-                flushResponseWindow(traceId, 0);
             }
 
             private void onResponseData(
@@ -5958,7 +5957,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 long traceId,
                 int responseCreditMin)
             {
-                if (HttpState.replyOpening(state) && !HttpState.replyClosed(state))
+                if (!HttpState.replyClosed(state))
                 {
                     final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                     final int remotePad = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);

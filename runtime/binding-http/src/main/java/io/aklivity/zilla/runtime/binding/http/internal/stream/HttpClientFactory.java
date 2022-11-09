@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_1_1;
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONTENT_LENGTH;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
@@ -112,7 +113,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
-import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 
@@ -167,10 +167,13 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_STATUS = new String8FW(":status");
     private static final String8FW HEADER_TRANSFER_ENCODING = new String8FW("transfer-encoding");
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
+    private static final String8FW HEADER_HTTP2_SETTINGS = new String8FW("HTTP2-Settings");
 
     private static final String16FW METHOD_GET = new String16FW("GET");
     private static final String16FW PATH_SLASH = new String16FW("/");
     private static final String16FW STATUS_101 = new String16FW("101");
+    private static final String16FW H2C = new String16FW("h2c");
+    private static final String16FW H2_UPGRADE = new String16FW("Upgrade, HTTP2-Settings");
     private static final String8FW ALPN_H2 = new String8FW("h2");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
@@ -285,7 +288,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
     private final HttpConfiguration config;
     private final Http2Settings initialSettings;
-    private final Signaler signaler;
     private final MutableDirectBuffer frameBuffer;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer codecBuffer;
@@ -331,7 +333,6 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.codecBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.frameBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.signaler = context.signaler();
         this.bufferPool = context.bufferPool();
         this.headersPool = bufferPool.duplicate();
         this.creditor = context.creditor();
@@ -1004,7 +1005,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 Array32FW<HttpHeaderFW> headers,
                 Map<String8FW, String16FW> overrides)
             {
-                client.doEncodeHeaders(exchange, traceId, authorization, budgetId, headers, overrides);
+                client.doEncodeHeaders(exchange, traceId, authorization, budgetId, headers, overrides, false);
             }
 
             @Override
@@ -1082,6 +1083,16 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     exchange.doRequestWindow(traceId);
                 }
+            }
+
+            @Override
+            public void doEncodeApplicationWindow(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                //NOOP
             }
         },
         HTTP_2
@@ -1208,6 +1219,104 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 client.flushRequestSharedBudget(traceId);
             }
+
+            @Override
+            public void doEncodeApplicationWindow(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                if (!HttpState.replyClosed(exchange.state))
+                {
+                    exchange.flushResponseWindowUpdate(traceId, authorization);
+                }
+            }
+        },
+        H2C
+        {
+            @Override
+            public void doEncodeRequestHeaders(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                long budgetId,
+                Array32FW<HttpHeaderFW> headers, Map<String8FW, String16FW> overrides)
+            {
+                client.doEncodeHeaders(exchange, traceId, authorization, budgetId, headers, overrides, true);
+            }
+
+            @Override
+            public void doEncodeRequestData(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                int flags,
+                long budgetId,
+                int reserved,
+                int encodeMax,
+                int length,
+                OctetsFW payload)
+            {
+
+            }
+
+            @Override
+            public void doEncodeRequestEnd(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization,
+                long budgetId,
+                Array32FW<HttpHeaderFW> trailers)
+            {
+
+            }
+
+            @Override
+            public void doEncodeRequestAbort(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+
+            }
+
+            @Override
+            public void doEncodeResponseReset(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+
+            }
+
+            @Override
+            public void doEncodeNetworkWindow(
+                HttpClient client,
+                long traceId,
+                long authorization,
+                long budgetId,
+                long acknowledge,
+                int maximum,
+                int padding)
+            {
+
+            }
+
+            @Override
+            public void doEncodeApplicationWindow(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+
+            }
         };
 
         public abstract void doEncodeRequestHeaders(
@@ -1240,10 +1349,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             Array32FW<HttpHeaderFW> trailers);
 
         public abstract void doEncodeRequestAbort(
-                HttpClient client,
-                HttpExchange exchange,
-                long traceId,
-                long authorization);
+            HttpClient client,
+            HttpExchange exchange,
+            long traceId,
+            long authorization);
 
         public abstract void doEncodeResponseReset(
             HttpClient client,
@@ -1259,6 +1368,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             long acknowledge,
             int maximum,
             int padding);
+
+        public abstract void doEncodeApplicationWindow(
+            HttpClient client,
+            HttpExchange exchange,
+            long traceId,
+            long authorization
+        );
     }
 
     private int decodeHttp2Settings(
@@ -1541,7 +1657,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
             {
                 final HttpExchange exchange = client.pool.exchanges.get(streamId);
-                if (HttpState.replyOpened(exchange.state))
+                if (HttpState.replyOpening(exchange.state))
                 {
                     client.onDecodeTrailers(traceId, authorization, http2Headers);
                 }
@@ -2641,7 +2757,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             long budgetId,
             Array32FW<HttpHeaderFW> headers,
-            Map<String8FW, String16FW> overrides)
+            Map<String8FW, String16FW> overrides,
+            boolean h2Upgrade)
         {
             Map<String8FW, String16FW> headersMap = new LinkedHashMap<>();
             headers.forEach(h -> headersMap.put(newString8FW(h.name()), newString16FW(h.value())));
@@ -2652,6 +2769,13 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final String16FW transferEncoding = headersMap.get(HEADER_TRANSFER_ENCODING);
             exchange.requestChunked = TRANSFER_ENCODING_CHUNKED.equals(transferEncoding);
+
+            if (h2Upgrade)
+            {
+                headersMap.put(HEADER_UPGRADE, H2C);
+                headersMap.put(HEADER_CONNECTION, H2_UPGRADE);
+                headersMap.put(HEADER_HTTP2_SETTINGS, new String16FW(""));
+            }
 
             final String16FW connection = headersMap.get(HEADER_CONNECTION);
             final String16FW upgrade = headersMap.get(HEADER_UPGRADE);
@@ -4015,6 +4139,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             client.exchange = this;
             client.encoder.doEncodeRequestHeaders(client, this, traceId, authorization, 0, headers, overrides);
+            flushResponseWindowUpdate(traceId, authorization);
         }
 
         private void onRequestFlush(
@@ -4318,10 +4443,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             client.decodeNetworkIfBuffered(traceId, authorization);
 
-            if (!HttpState.replyClosed(state))
-            {
-                flushResponseWindowUpdate(traceId, authorization);
-            }
+            client.encoder.doEncodeApplicationWindow(client, this, traceId, authorization);
         }
 
         private void onResponseFlush(
