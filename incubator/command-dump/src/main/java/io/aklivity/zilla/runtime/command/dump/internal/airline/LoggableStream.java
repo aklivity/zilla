@@ -49,17 +49,14 @@ public final class LoggableStream implements AutoCloseable
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final LongPredicate nextTimestamp;
-    private final int index;
 
     private final Int2ObjectHashMap<MessageConsumer> frameHandlers;
 
     public LoggableStream(
-        int index,
         StreamsLayout layout,
         LongPredicate nextTimestamp,
         DumpHandlers handlers)
     {
-        this.index = index;
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.nextTimestamp = nextTimestamp;
@@ -89,11 +86,6 @@ public final class LoggableStream implements AutoCloseable
         layout.close();
     }
 
-    @Override
-    public String toString()
-    {
-        return String.format("data%d (spy)", index);
-    }
 
     private boolean handleFrame(
         int msgTypeId,

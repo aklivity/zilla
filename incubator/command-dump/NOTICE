@@ -12,21 +12,12 @@ specific language governing permissions and limitations
 under the License.
 
 This project includes:
-  agrona under The Apache License, Version 2.0
-  Apache Commons CLI under Apache License, Version 2.0
-  Checker Qual under The MIT License
-  error-prone annotations under Apache 2.0
-  FindBugs-jsr305 under The Apache Software License, Version 2.0
-  Guava InternalFutureFailureAccess and InternalFutures under The Apache Software License, Version 2.0
-  Guava ListenableFuture only under The Apache Software License, Version 2.0
-  Guava: Google Core Libraries for Java under Apache License, Version 2.0
-  ICU4J under Unicode/ICU License
-  J2ObjC Annotations under The Apache Software License, Version 2.0
-  Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  JSON-B API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
-  org.leadpony.justify under The Apache Software License, Version 2.0
-  zilla::runtime::engine under The Apache Software License, Version 2.0
-
+  Airline - IO Library under The Apache License, Version 2.0
+  Airline - Library under The Apache License, Version 2.0
+  Apache Commons Collections under GPL 3
+  Apache Commons Lang under GPL 3
+  Jakarta Dependency Injection under The Apache Software License, Version 2.0
+  zilla::runtime::command under The Apache Software License, Version 2.0
 
 This project also includes code under copyright of the following entities:
   https://github.com/reaktivity/

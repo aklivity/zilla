@@ -53,12 +53,6 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Show verbose output")
     public boolean verbose;
 
-    @Option(name = {"--version"})
-    public boolean version = false;
-
-    @Option(name = {"--continuous"})
-    public boolean continuous = true;
-
     @Option(name = {"-t", "--bindingTypes"},
         description = "Dump specific bindings types only, e.g http")
     public List<String> bindingTypes = new ArrayList<>();
@@ -75,7 +69,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Affinity mask")
     public long affinity = 0xffff_ffff_ffff_ffffL;
 
-    private final Logger out = System.out::printf;
+    protected boolean continuous = true;
 
     private long nextTimestamp = Long.MAX_VALUE;
     private RingBufferSpy.SpyPosition position;
@@ -113,18 +107,12 @@ public final class ZillaDumpCommand extends ZillaCommand
             System.out.println("Failed to open dump file: " + e.getMessage());
         }
 
-
-        if (version)
-        {
-            out.printf("version: %s\n", ZillaDumpCommand.class.getPackage().getSpecificationVersion());
-        }
-
         this.position = RingBufferSpy.SpyPosition.ZERO;
 
         runDumpCommand();
     }
 
-    public void runDumpCommand()
+    private void runDumpCommand()
     {
         try (Stream<Path> files = Files.walk(directoryPath, 3))
         {
@@ -195,14 +183,13 @@ public final class ZillaDumpCommand extends ZillaCommand
         final String filename = path.getFileName().toString();
         final Matcher matcher = STREAMS_PATTERN.matcher(filename);
         matcher.matches();
-        final int index = parseInt(matcher.group(1));
 
         StreamsLayout layout = new StreamsLayout.Builder()
             .path(path)
             .readonly(true)
             .spyAt(position)
             .build();
-        return new LoggableStream(index, layout, this::nextTimestamp, dumpHandlers);
+        return new LoggableStream(layout, this::nextTimestamp, dumpHandlers);
     }
 
     private void closeResources()
