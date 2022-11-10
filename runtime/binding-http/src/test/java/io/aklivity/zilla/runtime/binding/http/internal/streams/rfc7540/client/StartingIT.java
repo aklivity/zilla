@@ -46,7 +46,7 @@ public class StartingIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
+        .configurationRoot("io/aklivity/zilla/specs/binding/http/config/upgrade")
         .external("net0")
         .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
         .clean();
@@ -62,6 +62,18 @@ public class StartingIT
     @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "100")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldUpgradeViaPriorKnowledgeWithTlsAndAlpn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/upgrade.http/client",
+        "${net}/upgrade.h2c.with.settings/server"})
+    @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "100")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldUpgradeViaH2cWithSettings() throws Exception
     {
         k3po.finish();
     }

@@ -738,6 +738,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                             if (client.encoder == HttpEncoder.H2C)
                             {
                                 client.encoder = HttpEncoder.HTTP_2;
+                                client.decoder = decodeHttp2Settings;
                                 client.doHttp2SettingsAck(traceId, authorization);
                             }
                             else
@@ -756,7 +757,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                     client.encoder = HttpEncoder.HTTP_1_1;
                 }
 
-                client.onDecodeHttp1Headers(traceId, authorization, httpBeginEx.build());
+                if (client.encoder == HttpEncoder.HTTP_1_1)
+                {
+                    client.onDecodeHttp1Headers(traceId, authorization, httpBeginEx.build());
+                }
 
                 progress = endOfHeadersAt;
             }
@@ -1350,31 +1354,34 @@ public final class HttpClientFactory implements HttpStreamFactory
     {
         int progress = offset;
 
-        final Http2SettingsFW http2Settings = http2SettingsRO.wrap(buffer, offset, limit);
-        final int streamId = http2Settings.streamId();
-        final boolean ack = http2Settings.ack();
-        final int length = http2Settings.length();
+        if (limit > offset)
+        {
+            final Http2SettingsFW http2Settings = http2SettingsRO.wrap(buffer, offset, limit);
+            final int streamId = http2Settings.streamId();
+            final boolean ack = http2Settings.ack();
+            final int length = http2Settings.length();
 
-        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
-        if (ack && length != 0)
-        {
-            error = Http2ErrorCode.FRAME_SIZE_ERROR;
-        }
-        else if (streamId != 0)
-        {
-            error = Http2ErrorCode.PROTOCOL_ERROR;
-        }
+            Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+            if (ack && length != 0)
+            {
+                error = Http2ErrorCode.FRAME_SIZE_ERROR;
+            }
+            else if (streamId != 0)
+            {
+                error = Http2ErrorCode.PROTOCOL_ERROR;
+            }
 
-        if (error != Http2ErrorCode.NO_ERROR)
-        {
-            client.onDecodeHttp2Error(traceId, authorization, error);
-            client.decoder = decodeHttp2IgnoreAll;
-        }
-        else
-        {
-            client.onDecodeHttp2Settings(traceId, authorization, http2Settings);
-            client.decoder = decodeHttp2FrameType;
-            progress = http2Settings.limit();
+            if (error != Http2ErrorCode.NO_ERROR)
+            {
+                client.onDecodeHttp2Error(traceId, authorization, error);
+                client.decoder = decodeHttp2IgnoreAll;
+            }
+            else
+            {
+                client.onDecodeHttp2Settings(traceId, authorization, http2Settings);
+                client.decoder = decodeHttp2FrameType;
+                progress = http2Settings.limit();
+            }
         }
 
         return progress;
