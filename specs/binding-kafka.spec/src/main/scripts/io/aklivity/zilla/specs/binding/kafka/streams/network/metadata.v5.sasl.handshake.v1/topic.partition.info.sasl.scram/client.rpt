@@ -52,7 +52,7 @@ write 50                                # size
 read 92                                 # size
      ${newRequestId}
      0s                                 # no error
-     -1
+     -1s
      70 "r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096"
      0L                                 # session lifetime
 
