@@ -121,7 +121,9 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
     private final KafkaDescribeClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
     private final KafkaDescribeClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
     private final KafkaDescribeClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaDescribeClientDecoder decodeSaslScramAuthenticateResponse = this::decodeSaslScramAuthenticateResponse;
     private final KafkaDescribeClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaDescribeClientDecoder decodeSaslScramAuthenticate = this::decodeSaslScramAuthenticate;
     private final KafkaDescribeClientDecoder decodeDescribeResponse = this::decodeDescribeResponse;
     private final KafkaDescribeClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaDescribeClientDecoder decodeReject = this::decodeReject;
@@ -1431,10 +1433,24 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
             }
 
             @Override
+            protected void doDecodeSaslScramAuthenticateResponse(
+                    long traceId)
+            {
+                decoder = decodeSaslScramAuthenticateResponse;
+            }
+
+            @Override
             protected void doDecodeSaslAuthenticate(
                 long traceId)
             {
                 decoder = decodeSaslAuthenticate;
+            }
+
+            @Override
+            protected void doDecodeSaslScramAuthenticate(
+                    long traceId)
+            {
+                decoder = decodeSaslScramAuthenticate;
             }
 
             @Override

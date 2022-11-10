@@ -106,14 +106,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientOptionsSaslScram512()
-    {
-        JsonObject config = schema.validate("client.options.sasl.scram-512.json");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateClientWhenTopic()
     {
         JsonObject config = schema.validate("client.when.topic.json");

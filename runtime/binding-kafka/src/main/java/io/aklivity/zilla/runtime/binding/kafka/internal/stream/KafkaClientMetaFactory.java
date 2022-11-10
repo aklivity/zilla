@@ -117,6 +117,8 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
     private final KafkaMetaClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
     private final KafkaMetaClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
     private final KafkaMetaClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaMetaClientDecoder decodeSaslScramAuthenticate = this::decodeSaslScramAuthenticate;
+    private final KafkaMetaClientDecoder decodeSaslScramAuthenticateResponse = this::decodeSaslScramAuthenticateResponse;
     private final KafkaMetaClientDecoder decodeMetaResponse = this::decodeMetaResponse;
     private final KafkaMetaClientDecoder decodeMeta = this::decodeMeta;
     private final KafkaMetaClientDecoder decodeMetaBrokers = this::decodeMetaBrokers;
@@ -1635,10 +1637,24 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
             }
 
             @Override
+            protected void doDecodeSaslScramAuthenticateResponse(
+                    long traceId)
+            {
+                decoder = decodeSaslScramAuthenticateResponse;
+            }
+
+            @Override
             protected void doDecodeSaslAuthenticate(
                 long traceId)
             {
                 decoder = decodeSaslAuthenticate;
+            }
+
+            @Override
+            protected void doDecodeSaslScramAuthenticate(
+                    long traceId)
+            {
+                decoder = decodeSaslScramAuthenticate;
             }
 
             @Override

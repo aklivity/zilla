@@ -172,7 +172,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final KafkaFetchClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
     private final KafkaFetchClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
     private final KafkaFetchClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
+    private final KafkaFetchClientDecoder decodeSaslScramAuthenticateResponse = this::decodeSaslScramAuthenticateResponse;
     private final KafkaFetchClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
+    private final KafkaFetchClientDecoder decodeSaslScramAuthenticate = this::decodeSaslScramAuthenticate;
     private final KafkaFetchClientDecoder decodeOffsetsResponse = this::decodeOffsetsResponse;
     private final KafkaFetchClientDecoder decodeOffsets = this::decodeOffsets;
     private final KafkaFetchClientDecoder decodeOffsetsTopics = this::decodeOffsetsTopics;
@@ -2520,14 +2522,12 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 decoder = decodeSaslAuthenticateResponse;
             }
-
             @Override
             protected void doDecodeSaslAuthenticate(
                 long traceId)
             {
                 decoder = decodeSaslAuthenticate;
             }
-
             private void doEncodeOffsetsRequest(
                 long traceId,
                 long budgetId)
@@ -2783,6 +2783,20 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         doNetworkWindow(traceId, budgetId, 0, 0, replyMax);
                     }
                 }
+            }
+
+            @Override
+            protected void doDecodeSaslScramAuthenticate(
+                    long traceId)
+            {
+                decoder = decodeSaslScramAuthenticate;
+            }
+
+            @Override
+            protected void doDecodeSaslScramAuthenticateResponse(
+                    long traceId)
+            {
+                decoder = decodeSaslScramAuthenticateResponse;
             }
 
             @Override

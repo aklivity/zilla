@@ -10,7 +10,7 @@
             {
                 "sasl":
                 {
-                    "mechanism": "scram-sha-256",
+                    "mechanism": "scram-sha-1",
                     "username": "user",
                     "password": "pencil"
                 }
