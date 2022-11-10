@@ -79,10 +79,8 @@ import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PriorityFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2PushPromiseFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2RstStreamFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2Setting;
-import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2SettingsFW;
 import io.aklivity.zilla.runtime.binding.http.internal.codec.Http2WindowUpdateFW;
-import io.aklivity.zilla.runtime.binding.http.internal.codec.UnboundedListFW;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion;
@@ -372,12 +370,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         this.encodeMax = bufferPool.slotCapacity();
 
         final byte[] settingsPayload = new byte[12];
-        final UnboundedListFW.Builder<Http2SettingFW.Builder, Http2SettingFW> settingsRW =
-                new UnboundedListFW.Builder<>(new Http2SettingFW.Builder(), new Http2SettingFW())
-                .wrap(new UnsafeBuffer(settingsPayload), 0, 12);
-        settingsRW
-                .item(x -> x.setting(3, initialSettings.maxConcurrentStreams))
-                .item(x -> x.setting(4, initialSettings.initialWindowSize));
+        http2SettingsRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                .maxConcurrentStreams(initialSettings.maxConcurrentStreams)
+                .initialWindowSize(initialSettings.initialWindowSize);
+        frameBuffer.getBytes(9, settingsPayload);
+
         this.h2cSettingsPayload = new String16FW(Base64.getUrlEncoder().encodeToString(settingsPayload));
     }
 
