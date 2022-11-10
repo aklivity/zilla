@@ -71,7 +71,7 @@ public class TestDumpCommand
     public void testDumpWithKafkaExtensionFilter() throws IOException
     {
         List<String> extensionTypes = new ArrayList<>();
-        extensionTypes.add("kafka0");
+        extensionTypes.add("test.kafka0");
         dumpCommand.bindingNames = extensionTypes;
         dumpCommand.run();
 
