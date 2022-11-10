@@ -6,6 +6,11 @@
         {
             "type" : "http",
             "kind": "client",
+            "options": {
+                "versions": [
+                    "http/1.1"
+                ]
+            },
             "routes":
             [
                 {
