@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -74,7 +75,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     public boolean verbose;
 
     @Option(name = {"-b", "--bindingNames"},
-        description = "Dump specific namespaces, bindings only, e.g example_ns.http0,example_ns.kafka0")
+        description = "Dump specific namespaces, bindings only, e.g example.http0,example.kafka0")
     public List<String> bindingNames = new ArrayList<>();
 
     @Option(name = {"-d", "--directory"},
@@ -146,6 +147,17 @@ public final class ZillaDumpCommand extends ZillaCommand
     @Override
     public void run()
     {
+        if (directory == null)
+        {
+            try
+            {
+                directory = new URI(System.getProperty("user.dir"));
+            }
+            catch (URISyntaxException e)
+            {
+                System.out.println("Cannot parse working directory");
+            }
+        }
         Properties properties = new Properties();
         properties.setProperty(ENGINE_DIRECTORY.name(), directory.getPath());
         final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
@@ -217,7 +229,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    private RingBufferSpy createStreamBuffer(Path path)
+    private RingBufferSpy createStreamBuffer(
+        Path path)
     {
         final String filename = path.getFileName().toString();
         final Matcher matcher = STREAMS_PATTERN.matcher(filename);
@@ -318,7 +331,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    public void onBegin(BeginFW begin)
+    private void onBegin(
+        BeginFW begin)
     {
         if (allowedBindings.isEmpty() || allowedBindings.contains(begin.routeId()))
         {
@@ -332,7 +346,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    public void onData(DataFW data)
+    private void onData(
+        DataFW data)
     {
         if (allowedBindings.isEmpty() || allowedBindings.contains(data.routeId()))
         {
@@ -355,7 +370,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    public void onEnd(EndFW end)
+    private void onEnd(
+        EndFW end)
     {
         if (allowedBindings.isEmpty() || allowedBindings.contains(end.routeId()))
         {
@@ -369,7 +385,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    public void onAbort(AbortFW abort)
+    private void onAbort(
+        AbortFW abort)
     {
         final long streamId = abort.streamId();
         TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
@@ -380,7 +397,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         writeToPcapFile(tcpHeader);
     }
 
-    public void onReset(ResetFW reset)
+    private void onReset(
+        ResetFW reset)
     {
         if (allowedBindings.isEmpty() || allowedBindings.contains(reset.routeId()))
         {
@@ -395,7 +413,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    public void onWindow(WindowFW window)
+    private void onWindow(
+        WindowFW window)
     {
         final long streamId = window.streamId();
 
@@ -407,7 +426,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         writeToPcapFile(tcpHeader);
     }
 
-    public void onSignal(SignalFW signal)
+    private void onSignal(
+        SignalFW signal)
     {
         final long streamId = signal.streamId();
         TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
@@ -418,7 +438,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         writeToPcapFile(tcpHeader);
     }
 
-    public void onChallenge(ChallengeFW challenge)
+    private void onChallenge(
+        ChallengeFW challenge)
     {
         final long streamId = challenge.streamId();
         TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
@@ -429,7 +450,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         writeToPcapFile(tcpHeader);
     }
 
-    public void onFlush(FlushFW flush)
+    private void onFlush(
+        FlushFW flush)
     {
         if (allowedBindings.isEmpty() || allowedBindings.contains(flush.routeId()))
         {
@@ -443,7 +465,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    private void writeToPcapFile(Flyweight flyweight)
+    private void writeToPcapFile(
+        Flyweight flyweight)
     {
         try
         {
@@ -459,7 +482,8 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    private void writeToPcapFile(byte[] bytes)
+    private void writeToPcapFile(
+        byte[] bytes)
     {
         try
         {
@@ -473,7 +497,9 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    private PcapPacketHeaderFW createPcapPacketHeader(long length, long timestamp)
+    private PcapPacketHeaderFW createPcapPacketHeader(
+        long length,
+        long timestamp)
     {
         return pcapPacketHeaderRW.wrap(writeBuffer, TCP_HEADER_SIZE, writeBuffer.capacity())
             .ts_sec(timestamp / 1000)
@@ -483,7 +509,9 @@ public final class ZillaDumpCommand extends ZillaCommand
             .build();
     }
 
-    private TcpHeaderFW createTcpHeader(long streamId, Flag flag)
+    private TcpHeaderFW createTcpHeader(
+        long streamId,
+        Flag flag)
     {
         short port = getPort(streamId);
         short other = getOtherFields(flag);
@@ -499,7 +527,8 @@ public final class ZillaDumpCommand extends ZillaCommand
             .build();
     }
 
-    private short getOtherFields(Flag flag)
+    private short getOtherFields(
+        Flag flag)
     {
         byte flags = 0;
         if (flag == Flag.FIN)
@@ -532,20 +561,23 @@ public final class ZillaDumpCommand extends ZillaCommand
         return buffer.getShort(0);
     }
 
-    private short getPort(long streamId)
+    private short getPort(
+        long streamId)
     {
         byte[] streamIdBytes = longToBytes(streamId);
         return byteArrayToShort(Arrays.copyOfRange(streamIdBytes, streamIdBytes.length - 2, streamIdBytes.length));
     }
 
-    private byte[] longToBytes(long x)
+    private byte[] longToBytes(
+        long x)
     {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.putLong(x);
         return buffer.array();
     }
 
-    private short byteArrayToShort(byte[] array)
+    private short byteArrayToShort(
+        byte[] array)
     {
         assert array.length == 2;
         return (short) ((array[0] << 8) | (array[1] & 0xFF));

@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -70,9 +71,7 @@ public class TestDumpCommand
     @Test
     public void testDumpWithKafkaExtensionFilter() throws IOException
     {
-        List<String> extensionTypes = new ArrayList<>();
-        extensionTypes.add("test.kafka0");
-        dumpCommand.bindingNames = extensionTypes;
+        dumpCommand.bindingNames = Collections.singletonList("test.kafka0");
         dumpCommand.run();
 
         File[] files = tempDir.listFiles();
