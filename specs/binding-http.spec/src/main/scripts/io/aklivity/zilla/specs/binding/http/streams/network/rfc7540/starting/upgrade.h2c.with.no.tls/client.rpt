@@ -21,11 +21,11 @@ connected
 
 write "POST / HTTP/1.1\r\n"
       "Host: localhost:8080\r\n"
-      "Connection: Upgrade, HTTP2-Settings\r\n"
-      "Upgrade: h2c\r\n"
-      "HTTP2-Settings: \r\n"
       "Content-Type: text/plain;charset=UTF-8\r\n"
       "Content-Length: 12\r\n"
+      "Upgrade: h2c\r\n"
+      "Connection: Upgrade, HTTP2-Settings\r\n"
+      "Http2-Settings: AAMAAABkAAQAAP__\r\n"
       "\r\n"
 
 write "Hello, world"
@@ -35,13 +35,6 @@ read "HTTP/1.1 101 Switching Protocols\r\n"
      "Upgrade: h2c\r\n"
      "\r\n"
 
-# client connection preface
-write "PRI * HTTP/2.0\r\n"
-      "\r\n"
-      "SM\r\n"
-      "\r\n"
-write flush
-
 # server connection preface - SETTINGS frame
 read [0x00 0x00 0x12]                   # length = 18
      [0x04]                             # HTTP2 SETTINGS frame
@@ -50,14 +43,6 @@ read [0x00 0x00 0x12]                   # length = 18
      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
-
-write [0x00 0x00 0x0c]                   # length = 12
-      [0x04]                             # HTTP2 SETTINGS frame
-      [0x00]                             # flags = 0x00
-      [0x00 0x00 0x00 0x00]              # stream_id = 0
-      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
-write flush
 
 read [0x00 0x00 0x00]                   # length = 0
      [0x04]                             # HTTP2 SETTINGS frame

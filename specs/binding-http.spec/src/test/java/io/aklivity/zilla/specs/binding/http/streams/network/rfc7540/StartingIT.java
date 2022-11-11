@@ -89,16 +89,6 @@ public class StartingIT
 
     @Test
     @Specification({
-        "${net}/upgrade.h2c.with.settings/client",
-        "${net}/upgrade.h2c.with.settings/server",
-    })
-    public void shouldNotUpgradeViaH2CWithSettings() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/upgrade.h2c.with.no.tls/client",
         "${net}/upgrade.h2c.with.no.tls/server",
     })
