@@ -2248,7 +2248,9 @@ public final class HttpClientFactory implements HttpStreamFactory
                 this.decoder = decodeHttp2Settings;
                 this.encoder = HttpEncoder.HTTP_2;
             }
-            else if (pool.versions.contains(HTTP_1_1) && pool.versions.contains(HTTP_2))
+            else if (beginEx == null &&
+                     pool.versions.contains(HTTP_1_1) &&
+                     pool.versions.contains(HTTP_2))
             {
                 this.encoder = HttpEncoder.H2C;
             }
