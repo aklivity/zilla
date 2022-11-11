@@ -205,4 +205,14 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/single.request.and.503.response/client",
+        "${net}/upgrade.rejected.without.h2c.request/server"})
+    public void shouldRejectUpgradeWithoutH2c() throws Exception
+    {
+        k3po.finish();
+    }
 }

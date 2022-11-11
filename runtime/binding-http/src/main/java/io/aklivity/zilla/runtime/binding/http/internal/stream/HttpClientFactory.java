@@ -732,6 +732,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                         assert client.decoder == decodeHeadersOnly;
                         if ("101".equals(status))
                         {
+                            if (!client.protocolUpgrade)
+                            {
+                                client.decoder = decodeIgnore;
+                                break decode;
+                            }
+
                             if (client.encoder == HttpEncoder.H2C)
                             {
                                 client.encoder = HttpEncoder.HTTP_2;
@@ -2127,6 +2133,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int encodeSlotReserved;
         private int initialSharedBudget;
         private long requestSharedBudgetIndex = NO_CREDITOR_INDEX;
+        private boolean protocolUpgrade;
 
 
         private HttpClient(
@@ -2687,8 +2694,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             final HttpHeaderFW status = beginEx.headers().matchFirst(h -> HEADER_STATUS.equals(h.name()));
             if (status != null &&
-                    encoder == HttpEncoder.HTTP_1_1 &&
-                    STATUS_101.equals(status.value()))
+                encoder == HttpEncoder.HTTP_1_1 &&
+                STATUS_101.equals(status.value()))
             {
                 pool.onUpgradedOrClosed(this);
             }
@@ -2768,7 +2775,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             final String16FW connection = headers.get(HEADER_CONNECTION);
             final String16FW upgrade = headers.get(HEADER_UPGRADE);
 
-            if (connection != null && connectionClose.reset(connection.asString()).matches() || upgrade != null)
+            protocolUpgrade = upgrade != null;
+
+            if (connection != null && connectionClose.reset(connection.asString()).matches() || protocolUpgrade)
             {
                 exchange.state = HttpState.closingReply(exchange.state);
             }

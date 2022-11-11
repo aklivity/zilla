@@ -310,4 +310,13 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/single.request.and.503.response/client",
+        "${app}/single.request.and.503.response/server" })
+    public void singRequestAnd503Response() throws Exception
+    {
+        k3po.finish();
+    }
 }
