@@ -70,7 +70,7 @@ public class StartingIT
     @Configuration("client.json")
     @Specification({
         "${app}/upgrade.http/client",
-        "${net}/upgrade.h2c.with.settings/server"})
+        "${net}/upgrade.h2c.with.no.tls/server"})
     @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "100")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldUpgradeViaH2cWithSettings() throws Exception
