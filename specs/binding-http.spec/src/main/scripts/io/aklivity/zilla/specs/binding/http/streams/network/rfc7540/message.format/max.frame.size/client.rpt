@@ -94,11 +94,11 @@ read [0..20000]
 #
 # response DATA frame 9000 = max(30000 - 20000, 29000 - 20000)
 #
-read [0x00 0x23 0x28]                          # length = 9000
+read [0x00 0x1f 0x2e]                          # length = 7982
      [0x00]                                    # HTTP2 DATA frame
      [0x00]                                    # no flags
      [0x00 0x00 0x00 0x01]                     # stream_id=1
-read [0..9000]
+read [0..7982]
 
 # connection-level flow control
 write [0x00 0x00 0x04]                         # length
@@ -114,8 +114,14 @@ write [0x00 0x00 0x04]                         # length
      [0x00 0x00 0x00 0x01]                     # stream_id=1
      [0x00 0x00 0x79 0x18]                     # window size increment = 1000
 
-read [0x00 0x03 0xe8]                          # length = 1000
+read [0x00 0x00 0x09]                          # length = 9
      [0x00]                                    # HTTP2 DATA frame
      [0x00]                                    # no flags
      [0x00 0x00 0x00 0x01]                     # stream_id=1
-read [0..1000]
+read [0..9]
+
+read [0x00 0x07 0xd9]                          # length = 2009
+     [0x00]                                    # HTTP2 DATA frame
+     [0x00]                                    # no flags
+     [0x00 0x00 0x00 0x01]                     # stream_id=1
+read [0..2009]

@@ -387,4 +387,14 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.100k.message/client",
+        "${app}/server.sent.100k.message/server",
+    })
+    public void serverSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -15,8 +15,6 @@
 #
 
 property data20k ${http:randomBytes(20000)}
-property data9k ${http:randomBytes(9000)}
-property data1k ${http:randomBytes(1000)}
 
 accept "zilla://streams/net0"
        option zilla:window 60000
@@ -98,11 +96,11 @@ write flush
 #
 # response DATA frame 9000 = max(30000 - 20000, 29000 - 20000)
 #
-write [0x00 0x23 0x28]                          # length = 9000
+write [0x00 0x1f 0x2e]                          # length = 7982
       [0x00]                                    # HTTP2 DATA frame
       [0x00]                                    # no flags
       [0x00 0x00 0x00 0x01]                     # stream_id=1
-write ${data9k}
+write ${http:randomBytes(7982)}
 write flush
 
 # connection-level flow control
@@ -119,9 +117,16 @@ read [0x00 0x00 0x04]                           # length
      [0x00 0x00 0x00 0x01]                      # stream_id=1
      [0x00 0x00 0x79 0x18]                      # window size increment = 31000
 
-write [0x00 0x03 0xe8]                          # length = 1000
+write [0x00 0x00 0x09]                          # length = 9
       [0x00]                                    # HTTP2 DATA frame
       [0x00]                                    # no flags
       [0x00 0x00 0x00 0x01]                     # stream_id=1
-write ${data1k}
+write ${http:randomBytes(9)}
+write flush
+
+write [0x00 0x07 0xd9]                          # length = 2009
+      [0x00]                                    # HTTP2 DATA frame
+      [0x00]                                    # no flags
+      [0x00 0x00 0x00 0x01]                     # stream_id=1
+write ${http:randomBytes(2009)}
 write flush

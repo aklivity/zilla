@@ -115,12 +115,12 @@ write [0x00 0x00 0x59]                                      # length
       [0x0f 0x0d] [0x03] "113"                              # content-length
 write flush
 
-write [0x00 0x00 0x3c]                          # length = 60
+write [0x00 0x00 0x33]                          # length = 51
       [0x00]                                    # HTTP2 DATA frame
       [0x00]                                    # no flags
       [0x00 0x00 0x00 0x01]                     # stream_id=1
       "<html>"
-      "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
+      "<head><link rel=\"stylesheet\" href=\"styles.css"
 write flush
 
 # connection-level flow control
@@ -128,19 +128,38 @@ read [0x00 0x00 0x04]                         # length
      [0x08]                                   # WINDOW_UPDATE frame
      [0x00]                                   # no flags
      [0x00 0x00 0x00 0x00]                    # stream_id=0
-     [0x00 0x00 0x00 0x3c]                    # window size increment = 60
+     [0x00 0x00 0x00 0x33]                    # window size increment = 51
 
 # stream-level flow control
 read [0x00 0x00 0x04]                         # length
      [0x08]                                   # WINDOW_UPDATE frame
      [0x00]                                   # no flags
      [0x00 0x00 0x00 0x01]                    # stream_id=1
-     [0x00 0x00 0x00 0x3c]                    # window size increment = 60
+     [0x00 0x00 0x00 0x33]                    # window size increment = 51
 
-write [0x00 0x00 0x35]                          # length = 53
+write [0x00 0x00 0x33]                          # length = 51
       [0x00]                                    # HTTP2 DATA frame
       [0x00]                                    # no flags
       [0x00 0x00 0x00 0x01]                     # stream_id=1
-      "<body><script src=\"script.js\"></script></body>"
-      "</html>"
+      "\"></head><body><script src=\"script.js\"></script></b"
+write flush
+
+read  [0x00 0x00 0x04]                         # length
+      [0x08]                                   # WINDOW_UPDATE frame
+      [0x00]                                   # no flags
+      [0x00 0x00 0x00 0x00]                    # stream_id=0
+      [0x00 0x00 0x00 0x33]                    # window size increment = 51
+
+# stream-level flow control
+read  [0x00 0x00 0x04]                         # length
+      [0x08]                                   # WINDOW_UPDATE frame
+      [0x00]                                   # no flags
+      [0x00 0x00 0x00 0x01]                    # stream_id=1
+      [0x00 0x00 0x00 0x33]                    # window size increment = 51
+
+write [0x00 0x00 0x0b]                          # length = 11
+      [0x00]                                    # HTTP2 DATA frame
+      [0x00]                                    # no flags
+      [0x00 0x00 0x00 0x01]                     # stream_id=1
+      "ody></html>"
 write flush
