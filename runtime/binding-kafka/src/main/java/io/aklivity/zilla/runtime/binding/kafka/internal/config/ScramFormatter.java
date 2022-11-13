@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -86,12 +87,12 @@ public class ScramFormatter
         return hmac(saltedPassword, toBytes("Server Key"));
     }
 
-    public byte[] clientProof(byte[] saltedPassword, byte[] authMessage) throws InvalidKeyException
+    public String clientProof(byte[] saltedPassword, byte[] authMessage) throws InvalidKeyException
     {
         byte[] clientKey = clientKey(saltedPassword);
         byte[] storedKey = hash(clientKey);
         byte[] clientSignature = hmac(storedKey, authMessage);
-        return xor(clientKey, clientSignature);
+        return Base64.getEncoder().encodeToString(xor(clientKey, clientSignature));
     }
 
     public byte[] toBytes(String str)

@@ -62,7 +62,7 @@ public class ClientFetchSaslIT
     }
 
     @Test
-    @Configuration("client.options.sasl.scram-256.json")
+    @Configuration("client.options.sasl.scram.json")
     @Specification({
         "${app}/partition.offset/client",
         "${net}/partition.offset.sasl.scram/server"})

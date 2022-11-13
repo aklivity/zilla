@@ -62,7 +62,7 @@ public class ClientMetaSaslIT
     }
 
     @Test
-    @Configuration("client.options.sasl.scram-256.json")
+    @Configuration("client.options.sasl.scram.json")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info.sasl.scram/server"})

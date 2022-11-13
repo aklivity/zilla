@@ -62,7 +62,7 @@ public class ClientDescribeSaslIT
     }
 
     @Test
-    @Configuration("client.options.sasl.scram-256.json")
+    @Configuration("client.options.sasl.scram.json")
     @Specification({
         "${app}/topic.config.info/client",
         "${net}/topic.config.info.sasl.scram/server"})
