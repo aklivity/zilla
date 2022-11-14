@@ -4056,12 +4056,23 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         final int replyAckMax = (int)(replySeq - replyPendingAck);
                         final int replyBudgetMax = replyBudget + replyPendingAck;
 
-                        replyAck = replyAckMax;
-                        assert replyAck <= replySeq;
-                        replyMax = replyBudgetMax;
-                        assert replyMax >= 0;
-                        doWindow(application, newRouteId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                            replySharedBudgetId, padding, maxFrameSize);
+                        if (replyAckMax > replyAck || replyBudgetMax != replyMax)
+                        {
+                            replyAck = replyAckMax;
+                            assert replyAck <= replySeq;
+                            replyMax = replyBudgetMax;
+                            assert replyMax >= 0;
+                            doWindow(application, newRouteId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                                    replySharedBudgetId, padding, maxFrameSize);
+                        }
+                        else if (replyAckMax == 0 &&
+                                replyAck == 0 &&
+                                replyBudgetMax == 0 &&
+                                replyMax == 0)
+                        {
+                            doWindow(application, newRouteId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                                    replySharedBudgetId, padding, maxFrameSize);
+                        }
                     }
                 }
 
