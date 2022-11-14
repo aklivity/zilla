@@ -14,22 +14,20 @@
  */
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -64,8 +62,6 @@ import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 
 @Command(name = "dump", description = "Dump stream content")
 public final class ZillaDumpCommand extends ZillaCommand
@@ -80,7 +76,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     @Option(name = {"-d", "--directory"},
         description = "Configuration directory")
-    public URI directory;
+    public Path directory = Paths.get(".zilla", "engine");
 
     @Option(name = {"-o", "--output"},
         description = "PCAP file location to dump stream")
@@ -139,7 +135,6 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private long nextTimestamp = Long.MAX_VALUE;
     private RingBufferSpy.SpyPosition position;
-    private Path directoryPath;
     private FileChannel channel;
     private RandomAccessFile writer;
     private MutableDirectBuffer writeBuffer;
@@ -147,22 +142,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     @Override
     public void run()
     {
-        if (directory == null)
-        {
-            try
-            {
-                directory = new URI(System.getProperty("user.dir"));
-            }
-            catch (URISyntaxException e)
-            {
-                System.out.println("Cannot parse working directory");
-            }
-        }
-        Properties properties = new Properties();
-        properties.setProperty(ENGINE_DIRECTORY.name(), directory.getPath());
-        final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
-        this.directoryPath = config.directory();
-        LabelManager labelManager = new LabelManager(directoryPath);
+        LabelManager labelManager = new LabelManager(directory);
 
         bindingNames.forEach(binding ->
         {
@@ -201,7 +181,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             .build();
         writeToPcapFile(globalHeaderFW);
 
-        try (Stream<Path> files = Files.walk(directoryPath, 3))
+        try (Stream<Path> files = Files.walk(directory, 3))
         {
             List<RingBufferSpy> streamBuffers = files
                 .filter(this::isStreamsFile)
@@ -297,7 +277,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     private boolean isStreamsFile(
         Path path)
     {
-        final int depth = path.getNameCount() - directoryPath.getNameCount();
+        final int depth = path.getNameCount() - directory.getNameCount();
         if (depth != 1 || !Files.isRegularFile(path))
         {
             return false;

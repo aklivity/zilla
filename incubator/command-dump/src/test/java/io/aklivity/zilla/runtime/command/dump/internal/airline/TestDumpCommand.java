@@ -19,10 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
@@ -48,7 +46,7 @@ public class TestDumpCommand
         Properties properties = new Properties();
         properties.put("zilla.engine.directory", baseDir + "/engine");
         final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
-        dumpCommand.directory = config.directory().toUri();
+        dumpCommand.directory = config.directory();
 
         dumpCommand.verbose = true;
         dumpCommand.affinity = -1;
