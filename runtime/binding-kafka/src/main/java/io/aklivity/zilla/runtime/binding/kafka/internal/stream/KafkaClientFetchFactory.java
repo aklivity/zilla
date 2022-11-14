@@ -36,7 +36,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.ScramMechanism;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
@@ -173,9 +172,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final KafkaFetchClientDecoder decodeSaslHandshakeMechanisms = this::decodeSaslHandshakeMechanisms;
     private final KafkaFetchClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
     private final KafkaFetchClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
-    private final KafkaFetchClientDecoder decodeSaslScramAuthenticateResponse = this::decodeSaslScramAuthenticateResponse;
     private final KafkaFetchClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
-    private final KafkaFetchClientDecoder decodeSaslScramAuthenticate = this::decodeSaslScramAuthenticate;
     private final KafkaFetchClientDecoder decodeOffsetsResponse = this::decodeOffsetsResponse;
     private final KafkaFetchClientDecoder decodeOffsets = this::decodeOffsets;
     private final KafkaFetchClientDecoder decodeOffsetsTopics = this::decodeOffsetsTopics;
@@ -2055,9 +2052,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private final class KafkaFetchClient extends KafkaSaslClient
         {
             private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
-            private final LongLongConsumer encodeSaslPlainAuthenticateRequest = this::doEncodeSaslPlainAuthenticateRequest;
-            private final LongLongConsumer encodeSaslScramFirstAuthenticateRequest =
-                    this::doEncodeSaslScramFirstAuthenticateRequest;
+            private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
             private final LongLongConsumer encodeOffsetsRequest = this::doEncodeOffsetsRequest;
             private final LongLongConsumer encodeFetchRequest = this::doEncodeFetchRequest;
 
@@ -2789,20 +2784,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             }
 
             @Override
-            protected void doDecodeSaslScramAuthenticate(
-                    long traceId)
-            {
-                decoder = decodeSaslScramAuthenticate;
-            }
-
-            @Override
-            protected void doDecodeSaslScramAuthenticateResponse(
-                    long traceId)
-            {
-                decoder = decodeSaslScramAuthenticateResponse;
-            }
-
-            @Override
             protected void onDecodeSaslHandshakeResponse(
                 long traceId,
                 long authorization,
@@ -2811,16 +2792,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 switch (errorCode)
                 {
                 case ERROR_NONE:
-                    if (sasl.mechanism != null && ScramMechanism.isScram(sasl.mechanism.toUpperCase()))
-                    {
-                        client.encoder = client.encodeSaslScramFirstAuthenticateRequest;
-                        client.decoder = decodeSaslAuthenticateResponse;
-                    }
-                    else
-                    {
-                        client.encoder = client.encodeSaslPlainAuthenticateRequest;
-                        client.decoder = decodeSaslAuthenticateResponse;
-                    }
+                    client.encoder = client.encodeSaslAuthenticateRequest;
+                    client.decoder = decodeSaslAuthenticateResponse;
                     break;
                 default:
                     cleanupApplication(traceId, errorCode);

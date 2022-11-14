@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
@@ -49,6 +50,7 @@ public abstract class KafkaClientSaslHandshaker
     private static final short SASL_AUTHENTICATE_API_KEY = 36;
     private static final short SASL_AUTHENTICATE_API_VERSION = 1;
     private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
+    private static final int ERROR_NONE = 0;
 
     private static final String PRINTABLE = "[\\x21-\\x7E&&[^,]]+";
     private static final String BASE64_CHAR = "[a-zA-Z0-9/+]";
@@ -72,6 +74,11 @@ public abstract class KafkaClientSaslHandshaker
     private final SaslHandshakeResponseFW saslHandshakeResponseRO = new SaslHandshakeResponseFW();
     private final SaslHandshakeMechanismResponseFW saslHandshakeMechanismResponseRO = new SaslHandshakeMechanismResponseFW();
     private final SaslAuthenticateResponseFW saslAuthenticateResponseRO = new SaslAuthenticateResponseFW();
+
+    private KafkaSaslClientDecoder decodeSaslPlainAuthenticate = this::decodeSaslPlainAuthenticate;
+    private KafkaSaslClientDecoder decodeSaslScramAuthenticateFirst = this::decodeSaslScramAuthenticateFirst;
+    private KafkaSaslClientDecoder decodeSaslScramAuthenticateFinal = this::decodeSaslScramAuthenticateFinal;
+
     private final MutableDirectBuffer scramBuffer = new UnsafeBuffer(new byte[1024]);
     private ScramFormatter formatter;
     private Matcher serverResponseMatcher;
@@ -105,6 +112,8 @@ public abstract class KafkaClientSaslHandshaker
         private String iterationCount;
         byte[] saltedPassword;
         byte[] authMessage;
+        private LongLongConsumer encodeSaslAuthenticate;
+        private KafkaSaslClientDecoder decodeSaslAuthenticate;
 
 
         protected KafkaSaslClient(
@@ -165,7 +174,14 @@ public abstract class KafkaClientSaslHandshaker
             doDecodeSaslHandshakeResponse(traceId);
         }
 
-        protected final void doEncodeSaslPlainAuthenticateRequest(
+        protected final void doEncodeSaslAuthenticateRequest(
+                long traceId,
+                long budgetId)
+        {
+            encodeSaslAuthenticate.accept(traceId, budgetId);
+        }
+
+        private void doEncodeSaslPlainAuthenticateRequest(
             long traceId,
             long budgetId)
         {
@@ -223,7 +239,7 @@ public abstract class KafkaClientSaslHandshaker
             doDecodeSaslAuthenticateResponse(traceId);
         }
 
-        protected final void doEncodeSaslScramFirstAuthenticateRequest(
+        private void doEncodeSaslScramFirstAuthenticateRequest(
                 long traceId,
                 long budgetId)
         {
@@ -282,7 +298,6 @@ public abstract class KafkaClientSaslHandshaker
             if (KafkaConfiguration.DEBUG)
             {
                 System.out.format("[0x%016x] SASL AUTHENTICATE %s\n", replyId, username);
-                System.out.format("[0x%016x] SASL AUTHENTICATE %s\n", replyId, sasl.mechanism);
             }
 
             doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
@@ -290,7 +305,7 @@ public abstract class KafkaClientSaslHandshaker
             doDecodeSaslAuthenticateResponse(traceId);
         }
 
-        protected final void doEncodeSaslScramFinalAuthenticateRequest(
+        private void doEncodeSaslScramFinalAuthenticateRequest(
                 long traceId,
                 long budgetId)
         {
@@ -351,7 +366,7 @@ public abstract class KafkaClientSaslHandshaker
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
-                doDecodeSaslScramAuthenticateResponse(traceId);
+                doDecodeSaslAuthenticateResponse(traceId);
 
             }
             catch (Exception e)
@@ -386,14 +401,8 @@ public abstract class KafkaClientSaslHandshaker
         protected abstract void doDecodeSaslAuthenticateResponse(
                 long traceId);
 
-        protected abstract void doDecodeSaslScramAuthenticateResponse(
-                long traceId);
-
         protected abstract void doDecodeSaslAuthenticate(
             long traceId);
-
-        protected abstract void doDecodeSaslScramAuthenticate(
-                long traceId);
 
         protected abstract void doDecodeSaslHandshake(
             long traceId);
@@ -428,16 +437,6 @@ public abstract class KafkaClientSaslHandshaker
             int offset,
             int progress,
             int limit);
-    }
-
-    @FunctionalInterface
-    private interface KafkaSaslClientSaslAuthenticateEncoder
-    {
-        void encode(
-                KafkaSaslClient client,
-                long replyId,
-                long traceId,
-                long budgetId);
     }
 
     protected final int decodeSaslHandshakeResponse(
@@ -492,7 +491,22 @@ public abstract class KafkaClientSaslHandshaker
 
                 client.decodableResponseBytes -= saslResponse.sizeof();
                 assert client.decodableResponseBytes >= 0;
-
+                if (errorCode == ERROR_NONE)
+                {
+                    switch (client.sasl.mechanism)
+                    {
+                    case "plain" :
+                        client.encodeSaslAuthenticate = client::doEncodeSaslPlainAuthenticateRequest;
+                        client.decodeSaslAuthenticate = decodeSaslPlainAuthenticate;
+                        break;
+                    case "scram-sha-1" :
+                    case "scram-sha-256" :
+                    case "scram-sha-512" :
+                        client.encodeSaslAuthenticate = client::doEncodeSaslScramFirstAuthenticateRequest;
+                        client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFirst;
+                        break;
+                    }
+                }
                 client.onDecodeSaslHandshakeResponse(traceId, authorization, errorCode);
 
                 client.decodableMechanisms = saslResponse.mechanismCount();
@@ -590,34 +604,24 @@ public abstract class KafkaClientSaslHandshaker
         return progress;
     }
 
-    protected final int decodeSaslScramAuthenticateResponse(
-            KafkaSaslClient client,
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            DirectBuffer buffer,
-            int offset,
-            int progress,
-            int limit)
+    protected final int decodeSaslAuthenticate(
+        KafkaSaslClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        MutableDirectBuffer buffer,
+        int offset,
+        int progress,
+        int limit)
     {
-        final int length = limit - progress;
-
-        if (length != 0)
-        {
-            final ResponseHeaderFW responseHeader = responseHeaderRO.tryWrap(buffer, progress, limit);
-            if (responseHeader != null)
-            {
-                progress = responseHeader.limit();
-                client.decodableResponseBytes = responseHeader.length();
-                client.doDecodeSaslScramAuthenticate(traceId);
-            }
-        }
-
-        return progress;
+        return client.decodeSaslAuthenticate.decode(
+                client, traceId, authorization,
+                budgetId, reserved, buffer,
+                offset, progress, limit);
     }
 
-    protected final int decodeSaslAuthenticate(
+    private int decodeSaslPlainAuthenticate(
         KafkaSaslClient client,
         long traceId,
         long authorization,
@@ -643,44 +647,15 @@ public abstract class KafkaClientSaslHandshaker
                 client.decodableResponseBytes -= authenticateResponse.sizeof();
                 assert client.decodableResponseBytes >= 0;
 
-                if (client.sasl != null && client.sasl.mechanism != null &&
-                        ScramMechanism.isScram(client.sasl.mechanism.toUpperCase()))
-                {
-                    DirectBuffer serverFirstResponse = authenticateResponse.authBytes().value();
-                    String serverFirstMessage = serverFirstResponse.getStringWithoutLengthUtf8(0,
-                            serverFirstResponse.capacity());
-
-                    serverResponseMatcher = SASL_SCRAM_SERVER_FIRST_MESSAGE.matcher(serverFirstMessage);
-                    if (serverResponseMatcher.matches())
-                    {
-                        client.serverNonce = serverResponseMatcher.group("nonce");
-                        client.salt = serverResponseMatcher.group("salt");
-                        client.iterationCount = serverResponseMatcher.group("iterations");
-                    }
-                    if (errorCode ==  0 && client.serverNonce != null &&
-                            client.serverNonce.startsWith(client.clientNonce))
-                    {
-                        client.onDecodeSaslResponse(traceId);
-                        client.doEncodeSaslScramFinalAuthenticateRequest(traceId, budgetId);
-                    }
-                    else
-                    {
-                        client.onDecodeSaslResponse(traceId);
-                        client.onDecodeSaslAuthenticateResponse(traceId, authorization, ERROR_SASL_AUTHENTICATION_FAILED);
-                    }
-                }
-                else
-                {
-                    client.onDecodeSaslResponse(traceId);
-                    client.onDecodeSaslAuthenticateResponse(traceId, authorization, errorCode);
-                }
+                client.onDecodeSaslResponse(traceId);
+                client.onDecodeSaslAuthenticateResponse(traceId, authorization, errorCode);
             }
         }
 
         return progress;
     }
 
-    protected final int decodeSaslScramAuthenticateFirst(
+    private int decodeSaslScramAuthenticateFirst(
             KafkaSaslClient client,
             long traceId,
             long authorization,
@@ -717,11 +692,12 @@ public abstract class KafkaClientSaslHandshaker
                     client.salt = serverResponseMatcher.group("salt");
                     client.iterationCount = serverResponseMatcher.group("iterations");
                 }
-                if (errorCode ==  0 && client.serverNonce != null &&
+                if (errorCode == ERROR_NONE && client.serverNonce != null &&
                         client.serverNonce.startsWith(client.clientNonce))
                 {
+                    client.encodeSaslAuthenticate = client::doEncodeSaslScramFinalAuthenticateRequest;
+                    client.decodeSaslAuthenticate = decodeSaslScramAuthenticateFinal;
                     client.onDecodeSaslResponse(traceId);
-                    client.doEncodeSaslScramFinalAuthenticateRequest(traceId, budgetId);
                 }
                 else
                 {
@@ -734,7 +710,7 @@ public abstract class KafkaClientSaslHandshaker
         return progress;
     }
 
-    protected final int decodeSaslScramAuthenticate(
+    private int decodeSaslScramAuthenticateFinal(
             KafkaSaslClient client,
             long traceId,
             long authorization,

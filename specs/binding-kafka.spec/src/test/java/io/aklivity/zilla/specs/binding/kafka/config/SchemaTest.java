@@ -98,7 +98,7 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateClientOptionsSaslScram256()
+    public void shouldValidateClientOptionsSaslScram()
     {
         JsonObject config = schema.validate("client.options.sasl.scram.json");
 
