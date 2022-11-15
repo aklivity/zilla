@@ -16,29 +16,45 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.config;
 
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.agrona.LangUtil;
+
 public class ScramFormatter
 {
 
-    private final MessageDigest messageDigest;
-    private final Mac mac;
+    private static final String CLIENT_KEY = "Client Key";
+    private static final String SERVER_KEY = "Server Key";
+    private MessageDigest messageDigest;
+    private Mac mac;
 
-    public ScramFormatter(ScramMechanism mechanism) throws NoSuchAlgorithmException
+    public ScramFormatter(ScramMechanism mechanism)
     {
-        this.messageDigest = MessageDigest.getInstance(mechanism.hashAlgorithm());
-        this.mac = Mac.getInstance(mechanism.macAlgorithm());
+        try
+        {
+            this.messageDigest = MessageDigest.getInstance(mechanism.hashAlgorithm());
+            this.mac = Mac.getInstance(mechanism.macAlgorithm());
+        }
+        catch (Exception e)
+        {
+            LangUtil.rethrowUnchecked(e);
+        }
     }
 
-    public byte[] hmac(byte[] key, byte[] bytes) throws InvalidKeyException
+    public byte[] hmac(byte[] key, byte[] bytes)
     {
-        mac.init(new SecretKeySpec(key, mac.getAlgorithm()));
+        try
+        {
+            mac.init(new SecretKeySpec(key, mac.getAlgorithm()));
+        }
+        catch (Exception e)
+        {
+            LangUtil.rethrowUnchecked(e);
+        }
         return mac.doFinal(bytes);
     }
 
@@ -61,9 +77,16 @@ public class ScramFormatter
         return result;
     }
 
-    public byte[] hi(byte[] str, byte[] salt, int iterations) throws InvalidKeyException
+    public byte[] hi(byte[] str, byte[] salt, int iterations)
     {
-        mac.init(new SecretKeySpec(str, mac.getAlgorithm()));
+        try
+        {
+            mac.init(new SecretKeySpec(str, mac.getAlgorithm()));
+        }
+        catch (Exception e)
+        {
+            LangUtil.rethrowUnchecked(e);
+        }
         mac.update(salt);
         byte[] u1 = mac.doFinal(new byte[]{0, 0, 0, 1});
         byte[] prev = u1;
@@ -77,22 +100,23 @@ public class ScramFormatter
         return result;
     }
 
-    public byte[] clientKey(byte[] saltedPassword) throws InvalidKeyException
+    public byte[] clientKey(byte[] saltedPassword)
     {
-        return hmac(saltedPassword, toBytes("Client Key"));
+        return hmac(saltedPassword, toBytes(CLIENT_KEY));
     }
 
-    public byte[] serverKey(byte[] saltedPassword) throws InvalidKeyException
+    public byte[] serverKey(byte[] saltedPassword)
     {
-        return hmac(saltedPassword, toBytes("Server Key"));
+        return hmac(saltedPassword, toBytes(SERVER_KEY));
     }
 
-    public String clientProof(byte[] saltedPassword, byte[] authMessage) throws InvalidKeyException
+    public String clientProof(byte[] saltedPassword, byte[] authMessage)
     {
         byte[] clientKey = clientKey(saltedPassword);
         byte[] storedKey = hash(clientKey);
-        byte[] clientSignature = hmac(storedKey, authMessage);
-        return Base64.getEncoder().encodeToString(xor(clientKey, clientSignature));
+        byte[] clientSignature = hmac(hash(clientKey), authMessage);
+        return Base64.getEncoder().encodeToString(xor(clientKey,
+                hmac(hash(clientKey), authMessage)));
     }
 
     public byte[] toBytes(String str)
