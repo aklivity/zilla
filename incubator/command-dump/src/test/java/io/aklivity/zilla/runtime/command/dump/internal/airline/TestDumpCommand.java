@@ -69,7 +69,7 @@ public class TestDumpCommand
     @Test
     public void testDumpWithKafkaExtensionFilter() throws IOException
     {
-        dumpCommand.bindingNames = Collections.singletonList("test.kafka0");
+        dumpCommand.bindings = Collections.singletonList("test.kafka0");
         dumpCommand.run();
 
         File[] files = tempDir.listFiles();

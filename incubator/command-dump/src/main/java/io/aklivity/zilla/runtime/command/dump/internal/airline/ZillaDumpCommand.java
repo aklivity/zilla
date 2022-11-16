@@ -72,9 +72,9 @@ public final class ZillaDumpCommand extends ZillaCommand
         description = "Show verbose output")
     public boolean verbose;
 
-    @Option(name = {"-b", "--bindingNames"},
+    @Option(name = {"-b", "--bindings"},
         description = "Dump specific namespaces, bindings only, e.g example.http0,example.kafka0")
-    public List<String> bindingNames = new ArrayList<>();
+    public List<String> bindings = new ArrayList<>();
 
     @Option(name = {"-d", "--directory"},
         description = "Configuration directory",
@@ -165,7 +165,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     {
         LabelManager labelManager = new LabelManager(directory);
 
-        bindingNames.forEach(binding ->
+        bindings.forEach(binding ->
         {
             final String[] namespaceAndBindingName = binding.split("\\.");
             final int namespaceId = labelManager.lookupLabelId(namespaceAndBindingName[0]);
@@ -364,7 +364,7 @@ public final class ZillaDumpCommand extends ZillaCommand
                     bytes.length));
                 TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
                 PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + ipv6Header.sizeof() +
-                    tcpHeader.sizeof() + bytes.length, data.timestamp());
+                    tcpHeader.sizeof() + payload.sizeof(), data.timestamp());
                 writeToPcapFile(pcapHeader);
                 writeToPcapFile(PSEUDO_ETHERNET_FRAME);
                 writeToPcapFile(ipv6Header);
