@@ -219,7 +219,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         LongFunction<BudgetDebitor> supplyDebitor,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
-        super(context);
+        super(config, context);
         this.fetchMaxBytes = config.clientFetchMaxBytes();
         this.fetchMaxWaitMillis = config.clientFetchMaxWaitMillis();
         this.partitionMaxBytes = config.clientFetchPartitionMaxBytes();
@@ -2520,12 +2520,14 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 decoder = decodeSaslAuthenticateResponse;
             }
+
             @Override
             protected void doDecodeSaslAuthenticate(
                 long traceId)
             {
                 decoder = decodeSaslAuthenticate;
             }
+
             private void doEncodeOffsetsRequest(
                 long traceId,
                 long budgetId)

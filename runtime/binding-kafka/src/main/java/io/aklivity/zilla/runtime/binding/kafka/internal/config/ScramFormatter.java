@@ -65,14 +65,13 @@ public class ScramFormatter
 
     public byte[] xor(byte[] first, byte[] second)
     {
-        if (first.length != second.length)
-        {
-            throw new IllegalArgumentException("Argument arrays must be of the same length");
-        }
         byte[] result = new byte[first.length];
-        for (int i = 0; i < result.length; i++)
+        if (first.length == second.length)
         {
-            result[i] = (byte) (first[i] ^ second[i]);
+            for (int i = 0; i < result.length; i++)
+            {
+                result[i] = (byte) (first[i] ^ second[i]);
+            }
         }
         return result;
     }
@@ -113,8 +112,6 @@ public class ScramFormatter
     public String clientProof(byte[] saltedPassword, byte[] authMessage)
     {
         byte[] clientKey = clientKey(saltedPassword);
-        byte[] storedKey = hash(clientKey);
-        byte[] clientSignature = hmac(hash(clientKey), authMessage);
         return Base64.getEncoder().encodeToString(xor(clientKey,
                 hmac(hash(clientKey), authMessage)));
     }

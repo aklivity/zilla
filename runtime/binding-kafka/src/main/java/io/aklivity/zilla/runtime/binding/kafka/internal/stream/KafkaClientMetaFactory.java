@@ -147,7 +147,7 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
         LongFunction<BudgetDebitor> supplyDebitor,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
-        super(context);
+        super(config, context);
         this.maxAgeMillis = Math.min(config.clientMetaMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.signaler = context.signaler();

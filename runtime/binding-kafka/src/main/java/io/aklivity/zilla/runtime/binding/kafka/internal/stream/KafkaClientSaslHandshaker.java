@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,6 +80,7 @@ public abstract class KafkaClientSaslHandshaker
     private KafkaSaslClientDecoder decodeSaslScramAuthenticateFinal = this::decodeSaslScramAuthenticateFinal;
 
     private final MutableDirectBuffer scramBuffer = new UnsafeBuffer(new byte[1024]);
+    private Supplier<String> nonceSupplier;
     private ScramFormatter formatter;
     private Matcher serverResponseMatcher;
 
@@ -87,11 +89,13 @@ public abstract class KafkaClientSaslHandshaker
     protected final MutableDirectBuffer writeBuffer;
 
     public KafkaClientSaslHandshaker(
+        KafkaConfiguration config,
         EngineContext context)
     {
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.nonceSupplier = config.nonceSupplier();
     }
 
     public abstract class KafkaSaslClient
@@ -260,10 +264,8 @@ public abstract class KafkaClientSaslHandshaker
 
             final String username = sasl.username;
 
-            //clientNonce = new BigInteger(130, new SecureRandom()).toString(Character.MAX_RADIX);
-            clientNonce = "fyko+d2lbbFgONRv9qkxdawL";
+            clientNonce = nonceSupplier.get();
             byte[] randomBytes = clientNonce.getBytes();
-            //randomBytes.accept(scramClientNonce);
 
             int scramBytes = 0;
             scramBuffer.putBytes(scramBytes, SASL_SCRAM_CHANNEL_BINDING);

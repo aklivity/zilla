@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_META_MAX_AGE_MILLIS;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -29,6 +30,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientFetchSaslIT
 {
@@ -66,8 +68,15 @@ public class ClientFetchSaslIT
     @Specification({
         "${app}/partition.offset/client",
         "${net}/partition.offset.sasl.scram/server"})
+    @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
+            value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientDescribeSaslIT::supplyNonce")
     public void shouldRequestPartitionOffsetWithSaslScram() throws Exception
     {
         k3po.finish();
+    }
+
+    public static String supplyNonce()
+    {
+        return "fyko+d2lbbFgONRv9qkxdawL";
     }
 }

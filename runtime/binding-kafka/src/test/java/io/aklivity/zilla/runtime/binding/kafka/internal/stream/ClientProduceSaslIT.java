@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -30,6 +31,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ClientProduceSaslIT
 {
@@ -68,8 +70,15 @@ public class ClientProduceSaslIT
     @Specification({
         "${app}/message.value/client",
         "${net}/message.value.sasl.scram/server"})
+    @Configure(name = KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME,
+            value = "io.aklivity.zilla.runtime.binding.kafka.internal.stream.ClientDescribeSaslIT::supplyNonce")
     public void shouldSendMessageValueWithSaslScram() throws Exception
     {
         k3po.finish();
+    }
+
+    public static String supplyNonce()
+    {
+        return "fyko+d2lbbFgONRv9qkxdawL";
     }
 }
