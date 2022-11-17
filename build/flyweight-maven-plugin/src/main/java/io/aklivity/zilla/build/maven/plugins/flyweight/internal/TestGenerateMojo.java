@@ -29,7 +29,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = "test-generate",
       defaultPhase = GENERATE_TEST_SOURCES,
       requiresDependencyResolution = TEST,
-      requiresProject = true)
+      requiresProject = true,
+      threadSafe = true)
 public final class TestGenerateMojo extends AbstractMojo
 {
     @Parameter(defaultValue = "")

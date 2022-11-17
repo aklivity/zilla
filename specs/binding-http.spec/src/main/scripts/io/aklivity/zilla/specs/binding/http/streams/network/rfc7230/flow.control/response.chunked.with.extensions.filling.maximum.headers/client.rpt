@@ -18,7 +18,7 @@ property clientInitialWindow 8192
 
 connect "zilla://streams/net0"
   option zilla:window ${clientInitialWindow}
-  option zilla:transmission "half-duplex"
+  option zilla:transmission "duplex"
 connected
 
 write "GET / HTTP/1.1" "\r\n"

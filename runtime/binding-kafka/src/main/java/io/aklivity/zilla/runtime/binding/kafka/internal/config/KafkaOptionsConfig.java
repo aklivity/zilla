@@ -21,18 +21,15 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class KafkaOptionsConfig extends OptionsConfig
 {
-    public final List<String> merged;
     public final List<String> bootstrap;
     public final List<KafkaTopicConfig> topics;
     public final KafkaSaslConfig sasl;
 
     public KafkaOptionsConfig(
-        List<String> merged,
         List<String> bootstrap,
         List<KafkaTopicConfig> topics,
         KafkaSaslConfig sasl)
     {
-        this.merged = merged;
         this.bootstrap = bootstrap;
         this.topics = topics;
         this.sasl = sasl;

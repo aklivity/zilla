@@ -29,7 +29,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = "generate",
       defaultPhase = GENERATE_SOURCES,
       requiresDependencyResolution = COMPILE,
-      requiresProject = true)
+      requiresProject = true,
+      threadSafe = true)
 public final class GenerateMojo extends AbstractMojo
 {
     @Parameter(defaultValue = "")

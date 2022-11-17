@@ -12,7 +12,7 @@ specific language governing permissions and limitations
 under the License.
 
 This project includes:
-  ANTLR 4 Runtime under The BSD License
+  ANTLR 4 Runtime under BSD-3-Clause
   JavaPoet under Apache 2.0
 
 

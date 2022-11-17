@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -223,6 +224,34 @@ public class ClientMergedIT
         "${app}/merged.produce.message.values/client",
         "${net}/unmerged.produce.message.values/server"})
     public void shouldProduceMergedMessageValues() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.json")
+    @Specification({
+        "${app}/merged.produce.message.value.10k/client",
+        "${net}/unmerged.produce.message.value.10k/server"})
+    @Configure(
+        name = "zilla.binding.kafka.client.produce.max.bytes",
+        value = "200000")
+    @ScriptProperty("padding ${512 + 100}")
+    public void shouldProduceMergedMessageValue10k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.options.merged.json")
+    @Specification({
+        "${app}/merged.produce.message.value.100k/client",
+        "${net}/unmerged.produce.message.value.100k/server"})
+    @Configure(
+        name = "zilla.binding.kafka.client.produce.max.bytes",
+        value = "200000")
+    @ScriptProperty("padding ${512 + 100}")
+    public void shouldProduceMergedMessageValue100k() throws Exception
     {
         k3po.finish();
     }

@@ -1286,7 +1286,7 @@ public final class WsServerFactory implements WsStreamFactory
 
                 assert acknowledge <= sequence;
                 assert acknowledge >= initialAck;
-                assert maximum >= initialMax;
+                assert maximum + acknowledge >= initialMax + initialAck;
 
                 initialBudgetId = budgetId;
                 initialAck = acknowledge;

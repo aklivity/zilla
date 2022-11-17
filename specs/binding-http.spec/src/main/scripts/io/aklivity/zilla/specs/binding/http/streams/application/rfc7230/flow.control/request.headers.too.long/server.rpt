@@ -16,15 +16,24 @@
 
 accept "zilla://streams/app0"
        option zilla:window 8192
+       option zilla:transmission "half-duplex"
 
-rejected
+accepted
 
 read zilla:begin.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":scheme", "http")
-                             .header(":method", "GET")
-                             .header(":path", "/")
-                             .header(":authority", "localhost:8080")
-                             .header("Custom-Header-1", "custom header 1 value")
-                             .header("Custom-Header-2", "custom header 2 value")
-                             .build()}
+                           .typeId(zilla:id("http"))
+                           .header(":scheme", "http")
+                           .header(":method", "GET")
+                           .header(":path", "/")
+                           .header(":authority", "localhost:8080")
+                           .header("Custom-Header-1", "custom header 1 value")
+                           .header("Custom-Header-2", "custom header 2 value")
+                           .build()}
+
+connected
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "431")
+                            .build()}
+write close

@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7230.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_MAXIMUM_CONNECTIONS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_MAXIMUM_QUEUED_REQUESTS_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
@@ -34,7 +33,6 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.binding.http.internal.test.HttpCountersRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ConnectionManagementPoolSize1IT
 {
@@ -236,18 +234,6 @@ public class ConnectionManagementPoolSize1IT
     public void shouldResetRequestAndFreeConnectionWhenRequestWithContentLengthIsReset() throws Exception
     {
         k3po.finish();
-    }
-
-    @Configure(name = HTTP_MAXIMUM_QUEUED_REQUESTS_NAME, value = "0")
-    @Test
-    @Configuration("client.json")
-    @Specification({
-        "${app}/503.with.retry.after/client",
-        "${net}/503.with.retry.after/server" })
-    public void shouldSend503WithRetryAfterForSecondRequest() throws Exception
-    {
-        k3po.finish();
-        assertEquals(1, counters.requestsRejected());
     }
 
     @Test

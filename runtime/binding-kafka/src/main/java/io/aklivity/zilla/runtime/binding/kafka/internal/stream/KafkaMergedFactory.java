@@ -206,7 +206,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         final KafkaBindingConfig binding = supplyBinding.apply(routeId);
 
-        if (binding != null && binding.merged(topicName))
+        if (binding != null)
         {
             final long resolvedId = routeId;
             final ArrayFW<KafkaOffsetFW> partitions = kafkaMergedBeginEx.partitions();
@@ -2807,10 +2807,10 @@ public final class KafkaMergedFactory implements BindingHandler
         {
             Flyweight newKafkaDataEx = EMPTY_OCTETS;
 
-            if (flags != FLAGS_NONE && flags != FLAGS_INCOMPLETE)
+            final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+            if (flags != FLAGS_NONE && flags != FLAGS_INCOMPLETE && dataEx != null)
             {
-                final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                final KafkaDataExFW kafkaDataEx = dataEx != null && dataEx.typeId() == kafkaTypeId ?
+                final KafkaDataExFW kafkaDataEx = dataEx.typeId() == kafkaTypeId ?
                         extension.get(kafkaDataExRO::tryWrap) : null;
 
                 assert kafkaDataEx != null;
@@ -2936,7 +2936,7 @@ public final class KafkaMergedFactory implements BindingHandler
             assert acknowledge <= sequence;
             assert sequence <= initialSeq;
             assert acknowledge >= initialAck;
-            assert maximum >= initialMax;
+            assert maximum + acknowledge >= initialMax + initialAck;
 
             this.initialAck = acknowledge;
             this.initialMax = maximum;

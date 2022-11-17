@@ -112,20 +112,28 @@ Hello, world
 Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, and `SASL/PLAIN`.
 
 Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
+<br>
+#### Zilla Studio
+Besides directly creating and modifying a `zilla.json` file, you can use the <a href="https://zilla-studio.aklivity.io/#/">Zilla Studio</a> GUI tool to generate one instead. This simplifies getting started with Zilla even further and helps visualize a Zilla configuration.
+<div align="center" float="left">
+    <img src="./assets/zilla-studio@2x.png" height="300">  
+</div>
 <br></br>
-#### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
+
+### Tutorial: Build and secure a CQRS Todo app with Zilla and Kafka Streams
 A [step-by-step guide][zilla-todo-tutorial] that shows how to build a CQRS Todo App with Zilla and Kafka streams, and achieve the following:
 - Provide a list of Todo tasks that is shared by all clients
 - Support optimistic locking with conflict detection when attempting to update a Todo task
 - Deliver updates in near real-time when a Todo task is created, modified, or deleted
 - Demonstrate a user interface driving the Tasks API
 - Support scaling Todo task reads and writes
-
+<!--
 <div align="center" float="left">
     <img src="./assets/zilla-todo-app-screenshot-shadow@2x.png" height="300">  
     <p><i>Vue.js + Zilla + Kafka</i></p>
 </div>
-
+-->
+<br>
 
 ### Zilla Examples
 You can also quickly test out Zilla by running preconfigured Zilla configurations for various protocols.
@@ -139,10 +147,10 @@ You can also quickly test out Zilla by running preconfigured Zilla configuration
 | [http.filesystem](https://github.com/aklivity/zilla-examples/tree/main/http.filesystem) | Serves files from a directory on the local filesystem |
 | [http.echo](https://github.com/aklivity/zilla-examples/tree/main/http.echo) | Echoes request sent to the HTTP server from an HTTP client |
 | [http.echo.jwt](https://github.com/aklivity/zilla-examples/tree/main/http.echo.jwt) | Echoes request sent to the HTTP server from a JWT-authorized HTTP client |
-| [http.kafka.sync](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sync) | Correlates requests and responses over separate Kaka topics |
-| [http.kafka.async](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Correlates requests and responses over separate Kaka topics, asynchronously |
-| [http.kafka.cache](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.cache) | Serves cached responses from a Kaka topic |
-| [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kaka topic |
+| [http.kafka.sync](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sync) | Correlates requests and responses over separate Kafka topics |
+| [http.kafka.async](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Correlates requests and responses over separate Kafka topics, asynchronously |
+| [http.kafka.cache](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.cache) | Serves cached responses from a Kafka topic, detect when updated |
+| [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kafka topic, fire-and-forget |
 | [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
 | [sse.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
@@ -181,7 +189,7 @@ cd zilla
 cd runtime/engine/target
 java -jar ./engine-develop-SNAPSHOT-shaded-tests.jar BufferBM
 ```
-<b>Note:</b> recommend using Java 15 or lower (for now) to avoid getting errors related to reflective access across Java module boundaries when running the benchmark.
+<b>Note:</b> with Java 16 or higher add ` --add-opens=java.base/java.io=ALL-UNNAMED` just after `java` to avoid getting errors related to reflective access across Java module boundaries when running the benchmark.
 
 ```
 Benchmark                  Mode  Cnt         Score        Error  Units

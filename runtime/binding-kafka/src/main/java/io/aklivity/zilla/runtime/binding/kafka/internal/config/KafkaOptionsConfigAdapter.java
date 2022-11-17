@@ -32,7 +32,6 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String MERGED_NAME = "merged";
     private static final String BOOTSTRAP_NAME = "bootstrap";
     private static final String TOPICS_NAME = "topics";
     private static final String SASL_NAME = "sasl";
@@ -61,15 +60,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
         KafkaOptionsConfig kafkaOptions = (KafkaOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
-
-        if (kafkaOptions.merged != null &&
-            !kafkaOptions.merged.isEmpty())
-        {
-            JsonArrayBuilder entries = Json.createArrayBuilder();
-            kafkaOptions.merged.forEach(m -> entries.add(m));
-
-            object.add(MERGED_NAME, entries);
-        }
 
         if (kafkaOptions.bootstrap != null &&
             !kafkaOptions.bootstrap.isEmpty())
@@ -107,9 +97,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        JsonArray mergedArray = object.containsKey(MERGED_NAME)
-                ? object.getJsonArray(MERGED_NAME)
-                : null;
 
         JsonArray bootstrapArray = object.containsKey(BOOTSTRAP_NAME)
                 ? object.getJsonArray(BOOTSTRAP_NAME)
@@ -122,15 +109,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
         JsonObject saslObject = object.containsKey(SASL_NAME)
                 ? object.getJsonObject(SASL_NAME)
                 : null;
-
-        List<String> merged = null;
-
-        if (mergedArray != null)
-        {
-            List<String> merged0 = new ArrayList<>();
-            mergedArray.forEach(v -> merged0.add(JsonString.class.cast(v).getString()));
-            merged = merged0;
-        }
 
         List<String> bootstrap = null;
 
@@ -161,6 +139,6 @@ public final class KafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi,
             sasl = new KafkaSaslConfig(mechanism, username, password);
         }
 
-        return new KafkaOptionsConfig(merged, bootstrap, topics, sasl);
+        return new KafkaOptionsConfig(bootstrap, topics, sasl);
     }
 }

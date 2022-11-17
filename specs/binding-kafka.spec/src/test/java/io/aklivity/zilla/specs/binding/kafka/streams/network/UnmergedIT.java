@@ -98,6 +98,23 @@ public class UnmergedIT
 
     @Test
     @Specification({
+        "${net}/unmerged.produce.message.value.10k/client",
+        "${net}/unmerged.produce.message.value.10k/server"})
+    public void shouldProduceUnmergedMessageValue10k() throws Exception
+    {
+        k3po.finish();
+    }
+    @Test
+    @Specification({
+        "${net}/unmerged.produce.message.value.100k/client",
+        "${net}/unmerged.produce.message.value.100k/server"})
+    public void shouldProduceUnmergedMessageValue100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/unmerged.produce.message.values.dynamic/client",
         "${net}/unmerged.produce.message.values.dynamic/server"})
     public void shouldProduceUnmergedMessageValuesDynamic() throws Exception
