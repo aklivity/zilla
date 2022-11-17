@@ -1,22 +1,13 @@
 [
     {
         "op": "add",
-        "path": "/$defs/telemetry/attribute/enum/-",
-        "value": "test"
+        "path": "/$defs/telemetry/metric/enum/-",
+        "value": "test.active"
     },
     {
         "op": "add",
-        "path": "/$defs/telemetry/metric/oneOf/-",
-        "value":
-        {
-            "properties":
-            {
-                "test":
-                {
-                   "const": "counter"
-                }
-            }
-        }
+        "path": "/$defs/telemetry/metric/enum/-",
+        "value": "test.duration"
     },
     {
         "op": "add",

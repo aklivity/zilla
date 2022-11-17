@@ -25,13 +25,13 @@ import java.util.ServiceLoader;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public final class TelemetryFactory
+public final class ExporterFactory
 {
-    private final Map<String, TelemetryFactorySpi> factorySpis;
+    private final Map<String, ExporterFactorySpi> factorySpis;
 
-    public static TelemetryFactory instantiate()
+    public static ExporterFactory instantiate()
     {
-        return instantiate(load(TelemetryFactorySpi.class));
+        return instantiate(load(ExporterFactorySpi.class));
     }
 
     public Iterable<String> names()
@@ -39,28 +39,28 @@ public final class TelemetryFactory
         return factorySpis.keySet();
     }
 
-    public Telemetry create(
+    public Exporter create(
         String name,
         Configuration config)
     {
         requireNonNull(name, "name");
 
-        TelemetryFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized telemetry name: " + name);
+        ExporterFactorySpi factorySpi = requireNonNull(factorySpis.get(name), () -> "Unrecognized telemetry name: " + name);
 
         return factorySpi.create(config);
     }
 
-    private static TelemetryFactory instantiate(
-        ServiceLoader<TelemetryFactorySpi> factories)
+    private static ExporterFactory instantiate(
+        ServiceLoader<ExporterFactorySpi> factories)
     {
-        Map<String, TelemetryFactorySpi> factorySpisByName = new HashMap<>();
+        Map<String, ExporterFactorySpi> factorySpisByName = new HashMap<>();
         factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.name(), factorySpi));
 
-        return new TelemetryFactory(unmodifiableMap(factorySpisByName));
+        return new ExporterFactory(unmodifiableMap(factorySpisByName));
     }
 
-    private TelemetryFactory(
-        Map<String, TelemetryFactorySpi> factorySpis)
+    private ExporterFactory(
+        Map<String, ExporterFactorySpi> factorySpis)
     {
         this.factorySpis = factorySpis;
     }

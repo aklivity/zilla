@@ -66,15 +66,15 @@
                             "type": "string"
                         }
                     },
-                    "propertyNames":
-                    {
-                        "$ref": "#/$defs/telemetry/attribute"
-                    },
                     "additionalProperties": false
                 },
                 "metrics":
                 {
-                    "$ref": "#/$defs/telemetry/metric"
+                    "type": "array",
+                    "items":
+                    {
+                        "$ref": "#/$defs/telemetry/metric"
+                    }
                 },
                 "exporters":
                 {
@@ -177,6 +177,45 @@
                     "title": "Options",
                     "type": "object"
                 },
+                "telemetry":
+                {
+                    "title": "Telemetry",
+                    "type": "object",
+                    "properties":
+                    {
+                        "attributes":
+                        {
+                            "title": "Attributes",
+                            "type": "object",
+                            "patternProperties":
+                            {
+                                "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                                {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "metrics":
+                        {
+                            "title": "Metrics",
+                            "type": "array",
+                            "items":
+                            {
+                                "$ref": "#/$defs/telemetry/metric"
+                            }
+                        },
+                        "exporters":
+                        {
+                            "title": "Exporters",
+                            "type": "array",
+                            "items":
+                            {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
                 "routes":
                 {
                     "title": "Routes",
@@ -233,9 +272,9 @@
                 {
                     "title": "Exit",
                     "type": "string"
-                },
-                "additionalProperties": false
+                }
             },
+            "additionalProperties": false,
             "required":
             [
                 "type",
@@ -247,32 +286,11 @@
         },
         "telemetry":
         {
-            "attribute":
-            {
-                "title": "Attribute",
-                "type": "string",
-                "enum":
-                [
-                ]
-            },
             "metric":
             {
                 "title": "Metric",
-                "type": "object",
-                "patternProperties":
-                {
-                    "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
-                    {
-                        "type": "string",
-                        "enum":
-                        [
-                            "counter",
-                            "updown",
-                            "histogram"
-                        ]
-                    }
-                },
-                "oneOf":
+                "type": "string",
+                "enum":
                 [
                 ]
             },

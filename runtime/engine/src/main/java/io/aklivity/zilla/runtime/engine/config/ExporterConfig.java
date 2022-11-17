@@ -13,23 +13,25 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.telemetry;
+package io.aklivity.zilla.runtime.engine.config;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.telemetry.TelemetryFactorySpi;
+import static java.util.Objects.requireNonNull;
 
-public final class TestTelemetryFactorySpi implements TelemetryFactorySpi
+public class ExporterConfig
 {
-    @Override
-    public String name()
-    {
-        return TestTelemetry.NAME;
-    }
+    public transient long id;
 
-    @Override
-    public TestTelemetry create(
-        Configuration config)
+    public final String name;
+    public final String type;
+    public final OptionsConfig options;
+
+    public ExporterConfig(
+        String name,
+        String type,
+        OptionsConfig options)
     {
-        return new TestTelemetry(config);
+        this.name = requireNonNull(name);
+        this.type = requireNonNull(type);
+        this.options = options;
     }
 }

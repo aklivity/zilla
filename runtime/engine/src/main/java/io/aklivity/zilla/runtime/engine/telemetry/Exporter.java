@@ -15,12 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.telemetry;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import java.net.URL;
 
-public interface TelemetryFactorySpi
+public interface Exporter
 {
     String name();
 
-    Telemetry create(
-        Configuration config);
+    URL type();
 }

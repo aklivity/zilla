@@ -13,13 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.telemetry;
+package io.aklivity.zilla.runtime.engine.test.internal.telemetry.exporter;
 
-import java.net.URL;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.telemetry.ExporterFactorySpi;
 
-public interface Telemetry
+public final class TestExporterFactorySpi implements ExporterFactorySpi
 {
-    String name();
+    @Override
+    public String name()
+    {
+        return TestExporter.NAME;
+    }
 
-    URL type();
+    @Override
+    public TestExporter create(
+        Configuration config)
+    {
+        return new TestExporter(config);
+    }
 }

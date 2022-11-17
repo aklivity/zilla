@@ -13,31 +13,22 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.telemetry;
+package io.aklivity.zilla.runtime.engine.config;
 
-import java.net.URL;
+import java.util.List;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.telemetry.Telemetry;
-
-public final class TestTelemetry implements Telemetry
+public class TelemetryConfig
 {
-    public static final String NAME = "test";
+    public transient long id;
 
-    public TestTelemetry(
-        Configuration config)
-    {
-    }
+    public final List<AttributeConfig> attributes;
+    public final List<ExporterConfig> exporters;
 
-    @Override
-    public String name()
+    public TelemetryConfig(
+        List<AttributeConfig> attributes,
+        List<ExporterConfig> exporters)
     {
-        return NAME;
-    }
-
-    @Override
-    public URL type()
-    {
-        return getClass().getResource("test.schema.patch.json");
+        this.attributes = attributes;
+        this.exporters = exporters;
     }
 }

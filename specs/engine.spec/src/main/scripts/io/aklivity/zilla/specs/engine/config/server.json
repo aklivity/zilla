@@ -25,12 +25,14 @@
     {
         "attributes":
         {
-            "test": "test attribute"
+            "test.namespace": "example",
+            "test.instance.id": "{{env.SERVICE_INSTANCE_ID}}"
         },
         "metrics":
-        {
-            "test": "counter"
-        },
+        [
+            "test.active",
+            "test.duration"
+        ],
         "exporters":
         {
             "test":
@@ -45,11 +47,32 @@
         {
             "type" : "test",
             "kind": "server",
-            "exit": "app0",
-            "guarded":
+            "telemetry":
             {
-                "test0": [ "read" ]
-            }
+                "attributes":
+                {
+                    "test.name": "net.zero"
+                },
+                "metrics":
+                [
+                    "test.active",
+                    "test.duration"
+                ],
+                "exporters":
+                [
+                    "test"
+                ]
+            },
+            "routes":
+            [
+                {
+                    "exit": "app0",
+                    "guarded":
+                    {
+                        "test0": [ "read" ]
+                    }
+                }
+            ]
         }
     }
 }
