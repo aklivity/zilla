@@ -982,7 +982,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             addBufferGet(code, targetType, type, typeName, unsignedTypeName, "o");
             code.add(")")
                 .add(";\n$]")
-                .addStatement("$L = $L() == -1 ? $L : $L + $L * $L()", limitName, methodName(sizeName),
+                .addStatement("$L = $L() == -1 ? $L : $L + $L * (int) $L()", limitName, methodName(sizeName),
                         offsetName, offsetName, size(name), methodName(sizeName));
             builder.addCode(code.build());
             anchorLimit = limitName;
@@ -1259,7 +1259,7 @@ public final class StructFlyweightGenerator extends ClassSpecGenerator
             addBufferGet(code, targetType, type, typeName, unsignedTypeName, "o");
             code.add(")")
                 .add(";\n$]")
-                .addStatement("$L = $L() == -1 ? $L : $L + $L * $L()", limitName, methodName(sizeName),
+                .addStatement("$L = $L() == -1 ? $L : $L + $L * (int) $L()", limitName, methodName(sizeName),
                         offsetName, offsetName, size(name), methodName(sizeName));
             builder.addCode(code.build());
             anchorLimit = limitName;
