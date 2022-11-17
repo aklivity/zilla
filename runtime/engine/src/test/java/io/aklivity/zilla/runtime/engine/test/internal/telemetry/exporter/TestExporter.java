@@ -13,30 +13,31 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.test.internal.telemetry.exporter;
 
-import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import java.net.URL;
 
-public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.telemetry.Exporter;
+
+public final class TestExporter implements Exporter
 {
-    enum Kind
+    public static final String NAME = "test";
+
+    public TestExporter(
+        Configuration config)
     {
-        BINDING,
-        VAULT,
-        GUARD,
-        EXPORTER
     }
 
-    Kind kind();
-
-    String type();
+    @Override
+    public String name()
+    {
+        return NAME;
+    }
 
     @Override
-    JsonObject adaptToJson(
-        OptionsConfig options);
-
-    @Override
-    OptionsConfig adaptFromJson(
-        JsonObject object);
+    public URL type()
+    {
+        return getClass().getResource("test.schema.patch.json");
+    }
 }

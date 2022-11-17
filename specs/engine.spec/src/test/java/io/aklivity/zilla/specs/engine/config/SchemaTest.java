@@ -32,6 +32,7 @@ public class SchemaTest
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/telemetry/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/engine/config");
 
     @Test

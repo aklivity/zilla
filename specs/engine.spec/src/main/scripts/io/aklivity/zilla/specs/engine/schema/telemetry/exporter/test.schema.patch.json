@@ -1,0 +1,26 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metric/enum/-",
+        "value": "test.active"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/metric/enum/-",
+        "value": "test.duration"
+    },
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "test"
+                }
+            }
+        }
+    }
+]

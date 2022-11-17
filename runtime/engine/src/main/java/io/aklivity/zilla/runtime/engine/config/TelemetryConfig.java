@@ -15,28 +15,20 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import java.util.List;
 
-public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>
+public class TelemetryConfig
 {
-    enum Kind
+    public transient long id;
+
+    public final List<AttributeConfig> attributes;
+    public final List<ExporterConfig> exporters;
+
+    public TelemetryConfig(
+        List<AttributeConfig> attributes,
+        List<ExporterConfig> exporters)
     {
-        BINDING,
-        VAULT,
-        GUARD,
-        EXPORTER
+        this.attributes = attributes;
+        this.exporters = exporters;
     }
-
-    Kind kind();
-
-    String type();
-
-    @Override
-    JsonObject adaptToJson(
-        OptionsConfig options);
-
-    @Override
-    OptionsConfig adaptFromJson(
-        JsonObject object);
 }

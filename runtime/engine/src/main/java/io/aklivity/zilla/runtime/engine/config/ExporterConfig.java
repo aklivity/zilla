@@ -15,28 +15,23 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import static java.util.Objects.requireNonNull;
 
-public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>
+public class ExporterConfig
 {
-    enum Kind
+    public transient long id;
+
+    public final String name;
+    public final String type;
+    public final OptionsConfig options;
+
+    public ExporterConfig(
+        String name,
+        String type,
+        OptionsConfig options)
     {
-        BINDING,
-        VAULT,
-        GUARD,
-        EXPORTER
+        this.name = requireNonNull(name);
+        this.type = requireNonNull(type);
+        this.options = options;
     }
-
-    Kind kind();
-
-    String type();
-
-    @Override
-    JsonObject adaptToJson(
-        OptionsConfig options);
-
-    @Override
-    OptionsConfig adaptFromJson(
-        JsonObject object);
 }

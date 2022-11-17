@@ -13,30 +13,14 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.telemetry;
 
-import jakarta.json.JsonObject;
-import jakarta.json.bind.adapter.JsonbAdapter;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
-public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, JsonObject>
+public interface ExporterFactorySpi
 {
-    enum Kind
-    {
-        BINDING,
-        VAULT,
-        GUARD,
-        EXPORTER
-    }
+    String name();
 
-    Kind kind();
-
-    String type();
-
-    @Override
-    JsonObject adaptToJson(
-        OptionsConfig options);
-
-    @Override
-    OptionsConfig adaptFromJson(
-        JsonObject object);
+    Exporter create(
+        Configuration config);
 }

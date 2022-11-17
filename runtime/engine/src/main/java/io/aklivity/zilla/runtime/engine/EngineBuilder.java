@@ -28,6 +28,8 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
+import io.aklivity.zilla.runtime.engine.telemetry.Exporter;
+import io.aklivity.zilla.runtime.engine.telemetry.ExporterFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -102,8 +104,16 @@ public class EngineBuilder
             vaults.add(vault);
         }
 
+        final Set<Exporter> exporters = new LinkedHashSet<>();
+        final ExporterFactory exporterFactory = ExporterFactory.instantiate();
+        for (String name : exporterFactory.names())
+        {
+            Exporter exporter = exporterFactory.create(name, config);
+            exporters.add(exporter);
+        }
+
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, guards, vaults, errorHandler, configURL, affinities);
+        return new Engine(config, bindings, guards, vaults, exporters, errorHandler, configURL, affinities);
     }
 }
