@@ -33,6 +33,7 @@
     "io.aklivity.zilla:command-stop",
     "io.aklivity.zilla:command-tune",
     "io.aklivity.zilla:command-load",
+    "io.aklivity.zilla:command-dump",
     "io.aklivity.zilla:engine",
     "io.aklivity.zilla:guard-jwt",
     "io.aklivity.zilla:vault-filesystem",
