@@ -65,6 +65,7 @@ public abstract class KafkaClientSaslHandshaker
             "r=(?<nonce>%s),s=(?<salt>%s),i=(?<iterations>[0-9]+)", PRINTABLE, BASE64));
     private static final Pattern SASL_SCRAM_SERVER_FINAL_MESSAGE = Pattern.compile(String.format(
             "(?:v=(?<verifier>%s))", BASE64));
+    private static final String AUTH_MESSAGE_FORMAT = "n=%s,r=%s,r=%s,s=%s,i=%s,c=%s,r=%s";
     private static final byte[] SASL_SCRAM_CHANNEL_BINDING = "n,,".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] SASL_SCRAM_USERNAME = "n=".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] SASL_SCRAM_RANDOM = ",r=".getBytes(StandardCharsets.US_ASCII);
@@ -330,7 +331,7 @@ public abstract class KafkaClientSaslHandshaker
             saltedPassword = hi(sasl.password.getBytes(StandardCharsets.US_ASCII),
                     Base64.getDecoder().decode(toBytes(salt)),
                     Integer.parseInt(iterationCount));
-            authMessage = toBytes(String.format("n=%s,r=%s,r=%s,s=%s,i=%s,c=%s,r=%s",
+            authMessage = toBytes(String.format(AUTH_MESSAGE_FORMAT,
                     sasl.username, clientNonce, serverNonce, salt, iterationCount, SASL_SCRAM_CHANNEL_RANDOM, serverNonce));
 
             int scramBytes = 0;
