@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.function.LongUnaryOperator;
@@ -23,14 +24,17 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.agrona.DirectBuffer;
+import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaSaslConfig;
-import io.aklivity.zilla.runtime.binding.kafka.internal.config.ScramFormatter;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.ScramMechanism;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
@@ -52,6 +56,8 @@ public abstract class KafkaClientSaslHandshaker
     private static final int ERROR_SASL_AUTHENTICATION_FAILED = 58;
     private static final int ERROR_NONE = 0;
 
+    private static final String CLIENT_KEY = "Client Key";
+    private static final String SERVER_KEY = "Server Key";
     private static final String PRINTABLE = "[\\x21-\\x7E&&[^,]]+";
     private static final String BASE64_CHAR = "[a-zA-Z0-9/+]";
     private static final String BASE64 = String.format("(?:%s{4})*(?:%s{3}=|%s{2}==)?", BASE64_CHAR, BASE64_CHAR, BASE64_CHAR);
@@ -80,9 +86,12 @@ public abstract class KafkaClientSaslHandshaker
     private KafkaSaslClientDecoder decodeSaslScramAuthenticateFinal = this::decodeSaslScramAuthenticateFinal;
 
     private final MutableDirectBuffer scramBuffer = new UnsafeBuffer(new byte[1024]);
+    private MessageDigest messageDigest;
+    private Mac mac;
     private Supplier<String> nonceSupplier;
-    private ScramFormatter formatter;
+    private ScramMechanism mechanism;
     private Matcher serverResponseMatcher;
+    private byte[] result, ui, prev;
 
     protected final LongUnaryOperator supplyInitialId;
     protected final LongUnaryOperator supplyReplyId;
@@ -263,9 +272,7 @@ public abstract class KafkaClientSaslHandshaker
             encodeProgress = requestHeader.limit();
 
             final String username = sasl.username;
-
             clientNonce = nonceSupplier.get();
-            byte[] randomBytes = clientNonce.getBytes();
 
             int scramBytes = 0;
             scramBuffer.putBytes(scramBytes, SASL_SCRAM_CHANNEL_BINDING);
@@ -275,8 +282,8 @@ public abstract class KafkaClientSaslHandshaker
             scramBytes += scramBuffer.putStringWithoutLengthUtf8(scramBytes, username);
             scramBuffer.putBytes(scramBytes, SASL_SCRAM_RANDOM);
             scramBytes += SASL_SCRAM_RANDOM.length;
-            scramBuffer.putBytes(scramBytes, randomBytes);
-            scramBytes += randomBytes.length;
+            scramBuffer.putBytes(scramBytes, clientNonce.getBytes());
+            scramBytes += clientNonce.getBytes().length;
 
             final SaslAuthenticateRequestFW authenticateRequest =
                     saslAuthenticateRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
@@ -310,11 +317,20 @@ public abstract class KafkaClientSaslHandshaker
                 long traceId,
                 long budgetId)
         {
-            formatter = new ScramFormatter(ScramMechanism.forMechanismName(sasl.mechanism.toUpperCase()));
-            saltedPassword = formatter.hi(sasl.password.getBytes(StandardCharsets.US_ASCII),
-                    Base64.getDecoder().decode(formatter.toBytes(salt)),
+            mechanism = ScramMechanism.forMechanismName(sasl.mechanism.toUpperCase());
+            try
+            {
+                messageDigest = MessageDigest.getInstance(mechanism.hashAlgorithm());
+                mac = Mac.getInstance(mechanism.macAlgorithm());
+            }
+            catch (Exception e)
+            {
+                LangUtil.rethrowUnchecked(e);
+            }
+            saltedPassword = hi(sasl.password.getBytes(StandardCharsets.US_ASCII),
+                    Base64.getDecoder().decode(toBytes(salt)),
                     Integer.parseInt(iterationCount));
-            authMessage = formatter.toBytes(String.format("n=%s,r=%s,r=%s,s=%s,i=%s,c=%s,r=%s",
+            authMessage = toBytes(String.format("n=%s,r=%s,r=%s,s=%s,i=%s,c=%s,r=%s",
                     sasl.username, clientNonce, serverNonce, salt, iterationCount, SASL_SCRAM_CHANNEL_RANDOM, serverNonce));
 
             int scramBytes = 0;
@@ -326,8 +342,7 @@ public abstract class KafkaClientSaslHandshaker
             scramBytes += scramBuffer.putStringWithoutLengthUtf8(scramBytes, serverNonce);
             scramBuffer.putBytes(scramBytes, SASL_SCRAM_SALT_PASSWORD);
             scramBytes += SASL_SCRAM_SALT_PASSWORD.length;
-            scramBytes += scramBuffer.putStringWithoutLengthUtf8(scramBytes,
-                    formatter.clientProof(saltedPassword, authMessage));
+            scramBytes += scramBuffer.putStringWithoutLengthUtf8(scramBytes, clientProof(saltedPassword, authMessage));
 
             final MutableDirectBuffer encodeBuffer = writeBuffer;
             final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
@@ -729,8 +744,8 @@ public abstract class KafkaClientSaslHandshaker
                 client.decodableResponseBytes -= authenticateResponse.sizeof();
                 assert client.decodableResponseBytes >= 0;
 
-                byte[] serverKey = formatter.serverKey(client.saltedPassword);
-                byte[] serverSignature = formatter.hmac(serverKey, client.authMessage);
+                byte[] serverKey = serverKey(client.saltedPassword);
+                byte[] serverSignature = hmac(serverKey, client.authMessage);
                 DirectBuffer serverFinalResponse = authenticateResponse.authBytes().value();
                 String serverFinalMessage = serverFinalResponse.getStringWithoutLengthUtf8(0,
                         serverFinalResponse.capacity());
@@ -755,5 +770,79 @@ public abstract class KafkaClientSaslHandshaker
         }
 
         return progress;
+    }
+
+    public byte[] hmac(byte[] key, byte[] bytes)
+    {
+        try
+        {
+            mac.init(new SecretKeySpec(key, mac.getAlgorithm()));
+        }
+        catch (Exception e)
+        {
+            LangUtil.rethrowUnchecked(e);
+        }
+        return mac.doFinal(bytes);
+    }
+
+    public byte[] xor(byte[] first, byte[] second)
+    {
+        result = new byte[first.length];
+        if (first.length == second.length)
+        {
+            for (int i = 0; i < result.length; i++)
+            {
+                result[i] = (byte) (first[i] ^ second[i]);
+            }
+        }
+        return result;
+    }
+
+    public byte[] hi(byte[] str, byte[] salt, int iterations)
+    {
+        try
+        {
+            mac.init(new SecretKeySpec(str, mac.getAlgorithm()));
+        }
+        catch (Exception e)
+        {
+            LangUtil.rethrowUnchecked(e);
+        }
+        mac.update(salt);
+        result = prev = mac.doFinal(new byte[]{0, 0, 0, 1});
+        for (int i = 2; i <= iterations; i++)
+        {
+            ui = hmac(str, prev);
+            result = xor(result, ui);
+            prev = ui;
+        }
+        return result;
+    }
+
+    public byte[] hash(byte[] str)
+    {
+        return messageDigest.digest(str);
+    }
+
+    public byte[] clientKey(byte[] saltedPassword)
+    {
+        return hmac(saltedPassword, toBytes(CLIENT_KEY));
+    }
+
+    public byte[] serverKey(byte[] saltedPassword)
+    {
+        return hmac(saltedPassword, toBytes(SERVER_KEY));
+    }
+
+    public String clientProof(byte[] saltedPassword, byte[] authMessage)
+    {
+        byte[] clientKey = clientKey(saltedPassword);
+        return Base64.getEncoder().encodeToString(xor(clientKey,
+                hmac(hash(clientKey), authMessage)));
+    }
+
+    public byte[] toBytes(String str)
+    {
+        return str.getBytes(StandardCharsets.UTF_8);
     }
 }
