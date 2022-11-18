@@ -142,7 +142,7 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<BudgetDebitor> supplyDebitor)
     {
-        super(context);
+        super(config, context);
         this.maxAgeMillis = Math.min(config.clientDescribeMaxAgeMillis(), config.clientMaxIdleMillis() >> 1);
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.signaler = context.signaler();

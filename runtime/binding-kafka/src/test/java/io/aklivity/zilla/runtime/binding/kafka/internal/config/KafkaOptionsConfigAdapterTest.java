@@ -92,4 +92,55 @@ public class KafkaOptionsConfigAdapterTest
                 "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
                 "\"sasl\":{\"mechanism\":\"plain\",\"username\":\"username\",\"password\":\"password\"}}"));
     }
+
+    @Test
+    public void shouldReadSaslScramOptions()
+    {
+        String text =
+                "{" +
+                        "\"bootstrap\":" +
+                        "[" +
+                        "\"test\"" +
+                        "]," +
+                        "\"topics\":" +
+                        "[" +
+                        "{" +
+                        "\"name\": \"test\"," +
+                        "\"defaultOffset\": \"live\"," +
+                        "\"deltaType\": \"json_patch\"" +
+                        "}" +
+                        "]," +
+                        "\"sasl\":" +
+                        "{" +
+                        "\"mechanism\": \"scram-sha-256\"," +
+                        "\"username\": \"username\"," +
+                        "\"password\": \"password\"" +
+                        "}" +
+                        "}";
+
+        KafkaOptionsConfig options = jsonb.fromJson(text, KafkaOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.bootstrap, equalTo(singletonList("test")));
+        assertThat(options.topics, equalTo(singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH))));
+        assertThat(options.sasl.mechanism, equalTo("scram-sha-256"));
+        assertThat(options.sasl.username, equalTo("username"));
+        assertThat(options.sasl.password, equalTo("password"));
+    }
+
+    @Test
+    public void shouldWriteSaslScramOptions()
+    {
+        KafkaOptionsConfig options = new KafkaOptionsConfig(
+                singletonList("test"),
+                singletonList(new KafkaTopicConfig("test", LIVE, JSON_PATCH)),
+                new KafkaSaslConfig("scram-sha-256", "username", "password"));
+
+        String text = jsonb.toJson(options);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"bootstrap\":[\"test\"]," +
+                "\"topics\":[{\"name\":\"test\",\"defaultOffset\":\"live\",\"deltaType\":\"json_patch\"}]," +
+                "\"sasl\":{\"mechanism\":\"scram-sha-256\",\"username\":\"username\",\"password\":\"password\"}}"));
+    }
 }
