@@ -15,68 +15,65 @@
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 
+import static java.util.Collections.singletonList;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Properties;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-
-public class TestDumpCommand
+public class ZillaDumpCommandTest
 {
-
     private static String baseDir = "src/test/resources/io/aklivity/zilla/runtime/command/dump/internal";
+
     @TempDir
     private File tempDir;
 
-    private ZillaDumpCommand dumpCommand;
+    private ZillaDumpCommand command;
+
     @BeforeEach
     public void init()
     {
-        dumpCommand = new ZillaDumpCommand();
-        Properties properties = new Properties();
-        properties.put("zilla.engine.directory", baseDir + "/engine");
-        final EngineConfiguration config = new EngineConfiguration(new Configuration(), properties);
-        dumpCommand.directory = config.directory();
-
-        dumpCommand.verbose = true;
-        dumpCommand.affinity = -1;
-        dumpCommand.continuous = false;
-        dumpCommand.pcapLocation = Paths.get(tempDir.getPath(), "test.pcap").toUri();
+        command = new ZillaDumpCommand();
+        command.directory = Paths.get(baseDir, "engine");
+        command.verbose = true;
+        command.continuous = false;
+        command.output = Paths.get(tempDir.getPath(), "test.pcap");
+        System.out.println(command.output);
     }
+
     @Test
-    public void testDumpWithoutExtensionFilter() throws IOException
+    public void shouldDumpWithoutFilter() throws IOException
     {
-        dumpCommand.run();
+        command.run();
 
         File[] files = tempDir.listFiles();
-        Assertions.assertEquals(1, files.length);
+        assertEquals(1, files.length);
+
         File expectedDump = new File(baseDir + "/expected_dump_without_filter.pcap");
         byte[] expected = Files.readAllBytes(expectedDump.toPath());
         byte[] actual =  Files.readAllBytes(files[0].toPath());
-        Assertions.assertTrue(Arrays.equals(expected, actual));
+        assertArrayEquals(expected, actual);
     }
 
     @Test
-    public void testDumpWithKafkaExtensionFilter() throws IOException
+    public void shouldDumpWithKafkaFilter() throws IOException
     {
-        dumpCommand.bindings = Collections.singletonList("test.kafka0");
-        dumpCommand.run();
+        command.bindings = singletonList("test.kafka0");
+        command.run();
 
         File[] files = tempDir.listFiles();
-        Assertions.assertEquals(1, files.length);
+        assertEquals(1, files.length);
+
         File expectedDump = new File(baseDir + "/expected_dump_with_kafka_filter.pcap");
         byte[] expected = Files.readAllBytes(expectedDump.toPath());
         byte[] actual =  Files.readAllBytes(files[0].toPath());
-        Assertions.assertTrue(Arrays.equals(expected, actual));
+        assertArrayEquals(expected, actual);
     }
 }

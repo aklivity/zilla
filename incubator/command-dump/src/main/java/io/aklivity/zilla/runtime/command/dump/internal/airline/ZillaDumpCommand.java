@@ -16,25 +16,25 @@ package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.function.LongPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.agrona.BitUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.BackoffIdleStrategy;
@@ -48,95 +48,85 @@ import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.command.dump.internal.airline.spy.RingBufferSpy;
-import io.aklivity.zilla.runtime.command.dump.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.command.dump.internal.types.IPv6HeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapGlobalHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.PcapPacketHeaderFW;
+import io.aklivity.zilla.runtime.command.dump.internal.types.TcpFlag;
 import io.aklivity.zilla.runtime.command.dump.internal.types.TcpHeaderFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ChallengeFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.ResetFW;
-import io.aklivity.zilla.runtime.command.dump.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 
 @Command(name = "dump", description = "Dump stream content")
 public final class ZillaDumpCommand extends ZillaCommand
 {
+    private static final long MAX_PARK_NS = MILLISECONDS.toNanos(100L);
+    private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
+    private static final int MAX_YIELDS = 30;
+    private static final int MAX_SPINS = 20;
+    private static final int BUFFER_SLOT_CAPACITY = 64 * 1024;
+
+    private static final long PCAP_GLOBAL_MAGIC = 2712847316L;
+    private static final short PCAP_GLOBAL_VERSION_MAJOR = 2;
+    private static final short PCAP_GLOBAL_VERSION_MINOR = 4;
+
+    private static final int PCAP_GLOBAL_SIZE = 24;
+
+    private static final int PCAP_LINK_TYPE_IPV6 = 1;
+
+    private static final int PCAP_HEADER_OFFSET = 0;
+    private static final int PCAP_HEADER_SIZE = 16;
+    private static final int PCAP_HEADER_LIMIT = PCAP_HEADER_OFFSET + PCAP_HEADER_SIZE;
+
+    private static final int ETHER_HEADER_OFFSET = PCAP_HEADER_LIMIT;
+    private static final int ETHER_HEADER_SIZE = 14;
+    private static final int ETHER_HEADER_LIMIT = ETHER_HEADER_OFFSET + ETHER_HEADER_SIZE;
+
+    private static final int IPV6_HEADER_OFFSET = ETHER_HEADER_LIMIT;
+    private static final int IPV6_HEADER_SIZE = 40;
+    private static final int IPV6_HEADER_LIMIT = IPV6_HEADER_OFFSET + IPV6_HEADER_SIZE;
+
+    private static final int TCP_HEADER_OFFSET = IPV6_HEADER_LIMIT;
+    private static final int TCP_HEADER_SIZE = 20;
+    private static final int TCP_HEADER_LIMIT = TCP_HEADER_OFFSET + TCP_HEADER_SIZE;
+
+    private static final byte[] PSEUDO_ETHERNET_FRAME = BitUtil.fromHex("fe0000000002fe000000000186dd");
+    private static final int PSEUDO_IPV6_PREFIX = 1629561669;
+    private static final short PSEUDO_NEXT_HEADER_AND_HOP_LIMIT = 1536;
+
+    private static final Pattern STREAMS_PATTERN = Pattern.compile("data(\\d+)");
+
     @Option(name = {"-v", "--verbose"},
         description = "Show verbose output")
     public boolean verbose;
 
     @Option(name = {"-b", "--bindings"},
-        description = "Dump specific namespaces, bindings only, e.g example.http0,example.kafka0")
+        description = "Dump specific namespaced bindings only, e.g example.http0,example.kafka0")
     public List<String> bindings = new ArrayList<>();
 
-    @Option(name = {"-d", "--directory"},
-        description = "Configuration directory",
-        typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
-    public Path directory = Paths.get(".zilla", "engine");
-
     @Option(name = {"-o", "--output"},
-        description = "PCAP file location to dump stream")
-    public URI pcapLocation;
+        description = "PCAP output filename",
+        typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
+    public Path output;
 
     @Option(name = {"-a", "--affinity"},
         description = "Affinity mask")
     public long affinity = 0xffff_ffff_ffff_ffffL;
 
-    public enum Flag
-    {
-        URG,
-        ACK,
-        PSH,
-        RST,
-        SYN,
-        FIN
-    }
+    @Option(name = {"-d", "--directory"},
+        hidden = true,
+        description = "Configuration directory",
+        typeConverterProvider = ZillaDumpCommandPathConverterProvider.class)
+    public Path directory = Paths.get(".zilla", "engine");
 
     boolean continuous = true;
-
-    private static final long MAX_PARK_NS = MILLISECONDS.toNanos(100L);
-    private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
-    private static final int MAX_YIELDS = 30;
-    private static final int MAX_SPINS = 20;
-    private static final Pattern STREAMS_PATTERN = Pattern.compile("data(\\d+)");
-    private static final short TCP_HEADER_SIZE = 20;
-    private static final short IPV6_HEADER_SIZE = 20;
-    private static final int BUFFER_SLOT_CAPACITY = 64 * 1024;
-    private static final byte[] PSEUDO_ETHERNET_FRAME = hexStringToByteArray("fe0000000002fe000000000186dd");
-    private static final int PSEUDO_IPV6_PREFIX = 1629561669;
-    private static final short PSEUDO_NEXT_HEADER_AND_HOP_LIMIT = 1536;
-
-    private static byte[] hexStringToByteArray(String s)
-    {
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2)
-        {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
-        }
-        return data;
-    }
-
-    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
-
-    public static String bytesToHex(byte[] bytes)
-    {
-        char[] hexChars = new char[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++)
-        {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-        }
-        return new String(hexChars);
-    }
 
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
@@ -145,15 +135,13 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
-    private final SignalFW signalRO = new SignalFW();
-    private final ChallengeFW challengeRO = new ChallengeFW();
     private final FlushFW flushRO = new FlushFW();
     private final IPv6HeaderFW.Builder ipv6HeaderRW = new IPv6HeaderFW.Builder();
     private final TcpHeaderFW.Builder tcpHeaderRW = new TcpHeaderFW.Builder();
     private final PcapGlobalHeaderFW.Builder pcapGlobalHeaderRW = new PcapGlobalHeaderFW.Builder();
     private final PcapPacketHeaderFW.Builder pcapPacketHeaderRW = new PcapPacketHeaderFW.Builder();
-    private final LongHashSet allowedBindings = new LongHashSet();
 
+    private LongPredicate allowedBinding;
     private long nextTimestamp = Long.MAX_VALUE;
     private RingBufferSpy.SpyPosition position;
     private FileChannel channel;
@@ -165,6 +153,7 @@ public final class ZillaDumpCommand extends ZillaCommand
     {
         LabelManager labelManager = new LabelManager(directory);
 
+        final LongHashSet allowedBindings = new LongHashSet();
         bindings.forEach(binding ->
         {
             final String[] namespaceAndBindingName = binding.split("\\.");
@@ -175,15 +164,16 @@ public final class ZillaDumpCommand extends ZillaCommand
         });
         try
         {
-            this.writer = new RandomAccessFile(pcapLocation.getPath(), "rw");
+            this.writer = new RandomAccessFile(output.toFile(), "rw");
             this.channel = writer.getChannel();
-            this.writeBuffer = new UnsafeBuffer(new byte[BUFFER_SLOT_CAPACITY]);
+            this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
         }
         catch (IOException e)
         {
             System.out.println("Failed to open dump file: " + e.getMessage());
         }
 
+        this.allowedBinding = allowedBindings.isEmpty() ? b -> true : allowedBindings::contains;
         this.position = RingBufferSpy.SpyPosition.ZERO;
 
         runDumpCommand();
@@ -191,42 +181,43 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private void runDumpCommand()
     {
-        PcapGlobalHeaderFW globalHeaderFW = pcapGlobalHeaderRW.wrap(writeBuffer, 0, BUFFER_SLOT_CAPACITY)
-            .magic_number(2712847316L)
-            .version_major((short) 2)
-            .version_minor((short) 4)
-            .thiszone(0)
-            .sigfigs(0)
-            .snaplen(65535)
-            .link_type(1) //Ipv6 link type number
-            .build();
-        writeToPcapFile(globalHeaderFW);
+        final MutableDirectBuffer buffer = writeBuffer;
+        encodePcapGlobal(buffer);
+        writeToPcapFile(buffer, 0, PCAP_GLOBAL_SIZE);
 
         try (Stream<Path> files = Files.walk(directory, 3))
         {
-            List<RingBufferSpy> streamBuffers = files
+            final RingBufferSpy[] streamBuffers = files
                 .filter(this::isStreamsFile)
                 .peek(this::onDiscovered)
                 .map(this::createStreamBuffer)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList())
+                .toArray(RingBufferSpy[]::new);
+            final int streamBufferCount = streamBuffers.length;
+
             final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
+            final MessagePredicate spyHandler = this::handleFrame;
+
             final int exitWorkCount = continuous ? -1 : 0;
             int workCount;
             do
             {
                 workCount = 0;
-                for (RingBufferSpy streamBuffer : streamBuffers)
+                for (int i = 0; i < streamBufferCount; i++)
                 {
-                    workCount += streamBuffer.spy(this::handleFrame, 1);
-
+                    final RingBufferSpy streamBuffer = streamBuffers[i];
+                    workCount += streamBuffer.spy(spyHandler, 1);
                 }
                 idleStrategy.idle(workCount);
             } while (workCount != exitWorkCount);
-            closeResources();
         }
         catch (IOException ex)
         {
-            LangUtil.rethrowUnchecked(ex);
+            rethrowUnchecked(ex);
+        }
+        finally
+        {
+            closeResources();
         }
     }
 
@@ -243,56 +234,6 @@ public final class ZillaDumpCommand extends ZillaCommand
             .spyAt(position)
             .build();
         return layout.streamsBuffer();
-    }
-
-    private boolean handleFrame(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-        final long timestamp = frame.timestamp();
-
-        if (!nextTimestamp(timestamp))
-        {
-            return false;
-        }
-
-        switch (msgTypeId)
-        {
-        case BeginFW.TYPE_ID:
-            onBegin(beginRO.wrap(buffer, index, index + length));
-            break;
-        case DataFW.TYPE_ID:
-            onData(dataRO.wrap(buffer, index, index + length));
-            break;
-        case EndFW.TYPE_ID:
-            onEnd(endRO.wrap(buffer, index, index + length));
-            break;
-        case AbortFW.TYPE_ID:
-            onAbort(abortRO.wrap(buffer, index, index + length));
-            break;
-        case WindowFW.TYPE_ID:
-            onWindow(windowRO.wrap(buffer, index, index + length));
-            break;
-        case ResetFW.TYPE_ID:
-            onReset(resetRO.wrap(buffer, index, index + length));
-            break;
-        case ChallengeFW.TYPE_ID:
-            onChallenge(challengeRO.wrap(buffer, index, index + length));
-            break;
-        case SignalFW.TYPE_ID:
-            onSignal(signalRO.wrap(buffer, index, index + length));
-            break;
-        case FlushFW.TYPE_ID:
-            onFlush(flushRO.wrap(buffer, index, index + length));
-            break;
-        default:
-            //Should not happen
-            throw new IllegalStateException("Unexpected frame type: " + msgTypeId);
-        }
-        return true;
     }
 
     private boolean isStreamsFile(
@@ -332,44 +273,94 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
+    private boolean handleFrame(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+        final long timestamp = frame.timestamp();
+
+        if (!nextTimestamp(timestamp))
+        {
+            return false;
+        }
+
+        switch (msgTypeId)
+        {
+        case BeginFW.TYPE_ID:
+            onBegin(beginRO.wrap(buffer, index, index + length));
+            break;
+        case DataFW.TYPE_ID:
+            onData(dataRO.wrap(buffer, index, index + length));
+            break;
+        case EndFW.TYPE_ID:
+            onEnd(endRO.wrap(buffer, index, index + length));
+            break;
+        case AbortFW.TYPE_ID:
+            onAbort(abortRO.wrap(buffer, index, index + length));
+            break;
+        case WindowFW.TYPE_ID:
+            onWindow(windowRO.wrap(buffer, index, index + length));
+            break;
+        case ResetFW.TYPE_ID:
+            onReset(resetRO.wrap(buffer, index, index + length));
+            break;
+        case FlushFW.TYPE_ID:
+            onFlush(flushRO.wrap(buffer, index, index + length));
+            break;
+        default:
+            break;
+        }
+        return true;
+    }
+
     private void onBegin(
         BeginFW begin)
     {
-        if (allowedBindings.isEmpty() || allowedBindings.contains(begin.routeId()))
+        final long bindingId = begin.routeId();
+
+        if (allowedBinding.test(bindingId))
         {
+            final MutableDirectBuffer buffer = writeBuffer;
             final long streamId = begin.streamId();
-            TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.SYN);
-            IPv6HeaderFW ipv6Header = createIpv6Header(begin.routeId(), streamId, IPV6_HEADER_SIZE);
-            PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-                ipv6Header.sizeof(), begin.timestamp());
-            writeToPcapFile(pcapHeader);
-            writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-            writeToPcapFile(ipv6Header);
-            writeToPcapFile(tcpHeader);
+            final long timestamp = begin.timestamp();
+            final long sequence = begin.sequence();
+
+            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+            encodeEtherHeader(buffer);
+            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence - 1L, 0L, TcpFlag.SYN);
+
+            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
         }
     }
 
     private void onData(
         DataFW data)
     {
-        if (allowedBindings.isEmpty() || allowedBindings.contains(data.routeId()))
+        final long bindingId = data.routeId();
+
+        if (allowedBinding.test(bindingId))
         {
-            if (data.payload() != null)
+            final OctetsFW payload = data.payload();
+
+            if (payload != null)
             {
-                OctetsFW payload = data.payload();
+                final MutableDirectBuffer buffer = writeBuffer;
                 final long streamId = data.streamId();
-                byte[] bytes = new byte[payload.limit() - payload.offset()];
-                payload.buffer().getBytes(payload.offset(), bytes);
-                IPv6HeaderFW ipv6Header = createIpv6Header(data.routeId(), streamId, (short) (IPV6_HEADER_SIZE +
-                    bytes.length));
-                TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
-                PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + ipv6Header.sizeof() +
-                    tcpHeader.sizeof() + payload.sizeof(), data.timestamp());
-                writeToPcapFile(pcapHeader);
-                writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-                writeToPcapFile(ipv6Header);
-                writeToPcapFile(tcpHeader);
-                writeToPcapFile(bytes);
+                final long timestamp = data.timestamp();
+                final long sequence = data.sequence();
+                final int sizeof = payload.sizeof();
+
+                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE + sizeof, timestamp);
+                encodeEtherHeader(buffer);
+                encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE + sizeof);
+                encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.PSH);
+
+                writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+                writeToPcapFile(payload.buffer(), payload.offset(), sizeof);
             }
         }
     }
@@ -377,147 +368,129 @@ public final class ZillaDumpCommand extends ZillaCommand
     private void onEnd(
         EndFW end)
     {
-        if (allowedBindings.isEmpty() || allowedBindings.contains(end.routeId()))
+        final long bindingId = end.routeId();
+
+        if (allowedBinding.test(bindingId))
         {
+            final MutableDirectBuffer buffer = writeBuffer;
             final long streamId = end.streamId();
-            IPv6HeaderFW ipv6Header = createIpv6Header(end.routeId(), streamId, IPV6_HEADER_SIZE);
-            TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.FIN);
-            PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-                ipv6Header.sizeof(), end.timestamp());
-            writeToPcapFile(pcapHeader);
-            writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-            writeToPcapFile(ipv6Header);
-            writeToPcapFile(tcpHeader);
+            final long timestamp = end.timestamp();
+            final long sequence = end.sequence();
+
+            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+            encodeEtherHeader(buffer);
+            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.FIN);
+
+            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
         }
     }
 
     private void onAbort(
         AbortFW abort)
     {
-        final long streamId = abort.streamId();
-        IPv6HeaderFW ipv6Header = createIpv6Header(abort.routeId(), streamId, IPV6_HEADER_SIZE);
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-            ipv6Header.sizeof(), abort.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(ipv6Header);
-        writeToPcapFile(tcpHeader);
+        final long bindingId = abort.routeId();
+
+        if (allowedBinding.test(bindingId))
+        {
+            final MutableDirectBuffer buffer = writeBuffer;
+            final long streamId = abort.streamId();
+            final long timestamp = abort.timestamp();
+            final long sequence = abort.sequence();
+
+            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+            encodeEtherHeader(buffer);
+            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.RST);
+
+            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+        }
+    }
+
+    private void onFlush(
+        FlushFW flush)
+    {
+        final long bindingId = flush.routeId();
+
+        if (allowedBinding.test(bindingId))
+        {
+            final MutableDirectBuffer buffer = writeBuffer;
+            final long streamId = flush.streamId();
+            final long timestamp = flush.timestamp();
+            final long sequence = flush.sequence();
+
+            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+            encodeEtherHeader(buffer);
+            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.PSH);
+
+            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+        }
     }
 
     private void onReset(
         ResetFW reset)
     {
-        if (allowedBindings.isEmpty() || allowedBindings.contains(reset.routeId()))
+        final long bindingId = reset.routeId();
+
+        if (allowedBinding.test(bindingId))
         {
+            final MutableDirectBuffer buffer = writeBuffer;
             final long streamId = reset.streamId();
-            IPv6HeaderFW ipv6Header = createIpv6Header(reset.routeId(), streamId, IPV6_HEADER_SIZE);
-            TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
-            PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-                ipv6Header.sizeof(), reset.timestamp());
-            writeToPcapFile(pcapHeader);
-            writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-            writeToPcapFile(ipv6Header);
-            writeToPcapFile(tcpHeader);
+            final long timestamp = reset.timestamp();
+            final long sequence = reset.sequence();
+
+            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+            encodeEtherHeader(buffer);
+            encodeIpv6Header(buffer, bindingId, streamId, streamId ^ 1L, TCP_HEADER_SIZE);
+            encodeTcpHeader(buffer, streamId, streamId ^ 1L, sequence, 0L, TcpFlag.RST);
+
+            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
         }
     }
 
     private void onWindow(
         WindowFW window)
     {
-        final long streamId = window.streamId();
-        IPv6HeaderFW ipv6Header = createIpv6Header(window.routeId(), streamId, IPV6_HEADER_SIZE);
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.ACK);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-            ipv6Header.sizeof(), window.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(ipv6Header);
-        writeToPcapFile(tcpHeader);
-    }
+        final long bindingId = window.routeId();
 
-    private void onSignal(
-        SignalFW signal)
-    {
-        final long streamId = signal.streamId();
-        IPv6HeaderFW ipv6Header = createIpv6Header(signal.routeId(), streamId, IPV6_HEADER_SIZE);
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-            ipv6Header.sizeof(), signal.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(ipv6Header);
-        writeToPcapFile(tcpHeader);
-    }
-
-    private void onChallenge(
-        ChallengeFW challenge)
-    {
-        final long streamId = challenge.streamId();
-        IPv6HeaderFW ipv6Header = createIpv6Header(challenge.routeId(), streamId, IPV6_HEADER_SIZE);
-        TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.PSH);
-        PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-            ipv6Header.sizeof(), challenge.timestamp());
-        writeToPcapFile(pcapHeader);
-        writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-        writeToPcapFile(ipv6Header);
-        writeToPcapFile(tcpHeader);
-    }
-
-    private void onFlush(
-        FlushFW flush)
-    {
-        if (allowedBindings.isEmpty() || allowedBindings.contains(flush.routeId()))
+        if (allowedBinding.test(bindingId))
         {
-            final long streamId = flush.streamId();
-            IPv6HeaderFW ipv6Header = createIpv6Header(flush.routeId(), streamId, IPV6_HEADER_SIZE);
-            TcpHeaderFW tcpHeader = createTcpHeader(streamId, Flag.RST);
-            PcapPacketHeaderFW pcapHeader = createPcapPacketHeader(PSEUDO_ETHERNET_FRAME.length + tcpHeader.sizeof() +
-                ipv6Header.sizeof(), flush.timestamp());
-            writeToPcapFile(pcapHeader);
-            writeToPcapFile(PSEUDO_ETHERNET_FRAME);
-            writeToPcapFile(ipv6Header);
-            writeToPcapFile(tcpHeader);
+            final MutableDirectBuffer buffer = writeBuffer;
+            final long streamId = window.streamId();
+            final long timestamp = window.timestamp();
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+
+            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+            encodeEtherHeader(buffer);
+            encodeIpv6Header(buffer, bindingId, streamId, streamId ^ 1L, TCP_HEADER_SIZE);
+            encodeTcpHeader(buffer, streamId, streamId ^ 1L, sequence, acknowledge, TcpFlag.ACK);
+
+            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
         }
     }
 
-    private void writeToPcapFile(
-        Flyweight flyweight)
+    private void encodePcapGlobal(
+        MutableDirectBuffer buffer)
     {
-        try
-        {
-            byte[] bytes = new byte[flyweight.sizeof()];
-            flyweight.buffer().getBytes(flyweight.offset(), bytes);
-            channel.write(ByteBuffer.wrap(bytes));
-            channel.force(true);
-        }
-        catch (IOException e)
-        {
-            System.out.println("Could not write to file. Reason: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
+        pcapGlobalHeaderRW.wrap(buffer, 0, buffer.capacity())
+            .magic_number(PCAP_GLOBAL_MAGIC)
+            .version_major(PCAP_GLOBAL_VERSION_MAJOR)
+            .version_minor(PCAP_GLOBAL_VERSION_MINOR)
+            .thiszone(0)
+            .sigfigs(0)
+            .snaplen(65535)
+            .link_type(PCAP_LINK_TYPE_IPV6)
+            .build();
     }
 
-    private void writeToPcapFile(
-        byte[] bytes)
-    {
-        try
-        {
-            channel.write(ByteBuffer.wrap(bytes));
-            channel.force(true);
-        }
-        catch (IOException e)
-        {
-            System.out.println("Could not write to file. Reason: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
-    }
-
-    private PcapPacketHeaderFW createPcapPacketHeader(
+    private void encodePcapHeader(
+        MutableDirectBuffer buffer,
         long length,
         long timestamp)
     {
-        return pcapPacketHeaderRW.wrap(writeBuffer, TCP_HEADER_SIZE + IPV6_HEADER_SIZE, writeBuffer.capacity())
+        pcapPacketHeaderRW.wrap(buffer, PCAP_HEADER_OFFSET, buffer.capacity())
             .ts_sec(timestamp / 1000000)
             .ts_usec(0)
             .incl_len(length)
@@ -525,94 +498,74 @@ public final class ZillaDumpCommand extends ZillaCommand
             .build();
     }
 
-    private IPv6HeaderFW createIpv6Header(
-        long routeId,
-        long streamId,
-        short payloadLength)
+    private void encodeEtherHeader(
+        MutableDirectBuffer buffer)
     {
-        return ipv6HeaderRW.wrap(writeBuffer, TCP_HEADER_SIZE, writeBuffer.capacity())
+        writeBuffer.putBytes(ETHER_HEADER_OFFSET, PSEUDO_ETHERNET_FRAME);
+    }
+
+    private void encodeIpv6Header(
+        MutableDirectBuffer buffer,
+        long routeId,
+        long sourceId,
+        long targetId,
+        int payloadLength)
+    {
+        ipv6HeaderRW.wrap(buffer, IPV6_HEADER_OFFSET, buffer.capacity())
             .prefix(PSEUDO_IPV6_PREFIX)
-            .payload_length(payloadLength)
+            .payload_length((short) payloadLength)
             .next_header_and_hop_limit(PSEUDO_NEXT_HEADER_AND_HOP_LIMIT)
             .src_addr_part1(routeId)
-            .src_addr_part2(streamId)
+            .src_addr_part2(sourceId)
             .dst_addr_part1(routeId)
-            .dst_addr_part2(streamId)
+            .dst_addr_part2(targetId)
             .build();
     }
 
-    private TcpHeaderFW createTcpHeader(
-        long streamId,
-        Flag flag)
+
+    private void encodeTcpHeader(
+        MutableDirectBuffer buffer,
+        long sourceId,
+        long targetId,
+        long sequence,
+        long acknowledge,
+        TcpFlag flag)
     {
-        short port = getPort(streamId);
-        short other = getOtherFields(flag);
-        return tcpHeaderRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .src_port(port)
-            .dst_port(port)
-            .sequence_number(1000)
-            .acknowledgment_number(0)
-            .other_fields(other)
+        final short sourcePort = (short) (sourceId & 0xffffL);
+        final short destPort = (short) (targetId & 0xffffL);
+        final short otherFields = (short) (0x5000 | flag.value());
+
+        tcpHeaderRW.wrap(buffer, TCP_HEADER_OFFSET, buffer.capacity())
+            .src_port(sourcePort)
+            .dst_port(destPort)
+            .sequence_number((int) sequence)
+            .acknowledgment_number((int) acknowledge)
+            .other_fields(otherFields)
             .window((short) 1024)
             .checksum((short) 0)
             .urgent_pointer((short) 0)
             .build();
     }
 
-    private short getOtherFields(
-        Flag flag)
+    private void writeToPcapFile(
+        DirectBuffer buffer,
+        int offset,
+        int length)
     {
-        byte flags = 0;
-        if (flag == Flag.FIN)
+        try
         {
-            flags = (byte) 1;
+            ByteBuffer byteBuf = buffer.byteBuffer();
+            byteBuf.clear();
+            byteBuf.position(offset);
+            byteBuf.limit(offset + length);
+            channel.write(byteBuf);
+            channel.force(true);
         }
-        if (flag == Flag.SYN)
+        catch (IOException ex)
         {
-            flags = (byte) (flags | 2);
+            System.out.println("Could not write to file. Reason: " + ex.getMessage());
+            rethrowUnchecked(ex);
         }
-        if (flag == Flag.RST)
-        {
-            flags = (byte) (flags | 4);
-        }
-        if (flag == Flag.PSH)
-        {
-            flags = (byte) (flags | 8);
-        }
-        if (flag == Flag.ACK)
-        {
-            flags = (byte) (flags | 16);
-        }
-        if (flag == Flag.URG)
-        {
-            flags = (byte) (flags | 32);
-        }
-        byte dataOffsetAndReserved = 80; //20 bytes as header + 3 bit of reserved 0
-        byte[] bytes = new byte[] {dataOffsetAndReserved, flags};
-        ByteBuffer buffer = ByteBuffer.allocate(2).put(bytes);
-        return buffer.getShort(0);
-    }
-
-    private short getPort(
-        long streamId)
-    {
-        byte[] streamIdBytes = longToBytes(streamId);
-        return byteArrayToShort(Arrays.copyOfRange(streamIdBytes, streamIdBytes.length - 2, streamIdBytes.length));
-    }
-
-    private byte[] longToBytes(
-        long x)
-    {
-        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(x);
-        return buffer.array();
-    }
-
-    private short byteArrayToShort(
-        byte[] array)
-    {
-        assert array.length == 2;
-        return (short) ((array[0] << 8) | (array[1] & 0xFF));
     }
 
     private void closeResources()
@@ -622,10 +575,10 @@ public final class ZillaDumpCommand extends ZillaCommand
             channel.close();
             writer.close();
         }
-        catch (IOException e)
+        catch (IOException ex)
         {
-            System.out.println("Could not close file. Reason: " + e.getMessage());
-            throw new RuntimeException(e);
+            System.out.println("Could not close file. Reason: " + ex.getMessage());
+            rethrowUnchecked(ex);
         }
     }
 

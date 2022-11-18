@@ -16,29 +16,6 @@ scope pcap
 {
     option byteorder network;
 
-    struct IPv6Header
-    {
-        int32 prefix; /* Version + Traffic class + Flow label = 32 bit */
-        int16 payload_length;
-        int16 next_header_and_hop_limit;
-        int64 src_addr_part1;
-        int64 src_addr_part2;
-        int64 dst_addr_part1;
-        int64 dst_addr_part2;
-    }
-
-    struct TcpHeader
-    {
-        int16 src_port;
-        int16 dst_port;
-        int32 sequence_number;
-        int32 acknowledgment_number;
-        int16 other_fields; /* data offset, reserved, flags (4+3+9 bits) */
-        int16 window;
-        int16 checksum;
-        int16 urgent_pointer;
-    }
-
     struct PcapGlobalHeader
     {
         uint32 magic_number;   /* magic number */
@@ -56,5 +33,38 @@ scope pcap
        uint32 ts_usec;        /* timestamp microseconds */
        uint32 incl_len;       /* number of octets of packet saved in file */
        uint32 orig_len;       /* actual length of packet */
+    }
+
+    struct IPv6Header
+    {
+        int32 prefix;         /* Version + Traffic class + Flow label = 32 bit */
+        int16 payload_length;
+        int16 next_header_and_hop_limit;
+        int64 src_addr_part1;
+        int64 src_addr_part2;
+        int64 dst_addr_part1;
+        int64 dst_addr_part2;
+    }
+
+    struct TcpHeader
+    {
+        int16 src_port;
+        int16 dst_port;
+        int32 sequence_number;
+        int32 acknowledgment_number;
+        int16 other_fields;   /* data offset, reserved, flags (4+3+9 bits) */
+        int16 window;
+        int16 checksum;
+        int16 urgent_pointer;
+    }
+
+    enum TcpFlag (uint8)
+    {
+        FIN(1),
+        SYN(2),
+        RST(4),
+        PSH(8),
+        ACK(16),
+        URG(32)
     }
 }
