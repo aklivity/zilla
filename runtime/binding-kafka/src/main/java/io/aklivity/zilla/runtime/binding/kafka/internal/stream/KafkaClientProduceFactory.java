@@ -199,7 +199,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         LongFunction<KafkaBindingConfig> supplyBinding,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
-        super(context);
+        super(config, context);
         this.produceMaxWaitMillis = config.clientProduceMaxResponseMillis();
         this.produceRequestMaxDelay = config.clientProduceMaxRequestMillis();
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);

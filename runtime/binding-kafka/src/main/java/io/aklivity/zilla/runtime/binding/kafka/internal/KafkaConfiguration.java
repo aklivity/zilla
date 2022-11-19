@@ -17,7 +17,15 @@ package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_DIRECTORY;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.math.BigInteger;
 import java.nio.file.Path;
+import java.security.SecureRandom;
+import java.util.function.Supplier;
+
+import org.agrona.LangUtil;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCleanupPolicy;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -54,6 +62,7 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_CLEANUP_DELAY;
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
     public static final IntPropertyDef KAFKA_CACHE_SERVER_RECONNECT_DELAY;
+    public static final PropertyDef<NonceSupplier> KAFKA_CLIENT_SASL_SCRAM_NONCE;
 
     private static final ConfigurationDef KAFKA_CONFIG;
 
@@ -89,6 +98,8 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_BYTES = config.property("cache.segment.bytes", 0x40000000);
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
+        KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
+                KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);
         KAFKA_CONFIG = config;
     }
 
@@ -249,5 +260,59 @@ public class KafkaConfiguration extends Configuration
         String cleanupPolicy)
     {
         return KafkaCacheCleanupPolicy.valueOf(cleanupPolicy.toUpperCase());
+    }
+
+    public Supplier<String> nonceSupplier()
+    {
+        return KAFKA_CLIENT_SASL_SCRAM_NONCE.get(this)::get;
+    }
+
+    @FunctionalInterface
+    private interface NonceSupplier
+    {
+        String get();
+    }
+
+    private static NonceSupplier decodeNonceSupplier(
+            Configuration config,
+            String value)
+    {
+        NonceSupplier supplier = null;
+
+        try
+        {
+            MethodType signature = MethodType.methodType(String.class);
+            String[] parts = value.split("::");
+            Class<?> ownerClass = Class.forName(parts[0]);
+            String methodName = parts[1];
+            MethodHandle method = MethodHandles.publicLookup().findStatic(ownerClass, methodName, signature);
+            supplier = () ->
+            {
+                String nonce = null;
+                try
+                {
+                    nonce = (String) method.invoke();
+                }
+                catch (Throwable ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
+
+                return nonce;
+            };
+        }
+        catch (Throwable ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return supplier;
+    }
+
+    private static NonceSupplier defaultNonceSupplier(
+            Configuration config)
+    {
+        return () ->
+                 new BigInteger(130, new SecureRandom()).toString(Character.MAX_RADIX);
     }
 }

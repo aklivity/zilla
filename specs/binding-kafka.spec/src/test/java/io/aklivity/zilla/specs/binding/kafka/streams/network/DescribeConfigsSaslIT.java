@@ -44,4 +44,13 @@ public class DescribeConfigsSaslIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/topic.config.info.sasl.scram/client",
+        "${net}/topic.config.info.sasl.scram/server"})
+    public void shouldReceiveTopicConfigInfoWithSaslScram() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -219,7 +219,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         LongFunction<BudgetDebitor> supplyDebitor,
         LongFunction<KafkaClientRoute> supplyClientRoute)
     {
-        super(context);
+        super(config, context);
         this.fetchMaxBytes = config.clientFetchMaxBytes();
         this.fetchMaxWaitMillis = config.clientFetchMaxWaitMillis();
         this.partitionMaxBytes = config.clientFetchPartitionMaxBytes();
