@@ -15,13 +15,14 @@
 package io.aklivity.zilla.runtime.command.dump.internal.airline;
 
 import static java.lang.Integer.parseInt;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -67,6 +68,8 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 @Command(name = "dump", description = "Dump stream content")
 public final class ZillaDumpCommand extends ZillaCommand
 {
+    private static final Pattern PATTERN_NAMESPACED_BINDING = Pattern.compile("(?<namespace>[^\\.]+)\\.(?<binding>[^\\\\.]+)");
+
     private static final long MAX_PARK_NS = MILLISECONDS.toNanos(100L);
     private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
     private static final int MAX_YIELDS = 30;
@@ -141,51 +144,30 @@ public final class ZillaDumpCommand extends ZillaCommand
     private final PcapGlobalHeaderFW.Builder pcapGlobalHeaderRW = new PcapGlobalHeaderFW.Builder();
     private final PcapPacketHeaderFW.Builder pcapPacketHeaderRW = new PcapPacketHeaderFW.Builder();
 
-    private LongPredicate allowedBinding;
-    private long nextTimestamp = Long.MAX_VALUE;
-    private RingBufferSpy.SpyPosition position;
-    private FileChannel channel;
-    private RandomAccessFile writer;
-    private MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer writeBuffer;
+
+    public ZillaDumpCommand()
+    {
+        this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
+    }
 
     @Override
     public void run()
     {
-        LabelManager labelManager = new LabelManager(directory);
+        final LabelManager labels = new LabelManager(directory);
 
-        final LongHashSet allowedBindings = new LongHashSet();
-        bindings.forEach(binding ->
-        {
-            final String[] namespaceAndBindingName = binding.split("\\.");
-            final int namespaceId = labelManager.lookupLabelId(namespaceAndBindingName[0]);
-            final int bindingNameId = labelManager.lookupLabelId(namespaceAndBindingName[1]);
-            final long allowedBinding = (((long) namespaceId) << 32) | (bindingNameId & 0xffffffffL);
-            allowedBindings.add(allowedBinding);
-        });
-        try
-        {
-            this.writer = new RandomAccessFile(output.toFile(), "rw");
-            this.channel = writer.getChannel();
-            this.writeBuffer = new UnsafeBuffer(ByteBuffer.allocate(BUFFER_SLOT_CAPACITY));
-        }
-        catch (IOException e)
-        {
-            System.out.println("Failed to open dump file: " + e.getMessage());
-        }
+        final LongHashSet filtered = new LongHashSet();
+        bindings.stream()
+            .map(PATTERN_NAMESPACED_BINDING::matcher)
+            .filter(Matcher::matches)
+            .map(m ->
+                (((long) labels.lookupLabelId(m.group("namespace"))) << 32) |
+                 (labels.lookupLabelId(m.group("binding")) & 0xffff_ffffL))
+            .forEach(filtered::add);
+        final LongPredicate filter = filtered.isEmpty() ? b -> true : filtered::contains;
 
-        this.allowedBinding = allowedBindings.isEmpty() ? b -> true : allowedBindings::contains;
-        this.position = RingBufferSpy.SpyPosition.ZERO;
-
-        runDumpCommand();
-    }
-
-    private void runDumpCommand()
-    {
-        final MutableDirectBuffer buffer = writeBuffer;
-        encodePcapGlobal(buffer);
-        writeToPcapFile(buffer, 0, PCAP_GLOBAL_SIZE);
-
-        try (Stream<Path> files = Files.walk(directory, 3))
+        try (Stream<Path> files = Files.walk(directory, 3);
+            WritableByteChannel writer = Files.newByteChannel(output, CREATE, APPEND))
         {
             final RingBufferSpy[] streamBuffers = files
                 .filter(this::isStreamsFile)
@@ -196,7 +178,11 @@ public final class ZillaDumpCommand extends ZillaCommand
             final int streamBufferCount = streamBuffers.length;
 
             final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
-            final MessagePredicate spyHandler = this::handleFrame;
+            final MessagePredicate spyHandler = new DumpHandler(filter, writer)::handleFrame;
+
+            final MutableDirectBuffer buffer = writeBuffer;
+            encodePcapGlobal(buffer);
+            writePcapOutput(writer, buffer, 0, PCAP_GLOBAL_SIZE);
 
             final int exitWorkCount = continuous ? -1 : 0;
             int workCount;
@@ -215,10 +201,6 @@ public final class ZillaDumpCommand extends ZillaCommand
         {
             rethrowUnchecked(ex);
         }
-        finally
-        {
-            closeResources();
-        }
     }
 
     private RingBufferSpy createStreamBuffer(
@@ -231,7 +213,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         StreamsLayout layout = new StreamsLayout.Builder()
             .path(path)
             .readonly(true)
-            .spyAt(position)
+            .spyAt(RingBufferSpy.SpyPosition.ZERO)
             .build();
         return layout.streamsBuffer();
     }
@@ -258,216 +240,233 @@ public final class ZillaDumpCommand extends ZillaCommand
         }
     }
 
-    private boolean nextTimestamp(
-        final long timestamp)
+    private final class DumpHandler
     {
-        if (timestamp != nextTimestamp)
-        {
-            nextTimestamp = Math.min(timestamp, nextTimestamp);
-            return false;
-        }
-        else
-        {
-            nextTimestamp = Long.MAX_VALUE;
-            return true;
-        }
-    }
+        private final LongPredicate allowedBinding;
+        private final WritableByteChannel writer;
 
-    private boolean handleFrame(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-        final long timestamp = frame.timestamp();
+        private long nextTimestamp = Long.MAX_VALUE;
 
-        if (!nextTimestamp(timestamp))
+        private DumpHandler(
+            LongPredicate allowedBinding,
+            WritableByteChannel writer)
         {
-            return false;
+            this.allowedBinding = allowedBinding;
+            this.writer = writer;
         }
 
-        switch (msgTypeId)
+        private boolean nextTimestamp(
+            final long timestamp)
         {
-        case BeginFW.TYPE_ID:
-            onBegin(beginRO.wrap(buffer, index, index + length));
-            break;
-        case DataFW.TYPE_ID:
-            onData(dataRO.wrap(buffer, index, index + length));
-            break;
-        case EndFW.TYPE_ID:
-            onEnd(endRO.wrap(buffer, index, index + length));
-            break;
-        case AbortFW.TYPE_ID:
-            onAbort(abortRO.wrap(buffer, index, index + length));
-            break;
-        case WindowFW.TYPE_ID:
-            onWindow(windowRO.wrap(buffer, index, index + length));
-            break;
-        case ResetFW.TYPE_ID:
-            onReset(resetRO.wrap(buffer, index, index + length));
-            break;
-        case FlushFW.TYPE_ID:
-            onFlush(flushRO.wrap(buffer, index, index + length));
-            break;
-        default:
-            break;
-        }
-        return true;
-    }
-
-    private void onBegin(
-        BeginFW begin)
-    {
-        final long bindingId = begin.routeId();
-
-        if (allowedBinding.test(bindingId))
-        {
-            final MutableDirectBuffer buffer = writeBuffer;
-            final long streamId = begin.streamId();
-            final long timestamp = begin.timestamp();
-            final long sequence = begin.sequence();
-
-            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
-            encodeEtherHeader(buffer);
-            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
-            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence - 1L, 0L, TcpFlag.SYN);
-
-            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
-        }
-    }
-
-    private void onData(
-        DataFW data)
-    {
-        final long bindingId = data.routeId();
-
-        if (allowedBinding.test(bindingId))
-        {
-            final OctetsFW payload = data.payload();
-
-            if (payload != null)
+            if (timestamp != nextTimestamp)
             {
-                final MutableDirectBuffer buffer = writeBuffer;
-                final long streamId = data.streamId();
-                final long timestamp = data.timestamp();
-                final long sequence = data.sequence();
-                final int sizeof = payload.sizeof();
-
-                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE + sizeof, timestamp);
-                encodeEtherHeader(buffer);
-                encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE + sizeof);
-                encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.PSH);
-
-                writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
-                writeToPcapFile(payload.buffer(), payload.offset(), sizeof);
+                nextTimestamp = Math.min(timestamp, nextTimestamp);
+                return false;
+            }
+            else
+            {
+                nextTimestamp = Long.MAX_VALUE;
+                return true;
             }
         }
-    }
 
-    private void onEnd(
-        EndFW end)
-    {
-        final long bindingId = end.routeId();
-
-        if (allowedBinding.test(bindingId))
+        private boolean handleFrame(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
         {
-            final MutableDirectBuffer buffer = writeBuffer;
-            final long streamId = end.streamId();
-            final long timestamp = end.timestamp();
-            final long sequence = end.sequence();
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long timestamp = frame.timestamp();
 
-            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
-            encodeEtherHeader(buffer);
-            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
-            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.FIN);
+            if (!nextTimestamp(timestamp))
+            {
+                return false;
+            }
 
-            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                onBegin(beginRO.wrap(buffer, index, index + length));
+                break;
+            case DataFW.TYPE_ID:
+                onData(dataRO.wrap(buffer, index, index + length));
+                break;
+            case EndFW.TYPE_ID:
+                onEnd(endRO.wrap(buffer, index, index + length));
+                break;
+            case AbortFW.TYPE_ID:
+                onAbort(abortRO.wrap(buffer, index, index + length));
+                break;
+            case WindowFW.TYPE_ID:
+                onWindow(windowRO.wrap(buffer, index, index + length));
+                break;
+            case ResetFW.TYPE_ID:
+                onReset(resetRO.wrap(buffer, index, index + length));
+                break;
+            case FlushFW.TYPE_ID:
+                onFlush(flushRO.wrap(buffer, index, index + length));
+                break;
+            default:
+                break;
+            }
+
+            return true;
         }
-    }
 
-    private void onAbort(
-        AbortFW abort)
-    {
-        final long bindingId = abort.routeId();
-
-        if (allowedBinding.test(bindingId))
+        private void onBegin(
+            BeginFW begin)
         {
-            final MutableDirectBuffer buffer = writeBuffer;
-            final long streamId = abort.streamId();
-            final long timestamp = abort.timestamp();
-            final long sequence = abort.sequence();
+            final long bindingId = begin.routeId();
 
-            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
-            encodeEtherHeader(buffer);
-            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
-            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.RST);
+            if (allowedBinding.test(bindingId))
+            {
+                final MutableDirectBuffer buffer = writeBuffer;
+                final long streamId = begin.streamId();
+                final long timestamp = begin.timestamp();
+                final long sequence = begin.sequence();
 
-            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+                encodeEtherHeader(buffer);
+                encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+                encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence - 1L, 0L, TcpFlag.SYN);
+
+                writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
+            }
         }
-    }
 
-    private void onFlush(
-        FlushFW flush)
-    {
-        final long bindingId = flush.routeId();
-
-        if (allowedBinding.test(bindingId))
+        private void onData(
+            DataFW data)
         {
-            final MutableDirectBuffer buffer = writeBuffer;
-            final long streamId = flush.streamId();
-            final long timestamp = flush.timestamp();
-            final long sequence = flush.sequence();
+            final long bindingId = data.routeId();
 
-            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
-            encodeEtherHeader(buffer);
-            encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
-            encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.PSH);
+            if (allowedBinding.test(bindingId))
+            {
+                final OctetsFW payload = data.payload();
 
-            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+                if (payload != null)
+                {
+                    final MutableDirectBuffer buffer = writeBuffer;
+                    final long streamId = data.streamId();
+                    final long timestamp = data.timestamp();
+                    final long sequence = data.sequence();
+                    final int sizeof = payload.sizeof();
+
+                    encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE + sizeof, timestamp);
+                    encodeEtherHeader(buffer);
+                    encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE + sizeof);
+                    encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.PSH);
+
+                    writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
+                    writePcapOutput(writer, payload.buffer(), payload.offset(), sizeof);
+                }
+            }
         }
-    }
 
-    private void onReset(
-        ResetFW reset)
-    {
-        final long bindingId = reset.routeId();
-
-        if (allowedBinding.test(bindingId))
+        private void onEnd(
+            EndFW end)
         {
-            final MutableDirectBuffer buffer = writeBuffer;
-            final long streamId = reset.streamId();
-            final long timestamp = reset.timestamp();
-            final long sequence = reset.sequence();
+            final long bindingId = end.routeId();
 
-            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
-            encodeEtherHeader(buffer);
-            encodeIpv6Header(buffer, bindingId, streamId, streamId ^ 1L, TCP_HEADER_SIZE);
-            encodeTcpHeader(buffer, streamId, streamId ^ 1L, sequence, 0L, TcpFlag.RST);
+            if (allowedBinding.test(bindingId))
+            {
+                final MutableDirectBuffer buffer = writeBuffer;
+                final long streamId = end.streamId();
+                final long timestamp = end.timestamp();
+                final long sequence = end.sequence();
 
-            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+                encodeEtherHeader(buffer);
+                encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+                encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.FIN);
+
+                writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
+            }
         }
-    }
 
-    private void onWindow(
-        WindowFW window)
-    {
-        final long bindingId = window.routeId();
-
-        if (allowedBinding.test(bindingId))
+        private void onAbort(
+            AbortFW abort)
         {
-            final MutableDirectBuffer buffer = writeBuffer;
-            final long streamId = window.streamId();
-            final long timestamp = window.timestamp();
-            final long sequence = window.sequence();
-            final long acknowledge = window.acknowledge();
+            final long bindingId = abort.routeId();
 
-            encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
-            encodeEtherHeader(buffer);
-            encodeIpv6Header(buffer, bindingId, streamId, streamId ^ 1L, TCP_HEADER_SIZE);
-            encodeTcpHeader(buffer, streamId, streamId ^ 1L, sequence, acknowledge, TcpFlag.ACK);
+            if (allowedBinding.test(bindingId))
+            {
+                final MutableDirectBuffer buffer = writeBuffer;
+                final long streamId = abort.streamId();
+                final long timestamp = abort.timestamp();
+                final long sequence = abort.sequence();
 
-            writeToPcapFile(buffer, 0, TCP_HEADER_LIMIT);
+                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+                encodeEtherHeader(buffer);
+                encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+                encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.RST);
+
+                writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
+            }
+        }
+
+        private void onFlush(
+            FlushFW flush)
+        {
+            final long bindingId = flush.routeId();
+
+            if (allowedBinding.test(bindingId))
+            {
+                final MutableDirectBuffer buffer = writeBuffer;
+                final long streamId = flush.streamId();
+                final long timestamp = flush.timestamp();
+                final long sequence = flush.sequence();
+
+                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+                encodeEtherHeader(buffer);
+                encodeIpv6Header(buffer, bindingId, streamId ^ 1L, streamId, TCP_HEADER_SIZE);
+                encodeTcpHeader(buffer, streamId ^ 1L, streamId, sequence, 0L, TcpFlag.PSH);
+
+                writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
+            }
+        }
+
+        private void onReset(
+            ResetFW reset)
+        {
+            final long bindingId = reset.routeId();
+
+            if (allowedBinding.test(bindingId))
+            {
+                final MutableDirectBuffer buffer = writeBuffer;
+                final long streamId = reset.streamId();
+                final long timestamp = reset.timestamp();
+                final long sequence = reset.sequence();
+
+                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+                encodeEtherHeader(buffer);
+                encodeIpv6Header(buffer, bindingId, streamId, streamId ^ 1L, TCP_HEADER_SIZE);
+                encodeTcpHeader(buffer, streamId, streamId ^ 1L, sequence, 0L, TcpFlag.RST);
+
+                writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
+            }
+        }
+
+        private void onWindow(
+            WindowFW window)
+        {
+            final long bindingId = window.routeId();
+
+            if (allowedBinding.test(bindingId))
+            {
+                final MutableDirectBuffer buffer = writeBuffer;
+                final long streamId = window.streamId();
+                final long timestamp = window.timestamp();
+                final long sequence = window.sequence();
+                final long acknowledge = window.acknowledge();
+
+                encodePcapHeader(buffer, ETHER_HEADER_SIZE + IPV6_HEADER_SIZE + TCP_HEADER_SIZE, timestamp);
+                encodeEtherHeader(buffer);
+                encodeIpv6Header(buffer, bindingId, streamId, streamId ^ 1L, TCP_HEADER_SIZE);
+                encodeTcpHeader(buffer, streamId, streamId ^ 1L, sequence, acknowledge, TcpFlag.ACK);
+
+                writePcapOutput(writer, buffer, 0, TCP_HEADER_LIMIT);
+            }
         }
     }
 
@@ -547,7 +546,8 @@ public final class ZillaDumpCommand extends ZillaCommand
             .build();
     }
 
-    private void writeToPcapFile(
+    private void writePcapOutput(
+        WritableByteChannel writer,
         DirectBuffer buffer,
         int offset,
         int length)
@@ -558,8 +558,7 @@ public final class ZillaDumpCommand extends ZillaCommand
             byteBuf.clear();
             byteBuf.position(offset);
             byteBuf.limit(offset + length);
-            channel.write(byteBuf);
-            channel.force(true);
+            writer.write(byteBuf);
         }
         catch (IOException ex)
         {
@@ -567,19 +566,4 @@ public final class ZillaDumpCommand extends ZillaCommand
             rethrowUnchecked(ex);
         }
     }
-
-    private void closeResources()
-    {
-        try
-        {
-            channel.close();
-            writer.close();
-        }
-        catch (IOException ex)
-        {
-            System.out.println("Could not close file. Reason: " + ex.getMessage());
-            rethrowUnchecked(ex);
-        }
-    }
-
 }
