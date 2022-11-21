@@ -242,6 +242,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Http2WindowUpdateFW http2WindowUpdateRO = new Http2WindowUpdateFW();
     private final Http2RstStreamFW http2RstStreamRO = new Http2RstStreamFW();
     private final Http2PriorityFW http2PriorityRO = new Http2PriorityFW();
+    private final Http2PushPromiseFW http2PushPromiseRO = new Http2PushPromiseFW();
 
     private final Http2PrefaceFW.Builder http2PrefaceRW = new Http2PrefaceFW.Builder();
     private final Http2SettingsFW.Builder http2SettingsRW = new Http2SettingsFW.Builder();
@@ -252,7 +253,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final Http2WindowUpdateFW.Builder http2WindowUpdateRW = new Http2WindowUpdateFW.Builder();
     private final Http2RstStreamFW.Builder http2RstStreamRW = new Http2RstStreamFW.Builder();
     private final Http2PushPromiseFW.Builder http2PushPromiseRW = new Http2PushPromiseFW.Builder();
-
 
     private final HttpClientDecoder decodeHttp2Settings = this::decodeHttp2Settings;
     private final HttpClientDecoder decodeHttp2FrameType = this::decodeHttp2FrameType;
@@ -732,7 +732,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                         assert client.decoder == decodeHeadersOnly;
                         if ("101".equals(status))
                         {
-                            if (!client.protocolUpgrade)
+                            if (!value.equals(client.protocolUpgrade))
                             {
                                 client.decoder = decodeIgnore;
                                 break decode;
@@ -1771,6 +1771,45 @@ public final class HttpClientFactory implements HttpStreamFactory
         return progress;
     }
 
+    private int decodeHttp2PusPromise(
+        HttpClient client,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        DirectBuffer buffer,
+        int offset,
+        int limit)
+    {
+        int progress = offset;
+
+        final Http2PushPromiseFW http2PushPromise = http2PushPromiseRO.wrap(buffer, offset, limit);
+        final int streamId = http2PushPromise.streamId();
+
+        Http2ErrorCode error = Http2ErrorCode.NO_ERROR;
+
+        if ((streamId & 0x01) == 0x01)
+        {
+            error = Http2ErrorCode.PROTOCOL_ERROR;
+        }
+
+        if (error != Http2ErrorCode.NO_ERROR)
+        {
+            client.onDecodeHttp2Error(traceId, authorization, error);
+            client.decoder = decodeHttp2IgnoreAll;
+        }
+        else
+        {
+            if (client.applicationHeadersProcessed.size() < config.maxConcurrentApplicationHeaders())
+            {
+                client.decoder = decodeHttp2FrameType;
+                progress = http2PushPromise.limit();
+            }
+        }
+
+        return progress;
+    }
+
     private int decodeHttp2Priority(
         HttpClient client,
         long traceId,
@@ -2133,7 +2172,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private int encodeSlotReserved;
         private int initialSharedBudget;
         private long requestSharedBudgetIndex = NO_CREDITOR_INDEX;
-        private boolean protocolUpgrade;
+        private String protocolUpgrade = null;
 
 
         private HttpClient(
@@ -2777,9 +2816,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             final String16FW connection = headers.get(HEADER_CONNECTION);
             final String16FW upgrade = headers.get(HEADER_UPGRADE);
 
-            protocolUpgrade = upgrade != null;
+            this.protocolUpgrade = upgrade != null ? upgrade.asString() : null;
 
-            if (connection != null && connectionClose.reset(connection.asString()).matches() || protocolUpgrade)
+            if (connection != null && connectionClose.reset(connection.asString()).matches() || upgrade != null)
             {
                 exchange.state = HttpState.closingReply(exchange.state);
             }
