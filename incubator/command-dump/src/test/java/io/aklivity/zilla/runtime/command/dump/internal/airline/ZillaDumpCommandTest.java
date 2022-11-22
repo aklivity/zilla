@@ -45,7 +45,6 @@ public class ZillaDumpCommandTest
         command.verbose = true;
         command.continuous = false;
         command.output = Paths.get(tempDir.getPath(), "test.pcap");
-        System.out.println(command.output);
     }
 
     @Test
