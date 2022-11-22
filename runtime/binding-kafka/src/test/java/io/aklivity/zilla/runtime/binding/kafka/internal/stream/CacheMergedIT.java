@@ -185,7 +185,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.json")
     @Specification({
@@ -200,6 +199,7 @@ public class CacheMergedIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.json")
     @Specification({
