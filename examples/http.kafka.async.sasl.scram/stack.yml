@@ -30,7 +30,7 @@ services:
       - ALLOW_ANONYMOUS_LOGIN=yes
 
   kafka:
-    image: "bitnami/kafka:3.3.1"
+    image: "bitnami/kafka:3.1.0"
     hostname: "kafka.internal.net"
     networks:
       - net0
@@ -51,4 +51,3 @@ services:
       - ./config/kafka_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf
     ports:
       - "9092:9092"
-

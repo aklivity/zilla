@@ -46,7 +46,7 @@ The default implementation of SASL/SCRAM in Kafka stores SCRAM credentials in Zo
 ````
 $ docker exec -it $(docker ps -q -f name=example_kafka) \
     /opt/bitnami/kafka/bin/kafka-configs.sh \
-        --zookeeper zookeeper:2181 \
+        --bootstrap-server localhost:9092 \
         --alter \
         --add-config 'SCRAM-SHA-256=[iterations=8192,password=bitnami],SCRAM-SHA-512=[password=bitnami]' \
         --entity-type users --entity-name user
