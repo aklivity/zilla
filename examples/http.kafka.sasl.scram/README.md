@@ -1,5 +1,5 @@
-# http.kafka.oneway.sasl.scram
-Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in SASL/SCRAM enabled Kafka, synchronously.
+# http.kafka.sasl.scram
+Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in `SASL/SCRAM` enabled Kafka, synchronously.
 
 ### Requirements
 - Docker 20.10+
