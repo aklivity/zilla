@@ -42,6 +42,7 @@ $ docker exec -it $(docker ps -q -f name=example_kafka) \
         --alter \
         --add-config 'SCRAM-SHA-256=[iterations=8192,password=bitnami],SCRAM-SHA-512=[password=bitnami]' \
         --entity-type users --entity-name user
+Completed updating config for user user.        
 ```
 
 ### Verify behavior
