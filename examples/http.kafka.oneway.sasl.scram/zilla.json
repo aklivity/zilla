@@ -91,24 +91,14 @@
                     "when":
                     [
                         {
-                            "method": "GET",
-                            "path": "/items/{id};{correlationId}"
-                        },
-                        {
-                            "path": "/items/{id}"
+                            "path": "/events"
                         }
                     ],
                     "exit": "kafka_cache_client0",
                     "with":
                     {
                         "capability": "produce",
-                        "topic": "items-requests",
-                        "key": "${params.id}",
-                        "reply-to": "items-responses",
-                        "async":
-                        {
-                            "location": "/items/${params.id};${correlationId}"
-                        }
+                        "topic": "events"
                     }
                 }
             ]
@@ -123,13 +113,6 @@
         {
             "type" : "kafka",
             "kind": "cache_server",
-            "options":
-            {
-                "bootstrap":
-                [
-                    "items-responses"
-                ]
-            },
             "exit": "kafka_client0"
         },
         "kafka_client0":
