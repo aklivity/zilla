@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIndex;
@@ -120,7 +121,7 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class DispatchAgent implements EngineContext, Agent
 {
-    private static final int RESERVED_SIZE = Byte.SIZE;
+    private static final int RESERVED_SIZE = Byte.SIZE + Byte.SIZE + 1;
 
     private static final int SHIFT_SIZE = Long.SIZE - RESERVED_SIZE;
 
@@ -186,7 +187,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
 
-    private long iniitalId;
+    private long initialId;
     private long traceId;
     private long budgetId;
     private long authorizedId;
@@ -285,7 +286,7 @@ public class DispatchAgent implements EngineContext, Agent
 
         this.mask = mask;
         this.bufferPool = bufferPool;
-        this.iniitalId = initial;
+        this.initialId = initial;
         this.traceId = initial;
         this.budgetId = initial;
         this.authorizedId = initial;
@@ -374,11 +375,11 @@ public class DispatchAgent implements EngineContext, Agent
     {
         final int remoteIndex = resolveRemoteIndex(routeId);
 
-        iniitalId += 2L;
-        iniitalId &= mask;
+        initialId += 2L;
+        initialId &= mask;
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
-               (iniitalId & 0xff00_ffff_ffff_ffffL) | 0x0000_0000_0000_0001L;
+               (initialId & 0xff00_7fff_ffff_ffffL) | 0x0000_0000_0000_0001L;
     }
 
     @Override
@@ -387,6 +388,17 @@ public class DispatchAgent implements EngineContext, Agent
     {
         assert isInitial(initialId);
         return initialId & 0xffff_ffff_ffff_fffeL;
+    }
+
+    @Override
+    public long supplyPromiseId(
+        long carrierId)
+    {
+        initialId += 2L;
+        initialId &= mask;
+
+        return carrierId & 0xffff_0000_0000_0000L | 0x0000_8000_0000_0000L | initialId |
+                0x0000_0000_0000_0001L;
     }
 
     @Override
@@ -470,7 +482,7 @@ public class DispatchAgent implements EngineContext, Agent
     public int supplyClientIndex(
         long streamId)
     {
-        return StreamId.clientIndex(streamId);
+        return clientIndex(streamId);
     }
 
     @Override
@@ -1365,6 +1377,14 @@ public class DispatchAgent implements EngineContext, Agent
         final long replyId = supplyReplyId(streamId);
         correlations.put(replyId, sender);
         return supplyReceiver(streamId);
+    }
+
+    @Override
+    public MessageConsumer supplySender(
+        long streamId)
+    {
+        final int clientIndex = clientIndex(streamId);
+        return writersByIndex.computeIfAbsent(clientIndex, supplyWriter);
     }
 
     @Override

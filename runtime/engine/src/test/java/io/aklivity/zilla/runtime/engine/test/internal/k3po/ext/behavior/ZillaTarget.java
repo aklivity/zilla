@@ -189,15 +189,17 @@ final class ZillaTarget implements AutoCloseable
     {
         try
         {
+            final ZillaChannelConfig clientConfig = clientChannel.getConfig();
+
             final long routeId = clientChannel.routeId();
-            final long initialId = clientChannel.targetId();
+            final long streamId = clientConfig.getStreamId();
+            final long initialId = streamId == 0L ? clientChannel.targetId() : streamId;
             final long replyId = initialId & 0xffff_ffff_ffff_fffeL;
             clientChannel.sourceId(replyId);
 
             final ChannelFuture windowFuture = future(clientChannel);
             ChannelFuture replyFuture = succeededFuture(clientChannel);
 
-            final ZillaChannelConfig clientConfig = clientChannel.getConfig();
             switch (clientConfig.getTransmission())
             {
             case DUPLEX:

@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_BYTE_ORDER;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_REPLY_TO;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_STREAM_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_THROTTLE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_TRANSMISSION;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_UPDATE;
@@ -72,7 +73,7 @@ public class ZillaChannelAddressFactory extends ChannelAddressFactorySpi
         }
 
         Collection<TypeInfo<?>> allOptionTypes = asList(OPTION_REPLY_TO, OPTION_WINDOW, OPTION_BUDGET_ID,
-                OPTION_PADDING, OPTION_UPDATE, OPTION_AUTHORIZATION, OPTION_THROTTLE,
+                OPTION_STREAM_ID, OPTION_PADDING, OPTION_UPDATE, OPTION_AUTHORIZATION, OPTION_THROTTLE,
                 OPTION_TRANSMISSION, OPTION_BYTE_ORDER);
         for (TypeInfo<?> optionType : allOptionTypes)
         {

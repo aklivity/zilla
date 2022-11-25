@@ -34,6 +34,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
     public static final TypeInfo<Integer> OPTION_WINDOW = new TypeInfo<>("window", Integer.class);
     public static final TypeInfo<Integer> OPTION_SHARED_WINDOW = new TypeInfo<>("sharedWindow", Integer.class);
     public static final TypeInfo<Long> OPTION_BUDGET_ID = new TypeInfo<>("budgetId", Long.class);
+    public static final TypeInfo<Long> OPTION_STREAM_ID = new TypeInfo<>("streamId", Long.class);
     public static final TypeInfo<Integer> OPTION_PADDING = new TypeInfo<>("padding", Integer.class);
     public static final TypeInfo<String> OPTION_UPDATE = new TypeInfo<>("update", String.class);
     public static final TypeInfo<String> OPTION_TRANSMISSION = new TypeInfo<>("transmission", String.class);
@@ -96,6 +97,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         connectOptions.add(OPTION_WINDOW);
         connectOptions.add(OPTION_SHARED_WINDOW);
         connectOptions.add(OPTION_BUDGET_ID);
+        connectOptions.add(OPTION_STREAM_ID);
         connectOptions.add(OPTION_PADDING);
         connectOptions.add(OPTION_UPDATE);
         connectOptions.add(OPTION_AUTHORIZATION);

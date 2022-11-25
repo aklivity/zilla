@@ -30,6 +30,7 @@ scope http
 
         struct HttpDataEx extends core::stream::Extension
         {
+            int64 promiseId;
             HttpHeader[] promise;
         }
 

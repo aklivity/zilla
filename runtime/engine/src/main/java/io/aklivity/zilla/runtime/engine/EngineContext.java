@@ -50,11 +50,17 @@ public interface EngineContext
     long supplyReplyId(
         long initialId);
 
+    long supplyPromiseId(
+            long initialId);
+
     long supplyAuthorizedId();
 
     long supplyBudgetId();
 
     long supplyTraceId();
+
+    MessageConsumer supplySender(
+        long streamId);
 
     MessageConsumer supplyReceiver(
         long streamId);

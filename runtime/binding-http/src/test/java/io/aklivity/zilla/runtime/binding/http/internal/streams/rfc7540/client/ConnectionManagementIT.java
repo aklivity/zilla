@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLO
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +50,7 @@ public class ConnectionManagementIT
         .counterValuesBufferCapacity(8192)
         .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
+        .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
         .external("net0")
         .clean();
 
@@ -361,22 +363,22 @@ public class ConnectionManagementIT
 
     @Ignore("Implement push promise")
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/http.push.promise/client",
-        "${app}/http.push.promise/server" })
+        "${app}/http.push.promise/client",
+        "${net}/http.push.promise/server" })
     public void pushResources() throws Exception
     {
         k3po.finish();
     }
 
-    @Ignore("Implement push promise")
     @Test
-    @Configuration("server.json")
+    @Configuration("client.json")
     @Specification({
-        "${net}/push.promise.on.different.stream/client",
-        "${app}/push.promise.on.different.stream/server" })
-    public void pushPromiseOnDifferentStream() throws Exception
+        "${app}/http.push.promise.on.single.stream/client",
+        "${net}/http.push.promise.on.single.stream/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void pushPromiseOnSingleStream() throws Exception
     {
         k3po.finish();
     }

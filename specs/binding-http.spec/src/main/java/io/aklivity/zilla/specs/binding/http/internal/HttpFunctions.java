@@ -56,6 +56,12 @@ public final class HttpFunctions
     }
 
     @Function
+    public static HttpDataExMatcherBuilder matchDataEx()
+    {
+        return new HttpDataExMatcherBuilder();
+    }
+
+    @Function
     public static HttpDataExBuilder dataEx()
     {
         return new HttpDataExBuilder();
@@ -380,6 +386,13 @@ public final class HttpFunctions
             return this;
         }
 
+        public HttpDataExBuilder promiseId(
+            long promiseId)
+        {
+            dataExRW.promiseId(promiseId);
+            return this;
+        }
+
         public HttpDataExBuilder promise(
             String name,
             String value)
@@ -394,6 +407,91 @@ public final class HttpFunctions
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
+        }
+    }
+
+    public static final class HttpDataExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final HttpDataExFW dataExRO = new HttpDataExFW();
+
+        private final Map<String, Predicate<String>> headers = new LinkedHashMap<>();
+
+        private Integer typeId;
+        private Long promiseId;
+
+        public HttpDataExMatcherBuilder typeId(
+                int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public HttpDataExMatcherBuilder promiseId(
+            long promiseId)
+        {
+            this.promiseId = promiseId;
+            return this;
+        }
+
+        public HttpDataExMatcherBuilder promise(
+            String name,
+            String value)
+        {
+            headers.put(name, value::equals);
+            return this;
+        }
+
+        public HttpDataExMatcherBuilder promiseRegex(
+            String name,
+            String regex)
+        {
+            Pattern pattern = Pattern.compile(regex);
+            headers.put(name, v -> pattern.matcher(v).matches());
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null ? this::match : buf -> null;
+        }
+
+        private HttpDataExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final HttpDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (dataEx != null &&
+                    matchTypeId(dataEx) &&
+                    matchPromises(dataEx))
+            {
+                byteBuf.position(byteBuf.position() + dataEx.sizeof());
+                return dataEx;
+            }
+
+            throw new Exception(dataEx.toString());
+        }
+
+        private boolean matchPromises(
+            HttpDataExFW dataEx)
+        {
+            MutableBoolean match = new MutableBoolean(true);
+            headers.forEach((k, v) -> match.value &= dataEx.promise().anyMatch(h -> k.equals(h.name().asString()) &&
+                    v.test(h.value().asString())));
+            return match.value;
+        }
+
+        private boolean matchTypeId(
+            HttpDataExFW dataEx)
+        {
+            return typeId == dataEx.typeId();
         }
     }
 

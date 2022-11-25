@@ -59,7 +59,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
-public final class Engine implements AutoCloseable
+public final class Engine extends EngineBuilder implements AutoCloseable
 {
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
