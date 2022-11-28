@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_SASL_SCRAM_NONCE;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -30,6 +31,7 @@ public class KafkaConfigurationTest
     public static final String KAFKA_CLIENT_PRODUCE_MAX_BYTES_NAME = "zilla.binding.kafka.client.produce.max.bytes";
     public static final String KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME = "zilla.binding.kafka.cache.server.reconnect";
     public static final String KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME = "zilla.binding.kafka.cache.client.cleanup.delay";
+    public static final String KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME = "zilla.binding.kafka.client.sasl.scram.nonce";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -38,5 +40,6 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CLIENT_PRODUCE_MAX_BYTES.name(), KAFKA_CLIENT_PRODUCE_MAX_BYTES_NAME);
         assertEquals(KAFKA_CACHE_SERVER_RECONNECT_DELAY.name(), KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME);
         assertEquals(KAFKA_CACHE_CLIENT_CLEANUP_DELAY.name(), KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME);
+        assertEquals(KAFKA_CLIENT_SASL_SCRAM_NONCE.name(), KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME);
     }
 }

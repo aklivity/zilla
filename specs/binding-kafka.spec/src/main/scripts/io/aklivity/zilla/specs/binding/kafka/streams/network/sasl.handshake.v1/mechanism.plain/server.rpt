@@ -56,4 +56,3 @@ write 20                                # size
       -1
       -1s                               # authentication bytes
       0L                                # session lifetime
-
