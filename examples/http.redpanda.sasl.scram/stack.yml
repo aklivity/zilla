@@ -1,0 +1,45 @@
+version: "3"
+
+networks:
+  net0:
+    driver: overlay
+
+services:
+
+  zilla:
+    image: "ghcr.io/aklivity/zilla:latest"
+    hostname: "zilla"
+    command: [ "start", "-v", "-e" ]
+    volumes:
+      - ./zilla.json:/zilla.json:ro
+      - ./localhost.p12:/localhost.p12:ro
+    networks:
+      - net0
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+
+  redpanda:
+    image: 'docker.vectorized.io/vectorized/redpanda:v22.3.4'
+    command:
+      - redpanda
+      - start
+      - '--set redpanda.enable_sasl=true'
+      - '--set redpanda.superusers=["user"]'
+      - '--smp'
+      - '1'
+      - '--reserve-memory'
+      - 0M
+      - '--overprovisioned'
+      - '--node-id'
+      - '0'
+      - '--kafka-addr'
+      - 'INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092'
+      - '--advertise-kafka-addr'
+      - 'INSIDE://redpanda:29092,OUTSIDE://localhost:9092'
+    networks:
+      - net0
+    ports:
+      - '9092:9092'
+      - '29092:29092'
+      - '9644:9644'
