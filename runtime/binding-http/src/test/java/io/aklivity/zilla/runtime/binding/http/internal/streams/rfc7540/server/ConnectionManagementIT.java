@@ -188,7 +188,7 @@ public class ConnectionManagementIT
     @Specification({
         "${net}/ignore.client.rst.stream/client",
         "${app}/ignore.client.rst.stream/server" })
-    public void ignoreRsttStream() throws Exception
+    public void ignoreClientRstStream() throws Exception
     {
         k3po.finish();
     }

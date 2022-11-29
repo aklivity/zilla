@@ -152,7 +152,7 @@ public class ConnectionManagementIT
         "${app}/ignore.server.rst.stream/client",
         "${net}/ignore.server.rst.stream/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void ignoreRsttStream() throws Exception
+    public void ignoreServerRstStream() throws Exception
     {
         k3po.finish();
     }

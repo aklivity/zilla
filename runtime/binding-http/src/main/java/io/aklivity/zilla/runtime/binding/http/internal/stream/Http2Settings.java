@@ -25,7 +25,7 @@ public class Http2Settings
     private static final int DEFAULT_ENABLE_PUSH = 1;
     private static final int DEFAULT_MAX_CONCURRENT_STREAMS = Integer.MAX_VALUE;
     private static final int DEFAULT_INITIAL_WINDOW_SIZE = 65_535;
-    public static final int DEFAULT_MAX_FRAME_SIZE = 16_384;
+    private static final int DEFAULT_MAX_FRAME_SIZE = 16_384;
     private static final long DEFAULT_MAX_HEADER_LIST_SIZE = Long.MAX_VALUE;
 
     public int headerTableSize = DEFAULT_HEADER_TABLE_SIZE;

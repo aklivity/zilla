@@ -6,8 +6,10 @@
         {
             "type" : "http",
             "kind": "client",
-            "options": {
-                "versions": [
+            "options":
+            {
+                "versions":
+                [
                     "http/1.1"
                 ]
             },
