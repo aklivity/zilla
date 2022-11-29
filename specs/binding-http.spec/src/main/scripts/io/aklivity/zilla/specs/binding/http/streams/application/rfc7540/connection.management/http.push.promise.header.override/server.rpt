@@ -42,13 +42,14 @@ write zilla:begin.ext ${http:beginEx()
 write flush
 
 # First push promise
-write zilla:data.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":method", "GET")
-                             .header(":scheme", "http")
-                             .header(":path", "/style.css")
-                             .header(":authority", "localhost:8080")
-                             .build()}
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .promiseId(1)
+                           .promise(":method", "GET")
+                           .promise(":scheme", "http")
+                           .promise(":path", "/style.css")
+                           .promise(":authority", "localhost:8080")
+                           .build()}
 write flush
 
 write "<html>"

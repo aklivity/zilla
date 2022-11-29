@@ -318,10 +318,104 @@ public class HttpFunctionsTest
     }
 
     @Test
+    public void shouldMatchDataExtension() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                .typeId(0x01)
+                .promiseId(0x01)
+                .promise("name", "value")
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x01)
+                .promiseId(0x01)
+                .promiseItem(h -> h.name("name").value("value"))
+                .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchDataExFailWhenDoNotSetTypeId() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                .promiseId(1)
+                .promiseRegex("name", "value")
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x01)
+                .promiseId(0x01)
+                .promiseItem(h -> h.name("name").value("value"))
+                .build();
+
+        assertNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldMatchDataExFailWhenTypeIdDoNotMatch() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                .typeId(0x01)
+                .promiseId(0x01)
+                .promiseRegex("name", "value")
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x02)
+                .promiseId(0x01)
+                .promiseItem(h -> h.name("name").value("value"))
+                .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldMatchDataExFailWhenDoNotMatchBeginExtensionWithRegex() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                .typeId(0x01)
+                .promiseId(0x01)
+                .promiseRegex("name", "regex")
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x01)
+                .promiseId(0x01)
+                .promiseItem(h -> h.name("name").value("value"))
+                .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldMatchDataExFailWhenBufferDoNotHaveEnoughSpace() throws Exception
+    {
+        BytesMatcher matcher = HttpFunctions.matchDataEx()
+                .typeId(0x01)
+                .promiseId(0x01)
+                .promiseRegex("name", "value")
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(0);
+
+        assertNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldGenerateDataExtension()
     {
         byte[] build = HttpFunctions.dataEx()
                                     .typeId(0x01)
+                                    .promiseId(1L)
                                     .promise("name", "value")
                                     .build();
         DirectBuffer buffer = new UnsafeBuffer(build);

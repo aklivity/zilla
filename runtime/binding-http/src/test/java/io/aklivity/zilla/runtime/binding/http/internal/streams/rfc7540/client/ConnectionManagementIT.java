@@ -21,7 +21,6 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLO
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,6 +30,7 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;

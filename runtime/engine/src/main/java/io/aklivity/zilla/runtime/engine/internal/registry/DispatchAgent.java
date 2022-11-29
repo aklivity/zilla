@@ -123,7 +123,7 @@ public class DispatchAgent implements EngineContext, Agent
 {
     private static final int RESERVED_SIZE = Byte.SIZE + Byte.SIZE + 1;
 
-    private static final int SHIFT_SIZE = Long.SIZE - RESERVED_SIZE;
+    private static final int SHIFT_SIZE = Long.SIZE - RESERVED_SIZE + 1;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
 
@@ -442,7 +442,7 @@ public class DispatchAgent implements EngineContext, Agent
     public BudgetDebitor supplyDebitor(
         long budgetId)
     {
-        final int ownerIndex = (int) ((budgetId >> SHIFT_SIZE) & 0xFFFF_FFFF);
+        final int ownerIndex = ownerIndex(budgetId);
         return debitorsByIndex.computeIfAbsent(ownerIndex, this::newBudgetDebitor);
     }
 

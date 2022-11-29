@@ -43,23 +43,25 @@ write notify REQUEST_ONE_RESPONSE_HEADERS_SENT
 
 write await REQUEST_TWO_RESPONSE_HEADERS_SENT
 
-write zilla:data.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                             .header(":method", "GET")
-                             .header(":scheme", "http")
-                             .header(":path", "/style.css")
-                             .header(":authority", "localhost:8080")
-                             .build()}
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .promiseId(1)
+                           .promise(":method", "GET")
+                           .promise(":scheme", "http")
+                           .promise(":path", "/style.css")
+                           .promise(":authority", "localhost:8080")
+                           .build()}
 write flush
 write notify PROMISE_ONE_SENT
 
-write zilla:data.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                             .header(":method", "GET")
-                             .header(":scheme", "http")
-                             .header(":path", "/script.js")
-                             .header(":authority", "localhost:8080")
-                             .build()}
+write zilla:data.ext ${http:dataEx()
+                           .typeId(zilla:id("http"))
+                           .promiseId(1)
+                           .promise(":method", "GET")
+                           .promise(":scheme", "http")
+                           .promise(":path", "/script.js")
+                           .promise(":authority", "localhost:8080")
+                           .build()}
 write flush
 write notify PROMISE_TWO_SENT
 
@@ -123,12 +125,13 @@ write notify PROMISE_ONE_RESPONSE_HEADERS_SENT
 write await PROMISE_TWO_RESPONSE_HEADERS_SENT
 
 write zilla:data.ext ${http:dataEx()
-                             .typeId(zilla:id("http"))
-                             .promise(":method", "GET")
-                             .promise(":scheme", "http")
-                             .promise(":path", "/widget.css")
-                             .promise(":authority", "localhost:8080")
-                             .build()}
+                           .typeId(zilla:id("http"))
+                           .promiseId(1)
+                           .promise(":method", "GET")
+                           .promise(":scheme", "http")
+                           .promise(":path", "/widget.css")
+                           .promise(":authority", "localhost:8080")
+                           .build()}
 write flush
 write notify PROMISE_THREE_SENT
 

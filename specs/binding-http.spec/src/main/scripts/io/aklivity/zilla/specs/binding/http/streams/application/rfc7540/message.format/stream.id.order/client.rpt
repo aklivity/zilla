@@ -36,13 +36,13 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-length", "113")
                              .build()}
 
-read zilla:data.ext ${http:dataEx()
-                            .typeId(zilla:id("http"))
-                            .promise(":method", "GET")
-                            .promise(":scheme", "http")
-                            .promise(":path", "/push")
-                            .promise(":authority", "localhost:8080")
-                            .build()}
+read zilla:data.ext ${http:matchDataEx()
+                          .typeId(zilla:id("http"))
+                          .promise(":method", "GET")
+                          .promise(":scheme", "http")
+                          .promise(":path", "/push")
+                          .promise(":authority", "localhost:8080")
+                          .build()}
 read notify PUSH_PROMISE_ONE_RECEIVED
 
 
@@ -68,13 +68,13 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-length", "113")
                              .build()}
 
-read zilla:data.ext ${http:dataEx()
-                            .typeId(zilla:id("http"))
-                            .promise(":method", "GET")
-                            .promise(":scheme", "http")
-                            .promise(":path", "/push")
-                            .promise(":authority", "localhost:8080")
-                            .build()}
+read zilla:data.ext ${http:matchDataEx()
+                          .typeId(zilla:id("http"))
+                          .promise(":method", "GET")
+                          .promise(":scheme", "http")
+                          .promise(":path", "/push")
+                          .promise(":authority", "localhost:8080")
+                          .build()}
 read notify PUSH_PROMISE_TWO_RECEIVED
 
 
@@ -100,13 +100,13 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-length", "113")
                              .build()}
 
-read zilla:data.ext ${http:dataEx()
-                            .typeId(zilla:id("http"))
-                            .promise(":method", "GET")
-                            .promise(":scheme", "http")
-                            .promise(":path", "/push")
-                            .promise(":authority", "localhost:8080")
-                            .build()}
+read zilla:data.ext ${http:matchDataEx()
+                          .typeId(zilla:id("http"))
+                          .promise(":method", "GET")
+                          .promise(":scheme", "http")
+                          .promise(":path", "/push")
+                          .promise(":authority", "localhost:8080")
+                          .build()}
 read notify PUSH_PROMISE_THREE_RECEIVED
 
 
