@@ -25,6 +25,8 @@ write zilla:begin.ext ${http:beginEx()
                               .header(":scheme", "http")
                               .header(":path", "/")
                               .header(":authority", "localhost:8080")
+                              .header("content-type", "text/plain;charset=UTF-8")
+                              .header("content-length", "12")
                               .build()}
 connected
 
@@ -74,6 +76,7 @@ read "<html>"
 connect await FIRST_PUSH_PROMISE_RECEIVED
         "zilla://streams/app0"
         option zilla:window 8192
+        option zilla:streamId 4539769161877815301L
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
@@ -105,6 +108,7 @@ read "h1 {"
 connect await SECOND_PUSH_PROMISE_RECEIVED
         "zilla://streams/app0"
         option zilla:window 8192
+        option zilla:streamId 4539769161877815303L
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()

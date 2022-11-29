@@ -350,37 +350,14 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
-    @Ignore("Implement push promise")
-    @Test
-    @Configuration("server.override.json")
-    @Specification({
-        "${net}/http.push.promise.header.override/client",
-        "${app}/http.push.promise.header.override/server" })
-    public void pushResourcesWithOverrideHeader() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("Implement push promise")
     @Test
     @Configuration("client.json")
     @Specification({
         "${app}/http.push.promise/client",
         "${net}/http.push.promise/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pushResources() throws Exception
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("client.json")
-    @Specification({
-        "${app}/http.push.promise.on.single.stream/client",
-        "${net}/http.push.promise.on.single.stream/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void pushPromiseOnSingleStream() throws Exception
-    {
-        k3po.finish();
-    }
-
 }
