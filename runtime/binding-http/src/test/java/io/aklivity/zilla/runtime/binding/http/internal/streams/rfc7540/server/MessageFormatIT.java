@@ -74,8 +74,8 @@ public class MessageFormatIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/max.frame.size/client",
-        "${app}/max.frame.size/server" })
+        "${net}/server.max.frame.size/client",
+        "${app}/server.max.frame.size/server" })
     public void maxFrameSize() throws Exception
     {
         k3po.finish();

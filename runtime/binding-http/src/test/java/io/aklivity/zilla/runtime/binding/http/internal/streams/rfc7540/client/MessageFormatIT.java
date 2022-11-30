@@ -81,8 +81,8 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/max.frame.size/client",
-        "${net}/max.frame.size/server" })
+        "${app}/server.max.frame.size/client",
+        "${net}/server.max.frame.size/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "29000")
     @Configure(name = HTTP_CLIENT_MAX_FRAME_SIZE_NAME, value = "20000")
     public void maxFrameSize() throws Exception
