@@ -31,7 +31,6 @@ write zilla:begin.ext ${http:beginEx()
 connected
 
 write "Hello, world"
-write flush
 
 write close
 

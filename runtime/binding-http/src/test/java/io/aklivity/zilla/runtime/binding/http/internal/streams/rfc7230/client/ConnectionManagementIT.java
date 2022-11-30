@@ -209,8 +209,8 @@ public class ConnectionManagementIT
     @Configuration("client.json")
     @Specification({
         "${app}/single.request.and.503.response/client",
-        "${net}/upgrade.rejected.without.h2c.request/server"})
-    public void shouldRejectUpgradeWithoutH2c() throws Exception
+        "${net}/upgrade.rejected.when.not.requested/server"})
+    public void shouldRejectUpgradeWhenNotRequested() throws Exception
     {
         k3po.finish();
     }
