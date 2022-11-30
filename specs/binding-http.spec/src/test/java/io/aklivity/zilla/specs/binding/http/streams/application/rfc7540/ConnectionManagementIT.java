@@ -129,10 +129,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/reset.http2.stream/client",
-        "${app}/reset.http2.stream/server"
+        "${app}/reset.client.stream/client",
+        "${app}/reset.client.stream/server"
     })
-    public void resetHttp2Stream() throws Exception
+    public void resetClientStream() throws Exception
     {
         k3po.finish();
     }
@@ -360,10 +360,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.write.http2.rst.frame.on.open.request/client",
-        "${app}/server.sent.write.http2.rst.frame.on.open.request/server"
+        "${app}/server.sent.write.rst.frame.on.open.request.response/client",
+        "${app}/server.sent.write.rst.frame.on.open.request.response/server"
     })
-    public void serverSentWriteHttp2RstFrameOnOpenRequest() throws Exception
+    public void serverSentWriteHttp2RstFrameOnOpenRequestResponse() throws Exception
     {
         k3po.finish();
     }

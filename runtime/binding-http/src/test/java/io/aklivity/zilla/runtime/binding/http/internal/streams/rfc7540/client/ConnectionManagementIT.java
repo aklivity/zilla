@@ -136,10 +136,10 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/reset.http2.stream/client",
-        "${net}/reset.http2.stream/server" })
+        "${app}/reset.client.stream/client",
+        "${net}/reset.client.stream/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void resetHttp2Stream() throws Exception
+    public void resetClientStream() throws Exception
     {
         k3po.finish();
     }
@@ -159,7 +159,7 @@ public class ConnectionManagementIT
     @Configuration("client.json")
     @Specification({
         "${app}/client.sent.read.abort.on.closed.request/client",
-        "${net}/client.sent.reset.http2.frame.on.closed.request/server"
+        "${net}/client.sent.reset.frame.on.open.response/server"
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentReadAbortOnClosedRequest() throws Exception
@@ -171,7 +171,7 @@ public class ConnectionManagementIT
     @Configuration("client.json")
     @Specification({
         "${app}/client.sent.write.abort.on.open.request/client",
-        "${net}/client.sent.reset.http2.frame.on.open.request/server"
+        "${net}/client.sent.reset.frame.on.open.request.response/server"
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteAbortOnOpenRequest() throws Exception
@@ -183,7 +183,7 @@ public class ConnectionManagementIT
     @Configuration("client.json")
     @Specification({
         "${app}/client.sent.write.abort.on.closed.request/client",
-        "${net}/client.sent.reset.http2.frame.on.closed.request/server"
+        "${net}/client.sent.reset.frame.on.open.response/server"
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteAbortOnClosedRequest() throws Exception
@@ -195,7 +195,7 @@ public class ConnectionManagementIT
     @Configuration("client.json")
     @Specification({
         "${app}/client.sent.write.close/client",
-        "${net}/client.sent.reset.http2.frame.on.open.request/server"
+        "${net}/client.sent.reset.frame.on.open.request.response/server"
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteClose() throws Exception
@@ -241,11 +241,11 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/server.sent.write.http2.rst.frame.on.open.request/client",
+        "${app}/server.sent.write.rst.frame.on.open.request.response/client",
         "${net}/server.sent.write.abort.on.open.request/server"
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void serverSentWriteAbortOnOpenRequest() throws Exception
+    public void serverSentWriteAbortOnOpenRequestResponse() throws Exception
     {
         k3po.finish();
     }

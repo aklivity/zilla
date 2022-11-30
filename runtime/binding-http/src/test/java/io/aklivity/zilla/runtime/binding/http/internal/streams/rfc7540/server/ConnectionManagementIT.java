@@ -176,9 +176,9 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/reset.http2.stream/client",
-        "${app}/reset.http2.stream/server" })
-    public void resetHttp2Stream() throws Exception
+        "${net}/reset.client.stream/client",
+        "${app}/reset.client.stream/server" })
+    public void resetClientStream() throws Exception
     {
         k3po.finish();
     }
