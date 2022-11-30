@@ -16,13 +16,13 @@
 
 connect "zilla://streams/app0"
          option zilla:window 8192
-         option zilla:transmission "half-duplex"
+         option zilla:transmission "duplex"
 
 connect aborted
 
 connect "zilla://streams/app0"
          option zilla:window 8192
-         option zilla:transmission "half-duplex"
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
@@ -45,7 +45,7 @@ read "client one session expired"
 
 connect "zilla://streams/app0"
          option zilla:window 8192
-         option zilla:transmission "half-duplex"
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
@@ -61,7 +61,7 @@ write abort
 
 connect "zilla://streams/app0"
          option zilla:window 8192
-         option zilla:transmission "half-duplex"
+         option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
