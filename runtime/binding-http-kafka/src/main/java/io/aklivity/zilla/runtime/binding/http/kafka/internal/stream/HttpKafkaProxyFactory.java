@@ -3235,6 +3235,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, routeId, initialId, SIGNAL_WAIT_EXPIRED, 0);
             }
+            doKafkaWindow(traceId);
         }
 
         private void doKafkaEnd(
