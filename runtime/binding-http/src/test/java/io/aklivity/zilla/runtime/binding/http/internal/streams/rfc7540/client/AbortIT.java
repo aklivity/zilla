@@ -56,10 +56,10 @@ public class AbortIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/h2.client.sent.write.abort.on.open.request.response/client",
-        "${net}/h2.client.sent.error.on.open.request.response/server" })
+        "${app}/client.sent.write.abort.on.open.request/client",
+        "${net}/client.sent.error.on.open.request.response/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void clientSentWriteAbortOnOpenRequestResponse() throws Exception
+    public void clientSentWriteAbortOnOpenRequest() throws Exception
     {
         k3po.finish();
     }
@@ -67,10 +67,10 @@ public class AbortIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/h2.client.sent.read.abort.on.open.request.response/client",
-        "${net}/h2.client.sent.error.on.open.request.response/server" })
+        "${app}/client.sent.read.abort.on.open.response/client",
+        "${net}/client.sent.error.on.open.request.response/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void clientSentReadAbortOnOpenRequestResponse() throws Exception
+    public void clientSentReadAbortOnOpenResponse() throws Exception
     {
         k3po.finish();
     }
@@ -78,10 +78,10 @@ public class AbortIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/h2.server.sent.write.abort.on.open.request.response/client",
-        "${net}/h2.server.sent.write.abort.on.open.request.response/server" })
+        "${app}/server.sent.write.abort.on.open.response/client",
+        "${net}/server.sent.write.abort.on.open.response/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void serverSentWriteAbortOnOpenRequestResponse() throws Exception
+    public void serverSentWriteAbortOnOpenResponse() throws Exception
     {
         k3po.finish();
     }
@@ -89,10 +89,10 @@ public class AbortIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/h2.server.sent.read.abort.on.open.request.response/client",
-        "${net}/h2.server.sent.read.abort.on.open.request.response/server" })
+        "${app}/server.sent.read.abort.on.open.request/client",
+        "${net}/server.sent.read.abort.on.open.request/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void serverSentReadAbortOnOpenRequestResponse() throws Exception
+    public void serverSentReadAbortOnOpenRequest() throws Exception
     {
         k3po.finish();
     }
