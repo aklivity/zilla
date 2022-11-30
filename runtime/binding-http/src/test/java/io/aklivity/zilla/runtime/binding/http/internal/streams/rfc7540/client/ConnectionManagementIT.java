@@ -21,16 +21,15 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLO
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
@@ -50,7 +49,6 @@ public class ConnectionManagementIT
         .counterValuesBufferCapacity(8192)
         .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
-        .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
         .external("net0")
         .clean();
 
@@ -355,6 +353,10 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.push.promise/client",
         "${net}/http.push.promise/server" })
+    @ScriptProperty({
+        "promiseId1 0x3f00800000000005L",
+        "promiseId2 0x3f00800000000007L",
+    })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pushResources() throws Exception
     {

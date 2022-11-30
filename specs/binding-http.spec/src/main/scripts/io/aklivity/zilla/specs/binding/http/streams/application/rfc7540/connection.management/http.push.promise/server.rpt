@@ -14,6 +14,9 @@
 # under the License.
 #
 
+property promiseId1 0x3f3f000000000005L
+property promiseId2 0x3f3f000000000007L
+
 accept "zilla://streams/app0"
         option zilla:window 12
         option zilla:transmission "half-duplex"
@@ -46,7 +49,7 @@ write flush
 # First push promise
 write zilla:data.ext ${http:dataEx()
                            .typeId(zilla:id("http"))
-                           .promiseId(1)
+                           .promiseId(promiseId1)
                            .promise(":method", "GET")
                            .promise(":scheme", "http")
                            .promise(":path", "/style.css")
@@ -57,7 +60,7 @@ write flush
 # Second push promise
 write zilla:data.ext ${http:dataEx()
                            .typeId(zilla:id("http"))
-                           .promiseId(1)
+                           .promiseId(promiseId2)
                            .promise(":method", "GET")
                            .promise(":scheme", "http")
                            .promise(":path", "/script.js")

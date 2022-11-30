@@ -23,7 +23,7 @@ write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":method", "GET")
                               .header(":scheme", "https")
-                              .header(":path", "/wrong")
+                              .header(":path", "/unknown")
                               .header(":authority", "localhost:443")
                               .build()}
 connect aborted

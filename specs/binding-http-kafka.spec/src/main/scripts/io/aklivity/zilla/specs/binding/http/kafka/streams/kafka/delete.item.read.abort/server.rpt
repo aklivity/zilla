@@ -15,7 +15,7 @@
 
 accept "zilla://streams/kafka0"
     option zilla:window 8192
-    option zilla:transmission "half-duplex"
+    option zilla:transmission "duplex"
 
 accepted
 
