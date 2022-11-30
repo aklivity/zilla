@@ -93,7 +93,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.error.frame/client",
+        "${app}/request.and.503.response/client",
         "${net}/client.max.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void maxFrameSizeError() throws Exception
@@ -104,7 +104,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.error.frame/client",
+        "${app}/request.and.503.response/client",
         "${net}/client.ping.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pingFrameSizeError() throws Exception
@@ -115,7 +115,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.error.frame/client",
+        "${app}/request.and.503.response/client",
         "${net}/client.connection.window.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionWindowFrameSizeError() throws Exception
@@ -126,7 +126,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.error.frame/client",
+        "${app}/request.and.503.response/client",
         "${net}/client.window.frame.size.error/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void windowFrameSizeError() throws Exception
@@ -183,7 +183,7 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.error.frame/client",
+        "${app}/request.and.503.response/client",
         "${net}/client.invalid.hpack.index/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void invalidHpackIndex() throws Exception

@@ -148,10 +148,10 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/client.error.frame/client",
-        "${app}/client.error.frame/server"
+        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response/server"
     })
-    public void clientErrorFrame() throws Exception
+    public void requestAnd503Response() throws Exception
     {
         k3po.finish();
     }
