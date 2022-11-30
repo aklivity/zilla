@@ -58,10 +58,10 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${net}/max.frame.size/client",
-        "${net}/max.frame.size/server",
+        "${net}/server.max.frame.size/client",
+        "${net}/server.max.frame.size/server",
     })
-    public void maxFrameSize() throws Exception
+    public void serverMaxFrameSize() throws Exception
     {
         k3po.finish();
     }

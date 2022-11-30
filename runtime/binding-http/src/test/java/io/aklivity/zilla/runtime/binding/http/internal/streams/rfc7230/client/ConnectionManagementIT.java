@@ -208,7 +208,7 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/single.request.and.503.response/client",
+        "${app}/request.and.503.response/client",
         "${net}/upgrade.rejected.when.not.requested/server"})
     public void shouldRejectUpgradeWhenNotRequested() throws Exception
     {

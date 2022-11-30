@@ -91,7 +91,7 @@ public class ConnectionManagementPoolSize1IT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response.with.retry/client",
         "${net}/request.incomplete.response.headers.and.abort/server" })
     public void shouldGive503ResponseAndFreeConnectionWhenConnectReplyStreamIsAbortedBeforeResponseHeadersComplete()
             throws Exception
@@ -102,7 +102,7 @@ public class ConnectionManagementPoolSize1IT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response.with.retry/client",
         "${net}/request.incomplete.response.headers.and.end/server" })
     public void shouldGive503ResponseAndFreeConnectionWhenConnectReplyStreamEndsBeforeResponseHeadersComplete() throws Exception
     {
@@ -112,7 +112,7 @@ public class ConnectionManagementPoolSize1IT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response.with.retry/client",
         "${net}/request.incomplete.response.headers.and.reset/server" })
     public void shouldGive503ResponseAndFreeConnectionWhenConnectStreamIsResetBeforeResponseHeadersComplete() throws Exception
     {
@@ -122,7 +122,7 @@ public class ConnectionManagementPoolSize1IT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response.with.retry/client",
         "${net}/request.no.response.and.end/server" })
     public void shouldGive503ResponseAndFreeConnectionWhenConnectReplyStreamEndsBeforeResponseReceived() throws Exception
     {
@@ -132,7 +132,7 @@ public class ConnectionManagementPoolSize1IT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response.with.retry/client",
         "${net}/request.no.response.and.reset/server" })
     public void shouldGive503ResponseAndFreeConnectionWhenConnectStreamIsResetBeforeResponseReceived() throws Exception
     {

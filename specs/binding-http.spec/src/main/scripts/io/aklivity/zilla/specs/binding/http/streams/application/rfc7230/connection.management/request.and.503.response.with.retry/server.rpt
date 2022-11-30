@@ -39,3 +39,23 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 write close
 
+
+accepted
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":scheme", "http")
+                             .header(":method", "GET")
+                             .header(":path", "/")
+                             .header(":authority", "localhost:8080")
+                             .build()}
+connected
+
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .build()}
+write close

@@ -325,9 +325,9 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/upgrade.rejected.without.h2c.request/client",
-        "${net}/upgrade.rejected.without.h2c.request/server" })
-    public void shouldRejectUpgradeResponseWithoutH2cRequest() throws Exception
+        "${net}/upgrade.rejected.when.not.requested/client",
+        "${net}/upgrade.rejected.when.not.requested/server" })
+    public void shouldRejectUpgradeResponseWhenNotRequested() throws Exception
     {
         k3po.finish();
     }

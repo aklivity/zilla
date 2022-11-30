@@ -27,6 +27,8 @@ write zilla:begin.ext ${http:beginEx()
                               .build()}
 connected
 
+
+
 write close
 
 read zilla:begin.ext ${http:beginEx()
@@ -35,5 +37,29 @@ read zilla:begin.ext ${http:beginEx()
                              .header("retry-after", "0")
                              .build()}
 
+read notify FIRST_REQUEST_COMPLETED
 read closed
 
+# Check connection pool is not exhausted
+connect await FIRST_REQUEST_COMPLETED
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":scheme", "http")
+                              .header(":method", "GET")
+                              .header(":path", "/")
+                              .header(":authority", "localhost:8080")
+                              .build()}
+connected
+
+
+
+write close
+
+read zilla:begin.ext ${http:beginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":status", "200")
+                             .build()}

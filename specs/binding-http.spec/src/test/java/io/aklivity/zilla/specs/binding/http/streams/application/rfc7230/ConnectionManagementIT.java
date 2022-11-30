@@ -108,9 +108,9 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/request.and.503.response/client",
-        "${app}/request.and.503.response/server" })
-    public void requestAnd503Response() throws Exception
+        "${app}/request.and.503.response.with.retry/client",
+        "${app}/request.and.503.response.with.retry/server" })
+    public void requestAnd503ResponseWithRetry() throws Exception
     {
         k3po.finish();
     }
@@ -313,9 +313,9 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/single.request.and.503.response/client",
-        "${app}/single.request.and.503.response/server" })
-    public void singRequestAnd503Response() throws Exception
+        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response/server" })
+    public void requestAnd503Response() throws Exception
     {
         k3po.finish();
     }
