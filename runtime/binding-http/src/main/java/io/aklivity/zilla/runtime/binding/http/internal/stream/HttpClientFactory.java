@@ -4437,7 +4437,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             if ((streamId & 0x01) == 0x01)
             {
                 final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
-                        header.name().value().equals(CONTENT_LENGTH));
+                        header.name().equals(HEADER_CONTENT_LENGTH));
                 requestContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : 0;
 
                 client.doNetworkBegin(traceId, authorization, 0);
