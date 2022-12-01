@@ -362,4 +362,15 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.json")
+    @Specification({
+        "${app}/http.get.exchange/client",
+        "${net}/http.push.promise.none.cacheable.request/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldRejectNotCacheablePromiseRequest() throws Exception
+    {
+        k3po.finish();
+    }
 }

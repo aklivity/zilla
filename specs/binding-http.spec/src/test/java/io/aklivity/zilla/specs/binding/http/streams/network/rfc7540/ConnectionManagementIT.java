@@ -161,6 +161,16 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
+        "${net}/http.push.promise.none.cacheable.request/client",
+        "${net}/http.push.promise.none.cacheable.request/server",
+    })
+    public void shouldRejectNotCacheablePromiseRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reset.client.stream/client",
         "${net}/reset.client.stream/server",
     })
