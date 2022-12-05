@@ -218,11 +218,11 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/server.sent.read.abort.before.correlated/client",
-        "${net}/client.sent.read.abort.before.correlated/server"
+        "${app}/server.sent.read.abort.before.response/client",
+        "${net}/client.sent.read.abort.before.response/server"
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void serverSentReadAbortBeforeCorrelated() throws Exception
+    public void serverSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
     }

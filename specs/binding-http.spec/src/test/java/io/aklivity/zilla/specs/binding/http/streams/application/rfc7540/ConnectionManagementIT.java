@@ -240,10 +240,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.read.abort.before.correlated/client",
-        "${app}/server.sent.read.abort.before.correlated/server"
+        "${app}/server.sent.read.abort.before.response/client",
+        "${app}/server.sent.read.abort.before.response/server"
     })
-    public void serverSentReadAbortBeforeCorrelated() throws Exception
+    public void serverSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
     }

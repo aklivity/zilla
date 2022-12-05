@@ -262,10 +262,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/server.sent.read.abort.before.correlated/client",
-        "${net}/server.sent.read.abort.before.correlated/server"
+        "${net}/server.sent.read.abort.before.response/client",
+        "${net}/server.sent.read.abort.before.response/server"
     })
-    public void serverSentReadAbortBeforeCorrelated() throws Exception
+    public void serverSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
     }
@@ -382,10 +382,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/client.sent.read.abort.before.correlated/client",
-        "${net}/client.sent.read.abort.before.correlated/server",
+        "${net}/client.sent.read.abort.before.response/client",
+        "${net}/client.sent.read.abort.before.response/server",
     })
-    public void clientSentReadAbortBeforeCorrelated() throws Exception
+    public void clientSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
     }
