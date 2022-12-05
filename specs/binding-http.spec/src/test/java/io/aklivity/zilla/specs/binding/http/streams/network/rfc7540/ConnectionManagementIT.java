@@ -392,10 +392,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/client.sent.reset.frame.on.open.response/client",
-        "${net}/client.sent.reset.frame.on.open.response/server",
+        "${net}/client.sent.rst.stream.on.closed.request/client",
+        "${net}/client.sent.rst.stream.on.closed.request/server",
     })
-    public void clientSentResetHttp2FrameOnOpenResponse() throws Exception
+    public void clientSentResetStreamOnClosedRequest() throws Exception
     {
         k3po.finish();
     }

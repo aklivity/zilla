@@ -1190,7 +1190,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 long traceId,
                 long authorization)
             {
-                client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
                 exchange.cleanup(traceId, authorization);
             }
 
@@ -1201,7 +1201,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 long traceId,
                 long authorization)
             {
-                client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.PROTOCOL_ERROR);
+                client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
                 exchange.cleanup(traceId, authorization);
             }
 
