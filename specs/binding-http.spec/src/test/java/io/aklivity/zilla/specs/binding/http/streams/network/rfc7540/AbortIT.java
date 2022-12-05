@@ -48,10 +48,10 @@ public class AbortIT
 
     @Test
     @Specification({
-        "${net}/client.sent.error.on.open.request.response/client",
-        "${net}/client.sent.error.on.open.request.response/server",
+        "${net}/client.sent.rst/client",
+        "${net}/client.sent.rst/server",
     })
-    public void clientSentErrorOnOpenRequestResponse() throws Exception
+    public void clientSentReset() throws Exception
     {
         k3po.finish();
     }

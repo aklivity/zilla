@@ -62,7 +62,7 @@ write flush
 
 write [0x00 0x00 0x0c]                  # length = 12
       [0x00]                            # HTTP2 DATA frame
-      [0x01]                            # no flags
+      [0x01]                            # end stream
       [0x00 0x00 0x00 0x01]             # stream_id = 1
       "Hello, world"
 write flush

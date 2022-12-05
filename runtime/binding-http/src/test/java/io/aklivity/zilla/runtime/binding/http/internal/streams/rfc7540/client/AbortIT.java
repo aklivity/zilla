@@ -68,7 +68,7 @@ public class AbortIT
     @Configuration("client.json")
     @Specification({
         "${app}/client.sent.read.abort.on.open.response/client",
-        "${net}/client.sent.error.on.open.request.response/server" })
+        "${net}/client.sent.rst/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentReadAbortOnOpenResponse() throws Exception
     {

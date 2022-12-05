@@ -20,14 +20,14 @@ connect "zilla://streams/net0"
 connected
 
 write "GET / HTTP/1.1\r\n"
-     "Host: localhost:8080\r\n"
-     "\r\n"
+      "Host: localhost:8080\r\n"
+      "\r\n"
 write flush
 
 read "HTTP/1.1 101 Switching Protocols\r\n"
-      "Connection: Upgrade\r\n"
-      "Upgrade: h2c\r\n"
-      "\r\n"
+     "Connection: Upgrade\r\n"
+     "Upgrade: h2c\r\n"
+     "\r\n"
 
 read abort
 write abort
