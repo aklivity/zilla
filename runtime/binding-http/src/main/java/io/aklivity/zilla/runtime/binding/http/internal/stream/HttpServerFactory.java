@@ -5072,11 +5072,10 @@ public final class HttpServerFactory implements HttpStreamFactory
         private void flushResponseSharedBudget(
             long traceId)
         {
-            final int slotCapacity = bufferPool.slotCapacity();
             final int responseSharedPadding = http2FramePadding(remoteSharedBudget, remoteSettings.maxFrameSize);
             final int remoteSharedBudgetMax = remoteSharedBudget + responseSharedPadding + replyPad;
             final int responseSharedCredit =
-                Math.min(slotCapacity - responseSharedBudget - encodeSlotReserved, replySharedBudget);
+                Math.min(decodeMax - responseSharedBudget - encodeSlotReserved, replySharedBudget);
             final int responseSharedBudgetDelta = remoteSharedBudgetMax - (responseSharedBudget + encodeSlotReserved);
             final int replySharedCredit = Math.min(responseSharedCredit, responseSharedBudgetDelta);
 
@@ -5096,15 +5095,15 @@ public final class HttpServerFactory implements HttpStreamFactory
                 responseSharedBudget += replySharedCredit;
 
                 final long responseSharedBudgetUpdated = responseSharedPrevious + replySharedCredit;
-                assert responseSharedBudgetUpdated <= slotCapacity
+                assert responseSharedBudgetUpdated <= decodeMax
                     : String.format("%d <= %d, remoteSharedBudget = %d",
-                    responseSharedBudgetUpdated, slotCapacity, remoteSharedBudget);
+                    responseSharedBudgetUpdated, decodeMax, remoteSharedBudget);
 
-                assert responseSharedBudget <= slotCapacity
-                    : String.format("%d <= %d", responseSharedBudget, slotCapacity);
+                assert responseSharedBudget <= decodeMax
+                    : String.format("%d <= %d", responseSharedBudget, decodeMax);
 
-                assert replySharedBudget <= slotCapacity
-                    : String.format("%d <= %d", replySharedBudget, slotCapacity);
+                assert replySharedBudget <= decodeMax
+                    : String.format("%d <= %d", replySharedBudget, decodeMax);
             }
         }
 

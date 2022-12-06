@@ -34,7 +34,7 @@ public class HttpConfiguration extends Configuration
     public static final IntPropertyDef HTTP_STREAMS_CLEANUP_DELAY;
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_APPLICATION_HEADERS;
     public static final PropertyDef<String> HTTP_SERVER_HEADER;
-    public static final PropertyDef<String> HTTP_USER_AGENT;
+    public static final PropertyDef<String> HTTP_USER_AGENT_HEADER;
 
     private static final ConfigurationDef HTTP_CONFIG;
 
@@ -48,7 +48,7 @@ public class HttpConfiguration extends Configuration
         HTTP_CLIENT_MAX_PUSH_PROMISE_LIST_SIZE = config.property("client.max.push.promise.list.size", 100);
         HTTP_CLIENT_MAX_FRAME_SIZE = config.property("client.max.frame.size", 16_384);
         HTTP_SERVER_HEADER = config.property("server.header");
-        HTTP_USER_AGENT = config.property("user.agent.header");
+        HTTP_USER_AGENT_HEADER = config.property("user.agent.header");
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
         HTTP_STREAMS_CLEANUP_DELAY = config.property("streams.cleanup.delay", 100);
         HTTP_MAX_CONCURRENT_APPLICATION_HEADERS = config.property("max.concurrent.application.headers", 10000);
@@ -63,7 +63,7 @@ public class HttpConfiguration extends Configuration
     {
         super(HTTP_CONFIG, config);
         String server = HTTP_SERVER_HEADER.get(this);
-        String userAgent = HTTP_USER_AGENT.get(this);
+        String userAgent = HTTP_USER_AGENT_HEADER.get(this);
         serverHeader = server != null ? new String16FW(server) : null;
         userAgentHeader = userAgent != null ? new String16FW(userAgent) : null;
     }

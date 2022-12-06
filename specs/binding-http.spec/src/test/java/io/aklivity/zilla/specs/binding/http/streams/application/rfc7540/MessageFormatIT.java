@@ -68,6 +68,16 @@ public class MessageFormatIT
 
     @Test
     @Specification({
+        "${app}/client.max.frame.size/client",
+        "${app}/client.max.frame.size/server"
+    })
+    public void clientMaxFrameSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/max.frame.size.error/client",
         "${app}/max.frame.size.error/server"
     })

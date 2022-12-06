@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_CLIENT_MAX_FRAME_SIZE_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_REMOTE_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -81,10 +81,10 @@ public class MessageFormatIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/server.max.frame.size/client",
-        "${net}/server.max.frame.size/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "29000")
-    @Configure(name = HTTP_CLIENT_MAX_FRAME_SIZE_NAME, value = "20000")
+        "${app}/client.max.frame.size/client",
+        "${net}/client.max.frame.size/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_REMOTE_WINDOW_NAME, value = "0")
     public void maxFrameSize() throws Exception
     {
         k3po.finish();
