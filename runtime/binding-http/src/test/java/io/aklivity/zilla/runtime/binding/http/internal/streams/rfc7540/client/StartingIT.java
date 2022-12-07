@@ -58,7 +58,7 @@ public class StartingIT
     @Configuration("client.json")
     @Specification({
         "${app}/upgrade.http/client",
-        "${net}/upgrade.pri.with.tls.and.alpn.http2/server"})
+        "${net}/upgrade.pri.with.tls.and.alpn.h2/server"})
     @Configure(name = HTTP_SERVER_CONCURRENT_STREAMS_NAME, value = "100")
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldUpgradeViaPriorKnowledgeWithTlsAndAlpn() throws Exception
