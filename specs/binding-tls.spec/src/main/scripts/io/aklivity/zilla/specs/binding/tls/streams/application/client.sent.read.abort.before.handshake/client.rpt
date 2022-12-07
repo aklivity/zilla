@@ -16,7 +16,7 @@
 
 connect "zilla://streams/app0"
   option zilla:window 65536
-  option zilla:transmission "half-duplex"
+  option zilla:transmission "duplex"
 
 write zilla:begin.ext ${proxy:beginEx()
                                .typeId(zilla:id("proxy"))

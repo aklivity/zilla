@@ -2064,6 +2064,7 @@ public final class TlsServerFactory implements TlsStreamFactory
                                                           .build()
                                                           .sizeof()));
                 extension = null;
+                doAppWindow(traceId);
             }
 
             private void doAppData(
