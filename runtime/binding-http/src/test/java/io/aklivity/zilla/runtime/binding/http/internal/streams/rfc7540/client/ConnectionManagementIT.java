@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
-import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -124,10 +123,10 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/reset.client.stream/client",
-        "${net}/reset.client.stream/server" })
+        "${app}/client.sent.write.abort.on.closed.request/client",
+        "${net}/client.sent.rst.stream.on.closed.request/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void resetClientStream() throws Exception
+    public void clientSentRstStreamOnClosedRequest() throws Exception
     {
         k3po.finish();
     }
@@ -317,8 +316,8 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/server.sent.end.before.response.received/client",
-        "${net}/server.sent.end.before.response.received/server" })
+        "${app}/server.sent.close.before.response.headers/client",
+        "${net}/server.sent.close.before.response.headers/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldSendResetOnIncompleteResponse() throws Exception
     {

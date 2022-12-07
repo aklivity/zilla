@@ -322,8 +322,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/client.sent.end.before.response.received/client",
-        "${net}/client.sent.end.before.response.received/server",
+        "${net}/server.sent.close.before.response.headers/client",
+        "${net}/server.sent.close.before.response.headers/server",
     })
     public void shouldSendResetOnIncompleteResponse() throws Exception
     {

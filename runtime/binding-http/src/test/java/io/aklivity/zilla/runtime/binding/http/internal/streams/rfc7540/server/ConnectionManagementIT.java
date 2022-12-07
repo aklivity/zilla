@@ -347,8 +347,8 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/client.sent.end.before.response.received/client",
-        "${app}/client.sent.end.before.response.received/server" })
+        "${net}/client.sent.close.before.response.headers/client",
+        "${app}/client.sent.close.before.response.headers/server" })
     public void shouldSendResetOnIncompleteResponse() throws Exception
     {
         k3po.finish();
