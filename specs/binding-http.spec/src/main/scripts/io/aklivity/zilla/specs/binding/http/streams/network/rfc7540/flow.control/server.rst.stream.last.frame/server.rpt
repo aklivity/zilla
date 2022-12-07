@@ -49,53 +49,55 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
-read [0x00 0x00 0x33]                                      # length = 51
-     [0x01]                                                # HEADERS frame
-     [0x04]                                                # END_HEADERS
-     [0x00 0x00 0x00 0x01]                                 # stream_id = 1
-     [0x83]                                                # :method: POST
-     [0x86]                                                # :scheme: http
-     [0x84]                                                # :path: /
-     [0x01] [0x0e] "localhost:8080"                        # :authority: localhost:8080
-     [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
-     [0x0f 0x0d] [0x02] "13"                               # content-length
-
-read [0x00 0x00 0x0c]                   # length = 12
-     [0x00]                             # HTTP2 DATA frame
-     [0x00]                             # END_STREAM
-     [0x00 0x00 0x00 0x01]              # stream_id = 1
-     "Hello, world"
-
 read [0x00 0x00 0x00]                   # length = 0
      [0x04]                             # HTTP2 SETTINGS frame
      [0x01]                             # ACK
      [0x00 0x00 0x00 0x00]              # stream_id = 0
 
+read [0x00 0x00 0x13]                   # length = 19
+     [0x01]                             # HEADERS frame
+     [0x04]                             # END_HEADERS
+     [0x00 0x00 0x00 0x01]              # stream_id = 1
+     [0x83]                             # :method: POST
+     [0x86]                             # :scheme: http
+     [0x84]                             # :path: /
+     [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
+
+read [0x00 0x00 0x0c]                                     # length = 12
+     [0x00]                                               # HTTP2 DATA frame
+     [0x00]                                               # no flags
+     [0x00 0x00 0x00 0x01]                                # stream_id = 1
+     "Hello, world"
+
+# server resets http stream since DATA frame without receiving WINDOW_UPDATE
+write [0x00 0x00 0x04]                          # length = 4
+      [0x03]                                    # HTTP2 RST_STREAM frame
+      [0x00]                                    # no flags
+      [0x00 0x00 0x00 0x01]                     # stream_id=1
+      [0x00 0x00 0x00 0x03]                     # FLOW_CONTROL_ERROR
+write flush
+
+#
+# stream-id = 3
+#
+read [0x00 0x00 0x13]                  # length = 19
+     [0x01]                            # HEADERS frame
+     [0x04]                            # END_HEADERS
+     [0x00 0x00 0x00 0x03]             # stream_id = 3
+     [0x83]                            # :method: POST
+     [0x86]                            # :scheme: http
+     [0x84]                            # :path: /
+     [0x01] [0x0e] "localhost:8080"    # :authority: localhost:8080
+
+# connection-level flow control
 write [0x00 0x00 0x04]                                      # length
       [0x08]                                                # WINDOW_UPDATE frame
       [0x00]                                                # no flags
       [0x00 0x00 0x00 0x00]                                 # stream_id=0
-      [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
-
+      [0x00 0x00 0x20 0x00]                                 # window size increment = 8192
+# stream-level flow control
 write [0x00 0x00 0x04]                                      # length
       [0x08]                                                # WINDOW_UPDATE frame
       [0x00]                                                # no flags
-      [0x00 0x00 0x00 0x01]                                 # stream_id=1
-      [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
-
-write [0x00 0x00 0x59]                                      # length
-      [0x01]                                                # HTTP2 HEADERS frame
-      [0x04]                                                # END_HEADERS
-      [0x00 0x00 0x00 0x01]                                 # stream_id=1
-      [0x88]                                                # :status: 200
-      [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
-      [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
-      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
-      [0x0f 0x0d] [0x03] "113"                              # content-length
-write flush
-
-read [0x00 0x00 0x04]                          # length = 4
-     [0x03]                                    # HTTP2 RST_STREAM frame
-     [0x00]                                    # no flags
-     [0x00 0x00 0x00 0x01]                     # stream_id=1
-     [0x00 0x00 0x00 0x00]                     # NO_ERROR
+      [0x00 0x00 0x00 0x03]                                 # stream_id=3
+      [0x00 0x00 0x20 0x00]                                 # window size increment = 8192

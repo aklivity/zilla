@@ -127,16 +127,6 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${app}/reset.client.stream/client",
-        "${app}/reset.client.stream/server"
-    })
-    public void resetClientStream() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Ignore
     @Test
     @Specification({
@@ -154,36 +144,6 @@ public class ConnectionManagementIT
         "${app}/client.sent.read.abort.on.open.request/server"
     })
     public void clientSentReadAbortOnOpenRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/server.rst.stream.last.frame/client",
-        "${app}/server.rst.stream.last.frame/server"
-    })
-    public void serverRstStreamLastFrame() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/client.rst.stream.last.frame/client",
-        "${app}/client.rst.stream.last.frame/server"
-    })
-    public void clientRstStreamLastFrame() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/client.sent.100k.message/client",
-        "${app}/client.sent.100k.message/server"
-    })
-    public void clientSent100kMessage() throws Exception
     {
         k3po.finish();
     }
@@ -384,16 +344,6 @@ public class ConnectionManagementIT
         "${app}/http.unknown.path/server"
     })
     public void httpUnknownPath() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/server.sent.100k.message/client",
-        "${app}/server.sent.100k.message/server",
-    })
-    public void serverSent100kMessage() throws Exception
     {
         k3po.finish();
     }

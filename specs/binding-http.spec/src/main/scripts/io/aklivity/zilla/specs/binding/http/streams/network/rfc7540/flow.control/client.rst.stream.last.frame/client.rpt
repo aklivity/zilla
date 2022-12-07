@@ -19,13 +19,6 @@ connect "zilla://streams/net0"
         option zilla:transmission "duplex"
 connected
 
-# client connection preface
-write "PRI * HTTP/2.0\r\n"
-      "\r\n"
-      "SM\r\n"
-      "\r\n"
-write flush
-
 # server connection preface - SETTINGS frame
 read [0x00 0x00 0x12]                   # length = 18
      [0x04]                             # HTTP2 SETTINGS frame
@@ -35,12 +28,19 @@ read [0x00 0x00 0x12]                   # length = 18
      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
 
+# client connection preface
+write "PRI * HTTP/2.0\r\n"
+      "\r\n"
+      "SM\r\n"
+      "\r\n"
+write flush
+
 write [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
       [0x00 0x00 0x00 0x00]              # stream_id = 0
       [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
-      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
+      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
 write flush
 
 read [0x00 0x00 0x00]                   # length = 0
@@ -57,14 +57,7 @@ write [0x00 0x00 0x33]                                      # length = 51
       [0x84]                                                # :path: /
       [0x01] [0x0e] "localhost:8080"                        # :authority: localhost:8080
       [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
-      [0x0f 0x0d] [0x02] "13"                               # content-length
-write flush
-
-write [0x00 0x00 0x0c]                  # length = 12
-      [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # no flags
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
-      "Hello, world"
+      [0x0f 0x0d] [0x02] "12"                               # content-length
 write flush
 
 write [0x00 0x00 0x00]                  # length = 0
@@ -72,18 +65,6 @@ write [0x00 0x00 0x00]                  # length = 0
       [0x01]                            # ACK
       [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
-
-read [0x00 0x00 0x04]                                      # length
-     [0x08]                                                # WINDOW_UPDATE frame
-     [0x00]                                                # no flags
-     [0x00 0x00 0x00 0x00]                                 # stream_id=0
-     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
-
-read [0x00 0x00 0x04]                                      # length
-     [0x08]                                                # WINDOW_UPDATE frame
-     [0x00]                                                # no flags
-     [0x00 0x00 0x00 0x01]                                 # stream_id=1
-     [0x00 0x00 0x00 0x0c]                                 # window size increment = 12
 
 read [0x00 0x00 0x59]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
@@ -95,8 +76,48 @@ read [0x00 0x00 0x59]                                      # length
      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
      [0x0f 0x0d] [0x03] "113"                              # content-length
 
-write [0x00 0x00 0x04]                          # length = 113
+
+read [0x00 0x00 0x71]                  # length = 113
+     [0x00]                            # HTTP2 DATA frame
+     [0x00]                            # no flags
+     [0x00 0x00 0x00 0x01]             # stream_id=1
+     "<html>"
+     "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
+     "<body><script src=\"script.js\"></script></body>"
+     "</html>"
+
+# server resets http stream since DATA frame without receiving WINDOW_UPDATE
+write [0x00 0x00 0x04]                           # length = 4
       [0x03]                                    # HTTP2 RST_STREAM frame
       [0x00]                                    # no flags
       [0x00 0x00 0x00 0x01]                     # stream_id=1
-      [0x00 0x00 0x00 0x00]                     # NO_ERROR
+      [0x00 0x00 0x00 0x03]                     # FLOW_CONTROL_ERROR
+write flush
+
+#
+# stream-id = 3
+#
+write [0x00 0x00 0x33]                                      # length = 51
+      [0x01]                                                # HEADERS frame
+      [0x04]                                                # END_HEADERS
+      [0x00 0x00 0x00 0x03]                                 # stream_id = 3
+      [0x83]                                                # :method: POST
+      [0x86]                                                # :scheme: http
+      [0x84]                                                # :path: /
+      [0x01] [0x0e] "localhost:8080"                        # :authority: localhost:8080
+      [0x0f 0x10] [0x18] "text/plain;charset=UTF-8"         # content-type
+      [0x0f 0x0d] [0x02] "12"                               # content-length
+write flush
+
+# connection-level flow control
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x00]                                 # stream_id=0
+     [0x00 0x00 0x20 0x00]                                 # window size increment = 8192
+# stream-level flow control
+read [0x00 0x00 0x04]                                      # length
+     [0x08]                                                # WINDOW_UPDATE frame
+     [0x00]                                                # no flags
+     [0x00 0x00 0x00 0x03]                                 # stream_id=3
+     [0x00 0x00 0x20 0x00]                                 # window size increment = 8192

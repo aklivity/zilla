@@ -91,18 +91,6 @@ public class ConnectionManagementIT
     @Test
     @Configuration("client.json")
     @Specification({
-        "${app}/client.sent.100k.message/client",
-        "${net}/client.sent.100k.message/server" })
-    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
-    public void clientSent100kMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.json")
-    @Specification({
         "${app}/http.post.exchange.streaming/client",
         "${net}/http.post.exchange.streaming/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
@@ -223,17 +211,6 @@ public class ConnectionManagementIT
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentReadAbortBeforeResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.json")
-    @Specification({
-        "${app}/client.rst.stream.last.frame/client",
-        "${net}/client.rst.stream.last.frame/server"
-    })
-    public void clientResetStreamLastFrame() throws Exception
     {
         k3po.finish();
     }

@@ -38,6 +38,16 @@ public class FlowControlIT
 
     @Test
     @Specification({
+        "${net}/client.stream.flow/client",
+        "${net}/client.stream.flow/server",
+    })
+    public void clientStreamFlow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/server.stream.flow/client",
         "${net}/server.stream.flow/server",
     })
@@ -46,4 +56,43 @@ public class FlowControlIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/client.sent.100k.message/client",
+        "${net}/client.sent.100k.message/server",
+    })
+    public void clientSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.sent.100k.message/client",
+        "${net}/server.sent.100k.message/server",
+    })
+    public void serverSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.rst.stream.last.frame/client",
+        "${net}/client.rst.stream.last.frame/server"
+    })
+    public void clientRstStreamLastFrame() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/server.rst.stream.last.frame/client",
+        "${net}/server.rst.stream.last.frame/server"
+    })
+    public void serverRstStreamLastFrame() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -19,13 +19,6 @@ connect "zilla://streams/net0"
         option zilla:transmission "duplex"
 connected
 
-# client connection preface
-write "PRI * HTTP/2.0\r\n"
-      "\r\n"
-      "SM\r\n"
-      "\r\n"
-write flush
-
 # server connection preface - SETTINGS frame
 read [0x00 0x00 0x12]                   # length = 18
      [0x04]                             # HTTP2 SETTINGS frame
@@ -35,6 +28,13 @@ read [0x00 0x00 0x12]                   # length = 18
      [0x00 0x04 0x00 0x00 0x00 0x00]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 0
      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
 
+# client connection preface
+write "PRI * HTTP/2.0\r\n"
+      "\r\n"
+      "SM\r\n"
+      "\r\n"
+write flush
+
 write [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
@@ -42,7 +42,6 @@ write [0x00 0x00 0x0c]                   # length = 12
       [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
       [0x00 0x04 0x00 0x00 0x00 0x3c]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 60
 write flush
-
 
 read [0x00 0x00 0x00]                   # length = 0
      [0x04]                             # HTTP2 SETTINGS frame
@@ -63,7 +62,7 @@ write flush
 
 write [0x00 0x00 0x0c]                  # length = 12
       [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # no flags
+      [0x01]                            # END_STREAM
       [0x00 0x00 0x00 0x01]             # stream_id = 1
       "Hello, world"
 write flush
@@ -123,7 +122,7 @@ write [0x00 0x00 0x04]                         # length
       [0x08]                                   # WINDOW_UPDATE frame
       [0x00]                                   # no flags
       [0x00 0x00 0x00 0x00]                    # stream_id=0
-      [0x00 0x00 0x00 0x3c]                    # window size increment = 60
+      [0x00 0x00 0x1f 0xc4]                    # window size increment = 8132
 write flush
 
 # stream-level flow control
@@ -131,7 +130,7 @@ write [0x00 0x00 0x04]                         # length
       [0x08]                                   # WINDOW_UPDATE frame
       [0x00]                                   # no flags
       [0x00 0x00 0x00 0x01]                    # stream_id=1
-      [0x00 0x00 0x1f 0xc4]                    # window size increment = 60
+      [0x00 0x00 0x1f 0xc4]                    # window size increment = 8132
 write flush
 
 read [0x00 0x00 0x35]                          # length = 53

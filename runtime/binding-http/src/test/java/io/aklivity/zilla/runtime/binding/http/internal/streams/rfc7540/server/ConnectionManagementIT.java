@@ -177,9 +177,9 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/reset.client.stream/client",
-        "${app}/reset.client.stream/server" })
-    public void resetClientStream() throws Exception
+        "${net}/client.sent.rst.stream.on.closed.request/client",
+        "${app}/client.sent.write.abort.on.closed.request/server" })
+    public void clientSentRstStreamOnClosedRequest() throws Exception
     {
         k3po.finish();
     }
@@ -267,17 +267,6 @@ public class ConnectionManagementIT
         "${app}/server.sent.read.abort.before.response/server"
     })
     public void serverSentReadAbortBeforeResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/server.rst.stream.last.frame/client",
-        "${app}/server.rst.stream.last.frame/server"
-    })
-    public void serverResetStreamLastFrame() throws Exception
     {
         k3po.finish();
     }
@@ -384,17 +373,6 @@ public class ConnectionManagementIT
         "${app}/client.sent.write.abort.then.read.abort.on.open.request/server"
     })
     public void clientSentWriteAbortThenReadAbortOnOpenRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Ignore("Address issue/134")
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/server.sent.100k.message/client",
-        "${app}/server.sent.100k.message/server" })
-    public void serverSent100kMessage() throws Exception
     {
         k3po.finish();
     }
