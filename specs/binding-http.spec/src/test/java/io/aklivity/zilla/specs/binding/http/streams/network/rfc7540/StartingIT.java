@@ -137,4 +137,13 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.multiple.requests.pipelined/client",
+        "${net}/upgrade.h2c.with.multiple.requests.pipelined/server"})
+    public void shouldRejectViaH2cWithMultipleRequestsPipelined() throws Exception
+    {
+        k3po.finish();
+    }
 }
