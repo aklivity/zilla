@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_REMOTE_INITIAL_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_USER_AGENT_HEADER_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -48,7 +48,7 @@ public class ConfigIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_REMOTE_CONCURRENT_STREAMS, 100)
         .configure(EngineConfiguration.ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
@@ -63,7 +63,7 @@ public class ConfigIT
     @Specification({
         "${app}/user.agent.header/client",
         "${net}/user.agent.header/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void userAgent() throws Exception
     {
         k3po.finish();

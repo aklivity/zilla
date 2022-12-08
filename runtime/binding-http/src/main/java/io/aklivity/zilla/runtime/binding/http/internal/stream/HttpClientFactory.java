@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.binding.http.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_1_1;
 import static io.aklivity.zilla.runtime.binding.http.internal.config.HttpVersion.HTTP_2;
-import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.CONTENT_LENGTH;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TE;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackContext.TRAILERS;
 import static io.aklivity.zilla.runtime.binding.http.internal.hpack.HpackHeaderFieldFW.HeaderFieldType.UNKNOWN;
@@ -375,7 +374,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         this.clientPools = new Long2ObjectHashMap<>();
         this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
-        this.maximumPushPromiseListSize = config.clientMaxPushPromiseListSize();
+        this.maximumPushPromiseListSize = config.localMaxPushPromiseListSize();
         this.countRequests = context.supplyCounter("http.requests");
         this.countRequestsRejected = context.supplyCounter("http.requests.rejected");
         this.countRequestsAbandoned = context.supplyCounter("http.requests.abandoned");
@@ -2036,7 +2035,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private void flushNext()
         {
-            DO_REQUEST_BEGIN:
+            dequeue:
             while (httpQueueSlotOffset != httpQueueSlotLimit)
             {
                 final MutableDirectBuffer httpQueueBuffer = bufferPool.buffer(httpQueueSlot);
@@ -2069,7 +2068,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 if (client != null && client.encoder == HttpEncoder.H2C)
                 {
-                    break DO_REQUEST_BEGIN;
+                    break dequeue;
                 }
             }
 
@@ -2103,7 +2102,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 client = clients.stream().filter(
                         c -> !HttpState.replyOpened(c.state) ||
                         c.encoder == HttpEncoder.HTTP_2 ||
-                        c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 || c.encoder == HttpEncoder.H2C)
+                        c.exchange == null && c.encoder == HttpEncoder.HTTP_1_1 ||
+                        c.encoder == HttpEncoder.H2C)
                         .findFirst()
                         .orElse(null);
             }

@@ -2125,7 +2125,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .item(i -> i.name(HEADER_STATUS).value(STATUS_204));
 
-                final String16FW server = config.serverHeader();
+                final String16FW server = config.remoteHeader();
                 if (server != null)
                 {
                     responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
@@ -2274,7 +2274,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     : Integer.MAX_VALUE - encodeMax; // avoids responseRemaining overflow
 
             final HttpHeaderFW server = headers.matchFirst(h -> HEADER_SERVER.equals(h.name()));
-            final String16FW serverHeader = config.serverHeader();
+            final String16FW serverHeader = config.remoteHeader();
 
             final HttpHeaderFW status = headers.matchFirst(h -> HEADER_STATUS.equals(h.name()));
             final String16FW statusValue = status != null ? status.value() : STATUS_200;
@@ -4838,7 +4838,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .item(i -> i.name(HEADER_STATUS).value(STATUS_204));
 
-                final String16FW server = config.serverHeader();
+                final String16FW server = config.remoteHeader();
                 if (server != null)
                 {
                     responseHeaders.item(h -> h.name(HEADER_SERVER).value(server));
@@ -6451,9 +6451,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             });
 
             // add configured Server header if there is no Server header in response
-            if (config.serverHeader() != null && !serverHeader)
+            if (config.remoteHeader() != null && !serverHeader)
             {
-                String16FW server = config.serverHeader();
+                String16FW server = config.remoteHeader();
                 headerBlock.header(b -> b.literal(l -> l.type(WITHOUT_INDEXING).name(54).value(server.value())));
             }
 
@@ -6627,7 +6627,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
                 .item(h -> h.name(HEADER_STATUS).value(status));
 
-        final String16FW server = config.serverHeader();
+        final String16FW server = config.remoteHeader();
         if (server != null)
         {
             builder.item(h -> h.name(HEADER_SERVER).value(server));
@@ -6641,7 +6641,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         int status,
         String reason)
     {
-        final String16FW serverHeader = config.serverHeader();
+        final String16FW serverHeader = config.remoteHeader();
         return serverHeader != null
             ? initResponse(status, reason, serverHeader.asString())
             : initResponse(status, reason);

@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_REMOTE_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -46,7 +46,7 @@ public class ConnectionManagementIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_REMOTE_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
         .clean();
@@ -59,7 +59,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.get.exchange/client",
         "${net}/http.get.exchange/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void httpGetExchange() throws Exception
     {
         k3po.finish();
@@ -70,7 +70,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.get.exchange.with.header.override/client",
         "${net}/http.get.exchange.with.header.override/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void httpGetExchangeWithHeaderOverride() throws Exception
     {
         k3po.finish();
@@ -81,7 +81,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.post.exchange/client",
         "${net}/http.post.exchange/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void httpPostExchange() throws Exception
     {
         k3po.finish();
@@ -92,7 +92,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.post.exchange.streaming/client",
         "${net}/http.post.exchange.streaming/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void httpPostExchangeWhenStreaming() throws Exception
     {
         k3po.finish();
@@ -103,7 +103,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/connection.has.two.streams/client",
         "${net}/connection.has.two.streams/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionHasTwoStreams() throws Exception
     {
         k3po.finish();
@@ -114,7 +114,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/multiple.data.frames/client",
         "${net}/multiple.data.frames/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void multipleDataFrames() throws Exception
     {
         k3po.finish();
@@ -125,7 +125,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/client.sent.write.abort.on.closed.request/client",
         "${net}/client.sent.rst.stream.on.closed.request/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentRstStreamOnClosedRequest() throws Exception
     {
         k3po.finish();
@@ -136,7 +136,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/ignore.server.rst.stream/client",
         "${net}/ignore.server.rst.stream/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void ignoreServerRstStream() throws Exception
     {
         k3po.finish();
@@ -148,7 +148,7 @@ public class ConnectionManagementIT
         "${app}/client.sent.read.abort.on.closed.request/client",
         "${net}/client.sent.rst.stream.on.closed.request/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentReadAbortOnClosedRequest() throws Exception
     {
         k3po.finish();
@@ -160,7 +160,7 @@ public class ConnectionManagementIT
         "${app}/client.sent.write.abort.on.open.request/client",
         "${net}/client.sent.rst.stream.on.open.request.response/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteAbortOnOpenRequestResponse() throws Exception
     {
         k3po.finish();
@@ -172,7 +172,7 @@ public class ConnectionManagementIT
         "${app}/client.sent.write.abort.on.closed.request/client",
         "${net}/client.sent.rst.stream.on.closed.request/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteAbortOnClosedRequest() throws Exception
     {
         k3po.finish();
@@ -184,7 +184,7 @@ public class ConnectionManagementIT
         "${app}/client.sent.write.close/client",
         "${net}/client.sent.rst.stream.on.open.request.response/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteClose() throws Exception
     {
         k3po.finish();
@@ -196,7 +196,7 @@ public class ConnectionManagementIT
         "${app}/server.sent.read.abort.on.open.request/client",
         "${net}/server.sent.read.abort.on.open.request/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentReadAbortOnOpenRequest() throws Exception
     {
         k3po.finish();
@@ -208,7 +208,7 @@ public class ConnectionManagementIT
         "${app}/server.sent.read.abort.before.response/client",
         "${net}/client.sent.read.abort.before.response/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
@@ -220,7 +220,7 @@ public class ConnectionManagementIT
         "${app}/server.sent.write.rst.frame.on.open.request.response/client",
         "${net}/server.sent.write.abort.on.open.request/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentWriteAbortOnOpenRequestResponse() throws Exception
     {
         k3po.finish();
@@ -232,7 +232,7 @@ public class ConnectionManagementIT
         "${app}/server.sent.write.abort.on.closed.request/client",
         "${net}/server.sent.write.abort.on.closed.request/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentWriteAbortOnClosedRequest() throws Exception
     {
         k3po.finish();
@@ -244,7 +244,7 @@ public class ConnectionManagementIT
         "${app}/server.sent.end.stream.before.payload/client",
         "${net}/server.sent.end.stream.before.payload/server"
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentEndStreamBeforePayload() throws Exception
     {
         k3po.finish();
@@ -255,7 +255,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.authority.default.port/client",
         "${net}/http.authority.default.port/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void defaultPortToAuthority() throws Exception
     {
         k3po.finish();
@@ -266,7 +266,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.path.prefix/client",
         "${net}/http.path.prefix/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void pathPrefix() throws Exception
     {
         k3po.finish();
@@ -277,7 +277,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.path.with.query/client",
         "${net}/http.path.with.query/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void pathWithQuery() throws Exception
     {
         k3po.finish();
@@ -307,7 +307,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.response.trailer/client",
         "${net}/http.response.trailer/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldProxyResponseTrailer() throws Exception
     {
         k3po.finish();
@@ -318,7 +318,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/server.sent.close.before.response.headers/client",
         "${net}/server.sent.close.before.response.headers/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldSendResetOnIncompleteResponse() throws Exception
     {
         k3po.finish();
@@ -333,7 +333,7 @@ public class ConnectionManagementIT
         "promiseId1 0x3f00800000000005L",
         "promiseId2 0x3f00800000000007L",
     })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void pushResources() throws Exception
     {
         k3po.finish();
@@ -344,7 +344,7 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.get.exchange/client",
         "${net}/http.push.promise.none.cacheable.request/server" })
-    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldRejectNotCacheablePromiseRequest() throws Exception
     {
         k3po.finish();
