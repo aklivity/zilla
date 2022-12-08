@@ -73,7 +73,7 @@ public class HttpConfiguration extends Configuration
         return HTTP_MAXIMUM_CONNECTIONS.getAsInt(this);
     }
 
-    public int remoteConcurrentStreams()
+    public int concurrentStreams()
     {
         return HTTP_CONCURRENT_STREAMS.getAsInt(this);
     }
