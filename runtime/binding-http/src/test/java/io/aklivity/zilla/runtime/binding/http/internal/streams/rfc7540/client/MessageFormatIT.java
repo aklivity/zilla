@@ -15,9 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_REMOTE_INITIAL_WINDOW_NAME;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_REMOTE_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -47,7 +46,7 @@ public class MessageFormatIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_REMOTE_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
         .clean();
@@ -60,7 +59,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/server.continuation.frames/client",
         "${net}/server.continuation.frames/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void continuationFrames() throws Exception
     {
         k3po.finish();
@@ -72,7 +71,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/dynamic.table.requests/client",
         "${net}/dynamic.table.requests/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void dynamicTableRequests() throws Exception
     {
         k3po.finish();
@@ -83,8 +82,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/client.max.frame.size/client",
         "${net}/client.max.frame.size/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
-    @Configure(name = HTTP_STREAM_INITIAL_REMOTE_WINDOW_NAME, value = "0")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void maxFrameSize() throws Exception
     {
         k3po.finish();
@@ -95,7 +93,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.max.frame.size.error/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void maxFrameSizeError() throws Exception
     {
         k3po.finish();
@@ -106,7 +104,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.ping.frame.size.error/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pingFrameSizeError() throws Exception
     {
         k3po.finish();
@@ -117,7 +115,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.connection.window.frame.size.error/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionWindowFrameSizeError() throws Exception
     {
         k3po.finish();
@@ -128,7 +126,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.window.frame.size.error/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void windowFrameSizeError() throws Exception
     {
         k3po.finish();
@@ -139,7 +137,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/client.error.frame.with.request.payload/client",
         "${net}/client.rst.stream.frame.size.error/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void rstStreamFrameSizeError() throws Exception
     {
         k3po.finish();
@@ -150,7 +148,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/client.error.frame.with.request.payload/client",
         "${net}/client.priority.frame.size.error/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void priorityFrameSizeError() throws Exception
     {
         k3po.finish();
@@ -162,7 +160,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/connection.headers/client",
         "${net}/connection.headers/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void connectionHeaders() throws Exception
     {
         k3po.finish();
@@ -174,7 +172,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/stream.id.order/client",
         "${net}/stream.id.order/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void streamIdOrder() throws Exception
     {
         k3po.finish();
@@ -185,7 +183,7 @@ public class MessageFormatIT
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.invalid.hpack.index/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void invalidHpackIndex() throws Exception
     {
         k3po.finish();

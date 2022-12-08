@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_REMOTE_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -46,7 +46,7 @@ public class FlowControlIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_REMOTE_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
         .clean();
@@ -59,7 +59,7 @@ public class FlowControlIT
     @Specification({
         "${app}/stream.flow/client",
         "${net}/client.stream.flow/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "60")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "60")
     public void streamFlow() throws Exception
     {
         k3po.finish();
@@ -82,7 +82,7 @@ public class FlowControlIT
         "${app}/client.sent.100k.message/client",
         "${net}/client.sent.100k.message/server" })
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "65536")
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSent100kMessage() throws Exception
     {
         k3po.finish();

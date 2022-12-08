@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_REMOTE_CONCURRENT_STREAMS_NAME;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_REMOTE_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_CONCURRENT_STREAMS_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -59,8 +59,8 @@ public class StartingIT
     @Specification({
         "${app}/upgrade.http/client",
         "${net}/upgrade.pri.with.tls.and.alpn.h2/server"})
-    @Configure(name = HTTP_REMOTE_CONCURRENT_STREAMS_NAME, value = "100")
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_CONCURRENT_STREAMS_NAME, value = "100")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldUpgradeViaPriorKnowledgeWithTlsAndAlpn() throws Exception
     {
         k3po.finish();
@@ -71,8 +71,8 @@ public class StartingIT
     @Specification({
         "${app}/upgrade.http/client",
         "${net}/upgrade.h2c.with.no.tls/server"})
-    @Configure(name = HTTP_REMOTE_CONCURRENT_STREAMS_NAME, value = "100")
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_CONCURRENT_STREAMS_NAME, value = "100")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldUpgradeViaH2cWithSettings() throws Exception
     {
         k3po.finish();

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7230.server;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_HEADER;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_HEADER;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -43,7 +43,7 @@ public class AuthorizationIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_REMOTE_HEADER, "Zilla")
+        .configure(HTTP_SERVER_HEADER, "Zilla")
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v1.1")
         .external("app0")
         .clean();

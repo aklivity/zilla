@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAMS_CLEANUP_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
@@ -47,7 +47,7 @@ public class ConnectionManagementIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_REMOTE_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("app0")
         .clean();

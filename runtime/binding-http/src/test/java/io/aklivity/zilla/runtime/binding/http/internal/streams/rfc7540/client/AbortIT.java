@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_CONCURRENT_STREAMS;
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_REMOTE_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -45,7 +45,7 @@ public class AbortIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_REMOTE_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
         .clean();
@@ -58,7 +58,7 @@ public class AbortIT
     @Specification({
         "${app}/client.sent.write.abort.on.open.request/client",
         "${net}/client.sent.rst/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentWriteAbortOnOpenRequest() throws Exception
     {
         k3po.finish();
@@ -69,7 +69,7 @@ public class AbortIT
     @Specification({
         "${app}/client.sent.read.abort.on.open.response/client",
         "${net}/client.sent.rst/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void clientSentReadAbortOnOpenResponse() throws Exception
     {
         k3po.finish();
@@ -80,7 +80,7 @@ public class AbortIT
     @Specification({
         "${app}/server.sent.write.abort.on.open.response/client",
         "${net}/server.sent.write.abort.on.open.response/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentWriteAbortOnOpenResponse() throws Exception
     {
         k3po.finish();
@@ -91,7 +91,7 @@ public class AbortIT
     @Specification({
         "${app}/server.sent.read.abort.on.open.request/client",
         "${net}/server.sent.read.abort.on.open.request/server" })
-    @Configure(name = HTTP_REMOTE_INITIAL_WINDOW_NAME, value = "65535")
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void serverSentReadAbortOnOpenRequest() throws Exception
     {
         k3po.finish();

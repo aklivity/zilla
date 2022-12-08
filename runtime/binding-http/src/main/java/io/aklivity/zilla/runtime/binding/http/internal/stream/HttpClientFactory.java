@@ -374,7 +374,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         this.clientPools = new Long2ObjectHashMap<>();
         this.maximumConnectionsPerRoute = config.maximumConnectionsPerRoute();
-        this.maximumPushPromiseListSize = config.localMaxPushPromiseListSize();
+        this.maximumPushPromiseListSize = config.maxPushPromiseListSize();
         this.countRequests = context.supplyCounter("http.requests");
         this.countRequestsRejected = context.supplyCounter("http.requests.rejected");
         this.countRequestsAbandoned = context.supplyCounter("http.requests.abandoned");
@@ -4239,7 +4239,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            int remaining = config.maxConcurrentStreamsCleanup();
+            int remaining = config.concurrentStreamsCleanup();
             for (Iterator<HttpExchange> iterator = pool.exchanges.values().iterator();
                     iterator.hasNext() && remaining > 0; remaining--)
             {

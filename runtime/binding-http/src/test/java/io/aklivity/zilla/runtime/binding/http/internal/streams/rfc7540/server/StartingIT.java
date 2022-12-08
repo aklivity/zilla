@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_REMOTE_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -45,7 +45,7 @@ public class StartingIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/upgrade")
-        .configure(HTTP_REMOTE_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .external("app0")
         .clean();
 
