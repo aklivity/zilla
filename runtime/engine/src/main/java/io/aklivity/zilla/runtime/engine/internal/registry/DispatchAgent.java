@@ -121,9 +121,9 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class DispatchAgent implements EngineContext, Agent
 {
-    private static final int RESERVED_SIZE = Byte.SIZE + Byte.SIZE + 1;
+    private static final int RESERVED_SIZE = 33;
 
-    private static final int SHIFT_SIZE = Long.SIZE - RESERVED_SIZE + 1;
+    private static final int SHIFT_SIZE = 56;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
 
@@ -188,6 +188,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final AgentRunner runner;
 
     private long initialId;
+    private long promiseId;
     private long traceId;
     private long budgetId;
     private long authorizedId;
@@ -287,6 +288,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.mask = mask;
         this.bufferPool = bufferPool;
         this.initialId = initial;
+        this.promiseId = initial;
         this.traceId = initial;
         this.budgetId = initial;
         this.authorizedId = initial;
@@ -379,7 +381,7 @@ public class DispatchAgent implements EngineContext, Agent
         initialId &= mask;
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
-               (initialId & 0xff00_7fff_ffff_ffffL) | 0x0000_0000_0000_0001L;
+               (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
     }
 
     @Override
@@ -394,11 +396,11 @@ public class DispatchAgent implements EngineContext, Agent
     public long supplyPromiseId(
         long carrierId)
     {
-        initialId += 2L;
-        initialId &= mask;
+        promiseId += 2L;
+        promiseId &= mask;
 
-        return carrierId & 0xffff_0000_0000_0000L | 0x0000_8000_0000_0000L | initialId |
-                0x0000_0000_0000_0001L;
+        return carrierId & 0xffff_0000_0000_0000L | 0x0000_0000_8000_0000L |
+                promiseId & 0x0000_0000_7fff_ffffL | 0x0000_0000_0000_0001L;
     }
 
     @Override

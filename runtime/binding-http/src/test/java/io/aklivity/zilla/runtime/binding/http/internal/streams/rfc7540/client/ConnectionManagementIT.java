@@ -330,8 +330,8 @@ public class ConnectionManagementIT
         "${app}/http.push.promise/client",
         "${net}/http.push.promise/server" })
     @ScriptProperty({
-        "promiseId1 0x3f00800000000005L",
-        "promiseId2 0x3f00800000000007L",
+        "promiseId1 0x3f00_0000_8000_0003L",
+        "promiseId2 0x3f00_0000_8000_0005L",
     })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void pushResources() throws Exception
