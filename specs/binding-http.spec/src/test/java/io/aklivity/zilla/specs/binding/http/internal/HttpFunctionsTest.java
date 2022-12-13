@@ -318,7 +318,7 @@ public class HttpFunctionsTest
     }
 
     @Test
-    public void shouldMatchDataExtension() throws Exception
+    public void shouldMatchFlushExtension() throws Exception
     {
         BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
@@ -338,7 +338,7 @@ public class HttpFunctionsTest
     }
 
     @Test
-    public void shouldMatchDataExFailWhenDoNotSetTypeId() throws Exception
+    public void shouldMatchFlushExFailWhenDoNotSetTypeId() throws Exception
     {
         BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .promiseId(1)
@@ -357,7 +357,7 @@ public class HttpFunctionsTest
     }
 
     @Test(expected = Exception.class)
-    public void shouldMatchDataExFailWhenTypeIdDoNotMatch() throws Exception
+    public void shouldMatchFlushExFailWhenTypeIdDoNotMatch() throws Exception
     {
         BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
@@ -377,7 +377,7 @@ public class HttpFunctionsTest
     }
 
     @Test(expected = Exception.class)
-    public void shouldMatchDataExFailWhenDoNotMatchBeginExtensionWithRegex() throws Exception
+    public void shouldMatchFlushExFailWhenDoNotMatchBeginExtensionWithRegex() throws Exception
     {
         BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
@@ -397,7 +397,7 @@ public class HttpFunctionsTest
     }
 
     @Test
-    public void shouldMatchDataExFailWhenBufferDoNotHaveEnoughSpace() throws Exception
+    public void shouldMatchFlushExFailWhenBufferDoNotHaveEnoughSpace() throws Exception
     {
         BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
@@ -411,7 +411,7 @@ public class HttpFunctionsTest
     }
 
     @Test
-    public void shouldGenerateDataExtension()
+    public void shouldGenerateFlushExtension()
     {
         byte[] build = HttpFunctions.flushEx()
                                     .typeId(0x01)

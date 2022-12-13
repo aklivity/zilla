@@ -14,8 +14,8 @@
 # under the License.
 #
 
-property promiseId1 0x3f3f000000000005L
-property promiseId2 0x3f3f000000000007L
+property promiseId1 -1
+property promiseId2 -1
 
 connect "zilla://streams/app0"
         option zilla:window 8192

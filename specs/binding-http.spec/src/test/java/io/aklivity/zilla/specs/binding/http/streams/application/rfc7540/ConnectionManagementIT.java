@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -111,6 +112,10 @@ public class ConnectionManagementIT
     @Specification({
         "${app}/http.push.promise/client",
         "${app}/http.push.promise/server"
+    })
+    @ScriptProperty({
+        "promiseId1 0x3f3f_0000_0000_0005L",
+        "promiseId2 0x3f3f_0000_0000_0007L",
     })
     public void pushResources() throws Exception
     {
