@@ -149,10 +149,6 @@ public class ConnectionManagementIT
     @Specification({
         "${net}/http.push.promise/client",
         "${app}/http.push.promise/server" })
-    @ScriptProperty({
-        "promiseId1 -1",
-        "promiseId2 -1",
-    })
     public void pushResources() throws Exception
     {
         k3po.finish();
