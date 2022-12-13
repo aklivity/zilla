@@ -38,8 +38,8 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
-import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpFlushExFW;
 
 public final class HttpFunctions
 {
@@ -56,15 +56,15 @@ public final class HttpFunctions
     }
 
     @Function
-    public static HttpDataExMatcherBuilder matchDataEx()
+    public static HttpFlushExMatcherBuilder matchFlushEx()
     {
-        return new HttpDataExMatcherBuilder();
+        return new HttpFlushExMatcherBuilder();
     }
 
     @Function
-    public static HttpDataExBuilder dataEx()
+    public static HttpFlushExBuilder flushEx()
     {
-        return new HttpDataExBuilder();
+        return new HttpFlushExBuilder();
     }
 
     @Function
@@ -369,73 +369,73 @@ public final class HttpFunctions
         }
     }
 
-    public static final class HttpDataExBuilder
+    public static final class HttpFlushExBuilder
     {
-        private final HttpDataExFW.Builder dataExRW;
+        private final HttpFlushExFW.Builder flushExRW;
 
-        private HttpDataExBuilder()
+        private HttpFlushExBuilder()
         {
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            this.dataExRW = new HttpDataExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            this.flushExRW = new HttpFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public HttpDataExBuilder typeId(
+        public HttpFlushExBuilder typeId(
             int typeId)
         {
-            dataExRW.typeId(typeId);
+            flushExRW.typeId(typeId);
             return this;
         }
 
-        public HttpDataExBuilder promiseId(
+        public HttpFlushExBuilder promiseId(
             long promiseId)
         {
-            dataExRW.promiseId(promiseId);
+            flushExRW.promiseId(promiseId);
             return this;
         }
 
-        public HttpDataExBuilder promise(
+        public HttpFlushExBuilder promise(
             String name,
             String value)
         {
-            dataExRW.promiseItem(b -> b.name(name).value(value));
+            flushExRW.promiseItem(b -> b.name(name).value(value));
             return this;
         }
 
         public byte[] build()
         {
-            final HttpDataExFW dataEx = dataExRW.build();
-            final byte[] array = new byte[dataEx.sizeof()];
-            dataEx.buffer().getBytes(dataEx.offset(), array);
+            final HttpFlushExFW flushEx = flushExRW.build();
+            final byte[] array = new byte[flushEx.sizeof()];
+            flushEx.buffer().getBytes(flushEx.offset(), array);
             return array;
         }
     }
 
-    public static final class HttpDataExMatcherBuilder
+    public static final class HttpFlushExMatcherBuilder
     {
         private final DirectBuffer bufferRO = new UnsafeBuffer();
 
-        private final HttpDataExFW dataExRO = new HttpDataExFW();
+        private final HttpFlushExFW flushExRO = new HttpFlushExFW();
 
         private final Map<String, Predicate<String>> headers = new LinkedHashMap<>();
 
         private Integer typeId;
         private Long promiseId;
 
-        public HttpDataExMatcherBuilder typeId(
+        public HttpFlushExMatcherBuilder typeId(
                 int typeId)
         {
             this.typeId = typeId;
             return this;
         }
 
-        public HttpDataExMatcherBuilder promiseId(
+        public HttpFlushExMatcherBuilder promiseId(
             long promiseId)
         {
             this.promiseId = promiseId;
             return this;
         }
 
-        public HttpDataExMatcherBuilder promise(
+        public HttpFlushExMatcherBuilder promise(
             String name,
             String value)
         {
@@ -443,7 +443,7 @@ public final class HttpFunctions
             return this;
         }
 
-        public HttpDataExMatcherBuilder promiseRegex(
+        public HttpFlushExMatcherBuilder promiseRegex(
             String name,
             String regex)
         {
@@ -457,7 +457,7 @@ public final class HttpFunctions
             return typeId != null ? this::match : buf -> null;
         }
 
-        private HttpDataExFW match(
+        private HttpFlushExFW match(
             ByteBuffer byteBuf) throws Exception
         {
             if (!byteBuf.hasRemaining())
@@ -466,32 +466,32 @@ public final class HttpFunctions
             }
 
             bufferRO.wrap(byteBuf);
-            final HttpDataExFW dataEx = dataExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+            final HttpFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
-            if (dataEx != null &&
-                    matchTypeId(dataEx) &&
-                    matchPromises(dataEx))
+            if (flushEx != null &&
+                    matchTypeId(flushEx) &&
+                    matchPromises(flushEx))
             {
-                byteBuf.position(byteBuf.position() + dataEx.sizeof());
-                return dataEx;
+                byteBuf.position(byteBuf.position() + flushEx.sizeof());
+                return flushEx;
             }
 
-            throw new Exception(dataEx.toString());
+            throw new Exception(flushEx.toString());
         }
 
         private boolean matchPromises(
-            HttpDataExFW dataEx)
+            HttpFlushExFW flushEx)
         {
             MutableBoolean match = new MutableBoolean(true);
-            headers.forEach((k, v) -> match.value &= dataEx.promise().anyMatch(h -> k.equals(h.name().asString()) &&
+            headers.forEach((k, v) -> match.value &= flushEx.promise().anyMatch(h -> k.equals(h.name().asString()) &&
                     v.test(h.value().asString())));
             return match.value;
         }
 
         private boolean matchTypeId(
-            HttpDataExFW dataEx)
+            HttpFlushExFW flushEx)
         {
-            return typeId == dataEx.typeId();
+            return typeId == flushEx.typeId();
         }
     }
 

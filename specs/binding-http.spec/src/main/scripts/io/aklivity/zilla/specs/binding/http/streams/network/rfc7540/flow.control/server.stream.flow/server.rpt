@@ -159,7 +159,7 @@ read  [0x00 0x00 0x04]                         # length
 
 write [0x00 0x00 0x0b]                          # length = 11
       [0x00]                                    # HTTP2 DATA frame
-      [0x00]                                    # no flags
+      [0x01]                                    # END_STREAM
       [0x00 0x00 0x00 0x01]                     # stream_id=1
       "ody></html>"
 write flush

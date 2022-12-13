@@ -28,7 +28,7 @@ scope http
             HttpHeader[] headers;
         }
 
-        struct HttpDataEx extends core::stream::Extension
+        struct HttpFlushEx extends core::stream::Extension
         {
             int64 promiseId;
             HttpHeader[] promise;

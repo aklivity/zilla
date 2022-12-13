@@ -122,6 +122,6 @@ read [0..9]
 
 read [0x00 0x07 0xd9]                          # length = 2009
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # no flags
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x01]                     # stream_id=1
 read [0..2009]

@@ -90,7 +90,7 @@ read [0x00 0x00 0x58]                                      # length
 # first response DATA stream_id = 1
 read [0x00 0x00 0x0f]                          # length = 15
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # no flags
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x01]                     # stream_id=1
      "function f() {"
      "}"
@@ -104,12 +104,12 @@ read [0x00 0x00 0x58]                                      # length
      [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
      [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
-     [0x0f 0x0d] [0x02] "31"                               # content-length
+     [0x0f 0x0d] [0x02] "21"                               # content-length
 
 # second response DATA on stream_id = 3
 read [0x00 0x00 0x15]                          # length = 31
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # no flags
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x03]                     # stream_id=3
      "h1 {"
      "    color: blue;"

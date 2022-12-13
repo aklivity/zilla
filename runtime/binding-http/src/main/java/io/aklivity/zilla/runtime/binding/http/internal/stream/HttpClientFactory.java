@@ -104,8 +104,8 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.WindowFW;
@@ -220,7 +220,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
 
     private final HttpBeginExFW.Builder beginExRW = new HttpBeginExFW.Builder();
-    private final HttpDataExFW.Builder dataExRW = new HttpDataExFW.Builder();
+    private final HttpFlushExFW.Builder flushExRW = new HttpFlushExFW.Builder();
     private final HttpEndExFW.Builder endExRW = new HttpEndExFW.Builder();
 
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
@@ -506,6 +506,35 @@ public final class HttpClientFactory implements HttpStreamFactory
                                      .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
+    }
+
+    private void doFlush(
+        MessageConsumer receiver,
+        long routeId,
+        long streamId,
+        long sequence,
+        long acknowledge,
+        int maximum,
+        long traceId,
+        long authorization,
+        long budgetId,
+        int reserved,
+        Consumer<OctetsFW.Builder> extension)
+    {
+        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .routeId(routeId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .extension(extension)
+                .build();
+
+        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doFlush(
@@ -3396,13 +3425,12 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 addNewPromise(traceId, promisedStreamId, headers);
 
-                final HttpDataExFW dataEx = dataExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                exchange.doResponseFlush(traceId, authorization,
+                        ex -> ex.set((b, o, l) -> flushExRW.wrap(b, o, l)
                         .typeId(httpTypeId)
                         .promiseId(promiseId)
                         .promise(hs -> headers.forEach((n, v) -> hs.item(h -> h.name(n).value(v))))
-                        .build();
-
-                exchange.doResponseData(traceId, authorization, EMPTY_OCTETS.buffer(), 0, 0, dataEx);
+                        .build().sizeof()));
 
                 if (endPromise)
                 {
@@ -3909,16 +3937,12 @@ public final class HttpClientFactory implements HttpStreamFactory
             while (progress < limit)
             {
                 final int length = Math.min(limit - progress, remoteSettings.maxFrameSize);
-                final Http2DataFW.Builder http2DataBuilder = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
+                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
-                        .payload(buffer, progress, length);
+                        .endStream(endRequest && progress + length >= limit)
+                        .payload(buffer, progress, length)
+                        .build();
 
-                if (endRequest && progress + length >= limit)
-                {
-                    http2DataBuilder.endStream();
-                }
-
-                final Http2DataFW http2Data = http2DataBuilder.build();
                 frameOffset = http2Data.limit();
                 progress += length;
             }
@@ -4669,7 +4693,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 length = Math.max(reserved - responsePad, 0);
             }
 
-            if (length > 0 || extension != EMPTY_OCTETS)
+            if (length > 0)
             {
                 doData(application, routeId, responseId, responseSeq, responseAck, requestMax,
                         traceId, authorization, responseBud,
@@ -4682,6 +4706,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             return offset + length;
+        }
+
+        private void doResponseFlush(
+            long traceId,
+            long authorization,
+            Consumer<OctetsFW.Builder> extension)
+        {
+            doFlush(application, routeId, responseId, responseSeq, responseAck, requestMax, traceId, authorization,
+                    responseBud, 0, extension);
         }
 
         private void doResponseEnd(

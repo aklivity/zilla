@@ -83,7 +83,7 @@ read [0x00 0x00 0x3c]                          # length = 113
 
 read [0x00 0x00 0x35]                          # length = 113
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # no flags
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x01]                     # stream_id=1
      "<body><script src=\"script.js\"></script></body>"
      "</html>"

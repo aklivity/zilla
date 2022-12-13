@@ -97,7 +97,7 @@ read [0x00 0x00 0x59]                                      # length
 
 read [0x00 0x00 0x71]                          # length = 113
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # no flags
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x01]                     # stream_id=1
      "<html>"
      "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"

@@ -69,8 +69,8 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaBootstrapBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.KafkaDataExFW;
@@ -116,7 +116,7 @@ public final class LoggableStream implements AutoCloseable
 
     private final ProxyBeginExFW proxyBeginExRO = new ProxyBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
-    private final HttpDataExFW httpDataExRO = new HttpDataExFW();
+    private final HttpFlushExFW httpFlushExRO = new HttpFlushExFW();
     private final HttpEndExFW httpEndExRO = new HttpEndExFW();
     private final SseDataExFW sseDataExRO = new SseDataExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
@@ -218,7 +218,7 @@ public final class LoggableStream implements AutoCloseable
         if (hasExtensionType.test("http"))
         {
             beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
-            dataHandlers.put(labels.lookupLabelId("http"), this::onHttpDataEx);
+            flushHandlers.put(labels.lookupLabelId("http"), this::onHttpFlushEx);
             endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
         }
 
@@ -735,15 +735,15 @@ public final class LoggableStream implements AutoCloseable
                                            format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
-    private void onHttpDataEx(
-        final DataFW data)
+    private void onHttpFlushEx(
+        final FlushFW flush)
     {
-        final int offset = data.offset() - HEADER_LENGTH;
-        final long timestamp = data.timestamp();
-        final OctetsFW extension = data.extension();
+        final int offset = flush.offset() - HEADER_LENGTH;
+        final long timestamp = flush.timestamp();
+        final OctetsFW extension = flush.extension();
 
-        final HttpDataExFW httpDataEx = httpDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        httpDataEx.promise()
+        final HttpFlushExFW httpFlushEx = httpFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        httpFlushEx.promise()
                    .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                        format("%s: %s", h.name().asString(), h.value().asString())));
     }

@@ -41,7 +41,7 @@ read zilla:begin.ext ${http:beginEx()
                              .build()}
 
 # First push promise
-read zilla:data.ext ${http:matchDataEx()
+read advised zilla:flush ${http:matchFlushEx()
                           .typeId(zilla:id("http"))
                           .promise(":method", "GET")
                           .promise(":scheme", "http")
@@ -79,7 +79,7 @@ read zilla:begin.ext ${http:beginEx()
                              .header("server", "CERN/3.0 libwww/2.17")
                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
                              .header("content-type", "text/css")
-                             .header("content-length", "31")
+                             .header("content-length", "21")
                              .build()}
 
 read "h1 {"

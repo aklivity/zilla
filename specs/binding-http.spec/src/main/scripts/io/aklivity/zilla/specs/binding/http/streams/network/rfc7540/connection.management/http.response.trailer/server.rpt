@@ -63,7 +63,7 @@ read [0x00 0x00 0x00]                   # length = 0
      [0x01]                             # ACK
      [0x00 0x00 0x00 0x00]              # stream_id = 0
 
-write [0x00 0x00 0x59]                                      # length
+write [0x00 0x00 0x53]                                      # length
       [0x01]                                                # HTTP2 HEADERS frame
       [0x04]                                                # END_HEADERS
       [0x00 0x00 0x00 0x01]                                 # stream_id=1
@@ -71,7 +71,6 @@ write [0x00 0x00 0x59]                                      # length
       [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
       [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
       [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
-      [0x0f 0x0d] [0x03] "113"                              # content-length
 write flush
 
 write [0x00 0x00 0x71]                  # length = 113

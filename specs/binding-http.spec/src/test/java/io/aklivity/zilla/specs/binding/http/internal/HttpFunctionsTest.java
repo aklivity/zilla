@@ -50,8 +50,8 @@ import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
-import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpFlushExFW;
 
 public class HttpFunctionsTest
 {
@@ -320,7 +320,7 @@ public class HttpFunctionsTest
     @Test
     public void shouldMatchDataExtension() throws Exception
     {
-        BytesMatcher matcher = HttpFunctions.matchDataEx()
+        BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promise("name", "value")
@@ -328,7 +328,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -340,14 +340,14 @@ public class HttpFunctionsTest
     @Test
     public void shouldMatchDataExFailWhenDoNotSetTypeId() throws Exception
     {
-        BytesMatcher matcher = HttpFunctions.matchDataEx()
+        BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .promiseId(1)
                 .promiseRegex("name", "value")
                 .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -359,7 +359,7 @@ public class HttpFunctionsTest
     @Test(expected = Exception.class)
     public void shouldMatchDataExFailWhenTypeIdDoNotMatch() throws Exception
     {
-        BytesMatcher matcher = HttpFunctions.matchDataEx()
+        BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseRegex("name", "value")
@@ -367,7 +367,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x02)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -379,7 +379,7 @@ public class HttpFunctionsTest
     @Test(expected = Exception.class)
     public void shouldMatchDataExFailWhenDoNotMatchBeginExtensionWithRegex() throws Exception
     {
-        BytesMatcher matcher = HttpFunctions.matchDataEx()
+        BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseRegex("name", "regex")
@@ -387,7 +387,7 @@ public class HttpFunctionsTest
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
-        new HttpDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+        new HttpFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseItem(h -> h.name("name").value("value"))
@@ -399,7 +399,7 @@ public class HttpFunctionsTest
     @Test
     public void shouldMatchDataExFailWhenBufferDoNotHaveEnoughSpace() throws Exception
     {
-        BytesMatcher matcher = HttpFunctions.matchDataEx()
+        BytesMatcher matcher = HttpFunctions.matchFlushEx()
                 .typeId(0x01)
                 .promiseId(0x01)
                 .promiseRegex("name", "value")
@@ -413,20 +413,20 @@ public class HttpFunctionsTest
     @Test
     public void shouldGenerateDataExtension()
     {
-        byte[] build = HttpFunctions.dataEx()
+        byte[] build = HttpFunctions.flushEx()
                                     .typeId(0x01)
                                     .promiseId(1L)
                                     .promise("name", "value")
                                     .build();
         DirectBuffer buffer = new UnsafeBuffer(build);
-        HttpDataExFW dataEx = new HttpDataExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(0x01, dataEx.typeId());
-        dataEx.promise().forEach(onlyHeader ->
+        HttpFlushExFW flushEx = new HttpFlushExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, flushEx.typeId());
+        flushEx.promise().forEach(onlyHeader ->
         {
             assertEquals("name", onlyHeader.name().asString());
             assertEquals("value", onlyHeader.value().asString());
         });
-        assertTrue(dataEx.promise().sizeof() > 0);
+        assertTrue(flushEx.promise().sizeof() > 0);
     }
 
     @Test

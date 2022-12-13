@@ -123,8 +123,8 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpChallengeExFW;
-import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpDataExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpFlushExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.SignalFW;
@@ -151,6 +151,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
     private static final int PADDING_CHUNKED = 10;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
+    private static final long NO_REQUEST_ID = -1;
 
     private static final int CAPABILITY_CHALLENGE_MASK = 1 << Capability.CHALLENGE.ordinal();
 
@@ -425,7 +426,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final FlushFW flushRO = new FlushFW();
 
     private final HttpBeginExFW beginExRO = new HttpBeginExFW();
-    private final HttpDataExFW dataExRO = new HttpDataExFW();
+    private final HttpFlushExFW flushExRO = new HttpFlushExFW();
     private final HttpEndExFW endExRO = new HttpEndExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
@@ -4792,7 +4793,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                             final String origin = policy == CROSS_ORIGIN ? headers.get(HEADER_NAME_ORIGIN) : null;
 
                             final Http2Exchange exchange =
-                                    new Http2Exchange(routeId, streamId, exchangeAuth, policy, origin, contentLength);
+                                    new Http2Exchange(routeId, NO_REQUEST_ID, streamId, exchangeAuth, policy,
+                                            origin, contentLength);
 
                             if (binding.options != null && binding.options.overrides != null)
                             {
@@ -5022,7 +5024,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                     if (deferred == 0 && Http2Flags.endStream(flags))
                     {
-                        if (exchange.contentLength != -1 && exchange.contentObserved != exchange.contentLength)
+                        if (exchange.requestContentLength != -1 && exchange.contentObserved != exchange.requestContentLength)
                         {
                             doEncodeRstStream(traceId, streamId, Http2ErrorCode.PROTOCOL_ERROR);
                         }
@@ -5109,6 +5111,7 @@ public final class HttpServerFactory implements HttpStreamFactory
 
         private void doEncodePromise(
             long traceId,
+            long requestId,
             int streamId,
             Array32FW<HttpHeaderFW> promise)
         {
@@ -5161,7 +5164,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doEncodePushPromise(traceId, authorization, pushId, promiseId, promise);
 
                     final Http2Exchange exchange =
-                            new Http2Exchange(routeId, promiseId, exchangeAuth, policy, origin, contentLength);
+                            new Http2Exchange(routeId, requestId, promiseId, exchangeAuth, policy, origin, contentLength);
 
                     final HttpBeginExFW beginEx = beginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(httpTypeId)
@@ -5272,7 +5275,8 @@ public final class HttpServerFactory implements HttpStreamFactory
             long budgetId,
             int reserved,
             int streamId,
-            OctetsFW payload)
+            OctetsFW payload,
+            boolean endResponse)
         {
             final DirectBuffer buffer = payload.buffer();
             final int offset = payload.offset();
@@ -5285,6 +5289,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final int length = Math.min(limit - progress, remoteSettings.maxFrameSize);
                 final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
+                        .endStream(endResponse)
                         .payload(buffer, progress, length)
                         .build();
                 frameOffset = http2Data.limit();
@@ -5445,8 +5450,11 @@ public final class HttpServerFactory implements HttpStreamFactory
             private final int streamId;
             private final HttpPolicyConfig policy;
             private final String origin;
-            private final long contentLength;
+            private final long requestContentLength;
             private final long sessionId;
+
+            private long responseContentLength;
+            private long responseContentObserved;
 
             private long expiringId;
 
@@ -5472,20 +5480,21 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private Http2Exchange(
                 long routeId,
+                long requestId,
                 int streamId,
                 long authorization,
                 HttpPolicyConfig policy,
                 String origin,
-                long contentLength)
+                long requestContentLength)
             {
                 this.routeId = routeId;
                 this.streamId = streamId;
                 this.sessionId = authorization;
                 this.policy = policy;
                 this.origin = origin;
-                this.contentLength = contentLength;
-                this.requestId = supplyInitialId.applyAsLong(routeId);
-                this.responseId = supplyReplyId.applyAsLong(requestId);
+                this.requestContentLength = requestContentLength;
+                this.requestId = requestId == NO_REQUEST_ID ? supplyInitialId.applyAsLong(routeId) : requestId;
+                this.responseId = supplyReplyId.applyAsLong(this.requestId);
                 this.expiringId = expireIfNecessary(guard, sessionId, routeId, replyId, streamId);
             }
 
@@ -5763,7 +5772,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
                 final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : HEADERS_200_OK;
 
-                doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, false);
+                final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
+                        header.name().equals(HEADER_CONTENT_LENGTH));
+                responseContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : -1;
+
+                doEncodeHeaders(traceId, authorization, streamId, policy, origin, headers, responseContentLength == 0);
             }
 
             private void onResponseData(
@@ -5803,15 +5816,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     final OctetsFW payload = data.payload();
-                    final OctetsFW extension = data.extension();
-                    final HttpDataExFW dataEx = extension.get(dataExRO::tryWrap);
-
-                    if (dataEx != null)
-                    {
-                        final Array32FW<HttpHeaderFW> promise = dataEx.promise();
-
-                        doEncodePromise(traceId, streamId, promise);
-                    }
 
                     if (payload != null)
                     {
@@ -5829,8 +5833,10 @@ public final class HttpServerFactory implements HttpStreamFactory
 
                         remoteBudget -= length;
                         remoteSharedBudget -= length;
+                        responseContentObserved += length;
 
-                        doEncodeData(traceId, authorization, flags, budgetId, reserved, streamId, payload);
+                        final boolean endResponse = responseContentLength == responseContentObserved;
+                        doEncodeData(traceId, authorization, flags, budgetId, reserved, streamId, payload, endResponse);
 
                         final int remotePaddableMax = Math.min(remoteBudget, bufferPool.slotCapacity());
                         final int remotePadding = http2FramePadding(remotePaddableMax, remoteSettings.maxFrameSize);
@@ -5853,8 +5859,8 @@ public final class HttpServerFactory implements HttpStreamFactory
                 final long traceId = flush.traceId();
 
                 assert acknowledge <= sequence;
-                assert sequence >= replySeq;
-                assert acknowledge <= replyAck;
+                assert sequence >= responseSeq;
+                assert acknowledge <= responseAck;
 
                 responseSeq = sequence;
 
@@ -5865,6 +5871,16 @@ public final class HttpServerFactory implements HttpStreamFactory
                     doResponseReset(traceId);
                     doNetworkAbort(traceId, authorization);
                 }
+
+                final OctetsFW extension = flush.extension();
+                final HttpFlushExFW flushEx = extension.get(flushExRO::tryWrap);
+
+                if (flushEx != null)
+                {
+                    final Array32FW<HttpHeaderFW> promise = flushEx.promise();
+
+                    doEncodePromise(traceId, flushEx.promiseId(), streamId, promise);
+                }
             }
 
             private void onResponseEnd(
@@ -5872,12 +5888,14 @@ public final class HttpServerFactory implements HttpStreamFactory
             {
                 setResponseClosed();
 
-                final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : TRAILERS_EMPTY;
+                if (responseContentLength != responseContentObserved)
+                {
+                    final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
+                    final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : TRAILERS_EMPTY;
+                    final long traceId = end.traceId();
 
-                final long traceId = end.traceId();
-
-                doEncodeTrailers(traceId, authorization, streamId, trailers);
+                    doEncodeTrailers(traceId, authorization, streamId, trailers);
+                }
             }
 
             private void onResponseAbort(

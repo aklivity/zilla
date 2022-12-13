@@ -473,6 +473,7 @@ final class ZillaTarget implements AutoCloseable
         final long budgetId = channel.debitorId();
 
         final ChannelBuffer writeExt = channel.writeExtBuffer(FLUSH, true);
+        final int writableExtBytes = writeExt.readableBytes();
         final byte[] writeExtCopy = writeExtCopy(writeExt);
 
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -489,6 +490,9 @@ final class ZillaTarget implements AutoCloseable
                 .build();
 
         streamsBuffer.write(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+
+        writeExt.skipBytes(writableExtBytes);
+        writeExt.discardReadBytes();
 
         adviseFuture.setSuccess();
     }

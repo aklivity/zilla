@@ -1270,6 +1270,24 @@ public class DispatchAgent implements EngineContext, Agent
         {
             handleDroppedReadData(msgTypeId, buffer, index, length);
         }
+        else if (msgTypeId == FlushFW.TYPE_ID)
+        {
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long routeId = frame.routeId();
+            final long streamId = frame.streamId();
+            final long sequence = frame.sequence();
+            final long acknowledge = frame.acknowledge();
+            final int maximum = frame.maximum();
+            final MessageConsumer newHandler = handleFlushReply(msgTypeId, buffer, index, length);
+            if (newHandler != null)
+            {
+                newHandler.accept(msgTypeId, buffer, index, length);
+            }
+            else
+            {
+                doReset(routeId, streamId, sequence, acknowledge, maximum);
+            }
+        }
     }
 
     private MessageConsumer handleBeginInitial(
@@ -1318,6 +1336,22 @@ public class DispatchAgent implements EngineContext, Agent
         {
             streams[streamIndex(streamId)].put(instanceId(streamId), newStream);
         }
+
+        return newStream;
+    }
+
+    private MessageConsumer handleFlushReply(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+        final long streamId = flush.streamId();
+
+        MessageConsumer newStream = null;
+
+        newStream = correlations.get(streamId);
 
         return newStream;
     }

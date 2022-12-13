@@ -36,6 +36,27 @@ connected
 
 read "Hello, world"
 
+
+# First push promise
+write advise zilla:flush ${http:flushEx()
+                               .typeId(zilla:id("http"))
+                               .promiseId(promiseId1)
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/style.css")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
+
+# Second push promise
+write advise zilla:flush ${http:flushEx()
+                               .typeId(zilla:id("http"))
+                               .promiseId(promiseId2)
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/script.js")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
+
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
                               .header(":status", "200")
@@ -44,28 +65,6 @@ write zilla:begin.ext ${http:beginEx()
                               .header("content-type", "text/html; charset=UTF-8")
                               .header("content-length", "113")
                               .build()}
-write flush
-
-# First push promise
-write zilla:data.ext ${http:dataEx()
-                           .typeId(zilla:id("http"))
-                           .promiseId(promiseId1)
-                           .promise(":method", "GET")
-                           .promise(":scheme", "http")
-                           .promise(":path", "/style.css")
-                           .promise(":authority", "localhost:8080")
-                           .build()}
-write flush
-
-# Second push promise
-write zilla:data.ext ${http:dataEx()
-                           .typeId(zilla:id("http"))
-                           .promiseId(promiseId2)
-                           .promise(":method", "GET")
-                           .promise(":scheme", "http")
-                           .promise(":path", "/script.js")
-                           .promise(":authority", "localhost:8080")
-                           .build()}
 write flush
 
 write "<html>"
@@ -95,7 +94,7 @@ write zilla:begin.ext ${http:beginEx()
                               .header("server", "CERN/3.0 libwww/2.17")
                               .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
                               .header("content-type", "text/css")
-                              .header("content-length", "31")
+                              .header("content-length", "21")
                               .build()}
 write "h1 {"
       "    color: blue;"
