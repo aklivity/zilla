@@ -13,6 +13,7 @@ Try out these Zilla example configurations using `docker` in your local developm
 | [http.filesystem](http.filesystem) | Serves files from a directory on the local filesystem |
 | [http.echo](http.echo) | Echoes request sent to the HTTP server from an HTTP client |
 | [http.echo.jwt](http.echo.jwt) | Echoes request sent to the HTTP server from a JWT-authorized HTTP client |
+| [http.proxy](http.proxy)               | Proxy request sent to the HTTP server from an HTTP client        |
 | [http.kafka.sync](http.kafka.sync) | Correlates requests and responses over separate Kafka topics |
 | [http.kafka.async](http.kafka.async) | Correlates requests and responses over separate Kafka topics, asynchronously |
 | [http.kafka.cache](http.kafka.cache) | Serves cached responses from a Kafka topic, detect when updated |
