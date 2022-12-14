@@ -45,4 +45,14 @@ public class ConfigIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/user.agent.header/client",
+        "${app}/user.agent.header/server"
+    })
+    public void userAgentHeader() throws Exception
+    {
+        k3po.finish();
+    }
 }

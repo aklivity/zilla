@@ -151,6 +151,8 @@ You can also quickly test out Zilla by running preconfigured Zilla configuration
 | [http.kafka.async](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.async) | Correlates requests and responses over separate Kafka topics, asynchronously |
 | [http.kafka.cache](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.cache) | Serves cached responses from a Kafka topic, detect when updated |
 | [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kafka topic, fire-and-forget |
+| [http.kafka.sasl.scram](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sasl.scram) | Sends messages to a SASL/SCRAM enabled Kafka |
+| [http.redpanda.sasl.scram](https://github.com/aklivity/zilla-examples/tree/main/http.redpanda.sasl.scram) | Sends messages to a SASL/SCRAM enabled Redpanda Cluster |
 | [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
 | [sse.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |

@@ -14,6 +14,9 @@
 # under the License.
 #
 
+property promiseId1 -1
+property promiseId2 -1
+
 connect "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "half-duplex"
@@ -25,11 +28,33 @@ write zilla:begin.ext ${http:beginEx()
                               .header(":scheme", "http")
                               .header(":path", "/")
                               .header(":authority", "localhost:8080")
+                              .header("content-type", "text/plain;charset=UTF-8")
+                              .header("content-length", "12")
                               .build()}
 connected
 
 write "Hello, world"
 write flush
+
+# First push promise
+read advised zilla:flush ${http:matchFlushEx()
+                               .typeId(zilla:id("http"))
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/style.css")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
+read notify FIRST_PUSH_PROMISE_RECEIVED
+
+# Second push promise
+read advised zilla:flush ${http:matchFlushEx()
+                               .typeId(zilla:id("http"))
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/script.js")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
+read notify SECOND_PUSH_PROMISE_RECEIVED
 
 read zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
@@ -39,28 +64,6 @@ read zilla:begin.ext ${http:beginEx()
                              .header("content-type", "text/html; charset=UTF-8")
                              .header("content-length", "113")
                              .build()}
-
-
-
-# First push promise
-read zilla:data.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                            .header(":method", "GET")
-                            .header(":scheme", "http")
-                            .header(":path", "/style.css")
-                            .header(":authority", "localhost:8080")
-                            .build()}
-read notify FIRST_PUSH_PROMISE_RECEIVED
-
-# Second push promise
-read zilla:data.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                            .header(":method", "GET")
-                            .header(":scheme", "http")
-                            .header(":path", "/script.js")
-                            .header(":authority", "localhost:8080")
-                            .build()}
-read notify SECOND_PUSH_PROMISE_RECEIVED
 
 read "<html>"
      "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
@@ -74,6 +77,7 @@ read "<html>"
 connect await FIRST_PUSH_PROMISE_RECEIVED
         "zilla://streams/app0"
         option zilla:window 8192
+        option zilla:streamId ${promiseId1}
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
@@ -91,7 +95,7 @@ read zilla:begin.ext ${http:beginEx()
                              .header("server", "CERN/3.0 libwww/2.17")
                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
                              .header("content-type", "text/css")
-                             .header("content-length", "31")
+                             .header("content-length", "21")
                              .build()}
 
 read "h1 {"
@@ -105,6 +109,7 @@ read "h1 {"
 connect await SECOND_PUSH_PROMISE_RECEIVED
         "zilla://streams/app0"
         option zilla:window 8192
+        option zilla:streamId ${promiseId2}
         option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()

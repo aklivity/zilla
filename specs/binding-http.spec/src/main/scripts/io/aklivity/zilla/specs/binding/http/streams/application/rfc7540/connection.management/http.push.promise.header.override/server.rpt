@@ -42,13 +42,14 @@ write zilla:begin.ext ${http:beginEx()
 write flush
 
 # First push promise
-write zilla:data.ext ${http:beginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":method", "GET")
-                             .header(":scheme", "http")
-                             .header(":path", "/style.css")
-                             .header(":authority", "localhost:8080")
-                             .build()}
+write advise zilla:flush ${http:flushEx()
+                               .typeId(zilla:id("http"))
+                               .promiseId(-1)
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/style.css")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
 write flush
 
 write "<html>"
@@ -77,7 +78,7 @@ write zilla:begin.ext ${http:beginEx()
                               .header("server", "CERN/3.0 libwww/2.17")
                               .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
                               .header("content-type", "text/css")
-                              .header("content-length", "31")
+                              .header("content-length", "21")
                               .build()}
 write "h1 {"
       "    color: blue;"

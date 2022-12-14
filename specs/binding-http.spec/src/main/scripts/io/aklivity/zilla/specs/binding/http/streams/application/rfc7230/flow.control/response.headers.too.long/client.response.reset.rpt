@@ -34,5 +34,5 @@ read zilla:begin.ext ${http:beginEx()
                              .build()}
 
 connected
-write close
 read abort
+write close

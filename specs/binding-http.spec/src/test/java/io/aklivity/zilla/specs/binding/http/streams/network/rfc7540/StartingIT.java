@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.http.streams.network.rfc7540;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -122,6 +123,26 @@ public class StartingIT
         "${net}/upgrade.pri.with.tls.and.no.alpn/server",
     })
     public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndNoAlpn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore
+    @Test
+    @Specification({
+        "${net}/upgrade.pri.with.tls.and.alpn.h2/client",
+        "${net}/upgrade.pri.with.tls.and.alpn.h2/server",
+    })
+    public void shouldUpgradeViaPriorKnowledgeWithTlsAndAlpn() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.h2c.with.multiple.requests.pipelined/client",
+        "${net}/upgrade.h2c.with.multiple.requests.pipelined/server"})
+    public void shouldRejectViaH2cWithMultipleRequestsPipelined() throws Exception
     {
         k3po.finish();
     }

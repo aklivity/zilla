@@ -50,14 +50,14 @@ write [0x00 0x00 0x00]                  # length = 0
 write flush
 
 # First client-initiated request stream-id=1
-read [0x00 0x00 0x13]                   # length = 19
-     [0x01]                             # HEADERS frame
-     [0x05]                             # END_HEADERS | END_STREAM
-     [0x00 0x00 0x00 0x01]              # stream_id = 1
-     [0x83]                             # :method: POST
-     [0x86]                             # :scheme: http
-     [0x84]                             # :path: /
-     [0x01] [0x0e] "localhost:8080"     # :authority: localhost:8080
+read [0x00 0x00 0x13]                                      # length = 19
+     [0x01]                                                # HEADERS frame
+     [0x05]                                                # END_HEADERS | END_STREAM
+     [0x00 0x00 0x00 0x01]                                 # stream_id = 1
+     [0x83]                                                # :method: POST
+     [0x86]                                                # :scheme: http
+     [0x84]                                                # :path: /
+     [0x01] [0x0e] "localhost:8080"                        # :authority: localhost:8080
 
 read [0x00 0x00 0x00]                   # length = 0
      [0x04]                             # HTTP2 SETTINGS frame
@@ -85,13 +85,15 @@ write [0x00 0x00 0x59]                                      # length
       [0x0f 0x0d] [0x03] "113"                              # content-length
 write flush
 
-write [0x00 0x00 0x38]                                      # length
+write [0x00 0x00 0x58]                                      # length
       [0x01]                                                # HTTP2 HEADERS frame
       [0x04]                                                # END_HEADERS
       [0x00 0x00 0x00 0x03]                                 # stream_id=3
       [0x88]                                                # :status: 200
       [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
       [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
+      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
+      [0x0f 0x0d] [0x02] "11"                               # content-length
 write flush
 
 # First http2 PUSH_PROMISE frame
@@ -121,19 +123,13 @@ write flush
 # response http2 DATA frame
 write [0x00 0x00 0x71]                          # length = 119
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # END_STREAM
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x01]                     # stream_id=1
      "<html>"
      "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
      "<body><script src=\"script.js\"></script></body>"
      "</html>"
 write flush
-
-# response http2 DATA frame (EOS)
-write [0x00 0x00 0x00]                  # length = 0
-      [0x00]                            # HTTP2 DATA frame
-      [0x01]                            # END_STREAM
-      [0x00 0x00 0x00 0x01]             # stream_id = 1
 
 # First promised response HEADERS stream-id=2
 write [0x00 0x00 0x48]                                      # length
@@ -144,7 +140,7 @@ write [0x00 0x00 0x48]                                      # length
       [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
       [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
       [0x0f 0x10] [0x08] "text/css"                         # content-type
-      [0x0f 0x0d] [0x02] "31"                               # content-length
+      [0x0f 0x0d] [0x02] "21"                               # content-length
 write flush
 
 # Second promised response HEADERS stream-id=4
@@ -173,7 +169,7 @@ write [0x00 0x00 0x23]                          # length = 35
 # First promised response BODY stream-id=2
 write [0x00 0x00 0x15]                          # length = 21
       [0x00]                                    # HTTP2 DATA frame
-      [0x00]                                    # END_STREAM
+      [0x01]                                    # END_STREAM
       [0x00 0x00 0x00 0x02]                     # stream_id=2
       "h1 {"
       "    color: blue;"
@@ -183,7 +179,7 @@ write flush
 # First promised response BODY stream-id=4
 write [0x00 0x00 0x0f]                          # length = 15
       [0x00]                                    # HTTP2 DATA frame
-      [0x00]                                    # END_STREAM
+      [0x01]                                    # END_STREAM
       [0x00 0x00 0x00 0x04]                     # stream_id=4
       "function f() {"
       "}"

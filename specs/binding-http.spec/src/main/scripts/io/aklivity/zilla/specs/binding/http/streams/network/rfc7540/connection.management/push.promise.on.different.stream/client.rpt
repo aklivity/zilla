@@ -86,13 +86,15 @@ read [0x00 0x00 0x59]                                      # length
      [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
      [0x0f 0x0d] [0x03] "113"                              # content-length
 
-read [0x00 0x00 0x38]                                      # length
+read [0x00 0x00 0x58]                                      # length
      [0x01]                                                # HTTP2 HEADERS frame
      [0x04]                                                # END_HEADERS
      [0x00 0x00 0x00 0x03]                                 # stream_id=3
      [0x88]                                                # :status: 200
      [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
      [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
+     [0x0f 0x10] [0x18] "text/html; charset=UTF-8"         # content-type
+     [0x0f 0x0d] [0x02] "11"                               # content-length
 
 # First http2 PUSH_PROMISE frame
 read [0x00 0x00 0x22]                          # length = 35
@@ -119,18 +121,12 @@ read [0x00 0x00 0x22]                          # length = 35
 # response http2 DATA frame
 read [0x00 0x00 0x71]                          # length = 119
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # END_STREAM
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x01]                     # stream_id=1
      "<html>"
      "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
      "<body><script src=\"script.js\"></script></body>"
      "</html>"
-
-# response http2 DATA frame (EOS)
-read [0x00 0x00 0x00]                  # length = 0
-     [0x00]                            # HTTP2 DATA frame
-     [0x01]                            # END_STREAM
-     [0x00 0x00 0x00 0x01]             # stream_id = 1
 
 # First promised response HEADERS stream-id=2
 read [0x00 0x00 0x48]                                      # length
@@ -141,7 +137,7 @@ read [0x00 0x00 0x48]                                      # length
      [0x0f 0x27] [0x14] "CERN/3.0 libwww/2.17"             # server
      [0x0f 0x12] [0x1d] "Wed, 01 Feb 2017 19:12:46 GMT"    # date
      [0x0f 0x10] [0x08] "text/css"                         # content-type
-     [0x0f 0x0d] [0x02] "31"                               # content-length
+     [0x0f 0x0d] [0x02] "21"                               # content-length
 
 # Second promised response HEADERS stream-id=4
 read [0x00 0x00 0x4f]                                      # length
@@ -168,7 +164,7 @@ read [0x00 0x00 0x23]                          # length = 35
 # First promised response DATA stream-id=2
 read [0x00 0x00 0x15]                          # length = 21
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # END_STREAM
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x02]                     # stream_id=2
      "h1 {"
      "    color: blue;"
@@ -177,7 +173,7 @@ read [0x00 0x00 0x15]                          # length = 21
 # Second promised response DATA stream-id=4
 read [0x00 0x00 0x0f]                          # length = 15
      [0x00]                                    # HTTP2 DATA frame
-     [0x00]                                    # END_STREAM
+     [0x01]                                    # END_STREAM
      [0x00 0x00 0x00 0x04]                     # stream_id=4
      "function f() {"
      "}"

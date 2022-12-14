@@ -194,14 +194,14 @@ public final class ZillaStreamFactory
             channel.sourceId(streamId);
             channel.sourceAuth(begin.authorization());
 
+            channel.beginInputFuture().setSuccess();
+
             final ZillaChannelConfig config = channel.getConfig();
             if (config.getUpdate() == ZillaUpdateMode.HANDSHAKE ||
                 config.getUpdate() == ZillaUpdateMode.STREAM)
             {
                 sender.doWindow(channel);
             }
-
-            channel.beginInputFuture().setSuccess();
 
             beginFuture.setSuccess();
         }

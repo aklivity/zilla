@@ -2846,6 +2846,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     doSignalPublishExpirationIfNecessary();
                 }
+                doApplicationWindow(traceId, authorization, 0, 0);
             }
 
             private void doApplicationData(

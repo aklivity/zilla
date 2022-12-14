@@ -3773,7 +3773,11 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                     doEncodeAttach(traceId, authorization, name, outgoingChannel, handle, amqpRole, amqpSenderSettleMode,
                         amqpReceiverSettleMode, addressFrom, addressTo, deliveryCount, decodeMaxMessageSize);
 
-                    flushInitialWindow(traceId, authorization);
+                    if (AmqpState.initialOpened(state))
+                    {
+                        flushInitialWindow(traceId, authorization);
+                    }
+
                     doApplicationWindow(traceId, authorization);
                 }
 
@@ -4051,6 +4055,7 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                         final int replyPendingAck = Math.max(replyMax - replyBudget, 0);
                         final int replyAckMax = (int)(replySeq - replyPendingAck);
                         final int replyBudgetMax = replyBudget + replyPendingAck;
+
                         if (replyAckMax > replyAck || replyBudgetMax != replyMax)
                         {
                             replyAck = replyAckMax;
@@ -4058,7 +4063,15 @@ public final class AmqpServerFactory implements AmqpStreamFactory
                             replyMax = replyBudgetMax;
                             assert replyMax >= 0;
                             doWindow(application, newRouteId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
-                                replySharedBudgetId, padding, maxFrameSize);
+                                    replySharedBudgetId, padding, maxFrameSize);
+                        }
+                        else if (replyAckMax == 0 &&
+                                replyAck == 0 &&
+                                replyBudgetMax == 0 &&
+                                replyMax == 0)
+                        {
+                            doWindow(application, newRouteId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                                    replySharedBudgetId, padding, maxFrameSize);
                         }
                     }
                 }

@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.Zill
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_CAPABILITIES;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_PADDING;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_SHARED_WINDOW;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_STREAM_ID;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_THROTTLE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_TRANSMISSION;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.OPTION_UPDATE;
@@ -41,6 +42,7 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     private int window;
     private int sharedWindow;
     private long budgetId;
+    private long streamId;
     private int padding;
     private ZillaThrottleMode throttle = ZillaThrottleMode.STREAM;
     private ZillaUpdateMode update = ZillaUpdateMode.STREAM;
@@ -162,6 +164,19 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
     }
 
     @Override
+    public void setStreamId(
+        long streamId)
+    {
+        this.streamId = streamId;
+    }
+
+    @Override
+    public long getStreamId()
+    {
+        return streamId;
+    }
+
+    @Override
     public void setCapabilities(
         byte capabilities)
     {
@@ -199,6 +214,10 @@ public class DefaultZillaServerChannelConfig extends DefaultServerChannelConfig 
         else if (OPTION_BUDGET_ID.getName().equals(key))
         {
             setBudgetId(convertToLong(value));
+        }
+        else if (OPTION_STREAM_ID.getName().equals(key))
+        {
+            setStreamId(convertToLong(value));
         }
         else if (OPTION_PADDING.getName().equals(key))
         {

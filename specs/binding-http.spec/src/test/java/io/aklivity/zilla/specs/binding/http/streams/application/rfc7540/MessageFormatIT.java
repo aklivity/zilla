@@ -58,10 +58,20 @@ public class MessageFormatIT
 
     @Test
     @Specification({
-        "${app}/max.frame.size/client",
-        "${app}/max.frame.size/server"
+        "${app}/server.max.frame.size/client",
+        "${app}/server.max.frame.size/server"
     })
-    public void maxFrameSize() throws Exception
+    public void serverMaxFrameSize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.max.frame.size/client",
+        "${app}/client.max.frame.size/server"
+    })
+    public void clientMaxFrameSize() throws Exception
     {
         k3po.finish();
     }
@@ -82,6 +92,16 @@ public class MessageFormatIT
         "${app}/priority.frame.size.error/server"
     })
     public void priorityFrameSizeError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.error.frame.with.request.payload/client",
+        "${app}/client.error.frame.with.request.payload/server"
+    })
+    public void clientErrorFrameWithRequestPayload() throws Exception
     {
         k3po.finish();
     }
@@ -132,6 +152,16 @@ public class MessageFormatIT
         "${app}/stream.id.order/server"
     })
     public void streamIdOrder() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/request.and.503.response/client",
+        "${app}/request.and.503.response/server"
+    })
+    public void requestAnd503Response() throws Exception
     {
         k3po.finish();
     }

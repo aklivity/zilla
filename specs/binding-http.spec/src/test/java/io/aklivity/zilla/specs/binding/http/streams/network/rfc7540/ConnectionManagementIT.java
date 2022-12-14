@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.http.streams.network.rfc7540;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -46,6 +47,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/http.get.exchange/client",
@@ -56,6 +58,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/http.get.exchange.with.header.override/client",
@@ -158,20 +161,20 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/reset.http2.stream/client",
-        "${net}/reset.http2.stream/server",
+        "${net}/http.push.promise.none.cacheable.request/client",
+        "${net}/http.push.promise.none.cacheable.request/server",
     })
-    public void resetHttp2Stream() throws Exception
+    public void shouldRejectNotCacheablePromiseRequest() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/ignore.rst.stream/client",
-        "${net}/ignore.rst.stream/server",
+        "${net}/ignore.client.rst.stream/client",
+        "${net}/ignore.client.rst.stream/server",
     })
-    public void ignoreRstStream() throws Exception
+    public void ignoreClientRstStream() throws Exception
     {
         k3po.finish();
     }
@@ -188,16 +191,6 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/rst.stream.last.frame/client",
-        "${net}/rst.stream.last.frame/server"
-    })
-    public void rstStreamLastFrame() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/client.sent.read.abort.on.closed.request/client",
         "${net}/client.sent.read.abort.on.closed.request/server"
     })
@@ -206,6 +199,7 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/client.sent.write.abort.on.open.request/client",
@@ -248,10 +242,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/server.sent.read.abort.before.correlated/client",
-        "${net}/server.sent.read.abort.before.correlated/server"
+        "${net}/server.sent.read.abort.before.response/client",
+        "${net}/server.sent.read.abort.before.response/server"
     })
-    public void serverSentReadAbortBeforeCorrelated() throws Exception
+    public void serverSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
     }
@@ -328,8 +322,8 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${net}/client.sent.end.before.response.received/client",
-        "${net}/client.sent.end.before.response.received/server",
+        "${net}/server.sent.close.before.response.headers/client",
+        "${net}/server.sent.close.before.response.headers/server",
     })
     public void shouldSendResetOnIncompleteResponse() throws Exception
     {
@@ -352,6 +346,26 @@ public class ConnectionManagementIT
         "${net}/client.sent.write.abort.then.read.abort.on.open.request/server",
     })
     public void clientSentWriteAbortThenReadAbortOnOpenRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.read.abort.before.response/client",
+        "${net}/client.sent.read.abort.before.response/server",
+    })
+    public void clientSentReadAbortBeforeResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/client.sent.rst.stream.on.closed.request/client",
+        "${net}/client.sent.rst.stream.on.closed.request/server",
+    })
+    public void clientSentResetStreamOnClosedRequest() throws Exception
     {
         k3po.finish();
     }

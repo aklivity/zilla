@@ -81,12 +81,12 @@ public class Http2PushPromiseFW extends Http2FrameFW
         return buffer().getInt(offset, BIG_ENDIAN) & 0x7F_FF_FF_FF;
     }
 
-    private int headersOffset()
+    public int headersOffset()
     {
         return offset() + PAYLOAD_OFFSET + 4 + (padded() ? 1 : 0);
     }
 
-    private int headersLength()
+    public int headersLength()
     {
         int headersLength = length() - 4;    // -4 for promised stream id
         if (padded())

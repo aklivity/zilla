@@ -54,12 +54,9 @@ write [0x00 0x00 0x05]                   # length
       [0x00 0x00 0x00 0x00]              # stream_id=0
       [0x00 0x00 0x00 0x00 0x3c]         # ping data
 
-read [0x00 0x00 0x08]                          # length = 8
-     [0x07]                                    # HTTP2 GO_AWAY frame
-     [0x00]                                    # no flags
-     [0x00 0x00 0x00 0x00]                     # stream_id=0
-     [0x00 0x00 0x00 0x00]                     # Last-Stream_ID
-     [0x00 0x00 0x00 0x06]                     # FRAME_SIZE_ERROR
-
-# read aborted
-# write aborted
+read [0x00 0x00 0x08]                    # length = 8
+     [0x07]                              # HTTP2 GO_AWAY frame
+     [0x00]                              # no flags
+     [0x00 0x00 0x00 0x00]               # stream_id=0
+     [0x00 0x00 0x00 0x00]               # Last-Stream_ID
+     [0x00 0x00 0x00 0x06]               # FRAME_SIZE_ERROR

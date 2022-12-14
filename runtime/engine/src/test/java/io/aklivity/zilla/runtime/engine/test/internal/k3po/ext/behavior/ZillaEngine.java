@@ -112,7 +112,7 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
         ZillaChannelAddress remoteAddress,
         ChannelFuture connectFuture)
     {
-        submitTask(new ConnectClientTask(channel, remoteAddress, connectFuture));
+        submitTask(new ConnectClientTask(channel, remoteAddress, connectFuture), true);
     }
 
     public void adviseOutput(

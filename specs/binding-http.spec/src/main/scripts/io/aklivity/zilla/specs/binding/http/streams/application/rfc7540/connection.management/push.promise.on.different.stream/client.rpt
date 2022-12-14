@@ -43,23 +43,23 @@ read zilla:begin.ext ${http:beginEx()
 
 
 # First push promise
-read zilla:data.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                            .header(":method", "GET")
-                            .header(":scheme", "http")
-                            .header(":path", "/style.css")
-                            .header(":authority", "localhost:8080")
-                            .build()}
+read advised zilla:flush ${http:matchFlushEx()
+                               .typeId(zilla:id("http"))
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/style.css")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
 read notify FIRST_PUSH_PROMISE_RECEIVED
 
 # Second push promise
-read zilla:data.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                            .header(":method", "GET")
-                            .header(":scheme", "http")
-                            .header(":path", "/script.js")
-                            .header(":authority", "localhost:8080")
-                            .build()}
+read advised zilla:flush ${http:matchFlushEx()
+                               .typeId(zilla:id("http"))
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/script.js")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
 read notify SECOND_PUSH_PROMISE_RECEIVED
 
 read "<html>"
@@ -89,9 +89,9 @@ read zilla:begin.ext ${http:beginEx()
                              .header(":status", "200")
                              .header("server", "CERN/3.0 libwww/2.17")
                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
+                             .header("content-type", "text/html; charset=UTF-8")
+                             .header("content-length", "11")
                              .build()}
-
-
 
 #
 # First promised request
@@ -117,17 +117,17 @@ read zilla:begin.ext ${http:beginEx()
                              .header("server", "CERN/3.0 libwww/2.17")
                              .header("date", "Wed, 01 Feb 2017 19:12:46 GMT")
                              .header("content-type", "text/css")
-                             .header("content-length", "31")
+                             .header("content-length", "21")
                              .build()}
 
 
-read zilla:data.ext ${http:dataEx()
-                            .typeId(zilla:id("http"))
-                            .promise(":method", "GET")
-                            .promise(":scheme", "http")
-                            .promise(":path", "/widget.css")
-                            .promise(":authority", "localhost:8080")
-                            .build()}
+read advised zilla:flush ${http:matchFlushEx()
+                               .typeId(zilla:id("http"))
+                               .promise(":method", "GET")
+                               .promise(":scheme", "http")
+                               .promise(":path", "/widget.css")
+                               .promise(":authority", "localhost:8080")
+                               .build()}
 
 read "h1 {"
      "    color: blue;"
