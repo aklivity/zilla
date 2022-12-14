@@ -2180,7 +2180,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             }
 
             delegate.doKafkaEndDeferred(traceId, authorization);
-
             doHttpErrorDeferred(traceId, authorization);
         }
 
