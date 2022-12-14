@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
+import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIndex;
@@ -120,9 +121,9 @@ import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
 public class DispatchAgent implements EngineContext, Agent
 {
-    private static final int RESERVED_SIZE = Byte.SIZE;
+    private static final int RESERVED_SIZE = 33;
 
-    private static final int SHIFT_SIZE = Long.SIZE - RESERVED_SIZE;
+    private static final int SHIFT_SIZE = 56;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
 
@@ -186,7 +187,8 @@ public class DispatchAgent implements EngineContext, Agent
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
 
-    private long iniitalId;
+    private long initialId;
+    private long promiseId;
     private long traceId;
     private long budgetId;
     private long authorizedId;
@@ -285,7 +287,8 @@ public class DispatchAgent implements EngineContext, Agent
 
         this.mask = mask;
         this.bufferPool = bufferPool;
-        this.iniitalId = initial;
+        this.initialId = initial;
+        this.promiseId = initial;
         this.traceId = initial;
         this.budgetId = initial;
         this.authorizedId = initial;
@@ -374,11 +377,11 @@ public class DispatchAgent implements EngineContext, Agent
     {
         final int remoteIndex = resolveRemoteIndex(routeId);
 
-        iniitalId += 2L;
-        iniitalId &= mask;
+        initialId += 2L;
+        initialId &= mask;
 
         return (((long)remoteIndex << 48) & 0x00ff_0000_0000_0000L) |
-               (iniitalId & 0xff00_ffff_ffff_ffffL) | 0x0000_0000_0000_0001L;
+               (initialId & 0xff00_0000_7fff_ffffL) | 0x0000_0000_0000_0001L;
     }
 
     @Override
@@ -387,6 +390,17 @@ public class DispatchAgent implements EngineContext, Agent
     {
         assert isInitial(initialId);
         return initialId & 0xffff_ffff_ffff_fffeL;
+    }
+
+    @Override
+    public long supplyPromiseId(
+        long carrierId)
+    {
+        promiseId += 2L;
+        promiseId &= mask;
+
+        return carrierId & 0xffff_0000_0000_0000L | 0x0000_0000_8000_0000L |
+                promiseId & 0x0000_0000_7fff_ffffL | 0x0000_0000_0000_0001L;
     }
 
     @Override
@@ -430,7 +444,7 @@ public class DispatchAgent implements EngineContext, Agent
     public BudgetDebitor supplyDebitor(
         long budgetId)
     {
-        final int ownerIndex = (int) ((budgetId >> SHIFT_SIZE) & 0xFFFF_FFFF);
+        final int ownerIndex = ownerIndex(budgetId);
         return debitorsByIndex.computeIfAbsent(ownerIndex, this::newBudgetDebitor);
     }
 
@@ -470,7 +484,7 @@ public class DispatchAgent implements EngineContext, Agent
     public int supplyClientIndex(
         long streamId)
     {
-        return StreamId.clientIndex(streamId);
+        return clientIndex(streamId);
     }
 
     @Override
@@ -1256,6 +1270,24 @@ public class DispatchAgent implements EngineContext, Agent
         {
             handleDroppedReadData(msgTypeId, buffer, index, length);
         }
+        else if (msgTypeId == FlushFW.TYPE_ID)
+        {
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long routeId = frame.routeId();
+            final long streamId = frame.streamId();
+            final long sequence = frame.sequence();
+            final long acknowledge = frame.acknowledge();
+            final int maximum = frame.maximum();
+            final MessageConsumer newHandler = handleFlushReply(msgTypeId, buffer, index, length);
+            if (newHandler != null)
+            {
+                newHandler.accept(msgTypeId, buffer, index, length);
+            }
+            else
+            {
+                doReset(routeId, streamId, sequence, acknowledge, maximum);
+            }
+        }
     }
 
     private MessageConsumer handleBeginInitial(
@@ -1304,6 +1336,22 @@ public class DispatchAgent implements EngineContext, Agent
         {
             streams[streamIndex(streamId)].put(instanceId(streamId), newStream);
         }
+
+        return newStream;
+    }
+
+    private MessageConsumer handleFlushReply(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+        final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+        final long streamId = flush.streamId();
+
+        MessageConsumer newStream = null;
+
+        newStream = correlations.get(streamId);
 
         return newStream;
     }
@@ -1365,6 +1413,14 @@ public class DispatchAgent implements EngineContext, Agent
         final long replyId = supplyReplyId(streamId);
         correlations.put(replyId, sender);
         return supplyReceiver(streamId);
+    }
+
+    @Override
+    public MessageConsumer supplySender(
+        long streamId)
+    {
+        final int clientIndex = clientIndex(streamId);
+        return writersByIndex.computeIfAbsent(clientIndex, supplyWriter);
     }
 
     @Override

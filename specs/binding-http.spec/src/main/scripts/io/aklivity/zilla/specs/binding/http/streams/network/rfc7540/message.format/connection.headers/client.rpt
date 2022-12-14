@@ -48,12 +48,6 @@ read [0x00 0x00 0x00]                   # length = 0
      [0x01]                             # ACK
      [0x00 0x00 0x00 0x00]              # stream_id = 0
 
-write [0x00 0x00 0x00]                  # length = 0
-      [0x04]                            # HTTP2 SETTINGS frame
-      [0x01]                            # ACK
-      [0x00 0x00 0x00 0x00]             # stream_id = 0
-write flush
-
 #
 # request headers with HEADERS frames
 #
@@ -65,6 +59,12 @@ write [0x00 0x00 0x13]                  # length = 19
       [0x86]                            # :scheme: http
       [0x84]                            # :path: /
       [0x01] [0x0e] "localhost:8080"    # :authority: localhost:8080
+write flush
+
+write [0x00 0x00 0x00]                  # length = 0
+      [0x04]                            # HTTP2 SETTINGS frame
+      [0x01]                            # ACK
+      [0x00 0x00 0x00 0x00]             # stream_id = 0
 write flush
 
 #

@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_MAX_CONCURRENT_STREAMS_CLEANUP_NAME;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAMS_CLEANUP_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
@@ -47,7 +47,7 @@ public class ConnectionManagementIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("app0")
         .clean();
@@ -176,9 +176,9 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/reset.http2.stream/client",
-        "${app}/reset.http2.stream/server" })
-    public void resetHttp2Stream() throws Exception
+        "${net}/client.sent.rst.stream.on.closed.request/client",
+        "${app}/client.sent.write.abort.on.closed.request/server" })
+    public void clientSentRstStreamOnClosedRequest() throws Exception
     {
         k3po.finish();
     }
@@ -186,9 +186,9 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/ignore.rst.stream/client",
-        "${app}/ignore.rst.stream/server" })
-    public void ignoreRsttStream() throws Exception
+        "${net}/ignore.client.rst.stream/client",
+        "${app}/ignore.client.rst.stream/server" })
+    public void ignoreClientRstStream() throws Exception
     {
         k3po.finish();
     }
@@ -262,21 +262,10 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/server.sent.read.abort.before.correlated/client",
-        "${app}/server.sent.read.abort.before.correlated/server"
+        "${net}/server.sent.read.abort.before.response/client",
+        "${app}/server.sent.read.abort.before.response/server"
     })
-    public void serverSentReadAbortBeforeCorrelated() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.json")
-    @Specification({
-        "${net}/rst.stream.last.frame/client",
-        "${app}/rst.stream.last.frame/server"
-    })
-    public void rstStreamLastFrame() throws Exception
+    public void serverSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
     }
@@ -357,8 +346,8 @@ public class ConnectionManagementIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/client.sent.end.before.response.received/client",
-        "${app}/client.sent.end.before.response.received/server" })
+        "${net}/client.sent.close.before.response.headers/client",
+        "${app}/client.sent.close.before.response.headers/server" })
     public void shouldSendResetOnIncompleteResponse() throws Exception
     {
         k3po.finish();

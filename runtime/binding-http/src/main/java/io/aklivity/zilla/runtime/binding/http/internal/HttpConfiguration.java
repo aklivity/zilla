@@ -25,12 +25,16 @@ public class HttpConfiguration extends Configuration
             EngineConfiguration.DEBUG_BUDGETS || Boolean.getBoolean("zilla.binding.http.debug.budgets");
 
     public static final IntPropertyDef HTTP_MAXIMUM_CONNECTIONS;
-    public static final IntPropertyDef HTTP_SERVER_CONCURRENT_STREAMS;
-    public static final LongPropertyDef HTTP_SERVER_MAX_HEADER_LIST_SIZE;
+    public static final IntPropertyDef HTTP_CONCURRENT_STREAMS;
+    public static final IntPropertyDef HTTP_STREAM_INITIAL_WINDOW;
+    public static final LongPropertyDef HTTP_MAX_HEADER_LIST_SIZE;
+    public static final IntPropertyDef HTTP_MAX_PUSH_PROMISE_LIST_SIZE;
+    public static final IntPropertyDef HTTP_MAX_FRAME_SIZE;
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_STREAMS_CLEANUP;
     public static final IntPropertyDef HTTP_STREAMS_CLEANUP_DELAY;
     public static final IntPropertyDef HTTP_MAX_CONCURRENT_APPLICATION_HEADERS;
     public static final PropertyDef<String> HTTP_SERVER_HEADER;
+    public static final PropertyDef<String> HTTP_USER_AGENT_HEADER;
 
     private static final ConfigurationDef HTTP_CONFIG;
 
@@ -38,9 +42,13 @@ public class HttpConfiguration extends Configuration
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.http");
         HTTP_MAXIMUM_CONNECTIONS = config.property("maximum.connections", 10);
-        HTTP_SERVER_CONCURRENT_STREAMS = config.property("server.concurrent.streams", Integer.MAX_VALUE);
-        HTTP_SERVER_MAX_HEADER_LIST_SIZE = config.property("server.max.header.list.size", 8_192L);
+        HTTP_CONCURRENT_STREAMS = config.property("concurrent.streams", Integer.MAX_VALUE);
+        HTTP_STREAM_INITIAL_WINDOW = config.property("stream.initial.window", 0);
+        HTTP_MAX_HEADER_LIST_SIZE = config.property("max.header.list.size", 8_192L);
+        HTTP_MAX_PUSH_PROMISE_LIST_SIZE = config.property("max.push.promise.list.size", 100);
+        HTTP_MAX_FRAME_SIZE = config.property("max.frame.size", 16_384);
         HTTP_SERVER_HEADER = config.property("server.header");
+        HTTP_USER_AGENT_HEADER = config.property("user.agent.header");
         HTTP_MAX_CONCURRENT_STREAMS_CLEANUP = config.property("max.concurrent.streams.cleanup", 1000);
         HTTP_STREAMS_CLEANUP_DELAY = config.property("streams.cleanup.delay", 100);
         HTTP_MAX_CONCURRENT_APPLICATION_HEADERS = config.property("max.concurrent.application.headers", 10000);
@@ -48,13 +56,16 @@ public class HttpConfiguration extends Configuration
     }
 
     private final String16FW serverHeader;
+    private final String16FW userAgentHeader;
 
     public HttpConfiguration(
         Configuration config)
     {
         super(HTTP_CONFIG, config);
         String server = HTTP_SERVER_HEADER.get(this);
+        String userAgent = HTTP_USER_AGENT_HEADER.get(this);
         serverHeader = server != null ? new String16FW(server) : null;
+        userAgentHeader = userAgent != null ? new String16FW(userAgent) : null;
     }
 
     public int maximumConnectionsPerRoute()
@@ -62,17 +73,32 @@ public class HttpConfiguration extends Configuration
         return HTTP_MAXIMUM_CONNECTIONS.getAsInt(this);
     }
 
-    public int serverConcurrentStreams()
+    public int concurrentStreams()
     {
-        return HTTP_SERVER_CONCURRENT_STREAMS.getAsInt(this);
+        return HTTP_CONCURRENT_STREAMS.getAsInt(this);
     }
 
-    public long serverMaxHeaderListSize()
+    public int streamInitialWindow()
     {
-        return HTTP_SERVER_MAX_HEADER_LIST_SIZE.getAsLong(this);
+        return HTTP_STREAM_INITIAL_WINDOW.getAsInt(this);
     }
 
-    public int maxConcurrentStreamsCleanup()
+    public long maxHeaderListSize()
+    {
+        return HTTP_MAX_HEADER_LIST_SIZE.getAsLong(this);
+    }
+
+    public int maxFrameSize()
+    {
+        return HTTP_MAX_FRAME_SIZE.getAsInt(this);
+    }
+
+    public int maxPushPromiseListSize()
+    {
+        return HTTP_MAX_PUSH_PROMISE_LIST_SIZE.getAsInt(this);
+    }
+
+    public int concurrentStreamsCleanup()
     {
         return HTTP_MAX_CONCURRENT_STREAMS_CLEANUP.getAsInt(this);
     }
@@ -90,5 +116,10 @@ public class HttpConfiguration extends Configuration
     public String16FW serverHeader()
     {
         return serverHeader;
+    }
+
+    public String16FW userAgentHeader()
+    {
+        return userAgentHeader;
     }
 }

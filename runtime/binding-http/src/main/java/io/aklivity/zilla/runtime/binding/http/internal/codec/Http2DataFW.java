@@ -117,11 +117,20 @@ public class Http2DataFW extends Http2FrameFW
             return this;
         }
 
-        public Builder endStream()
+        public Builder endStream(boolean endStream)
         {
-            buffer().putByte(offset() + FLAGS_OFFSET, END_STREAM);
+            byte flags = buffer().getByte(offset() + FLAGS_OFFSET);
+            flags = (byte) (endStream ? (flags | END_STREAM) : (flags & ~END_STREAM));
+            buffer().putByte(offset() + FLAGS_OFFSET, flags);
             return this;
         }
+
+        public Builder endStream()
+        {
+            endStream(true);
+            return this;
+        }
+
     }
 }
 

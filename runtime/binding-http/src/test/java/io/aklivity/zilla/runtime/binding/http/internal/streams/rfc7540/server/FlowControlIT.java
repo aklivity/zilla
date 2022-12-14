@@ -15,10 +15,11 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.server;
 
-import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_SERVER_CONCURRENT_STREAMS;
+import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -43,7 +44,7 @@ public class FlowControlIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(HTTP_SERVER_CONCURRENT_STREAMS, 100)
+        .configure(HTTP_CONCURRENT_STREAMS, 100)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("app0")
         .clean();
@@ -54,9 +55,31 @@ public class FlowControlIT
     @Test
     @Configuration("server.json")
     @Specification({
-        "${net}/stream.flow/client",
+        "${net}/server.stream.flow/client",
         "${app}/stream.flow/server" })
     public void streamFlow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Ignore("Address issue/134")
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/server.sent.100k.message/client",
+        "${app}/server.sent.100k.message/server" })
+    public void serverSent100kMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${net}/server.rst.stream.last.frame/client",
+        "${app}/server.rst.stream.last.frame/server"
+    })
+    public void serverResetStreamLastFrame() throws Exception
     {
         k3po.finish();
     }

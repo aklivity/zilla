@@ -55,4 +55,14 @@ public class StartingIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/upgrade.multiple.requests.pipelined/client",
+        "${app}/upgrade.multiple.requests.pipelined/server",
+    })
+    public void shouldRequestMultipleRequestWithoutUpgrade() throws Exception
+    {
+        k3po.finish();
+    }
 }

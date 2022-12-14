@@ -190,15 +190,17 @@ final class ZillaTarget implements AutoCloseable
     {
         try
         {
+            final ZillaChannelConfig clientConfig = clientChannel.getConfig();
+
             final long routeId = clientChannel.routeId();
-            final long initialId = clientChannel.targetId();
+            final long streamId = clientConfig.getStreamId();
+            final long initialId = streamId == 0L ? clientChannel.targetId() : streamId;
             final long replyId = initialId & 0xffff_ffff_ffff_fffeL;
             clientChannel.sourceId(replyId);
 
             final ChannelFuture windowFuture = future(clientChannel);
             ChannelFuture replyFuture = succeededFuture(clientChannel);
 
-            final ZillaChannelConfig clientConfig = clientChannel.getConfig();
             switch (clientConfig.getTransmission())
             {
             case DUPLEX:
@@ -472,6 +474,7 @@ final class ZillaTarget implements AutoCloseable
         final long budgetId = channel.debitorId();
 
         final ChannelBuffer writeExt = channel.writeExtBuffer(FLUSH, true);
+        final int writableExtBytes = writeExt.readableBytes();
         final byte[] writeExtCopy = writeExtCopy(writeExt);
 
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -488,6 +491,9 @@ final class ZillaTarget implements AutoCloseable
                 .build();
 
         streamsBuffer.write(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
+
+        writeExt.skipBytes(writableExtBytes);
+        writeExt.discardReadBytes();
 
         adviseFuture.setSuccess();
     }

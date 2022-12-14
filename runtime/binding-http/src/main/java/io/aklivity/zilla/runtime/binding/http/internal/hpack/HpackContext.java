@@ -100,6 +100,7 @@ public class HpackContext
     private static final int STATIC_TABLE_LENGTH = STATIC_TABLE.length;
 
     public static final DirectBuffer CONNECTION = new UnsafeBuffer("connection".getBytes(UTF_8));
+    public static final DirectBuffer CONTENT_LENGTH = new UnsafeBuffer("content-length".getBytes(UTF_8));
     public static final DirectBuffer TE = new UnsafeBuffer("te".getBytes(UTF_8));
     public static final DirectBuffer TRAILERS = new UnsafeBuffer("trailers".getBytes(UTF_8));
     public static final DirectBuffer KEEP_ALIVE = new UnsafeBuffer("keep-alive".getBytes(UTF_8));

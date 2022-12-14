@@ -43,6 +43,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.S
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.DataFW;
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongObjectBiConsumer;
@@ -51,6 +52,7 @@ final class ZillaPartition implements AutoCloseable
 {
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
+    private final FlushFW flushRO = new FlushFW();
     private final DataFW dataRO = new DataFW();
 
     private final Path streamsPath;
@@ -194,6 +196,10 @@ final class ZillaPartition implements AutoCloseable
                 target.doSystemWindow(traceId, budgetId, reserved);
             }
             break;
+        case FlushFW.TYPE_ID:
+            final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+            handleFlush(flush);
+            break;
         }
     }
 
@@ -271,28 +277,39 @@ final class ZillaPartition implements AutoCloseable
             final ChannelFuture beginFuture = future(childChannel);
             final ChannelFuture windowFuture = future(childChannel);
 
+            childChannel.beginInputFuture().addListener(future ->
+            {
+                fireChannelBound(childChannel, childChannel.getLocalAddress());
+                if (future.isSuccess())
+                {
+                    ZillaChannelConfig childConfig = childChannel.getConfig();
+                    switch (childConfig.getTransmission())
+                    {
+                    case DUPLEX:
+                        sender.doBeginReply(childChannel);
+                        break;
+                    default:
+                        windowFuture.setSuccess();
+                        break;
+                    }
+                }
+            });
+
             final MessageHandler newStream = streamFactory.newStream(childChannel, sender, beginFuture);
             registerStream.accept(initialId, newStream);
             newStream.onMessage(begin.typeId(), (MutableDirectBuffer) begin.buffer(), begin.offset(), begin.sizeof());
-
-            fireChannelBound(childChannel, childChannel.getLocalAddress());
 
             ChannelFuture handshakeFuture = beginFuture;
 
             sender.doPrepareReply(childChannel, windowFuture, handshakeFuture);
 
-            ZillaChannelConfig childConfig = childChannel.getConfig();
-            switch (childConfig.getTransmission())
+            windowFuture.addListener(future ->
             {
-            case DUPLEX:
-                sender.doBeginReply(childChannel);
-                break;
-            default:
-                windowFuture.setSuccess();
-                break;
-            }
-
-            fireChannelConnected(childChannel, childChannel.getRemoteAddress());
+                if (future.isSuccess())
+                {
+                    fireChannelConnected(childChannel, childChannel.getRemoteAddress());
+                }
+            });
         }
     }
 
@@ -317,6 +334,45 @@ final class ZillaPartition implements AutoCloseable
             registerStream.accept(replyId, newStream);
 
             newStream.onMessage(begin.typeId(), (MutableDirectBuffer) begin.buffer(), begin.offset(), begin.sizeof());
+        }
+        else
+        {
+            sender.doReset(routeId, replyId, sequence, acknowledge, traceId, maximum);
+        }
+    }
+
+    private void handleFlush(
+        FlushFW flush)
+    {
+        final long streamId = flush.streamId();
+
+        if ((streamId & 0x0000_0000_0000_0001L) == 0L)
+        {
+            handleFlushReply(flush);
+        }
+    }
+
+    private void handleFlushReply(
+        final FlushFW flush)
+    {
+        final long routeId = flush.routeId();
+        final long replyId = flush.streamId();
+        final long sequence = flush.sequence();
+        final long acknowledge = flush.acknowledge();
+        final long traceId = flush.traceId();
+        final int maximum = flush.maximum();
+        final ZillaCorrelation correlation = correlateEstablished.apply(replyId);
+        final ZillaTarget sender = supplySender.apply(routeId, replyId);
+
+        if (correlation != null)
+        {
+            final ChannelFuture beginFuture = correlation.correlatedFuture();
+            final ZillaClientChannel clientChannel = (ZillaClientChannel) beginFuture.getChannel();
+
+            final MessageHandler newStream = streamFactory.newStream(clientChannel, sender, beginFuture);
+            registerStream.accept(replyId, newStream);
+
+            newStream.onMessage(flush.typeId(), (MutableDirectBuffer) flush.buffer(), flush.offset(), flush.sizeof());
         }
         else
         {

@@ -36,11 +36,6 @@ read "PRI * HTTP/2.0\r\n"
      "SM\r\n"
      "\r\n"
 
-read [0x00 0x00 0x00]                   # length = 0
-     [0x04]                             # HTTP2 SETTINGS frame
-     [0x01]                             # ACK
-     [0x00 0x00 0x00 0x00]              # stream_id = 0
-
 read  [0x00 0x00 0x0c]                   # length = 12
       [0x04]                             # HTTP2 SETTINGS frame
       [0x00]                             # flags = 0x00
@@ -63,6 +58,11 @@ read [0x00 0x00 0x18]                   # length = 24
      [0x04] [0x09] "/api/path"          # :path: /api/path
      [0x01] [0x09] "localhost"          # :authority: localhost
 
+read [0x00 0x00 0x00]                   # length = 0
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x01]                             # ACK
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+
 write [0x00 0x00 0x59]                                      # length
       [0x01]                                                # HTTP2 HEADERS frame
       [0x04]                                                # END_HEADERS
@@ -76,16 +76,10 @@ write flush
 
 write [0x00 0x00 0x71]                  # length = 113
       [0x00]                            # HTTP2 DATA frame
-      [0x00]                            # no flags
+      [0x01]                            # END_STREAM
       [0x00 0x00 0x00 0x01]             # stream_id=1
       "<html>"
       "<head><link rel=\"stylesheet\" href=\"styles.css\"></head>"
       "<body><script src=\"script.js\"></script></body>"
       "</html>"
-write flush
-
-write [0x00 0x00 0x00]                          # length = 0
-      [0x00]                                    # HTTP2 DATA frame
-      [0x01]                                    # END_STREAM
-      [0x00 0x00 0x00 0x01]                     # stream_id=1
 write flush

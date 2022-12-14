@@ -53,6 +53,10 @@ public interface ZillaChannelConfig extends ChannelConfig
 
     long getAffinity();
 
+    void setStreamId(long streamId);
+
+    long getStreamId();
+
     void setCapabilities(byte capabilities);
 
     byte getCapabilities();

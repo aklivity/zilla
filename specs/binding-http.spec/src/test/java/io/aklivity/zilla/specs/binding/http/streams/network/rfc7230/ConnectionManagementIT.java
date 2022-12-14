@@ -322,4 +322,13 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/upgrade.rejected.when.not.requested/client",
+        "${net}/upgrade.rejected.when.not.requested/server" })
+    public void shouldRejectUpgradeResponseWhenNotRequested() throws Exception
+    {
+        k3po.finish();
+    }
 }

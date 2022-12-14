@@ -18,11 +18,13 @@ package io.aklivity.zilla.specs.binding.http.streams.application.rfc7540;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
+import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
@@ -111,6 +113,10 @@ public class ConnectionManagementIT
         "${app}/http.push.promise/client",
         "${app}/http.push.promise/server"
     })
+    @ScriptProperty({
+        "promiseId1 0x3f3f_0000_0000_0005L",
+        "promiseId2 0x3f3f_0000_0000_0007L",
+    })
     public void pushResources() throws Exception
     {
         k3po.finish();
@@ -126,22 +132,13 @@ public class ConnectionManagementIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
-        "${app}/reset.http2.stream/client",
-        "${app}/reset.http2.stream/server"
+        "${app}/ignore.client.rst.stream/client",
+        "${app}/ignore.client.rst.stream/server"
     })
-    public void resetHttp2Stream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/ignore.rst.stream/client",
-        "${app}/ignore.rst.stream/server"
-    })
-    public void ignoreRstStream() throws Exception
+    public void ignoreClientRstStream() throws Exception
     {
         k3po.finish();
     }
@@ -152,16 +149,6 @@ public class ConnectionManagementIT
         "${app}/client.sent.read.abort.on.open.request/server"
     })
     public void clientSentReadAbortOnOpenRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/rst.stream.last.frame/client",
-        "${app}/rst.stream.last.frame/server"
-    })
-    public void rstStreamLastFrame() throws Exception
     {
         k3po.finish();
     }
@@ -218,10 +205,10 @@ public class ConnectionManagementIT
 
     @Test
     @Specification({
-        "${app}/server.sent.read.abort.before.correlated/client",
-        "${app}/server.sent.read.abort.before.correlated/server"
+        "${app}/server.sent.read.abort.before.response/client",
+        "${app}/server.sent.read.abort.before.response/server"
     })
-    public void serverSentReadAbortBeforeCorrelated() throws Exception
+    public void serverSentReadAbortBeforeResponse() throws Exception
     {
         k3po.finish();
     }
@@ -262,6 +249,26 @@ public class ConnectionManagementIT
         "${app}/http.authority.default.port/server"
     })
     public void authorityWithoutPort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.authority/client",
+        "${app}/http.unknown.authority/server"
+    })
+    public void unknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.path/client",
+        "${app}/http.unknown.path/server"
+    })
+    public void unknownPath() throws Exception
     {
         k3po.finish();
     }
@@ -312,6 +319,36 @@ public class ConnectionManagementIT
         "${app}/client.sent.write.abort.then.read.abort.on.open.request/server"
     })
     public void clientSentWriteAbortThenReadAbortOnOpenRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.sent.write.rst.frame.on.open.request.response/client",
+        "${app}/server.sent.write.rst.frame.on.open.request.response/server"
+    })
+    public void serverSentWriteHttp2RstFrameOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.authority/client",
+        "${app}/http.unknown.authority/server"
+    })
+    public void httpUnknownAuthority() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/http.unknown.path/client",
+        "${app}/http.unknown.path/server"
+    })
+    public void httpUnknownPath() throws Exception
     {
         k3po.finish();
     }

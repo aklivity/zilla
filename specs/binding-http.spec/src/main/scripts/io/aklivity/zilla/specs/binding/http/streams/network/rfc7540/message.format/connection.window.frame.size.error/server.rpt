@@ -61,6 +61,3 @@ write [0x00 0x00 0x08]                          # length = 8
       [0x00 0x00 0x00 0x00]                     # stream_id=0
       [0x00 0x00 0x00 0x00]                     # Last-Stream_ID
       [0x00 0x00 0x00 0x06]                     # FRAME_SIZE_ERROR
-
-# write abort
-# read abort
