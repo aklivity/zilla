@@ -18,16 +18,17 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -131,31 +132,11 @@ public class ConfigureTask implements Callable<Void>
         {
             configText = CONFIG_TEXT_DEFAULT;
         }
-        else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
-        {
-            HttpClient client = HttpClient.newBuilder()
-                .version(HTTP_2)
-                .followRedirects(NORMAL)
-                .build();
-
-            HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(configURL.toURI())
-                .build();
-
-            HttpResponse<String> response = client.send(
-                request,
-                BodyHandlers.ofString());
-
-            configText = response.body();
-
-        }
         else
         {
-            URLConnection connection = configURL.openConnection();
-            try (InputStream input = connection.getInputStream())
+            try
             {
-                configText = new String(input.readAllBytes(), UTF_8);
+                configText = readURL(configURL);
             }
             catch (IOException ex)
             {
@@ -227,12 +208,27 @@ public class ConfigureTask implements Callable<Void>
 
             namespace.id = supplyId.applyAsInt(namespace.name);
 
+            namespace.readURL = configURL ->
+            {
+                try
+                {
+                    return this.readURL(configURL);
+                }
+                catch (IOException | URISyntaxException | InterruptedException e)
+                {
+                    rethrowUnchecked(e);
+                }
+                return null;
+            };
+
             // TODO: consider qualified name "namespace::name"
             namespace.resolveId = name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
 
             for (GuardConfig guard : namespace.guards)
             {
                 guard.id = namespace.resolveId.applyAsLong(guard.name);
+                guard.readURL = namespace.readURL;
+                guard.jsonb = jsonb;
             }
 
             for (VaultConfig vault : namespace.vaults)
@@ -315,5 +311,36 @@ public class ConfigureTask implements Callable<Void>
         // TODO: repeat to detect and apply changes
 
         return null;
+    }
+
+
+    private String readURL(URL url) throws IOException, URISyntaxException, InterruptedException
+    {
+        if ("http".equals(url.getProtocol()) || "https".equals(url.getProtocol()))
+        {
+            HttpClient client = HttpClient.newBuilder()
+                    .version(HTTP_2)
+                    .followRedirects(NORMAL)
+                    .build();
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .GET()
+                    .uri(url.toURI())
+                    .build();
+
+            HttpResponse<String> response = client.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString());
+
+            return response.body();
+        }
+        else
+        {
+            URLConnection connection = url.openConnection();
+            try (InputStream input = connection.getInputStream())
+            {
+                return new String(input.readAllBytes(), UTF_8);
+            }
+        }
     }
 }

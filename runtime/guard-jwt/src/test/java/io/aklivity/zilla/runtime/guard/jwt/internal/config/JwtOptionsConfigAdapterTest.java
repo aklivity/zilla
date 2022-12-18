@@ -155,4 +155,21 @@ public class JwtOptionsConfigAdapterTest
                         "\"challenge\":30" +
                     "}"));
     }
+
+    @Test
+    public void shouldReadOptionsDynamicKeys()
+    {
+        String text =
+                "{" +
+                    "\"issuer\":\"https://auth.example.com\"," +
+                    "\"audience\":\"https://api.example.com\"," +
+                    "\"keys\": \"https://auth.example.com/.well_known/jwks\"," +
+                    "\"challenge\":30" +
+                "}";
+        JwtOptionsConfig options = jsonb.fromJson(text, JwtOptionsConfig.class);
+        assertThat(options, not(nullValue()));
+        assertThat(options.issuer, equalTo("https://auth.example.com"));
+        assertThat(options.audience, equalTo("https://api.example.com"));
+        assertThat(options.keys, empty());
+    }
 }

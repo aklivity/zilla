@@ -20,10 +20,13 @@ import static java.util.stream.Collectors.toList;
 import java.time.Duration;
 import java.util.List;
 
+
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -104,18 +107,29 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 ? object.getString(AUDIENCE_NAME)
                 : null;
 
-        List<JwtKeyConfig> keys = object.containsKey(KEYS_NAME)
-                ? object.getJsonArray(KEYS_NAME)
-                    .stream()
-                    .map(JsonValue::asJsonObject)
-                    .map(key::adaptFromJson)
-                    .collect(toList())
-                : KEYS_DEFAULT;
+        List<JwtKeyConfig> keys = KEYS_DEFAULT;
+        String keysUrl = null;
+        if (object.containsKey(KEYS_NAME))
+        {
+            JsonValue keysValue = object.getValue("/keys");
+            if (JsonArray.class.isAssignableFrom(keysValue.getClass()))
+            {
+                keys = object.getJsonArray(KEYS_NAME)
+                        .stream()
+                        .map(JsonValue::asJsonObject)
+                        .map(key::adaptFromJson)
+                        .collect(toList());
+            }
+            else if (JsonString.class.isAssignableFrom(keysValue.getClass()))
+            {
+                keysUrl = ((JsonString) keysValue).getString();
+            }
+        }
 
         Duration challenge = object.containsKey(CHALLENGE_NAME)
                 ? Duration.ofSeconds(object.getInt(CHALLENGE_NAME))
                 : null;
 
-        return new JwtOptionsConfig(issuer, audience, keys, challenge);
+        return new JwtOptionsConfig(issuer, audience, keys, challenge, keysUrl);
     }
 }

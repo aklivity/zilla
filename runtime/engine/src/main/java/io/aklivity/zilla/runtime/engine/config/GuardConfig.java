@@ -17,6 +17,11 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
 
+import java.net.URL;
+import java.util.function.Function;
+
+import jakarta.json.bind.Jsonb;
+
 public class GuardConfig
 {
     public transient long id;
@@ -24,6 +29,8 @@ public class GuardConfig
     public final String name;
     public final String type;
     public final OptionsConfig options;
+    public Function<URL, String> readURL;
+    public Jsonb jsonb;
 
     public GuardConfig(
         String name,
