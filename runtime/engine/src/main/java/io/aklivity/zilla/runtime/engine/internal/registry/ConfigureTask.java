@@ -28,6 +28,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -123,7 +130,7 @@ public class ConfigureTask implements Callable<Void>
     public Void call() throws Exception
     {
         String configText;
-
+        WatchService watchService = null;
         if (configURL == null)
         {
             configText = CONFIG_TEXT_DEFAULT;
@@ -150,6 +157,9 @@ public class ConfigureTask implements Callable<Void>
         else
         {
             URLConnection connection = configURL.openConnection();
+            watchService = FileSystems.getDefault().newWatchService();
+            Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+
             try (InputStream input = connection.getInputStream())
             {
                 configText = new String(input.readAllBytes(), UTF_8);
@@ -160,6 +170,59 @@ public class ConfigureTask implements Callable<Void>
             }
         }
 
+        NamespaceConfig currentNamespace = configure(configText);
+        while (watchService != null)
+        {
+            if (currentNamespace != null)
+            {
+                try
+                {
+                    final WatchKey wk = watchService.take();
+                    // Sleep is needed to prevent receiving two separate ENTRY_MODIFY events: file modified and timestamp updated.
+                    // Instead, receive one ENTRY_MODIFY event with two counts.
+                    Thread.sleep(50);
+
+                    for (WatchEvent<?> event : wk.pollEvents())
+                    {
+                        final Path changed = (Path) event.context();
+                        if (changed.endsWith(Paths.get(configURL.toURI()).getFileName()))
+                        {
+                            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+                            for (DispatchAgent dispatcher : dispatchers)
+                            {
+                                future = CompletableFuture.allOf(future, dispatcher.detach(currentNamespace));
+                            }
+                            future.join();
+                            try (InputStream input = configURL.openConnection().getInputStream())
+                            {
+                                configText = new String(input.readAllBytes(), UTF_8);
+                            }
+                            catch (IOException ex)
+                            {
+                                configText = CONFIG_TEXT_DEFAULT;
+                            }
+                            currentNamespace = configure(configText);
+                        }
+                    }
+                    wk.reset();
+                }
+                catch (InterruptedException e)
+                {
+                    watchService.close();
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+        if (watchService != null)
+        {
+            watchService.close();
+        }
+        return null;
+    }
+
+    private NamespaceConfig configure(String configText)
+    {
         if (config.configSyntaxMustache())
         {
             configText = Mustache.resolve(configText, System::getenv);
@@ -168,7 +231,6 @@ public class ConfigureTask implements Callable<Void>
         logger.accept(configText);
 
         List<String> errors = new LinkedList<>();
-
         parse:
         try
         {
@@ -205,11 +267,11 @@ public class ConfigureTask implements Callable<Void>
             }
 
             JsonbConfig config = new JsonbConfig()
-                    .withAdapters(new NamespaceAdapter());
+                .withAdapters(new NamespaceAdapter());
             Jsonb jsonb = JsonbBuilder.newBuilder()
-                    .withProvider(provider)
-                    .withConfig(config)
-                    .build();
+                .withProvider(provider)
+                .withConfig(config)
+                .build();
 
             NamespaceConfig namespace = jsonb.fromJson(configText, NamespaceConfig.class);
 
@@ -285,6 +347,7 @@ public class ConfigureTask implements Callable<Void>
             future.join();
 
             extensions.forEach(e -> e.onConfigured(context));
+            return namespace;
         }
         catch (Throwable ex)
         {
@@ -295,9 +358,6 @@ public class ConfigureTask implements Callable<Void>
         {
             errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
         }
-
-        // TODO: repeat to detect and apply changes
-
         return null;
     }
 }
