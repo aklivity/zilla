@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.ForkJoinPool.commonPool;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +30,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -130,10 +133,10 @@ public class ConfigureTask implements Callable<Void>
     public Void call() throws Exception
     {
         String configText;
-        WatchService watchService = null;
         if (configURL == null)
         {
             configText = CONFIG_TEXT_DEFAULT;
+            configure(configText);
         }
         else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
         {
@@ -152,14 +155,11 @@ public class ConfigureTask implements Callable<Void>
                 BodyHandlers.ofString());
 
             configText = response.body();
-
+            configure(configText);
         }
         else
         {
             URLConnection connection = configURL.openConnection();
-            watchService = FileSystems.getDefault().newWatchService();
-            Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
-
             try (InputStream input = connection.getInputStream())
             {
                 configText = new String(input.readAllBytes(), UTF_8);
@@ -168,10 +168,38 @@ public class ConfigureTask implements Callable<Void>
             {
                 configText = CONFIG_TEXT_DEFAULT;
             }
-        }
+            NamespaceConfig currentNamespace = configure(configText);
 
-        NamespaceConfig currentNamespace = configure(configText);
-        while (watchService != null)
+            WatchService watchService;
+            try
+            {
+                watchService = FileSystems.getDefault().newWatchService();
+                Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            }
+            catch (FileSystemNotFoundException e)
+            {
+                return null;
+            }
+
+            commonPool().submit(() ->
+            {
+                try
+                {
+                    watchConfig(watchService, currentNamespace);
+                }
+                catch (Exception e)
+                {
+                    rethrowUnchecked(e);
+                }
+            });
+        }
+        return null;
+    }
+
+    private void watchConfig(WatchService watchService, NamespaceConfig currentNamespace) throws Exception
+    {
+        String configText;
+        while (true)
         {
             if (currentNamespace != null)
             {
@@ -213,12 +241,6 @@ public class ConfigureTask implements Callable<Void>
                 }
             }
         }
-
-        if (watchService != null)
-        {
-            watchService.close();
-        }
-        return null;
     }
 
     private NamespaceConfig configure(String configText)
