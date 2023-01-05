@@ -29,7 +29,7 @@ RUN ./zpmw clean --keep-image
 
 FROM alpine
 
-COPY --from=build /.zpm /.zpm
-COPY --from=build /zilla /zilla
+COPY --from=build /.zpm /opt/zilla/.zpm
+COPY --from=build /zilla /opt/zilla/zilla
 
-ENTRYPOINT ["./zilla"]
+ENTRYPOINT ["/opt/zilla/zilla"]
