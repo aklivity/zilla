@@ -99,7 +99,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
-        ENGINE_CONFIG_SYNTAX_MUSTACHE = config.property("config.syntax.mustache", false);
+        ENGINE_CONFIG_SYNTAX_MUSTACHE = config.property("config.syntax.mustache", true);
         ENGINE_CONFIG = config;
     }
 

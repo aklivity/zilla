@@ -72,7 +72,7 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
-import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
+import io.aklivity.zilla.runtime.engine.resolver.ExpressionResolver;
 
 public class ConfigureTask implements Callable<Void>
 {
@@ -162,11 +162,14 @@ public class ConfigureTask implements Callable<Void>
 
         if (config.configSyntaxMustache())
         {
-            configText = Mustache.resolve(configText, System::getenv);
+            ExpressionResolver expressionResolver = ExpressionResolver.instantiate();
+            for (String context: expressionResolver.names())
+            {
+                configText = expressionResolver.resolve(context, configText);
+            }
         }
 
         logger.accept(configText);
-
         List<String> errors = new LinkedList<>();
 
         parse:
