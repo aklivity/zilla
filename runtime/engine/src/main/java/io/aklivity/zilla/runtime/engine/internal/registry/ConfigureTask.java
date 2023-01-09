@@ -200,7 +200,10 @@ public class ConfigureTask implements Callable<Void>
 
     public void close()
     {
-        configWatcherRef.cancel(true);
+        if (configWatcherRef != null)
+        {
+            configWatcherRef.cancel(true);
+        }
     }
 
     private void watchConfig(WatchService watchService, NamespaceConfig currentNamespace) throws Exception
