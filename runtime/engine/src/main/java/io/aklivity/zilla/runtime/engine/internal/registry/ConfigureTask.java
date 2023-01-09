@@ -43,6 +43,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinTask;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -100,6 +101,7 @@ public class ConfigureTask implements Callable<Void>
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
+    private ForkJoinTask<?> configWatcherRef;
 
     public ConfigureTask(
         URL configURL,
@@ -181,7 +183,7 @@ public class ConfigureTask implements Callable<Void>
                 return null;
             }
 
-            commonPool().submit(() ->
+            configWatcherRef = commonPool().submit(() ->
             {
                 try
                 {
@@ -194,6 +196,11 @@ public class ConfigureTask implements Callable<Void>
             });
         }
         return null;
+    }
+
+    public void close()
+    {
+        configWatcherRef.cancel(true);
     }
 
     private void watchConfig(WatchService watchService, NamespaceConfig currentNamespace) throws Exception

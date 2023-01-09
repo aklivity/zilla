@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -63,7 +62,7 @@ public final class Engine implements AutoCloseable
 {
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
-    private final Callable<Void> configure;
+    private final ConfigureTask configure;
     private final Collection<AgentRunner> runners;
     private final ToLongFunction<String> counter;
     private final Tuning tuning;
@@ -153,7 +152,7 @@ public final class Engine implements AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        final Callable<Void> configure =
+        final ConfigureTask configure =
                 new ConfigureTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
                         dispatchers, errorHandler, logger, context, config, extensions);
 
@@ -215,6 +214,7 @@ public final class Engine implements AutoCloseable
         final List<Throwable> errors = new ArrayList<>();
 
         configureRef.cancel(true);
+        configure.close();
 
         for (AgentRunner runner : runners)
         {
