@@ -31,5 +31,6 @@ FROM alpine
 
 COPY --from=build /.zpm /opt/zilla/.zpm
 COPY --from=build /zilla /opt/zilla/zilla
+COPY zilla.properties /opt/zilla/.zilla/zilla.properties
 
 ENTRYPOINT ["/opt/zilla/zilla"]
