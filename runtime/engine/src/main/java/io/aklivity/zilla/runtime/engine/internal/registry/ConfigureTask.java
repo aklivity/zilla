@@ -172,22 +172,11 @@ public class ConfigureTask implements Callable<Void>
             }
             NamespaceConfig currentNamespace = configure(configText);
 
-            WatchService watchService;
-            try
-            {
-                watchService = FileSystems.getDefault().newWatchService();
-                Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
-            }
-            catch (FileSystemNotFoundException e)
-            {
-                return null;
-            }
-
             configWatcherRef = commonPool().submit(() ->
             {
                 try
                 {
-                    watchConfig(watchService, currentNamespace);
+                    watchConfig(currentNamespace);
                 }
                 catch (Exception e)
                 {
@@ -206,9 +195,19 @@ public class ConfigureTask implements Callable<Void>
         }
     }
 
-    private void watchConfig(WatchService watchService, NamespaceConfig currentNamespace) throws Exception
+    private void watchConfig(NamespaceConfig currentNamespace) throws Exception
     {
-        String configText;
+        WatchService watchService;
+        try
+        {
+            watchService = FileSystems.getDefault().newWatchService();
+            Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+        }
+        catch (FileSystemNotFoundException e)
+        {
+            //Should only occur in tests
+            return;
+        }
         while (true)
         {
             if (currentNamespace != null)
@@ -231,6 +230,7 @@ public class ConfigureTask implements Callable<Void>
                                 future = CompletableFuture.allOf(future, dispatcher.detach(currentNamespace));
                             }
                             future.join();
+                            String configText;
                             try (InputStream input = configURL.openConnection().getInputStream())
                             {
                                 configText = new String(input.readAllBytes(), UTF_8);
