@@ -21,7 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,29 +36,8 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-
 public class ReconfigureIT
 {
-    //    @ClassRule
-    //    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    //    @BeforeClass
-    //    public static void copyConfigFileToTempFolder() throws Exception
-    //    {
-    //        String resourceName = "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json";
-    //        InputStream input = ReconfigureIT.class.getClassLoader().getResourceAsStream(resourceName);
-    //        String configText = new String(input.readAllBytes(), UTF_8);
-    //        input.close();
-    //
-    //        File config = temporaryFolder.newFile("zilla.reconfigure.config");
-    //        FileWriter fw = new FileWriter(config);
-    //        fw.write(configText);
-    //        fw.close();
-    //    }
-
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/tcp/streams/network/rfc793")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/tcp/streams/application/rfc793");
