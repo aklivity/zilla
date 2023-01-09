@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.start.internal.airline;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
@@ -23,6 +24,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,7 +53,7 @@ public final class ZillaStartCommand extends ZillaCommand
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
             hidden = true)
-    public URI configURL = Paths.get("zilla.json").toUri();
+    public URI cliConfigURL;
 
     @Option(name = { "-v", "--verbose" },
             description = "Show verbose output")
@@ -76,6 +78,9 @@ public final class ZillaStartCommand extends ZillaCommand
     {
         Runtime runtime = getRuntime();
         Properties props = new Properties();
+        // default config file is zilla.json in the current directory if it's not specified neither in the properties
+        // file nor in the command line
+        URI configURL = cliConfigURL == null ? Paths.get("zilla.json").toUri() : cliConfigURL;
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
 
         Path path = Paths.get(properties != null ? properties : OPTION_PROPERTIES_DEFAULT);
@@ -84,8 +89,13 @@ public final class ZillaStartCommand extends ZillaCommand
             try
             {
                 props.load(Files.newInputStream(path));
+                // if config file is specified in the command line, override the value specified in the properties file
+                if (cliConfigURL == null && props.getProperty(ENGINE_CONFIG_URL.name()) != null)
+                {
+                    configURL = new URI(props.getProperty(ENGINE_CONFIG_URL.name()));
+                }
             }
-            catch (IOException ex)
+            catch (IOException | URISyntaxException ex)
             {
                 System.out.println("Failed to load properties: " + path);
                 rethrowUnchecked(ex);

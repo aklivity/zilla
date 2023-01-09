@@ -35,6 +35,7 @@ public class EngineConfiguration extends Configuration
 {
     public static final boolean DEBUG_BUDGETS = Boolean.getBoolean("zilla.engine.debug.budgets");
 
+    public static final PropertyDef<String> ENGINE_CONFIG_URL;
     public static final PropertyDef<String> ENGINE_NAME;
     public static final PropertyDef<String> ENGINE_DIRECTORY;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
@@ -70,6 +71,7 @@ public class EngineConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.engine");
+        ENGINE_CONFIG_URL = config.property("config.url", "file:zilla.json");
         ENGINE_NAME = config.property("name", "engine");
         ENGINE_DIRECTORY = config.property("directory", ".");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
