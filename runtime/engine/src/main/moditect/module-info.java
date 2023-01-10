@@ -45,8 +45,8 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.guard.GuardFactorySpi;
     uses io.aklivity.zilla.runtime.engine.vault.VaultFactorySpi;
     uses io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
-    uses io.aklivity.zilla.runtime.engine.resolver.ExpressionResolverSpi;
+    uses io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
 
-    provides io.aklivity.zilla.runtime.engine.resolver.ExpressionResolverSpi
-            with io.aklivity.zilla.runtime.engine.internal.stream.resolver.EnvironmentResolverSpi;
+    provides io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi
+            with io.aklivity.zilla.runtime.engine.expression.EnvironmentResolverSpi;
 }
