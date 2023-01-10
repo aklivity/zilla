@@ -24,6 +24,7 @@ import static org.junit.rules.RuleChain.outerRule;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.URL;
 
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -45,7 +46,9 @@ public class ReconfigureIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/tcp/streams/network/rfc793")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/tcp/streams/application/rfc793");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
+    //Trivial test binding: test type, proxy kind (conifg file)
+    // Test: change the app0 exit to app1, and net0 to net1
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -56,6 +59,7 @@ public class ReconfigureIT
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io.aklivity.zilla.runtime.binding.tcp.internal.streams")
         .external("app0")
+        .external("app1")
         .clean();
 
     @Rule
@@ -75,10 +79,10 @@ public class ReconfigureIT
     @Test
     @Configuration("zilla.reconfigure.json")
     @Specification({
-        "${app}/client.sent.data.reconfigure/server",
-        "${net}/client.sent.data.reconfigure/client"
+        "${app}/client.sent.data.reconfigure.modify/server",
+        "${net}/client.sent.data.reconfigure.modify/client"
     })
-    public void shouldReceiveClientSentDataOnNewPortAfterReconfigure() throws Exception
+    public void shouldConnectToZillaOnNewPortWhenConfigModified() throws Exception
     {
         k3po.start();
 
@@ -88,7 +92,7 @@ public class ReconfigureIT
         String resourceName = "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json";
         InputStream input = this.getClass().getClassLoader().getResourceAsStream(resourceName);
         String configText = new String(input.readAllBytes(), UTF_8);
-        String newConfigText = configText.replace("8080", "8088");
+        String newConfigText = configText.replace("8080", "8088").replace("app0", "app1");
 
 
         FileOutputStream outputStream = new FileOutputStream(new File("target/test-classes/" +
@@ -98,6 +102,35 @@ public class ReconfigureIT
         Thread.sleep(2000);
 
         k3po.notifyBarrier("CONFIG_CHANGED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("zilla.reconfigure.json")
+    @Specification({
+        "${app}/client.sent.data.reconfigure.delete_create/server",
+        "${net}/client.sent.data.reconfigure.delete_create/client"
+    })
+    public void shouldConnectToZillaOnNewPortWhenConfigDeletedThanCreated() throws Exception
+    {
+        k3po.start();
+
+        // 2 configs in resources, not dynamic modification,
+        // listen to created, deleted. Create 3 test scenarios, 0-1, 1-1, 1-0
+        // replace app0 to app1
+        String resourceName = "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json";
+        URL configUrl = this.getClass().getClassLoader().getResource(resourceName);
+        File config = new File(configUrl.toURI());
+        config.delete();
+        Thread.sleep(2000);
+
+        k3po.notifyBarrier("CONFIG_DELETED");
+
+
+        copyConfigToCorrectLocation();
+        Thread.sleep(2000);
+        k3po.notifyBarrier("CONFIG_CREATED");
 
         k3po.finish();
     }

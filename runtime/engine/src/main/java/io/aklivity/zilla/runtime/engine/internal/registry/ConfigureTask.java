@@ -201,7 +201,8 @@ public class ConfigureTask implements Callable<Void>
         try
         {
             watchService = FileSystems.getDefault().newWatchService();
-            Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY,
+                StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
         }
         catch (FileSystemNotFoundException e)
         {

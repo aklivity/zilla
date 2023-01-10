@@ -114,8 +114,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/client.sent.data.reconfigure/client",
-        "${app}/client.sent.data.reconfigure/server" })
+        "${app}/client.sent.data.reconfigure.modify/client",
+        "${app}/client.sent.data.reconfigure.modify/server" })
     public void shouldReceiveClientSentDataOnNewPortAfterReconfigure() throws Exception
     {
         k3po.finish();

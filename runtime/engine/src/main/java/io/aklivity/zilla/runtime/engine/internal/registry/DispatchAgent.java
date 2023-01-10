@@ -153,6 +153,9 @@ public class DispatchAgent implements EngineContext, Agent
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBuffer streamsBuffer;
     private final MutableDirectBuffer writeBuffer;
+
+    //TODO: remove stream and throttle handlers AND tell them to mclean up after themselves
+    // (abort for streams, reset for throttles)
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final Int2ObjectHashMap<MessageConsumer> writersByIndex;
@@ -621,6 +624,8 @@ public class DispatchAgent implements EngineContext, Agent
                 streams[senderIndex].forEach(handlers::put);
 
                 final int senderIndex0 = senderIndex;
+                //TODO: id is the streamID. FInd all streamIds that the bindingId contains
+                //We can use this doSyntheticAbort
                 handlers.forEach((id, handler) -> doSyntheticAbort(streamId(localIndex, senderIndex0, id), handler));
             }
 

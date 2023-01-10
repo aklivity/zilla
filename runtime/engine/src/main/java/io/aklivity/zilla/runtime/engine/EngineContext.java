@@ -68,6 +68,10 @@ public interface EngineContext
     void detachSender(
         long replyId);
 
+    //TODO: implement it LOngCOnsumer
+    void detachBinding(
+        long bindingId);
+
     BudgetCreditor creditor();
 
     BudgetDebitor supplyDebitor(

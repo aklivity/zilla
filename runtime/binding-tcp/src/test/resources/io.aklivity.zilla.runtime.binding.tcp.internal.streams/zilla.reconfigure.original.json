@@ -4,13 +4,8 @@
   {
     "net0":
     {
-      "type" : "tcp",
-      "kind": "server",
-      "options":
-      {
-        "host": "0.0.0.0",
-        "port": 8080
-      },
+      "type" : "test",
+      "kind": "proxy",
       "exit": "app0"
     }
   }
