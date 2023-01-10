@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.regex.Pattern;
 
-public class ExpressionResolver
+public final class ExpressionResolver
 {
     private final Map<String, ExpressionResolverSpi> resolverSpis;
     private final Map<String, String> contextMap;
@@ -22,7 +22,8 @@ public class ExpressionResolver
         return instantiate(load(ExpressionResolverSpi.class));
     }
 
-    public String resolve(String config)
+    public String resolve(
+            String config)
     {
         return EXPRESSION_PATTERN.matcher(config)
                 .replaceAll(r -> Optional.ofNullable(requireNonNull(resolverSpis.get(contextMap.get(r.group(1))),
@@ -30,7 +31,8 @@ public class ExpressionResolver
                         .resolve(r.group(2))).orElse(""));
     }
 
-    private static ExpressionResolver instantiate(ServiceLoader<ExpressionResolverSpi> resolvers)
+    private static ExpressionResolver instantiate(
+            ServiceLoader<ExpressionResolverSpi> resolvers)
     {
         Map<String, ExpressionResolverSpi> resolverSpisByName = new HashMap<>();
         Map<String, String> contextSpisMap = new HashMap<>();
@@ -44,7 +46,9 @@ public class ExpressionResolver
         return resolverSpis.keySet();
     }
 
-    private ExpressionResolver(Map<String, ExpressionResolverSpi> resolverSpis, Map<String, String> contextMap)
+    private ExpressionResolver(
+            Map<String, ExpressionResolverSpi> resolverSpis,
+            Map<String, String> contextMap)
     {
         this.resolverSpis = resolverSpis;
         this.contextMap = contextMap;

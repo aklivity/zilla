@@ -13,7 +13,8 @@ public class EnvironmentResolverSpi implements ExpressionResolverSpi
     }
 
     @Override
-    public String resolve(String var)
+    public String resolve(
+            String var)
     {
         UnaryOperator<String> env = System::getenv;
         return Optional.ofNullable(env.apply(var)).orElse("");
