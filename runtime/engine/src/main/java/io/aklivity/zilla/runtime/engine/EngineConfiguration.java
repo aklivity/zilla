@@ -62,7 +62,7 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final IntPropertyDef ENGINE_WORKERS;
-    public static final BooleanPropertyDef ENGINE_CONFIG_SYNTAX_EXPRESSIONS;
+    public static final BooleanPropertyDef ENGINE_CONFIG_RESOLVE_EXPRESSIONS;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -99,7 +99,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
-        ENGINE_CONFIG_SYNTAX_EXPRESSIONS = config.property("config.resolve.expressions", true);
+        ENGINE_CONFIG_RESOLVE_EXPRESSIONS = config.property("config.resolve.expressions", true);
         ENGINE_CONFIG = config;
     }
 
@@ -268,9 +268,9 @@ public class EngineConfiguration extends Configuration
         return ENGINE_WORKERS.getAsInt(this);
     }
 
-    public boolean configSyntaxExpressions()
+    public boolean configResolveExpressions()
     {
-        return ENGINE_CONFIG_SYNTAX_EXPRESSIONS.getAsBoolean(this);
+        return ENGINE_CONFIG_RESOLVE_EXPRESSIONS.getAsBoolean(this);
     }
 
     public Function<String, InetAddress[]> hostResolver()

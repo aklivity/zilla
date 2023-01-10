@@ -6,16 +6,15 @@ import static java.util.ServiceLoader.load;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.regex.Pattern;
 
 public final class ExpressionResolver
 {
-    private final Map<String, ExpressionResolverSpi> resolverSpis;
-    private final Map<String, String> contextMap;
     private static final Pattern EXPRESSION_PATTERN =
             Pattern.compile("\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}");
+
+    private final Map<String, ExpressionResolverSpi> resolverSpis;
 
     public static ExpressionResolver instantiate()
     {
@@ -23,22 +22,27 @@ public final class ExpressionResolver
     }
 
     public String resolve(
-            String config)
+        String config)
     {
         return EXPRESSION_PATTERN.matcher(config)
-                .replaceAll(r -> Optional.ofNullable(requireNonNull(resolverSpis.get(contextMap.get(r.group(1))),
-                        () -> "Unrecognized resolver name: " + contextMap.get(r.group(1)))
-                        .resolve(r.group(2))).orElse(""));
+                .replaceAll(r -> resolve(r.group(1), r.group(2)));
+    }
+
+    private String resolve(
+        String context,
+        String var)
+    {
+        ExpressionResolverSpi resolver = requireNonNull(resolverSpis.get(context), "Unrecognized resolver name: " + context);
+        String value = resolver.resolve(var);
+        return value != null ? value : "";
     }
 
     private static ExpressionResolver instantiate(
-            ServiceLoader<ExpressionResolverSpi> resolvers)
+        ServiceLoader<ExpressionResolverSpi> resolvers)
     {
         Map<String, ExpressionResolverSpi> resolverSpisByName = new HashMap<>();
-        Map<String, String> contextSpisMap = new HashMap<>();
-        contextSpisMap.put("env", EnvironmentResolverSpi.class.getName());
         resolvers.forEach(resolverSpi -> resolverSpisByName.put(resolverSpi.name(), resolverSpi));
-        return new ExpressionResolver(unmodifiableMap(resolverSpisByName), unmodifiableMap(contextSpisMap));
+        return new ExpressionResolver(unmodifiableMap(resolverSpisByName));
     }
 
     private Iterable<String> names()
@@ -47,11 +51,9 @@ public final class ExpressionResolver
     }
 
     private ExpressionResolver(
-            Map<String, ExpressionResolverSpi> resolverSpis,
-            Map<String, String> contextMap)
+        Map<String, ExpressionResolverSpi> resolverSpis)
     {
         this.resolverSpis = resolverSpis;
-        this.contextMap = contextMap;
     }
 
 }

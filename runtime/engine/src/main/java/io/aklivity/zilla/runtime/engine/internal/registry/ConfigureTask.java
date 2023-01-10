@@ -160,9 +160,10 @@ public class ConfigureTask implements Callable<Void>
             }
         }
 
-        if (config.configSyntaxExpressions())
+        if (config.configResolveExpressions())
         {
-            configText = ExpressionResolver.instantiate().resolve(configText);
+            ExpressionResolver resolver = ExpressionResolver.instantiate();
+            configText = resolver.resolve(configText);
         }
 
         logger.accept(configText);

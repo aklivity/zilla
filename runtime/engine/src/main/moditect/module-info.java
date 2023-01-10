@@ -48,5 +48,5 @@ module io.aklivity.zilla.runtime.engine
     uses io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
 
     provides io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi
-            with io.aklivity.zilla.runtime.engine.expression.EnvironmentResolverSpi;
+            with io.aklivity.zilla.runtime.engine.internal.expression.EnvironmentResolverSpi;
 }
