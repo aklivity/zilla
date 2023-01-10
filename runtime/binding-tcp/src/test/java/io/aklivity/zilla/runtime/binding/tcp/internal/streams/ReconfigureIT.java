@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -32,9 +33,11 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
+import org.openjdk.jmh.util.FileUtils;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+
 
 public class ReconfigureIT
 {
@@ -58,6 +61,17 @@ public class ReconfigureIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+    @BeforeClass
+    public static void copyConfigToCorrectLocation() throws Exception
+    {
+        String source = new File(ReconfigureIT.class.getClassLoader()
+            .getResource("io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.original.json")
+            .toURI()).getAbsolutePath();
+        String target = new File("target/test-classes/" +
+            "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json").getAbsolutePath();
+        FileUtils.copy(source, target);
+    }
+
     @Test
     @Configuration("zilla.reconfigure.json")
     @Specification({
@@ -67,8 +81,10 @@ public class ReconfigureIT
     public void shouldReceiveClientSentDataOnNewPortAfterReconfigure() throws Exception
     {
         k3po.start();
-        k3po.awaitBarrier("FIRST_READ");
 
+        // 2 configs in resources, not dynamic modification,
+        // listen to created, deleted. Create 3 test scenarios, 0-1, 1-1, 1-0
+        // replace app0 to app1
         String resourceName = "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json";
         InputStream input = this.getClass().getClassLoader().getResourceAsStream(resourceName);
         String configText = new String(input.readAllBytes(), UTF_8);
@@ -79,7 +95,7 @@ public class ReconfigureIT
             "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json").getAbsolutePath());
         outputStream.write(newConfigText.getBytes());
         outputStream.close();
-        Thread.sleep(500);
+        Thread.sleep(2000);
 
         k3po.notifyBarrier("CONFIG_CHANGED");
 

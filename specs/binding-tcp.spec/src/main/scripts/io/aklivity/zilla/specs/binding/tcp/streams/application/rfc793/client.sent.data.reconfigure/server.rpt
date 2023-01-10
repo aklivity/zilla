@@ -14,19 +14,17 @@
 # under the License.
 #
 
-property serverInitialWindow 8192
-
 accept "zilla://streams/app0"
-       option zilla:window ${serverInitialWindow}
+       option zilla:window 8192
        option zilla:transmission "duplex"
-accepted
 
+accepted
 connected
 
-read "client data"
-
 read await CONFIG_CHANGED
-read "client data new config"
+
+accepted
+connected
 
 
 

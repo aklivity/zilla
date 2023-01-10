@@ -15,13 +15,18 @@
 #
 
 accept "tcp://localhost:8080"
-       notify ROUTED_SERVER
-accepted
-connected
-read "client data"
 
-accept "tcp://localhost:8088"
-       notify CONFIG_CHANGED
 accepted
 connected
-read "client data new config"
+
+write notify CONFIG_CHANGED
+#closed
+
+#read await CONFIG_CHANGED
+#rejected
+
+read await CONFIG_CHANGED
+accept "tcp://localhost:8088"
+
+accepted
+connected

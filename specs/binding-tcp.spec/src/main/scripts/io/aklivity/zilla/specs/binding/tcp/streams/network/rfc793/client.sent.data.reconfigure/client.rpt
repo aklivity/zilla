@@ -15,10 +15,15 @@
 #
 
 connect "tcp://localhost:8080"
+
 connected
-write "client data"
+
+#read await CONFIG_CHANGED
+#close
+
+#connect await CONFIG_CHANGED
+#        "tcp://localhost:8080"
 
 connect await CONFIG_CHANGED
         "tcp://localhost:8088"
 connected
-write "client data new config"

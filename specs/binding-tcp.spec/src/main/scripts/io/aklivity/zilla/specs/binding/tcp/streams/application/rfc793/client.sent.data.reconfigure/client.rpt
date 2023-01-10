@@ -20,8 +20,9 @@ connect "zilla://streams/app0"
 
 connected
 
-write "client data"
-
 write notify CONFIG_CHANGED
-write "client data new config"
 
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+connected
