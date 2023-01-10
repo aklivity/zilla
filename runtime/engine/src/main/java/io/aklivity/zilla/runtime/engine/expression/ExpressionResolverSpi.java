@@ -5,6 +5,6 @@ public interface ExpressionResolverSpi
     String name();
 
     String resolve(
-            String var);
+        String var);
 
 }
