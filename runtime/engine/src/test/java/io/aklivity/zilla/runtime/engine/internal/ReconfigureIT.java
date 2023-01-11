@@ -84,6 +84,7 @@ public class ReconfigureIT
     {
         k3po.start();
 
+        Thread.sleep(2000);
         // 2 configs in resources, not dynamic modification,
         // listen to created, deleted. Create 3 test scenarios, 0-1, 1-1, 1-0
         // replace app0 to app1

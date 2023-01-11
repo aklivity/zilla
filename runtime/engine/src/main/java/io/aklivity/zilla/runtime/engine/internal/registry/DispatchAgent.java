@@ -61,6 +61,7 @@ import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
@@ -156,6 +157,9 @@ public class DispatchAgent implements EngineContext, Agent
 
     //TODO: remove stream and throttle handlers AND tell them to mclean up after themselves
     // (abort for streams, reset for throttles)
+    private final LongConsumer detachStreams;
+    private final Long2ObjectHashMap<IntHashSet> streamIndicesByBinding;
+    private final Long2ObjectHashMap<IntHashSet> throttleIndicesByBinding;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final Int2ObjectHashMap<MessageConsumer> writersByIndex;
@@ -265,6 +269,8 @@ public class DispatchAgent implements EngineContext, Agent
         this.expireLimit = config.maximumExpirationsPerPoll();
         this.streamsBuffer = streamsLayout.streamsBuffer();
         this.writeBuffer = new UnsafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
+        this.streamIndicesByBinding = new Long2ObjectHashMap<>();
+        this.throttleIndicesByBinding = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
         this.readHandler = this::handleRead;
@@ -327,10 +333,10 @@ public class DispatchAgent implements EngineContext, Agent
             String type = vault.name();
             vaultsByType.put(type, vault.supply(this));
         }
-
+        this.detachStreams = this::detachStreams;
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get,
-                labels::supplyLabelId, supplyLoadEntry::apply);
+                labels::supplyLabelId, supplyLoadEntry::apply, detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
@@ -438,9 +444,22 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public void detachBinding(long bindingId)
+    public void detachStreams(
+        long bindingId)
     {
-        return;
+        IntHashSet streamIdSet = streamIndicesByBinding.get(bindingId);
+        streamIdSet.forEach(streamId ->
+            streams[streamId].values().forEach(streamHandler ->
+                doSyntheticAbort(streamId, streamHandler)
+            )
+        );
+
+        IntHashSet throttleIdSet = throttleIndicesByBinding.get(bindingId);
+        throttleIdSet.forEach(throttleId ->
+            throttles[throttleId].values().forEach(streamHandler ->
+                doSyntheticAbort(throttleId, streamHandler)
+            )
+        );
     }
 
     @Override
@@ -1322,9 +1341,16 @@ public class DispatchAgent implements EngineContext, Agent
             if (newStream != null)
             {
                 final long replyId = supplyReplyId(initialId);
-                streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
-                throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
+                final int streamIndex = streamIndex(initialId);
+                final int throttleIndex = streamIndex(replyId);
+                streams[streamIndex].put(instanceId(initialId), newStream);
+                throttles[throttleIndex].put(instanceId(replyId), newStream);
                 supplyLoadEntry.apply(routeId).initialOpened(1L);
+
+                streamIndicesByBinding.computeIfAbsent(NamespacedId.localId(routeId), k -> new IntHashSet())
+                    .add(streamIndex);
+                throttleIndicesByBinding.computeIfAbsent(NamespacedId.localId(routeId), k -> new IntHashSet())
+                    .add(throttleIndex);
             }
         }
 
