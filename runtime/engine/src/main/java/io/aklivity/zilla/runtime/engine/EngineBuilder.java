@@ -15,8 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static java.util.Objects.requireNonNull;
 
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -36,7 +39,6 @@ public class EngineBuilder
     private Configuration config;
     private ErrorHandler errorHandler;
 
-    private URL configURL;
     private Collection<EngineAffinity> affinities;
 
     EngineBuilder()
@@ -48,13 +50,6 @@ public class EngineBuilder
         Configuration config)
     {
         this.config = requireNonNull(config);
-        return this;
-    }
-
-    public EngineBuilder configURL(
-        URL configURL)
-    {
-        this.configURL = configURL;
         return this;
     }
 
@@ -103,6 +98,16 @@ public class EngineBuilder
         }
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
+
+        URL configURL = null;
+        try
+        {
+            configURL = URI.create(config.getProperty(ENGINE_CONFIG_URL.name(), "file:zilla.json")).toURL();
+        }
+        catch (MalformedURLException e)
+        {
+            throw new RuntimeException(e);
+        }
 
         return new Engine(config, bindings, guards, vaults, errorHandler, configURL, affinities);
     }

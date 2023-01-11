@@ -24,7 +24,6 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,7 +52,7 @@ public final class ZillaStartCommand extends ZillaCommand
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
             hidden = true)
-    public URI cliConfigURL;
+    public URI configURL;
 
     @Option(name = { "-v", "--verbose" },
             description = "Show verbose output")
@@ -78,9 +77,6 @@ public final class ZillaStartCommand extends ZillaCommand
     {
         Runtime runtime = getRuntime();
         Properties props = new Properties();
-        // default config file is zilla.json in the current directory if it's not specified neither in the properties
-        // file nor in the command line
-        URI configURL = cliConfigURL == null ? Paths.get("zilla.json").toUri() : cliConfigURL;
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
 
         Path path = Paths.get(properties != null ? properties : OPTION_PROPERTIES_DEFAULT);
@@ -89,13 +85,13 @@ public final class ZillaStartCommand extends ZillaCommand
             try
             {
                 props.load(Files.newInputStream(path));
-                // if config file is specified in the command line, override the value specified in the properties file
-                if (cliConfigURL == null && props.getProperty(ENGINE_CONFIG_URL.name()) != null)
+                // if config URL is specified in the command line, let's override the value specified in the properties file
+                if (configURL != null)
                 {
-                    configURL = new URI(props.getProperty(ENGINE_CONFIG_URL.name()));
+                    props.setProperty(ENGINE_CONFIG_URL.name(), configURL.toString());
                 }
             }
-            catch (IOException | URISyntaxException ex)
+            catch (IOException ex)
             {
                 System.out.println("Failed to load properties: " + path);
                 rethrowUnchecked(ex);
@@ -119,7 +115,6 @@ public final class ZillaStartCommand extends ZillaCommand
 
         try (Engine engine = Engine.builder()
             .config(config)
-            .configURL(configURL.toURL())
             .errorHandler(this::onError)
             .build())
         {

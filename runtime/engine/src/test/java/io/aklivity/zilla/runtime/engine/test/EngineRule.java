@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_COMMAND_BUFFER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_COUNTERS_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -31,7 +32,6 @@ import static org.junit.runners.model.MultipleFailureException.assertEmpty;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -70,7 +70,6 @@ public final class EngineRule implements TestRule
     private Engine engine;
 
     private EngineConfiguration configuration;
-    private URL configURL;
     private String configurationRoot;
     private boolean clean;
 
@@ -123,13 +122,6 @@ public final class EngineRule implements TestRule
         String value)
     {
         properties.setProperty(name, value);
-        return this;
-    }
-
-    public EngineRule configURI(
-        URL configURL)
-    {
-        this.configURL = configURL;
         return this;
     }
 
@@ -221,14 +213,14 @@ public final class EngineRule implements TestRule
                 if (configurationRoot != null)
                 {
                     String resourceName = String.format("%s/%s", configurationRoot, config.value());
-
-                    configURL = testClass.getClassLoader().getResource(resourceName);
+                    String configURL = requireNonNull(testClass.getClassLoader().getResource(resourceName)).toString();
+                    configure(ENGINE_CONFIG_URL.name(), configURL);
                 }
                 else
                 {
                     String resourceName = String.format("%s-%s", testClass.getSimpleName(), config.value());
-
-                    configURL = testClass.getResource(resourceName);
+                    String configURL = requireNonNull(testClass.getClassLoader().getResource(resourceName)).toString();
+                    configure(ENGINE_CONFIG_URL.name(), configURL);
                 }
             }
 
@@ -254,7 +246,6 @@ public final class EngineRule implements TestRule
                     baseThread.interrupt();
                 };
                 engine = builder.config(config)
-                                 .configURL(configURL)
                                  .errorHandler(errorHandler)
                                  .build();
 
