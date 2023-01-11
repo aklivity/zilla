@@ -13,9 +13,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
+package io.aklivity.zilla.runtime.engine.internal;
 
-import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration.TCP_MAX_CONNECTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -43,8 +42,8 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 public class ReconfigureIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/tcp/streams/network/rfc793")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/tcp/streams/application/rfc793");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
     //Trivial test binding: test type, proxy kind (conifg file)
     // Test: change the app0 exit to app1, and net0 to net1
@@ -55,9 +54,8 @@ public class ReconfigureIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(TCP_MAX_CONNECTIONS, 3)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
-        .configurationRoot("io.aklivity.zilla.runtime.binding.tcp.internal.streams")
+        .configurationRoot("io/aklivity/zilla/runtime/engine/internal")
         .external("app0")
         .external("app1")
         .clean();
@@ -69,10 +67,10 @@ public class ReconfigureIT
     public static void copyConfigToCorrectLocation() throws Exception
     {
         String source = new File(ReconfigureIT.class.getClassLoader()
-            .getResource("io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.original.json")
+            .getResource("io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.original.json")
             .toURI()).getAbsolutePath();
         String target = new File("target/test-classes/" +
-            "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json").getAbsolutePath();
+            "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.json").getAbsolutePath();
         FileUtils.copy(source, target);
     }
 
@@ -89,14 +87,14 @@ public class ReconfigureIT
         // 2 configs in resources, not dynamic modification,
         // listen to created, deleted. Create 3 test scenarios, 0-1, 1-1, 1-0
         // replace app0 to app1
-        String resourceName = "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json";
+        String resourceName = "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.json";
         InputStream input = this.getClass().getClassLoader().getResourceAsStream(resourceName);
         String configText = new String(input.readAllBytes(), UTF_8);
-        String newConfigText = configText.replace("8080", "8088").replace("app0", "app1");
+        String newConfigText = configText.replace("net0", "net1").replace("app0", "app1");
 
 
         FileOutputStream outputStream = new FileOutputStream(new File("target/test-classes/" +
-            "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json").getAbsolutePath());
+            "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.json").getAbsolutePath());
         outputStream.write(newConfigText.getBytes());
         outputStream.close();
         Thread.sleep(2000);
@@ -119,7 +117,7 @@ public class ReconfigureIT
         // 2 configs in resources, not dynamic modification,
         // listen to created, deleted. Create 3 test scenarios, 0-1, 1-1, 1-0
         // replace app0 to app1
-        String resourceName = "io.aklivity.zilla.runtime.binding.tcp.internal.streams/zilla.reconfigure.json";
+        String resourceName = "io.aklivity.zilla.runtime.engine.internal/zilla.reconfigure.json";
         URL configUrl = this.getClass().getClassLoader().getResource(resourceName);
         File config = new File(configUrl.toURI());
         config.delete();

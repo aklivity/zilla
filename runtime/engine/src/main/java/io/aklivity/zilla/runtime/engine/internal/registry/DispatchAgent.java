@@ -438,6 +438,12 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
+    public void detachBinding(long bindingId)
+    {
+        return;
+    }
+
+    @Override
     public BudgetCreditor creditor()
     {
         return creditor;

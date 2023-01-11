@@ -78,15 +78,6 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/client.sent.data.reconfigure.modify/client",
-        "${net}/client.sent.data.reconfigure.modify/server" })
-    public void shouldReceiveClientSentDataOnNewPortAfterReconfigure() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/client.sent.data.multiple.frames/client",
         "${net}/client.sent.data.multiple.frames/server" })
     public void shouldReceiveClientSentDataInMultipleFrames() throws Exception
