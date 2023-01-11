@@ -448,18 +448,24 @@ public class DispatchAgent implements EngineContext, Agent
         long bindingId)
     {
         IntHashSet streamIdSet = streamIndicesByBinding.get(bindingId);
-        streamIdSet.forEach(streamId ->
-            streams[streamId].values().forEach(streamHandler ->
-                doSyntheticAbort(streamId, streamHandler)
-            )
-        );
+        if (streamIdSet != null)
+        {
+            streamIdSet.forEach(streamId ->
+                streams[streamId].values().forEach(streamHandler ->
+                    doSyntheticAbort(streamId, streamHandler)
+                )
+            );
+        }
 
         IntHashSet throttleIdSet = throttleIndicesByBinding.get(bindingId);
-        throttleIdSet.forEach(throttleId ->
-            throttles[throttleId].values().forEach(streamHandler ->
-                doSyntheticAbort(throttleId, streamHandler)
-            )
-        );
+        if (throttleIdSet != null)
+        {
+            throttleIdSet.forEach(throttleId ->
+                throttles[throttleId].values().forEach(streamHandler ->
+                    doSyntheticAbort(throttleId, streamHandler)
+                )
+            );
+        }
     }
 
     @Override
