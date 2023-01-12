@@ -7,6 +7,7 @@ import static java.util.ServiceLoader.load;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class ExpressionResolver
@@ -15,6 +16,7 @@ public final class ExpressionResolver
             Pattern.compile("\\$\\{\\{\\s*([^\\s\\}]*)\\.([^\\s\\}]*)\\s*\\}\\}");
 
     private final Map<String, ExpressionResolverSpi> resolverSpis;
+    private Matcher matcher;
 
     public static ExpressionResolver instantiate()
     {
@@ -22,9 +24,9 @@ public final class ExpressionResolver
     }
 
     public String resolve(
-        String config)
+        String template)
     {
-        return EXPRESSION_PATTERN.matcher(config)
+        return matcher.reset(template)
                 .replaceAll(r -> resolve(r.group(1), r.group(2)));
     }
 
@@ -54,6 +56,7 @@ public final class ExpressionResolver
         Map<String, ExpressionResolverSpi> resolverSpis)
     {
         this.resolverSpis = resolverSpis;
+        this.matcher = EXPRESSION_PATTERN.matcher("");
     }
 
 }

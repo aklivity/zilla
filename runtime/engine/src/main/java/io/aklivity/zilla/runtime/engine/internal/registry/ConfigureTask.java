@@ -90,20 +90,21 @@ public class ConfigureTask implements Callable<Void>
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
+    private final ExpressionResolver expressions;
 
     public ConfigureTask(
-        URL configURL,
-        Collection<URL> schemaTypes,
-        Function<String, Guard> guardByType,
-        ToIntFunction<String> supplyId,
-        IntFunction<ToIntFunction<KindConfig>> maxWorkers,
-        Tuning tuning,
-        Collection<DispatchAgent> dispatchers,
-        ErrorHandler errorHandler,
-        Consumer<String> logger,
-        EngineExtContext context,
-        EngineConfiguration config,
-        List<EngineExtSpi> extensions)
+            URL configURL,
+            Collection<URL> schemaTypes,
+            Function<String, Guard> guardByType,
+            ToIntFunction<String> supplyId,
+            IntFunction<ToIntFunction<KindConfig>> maxWorkers,
+            Tuning tuning,
+            Collection<DispatchAgent> dispatchers,
+            ErrorHandler errorHandler,
+            Consumer<String> logger,
+            EngineExtContext context,
+            EngineConfiguration config,
+            List<EngineExtSpi> extensions)
     {
         this.configURL = configURL;
         this.schemaTypes = schemaTypes;
@@ -117,6 +118,7 @@ public class ConfigureTask implements Callable<Void>
         this.context = context;
         this.config = config;
         this.extensions = extensions;
+        this.expressions = ExpressionResolver.instantiate();
     }
 
     @Override
@@ -162,8 +164,7 @@ public class ConfigureTask implements Callable<Void>
 
         if (config.configResolveExpressions())
         {
-            ExpressionResolver resolver = ExpressionResolver.instantiate();
-            configText = resolver.resolve(configText);
+            configText = expressions.resolve(configText);
         }
 
         logger.accept(configText);
