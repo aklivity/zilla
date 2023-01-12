@@ -129,6 +129,11 @@ public class EngineConfiguration extends Configuration
         super(ENGINE_CONFIG, new Configuration());
     }
 
+    public String configURL()
+    {
+        return ENGINE_CONFIG_URL.get(this);
+    }
+
     public String name()
     {
         return ENGINE_NAME.get(this);

@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Engine;
@@ -38,22 +39,20 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 
 public class EngineTest
 {
-    private EngineConfiguration initConfig(String configURL)
+    private Properties properties;
+
+    @Before
+    public void initProperties()
     {
-        Properties properties = new Properties();
+        properties = new Properties();
         properties.put(ENGINE_DIRECTORY.name(), "target/zilla-itests");
         properties.put(ENGINE_WORKERS.name(), "1");
-        if (configURL != null)
-        {
-            properties.put(ENGINE_CONFIG_URL.name(), configURL);
-        }
-        return new EngineConfiguration(properties);
     }
 
     @Test
     public void shouldConfigureEmpty()
     {
-        EngineConfiguration config = initConfig(null);
+        EngineConfiguration config = new EngineConfiguration(properties);
         List<Throwable> errors = new LinkedList<>();
         try (Engine engine = Engine.builder()
                 .config(config)
@@ -78,7 +77,8 @@ public class EngineTest
         String resource = String.format("%s-%s.json", getClass().getSimpleName(), "configure");
         URL configURL = getClass().getResource(resource);
         assert configURL != null;
-        EngineConfiguration config = initConfig(configURL.toString());
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
         List<Throwable> errors = new LinkedList<>();
         try (Engine engine = Engine.builder()
                 .config(config)
@@ -113,7 +113,8 @@ public class EngineTest
         String resource = String.format("%s-%s.broken.json", getClass().getSimpleName(), "duplicate-key");
         URL configURL = getClass().getResource(resource);
         assert configURL != null;
-        EngineConfiguration config = initConfig(configURL.toString());
+        properties.put(ENGINE_CONFIG_URL.name(), configURL.toString());
+        EngineConfiguration config = new EngineConfiguration(properties);
         List<Throwable> errors = new LinkedList<>();
         try (Engine engine = Engine.builder()
                 .config(config)
@@ -136,7 +137,8 @@ public class EngineTest
     public void shouldNotConfigureUnknownScheme() throws Exception
     {
         List<Throwable> errors = new LinkedList<>();
-        EngineConfiguration config = initConfig("unknown://path");
+        properties.put(ENGINE_CONFIG_URL.name(), "unknown://path");
+        EngineConfiguration config = new EngineConfiguration(properties);
         try (Engine engine = Engine.builder()
                 .config(config)
                 .errorHandler(errors::add)

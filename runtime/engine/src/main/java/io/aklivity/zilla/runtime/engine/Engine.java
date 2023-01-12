@@ -20,6 +20,8 @@ import static java.util.concurrent.ForkJoinPool.commonPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,6 +45,7 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
@@ -83,7 +86,6 @@ public final class Engine implements AutoCloseable
         Collection<Guard> guards,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
-        URL configURL,
         Collection<EngineAffinity> affinities)
     {
         this.nextTaskId = new AtomicInteger();
@@ -127,6 +129,16 @@ public final class Engine implements AutoCloseable
             tuning.affinity(routeId, affinity.mask);
         }
         this.tuning = tuning;
+
+        URL configURL = null;
+        try
+        {
+            configURL = URI.create(config.configURL()).toURL();
+        }
+        catch (MalformedURLException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
 
         Collection<DispatchAgent> dispatchers = new LinkedHashSet<>();
         for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)

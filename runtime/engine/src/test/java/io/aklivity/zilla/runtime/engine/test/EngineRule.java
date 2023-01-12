@@ -219,7 +219,7 @@ public final class EngineRule implements TestRule
                 else
                 {
                     String resourceName = String.format("%s-%s", testClass.getSimpleName(), config.value());
-                    String configURL = requireNonNull(testClass.getClassLoader().getResource(resourceName)).toString();
+                    String configURL = requireNonNull(testClass.getResource(resourceName)).toString();
                     configure(ENGINE_CONFIG_URL.name(), configURL);
                 }
             }

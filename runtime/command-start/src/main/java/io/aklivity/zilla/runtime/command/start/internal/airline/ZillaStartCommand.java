@@ -85,17 +85,17 @@ public final class ZillaStartCommand extends ZillaCommand
             try
             {
                 props.load(Files.newInputStream(path));
-                // if config URL is specified in the command line, let's override the value specified in the properties file
-                if (configURL != null)
-                {
-                    props.setProperty(ENGINE_CONFIG_URL.name(), configURL.toString());
-                }
             }
             catch (IOException ex)
             {
                 System.out.println("Failed to load properties: " + path);
                 rethrowUnchecked(ex);
             }
+        }
+
+        if (configURL != null)
+        {
+            props.setProperty(ENGINE_CONFIG_URL.name(), configURL.toString());
         }
 
         if (workers >= 0)
