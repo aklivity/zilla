@@ -18,6 +18,9 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static java.net.http.HttpClient.Redirect.NORMAL;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.concurrent.ForkJoinPool.commonPool;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -34,7 +37,6 @@ import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
@@ -170,19 +172,9 @@ public class ConfigureTask implements Callable<Void>
             {
                 configText = CONFIG_TEXT_DEFAULT;
             }
-            NamespaceConfig currentNamespace = configure(configText);
+            NamespaceConfig rootNamespace = configure(configText);
 
-            configWatcherRef = commonPool().submit(() ->
-            {
-                try
-                {
-                    watchConfig(currentNamespace);
-                }
-                catch (Exception e)
-                {
-                    rethrowUnchecked(e);
-                }
-            });
+            configWatcherRef = commonPool().submit(() -> watchConfig(rootNamespace));
         }
         return null;
     }
@@ -195,62 +187,65 @@ public class ConfigureTask implements Callable<Void>
         }
     }
 
-    private void watchConfig(NamespaceConfig currentNamespace) throws Exception
+    private void watchConfig(
+        NamespaceConfig rootNamespace)
     {
-        WatchService watchService;
         try
         {
-            watchService = FileSystems.getDefault().newWatchService();
-            Paths.get(configURL.toURI()).getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY,
-                StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
-        }
-        catch (FileSystemNotFoundException e)
-        {
-            //Should only occur in tests
-            return;
-        }
-        while (true)
-        {
-            if (currentNamespace != null)
-            {
-                try
-                {
-                    final WatchKey wk = watchService.take();
-                    // Sleep is needed to prevent receiving two separate ENTRY_MODIFY events: file modified and timestamp updated.
-                    // Instead, receive one ENTRY_MODIFY event with two counts.
-                    Thread.sleep(50);
+            WatchService watchService;
+            Path configPath = Paths.get(configURL.toURI());
 
-                    for (WatchEvent<?> event : wk.pollEvents())
-                    {
-                        final Path changed = (Path) event.context();
-                        if (changed.endsWith(Paths.get(configURL.toURI()).getFileName()))
-                        {
-                            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-                            for (DispatchAgent dispatcher : dispatchers)
-                            {
-                                future = CompletableFuture.allOf(future, dispatcher.detach(currentNamespace));
-                            }
-                            future.join();
-                            String configText;
-                            try (InputStream input = configURL.openConnection().getInputStream())
-                            {
-                                configText = new String(input.readAllBytes(), UTF_8);
-                            }
-                            catch (IOException ex)
-                            {
-                                configText = CONFIG_TEXT_DEFAULT;
-                            }
-                            currentNamespace = configure(configText);
-                        }
-                    }
-                    wk.reset();
-                }
-                catch (InterruptedException e)
+            watchService = FileSystems.getDefault().newWatchService();
+            configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+
+            Path configFileName = configPath.getFileName();
+            while (true)
+            {
+                if (rootNamespace != null)
                 {
-                    watchService.close();
-                    Thread.currentThread().interrupt();
+                    try
+                    {
+                        final WatchKey key = watchService.take();
+                        // Sleep is needed to prevent receiving two separate ENTRY_MODIFY events: file modified and timestamp updated.
+                        // Instead, receive one ENTRY_MODIFY event with two counts.
+                        Thread.sleep(50);
+
+                        for (WatchEvent<?> event : key.pollEvents())
+                        {
+                            final Path changed = (Path) event.context();
+                            if (changed.equals(configFileName))
+                            {
+                                CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+                                for (DispatchAgent dispatcher : dispatchers)
+                                {
+                                    future = CompletableFuture.allOf(future, dispatcher.detach(rootNamespace));
+                                }
+                                future.join();
+                                String configText;
+                                try (InputStream input = configURL.openConnection().getInputStream())
+                                {
+                                    configText = new String(input.readAllBytes(), UTF_8);
+                                }
+                                catch (IOException ex)
+                                {
+                                    configText = CONFIG_TEXT_DEFAULT;
+                                }
+                                rootNamespace = configure(configText);
+                            }
+                        }
+                        key.reset();
+                    }
+                    catch (InterruptedException ex)
+                    {
+                        watchService.close();
+                        Thread.currentThread().interrupt();
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
         }
     }
 

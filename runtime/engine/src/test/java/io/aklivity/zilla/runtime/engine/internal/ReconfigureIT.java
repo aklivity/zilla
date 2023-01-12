@@ -45,8 +45,6 @@ public class ReconfigureIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
-    //Trivial test binding: test type, proxy kind (conifg file)
-    // Test: change the app0 exit to app1, and net0 to net1
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
@@ -66,7 +64,7 @@ public class ReconfigureIT
     @BeforeClass
     public static void copyConfigToCorrectLocation() throws Exception
     {
-        String source = new File(ReconfigureIT.class.getClassLoader()
+        String source = new File(ReconfigureIT.class
             .getResource("io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.original.json")
             .toURI()).getAbsolutePath();
         String target = new File("target/test-classes/" +

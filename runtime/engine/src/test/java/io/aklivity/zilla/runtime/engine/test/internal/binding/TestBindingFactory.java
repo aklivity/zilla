@@ -88,7 +88,6 @@ final class TestBindingFactory implements BindingHandler
         BindingConfig binding)
     {
         router.remove(binding.id);
-        //
     }
 
     @Override

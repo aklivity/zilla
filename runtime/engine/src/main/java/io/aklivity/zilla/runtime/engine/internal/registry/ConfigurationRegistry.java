@@ -36,7 +36,7 @@ public class ConfigurationRegistry
     private final LongConsumer supplyLoadEntry;
 
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
-    private final LongConsumer detachStreamsByBindingId;
+    private final LongConsumer detachBinding;
 
     public ConfigurationRegistry(
         Function<String, BindingContext> bindingsByType,
@@ -44,7 +44,7 @@ public class ConfigurationRegistry
         Function<String, VaultContext> vaultsByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry,
-        LongConsumer detachStreamsByBindingId)
+        LongConsumer detachBinding)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
@@ -52,7 +52,7 @@ public class ConfigurationRegistry
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespacesById = new Int2ObjectHashMap<>();
-        this.detachStreamsByBindingId = detachStreamsByBindingId;
+        this.detachBinding = detachBinding;
     }
 
     public NamespaceTask attach(
@@ -114,7 +114,7 @@ public class ConfigurationRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, supplyLabelId, supplyLoadEntry,
-                    detachStreamsByBindingId);
+                    detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }
