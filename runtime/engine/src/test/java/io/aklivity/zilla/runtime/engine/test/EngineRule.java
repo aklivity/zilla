@@ -218,15 +218,21 @@ public final class EngineRule implements TestRule
             Configuration config = description.getAnnotation(Configuration.class);
             if (config != null)
             {
+                String resourceName;
                 if (configurationRoot != null)
                 {
-                    String resourceName = String.format("%s/%s", configurationRoot, config.value());
+                    resourceName = String.format("%s/%s", configurationRoot, config.value());
 
                     configURL = testClass.getClassLoader().getResource(resourceName);
+                    if (configURL == null)
+                    {
+                        configURL = new URL(testClass.getClassLoader().getResource(configurationRoot).toString() +
+                            "/" + config.value());
+                    }
                 }
                 else
                 {
-                    String resourceName = String.format("%s-%s", testClass.getSimpleName(), config.value());
+                    resourceName = String.format("%s-%s", testClass.getSimpleName(), config.value());
 
                     configURL = testClass.getResource(resourceName);
                 }

@@ -14,15 +14,13 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
+accept "zilla://streams/app0"
+       option zilla:window 8192
+       option zilla:transmission "duplex"
 
+accepted
 connected
 
-write notify CONFIG_CHANGED
-
-connect "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
-connected
+read await CONFIG_DELETED
+read aborted
+write abort

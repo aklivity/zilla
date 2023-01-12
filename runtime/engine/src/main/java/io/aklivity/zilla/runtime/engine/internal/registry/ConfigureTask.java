@@ -24,6 +24,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.concurrent.ForkJoinPool.commonPool;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -33,7 +34,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
-import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -193,7 +193,7 @@ public class ConfigureTask implements Callable<Void>
         try
         {
             WatchService watchService;
-            Path configPath = Paths.get(configURL.toURI());
+            Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
 
             watchService = FileSystems.getDefault().newWatchService();
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
@@ -206,7 +206,8 @@ public class ConfigureTask implements Callable<Void>
                     try
                     {
                         final WatchKey key = watchService.take();
-                        // Sleep is needed to prevent receiving two separate ENTRY_MODIFY events: file modified and timestamp updated.
+                        // Sleep is needed to prevent receiving two separate ENTRY_MODIFY events:
+                        // file modified and timestamp updated.
                         // Instead, receive one ENTRY_MODIFY event with two counts.
                         Thread.sleep(50);
 

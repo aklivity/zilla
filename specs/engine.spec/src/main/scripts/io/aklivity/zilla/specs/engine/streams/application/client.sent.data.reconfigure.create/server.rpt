@@ -21,11 +21,5 @@ accept "zilla://streams/app0"
 accepted
 connected
 
-read await CONFIG_CHANGED
-
-accepted
-connected
-
-
 
 

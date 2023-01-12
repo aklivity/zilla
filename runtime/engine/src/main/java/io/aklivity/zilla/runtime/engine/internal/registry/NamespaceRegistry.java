@@ -106,7 +106,7 @@ public class NamespaceRegistry
         {
             context.detach();
         }
-        //        detachBinding.accept(bindingId);
+        detachBinding.accept(bindingId);
     }
 
     private void attachVault(

@@ -14,16 +14,13 @@
 # under the License.
 #
 
-connect "tcp://localhost:8080"
+connect "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 
 connected
 
-#read await CONFIG_CHANGED
-#close
+write notify CONFIG_DELETED
+write abort
+read aborted
 
-#connect await CONFIG_CHANGED
-#        "tcp://localhost:8080"
-
-connect await CONFIG_CHANGED
-        "tcp://localhost:8088"
-connected

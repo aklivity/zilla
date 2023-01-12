@@ -442,23 +442,29 @@ public class DispatchAgent implements EngineContext, Agent
     public void detachStreams(
         long bindingId)
     {
-        IntHashSet streamIdSet = streamIndicesByBinding.get(bindingId);
+        IntHashSet streamIdSet = streamIndicesByBinding.remove(bindingId);
         if (streamIdSet != null)
         {
             streamIdSet.forEach(streamId ->
-                streams[streamId].values().forEach(streamHandler ->
-                    doSyntheticAbort(streamId, streamHandler)
-                )
+                {
+                    streams[streamId].values().forEach(streamHandler ->
+                        doSyntheticAbort(streamId, streamHandler)
+                    );
+                    streams[streamId] = new Int2ObjectHashMap<>();
+                }
             );
         }
 
-        IntHashSet throttleIdSet = throttleIndicesByBinding.get(bindingId);
+        IntHashSet throttleIdSet = throttleIndicesByBinding.remove(bindingId);
         if (throttleIdSet != null)
         {
             throttleIdSet.forEach(throttleId ->
-                throttles[throttleId].values().forEach(streamHandler ->
-                    doSyntheticAbort(throttleId, streamHandler)
-                )
+                {
+                    throttles[throttleId].values().forEach(streamHandler ->
+                        doSyntheticAbort(throttleId, streamHandler)
+                    );
+                    throttles[throttleId] = new Int2ObjectHashMap<>();
+                }
             );
         }
     }
@@ -896,7 +902,10 @@ public class DispatchAgent implements EngineContext, Agent
         switch (signalId)
         {
         case SIGNAL_TASK_QUEUED:
-            taskQueue.poll().run();
+            if (!taskQueue.isEmpty())
+            {
+                taskQueue.poll().run();
+            }
             break;
         }
     }
@@ -1341,7 +1350,7 @@ public class DispatchAgent implements EngineContext, Agent
             {
                 final long replyId = supplyReplyId(initialId);
                 final int streamIndex = streamIndex(initialId);
-                final int throttleIndex = streamIndex(replyId);
+                final int throttleIndex = throttleIndex(replyId);
                 streams[streamIndex].put(instanceId(initialId), newStream);
                 throttles[throttleIndex].put(instanceId(replyId), newStream);
                 supplyLoadEntry.apply(routeId).initialOpened(1L);

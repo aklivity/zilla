@@ -14,19 +14,13 @@
 # under the License.
 #
 
-accept "tcp://localhost:8080"
 
-accepted
-connected
+accept "zilla://streams/net0"
+       option zilla:transmission "duplex"
+       option zilla:window 8192
+rejected
 
-write notify CONFIG_CHANGED
-#closed
-
-#read await CONFIG_CHANGED
-#rejected
-
-read await CONFIG_CHANGED
-accept "tcp://localhost:8088"
+write notify CONFIG_CREATED
 
 accepted
 connected
