@@ -153,14 +153,15 @@ public class EngineTest
 
     public static final class TestEngineExt implements EngineExtSpi
     {
+
         @Override
-        public void onConfigured(
+        public void onRegistered(
             EngineExtContext context)
         {
         }
 
         @Override
-        public void onClosed(
+        public void onUnregistered(
             EngineExtContext context)
         {
         }

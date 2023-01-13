@@ -61,8 +61,8 @@ import org.agrona.ErrorHandler;
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.IntHashSet;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
@@ -154,8 +154,8 @@ public class DispatchAgent implements EngineContext, Agent
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBuffer streamsBuffer;
     private final MutableDirectBuffer writeBuffer;
-    private final Long2ObjectHashMap<IntHashSet> streamIndicesByBinding;
-    private final Long2ObjectHashMap<IntHashSet> throttleIndicesByBinding;
+    private final Long2ObjectHashMap<LongHashSet> streamSets;
+    private final Long2ObjectHashMap<LongHashSet> throttleSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final Int2ObjectHashMap<MessageConsumer> writersByIndex;
@@ -265,8 +265,8 @@ public class DispatchAgent implements EngineContext, Agent
         this.expireLimit = config.maximumExpirationsPerPoll();
         this.streamsBuffer = streamsLayout.streamsBuffer();
         this.writeBuffer = new UnsafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
-        this.streamIndicesByBinding = new Long2ObjectHashMap<>();
-        this.throttleIndicesByBinding = new Long2ObjectHashMap<>();
+        this.streamSets = new Long2ObjectHashMap<>();
+        this.throttleSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
         this.readHandler = this::handleRead;
@@ -442,28 +442,30 @@ public class DispatchAgent implements EngineContext, Agent
     public void detachStreams(
         long bindingId)
     {
-        IntHashSet streamIdSet = streamIndicesByBinding.remove(bindingId);
+        LongHashSet streamIdSet = streamSets.remove(bindingId);
         if (streamIdSet != null)
         {
             streamIdSet.forEach(streamId ->
                 {
-                    streams[streamId].values().forEach(streamHandler ->
+                    int streamIndex = streamIndex(streamId);
+                    streams[streamIndex].values().forEach(streamHandler ->
                         doSyntheticAbort(streamId, streamHandler)
                     );
-                    streams[streamId] = new Int2ObjectHashMap<>();
+                    streams[streamIndex].remove(instanceId(streamId));
                 }
             );
         }
 
-        IntHashSet throttleIdSet = throttleIndicesByBinding.remove(bindingId);
+        LongHashSet throttleIdSet = throttleSets.remove(bindingId);
         if (throttleIdSet != null)
         {
             throttleIdSet.forEach(throttleId ->
                 {
-                    throttles[throttleId].values().forEach(streamHandler ->
+                    int throttleIndex = throttleIndex(throttleId);
+                    throttles[throttleIndex].values().forEach(streamHandler ->
                         doSyntheticAbort(throttleId, streamHandler)
                     );
-                    throttles[throttleId] = new Int2ObjectHashMap<>();
+                    throttles[throttleIndex].remove(instanceId(throttleIndex));
                 }
             );
         }
@@ -1355,10 +1357,10 @@ public class DispatchAgent implements EngineContext, Agent
                 throttles[throttleIndex].put(instanceId(replyId), newStream);
                 supplyLoadEntry.apply(routeId).initialOpened(1L);
 
-                streamIndicesByBinding.computeIfAbsent(NamespacedId.localId(routeId), k -> new IntHashSet())
-                    .add(streamIndex);
-                throttleIndicesByBinding.computeIfAbsent(NamespacedId.localId(routeId), k -> new IntHashSet())
-                    .add(throttleIndex);
+                streamSets.computeIfAbsent(routeId, k -> new LongHashSet())
+                    .add(initialId);
+                throttleSets.computeIfAbsent(routeId, k -> new LongHashSet())
+                    .add(replyId);
             }
         }
 

@@ -47,14 +47,17 @@ import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.registry.ConfigureTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
+import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.RegisterTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
@@ -62,7 +65,6 @@ public final class Engine implements AutoCloseable
 {
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
-    private final ConfigureTask configure;
     private final Collection<AgentRunner> runners;
     private final ToLongFunction<String> counter;
     private final Tuning tuning;
@@ -73,8 +75,9 @@ public final class Engine implements AutoCloseable
     private final ThreadFactory factory;
 
     private final ToIntFunction<String> supplyLabelId;
-
-    private Future<Void> configureRef;
+    private final RegisterTask registerTask;
+    private final WatcherTask watcherTask;
+    private Future<Void> watcherTaskRef;
 
     Engine(
         EngineConfiguration config,
@@ -152,9 +155,33 @@ public final class Engine implements AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        final ConfigureTask configure =
-                new ConfigureTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
-                        dispatchers, errorHandler, logger, context, config, extensions);
+
+        registerTask = new RegisterTask(configURL, schemaTypes, guardsByType::get,
+            labels::supplyLabelId, maxWorkers, tuning, dispatchers, errorHandler, logger, context, config, extensions);
+
+        if (configURL == null || "file".equals(configURL.getProtocol()))
+        {
+            this.watcherTask = new FileWatcherTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId,
+                maxWorkers, tuning, dispatchers, errorHandler, logger, context, config, extensions);
+        }
+        else
+        {
+            //TODO: implement watcherTask for HTTP config
+            this.watcherTask = new WatcherTask()
+            {
+                @Override
+                public void setRootNamespace(NamespaceConfig rootNamespace)
+                {
+                    return;
+                }
+
+                @Override
+                public Void call() throws Exception
+                {
+                    return null;
+                }
+            };
+        }
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
         dispatchers.forEach(d -> runners.add(d.runner()));
@@ -166,7 +193,6 @@ public final class Engine implements AutoCloseable
 
         this.bindings = bindings;
         this.tasks = tasks;
-        this.configure = configure;
         this.extensions = extensions;
         this.context = context;
         this.runners = runners;
@@ -196,16 +222,17 @@ public final class Engine implements AutoCloseable
         return counter.applyAsLong(name);
     }
 
-    public Future<Void> start()
+    public Future<NamespaceConfig> start() throws Exception
     {
         for (AgentRunner runner : runners)
         {
             AgentRunner.startOnThread(runner, Thread::new);
         }
-
-        this.configureRef = commonPool().submit(configure);
-
-        return configureRef;
+        Future<NamespaceConfig> register = commonPool().submit(registerTask);
+        NamespaceConfig rootNamespace = register.get();
+        watcherTask.setRootNamespace(rootNamespace);
+        this.watcherTaskRef = commonPool().submit(watcherTask);
+        return register;
     }
 
     @Override
@@ -213,8 +240,7 @@ public final class Engine implements AutoCloseable
     {
         final List<Throwable> errors = new ArrayList<>();
 
-        configureRef.cancel(true);
-        configure.close();
+        watcherTaskRef.cancel(true);
 
         for (AgentRunner runner : runners)
         {
@@ -235,7 +261,7 @@ public final class Engine implements AutoCloseable
 
         tuning.close();
 
-        extensions.forEach(e -> e.onClosed(context));
+        extensions.forEach(e -> e.onUnregistered(context));
 
         if (!errors.isEmpty())
         {

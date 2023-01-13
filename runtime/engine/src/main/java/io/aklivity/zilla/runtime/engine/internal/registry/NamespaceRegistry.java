@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -58,11 +59,11 @@ public class NamespaceRegistry
         this.vaultsByType = vaultsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
+        this.detachBinding = detachBinding;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
         this.bindingsById = new Int2ObjectHashMap<>();
         this.guardsById = new Int2ObjectHashMap<>();
         this.vaultsById = new Int2ObjectHashMap<>();
-        this.detachBinding = detachBinding;
     }
 
     public int namespaceId()
@@ -106,7 +107,7 @@ public class NamespaceRegistry
         {
             context.detach();
         }
-        detachBinding.accept(bindingId);
+        detachBinding.accept(NamespacedId.id(namespaceId, bindingId));
     }
 
     private void attachVault(

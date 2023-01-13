@@ -16,10 +16,15 @@
 package io.aklivity.zilla.runtime.engine.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -29,7 +34,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
-import org.openjdk.jmh.util.FileUtils;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
@@ -57,17 +61,16 @@ public class ReconfigureIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
+    private final String packageName = ReconfigureIT.class.getPackageName();
+    private Path configDir = Paths.get("target/test-classes", packageName.replace(".", "/"));
+
     @After
     public void cleanupFileSystem() throws Exception
     {
-        String source = new File(ReconfigureIT.class
-            .getResource("zilla.reconfigure.original.json")
-            .toURI()).getAbsolutePath();
-        String target = new File("target/test-classes/" +
-            "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.json").getAbsolutePath();
-        FileUtils.copy(source, target);
-        new File("target/test-classes/" +
-            "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.missing.json").delete();
+        InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
+        Path target = configDir.resolve("zilla.reconfigure.json");
+        Files.copy(source, target, REPLACE_EXISTING);
+        configDir.resolve("zilla.reconfigure.missing.json").toFile().delete();
     }
 
     @Test
@@ -76,16 +79,14 @@ public class ReconfigureIT
         "${app}/client.sent.data.reconfigure.modify/server",
         "${net}/client.sent.data.reconfigure.modify/client"
     })
-    public void shouldConnectToZillaOnNewPortWhenConfigModified() throws Exception
+    public void shouldReconfigureWhenModified() throws Exception
     {
         k3po.start();
 
-        String source = new File(ReconfigureIT.class
-            .getResource("zilla.reconfigure.after.json")
-            .toURI()).getAbsolutePath();
-        String target = new File("target/test-classes/" +
-            "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.json").getAbsolutePath();
-        FileUtils.copy(source, target);
+        CountDownLatch latch = new CountDownLatch(1);
+        InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.after.json");
+        Path target = configDir.resolve("zilla.reconfigure.json");
+        Files.copy(source, target, REPLACE_EXISTING);
         Thread.sleep(2000);
 
         k3po.notifyBarrier("CONFIG_CHANGED");
@@ -100,17 +101,13 @@ public class ReconfigureIT
         "${app}/client.sent.data.reconfigure.create/server",
         "${net}/client.sent.data.reconfigure.create/client"
     })
-    public void shouldConnectToZillaWhenConfigCreated() throws Exception
+    public void shouldReconfigureWhenCreated() throws Exception
     {
         k3po.start();
 
-        String source = new File(ReconfigureIT.class
-            .getResource("zilla.reconfigure.original.json")
-            .toURI()).getAbsolutePath();
-        File configFile = new File("target/test-classes/" +
-            "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.missing.json");
-        String target = configFile.getAbsolutePath();
-        FileUtils.copy(source, target);
+        InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
+        Path target = configDir.resolve("zilla.reconfigure.missing.json");
+        Files.copy(source, target);
         Thread.sleep(2000);
 
         k3po.notifyBarrier("CONFIG_CREATED");
@@ -124,12 +121,10 @@ public class ReconfigureIT
         "${app}/client.sent.data.reconfigure.delete/server",
         "${net}/client.sent.data.reconfigure.delete/client"
     })
-    public void shouldNotConnectToZillaWhenConfigDeleted() throws Exception
+    public void shouldReconfigureWhenDeleted() throws Exception
     {
         k3po.start();
-        File configFile = new File("target/test-classes/" +
-            "io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.json");
-        configFile.delete();
+        configDir.resolve("zilla.reconfigure.json").toFile().delete();
         Thread.sleep(2000);
 
         k3po.notifyBarrier("CONFIG_DELETED");
