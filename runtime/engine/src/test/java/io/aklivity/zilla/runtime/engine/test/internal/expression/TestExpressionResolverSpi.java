@@ -1,4 +1,4 @@
-package io.aklivity.zilla.runtime.engine.test.internal.expressions;
+package io.aklivity.zilla.runtime.engine.test.internal.expression;
 
 import io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
 
