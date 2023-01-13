@@ -32,6 +32,7 @@ import static org.junit.runners.model.MultipleFailureException.assertEmpty;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -113,6 +114,7 @@ public final class EngineRule implements TestRule
         PropertyDef<T> property,
         T value)
     {
+        requireNonNull(value);
         properties.setProperty(property.name(), value.toString());
         return this;
     }
@@ -121,6 +123,7 @@ public final class EngineRule implements TestRule
         String name,
         String value)
     {
+        requireNonNull(value);
         properties.setProperty(name, value);
         return this;
     }
@@ -213,14 +216,14 @@ public final class EngineRule implements TestRule
                 if (configurationRoot != null)
                 {
                     String resourceName = String.format("%s/%s", configurationRoot, config.value());
-                    String configURL = requireNonNull(testClass.getClassLoader().getResource(resourceName)).toString();
-                    configure(ENGINE_CONFIG_URL.name(), configURL);
+                    URL configURL = testClass.getClassLoader().getResource(resourceName);
+                    configure(ENGINE_CONFIG_URL, configURL);
                 }
                 else
                 {
                     String resourceName = String.format("%s-%s", testClass.getSimpleName(), config.value());
-                    String configURL = requireNonNull(testClass.getResource(resourceName)).toString();
-                    configure(ENGINE_CONFIG_URL.name(), configURL);
+                    URL configURL = testClass.getResource(resourceName);
+                    configure(ENGINE_CONFIG_URL, configURL);
                 }
             }
 

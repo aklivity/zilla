@@ -20,8 +20,6 @@ import static java.util.concurrent.ForkJoinPool.commonPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,7 +43,6 @@ import java.util.stream.Collectors;
 
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
-import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.AgentRunner;
 
@@ -130,21 +127,11 @@ public final class Engine implements AutoCloseable
         }
         this.tuning = tuning;
 
-        URL configURL = null;
-        try
-        {
-            configURL = URI.create(config.configURL()).toURL();
-        }
-        catch (MalformedURLException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
         Collection<DispatchAgent> dispatchers = new LinkedHashSet<>();
         for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
         {
             DispatchAgent agent =
-                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity,
+                new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, guards, vaults, coreIndex);
             dispatchers.add(agent);
         }
@@ -166,7 +153,7 @@ public final class Engine implements AutoCloseable
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
         final Callable<Void> configure =
-                new ConfigureTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
+                new ConfigureTask(config.configURL(), schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
                         dispatchers, errorHandler, logger, context, config, extensions);
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
