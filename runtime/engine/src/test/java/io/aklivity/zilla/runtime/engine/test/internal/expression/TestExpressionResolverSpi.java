@@ -4,7 +4,6 @@ import io.aklivity.zilla.runtime.engine.expression.ExpressionResolverSpi;
 
 public class TestExpressionResolverSpi implements ExpressionResolverSpi
 {
-
     @Override
     public String name()
     {
@@ -15,6 +14,6 @@ public class TestExpressionResolverSpi implements ExpressionResolverSpi
     public String resolve(
         String var)
     {
-        return "PASSWORD".equals(var) ? "ACTUALPASSWORD" : "";
+        return "PASSWORD".equals(var) ? "ACTUALPASSWORD" : null;
     }
 }
