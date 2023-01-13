@@ -111,6 +111,7 @@ public final class TestGuardHandler implements GuardHandler
         long sessionId,
         List<String> roles)
     {
-        return sessions.containsKey(sessionId) && (this.roles == null || this.roles.containsAll(roles));
+        return (sessionId == 0L && credentials == null || sessions.containsKey(sessionId)) &&
+                (this.roles == null || this.roles.containsAll(roles));
     }
 }

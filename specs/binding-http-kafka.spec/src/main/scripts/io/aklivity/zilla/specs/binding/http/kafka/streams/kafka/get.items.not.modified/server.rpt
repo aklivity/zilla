@@ -24,6 +24,9 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("items-snapshots")
+                                .filter()
+                                    .header("zilla:identity", "test")
+                                    .build()
                                 .build()
                             .build()}
 
