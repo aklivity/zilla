@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.internal.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class SseKafkaRouteConfig extends OptionsConfig
 {

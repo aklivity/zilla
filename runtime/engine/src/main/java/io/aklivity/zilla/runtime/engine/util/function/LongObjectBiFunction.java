@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.util.function;
+package io.aklivity.zilla.runtime.engine.util.function;
 
 import java.util.function.BiFunction;
 

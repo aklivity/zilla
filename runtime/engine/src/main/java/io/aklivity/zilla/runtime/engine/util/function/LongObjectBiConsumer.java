@@ -13,27 +13,31 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.util.funtion;
+package io.aklivity.zilla.runtime.engine.util.function;
 
-import static org.junit.Assert.assertEquals;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 
-import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.internal.util.function.LongObjectBiFunction;
-
-public class LongObjectBiFunctionTest
+@FunctionalInterface
+public interface LongObjectBiConsumer<T> extends BiConsumer<Long, T>
 {
-    @Test
-    public void shouldHandleDefault()
+    @Override
+    default void accept(Long value, T t)
     {
-        LongObjectBiFunction<String, String> function1 = (time, greeting) ->
-        {
-            assertEquals(1L, time);
-            assertEquals("Hello World", greeting);
-
-            return "Hello there!";
-        };
-
-        assertEquals("Hello there!", function1.apply((Long) 1L, "Hello World"));
+        this.accept(value.longValue(), t);
     }
+
+    default LongObjectBiConsumer<T> andThen(
+        LongObjectBiConsumer<? super T> after)
+    {
+        Objects.requireNonNull(after);
+
+        return (l, r) ->
+        {
+            accept(l, r);
+            after.accept(l, r);
+        };
+    }
+
+    void accept(long l, T t);
 }
