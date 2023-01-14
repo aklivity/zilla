@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.sse.kafka.internal.config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,17 +34,23 @@ import io.aklivity.zilla.runtime.binding.sse.kafka.internal.types.stream.SseBegi
 public final class SseKafkaWithResolver
 {
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
+    private static final Pattern IDENTITY_PATTERN = Pattern.compile("\\$\\{guarded\\.([a-zA-Z0-9_]+).identity\\}");
 
+    private final Function<String, LongFunction<String>> identifiers;
     private final SseKafkaWithConfig with;
     private final Matcher paramsMatcher;
+    private final Matcher identityMatcher;
 
     private Function<MatchResult, String> replacer = r -> null;
 
     public SseKafkaWithResolver(
+        Function<String, LongFunction<String>> identifiers,
         SseKafkaWithConfig with)
     {
+        this.identifiers = identifiers;
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
+        this.identityMatcher = IDENTITY_PATTERN.matcher("");
     }
 
     public void onConditionMatched(
@@ -53,8 +60,8 @@ public final class SseKafkaWithResolver
     }
 
     public SseKafkaWithResult resolve(
-        SseBeginExFW sseBeginEx,
-        SseKafkaIdHelper sseEventId)
+        long authorization,
+        SseBeginExFW sseBeginEx, SseKafkaIdHelper sseEventId)
     {
         final String8FW lastId = sseBeginEx != null ? sseBeginEx.lastId() : null;
         final DirectBuffer progress64 = sseEventId.findProgress(lastId);
@@ -85,6 +92,13 @@ public final class SseKafkaWithResolver
                     {
                         key0 = keyMatcher.replaceAll(replacer);
                     }
+
+                    keyMatcher = identityMatcher.reset(key0);
+                    if (identityMatcher.matches())
+                    {
+                        key0 = identifiers.apply(identityMatcher.group(1)).apply(authorization);
+                    }
+
                     key = new String16FW(key0).value();
                 }
 
@@ -104,6 +118,13 @@ public final class SseKafkaWithResolver
                         {
                             value0 = valueMatcher.replaceAll(replacer);
                         }
+
+                        valueMatcher = identityMatcher.reset(value0);
+                        if (identityMatcher.matches())
+                        {
+                            value0 = identifiers.apply(identityMatcher.group(1)).apply(authorization);
+                        }
+
                         DirectBuffer value = new String16FW(value0).value();
 
                         headers.add(new SseKafkaWithFilterHeaderResult(name, value));
