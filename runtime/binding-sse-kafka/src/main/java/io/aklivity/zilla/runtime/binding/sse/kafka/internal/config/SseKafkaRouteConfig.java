@@ -22,10 +22,12 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
+import java.util.regex.MatchResult;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.internal.util.function.LongObjectBiFunction;
 
 public final class SseKafkaRouteConfig extends OptionsConfig
 {
@@ -42,9 +44,18 @@ public final class SseKafkaRouteConfig extends OptionsConfig
 
         final Map<String, LongFunction<String>> identifiers = route.guarded.stream()
                 .collect(Collectors.toMap(g -> g.name, g -> g.identity));
+
+        final LongFunction<String> defaultIdentifier = a -> null;
+        final LongObjectBiFunction<MatchResult, String> identityReplacer = (a, r) ->
+        {
+            final LongFunction<String> identifier = identifiers.getOrDefault(r.group(1), defaultIdentifier);
+            final String identity = identifier.apply(a);
+            return identity != null ? identity : "";
+        };
+
         this.with = Optional.ofNullable(route.with)
             .map(SseKafkaWithConfig.class::cast)
-            .map(c -> new SseKafkaWithResolver(identifiers::get, c));
+            .map(c -> new SseKafkaWithResolver(identityReplacer, c));
 
         Consumer<SseKafkaConditionMatcher> observer = with.isPresent() ? with.get()::onConditionMatched : null;
         this.when = route.when.stream()

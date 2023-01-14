@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -38,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.http.kafka.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.engine.internal.util.function.LongObjectBiFunction;
 
 public final class HttpKafkaWithResolver
 {
@@ -74,7 +74,7 @@ public final class HttpKafkaWithResolver
     private final byte[] hashBytesRW = new byte[8192];
 
     private final HttpKafkaOptionsConfig options;
-    private final Function<String, LongFunction<String>> identifiers;
+    private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final HttpKafkaWithConfig with;
     private final Matcher paramsMatcher;
     private final Matcher identityMatcher;
@@ -88,11 +88,11 @@ public final class HttpKafkaWithResolver
 
     public HttpKafkaWithResolver(
         HttpKafkaOptionsConfig options,
-        Function<String, LongFunction<String>> identifiers,
+        LongObjectBiFunction<MatchResult, String> identityReplacer,
         HttpKafkaWithConfig with)
     {
         this.options = options;
-        this.identifiers = identifiers;
+        this.identityReplacer = identityReplacer;
         this.with = with;
         this.paramsMatcher = PARAMS_PATTERN.matcher("");
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
@@ -174,7 +174,7 @@ public final class HttpKafkaWithResolver
                     keyMatcher = identityMatcher.reset(key0);
                     if (identityMatcher.matches())
                     {
-                        key0 = identifiers.apply(identityMatcher.group(1)).apply(authorization);
+                        key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                     }
 
                     key = new String16FW(key0).value();
@@ -200,7 +200,7 @@ public final class HttpKafkaWithResolver
                         valueMatcher = identityMatcher.reset(value0);
                         if (identityMatcher.matches())
                         {
-                            value0 = identifiers.apply(identityMatcher.group(1)).apply(authorization);
+                            value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                         }
 
                         DirectBuffer value = new String16FW(value0).value();
@@ -339,7 +339,7 @@ public final class HttpKafkaWithResolver
             keyMatcher = identityMatcher.reset(key0);
             if (identityMatcher.matches())
             {
-                key0 = identifiers.apply(identityMatcher.group(1)).apply(authorization);
+                key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
             }
 
             String key = key0;
@@ -380,7 +380,7 @@ public final class HttpKafkaWithResolver
                 valueMatcher = identityMatcher.reset(value0);
                 if (identityMatcher.matches())
                 {
-                    value0 = identifiers.apply(identityMatcher.group(1)).apply(authorization);
+                    value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
                 }
 
                 String value = value0;
