@@ -38,7 +38,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "202")
-                           .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;3f96592e-c8f1-4167-8c46-85f2aabb70a5-4ed74dd9742e770607863dca17e817fb")
+                           .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;3f96592e-c8f1-4167-8c46-85f2aabb70a5-ee284177921a96f23e9b3166f12ca058")
                            .build()}
 
 read notify RECEIVED_ASYNC_RESPONSE
@@ -53,7 +53,7 @@ connect await RECEIVED_ASYNC_RESPONSE
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
-                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;3f96592e-c8f1-4167-8c46-85f2aabb70a5-4ed74dd9742e770607863dca17e817fb")
+                            .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544;3f96592e-c8f1-4167-8c46-85f2aabb70a5-ee284177921a96f23e9b3166f12ca058")
                             .build()}
 
 connected

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.guard;
 
 import java.net.URL;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongToIntFunction;
 
@@ -30,7 +31,7 @@ public interface Guard
         EngineContext context);
 
     /*
-     * Returns a verifier for the specified guarded config.
+     * Returns a verifier for the specified guarded configuration.
      *
      * @param indexOf  maps session id to engine index
      * @param config   the guarded configuration
@@ -38,6 +39,18 @@ public interface Guard
      * @return  the session verifier predicate
      */
     LongPredicate verifier(
+        LongToIntFunction indexOf,
+        GuardedConfig config);
+
+    /*
+     * Returns an identifier for the specified guarded configuration.
+     *
+     * @param indexOf  maps session id to engine index
+     * @param config   the guarded configuration
+     *
+     * @return  the session identity function
+     */
+    LongFunction<String> identifier(
         LongToIntFunction indexOf,
         GuardedConfig config);
 

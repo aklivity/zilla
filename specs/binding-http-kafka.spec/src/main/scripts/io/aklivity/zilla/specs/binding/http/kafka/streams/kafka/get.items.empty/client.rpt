@@ -23,6 +23,9 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .capabilities("FETCH_ONLY")
                                  .topic("items-snapshots")
                                  .partition(-1, 0, -2)
+                                 .filter()
+                                     .header("zilla:identity", "test")
+                                     .build()
                                  .build()
                              .build()}
 

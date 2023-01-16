@@ -39,7 +39,7 @@ read closed
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "202")
-                            .header("location", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-33f38700cfb14a3b0811ce584d7fd416")
+                            .header("location", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
                             .build()}
 
 write flush
@@ -52,7 +52,7 @@ accepted
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":method", "GET")
-                           .header(":path", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-33f38700cfb14a3b0811ce584d7fd416")
+                           .header(":path", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
                            .build()}
 
 connected

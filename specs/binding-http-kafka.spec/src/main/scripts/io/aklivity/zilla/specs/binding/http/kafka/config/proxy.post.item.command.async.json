@@ -1,5 +1,16 @@
 {
     "name": "test",
+    "guards":
+    {
+        "test0":
+        {
+            "type": "test",
+            "options":
+            {
+                "roles": [ "write:items" ]
+            }
+        }
+    },
     "bindings":
     {
         "http0":
@@ -24,6 +35,10 @@
             "routes":
             [
                 {
+                    "guarded":
+                    {
+                        "test0": [ "write:items" ]
+                    },
                     "exit": "kafka0",
                     "when":
                     [
@@ -44,6 +59,7 @@
                         "key": "${params.id}",
                         "overrides":
                         {
+                            "zilla:identity": "${guarded['test0'].identity}",
                             "zilla:command": "${params.command}"
                         },
                         "reply-to": "items-replies",

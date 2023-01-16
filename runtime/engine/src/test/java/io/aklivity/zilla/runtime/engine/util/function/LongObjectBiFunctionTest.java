@@ -13,26 +13,25 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.util.function;
 
-import static java.util.Objects.requireNonNull;
+import static org.junit.Assert.assertEquals;
 
-import java.util.List;
-import java.util.function.LongFunction;
+import org.junit.Test;
 
-public class GuardedConfig
+public class LongObjectBiFunctionTest
 {
-    public transient long id;
-    public transient LongFunction<String> identity;
-
-    public final String name;
-    public final List<String> roles;
-
-    public GuardedConfig(
-        String name,
-        List<String> roles)
+    @Test
+    public void shouldHandleDefault()
     {
-        this.name = requireNonNull(name);
-        this.roles = requireNonNull(roles);
+        LongObjectBiFunction<String, String> function1 = (time, greeting) ->
+        {
+            assertEquals(1L, time);
+            assertEquals("Hello World", greeting);
+
+            return "Hello there!";
+        };
+
+        assertEquals("Hello there!", function1.apply((Long) 1L, "Hello World"));
     }
 }
