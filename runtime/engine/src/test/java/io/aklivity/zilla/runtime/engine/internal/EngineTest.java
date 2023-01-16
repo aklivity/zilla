@@ -27,6 +27,7 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -153,11 +154,15 @@ public class EngineTest
 
     public static final class TestEngineExt implements EngineExtSpi
     {
-
+        public static CountDownLatch registerLatch = new CountDownLatch(1);
         @Override
         public void onRegistered(
             EngineExtContext context)
         {
+            if (registerLatch != null)
+            {
+                registerLatch.countDown();
+            }
         }
 
         @Override

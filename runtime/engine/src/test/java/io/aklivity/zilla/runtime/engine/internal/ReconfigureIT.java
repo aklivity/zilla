@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -64,6 +65,14 @@ public class ReconfigureIT
     private final String packageName = ReconfigureIT.class.getPackageName();
     private Path configDir = Paths.get("target/test-classes", packageName.replace(".", "/"));
 
+    @Before
+    public void init() throws Exception
+    {
+        //Make sure that the initial configuration has finished
+        EngineTest.TestEngineExt.registerLatch.await();
+        //Register new CountDownLatch
+        EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
+    }
     @After
     public void cleanupFileSystem() throws Exception
     {
@@ -83,12 +92,11 @@ public class ReconfigureIT
     {
         k3po.start();
 
-        CountDownLatch latch = new CountDownLatch(1);
         InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.after.json");
         Path target = configDir.resolve("zilla.reconfigure.json");
         Files.copy(source, target, REPLACE_EXISTING);
-        Thread.sleep(2000);
 
+        EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CHANGED");
 
         k3po.finish();
@@ -108,8 +116,8 @@ public class ReconfigureIT
         InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
         Path target = configDir.resolve("zilla.reconfigure.missing.json");
         Files.copy(source, target);
-        Thread.sleep(2000);
 
+        EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CREATED");
 
         k3po.finish();
@@ -125,8 +133,8 @@ public class ReconfigureIT
     {
         k3po.start();
         configDir.resolve("zilla.reconfigure.json").toFile().delete();
-        Thread.sleep(2000);
 
+        EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_DELETED");
 
         k3po.finish();

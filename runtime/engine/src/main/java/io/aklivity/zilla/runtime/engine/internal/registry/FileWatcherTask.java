@@ -7,13 +7,17 @@ import static java.util.concurrent.ForkJoinPool.commonPool;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
@@ -46,6 +50,7 @@ public class FileWatcherTask implements WatcherTask
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private NamespaceConfig rootNamespace;
+    private byte[] configHash;
 
     public FileWatcherTask(
         URL configURL,
@@ -87,6 +92,7 @@ public class FileWatcherTask implements WatcherTask
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
 
             Path configFileName = configPath.getFileName();
+            configHash = getConfigHash();
             while (true)
             {
                 if (rootNamespace != null)
@@ -94,21 +100,22 @@ public class FileWatcherTask implements WatcherTask
                     try
                     {
                         final WatchKey key = watchService.take();
-                        // Sleep is needed to prevent receiving two separate ENTRY_MODIFY events:
-                        // file modified and timestamp updated.
-                        // Instead, receive one ENTRY_MODIFY event with two counts.
-                        Thread.sleep(50);
 
                         for (WatchEvent<?> event : key.pollEvents())
                         {
                             final Path changed = (Path) event.context();
                             if (changed.equals(configFileName))
                             {
-                                commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions));
-                                rootNamespace = commonPool().submit(
-                                    new RegisterTask(configURL, schemaTypes, guardsByType, supplyId, maxWorkers, tuning,
-                                        dispatchers, errorHandler, logger, context, config, extensions)
-                                ).get();
+                                byte[] newConfigHash = getConfigHash();
+                                if (!Arrays.equals(configHash, newConfigHash))
+                                {
+                                    commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions));
+                                    rootNamespace = commonPool().submit(
+                                        new RegisterTask(configURL, schemaTypes, guardsByType, supplyId, maxWorkers, tuning,
+                                            dispatchers, errorHandler, logger, context, config, extensions)
+                                    ).get();
+                                    configHash = newConfigHash;
+                                }
                             }
                         }
                         key.reset();
@@ -132,5 +139,25 @@ public class FileWatcherTask implements WatcherTask
     public void setRootNamespace(NamespaceConfig rootNamespace)
     {
         this.rootNamespace = rootNamespace;
+    }
+
+    private byte[] getConfigHash()
+    {
+        byte[] hash = new byte[0];
+        try
+        {
+            URLConnection connection = configURL.openConnection();
+            MessageDigest md5Digest = MessageDigest.getInstance("MD5");
+            try (InputStream input = connection.getInputStream())
+            {
+                byte[] bytes = input.readAllBytes();
+                hash = md5Digest.digest(bytes);
+            }
+        }
+        catch (Exception ex)
+        {
+            return hash;
+        }
+        return hash;
     }
 }
