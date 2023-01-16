@@ -294,17 +294,21 @@ public class EngineConfiguration extends Configuration
         return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * 64;
     }
 
-    private static URL configURL(Configuration config, String url)
+    private static URL configURL(
+        Configuration config,
+        String url
+    )
     {
+        URL configURL = null;
         try
         {
-            return URI.create(url).toURL();
+            configURL = URI.create(url).toURL();
         }
         catch (MalformedURLException ex)
         {
             LangUtil.rethrowUnchecked(ex);
-            return null;
         }
+        return configURL;
     }
 
     private static Path cacheDirectory(
