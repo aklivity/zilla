@@ -25,6 +25,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                  .partition(-1, 0, -1)
                                  .filter()
                                      .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                     .header("zilla:identity", "test")
                                      .build()
                                  .build()
                              .build()}

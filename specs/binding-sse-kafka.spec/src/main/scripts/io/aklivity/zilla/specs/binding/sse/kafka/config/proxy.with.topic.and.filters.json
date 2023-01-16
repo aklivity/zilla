@@ -25,6 +25,7 @@
                                 "key": "example-key",
                                 "headers":
                                 {
+                                    "zilla:identity": "test",
                                     "tag": "example-tag"
                                 }
                             }

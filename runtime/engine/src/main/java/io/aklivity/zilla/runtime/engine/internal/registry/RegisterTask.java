@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 
@@ -263,6 +264,15 @@ public class RegisterTask implements Callable<NamespaceConfig>
                                 .map(g -> guardByType.apply(g.type))
                                 .map(g -> g.verifier(DispatchAgent::indexOfId, guarded))
                                 .orElse(session -> false);
+
+                            LongFunction<String> identifier = namespace.guards.stream()
+                                    .filter(g -> g.id == guarded.id)
+                                    .findFirst()
+                                    .map(g -> guardByType.apply(g.type))
+                                    .map(g -> g.identifier(DispatchAgent::indexOfId, guarded))
+                                    .orElse(session -> null);
+
+                            guarded.identity = identifier;
 
                             route.authorized = route.authorized.and(authorizer);
                         }

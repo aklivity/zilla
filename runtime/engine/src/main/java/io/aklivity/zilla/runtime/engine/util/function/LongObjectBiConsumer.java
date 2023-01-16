@@ -13,26 +13,31 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.util.function;
 
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 
-import java.util.List;
-import java.util.function.LongFunction;
-
-public class GuardedConfig
+@FunctionalInterface
+public interface LongObjectBiConsumer<T> extends BiConsumer<Long, T>
 {
-    public transient long id;
-    public transient LongFunction<String> identity;
-
-    public final String name;
-    public final List<String> roles;
-
-    public GuardedConfig(
-        String name,
-        List<String> roles)
+    @Override
+    default void accept(Long value, T t)
     {
-        this.name = requireNonNull(name);
-        this.roles = requireNonNull(roles);
+        this.accept(value.longValue(), t);
     }
+
+    default LongObjectBiConsumer<T> andThen(
+        LongObjectBiConsumer<? super T> after)
+    {
+        Objects.requireNonNull(after);
+
+        return (l, r) ->
+        {
+            accept(l, r);
+            after.accept(l, r);
+        };
+    }
+
+    void accept(long l, T t);
 }
