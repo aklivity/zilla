@@ -20,6 +20,7 @@ import java.lang.invoke.VarHandle;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongToIntFunction;
 
@@ -78,6 +79,20 @@ public final class JwtGuard implements Guard
         return session -> verify(guardIndex, guardId, indexOf.applyAsInt(session), session, roles);
     }
 
+    @Override
+    public LongFunction<String> identifier(
+        LongToIntFunction indexOf,
+        GuardedConfig config)
+    {
+        Objects.requireNonNull(indexOf);
+
+        final long guardId = config.id;
+
+        final int guardIndex = indexOf.applyAsInt(guardId);
+
+        return session -> identity(guardIndex, guardId, indexOf.applyAsInt(session), session);
+    }
+
     private boolean verify(
         int guardIndex,
         long guardId,
@@ -92,5 +107,20 @@ public final class JwtGuard implements Guard
         final JwtGuardContext context = contexts[sessionIndex];
         final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
         return handler != null && handler.verify(sessionId, roles);
+    }
+
+    private String identity(
+        int guardIndex,
+        long guardId,
+        int sessionIndex,
+        long sessionId)
+    {
+        if (sessionIndex != guardIndex)
+        {
+            VarHandle.fullFence();
+        }
+        final JwtGuardContext context = contexts[sessionIndex];
+        final JwtGuardHandler handler = context != null ? context.handler(guardId) : null;
+        return handler != null ? handler.identity(sessionId) : null;
     }
 }

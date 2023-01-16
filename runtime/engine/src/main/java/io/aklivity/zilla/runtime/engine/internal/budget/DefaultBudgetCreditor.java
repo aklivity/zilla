@@ -30,7 +30,7 @@ import org.agrona.concurrent.AtomicBuffer;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
-import io.aklivity.zilla.runtime.engine.internal.util.function.LongObjectBiConsumer;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiConsumer;
 
 public class DefaultBudgetCreditor implements BudgetCreditor, AutoCloseable
 {

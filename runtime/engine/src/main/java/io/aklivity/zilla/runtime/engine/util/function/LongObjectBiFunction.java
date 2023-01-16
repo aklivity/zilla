@@ -13,31 +13,18 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.util.function;
+package io.aklivity.zilla.runtime.engine.util.function;
 
-import java.util.Objects;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 @FunctionalInterface
-public interface LongObjectBiConsumer<T> extends BiConsumer<Long, T>
+public interface LongObjectBiFunction<U, R> extends BiFunction<Long, U, R>
 {
     @Override
-    default void accept(Long value, T t)
+    default R apply(Long value, U u)
     {
-        this.accept(value.longValue(), t);
+        return this.apply(value.longValue(), u);
     }
 
-    default LongObjectBiConsumer<T> andThen(
-        LongObjectBiConsumer<? super T> after)
-    {
-        Objects.requireNonNull(after);
-
-        return (l, r) ->
-        {
-            accept(l, r);
-            after.accept(l, r);
-        };
-    }
-
-    void accept(long l, T t);
+    R apply(long l, U u);
 }

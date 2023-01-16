@@ -198,7 +198,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
             case FETCH:
             {
-                final HttpKafkaWithFetchResult resolved = route.with.resolveFetch(httpBeginEx);
+                final HttpKafkaWithFetchResult resolved = route.with.resolveFetch(authorization, httpBeginEx);
 
                 if (resolved.merge())
                 {
@@ -212,7 +212,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             }
             case PRODUCE:
             {
-                final HttpKafkaWithProduceResult resolved = route.with.resolveProduce(httpBeginEx);
+                final HttpKafkaWithProduceResult resolved = route.with.resolveProduce(authorization, httpBeginEx);
 
                 if (resolved.reply())
                 {

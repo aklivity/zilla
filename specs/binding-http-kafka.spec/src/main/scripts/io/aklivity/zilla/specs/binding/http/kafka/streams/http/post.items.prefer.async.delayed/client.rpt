@@ -38,7 +38,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "202")
-                           .header("location", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                           .header("location", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-ac87f6dd9778ccd1e5d42212ed2b3e50")
                            .build()}
 
 read notify RECEIVED_ASYNC_RESPONSE
@@ -53,7 +53,7 @@ connect await RECEIVED_ASYNC_RESPONSE
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
-                            .header(":path", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                            .header(":path", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-ac87f6dd9778ccd1e5d42212ed2b3e50")
                             .build()}
 
 connected
@@ -63,7 +63,7 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "202")
-                           .header("location", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                           .header("location", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-ac87f6dd9778ccd1e5d42212ed2b3e50")
                            .build()}
 
 read notify RECEIVED_ASYNC_RESPONSE_AGAIN
@@ -78,7 +78,7 @@ connect await RECEIVED_ASYNC_RESPONSE_AGAIN
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":method", "GET")
-                            .header(":path", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-82cb37c4337a427e1884f91fa6070120")
+                            .header(":path", "/items;92d0bf92-63e0-4cfc-ae73-71dee92d1544-ac87f6dd9778ccd1e5d42212ed2b3e50")
                             .build()}
 
 connected

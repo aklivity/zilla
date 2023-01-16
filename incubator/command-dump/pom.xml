@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>incubator</artifactId>
-    <version>0.9.33</version>
+    <version>0.9.34</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -17,8 +17,8 @@
 
   <licenses>
     <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <name>Aklivity Community License Agreement</name>
+      <url>https://www.aklivity.io/aklivity-community-license/</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
