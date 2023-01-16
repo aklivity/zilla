@@ -42,7 +42,8 @@ import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 public final class HttpKafkaWithResolver
 {
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
-    private static final Pattern IDENTITY_PATTERN = Pattern.compile("\\$\\{guarded\\.([a-zA-Z0-9_]+).identity\\}");
+    private static final Pattern IDENTITY_PATTERN =
+            Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\-]*)'\\]).identity\\}");
     private static final Pattern CORRELATION_ID_PATTERN = Pattern.compile("\\$\\{correlationId\\}");
     private static final Pattern IDEMPOTENCY_KEY_PATTERN = Pattern.compile("\\$\\{idempotencyKey\\}");
 

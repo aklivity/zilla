@@ -34,8 +34,8 @@ import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 public final class SseKafkaWithResolver
 {
     private static final Pattern PARAMS_PATTERN = Pattern.compile("\\$\\{params\\.([a-zA-Z_]+)\\}");
-    private static final Pattern IDENTITY_PATTERN = Pattern.compile("\\$\\{guarded\\.([a-zA-Z0-9_]+).identity\\}");
-
+    private static final Pattern IDENTITY_PATTERN =
+            Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\-]*)'\\]).identity\\}");
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final SseKafkaWithConfig with;
     private final Matcher paramsMatcher;

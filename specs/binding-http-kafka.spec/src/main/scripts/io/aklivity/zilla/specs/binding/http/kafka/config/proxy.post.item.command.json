@@ -55,7 +55,7 @@
                         "key": "${params.id}",
                         "overrides":
                         {
-                            "zilla:identity": "${guarded.test0.identity}",
+                            "zilla:identity": "${guarded['test0'].identity}",
                             "zilla:command": "${params.command}"
                         },
                         "reply-to": "items-replies"

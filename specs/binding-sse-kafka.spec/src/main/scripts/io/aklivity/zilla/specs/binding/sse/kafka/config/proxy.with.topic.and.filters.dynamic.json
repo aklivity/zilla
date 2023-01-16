@@ -40,7 +40,7 @@
                                 "key": "${params.key}",
                                 "headers":
                                 {
-                                    "zilla:identity": "${guarded.test0.identity}",
+                                    "zilla:identity": "${guarded['test0'].identity}",
                                     "tag": "${params.tag}"
                                 }
                             }

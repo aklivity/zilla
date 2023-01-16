@@ -42,7 +42,7 @@
                                 "key": "${params.childId}",
                                 "headers":
                                 {
-                                    "zilla:identity": "${guarded.test0.identity}",
+                                    "zilla:identity": "${guarded['test0'].identity}",
                                     "item-id": "${params.itemId}"
                                 }
                             }
