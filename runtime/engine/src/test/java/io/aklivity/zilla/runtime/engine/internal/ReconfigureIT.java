@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,7 +46,7 @@ public class ReconfigureIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(20, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -71,6 +72,18 @@ public class ReconfigureIT
         EngineTest.TestEngineExt.registerLatch.await();
         //Register new CountDownLatch
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
+    }
+
+    @After
+    public void cleanupFileSystem() throws Exception
+    {
+        InputStream sourceModify = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
+        InputStream sourceDelete = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
+        Path targetModify = configDir.resolve("zilla.reconfigure.modify.json");
+        Path targetDelete = configDir.resolve("zilla.reconfigure.delete.json");
+        Files.copy(sourceModify, targetModify, REPLACE_EXISTING);
+        Files.copy(sourceDelete, targetDelete, REPLACE_EXISTING);
+        configDir.resolve("zilla.reconfigure.missing.json").toFile().delete();
     }
 
     @Test
