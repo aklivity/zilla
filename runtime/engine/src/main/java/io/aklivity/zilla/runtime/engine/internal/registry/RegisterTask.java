@@ -159,7 +159,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
             }
         }
         System.out.println("Will configure with the following URL and content:");
-        System.out.println(configURL.getPath());
+        System.out.println(configURL);
         System.out.println(configText);
         return configure(configText);
     }
