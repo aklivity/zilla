@@ -81,6 +81,7 @@ public class ReconfigureModifyIT
     })
     public void shouldReconfigureWhenModified() throws Exception
     {
+        System.out.println("Modify");
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
