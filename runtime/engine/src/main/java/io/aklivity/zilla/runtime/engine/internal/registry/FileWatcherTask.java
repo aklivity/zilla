@@ -7,6 +7,7 @@ import static java.util.concurrent.ForkJoinPool.commonPool;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
@@ -17,6 +18,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -85,10 +87,9 @@ public class FileWatcherTask extends WatcherTask
     {
         try
         {
-            WatchService watchService;
             Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
 
-            watchService = FileSystems.getDefault().newWatchService();
+            WatchService watchService = FileSystems.getDefault().newWatchService();
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
 
             Path configFileName = configPath.getFileName();
@@ -100,12 +101,6 @@ public class FileWatcherTask extends WatcherTask
                     try
                     {
                         final WatchKey key = watchService.take();
-                        if (Thread.interrupted())
-                        {
-                            Thread.currentThread().interrupt();
-                            watchService.close();
-                            break;
-                        }
                         for (WatchEvent<?> event : key.pollEvents())
                         {
                             final Path changed = (Path) event.context();
@@ -160,7 +155,7 @@ public class FileWatcherTask extends WatcherTask
                 hash = md5Digest.digest(bytes);
             }
         }
-        catch (Exception ex)
+        catch (IOException | NoSuchAlgorithmException ex)
         {
             return hash;
         }

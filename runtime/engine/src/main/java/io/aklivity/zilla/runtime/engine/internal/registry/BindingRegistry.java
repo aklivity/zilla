@@ -42,7 +42,6 @@ final class BindingRegistry
     public void detach()
     {
         context.detach(binding);
-        // TODO: ask the engine to close all streams for this binding
         attached = null;
     }
 

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -220,7 +221,7 @@ public final class Engine implements AutoCloseable
         return counter.applyAsLong(name);
     }
 
-    public Future<NamespaceConfig> start() throws Exception
+    public Future<NamespaceConfig> start() throws ExecutionException, InterruptedException
     {
         for (AgentRunner runner : runners)
         {

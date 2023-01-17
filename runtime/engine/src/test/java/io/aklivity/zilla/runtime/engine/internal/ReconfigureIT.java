@@ -76,14 +76,17 @@ public class ReconfigureIT
     @After
     public void cleanupFileSystem() throws Exception
     {
-        InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
-        Path target = configDir.resolve("zilla.reconfigure.json");
-        Files.copy(source, target, REPLACE_EXISTING);
+        InputStream sourceModify = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
+        InputStream sourceDelete = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
+        Path targetModify = configDir.resolve("zilla.reconfigure.modify.json");
+        Path targetDelete = configDir.resolve("zilla.reconfigure.delete.json");
+        Files.copy(sourceModify, targetModify, REPLACE_EXISTING);
+        Files.copy(sourceDelete, targetDelete, REPLACE_EXISTING);
         configDir.resolve("zilla.reconfigure.missing.json").toFile().delete();
     }
 
     @Test
-    @Configuration("zilla.reconfigure.json")
+    @Configuration("zilla.reconfigure.modify.json")
     @Specification({
         "${app}/client.sent.data.reconfigure.modify/server",
         "${net}/client.sent.data.reconfigure.modify/client"
@@ -93,7 +96,7 @@ public class ReconfigureIT
         k3po.start();
 
         InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.after.json");
-        Path target = configDir.resolve("zilla.reconfigure.json");
+        Path target = configDir.resolve("zilla.reconfigure.modify.json");
         Files.copy(source, target, REPLACE_EXISTING);
 
         EngineTest.TestEngineExt.registerLatch.await();
@@ -124,7 +127,7 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configuration("zilla.reconfigure.json")
+    @Configuration("zilla.reconfigure.delete.json")
     @Specification({
         "${app}/client.sent.data.reconfigure.delete/server",
         "${net}/client.sent.data.reconfigure.delete/client"
@@ -132,8 +135,7 @@ public class ReconfigureIT
     public void shouldReconfigureWhenDeleted() throws Exception
     {
         k3po.start();
-        configDir.resolve("zilla.reconfigure.json").toFile().delete();
-
+        configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_DELETED");
 

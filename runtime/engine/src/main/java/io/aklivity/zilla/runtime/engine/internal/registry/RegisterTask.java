@@ -127,7 +127,6 @@ public class RegisterTask implements Callable<NamespaceConfig>
         if (configURL == null)
         {
             configText = CONFIG_TEXT_DEFAULT;
-            configure(configText);
         }
         else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
         {
@@ -146,7 +145,6 @@ public class RegisterTask implements Callable<NamespaceConfig>
                 BodyHandlers.ofString());
 
             configText = response.body();
-            configure(configText);
         }
         else
         {

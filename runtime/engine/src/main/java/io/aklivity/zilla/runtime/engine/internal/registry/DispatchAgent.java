@@ -757,7 +757,6 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask attachTask = configuration.attach(namespace);
         taskQueue.offer(attachTask);
-        System.out.println("attach");
         signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED, 0);
         return attachTask.future();
     }
@@ -767,7 +766,6 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask detachTask = configuration.detach(namespace);
         taskQueue.offer(detachTask);
-        System.out.println("detach");
         signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED, 0);
         return detachTask.future();
     }
@@ -906,7 +904,6 @@ public class DispatchAgent implements EngineContext, Agent
         switch (signalId)
         {
         case SIGNAL_TASK_QUEUED:
-            System.out.println(taskQueue.size());
             taskQueue.poll().run();
             break;
         }
