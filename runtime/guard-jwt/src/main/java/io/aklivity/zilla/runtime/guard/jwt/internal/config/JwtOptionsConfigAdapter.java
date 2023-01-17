@@ -111,10 +111,10 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         String keysUrl = null;
         if (object.containsKey(KEYS_NAME))
         {
-            JsonValue keysValue = object.getValue("/keys");
+            JsonValue keysValue = object.getValue(String.format("/%s", KEYS_NAME));
             if (JsonArray.class.isAssignableFrom(keysValue.getClass()))
             {
-                keys = object.getJsonArray(KEYS_NAME)
+                keys = keysValue.asJsonArray()
                         .stream()
                         .map(JsonValue::asJsonObject)
                         .map(key::adaptFromJson)
@@ -123,6 +123,14 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             else if (JsonString.class.isAssignableFrom(keysValue.getClass()))
             {
                 keysUrl = ((JsonString) keysValue).getString();
+            }
+        }
+        else
+        {
+            if (issuer != null)
+            {
+                keysUrl = (issuer.endsWith("/")) ?
+                        String.format("%s.well-known/jwks.json", issuer) : String.format("%s/.well-known/jwks.json", issuer);
             }
         }
 

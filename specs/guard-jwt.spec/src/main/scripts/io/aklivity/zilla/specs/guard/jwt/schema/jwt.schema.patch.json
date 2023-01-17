@@ -31,7 +31,7 @@
                                 {
                                     "type": "string",
                                     "format": "uri",
-                                    "pattern": "^(https?|wss?|ftp)://"
+                                    "pattern": "^(https?)://"
                                 },
                                 {
                                     "type": "array",

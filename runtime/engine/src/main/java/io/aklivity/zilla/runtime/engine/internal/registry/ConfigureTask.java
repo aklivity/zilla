@@ -134,14 +134,7 @@ public class ConfigureTask implements Callable<Void>
         }
         else
         {
-            try
-            {
-                configText = readURL(configURL);
-            }
-            catch (IOException ex)
-            {
-                configText = CONFIG_TEXT_DEFAULT;
-            }
+            configText = readURL(configURL);
         }
 
         if (!configText.endsWith(System.lineSeparator()))
@@ -208,18 +201,7 @@ public class ConfigureTask implements Callable<Void>
 
             namespace.id = supplyId.applyAsInt(namespace.name);
 
-            namespace.readURL = configURL ->
-            {
-                try
-                {
-                    return this.readURL(configURL);
-                }
-                catch (IOException | URISyntaxException | InterruptedException e)
-                {
-                    rethrowUnchecked(e);
-                }
-                return null;
-            };
+            namespace.readURL = configURL -> this.readURL(configURL);
 
             // TODO: consider qualified name "namespace::name"
             namespace.resolveId = name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
@@ -314,33 +296,42 @@ public class ConfigureTask implements Callable<Void>
     }
 
 
-    private String readURL(URL url) throws IOException, URISyntaxException, InterruptedException
+    private String readURL(URL url)
     {
-        if ("http".equals(url.getProtocol()) || "https".equals(url.getProtocol()))
+        String output = null;
+        try
         {
-            HttpClient client = HttpClient.newBuilder()
-                    .version(HTTP_2)
-                    .followRedirects(NORMAL)
-                    .build();
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(url.toURI())
-                    .build();
-
-            HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
-
-            return response.body();
-        }
-        else
-        {
-            URLConnection connection = url.openConnection();
-            try (InputStream input = connection.getInputStream())
+            if ("http".equals(url.getProtocol()) || "https".equals(url.getProtocol()))
             {
-                return new String(input.readAllBytes(), UTF_8);
+                HttpClient client = HttpClient.newBuilder()
+                        .version(HTTP_2)
+                        .followRedirects(NORMAL)
+                        .build();
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .GET()
+                        .uri(url.toURI())
+                        .build();
+
+                HttpResponse<String> response = client.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofString());
+
+                output = response.body();
+            }
+            else
+            {
+                URLConnection connection = url.openConnection();
+                try (InputStream input = connection.getInputStream())
+                {
+                    output = new String(input.readAllBytes(), UTF_8);
+                }
             }
         }
+        catch (IOException | URISyntaxException | InterruptedException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return output;
     }
 }

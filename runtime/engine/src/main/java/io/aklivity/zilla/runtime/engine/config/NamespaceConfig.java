@@ -28,7 +28,7 @@ public class NamespaceConfig
 {
     public transient int id;
     public transient ToLongFunction<String> resolveId;
-    public Function<URL, String> readURL;
+    public transient Function<URL, String> readURL;
 
     public final String name;
     public final List<NamespaceRef> references;

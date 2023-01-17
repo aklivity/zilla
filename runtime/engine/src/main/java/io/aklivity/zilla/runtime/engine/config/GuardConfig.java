@@ -25,12 +25,12 @@ import jakarta.json.bind.Jsonb;
 public class GuardConfig
 {
     public transient long id;
+    public transient Function<URL, String> readURL;
+    public transient Jsonb jsonb;
 
     public final String name;
     public final String type;
     public final OptionsConfig options;
-    public Function<URL, String> readURL;
-    public Jsonb jsonb;
 
     public GuardConfig(
         String name,

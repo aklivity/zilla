@@ -19,6 +19,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -29,10 +30,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 
-import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
+import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbException;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -44,7 +47,6 @@ import org.jose4j.jwt.NumericDate;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.lang.JoseException;
 
-import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfigAdapter;
@@ -53,6 +55,7 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 public class JwtGuardHandler implements GuardHandler
 {
     private final JsonWebSignature signature = new JsonWebSignature();
+    private static final String KEYS_NAME = "keys";
 
     private final String issuer;
     private final String audience;
@@ -63,43 +66,48 @@ public class JwtGuardHandler implements GuardHandler
     private final Long2ObjectHashMap<JwtSessionStore> sessionStoresByContextId;
 
     public JwtGuardHandler(
-            GuardConfig guard,
+            JwtOptionsConfig options,
             LongSupplier supplyAuthorizedId)
     {
+        this(options, supplyAuthorizedId, null, null);
+    }
 
-        JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
+    public JwtGuardHandler(
+            JwtOptionsConfig options,
+            LongSupplier supplyAuthorizedId,
+            Function<URL, String> readURL,
+            Jsonb jsonb)
+    {
         this.issuer = options.issuer;
         this.audience = options.audience;
         this.challenge = options.challenge.orElse(null);
 
-        Map<String, JsonWebKey> tmpKeys = new HashMap<>();
+        Map<String, JsonWebKey> resolvedKeys = new HashMap<>();
         if (options.keys != null)
         {
-            tmpKeys = getKeys(options.keys);
+            resolvedKeys = getKeys(options.keys);
         }
-        else
+        else if (options.keysURL.isPresent())
         {
-            String keysURL = options.keysURL.orElse(getJwksURL(issuer));
-            if (keysURL != null)
+            try
             {
-                try
-                {
-                    String keysText = guard.readURL.apply(URI.create(keysURL).toURL());
-                    JsonArray keysArray = guard.jsonb.fromJson(keysText, JsonArray.class);
-                    List<JwtKeyConfig> keysConfig = keysArray
-                            .stream()
-                            .map(JsonValue::asJsonObject)
-                            .map(new JwtKeyConfigAdapter()::adaptFromJson)
-                            .collect(toList());
-                    tmpKeys = getKeys(keysConfig);
-                }
-                catch (MalformedURLException | JsonbException ignored)
-                {
-                    // parsing fails -> use empty key set.
-                }
+                String keysText = readURL.apply(URI.create(options.keysURL.get()).toURL());
+                JsonObject keysObject = jsonb.fromJson(keysText, JsonObject.class);
+                List<JwtKeyConfig> keysConfig = keysObject
+                        .getJsonArray(KEYS_NAME)
+                        .stream()
+                        .map(JsonValue::asJsonObject)
+                        .map(new JwtKeyConfigAdapter()::adaptFromJson)
+                        .collect(toList());
+                resolvedKeys = getKeys(keysConfig);
             }
+            catch (MalformedURLException | JsonbException ex)
+            {
+                rethrowUnchecked(ex);
+            }
+
         }
-        this.keys = tmpKeys;
+        this.keys = resolvedKeys;
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();
@@ -257,7 +265,8 @@ public class JwtGuardHandler implements GuardHandler
         return sessionStoresByContextId.computeIfAbsent(contextId, JwtSessionStore::new);
     }
 
-    private Map<String, JsonWebKey> getKeys(List<JwtKeyConfig> keysConfig)
+    private Map<String, JsonWebKey> getKeys(
+            List<JwtKeyConfig> keysConfig)
     {
         Map<String, JsonWebKey> keys = new HashMap<>();
         for (JwtKeyConfig key : keysConfig)
@@ -282,16 +291,6 @@ public class JwtGuardHandler implements GuardHandler
             }
         }
         return keys;
-    }
-
-    private String getJwksURL(final String issuer)
-    {
-        if (issuer == null)
-        {
-            return null;
-        }
-        return (issuer.endsWith("/")) ?
-                String.format("%s.well-known/jwks.json", issuer) : String.format("%s/.well-known/jwks.json", issuer);
     }
 
     private final class JwtSessionStore

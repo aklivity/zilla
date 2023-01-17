@@ -7,9 +7,9 @@
             "type": "jwt",
             "options":
             {
-                "issuer": "https://aklivity.us.auth0.com/",
-                "audience": "http://localhost:8080/tasks",
-                "keys": "https://aklivity.us.auth0.com/.well-known/jwks.json",
+                "issuer": "https://auth.example.com",
+                "audience": "https://api.example.com",
+                "keys": "https://auth.example.com/.well_known/jwks.json",
                 "challenge": 30
             }
         }

@@ -22,6 +22,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 final class JwtGuardContext implements GuardContext
 {
@@ -40,7 +41,8 @@ final class JwtGuardContext implements GuardContext
     public JwtGuardHandler attach(
         GuardConfig guard)
     {
-        JwtGuardHandler handler = new JwtGuardHandler(guard, supplyAuthorizedId);
+        JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
+        JwtGuardHandler handler = new JwtGuardHandler(options, supplyAuthorizedId, guard.readURL, guard.jsonb);
         handlersById.put(guard.id, handler);
         return handler;
     }
