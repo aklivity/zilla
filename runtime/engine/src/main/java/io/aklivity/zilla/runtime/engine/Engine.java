@@ -77,7 +77,6 @@ public final class Engine implements AutoCloseable
     private final ToIntFunction<String> supplyLabelId;
     private final RegisterTask registerTask;
     private final WatcherTask watcherTask;
-    private Future<Void> watcherTaskRef;
 
     Engine(
         EngineConfiguration config,
@@ -172,13 +171,12 @@ public final class Engine implements AutoCloseable
                 @Override
                 public void setRootNamespace(NamespaceConfig rootNamespace)
                 {
-                    return;
                 }
 
                 @Override
-                public Void call() throws Exception
+                public boolean run()
                 {
-                    return null;
+                    return true;
                 }
             };
         }
@@ -231,7 +229,7 @@ public final class Engine implements AutoCloseable
         Future<NamespaceConfig> register = commonPool().submit(registerTask);
         NamespaceConfig rootNamespace = register.get();
         watcherTask.setRootNamespace(rootNamespace);
-        this.watcherTaskRef = commonPool().submit(watcherTask);
+        commonPool().submit(watcherTask);
         return register;
     }
 
@@ -240,7 +238,7 @@ public final class Engine implements AutoCloseable
     {
         final List<Throwable> errors = new ArrayList<>();
 
-        watcherTaskRef.cancel(true);
+        watcherTask.interrupt();
 
         for (AgentRunner runner : runners)
         {

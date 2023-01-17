@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
 
-public class FileWatcherTask implements WatcherTask
+public class FileWatcherTask extends WatcherTask
 {
     private final URL configURL;
     private final Collection<URL> schemaTypes;
@@ -81,7 +81,7 @@ public class FileWatcherTask implements WatcherTask
     }
 
     @Override
-    public Void call() throws Exception
+    public boolean run()
     {
         try
         {
@@ -100,7 +100,12 @@ public class FileWatcherTask implements WatcherTask
                     try
                     {
                         final WatchKey key = watchService.take();
-
+                        if (Thread.interrupted())
+                        {
+                            Thread.currentThread().interrupt();
+                            watchService.close();
+                            break;
+                        }
                         for (WatchEvent<?> event : key.pollEvents())
                         {
                             final Path changed = (Path) event.context();
@@ -109,7 +114,8 @@ public class FileWatcherTask implements WatcherTask
                                 byte[] newConfigHash = getConfigHash();
                                 if (!Arrays.equals(configHash, newConfigHash))
                                 {
-                                    commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions));
+                                    commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions))
+                                        .get();
                                     rootNamespace = commonPool().submit(
                                         new RegisterTask(configURL, schemaTypes, guardsByType, supplyId, maxWorkers, tuning,
                                             dispatchers, errorHandler, logger, context, config, extensions)
@@ -132,7 +138,7 @@ public class FileWatcherTask implements WatcherTask
         {
             rethrowUnchecked(ex);
         }
-        return null;
+        return true;
     }
 
     @Override
