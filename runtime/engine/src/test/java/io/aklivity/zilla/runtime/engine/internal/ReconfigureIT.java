@@ -26,7 +26,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,13 +39,13 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 
-public class ReconfigureModifyIT
+public class ReconfigureIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(20, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -62,7 +61,7 @@ public class ReconfigureModifyIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    private final String packageName = ReconfigureModifyIT.class.getPackageName();
+    private final String packageName = ReconfigureIT.class.getPackageName();
     private Path configDir = Paths.get("target/test-classes", packageName.replace(".", "/"));
 
     @Before
@@ -74,14 +73,6 @@ public class ReconfigureModifyIT
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 
-    @After
-    public void cleanupFileSystem() throws Exception
-    {
-        InputStream sourceModify = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.original.json");
-        Path targetModify = configDir.resolve("zilla.reconfigure.modify.json");
-        Files.copy(sourceModify, targetModify, REPLACE_EXISTING);
-    }
-
     @Test
     @Configuration("zilla.reconfigure.modify.json")
     @Specification({
@@ -90,11 +81,10 @@ public class ReconfigureModifyIT
     })
     public void shouldReconfigureWhenModified() throws Exception
     {
-        System.out.println("Modify");
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
-        try (InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.after.json"))
+        try (InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.after.json"))
         {
             Path target = configDir.resolve("zilla.reconfigure.modify.json");
             Files.copy(source, target, REPLACE_EXISTING);
@@ -102,6 +92,45 @@ public class ReconfigureModifyIT
 
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CHANGED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("zilla.reconfigure.delete.json")
+    @Specification({
+        "${app}/client.sent.data.reconfigure.delete/server",
+        "${net}/client.sent.data.reconfigure.delete/client"
+    })
+    public void shouldReconfigureWhenDeleted() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+
+        configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_DELETED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("zilla.reconfigure.missing.json")
+    @Specification({
+        "${app}/client.sent.data.reconfigure.create/server",
+        "${net}/client.sent.data.reconfigure.create/client"
+    })
+    public void shouldReconfigureWhenCreated() throws Exception
+    {
+        k3po.start();
+        try (InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json"))
+        {
+            Path target = configDir.resolve("zilla.reconfigure.missing.json");
+            Files.copy(source, target);
+        }
+
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CREATED");
 
         k3po.finish();
     }

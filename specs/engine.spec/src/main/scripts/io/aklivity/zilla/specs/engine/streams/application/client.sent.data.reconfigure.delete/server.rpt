@@ -20,6 +20,7 @@ accept "zilla://streams/app0"
 
 accepted
 connected
+write notify CONNECTED
 
 read await CONFIG_DELETED
 read aborted
