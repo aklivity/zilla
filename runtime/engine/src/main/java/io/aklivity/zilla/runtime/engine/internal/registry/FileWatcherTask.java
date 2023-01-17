@@ -107,7 +107,7 @@ public class FileWatcherTask extends WatcherTask
                             if (changed.equals(configFileName))
                             {
                                 byte[] newConfigHash = getConfigHash();
-                                if (!Arrays.equals(configHash, newConfigHash))
+                                if (newConfigHash.length != 0 && !Arrays.equals(configHash, newConfigHash))
                                 {
                                     commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions))
                                         .get();
@@ -152,6 +152,10 @@ public class FileWatcherTask extends WatcherTask
             try (InputStream input = connection.getInputStream())
             {
                 byte[] bytes = input.readAllBytes();
+                if (bytes.length == 0)
+                {
+                    return hash;
+                }
                 hash = md5Digest.digest(bytes);
             }
         }
