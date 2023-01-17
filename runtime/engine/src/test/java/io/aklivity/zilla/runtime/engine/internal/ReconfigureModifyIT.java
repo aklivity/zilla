@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,6 +74,14 @@ public class ReconfigureModifyIT
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 
+    @After
+    public void cleanupFileSystem() throws Exception
+    {
+        InputStream sourceModify = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.original.json");
+        Path targetModify = configDir.resolve("zilla.reconfigure.modify.json");
+        Files.copy(sourceModify, targetModify, REPLACE_EXISTING);
+    }
+
     @Test
     @Configuration("zilla.reconfigure.modify.json")
     @Specification({
@@ -83,6 +92,7 @@ public class ReconfigureModifyIT
     {
         System.out.println("Modify");
         k3po.start();
+        k3po.awaitBarrier("CONNECTED");
 
         try (InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.after.json"))
         {
