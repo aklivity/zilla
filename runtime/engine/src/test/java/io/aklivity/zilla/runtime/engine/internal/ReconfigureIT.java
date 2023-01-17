@@ -103,6 +103,7 @@ public class ReconfigureIT
     })
     public void shouldReconfigureWhenModified() throws Exception
     {
+        System.out.println("Modify");
         k3po.start();
 
         InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.after.json");
@@ -124,6 +125,7 @@ public class ReconfigureIT
     })
     public void shouldReconfigureWhenCreated() throws Exception
     {
+        System.out.println("Create");
         k3po.start();
 
         InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
@@ -144,6 +146,7 @@ public class ReconfigureIT
     })
     public void shouldReconfigureWhenDeleted() throws Exception
     {
+        System.out.println("Delete");
         k3po.start();
         configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
         EngineTest.TestEngineExt.registerLatch.await();
