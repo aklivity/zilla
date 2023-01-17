@@ -84,9 +84,11 @@ public class ReconfigureModifyIT
         System.out.println("Modify");
         k3po.start();
 
-        InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.after.json");
-        Path target = configDir.resolve("zilla.reconfigure.modify.json");
-        Files.copy(source, target, REPLACE_EXISTING);
+        try (InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.after.json"))
+        {
+            Path target = configDir.resolve("zilla.reconfigure.modify.json");
+            Files.copy(source, target, REPLACE_EXISTING);
+        }
 
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CHANGED");

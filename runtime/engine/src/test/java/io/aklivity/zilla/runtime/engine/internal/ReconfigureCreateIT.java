@@ -82,10 +82,11 @@ public class ReconfigureCreateIT
     {
         System.out.println("Create");
         k3po.start();
-
-        InputStream source = ReconfigureCreateIT.class.getResourceAsStream("zilla.reconfigure.original.json");
-        Path target = configDir.resolve("zilla.reconfigure.missing.json");
-        Files.copy(source, target);
+        try (InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.original.json"))
+        {
+            Path target = configDir.resolve("zilla.reconfigure.missing.json");
+            Files.copy(source, target);
+        }
 
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CREATED");
