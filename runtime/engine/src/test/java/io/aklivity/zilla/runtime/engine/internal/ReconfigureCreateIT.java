@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.engine.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -39,7 +38,7 @@ import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 
-public class ReconfigureIT
+public class ReconfigureCreateIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
@@ -61,7 +60,7 @@ public class ReconfigureIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    private final String packageName = ReconfigureIT.class.getPackageName();
+    private final String packageName = ReconfigureCreateIT.class.getPackageName();
     private Path configDir = Paths.get("target/test-classes", packageName.replace(".", "/"));
 
     @Before
@@ -74,47 +73,6 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configuration("zilla.reconfigure.modify.json")
-    @Specification({
-        "${app}/client.sent.data.reconfigure.modify/server",
-        "${net}/client.sent.data.reconfigure.modify/client"
-    })
-    public void shouldReconfigureWhenModified() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("CONNECTED");
-
-        try (InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.after.json"))
-        {
-            Path target = configDir.resolve("zilla.reconfigure.modify.json");
-            Files.copy(source, target, REPLACE_EXISTING);
-        }
-
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_CHANGED");
-
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("zilla.reconfigure.delete.json")
-    @Specification({
-        "${app}/client.sent.data.reconfigure.delete/server",
-        "${net}/client.sent.data.reconfigure.delete/client"
-    })
-    public void shouldReconfigureWhenDeleted() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("CONNECTED");
-
-        configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_DELETED");
-
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("zilla.reconfigure.missing.json")
     @Specification({
         "${app}/client.sent.data.reconfigure.create/server",
@@ -123,7 +81,7 @@ public class ReconfigureIT
     public void shouldReconfigureWhenCreated() throws Exception
     {
         k3po.start();
-        try (InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json"))
+        try (InputStream source = ReconfigureCreateIT.class.getResourceAsStream("zilla.reconfigure.original.json"))
         {
             Path target = configDir.resolve("zilla.reconfigure.missing.json");
             Files.copy(source, target);
