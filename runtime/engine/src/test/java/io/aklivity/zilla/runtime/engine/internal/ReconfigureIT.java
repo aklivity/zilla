@@ -74,8 +74,17 @@ public class ReconfigureIT
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 
+    @Before
+    public void cleanupBefore() throws Exception
+    {
+        cleanupFileSystem();
+    }
     @After
-    public void cleanupFileSystem() throws Exception
+    public void cleanupAfter() throws Exception
+    {
+        cleanupFileSystem();
+    }
+    private void cleanupFileSystem() throws Exception
     {
         InputStream sourceModify = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
         InputStream sourceDelete = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json");
