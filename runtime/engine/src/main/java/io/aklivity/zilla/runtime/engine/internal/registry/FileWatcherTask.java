@@ -103,23 +103,16 @@ public class FileWatcherTask extends WatcherTask
                     try
                     {
                         final WatchKey key = watchService.take();
+                        // Sleep is needed to prevent receiving two separate ENTRY_MODIFY events:
+                        // file modified and timestamp updated.
+                        // Instead, receive one ENTRY_MODIFY event with two counts.
+                        Thread.sleep(50);
                         for (WatchEvent<?> event : key.pollEvents())
                         {
                             final Path changed = (Path) event.context();
                             System.out.println("Received event: " + event.kind());
                             if (changed.equals(configFileName))
                             {
-                                if (event.kind().equals(ENTRY_MODIFY))
-                                {
-                                    try (InputStream input = configURL.openConnection().getInputStream())
-                                    {
-                                        if (new String(input.readAllBytes(), UTF_8).isEmpty())
-                                        {
-                                            System.out.println("We got a modify event while the file is empty");
-                                            break;
-                                        }
-                                    }
-                                }
                                 byte[] newConfigHash = getConfigHash();
                                 System.out.println("Received confighash: " + newConfigHash);
                                 if (!Arrays.equals(configHash, newConfigHash))
