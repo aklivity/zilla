@@ -1,6 +1,5 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
@@ -95,7 +94,6 @@ public class FileWatcherTask extends WatcherTask
 
             Path configFileName = configPath.getFileName();
             configHash = getConfigHash();
-            System.out.println("Initial confighash: " + configHash);
             while (true)
             {
                 if (rootNamespace != null)
@@ -110,15 +108,12 @@ public class FileWatcherTask extends WatcherTask
                         for (WatchEvent<?> event : key.pollEvents())
                         {
                             final Path changed = (Path) event.context();
-                            System.out.println("Received event: " + event.kind());
                             if (changed.equals(configFileName))
                             {
                                 byte[] newConfigHash = getConfigHash();
-                                System.out.println("Received confighash: " + newConfigHash);
                                 if (!Arrays.equals(configHash, newConfigHash))
                                 {
                                     configHash = newConfigHash;
-                                    System.out.println("Confighash set to: " + configHash);
                                     commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions))
                                         .get();
                                     rootNamespace = commonPool().submit(
@@ -161,7 +156,6 @@ public class FileWatcherTask extends WatcherTask
             try (InputStream input = connection.getInputStream())
             {
                 byte[] bytes = input.readAllBytes();
-                System.out.println("What we read at getConfigHash: " + new String(bytes, UTF_8));
                 if (bytes.length == 0)
                 {
                     return hash;

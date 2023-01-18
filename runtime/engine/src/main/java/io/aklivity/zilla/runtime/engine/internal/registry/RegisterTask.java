@@ -156,12 +156,8 @@ public class RegisterTask implements Callable<NamespaceConfig>
             catch (IOException ex)
             {
                 configText = CONFIG_TEXT_DEFAULT;
-                System.out.println("EXCEPTION HAPPENED");
             }
         }
-        System.out.println("Will configure with the following URL and content:");
-        System.out.println(configURL);
-        System.out.println(configText);
         return configure(configText);
     }
 
