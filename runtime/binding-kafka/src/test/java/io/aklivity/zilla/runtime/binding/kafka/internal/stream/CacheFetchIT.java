@@ -81,6 +81,50 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.json")
     @Specification({
+        "${app}/compacted.message.with.message/client",
+        "${app}/compact.message.with.message/server"})
+    public void shouldCompactMessageWithMessage() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/compacted.message.with.tombstone/client",
+        "${app}/compact.message.with.tombstone/server"})
+    public void shouldCompactMessageWithTombstone() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/compacted.tombstone.with.message/client",
+        "${app}/compact.tombstone.with.message/server"})
+    public void shouldCompactTombstoneWithMessage() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
+        "${app}/compacted.tombstone.with.tombstone/client",
+        "${app}/compact.tombstone.with.tombstone/server"})
+    public void shouldCompactTombstoneWithTombstone() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
         "${app}/topic.missing/client"})
     public void shouldRejectWhenTopicMissing() throws Exception
     {
