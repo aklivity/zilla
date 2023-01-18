@@ -81,8 +81,7 @@ public class ReconfigureDeleteIT
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
-        boolean success = configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
-        System.out.println("Delete was: " + success);
+        configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_DELETED");
 
