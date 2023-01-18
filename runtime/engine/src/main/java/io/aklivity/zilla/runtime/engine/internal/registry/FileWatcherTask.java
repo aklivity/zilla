@@ -94,6 +94,7 @@ public class FileWatcherTask extends WatcherTask
 
             Path configFileName = configPath.getFileName();
             configHash = getConfigHash();
+            System.out.println("Initial confighash: " + configHash);
             while (true)
             {
                 if (rootNamespace != null)
@@ -108,6 +109,7 @@ public class FileWatcherTask extends WatcherTask
                             if (changed.equals(configFileName))
                             {
                                 byte[] newConfigHash = getConfigHash();
+                                System.out.println("Received confighash: " + configHash);
                                 if (!Arrays.equals(configHash, newConfigHash))
                                 {
                                     commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions))
@@ -117,6 +119,7 @@ public class FileWatcherTask extends WatcherTask
                                             dispatchers, errorHandler, logger, context, config, extensions)
                                     ).get();
                                     configHash = newConfigHash;
+                                    System.out.println("Confighash set to: " + configHash);
                                 }
                             }
                         }
