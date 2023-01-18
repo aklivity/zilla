@@ -16,12 +16,12 @@
 package io.aklivity.zilla.runtime.engine.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.nio.file.Files;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
@@ -84,11 +84,12 @@ public class ReconfigureModifyIT
         System.out.println("Modify");
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
+        Path target = configDir.resolve("zilla.reconfigure.modify.json");
 
-        try (InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.after.json"))
+        try (InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.after.json");
+            OutputStream outputStream = new FileOutputStream(target.toFile()))
         {
-            Path target = configDir.resolve("zilla.reconfigure.modify.json");
-            Files.copy(source, target, REPLACE_EXISTING);
+            source.transferTo(outputStream);
         }
 
         EngineTest.TestEngineExt.registerLatch.await();
