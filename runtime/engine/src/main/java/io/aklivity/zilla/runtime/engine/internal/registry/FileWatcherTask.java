@@ -1,5 +1,6 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
@@ -11,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -109,6 +109,17 @@ public class FileWatcherTask extends WatcherTask
                             System.out.println("Received event: " + event.kind());
                             if (changed.equals(configFileName))
                             {
+                                if (event.kind().equals(ENTRY_MODIFY))
+                                {
+                                    try (InputStream input = configURL.openConnection().getInputStream())
+                                    {
+                                        if (new String(input.readAllBytes(), UTF_8).isEmpty())
+                                        {
+                                            System.out.println("We got a modify event while the file is empty");
+                                            break;
+                                        }
+                                    }
+                                }
                                 byte[] newConfigHash = getConfigHash();
                                 System.out.println("Received confighash: " + newConfigHash);
                                 if (!Arrays.equals(configHash, newConfigHash))
@@ -157,7 +168,7 @@ public class FileWatcherTask extends WatcherTask
             try (InputStream input = connection.getInputStream())
             {
                 byte[] bytes = input.readAllBytes();
-                System.out.println("What we read at getConfigHash: " + new String(bytes, StandardCharsets.UTF_8));
+                System.out.println("What we read at getConfigHash: " + new String(bytes, UTF_8));
                 if (bytes.length == 0)
                 {
                     return hash;
