@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -84,6 +85,7 @@ public class ReconfigureCreateIT
         try (InputStream source = ReconfigureCreateIT.class.getResourceAsStream("zilla.reconfigure.original.json"))
         {
             Path target = configDir.resolve("zilla.reconfigure.missing.json");
+            System.out.println("Create file with content: " + new String(source.readAllBytes(), StandardCharsets.UTF_8));
             Files.copy(source, target);
         }
 

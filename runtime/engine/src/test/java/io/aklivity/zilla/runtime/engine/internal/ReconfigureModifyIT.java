@@ -22,6 +22,7 @@ import static org.junit.rules.RuleChain.outerRule;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
@@ -89,6 +90,7 @@ public class ReconfigureModifyIT
         try (InputStream source = ReconfigureModifyIT.class.getResourceAsStream("zilla.reconfigure.after.json");
             OutputStream outputStream = new FileOutputStream(target.toFile()))
         {
+            System.out.println("Modify file with content: " + new String(source.readAllBytes(), StandardCharsets.UTF_8));
             source.transferTo(outputStream);
         }
 
