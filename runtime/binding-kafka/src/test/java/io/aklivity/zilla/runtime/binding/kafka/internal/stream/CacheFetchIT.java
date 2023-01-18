@@ -81,6 +81,17 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.json")
     @Specification({
+        "${app}/followed.message.with.message/client",
+        "${app}/follow.message.with.message/server"})
+    public void shouldFollowMessageWithMessage() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.json")
+    @Specification({
         "${app}/compacted.message.with.message/client",
         "${app}/compact.message.with.message/server"})
     public void shouldCompactMessageWithMessage() throws Exception
