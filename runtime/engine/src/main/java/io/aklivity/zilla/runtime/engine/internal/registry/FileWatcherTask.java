@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -109,17 +110,17 @@ public class FileWatcherTask extends WatcherTask
                             if (changed.equals(configFileName))
                             {
                                 byte[] newConfigHash = getConfigHash();
-                                System.out.println("Received confighash: " + configHash);
+                                System.out.println("Received confighash: " + newConfigHash);
                                 if (!Arrays.equals(configHash, newConfigHash))
                                 {
+                                    configHash = newConfigHash;
+                                    System.out.println("Confighash set to: " + configHash);
                                     commonPool().submit(new UnregisterTask(dispatchers, rootNamespace, context, extensions))
                                         .get();
                                     rootNamespace = commonPool().submit(
                                         new RegisterTask(configURL, schemaTypes, guardsByType, supplyId, maxWorkers, tuning,
                                             dispatchers, errorHandler, logger, context, config, extensions)
                                     ).get();
-                                    configHash = newConfigHash;
-                                    System.out.println("Confighash set to: " + configHash);
                                 }
                             }
                         }
@@ -156,6 +157,7 @@ public class FileWatcherTask extends WatcherTask
             try (InputStream input = connection.getInputStream())
             {
                 byte[] bytes = input.readAllBytes();
+                System.out.println("What we read at getConfigHash: " + new String(bytes, StandardCharsets.UTF_8));
                 if (bytes.length == 0)
                 {
                     return hash;
