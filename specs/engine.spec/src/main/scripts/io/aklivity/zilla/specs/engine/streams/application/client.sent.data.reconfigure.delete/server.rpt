@@ -24,4 +24,3 @@ write notify CONNECTED
 
 read await CONFIG_DELETED
 read aborted
-write abort

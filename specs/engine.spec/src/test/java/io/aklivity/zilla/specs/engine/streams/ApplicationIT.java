@@ -40,7 +40,7 @@ public class ApplicationIT
     @Specification({
         "${app}/client.sent.data.reconfigure.modify/client",
         "${app}/client.sent.data.reconfigure.modify/server" })
-    public void shouldConnectToZillaOnNewPortWhenConfigModified() throws Exception
+    public void shouldReconfigureWhenModified() throws Exception
     {
         k3po.finish();
     }
@@ -49,7 +49,7 @@ public class ApplicationIT
     @Specification({
         "${app}/client.sent.data.reconfigure.create/client",
         "${app}/client.sent.data.reconfigure.create/server" })
-    public void shouldConnectToZillaWhenConfigCreated() throws Exception
+    public void shouldReconfigureWhenCreated() throws Exception
     {
         k3po.finish();
     }
@@ -58,7 +58,7 @@ public class ApplicationIT
     @Specification({
         "${app}/client.sent.data.reconfigure.delete/client",
         "${app}/client.sent.data.reconfigure.delete/server" })
-    public void shouldNotConnectToZillaWhenConfigDeleted() throws Exception
+    public void shouldReconfigureWhenDeleted() throws Exception
     {
         k3po.finish();
     }

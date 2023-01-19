@@ -19,10 +19,6 @@ connect "zilla://streams/net0"
         option zilla:window 8192
 connected
 
-read await CONFIG_DELETED
-read aborted
-write abort
-
 connect await CONFIG_DELETED
         "zilla://streams/net0"
         option zilla:transmission "duplex"

@@ -46,7 +46,7 @@ public class ReconfigureIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(20, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")

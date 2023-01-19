@@ -20,10 +20,6 @@ connect "zilla://streams/app0"
 
 connected
 
-write notify CONFIG_CHANGED
-write abort
-read aborted
-
 connect "zilla://streams/app1"
     option zilla:window 8192
     option zilla:transmission "duplex"

@@ -436,6 +436,14 @@ public class DispatchAgent implements EngineContext, Agent
         long streamId)
     {
         throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+        throttleSets.keySet().forEach(bindingId ->
+        {
+            LongHashSet throttleIdSet = throttleSets.get(bindingId);
+            if (throttleIdSet != null)
+            {
+                throttleIdSet.remove(streamId);
+            }
+        });
     }
 
     @Override
@@ -447,13 +455,14 @@ public class DispatchAgent implements EngineContext, Agent
         {
             streamIdSet.forEach(streamId ->
                 {
-                    int streamIndex = streamIndex(streamId);
-                    streams[streamIndex].values().forEach(streamHandler ->
-                        doSyntheticAbort(streamId, streamHandler)
-                    );
-                    streams[streamIndex].remove(instanceId(streamId));
+                    MessageConsumer handler = streams[streamIndex(streamId)].remove(instanceId(streamId));
+                    if (handler != null)
+                    {
+                        doSyntheticAbort(streamId, handler);
+                    }
                 }
             );
+            streamIdSet.clear();
         }
 
         LongHashSet throttleIdSet = throttleSets.remove(bindingId);
@@ -461,13 +470,14 @@ public class DispatchAgent implements EngineContext, Agent
         {
             throttleIdSet.forEach(throttleId ->
                 {
-                    int throttleIndex = throttleIndex(throttleId);
-                    throttles[throttleIndex].values().forEach(streamHandler ->
-                        doSyntheticAbort(throttleId, streamHandler)
-                    );
-                    throttles[throttleIndex].remove(instanceId(throttleIndex));
+                    MessageConsumer handler = throttles[throttleIndex(throttleId)].remove(instanceId(throttleId));
+                    if (handler != null)
+                    {
+                        doSyntheticReset(throttleId, handler);
+                    }
                 }
             );
+            throttleIdSet.clear();
         }
     }
 
@@ -1419,6 +1429,23 @@ public class DispatchAgent implements EngineContext, Agent
         replyTo.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    private void doSyntheticReset(
+        long streamId,
+        MessageConsumer throttle)
+    {
+        final long syntheticRouteId = 0L;
+
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .routeId(syntheticRouteId)
+            .streamId(streamId)
+            .sequence(-1L)
+            .acknowledge(-1L)
+            .maximum(0)
+            .build();
+
+        throttle.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
     private void doSyntheticAbort(
         long streamId,
         MessageConsumer stream)
@@ -1490,7 +1517,8 @@ public class DispatchAgent implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, throttles, supplyLoadEntry);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, throttleSets,
+            supplyLoadEntry);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(

@@ -21,7 +21,5 @@ accepted
 connected
 
 write notify CONFIG_DELETED
-write abort
-read aborted
 
 rejected
