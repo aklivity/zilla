@@ -1333,10 +1333,8 @@ public class DispatchAgent implements EngineContext, Agent
             if (newStream != null)
             {
                 final long replyId = supplyReplyId(initialId);
-                final int streamIndex = streamIndex(initialId);
-                final int throttleIndex = throttleIndex(replyId);
-                streams[streamIndex].put(instanceId(initialId), newStream);
-                throttles[throttleIndex].put(instanceId(replyId), newStream);
+                streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
+                throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
                 supplyLoadEntry.apply(routeId).initialOpened(1L);
 
                 streamSets.computeIfAbsent(routeId, k -> new LongHashSet())
