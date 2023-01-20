@@ -102,6 +102,11 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
         }
 
+        if (Files.notExists(Paths.get("zilla.json")) && Files.exists(Paths.get("zilla.yaml")))
+        {
+            configURL = Paths.get("zilla.yaml").toUri();
+        }
+
         EngineConfiguration config = new EngineConfiguration(props);
         Consumer<Throwable> report = exceptions
                 ? e -> e.printStackTrace(System.err)
