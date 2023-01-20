@@ -22,7 +22,6 @@ import java.util.List;
 
 
 import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -112,17 +111,19 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         if (object.containsKey(KEYS_NAME))
         {
             JsonValue keysValue = object.getValue(String.format("/%s", KEYS_NAME));
-            if (JsonArray.class.isAssignableFrom(keysValue.getClass()))
+            switch (keysValue.getValueType())
             {
+            case ARRAY:
                 keys = keysValue.asJsonArray()
                         .stream()
                         .map(JsonValue::asJsonObject)
                         .map(key::adaptFromJson)
                         .collect(toList());
-            }
-            else if (JsonString.class.isAssignableFrom(keysValue.getClass()))
-            {
+                break;
+            case STRING:
                 keysUrl = ((JsonString) keysValue).getString();
+                break;
+
             }
         }
         else

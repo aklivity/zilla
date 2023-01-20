@@ -201,7 +201,7 @@ public class ConfigureTask implements Callable<Void>
 
             namespace.id = supplyId.applyAsInt(namespace.name);
 
-            namespace.readURL = configURL -> this.readURL(configURL);
+            namespace.readURL = this::readURL;
 
             // TODO: consider qualified name "namespace::name"
             namespace.resolveId = name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
@@ -210,7 +210,6 @@ public class ConfigureTask implements Callable<Void>
             {
                 guard.id = namespace.resolveId.applyAsLong(guard.name);
                 guard.readURL = namespace.readURL;
-                guard.jsonb = jsonb;
             }
 
             for (VaultConfig vault : namespace.vaults)
@@ -296,12 +295,13 @@ public class ConfigureTask implements Callable<Void>
     }
 
 
-    private String readURL(URL url)
+    private String readURL(
+        URL location)
     {
         String output = null;
         try
         {
-            if ("http".equals(url.getProtocol()) || "https".equals(url.getProtocol()))
+            if ("http".equals(location.getProtocol()) || "https".equals(location.getProtocol()))
             {
                 HttpClient client = HttpClient.newBuilder()
                         .version(HTTP_2)
@@ -310,7 +310,7 @@ public class ConfigureTask implements Callable<Void>
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .GET()
-                        .uri(url.toURI())
+                        .uri(location.toURI())
                         .build();
 
                 HttpResponse<String> response = client.send(
@@ -321,7 +321,7 @@ public class ConfigureTask implements Callable<Void>
             }
             else
             {
-                URLConnection connection = url.openConnection();
+                URLConnection connection = location.openConnection();
                 try (InputStream input = connection.getInputStream())
                 {
                     output = new String(input.readAllBytes(), UTF_8);

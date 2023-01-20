@@ -20,13 +20,10 @@ import static java.util.Objects.requireNonNull;
 import java.net.URL;
 import java.util.function.Function;
 
-import jakarta.json.bind.Jsonb;
-
 public class GuardConfig
 {
     public transient long id;
     public transient Function<URL, String> readURL;
-    public transient Jsonb jsonb;
 
     public final String name;
     public final String type;
