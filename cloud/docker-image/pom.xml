@@ -222,6 +222,8 @@
                             <include>jakarta/json/**</include>
                             <include>jakarta/inject/**</include>
                             <include>org/leadpony/justify/**</include>
+                            <include>org/leadpony/joy/**</include>
+                            <include>org/snakeyaml/snakeyaml-engine/**</include>
                             <include>org/eclipse/yasson/**</include>
                             <include>org/glassfish/**</include>
                             <include>com/github/rvesse/**</include>
