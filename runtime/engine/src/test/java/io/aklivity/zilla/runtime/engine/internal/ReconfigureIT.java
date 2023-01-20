@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -63,6 +64,15 @@ public class ReconfigureIT
     private final String packageName = ReconfigureIT.class.getPackageName();
     private Path configDir = Paths.get("target/test-classes", packageName.replace(".", "/"));
 
+    @Before
+    public void init() throws Exception
+    {
+        //Make sure that the initial configuration has finished
+        EngineTest.TestEngineExt.registerLatch.await();
+        //Register new CountDownLatch
+        EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
+    }
+
     @Test
     @Configuration("zilla.reconfigure.modify.json")
     @Specification({
@@ -72,8 +82,7 @@ public class ReconfigureIT
     public void shouldReconfigureWhenModified() throws Exception
     {
         k3po.start();
-        EngineTest.TestEngineExt.registerLatch.await();
-        EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
+        k3po.awaitBarrier("CONNECTED");
 
         Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.after.json").toURI());
         Path target = configDir.resolve("zilla.reconfigure.modify.json");
@@ -95,8 +104,7 @@ public class ReconfigureIT
     public void shouldReconfigureWhenDeleted() throws Exception
     {
         k3po.start();
-        EngineTest.TestEngineExt.registerLatch.await();
-        EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
+        k3po.awaitBarrier("CONNECTED");
 
         configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
 
@@ -115,8 +123,6 @@ public class ReconfigureIT
     public void shouldReconfigureWhenCreated() throws Exception
     {
         k3po.start();
-        EngineTest.TestEngineExt.registerLatch.await();
-        EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
 
         try (InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json"))
         {

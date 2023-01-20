@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,7 +32,6 @@ import org.agrona.ErrorHandler;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -51,7 +51,7 @@ public class FileWatcherTask extends WatcherTask
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
-    private NamespaceConfig rootNamespace;
+    private WatchService watchService;
     private byte[] configHash;
 
     public FileWatcherTask(
@@ -80,10 +80,18 @@ public class FileWatcherTask extends WatcherTask
         this.context = context;
         this.config = config;
         this.extensions = extensions;
+        try
+        {
+            this.watchService = FileSystems.getDefault().newWatchService();
+        }
+        catch (IOException ex)
+        {
+            rethrowUnchecked(ex);
+        }
     }
 
     @Override
-    public boolean run()
+    public Void call()
     {
         try
         {
@@ -122,10 +130,9 @@ public class FileWatcherTask extends WatcherTask
                         }
                         key.reset();
                     }
-                    catch (InterruptedException ex)
+                    catch (ClosedWatchServiceException ex)
                     {
-                        watchService.close();
-                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
             }
@@ -134,13 +141,7 @@ public class FileWatcherTask extends WatcherTask
         {
             rethrowUnchecked(ex);
         }
-        return true;
-    }
-
-    @Override
-    public void setRootNamespace(NamespaceConfig rootNamespace)
-    {
-        this.rootNamespace = rootNamespace;
+        return null;
     }
 
     private byte[] getConfigHash()
@@ -165,5 +166,14 @@ public class FileWatcherTask extends WatcherTask
             return hash;
         }
         return hash;
+    }
+
+    @Override
+    public void close() throws IOException
+    {
+        if (watchService != null)
+        {
+            watchService.close();
+        }
     }
 }
