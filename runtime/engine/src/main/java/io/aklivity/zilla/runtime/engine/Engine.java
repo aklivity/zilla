@@ -20,7 +20,6 @@ import static java.util.concurrent.ForkJoinPool.commonPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -171,14 +170,14 @@ public final class Engine implements AutoCloseable
             this.watcherTask = new WatcherTask()
             {
                 @Override
-                public Void call() throws Exception
+                public void setRootNamespace(NamespaceConfig rootNamespace)
                 {
-                    return null;
                 }
 
                 @Override
-                public void close() throws IOException
+                public boolean run()
                 {
+                    return true;
                 }
             };
         }
@@ -240,7 +239,7 @@ public final class Engine implements AutoCloseable
     {
         final List<Throwable> errors = new ArrayList<>();
 
-        watcherTask.close();
+        watcherTask.interrupt();
 
         for (AgentRunner runner : runners)
         {
