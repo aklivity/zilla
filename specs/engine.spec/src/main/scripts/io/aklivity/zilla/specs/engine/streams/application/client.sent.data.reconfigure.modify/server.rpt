@@ -20,7 +20,9 @@ accept "zilla://streams/app0"
 
 accepted
 connected
-write notify CONNECTED
+
+read aborted
+write aborted
 
 accept "zilla://streams/app1"
        option zilla:window 8192

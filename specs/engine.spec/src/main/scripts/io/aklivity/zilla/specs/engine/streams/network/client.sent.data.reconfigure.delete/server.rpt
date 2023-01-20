@@ -21,5 +21,7 @@ accepted
 connected
 
 write notify CONFIG_DELETED
+read abort
+write aborted
 
 rejected

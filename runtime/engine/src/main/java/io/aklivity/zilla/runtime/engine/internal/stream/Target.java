@@ -61,7 +61,6 @@ public final class Target implements AutoCloseable
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
-    private final Long2ObjectHashMap<LongHashSet> throttleSet;
     private final MessageConsumer writeHandler;
     private final LongFunction<LoadEntry> supplyLoadEntry;
 
@@ -76,7 +75,6 @@ public final class Target implements AutoCloseable
         Int2ObjectHashMap<MessageConsumer>[] streams,
         Long2ObjectHashMap<LongHashSet> streamSets,
         Int2ObjectHashMap<MessageConsumer>[] throttles,
-        Long2ObjectHashMap<LongHashSet> throttleSets,
         LongFunction<LoadEntry> supplyLoadEntry)
     {
         this.timestamps = config.timestamps();
@@ -99,7 +97,6 @@ public final class Target implements AutoCloseable
         this.streams = streams;
         this.streamSets = streamSets;
         this.throttles = throttles;
-        this.throttleSet = throttleSets;
 
         this.writeHandler = this::handleWrite;
     }
@@ -212,14 +209,12 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
             case EndFW.TYPE_ID:
+                handled = streamsBuffer.test(msgTypeId, buffer, index, length);
+                throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+                break;
             case AbortFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
-                LongHashSet throttleIdSet = throttleSet.get(routeId);
-                if (throttleIdSet != null)
-                {
-                    throttleIdSet.remove(streamId);
-                }
                 break;
             case FlushFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -288,19 +283,11 @@ public final class Target implements AutoCloseable
                 supplyLoadEntry.apply(routeId).replyClosed(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
-                if (throttleSet.get(routeId) != null)
-                {
-                    throttleSet.get(routeId).remove(streamId);
-                }
                 break;
             case AbortFW.TYPE_ID:
                 supplyLoadEntry.apply(routeId).replyClosed(1L).replyErrored(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
-                if (throttleSet.get(routeId) != null)
-                {
-                    throttleSet.get(routeId).remove(streamId);
-                }
                 break;
             case FlushFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);

@@ -21,6 +21,8 @@ accepted
 connected
 
 write notify CONFIG_CHANGED
+read abort
+write aborted
 rejected
 
 accept "zilla://streams/net1"

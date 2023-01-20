@@ -19,11 +19,8 @@ connect "zilla://streams/net0"
         option zilla:window 8192
 connected
 
-connect await CONFIG_CHANGED
-        "zilla://streams/net0"
-        option zilla:transmission "duplex"
-        option zilla:window 8192
-connect aborted
+write aborted
+read abort
 
 connect await CONFIG_CHANGED
         "zilla://streams/net0"

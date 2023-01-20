@@ -154,7 +154,9 @@ public class EngineTest
 
     public static final class TestEngineExt implements EngineExtSpi
     {
-        public static CountDownLatch registerLatch = new CountDownLatch(1);
+        public static volatile CountDownLatch registerLatch = new CountDownLatch(1);
+        public static volatile CountDownLatch unregisterLatch = new CountDownLatch(1);
+
         @Override
         public void onRegistered(
             EngineExtContext context)
@@ -169,6 +171,10 @@ public class EngineTest
         public void onUnregistered(
             EngineExtContext context)
         {
+            if (unregisterLatch != null)
+            {
+                unregisterLatch.countDown();
+            }
         }
     }
 }
