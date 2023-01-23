@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.RegisterTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.UnregisterTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -77,6 +78,7 @@ public final class Engine implements AutoCloseable
 
     private final ToIntFunction<String> supplyLabelId;
     private final RegisterTask registerTask;
+    private final UnregisterTask unregisterTask;
     private final WatcherTask watcherTask;
 
     Engine(
@@ -158,26 +160,21 @@ public final class Engine implements AutoCloseable
 
         registerTask = new RegisterTask(configURL, schemaTypes, guardsByType::get,
             labels::supplyLabelId, maxWorkers, tuning, dispatchers, errorHandler, logger, context, config, extensions);
+        unregisterTask = new UnregisterTask(dispatchers, context, extensions);
 
         if (configURL == null || "file".equals(configURL.getProtocol()))
         {
-            this.watcherTask = new FileWatcherTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId,
-                maxWorkers, tuning, dispatchers, errorHandler, logger, context, config, extensions);
+            this.watcherTask = new FileWatcherTask(configURL, this::reconfigure);
         }
         else
         {
             //TODO: implement watcherTask for HTTP config
-            this.watcherTask = new WatcherTask()
+            this.watcherTask = new WatcherTask(configURL, this::reconfigure)
             {
-                @Override
-                public void setRootNamespace(NamespaceConfig rootNamespace)
-                {
-                }
-
                 @Override
                 public boolean run()
                 {
-                    return true;
+                    throw new UnsupportedOperationException();
                 }
             };
         }
@@ -228,8 +225,6 @@ public final class Engine implements AutoCloseable
             AgentRunner.startOnThread(runner, Thread::new);
         }
         Future<NamespaceConfig> register = commonPool().submit(registerTask);
-        NamespaceConfig rootNamespace = register.get();
-        watcherTask.setRootNamespace(rootNamespace);
         commonPool().submit(watcherTask);
         return register;
     }
@@ -267,6 +262,19 @@ public final class Engine implements AutoCloseable
             final Throwable t = errors.get(0);
             errors.stream().filter(x -> x != t).forEach(x -> t.addSuppressed(x));
             rethrowUnchecked(t);
+        }
+    }
+
+    private void reconfigure()
+    {
+        try
+        {
+            commonPool().submit(unregisterTask).get();
+            unregisterTask.setRootNamespace(commonPool().submit(registerTask).get());
+        }
+        catch (InterruptedException | ExecutionException ex)
+        {
+            rethrowUnchecked(ex);
         }
     }
 

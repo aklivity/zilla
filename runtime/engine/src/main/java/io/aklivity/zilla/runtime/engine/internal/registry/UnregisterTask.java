@@ -28,18 +28,16 @@ import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 public class UnregisterTask implements Callable<Void>
 {
     private final Collection<DispatchAgent> dispatchers;
-    private final NamespaceConfig rootNamespace;
     private final EngineExtContext context;
     private final List<EngineExtSpi> extensions;
+    private NamespaceConfig rootNamespace;
 
     public UnregisterTask(
         Collection<DispatchAgent> dispatchers,
-        NamespaceConfig rootNamespace,
         EngineExtContext context,
         List<EngineExtSpi> extensions)
     {
         this.dispatchers = dispatchers;
-        this.rootNamespace = rootNamespace;
         this.context = context;
         this.extensions = extensions;
     }
@@ -47,13 +45,21 @@ public class UnregisterTask implements Callable<Void>
     @Override
     public Void call() throws Exception
     {
-        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-        for (DispatchAgent dispatcher : dispatchers)
+        if (rootNamespace != null)
         {
-            future = CompletableFuture.allOf(future, dispatcher.detach(rootNamespace));
+            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+            for (DispatchAgent dispatcher : dispatchers)
+            {
+                future = CompletableFuture.allOf(future, dispatcher.detach(rootNamespace));
+            }
+            future.join();
+            extensions.forEach(e -> e.onUnregistered(context));
         }
-        future.join();
-        extensions.forEach(e -> e.onUnregistered(context));
         return null;
+    }
+
+    public void setRootNamespace(NamespaceConfig rootNamespace)
+    {
+        this.rootNamespace = rootNamespace;
     }
 }

@@ -1,20 +1,29 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import java.net.URL;
 import java.util.concurrent.ForkJoinTask;
-
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 
 public abstract class WatcherTask extends ForkJoinTask<Void>
 {
-
-    protected NamespaceConfig rootNamespace;
     private Thread thread;
+    protected final URL configURL;
+    protected final Runnable configChangeListener;
+
+    protected WatcherTask(
+        URL configURL,
+        Runnable configChangeListener)
+    {
+        this.configURL = configURL;
+        this.configChangeListener = configChangeListener;
+    }
 
     @Override
     protected boolean exec()
     {
         this.thread = Thread.currentThread();
+        // Initial configuration
+        configChangeListener.run();
         return run();
     }
 
@@ -37,10 +46,5 @@ public abstract class WatcherTask extends ForkJoinTask<Void>
         {
             thread.interrupt();
         }
-    }
-    public void setRootNamespace(
-        NamespaceConfig rootNamespace)
-    {
-        this.rootNamespace = rootNamespace;
     }
 }
