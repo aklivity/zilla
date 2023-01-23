@@ -20,7 +20,6 @@ import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -127,11 +126,10 @@ public class ReconfigureIT
         System.out.println("Created");
         k3po.start();
 
-        try (InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json"))
-        {
-            Path target = configDir.resolve("zilla.reconfigure.missing.json");
-            Files.copy(source, target);
-        }
+        Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.original.json").toURI());
+        Path target = configDir.resolve("zilla.reconfigure.missing.json");
+
+        Files.move(source, target, ATOMIC_MOVE);
 
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CREATED");
