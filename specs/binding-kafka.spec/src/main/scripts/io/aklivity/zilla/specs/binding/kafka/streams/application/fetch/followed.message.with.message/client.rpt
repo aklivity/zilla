@@ -14,7 +14,7 @@
 # under the License.
 #
 
-connect "zilla://streams/app1"
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -59,7 +59,7 @@ read zilla:begin.ext ${kafka:beginEx()
 read zilla:data.ext ${kafka:dataEx()
                              .typeId(zilla:id("kafka"))
                              .describe()
-                                 .config("cleanup.policy", "compact")
+                                 .config("cleanup.policy", "delete")
                                  .config("max.message.bytes", 1000012)
                                  .config("segment.bytes", 1073741824)
                                  .config("segment.index.bytes", 10485760)
@@ -76,7 +76,7 @@ read zilla:data.ext ${kafka:dataEx()
 read notify RECEIVED_CONFIG
 
 connect await RECEIVED_CONFIG
-    "zilla://streams/app1"
+    "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -103,10 +103,42 @@ read zilla:data.ext ${kafka:dataEx()
                                  .build()
                              .build()}
 
-read notify PARTITION_COUNT_1
+read notify ROUTED_BROKER_CLIENT
 
-connect await PARTITION_COUNT_1
-    "zilla://streams/app1"
+connect await ROUTED_BROKER_CLIENT
+    "zilla://streams/cache0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 0xb1
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .topic("test")
+                                   .partition(0, 1)
+                                   .build()
+                               .build()}
+
+connected
+
+read advised zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 1, 2)
+                                    .build()
+                                .build()}
+
+read advised zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 2, 2)
+                                    .build()
+                                .build()}
+
+read notify COMPACTED_MESSAGE_CACHE
+
+connect await COMPACTED_MESSAGE_CACHE
+    "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
     option zilla:affinity 0xb1

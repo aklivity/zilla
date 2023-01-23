@@ -199,7 +199,6 @@ public class DispatchAgent implements EngineContext, Agent
 
     public DispatchAgent(
         EngineConfiguration config,
-        URL configURL,
         ExecutorService executor,
         LabelManager labels,
         ErrorHandler errorHandler,
@@ -211,7 +210,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         this.localIndex = index;
         this.config = config;
-        this.configURL = configURL;
+        this.configURL = config.configURL();
         this.labels = labels;
         this.affinityMask = affinityMask;
 

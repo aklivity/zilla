@@ -87,7 +87,6 @@ public final class Engine implements AutoCloseable
         Collection<Guard> guards,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
-        URL configURL,
         Collection<EngineAffinity> affinities)
     {
         this.nextTaskId = new AtomicInteger();
@@ -136,7 +135,7 @@ public final class Engine implements AutoCloseable
         for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
         {
             DispatchAgent agent =
-                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity,
+                new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, guards, vaults, coreIndex);
             dispatchers.add(agent);
         }
@@ -162,14 +161,15 @@ public final class Engine implements AutoCloseable
             labels::supplyLabelId, maxWorkers, tuning, dispatchers, errorHandler, logger, context, config, extensions);
         unregisterTask = new UnregisterTask(dispatchers, context, extensions);
 
+        URL configURL = config.configURL();
         if (configURL == null)
         {
-            this.watcherTask = new FileWatcherTask(configURL, this::reconfigure);
+            this.watcherTask = new FileWatcherTask(config.configURL(), this::reconfigure);
         }
         else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
         {
             //TODO: implement watcherTask for HTTP config
-            this.watcherTask = new WatcherTask(configURL, this::reconfigure)
+            this.watcherTask = new WatcherTask(config.configURL(), this::reconfigure)
             {
                 @Override
                 public boolean run()
@@ -181,7 +181,7 @@ public final class Engine implements AutoCloseable
         }
         else
         {
-            this.watcherTask = new FileWatcherTask(configURL, this::reconfigure);
+            this.watcherTask = new FileWatcherTask(config.configURL(), this::reconfigure);
         }
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());

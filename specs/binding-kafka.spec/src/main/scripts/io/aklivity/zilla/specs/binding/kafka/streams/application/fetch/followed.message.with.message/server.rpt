@@ -17,7 +17,39 @@
 property deltaMillis 0L
 property newTimestamp ${kafka:timestamp() + deltaMillis}
 
-accept "zilla://streams/app1"
+accept "zilla://streams/cache0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(0, 1)
+                                  .build()
+                              .build()}
+
+connected
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 1, 2)
+                                    .build()
+                                .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 2, 2)
+                                    .build()
+                                .build()}
+
+write await COMPACTED_MESSAGE_CACHE
+
+accept "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
@@ -65,7 +97,7 @@ write flush
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .describe()
-                                  .config("cleanup.policy", "compact")
+                                  .config("cleanup.policy", "delete")
                                   .config("max.message.bytes", 1000012)
                                   .config("segment.bytes", 1073741824)
                                   .config("segment.index.bytes", 10485760)
@@ -90,6 +122,8 @@ read zilla:begin.ext ${kafka:beginEx()
                               .build()}
 
 connected
+
+write notify COMPACTED_MESSAGE_CACHE
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
