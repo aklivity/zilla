@@ -158,15 +158,15 @@ public final class Engine implements AutoCloseable
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
 
-        registerTask = new RegisterTask(configURL, schemaTypes, guardsByType::get,
+        registerTask = new RegisterTask(schemaTypes, guardsByType::get,
             labels::supplyLabelId, maxWorkers, tuning, dispatchers, errorHandler, logger, context, config, extensions);
         unregisterTask = new UnregisterTask(dispatchers, context, extensions);
 
-        if (configURL == null || "file".equals(configURL.getProtocol()))
+        if (configURL == null)
         {
             this.watcherTask = new FileWatcherTask(configURL, this::reconfigure);
         }
-        else
+        else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
         {
             //TODO: implement watcherTask for HTTP config
             this.watcherTask = new WatcherTask(configURL, this::reconfigure)
@@ -174,9 +174,14 @@ public final class Engine implements AutoCloseable
                 @Override
                 public boolean run()
                 {
+                    initConfigLatch.countDown();
                     throw new UnsupportedOperationException();
                 }
             };
+        }
+        else
+        {
+            this.watcherTask = new FileWatcherTask(configURL, this::reconfigure);
         }
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
@@ -224,8 +229,8 @@ public final class Engine implements AutoCloseable
         {
             AgentRunner.startOnThread(runner, Thread::new);
         }
-        reconfigure();
         commonPool().submit(watcherTask);
+        watcherTask.awaitInitConfig();
         return CompletableFuture.completedFuture(null);
     }
 
@@ -265,11 +270,12 @@ public final class Engine implements AutoCloseable
         }
     }
 
-    private void reconfigure()
+    private void reconfigure(String configText)
     {
         try
         {
             commonPool().submit(unregisterTask).get();
+            registerTask.setConfigText(configText);
             unregisterTask.setRootNamespace(commonPool().submit(registerTask).get());
         }
         catch (InterruptedException | ExecutionException ex)

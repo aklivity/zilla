@@ -1,5 +1,6 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
@@ -19,13 +20,14 @@ import java.nio.file.WatchService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 
 public class FileWatcherTask extends WatcherTask
 {
     private byte[] configHash;
 
-    public FileWatcherTask(URL configURL, Runnable configChangeListener)
+    public FileWatcherTask(URL configURL, Consumer<String> configChangeListener)
     {
         super(configURL, configChangeListener);
     }
@@ -35,13 +37,14 @@ public class FileWatcherTask extends WatcherTask
     {
         try
         {
+            doInitialConfiguration();
+
             Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
 
             WatchService watchService = FileSystems.getDefault().newWatchService();
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
 
             Path configFileName = configPath.getFileName();
-            configHash = computeHash();
             while (true)
             {
                 try
@@ -53,11 +56,12 @@ public class FileWatcherTask extends WatcherTask
                         final Path changed = (Path) event.context();
                         if (changed.equals(configFileName))
                         {
-                            byte[] newConfigHash = computeHash();
+                            String configText = readConfigText();
+                            byte[] newConfigHash = computeHash(configText);
                             if (!Arrays.equals(configHash, newConfigHash))
                             {
                                 configHash = newConfigHash;
-                                configChangeListener.run();
+                                configChangeListener.accept(configText);
                             }
                         }
                     }
@@ -72,29 +76,54 @@ public class FileWatcherTask extends WatcherTask
         }
         catch (Exception ex)
         {
+            initConfigLatch.countDown();
             rethrowUnchecked(ex);
         }
         return true;
     }
 
-    private byte[] computeHash()
+    private void doInitialConfiguration()
+    {
+        String configText = readConfigText();
+        configChangeListener.accept(configText);
+        initConfigLatch.countDown();
+        configHash = computeHash(configText);
+    }
+
+    private String readConfigText()
+    {
+        String configText;
+        if (configURL == null)
+        {
+            configText = CONFIG_TEXT_DEFAULT;
+        }
+        else
+        {
+            try
+            {
+                URLConnection connection = configURL.openConnection();
+                try (InputStream input = connection.getInputStream())
+                {
+                    configText = new String(input.readAllBytes(), UTF_8);
+                }
+            }
+            catch (IOException ex)
+            {
+                configText = CONFIG_TEXT_DEFAULT;
+            }
+        }
+        return configText;
+    }
+
+    private byte[] computeHash(String configText)
     {
         byte[] hash = new byte[0];
         try
         {
-            URLConnection connection = configURL.openConnection();
             MessageDigest md5Digest = MessageDigest.getInstance("MD5");
-            try (InputStream input = connection.getInputStream())
-            {
-                byte[] bytes = input.readAllBytes();
-                if (bytes.length == 0)
-                {
-                    return hash;
-                }
-                hash = md5Digest.digest(bytes);
-            }
+            hash = md5Digest.digest(configText.getBytes(UTF_8));
         }
-        catch (IOException | NoSuchAlgorithmException ex)
+        catch (NoSuchAlgorithmException ex)
         {
             return hash;
         }

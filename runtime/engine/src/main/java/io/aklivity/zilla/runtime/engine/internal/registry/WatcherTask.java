@@ -1,18 +1,22 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.net.URL;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinTask;
+import java.util.function.Consumer;
 
 
 public abstract class WatcherTask extends ForkJoinTask<Void>
 {
+    protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
+    protected final CountDownLatch initConfigLatch = new CountDownLatch(1);
     private Thread thread;
     protected final URL configURL;
-    protected final Runnable configChangeListener;
+    protected final Consumer<String> configChangeListener;
 
     protected WatcherTask(
         URL configURL,
-        Runnable configChangeListener)
+        Consumer<String> configChangeListener)
     {
         this.configURL = configURL;
         this.configChangeListener = configChangeListener;
@@ -44,5 +48,10 @@ public abstract class WatcherTask extends ForkJoinTask<Void>
         {
             thread.interrupt();
         }
+    }
+
+    public void awaitInitConfig() throws InterruptedException
+    {
+        initConfigLatch.await();
     }
 }

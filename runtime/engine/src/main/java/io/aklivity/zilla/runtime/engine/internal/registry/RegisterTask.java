@@ -15,19 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -77,9 +67,6 @@ import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
 
 public class RegisterTask implements Callable<NamespaceConfig>
 {
-    private static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
-
-    private final URL configURL;
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
@@ -91,9 +78,9 @@ public class RegisterTask implements Callable<NamespaceConfig>
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
+    private String configText;
 
     public RegisterTask(
-        URL configURL,
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -106,7 +93,6 @@ public class RegisterTask implements Callable<NamespaceConfig>
         EngineConfiguration config,
         List<EngineExtSpi> extensions)
     {
-        this.configURL = configURL;
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
@@ -123,41 +109,6 @@ public class RegisterTask implements Callable<NamespaceConfig>
     @Override
     public NamespaceConfig call() throws Exception
     {
-        String configText;
-        if (configURL == null)
-        {
-            configText = CONFIG_TEXT_DEFAULT;
-        }
-        else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
-        {
-            HttpClient client = HttpClient.newBuilder()
-                .version(HTTP_2)
-                .followRedirects(NORMAL)
-                .build();
-
-            HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(configURL.toURI())
-                .build();
-
-            HttpResponse<String> response = client.send(
-                request,
-                BodyHandlers.ofString());
-
-            configText = response.body();
-        }
-        else
-        {
-            URLConnection connection = configURL.openConnection();
-            try (InputStream input = connection.getInputStream())
-            {
-                configText = new String(input.readAllBytes(), UTF_8);
-            }
-            catch (IOException ex)
-            {
-                configText = CONFIG_TEXT_DEFAULT;
-            }
-        }
         return configure(configText);
     }
 
@@ -308,5 +259,10 @@ public class RegisterTask implements Callable<NamespaceConfig>
             errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
         }
         return null;
+    }
+
+    public void setConfigText(String configText)
+    {
+        this.configText = configText;
     }
 }
