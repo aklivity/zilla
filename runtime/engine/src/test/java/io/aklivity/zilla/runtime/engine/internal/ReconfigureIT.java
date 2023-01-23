@@ -81,6 +81,7 @@ public class ReconfigureIT
     })
     public void shouldReconfigureWhenModified() throws Exception
     {
+        System.out.println("Modified");
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
@@ -103,6 +104,7 @@ public class ReconfigureIT
     })
     public void shouldReconfigureWhenDeleted() throws Exception
     {
+        System.out.println("Deleted");
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
@@ -122,6 +124,7 @@ public class ReconfigureIT
     })
     public void shouldReconfigureWhenCreated() throws Exception
     {
+        System.out.println("Created");
         k3po.start();
 
         try (InputStream source = ReconfigureIT.class.getResourceAsStream("zilla.reconfigure.original.json"))

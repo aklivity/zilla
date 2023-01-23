@@ -84,7 +84,9 @@ public class FileWatcherTask extends WatcherTask
 
     private void doInitialConfiguration()
     {
+        System.out.println("Do initial configuration for configUrl: " + configURL.toString());
         String configText = readConfigText();
+        System.out.println("Initial config: " + configText);
         configChangeListener.accept(configText);
         initConfigLatch.countDown();
         configHash = computeHash(configText);

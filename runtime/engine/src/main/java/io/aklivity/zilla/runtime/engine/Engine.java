@@ -274,6 +274,7 @@ public final class Engine implements AutoCloseable
     {
         try
         {
+            System.out.println("Reconfigure with config: " + configText);
             commonPool().submit(unregisterTask).get();
             registerTask.setConfigText(configText);
             unregisterTask.setRootNamespace(commonPool().submit(registerTask).get());
