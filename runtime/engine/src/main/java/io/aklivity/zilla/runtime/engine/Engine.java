@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,7 +49,6 @@ import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -218,15 +218,15 @@ public final class Engine implements AutoCloseable
         return counter.applyAsLong(name);
     }
 
-    public Future<NamespaceConfig> start() throws ExecutionException, InterruptedException
+    public Future<Void> start() throws ExecutionException, InterruptedException
     {
         for (AgentRunner runner : runners)
         {
             AgentRunner.startOnThread(runner, Thread::new);
         }
-        Future<NamespaceConfig> register = commonPool().submit(registerTask);
+        reconfigure();
         commonPool().submit(watcherTask);
-        return register;
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

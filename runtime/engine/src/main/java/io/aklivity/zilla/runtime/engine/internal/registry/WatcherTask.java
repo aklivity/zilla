@@ -22,8 +22,6 @@ public abstract class WatcherTask extends ForkJoinTask<Void>
     protected boolean exec()
     {
         this.thread = Thread.currentThread();
-        // Initial configuration
-        configChangeListener.run();
         return run();
     }
 
