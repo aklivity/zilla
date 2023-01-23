@@ -27,8 +27,6 @@ import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -37,7 +35,6 @@ import java.util.function.BiConsumer;
 public class FileWatcherTask extends WatcherTask
 {
     private final Map<WatchKey, WatchedConfig> watchedConfigsByKey;
-    private MessageDigest md5;
     private WatchService watchService;
 
     public FileWatcherTask(
@@ -47,10 +44,9 @@ public class FileWatcherTask extends WatcherTask
         this.watchedConfigsByKey = new IdentityHashMap<>();
         try
         {
-            this.md5 = MessageDigest.getInstance("MD5");
             this.watchService = FileSystems.getDefault().newWatchService();
         }
-        catch (NoSuchAlgorithmException | IOException ex)
+        catch (IOException ex)
         {
             rethrowUnchecked(ex);
         }
@@ -100,6 +96,7 @@ public class FileWatcherTask extends WatcherTask
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
         changeListener.accept(configURL, configText);
+        initConfigLatch.countDown();
     }
 
     @Override
@@ -125,11 +122,5 @@ public class FileWatcherTask extends WatcherTask
             return "";
         }
         return configText;
-    }
-
-    private byte[] computeHash(
-        String configText)
-    {
-        return md5.digest(configText.getBytes(UTF_8));
     }
 }

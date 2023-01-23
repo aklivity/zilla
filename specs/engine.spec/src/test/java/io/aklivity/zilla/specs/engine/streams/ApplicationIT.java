@@ -71,4 +71,22 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/reconfigure.modify.via.http/client",
+        "${app}/reconfigure.modify.via.http/server" })
+    public void shouldReconfigureWhenModifiedHTTP() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/reconfigure.create.via.http/client",
+        "${app}/reconfigure.create.via.http/server" })
+    public void shouldReconfigureWhenCreatedHTTP() throws Exception
+    {
+        k3po.finish();
+    }
 }
