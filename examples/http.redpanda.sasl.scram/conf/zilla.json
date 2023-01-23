@@ -9,7 +9,7 @@
             {
                 "keys":
                 {
-                    "store": "localhost.p12",
+                    "store": "tls/localhost.p12",
                     "type": "pkcs12",
                     "password": "generated"
                 }
@@ -91,16 +91,14 @@
                     "when":
                     [
                         {
-                            "path": "/items/{id}"
+                            "path": "/events"
                         }
                     ],
                     "exit": "kafka_cache_client0",
                     "with":
                     {
                         "capability": "produce",
-                        "topic": "items-requests",
-                        "key": "${params.id}",
-                        "reply-to": "items-responses"
+                        "topic": "events"
                     }
                 }
             ]
@@ -115,19 +113,21 @@
         {
             "type" : "kafka",
             "kind": "cache_server",
-            "options":
-            {
-                "bootstrap":
-                [
-                    "items-responses"
-                ]
-            },
             "exit": "kafka_client0"
         },
         "kafka_client0":
         {
             "type" : "kafka",
             "kind": "client",
+            "options":
+            {
+                "sasl":
+                {
+                    "mechanism": "scram-sha-256",
+                    "username": "user",
+                    "password": "redpanda"
+                }
+            },
             "exit": "tcp_client0"
         },
         "tcp_client0":
@@ -136,7 +136,7 @@
             "kind": "client",
             "options":
             {
-                "host": "kafka.internal.net",
+                "host": "redpanda",
                 "port": 29092
             },
             "routes":

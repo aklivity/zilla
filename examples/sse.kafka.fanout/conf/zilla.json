@@ -9,41 +9,10 @@
             {
                 "keys":
                 {
-                    "store": "localhost.p12",
+                    "store": "tls/localhost.p12",
                     "type": "pkcs12",
                     "password": "generated"
                 }
-            }
-        }
-    },
-    "guards":
-    {
-        "jwt0":
-        {
-            "type": "jwt",
-            "options":
-            {
-                "issuer": "https://auth.example.com",
-                "audience": "https://api.example.com",
-                "keys":
-                [
-                    {
-                        "kty":"RSA",
-                        "n": "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==",
-                        "e":"AQAB",
-                        "alg":"RS256",
-                        "kid":"example"
-                    },
-                    {
-                        "kty":"EC",
-                        "crv":"P-256",
-                        "x":"f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
-                        "y":"x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
-                        "alg":"ES256",
-                        "kid":"example_ec"
-                    }
-                ],
-                "challenge": 10
             }
         }
     },
@@ -60,6 +29,17 @@
             },
             "exit": "tls_server0"
         },
+        "tcp_server1":
+        {
+            "type" : "tcp",
+            "kind": "server",
+            "options":
+            {
+                "host": "0.0.0.0",
+                "port": 8080
+            },
+            "exit": "http_server0"
+        },
         "tls_server0":
         {
             "type" : "tls",
@@ -69,7 +49,7 @@
             {
                 "keys": [ "localhost" ],
                 "sni": [ "localhost" ],
-                "alpn": [ "h2" ]
+                "alpn": [ "http/1.1", "h2" ]
             },
             "exit": "http_server0"
         },
@@ -79,24 +59,6 @@
             "kind": "server",
             "options":
             {
-                "versions": [ "h2" ],
-                "authorization":
-                {
-                    "jwt0":
-                    {
-                        "credentials":
-                        {
-                            "headers":
-                            {
-                                "authorization": "Bearer {credentials}"
-                            },
-                            "query":
-                            {
-                                "access_token": "{credentials}"
-                            }
-                        }
-                    }
-                },
                 "access-control":
                 {
                     "policy": "cross-origin"
@@ -175,38 +137,59 @@
             "kind": "server",
             "options":
             {
-                "location": "web/"
+                "location": "/var/www/"
             }
         },
         "sse_server0":
         {
             "type" : "sse",
             "kind": "server",
+            "exit": "sse_kafka_proxy0"
+        },
+        "sse_kafka_proxy0":
+        {
+            "type" : "sse-kafka",
+            "kind": "proxy",
             "routes":
             [
                 {
-                    "guarded":
+                    "when":
+                    [
+                        {
+                            "path": "/{topic}"
+                        }
+                    ],
+                    "exit": "kafka_cache_client0",
+                    "with":
                     {
-                        "jwt0": [ "proxy:stream" ]
-                    },
-                    "exit": "sse_client0"
+                        "topic": "${params.topic}"
+                    }
                 }
             ]
         },
-        "sse_client0":
+        "kafka_cache_client0":
         {
-            "type" : "sse",
-            "kind": "client",
-            "exit": "http_client0"
+            "type" : "kafka",
+            "kind": "cache_client",
+            "exit": "kafka_cache_server0"
         },
-        "http_client0":
+        "kafka_cache_server0":
         {
-            "type" : "http",
-            "kind": "client",
+            "type" : "kafka",
+            "kind": "cache_server",
             "options":
             {
-                "versions": [ "http/1.1" ]
+                "bootstrap":
+                [
+                    "events"
+                ]
             },
+            "exit": "kafka_client0"
+        },
+        "kafka_client0":
+        {
+            "type" : "kafka",
+            "kind": "client",
             "exit": "tcp_client0"
         },
         "tcp_client0":
@@ -215,9 +198,20 @@
             "kind": "client",
             "options":
             {
-                "host": "sse.internal.net",
-                "port": 8001
-            }
+                "host": "kafka.internal.net",
+                "port": 29092
+            },
+            "routes":
+            [
+                {
+                    "when":
+                    [
+                        {
+                            "cidr": "0.0.0.0/0"
+                        }
+                    ]
+                }
+            ]
         }
     }
 }

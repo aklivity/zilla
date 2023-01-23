@@ -9,7 +9,7 @@
             {
                 "keys":
                 {
-                    "store": "localhost.p12",
+                    "store": "tls/localhost.p12",
                     "type": "pkcs12",
                     "password": "generated"
                 }

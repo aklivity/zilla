@@ -2,6 +2,19 @@
     "name": "example",
     "vaults":
     {
+         "client":
+        {
+            "type": "filesystem",
+            "options":
+            {
+                "trust":
+                {
+                    "store": "tls/truststore.p12",
+                    "type": "pkcs12",
+                    "password": "generated"
+                }
+            }
+        },
         "server":
         {
             "type": "filesystem",
@@ -9,7 +22,7 @@
             {
                 "keys":
                 {
-                    "store": "localhost.p12",
+                    "store": "tls/localhost.p12",
                     "type": "pkcs12",
                     "password": "generated"
                 }
@@ -29,17 +42,6 @@
             },
             "exit": "tls_server0"
         },
-        "tcp_server1":
-        {
-            "type" : "tcp",
-            "kind": "server",
-            "options":
-            {
-                "host": "0.0.0.0",
-                "port": 8080
-            },
-            "exit": "http_server0"
-        },
         "tls_server0":
         {
             "type" : "tls",
@@ -49,7 +51,7 @@
             {
                 "keys": [ "localhost" ],
                 "sni": [ "localhost" ],
-                "alpn": [ "http/1.1", "h2" ]
+                "alpn": [ "h2" ]
             },
             "exit": "http_server0"
         },
@@ -57,58 +59,60 @@
         {
             "type" : "http",
             "kind": "server",
+            "options":
+            {
+                "access-control":
+                {
+                    "policy": "cross-origin"
+                }
+            },
             "routes":
             [
                 {
                     "when":
                     [
-                        {
-                            "headers":
-                            {
-                                ":scheme": "http",
-                                ":authority": "localhost:8080"
-                            }
-                        },
+
                         {
                             "headers":
                             {
                                 ":scheme": "https",
-                                ":authority": "localhost:9090"
+                                ":authority": "localhost:9090",
+                                ":path": "/*"
                             }
                         }
                     ],
-                    "exit": "http_filesystem_proxy0"
+                    "exit": "http_client0"
                 }
             ]
         },
-        "http_filesystem_proxy0":
+        "http_client0":
         {
-            "type" : "http-filesystem",
-            "kind": "proxy",
-            "routes":
-            [
-                {
-                    "when":
-                    [
-                        {
-                            "path": "/{path}"
-                        }
-                    ],
-                    "exit": "filesystem_server0",
-                    "with":
-                    {
-                        "path": "${params.path}"
-                    }
-                }
-            ]
+            "type" : "http",
+            "kind": "client",
+            "exit": "tls_client0"
         },
-        "filesystem_server0":
+        "tls_client0":
         {
-            "type" : "filesystem",
-            "kind": "server",
+            "type" : "tls",
+            "kind": "client",
+            "vault": "client",
             "options":
             {
-                "location": "web/"
+                "trustcacerts": true,
+                "trust": ["nginx.internal.net"],
+                "sni": ["nginx.internal.net"],
+                "alpn": [ "h2" ]
+            },
+            "exit": "tcp_client0"
+        },
+        "tcp_client0":
+        {
+            "type" : "tcp",
+            "kind": "client",
+            "options":
+            {
+                "host": "nginx.internal.net",
+                "port": 443
             }
         }
     }

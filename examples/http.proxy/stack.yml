@@ -11,9 +11,7 @@ services:
     hostname: "zilla.internal.net"
     command: [ "start", "-v", "-e" ]
     volumes:
-      - ./zilla.json:/zilla.json:ro
-      - ./localhost.p12:/localhost.p12:ro
-      - ./truststore.p12:/truststore.p12:ro
+      - ./conf:/etc/zilla:ro
     networks:
       - net0
     ports:
@@ -25,8 +23,8 @@ services:
     hostname: "nginx.internal.net"
     tty: true
     volumes:
-      - ./server/cert.pem:/ssl/cert.pem:ro
-      - ./server/key.pem:/ssl/key.pem:ro
+      - ./server/cert.pem:/etc/nginx/ssl/cert.pem:ro
+      - ./server/key.pem:/etc/nginx/ssl/key.pem:ro
       - ./server/demo.html:/usr/share/nginx/html/demo.html:ro
       - ./server/style.css:/usr/share/nginx/html/style.css:ro
       - ./server/nginx.conf:/etc/nginx/nginx.conf:ro

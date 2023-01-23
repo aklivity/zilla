@@ -9,7 +9,7 @@
             {
                 "keys":
                 {
-                    "store": "localhost.p12",
+                    "store": "tls/localhost.p12",
                     "type": "pkcs12",
                     "password": "generated"
                 }
@@ -57,37 +57,8 @@
         {
             "type" : "http",
             "kind": "server",
-            "options":
-            {
-                "access-control":
-                {
-                    "policy": "cross-origin"
-                }
-            },
             "routes":
             [
-                {
-                    "when":
-                    [
-                        {
-                            "headers":
-                            {
-                                ":scheme": "http",
-                                ":authority": "localhost:8080",
-                                ":path": "/events"
-                            }
-                        },
-                        {
-                            "headers":
-                            {
-                                ":scheme": "https",
-                                ":authority": "localhost:9090",
-                                ":path": "/events"
-                            }
-                        }
-                    ],
-                    "exit": "sse_server0"
-                },
                 {
                     "when":
                     [
@@ -106,49 +77,13 @@
                             }
                         }
                     ],
-                    "exit": "http_filesystem_proxy0"
+                    "exit": "http_kafka_proxy0"
                 }
             ]
         },
-        "http_filesystem_proxy0":
+        "http_kafka_proxy0":
         {
-            "type" : "http-filesystem",
-            "kind": "proxy",
-            "routes":
-            [
-                {
-                    "exit": "filesystem_server0",
-                    "when":
-                    [
-                        {
-                            "path": "/{path}"
-                        }
-                    ],
-                    "with":
-                    {
-                        "path": "${params.path}"
-                    }
-                }
-            ]
-        },
-        "filesystem_server0":
-        {
-            "type" : "filesystem",
-            "kind": "server",
-            "options":
-            {
-                "location": "web/"
-            }
-        },
-        "sse_server0":
-        {
-            "type" : "sse",
-            "kind": "server",
-            "exit": "sse_kafka_proxy0"
-        },
-        "sse_kafka_proxy0":
-        {
-            "type" : "sse-kafka",
+            "type" : "http-kafka",
             "kind": "proxy",
             "routes":
             [
@@ -156,13 +91,14 @@
                     "when":
                     [
                         {
-                            "path": "/{topic}"
+                            "path": "/events"
                         }
                     ],
                     "exit": "kafka_cache_client0",
                     "with":
                     {
-                        "topic": "${params.topic}"
+                        "capability": "produce",
+                        "topic": "events"
                     }
                 }
             ]
@@ -177,19 +113,21 @@
         {
             "type" : "kafka",
             "kind": "cache_server",
-            "options":
-            {
-                "bootstrap":
-                [
-                    "events"
-                ]
-            },
             "exit": "kafka_client0"
         },
         "kafka_client0":
         {
             "type" : "kafka",
             "kind": "client",
+            "options":
+            {
+                "sasl":
+                {
+                    "mechanism": "scram-sha-256",
+                    "username": "user",
+                    "password": "bitnami"
+                }
+            },
             "exit": "tcp_client0"
         },
         "tcp_client0":
@@ -199,7 +137,7 @@
             "options":
             {
                 "host": "kafka.internal.net",
-                "port": 29092
+                "port": 29091
             },
             "routes":
             [

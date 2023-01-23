@@ -11,9 +11,8 @@ services:
     hostname: "zilla"
     command: [ "start", "-v", "-e" ]
     volumes:
-      - ./zilla.json:/zilla.json:ro
-      - ./localhost.p12:/localhost.p12:ro
-      - ./web:/web:ro
+      - ./conf:/etc/zilla:ro
+      - ./web:/var/www:ro
     networks:
       - net0
     ports:

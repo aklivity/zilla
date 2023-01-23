@@ -9,10 +9,32 @@
             {
                 "keys":
                 {
-                    "store": "localhost.p12",
+                    "store": "tls/localhost.p12",
                     "type": "pkcs12",
                     "password": "generated"
                 }
+            }
+        }
+    },
+    "guards":
+    {
+        "jwt0":
+        {
+            "type": "jwt",
+            "options":
+            {
+                "issuer": "https://auth.example.com",
+                "audience": "https://api.example.com",
+                "keys":
+                [
+                    {
+                        "kty":"RSA",
+                        "n": "qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==",
+                        "e":"AQAB",
+                        "alg":"RS256",
+                        "kid":"example"
+                    }
+                ]
             }
         }
     },
@@ -57,9 +79,29 @@
         {
             "type" : "http",
             "kind": "server",
+            "options":
+            {
+                "authorization":
+                {
+                    "jwt0":
+                    {
+                        "credentials":
+                        {
+                            "headers":
+                            {
+                                "authorization": "Bearer {credentials}"
+                            }
+                        }
+                    }
+                }
+            },
             "routes":
             [
                 {
+                    "guarded":
+                    {
+                        "jwt0": [ "echo:stream" ]
+                    },
                     "when":
                     [
                         {

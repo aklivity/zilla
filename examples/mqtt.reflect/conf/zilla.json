@@ -9,7 +9,7 @@
             {
                 "keys":
                 {
-                    "store": "localhost.p12",
+                    "store": "tls/localhost.p12",
                     "type": "pkcs12",
                     "password": "generated"
                 }
@@ -25,9 +25,9 @@
             "options":
             {
                 "host": "0.0.0.0",
-                "port": 8080
+                "port": 1883
             },
-            "exit": "http_server0"
+            "exit": "mqtt_server0"
         },
         "tcp_server1":
         {
@@ -36,7 +36,7 @@
             "options":
             {
                 "host": "0.0.0.0",
-                "port": 9090
+                "port": 8883
             },
             "exit": "tls_server0"
         },
@@ -50,11 +50,11 @@
                 "keys": [ "localhost" ],
                 "sni": [ "localhost" ]
             },
-            "exit": "http_server0"
+            "exit": "mqtt_server0"
         },
-        "http_server0":
+        "mqtt_server0":
         {
-            "type" : "http",
+            "type" : "mqtt",
             "kind": "server",
             "routes":
             [
@@ -62,39 +62,11 @@
                     "when":
                     [
                         {
-                            "headers":
-                            {
-                                ":scheme": "http",
-                                ":authority": "localhost:8080"
-                            }
-                        },
-                        {
-                            "headers":
-                            {
-                                ":scheme": "https",
-                                ":authority": "localhost:9090"
-                            }
-                        }
-                    ],
-                    "exit": "ws_server0"
-                }
-            ]
-        },
-        "ws_server0":
-        {
-            "type" : "ws",
-            "kind": "server",
-            "routes":
-            [
-                {
-                    "when":
-                    [
-                        {
-                            "protocol": "echo"
+                            "topic": "zilla"
                         }
                     ],
                     "exit": "fan_server0"
-                }
+                }   
             ]
         },
         "fan_server0":
@@ -110,4 +82,3 @@
         }
     }
 }
-

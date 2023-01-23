@@ -11,8 +11,7 @@ services:
     hostname: "zilla"
     command: [ "start", "-v", "-e" ]
     volumes:
-      - ./zilla.json:/zilla.json:ro
-      - ./localhost.p12:/localhost.p12:ro
+      - ./conf:/etc/zilla:ro
     networks:
       - net0
     ports:
@@ -48,6 +47,6 @@ services:
     depends_on:
       - zookeeper
     volumes:
-      - ./config/kafka_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf
+      - ./kafka/kafka_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf
     ports:
       - "9092:9092"
