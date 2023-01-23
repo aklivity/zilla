@@ -162,12 +162,12 @@ public class ConfigureTask implements Callable<Void>
             }
         }
 
+        logger.accept(configText);
+
         if (config.configResolveExpressions())
         {
             configText = expressions.resolve(configText);
         }
-
-        logger.accept(configText);
 
         List<String> errors = new LinkedList<>();
 
