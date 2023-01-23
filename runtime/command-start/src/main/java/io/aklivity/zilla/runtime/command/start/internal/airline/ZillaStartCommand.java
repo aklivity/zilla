@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.start.internal.airline;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_URL;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
@@ -51,7 +52,7 @@ public final class ZillaStartCommand extends ZillaCommand
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
             hidden = true)
-    public URI configURL = Paths.get("zilla.json").toUri();
+    public URI configURL;
 
     @Option(name = { "-v", "--verbose" },
             description = "Show verbose output")
@@ -92,6 +93,11 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
+        if (configURL != null)
+        {
+            props.setProperty(ENGINE_CONFIG_URL.name(), configURL.toString());
+        }
+
         if (workers >= 0)
         {
             props.setProperty(ENGINE_WORKERS.name(), Integer.toString(workers));
@@ -109,7 +115,6 @@ public final class ZillaStartCommand extends ZillaCommand
 
         try (Engine engine = Engine.builder()
             .config(config)
-            .configURL(configURL.toURL())
             .errorHandler(this::onError)
             .build())
         {

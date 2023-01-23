@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.36</version>
+    <version>0.9.37</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -153,6 +153,7 @@
         <configuration>
           <excludes>
             <exclude>src/main/docker/*/zpmw</exclude>
+            <exclude>src/main/docker/*/zilla.properties</exclude>
           </excludes>
         </configuration>
       </plugin>
