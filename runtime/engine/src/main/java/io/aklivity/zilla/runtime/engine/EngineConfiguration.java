@@ -39,6 +39,7 @@ public class EngineConfiguration extends Configuration
     public static final boolean DEBUG_BUDGETS = Boolean.getBoolean("zilla.engine.debug.budgets");
 
     public static final PropertyDef<URL> ENGINE_CONFIG_URL;
+    public static final IntPropertyDef ENGINE_CONFIG_POLL_INTERVAL_SECONDS;
     public static final PropertyDef<String> ENGINE_NAME;
     public static final PropertyDef<String> ENGINE_DIRECTORY;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
@@ -75,6 +76,7 @@ public class EngineConfiguration extends Configuration
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.engine");
         ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:///zilla.yaml");
+        ENGINE_CONFIG_POLL_INTERVAL_SECONDS = config.property("config.poll.interval.seconds", 60);
         ENGINE_NAME = config.property("name", "engine");
         ENGINE_DIRECTORY = config.property("directory", ".");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
@@ -135,6 +137,10 @@ public class EngineConfiguration extends Configuration
     public URL configURL()
     {
         return ENGINE_CONFIG_URL.get(this);
+    }
+    public int configPollIntervalSeconds()
+    {
+        return ENGINE_CONFIG_POLL_INTERVAL_SECONDS.getAsInt(this);
     }
 
     public String name()

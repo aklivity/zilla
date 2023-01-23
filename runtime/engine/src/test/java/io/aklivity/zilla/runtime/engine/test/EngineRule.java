@@ -32,6 +32,7 @@ import static org.junit.runners.model.MultipleFailureException.assertEmpty;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -213,23 +214,28 @@ public final class EngineRule implements TestRule
             Configuration config = description.getAnnotation(Configuration.class);
             if (config != null)
             {
-                URL configURL;
-                if (configurationRoot != null)
+                URI configURI = URI.create(config.value());
+                if (configURI.getScheme() != null)
+                {
+                    configure(ENGINE_CONFIG_URL, configURI.toURL());
+                }
+                else if (configurationRoot != null)
                 {
                     String resourceName = String.format("%s/%s", configurationRoot, config.value());
-                    configURL = testClass.getClassLoader().getResource(resourceName);
+                    URL configURL = testClass.getClassLoader().getResource(resourceName);
                     if (configURL == null)
                     {
                         configURL = new URL(testClass.getClassLoader().getResource(configurationRoot).toString() +
                             "/" + config.value());
                     }
+                    configure(ENGINE_CONFIG_URL, configURL);
                 }
                 else
                 {
                     String resourceName = String.format("%s-%s", testClass.getSimpleName(), config.value());
-                    configURL = testClass.getResource(resourceName);
+                    URL configURL = testClass.getResource(resourceName);
+                    configure(ENGINE_CONFIG_URL, configURL);
                 }
-                configure(ENGINE_CONFIG_URL, configURL);
             }
 
             cleanup();

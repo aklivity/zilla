@@ -18,8 +18,6 @@ import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +28,6 @@ public class FileWatcherTask extends WatcherTask
 {
     private final Map<Path, byte[]> configHashes;
     private final Map<Path, URL> configURLs;
-    private MessageDigest md5;
     private WatchService watchService;
 
     public FileWatcherTask(
@@ -41,10 +38,9 @@ public class FileWatcherTask extends WatcherTask
         this.configURLs = new HashMap<>();
         try
         {
-            this.md5 = MessageDigest.getInstance("MD5");
             this.watchService = FileSystems.getDefault().newWatchService();
         }
-        catch (NoSuchAlgorithmException | IOException ex)
+        catch (IOException ex)
         {
             rethrowUnchecked(ex);
         }
@@ -106,6 +102,7 @@ public class FileWatcherTask extends WatcherTask
         }
 
         changeListener.accept(configURL, configText);
+        initConfigLatch.countDown();
     }
 
     private String readConfigText(
@@ -125,12 +122,6 @@ public class FileWatcherTask extends WatcherTask
             return "";
         }
         return configText;
-    }
-
-    private byte[] computeHash(
-        String configText)
-    {
-        return md5.digest(configText.getBytes(UTF_8));
     }
 
     @Override

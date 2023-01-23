@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -165,7 +166,7 @@ public final class Engine implements AutoCloseable
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
-            throw new UnsupportedOperationException();
+            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds());
         }
         else
         {
@@ -224,6 +225,7 @@ public final class Engine implements AutoCloseable
         }
         watcherTaskRef = commonPool().submit(watcherTask);
         watcherTask.onURLDiscovered(rootConfigURL);
+        watcherTask.awaitInitConfig();
     }
 
     @Override
