@@ -51,7 +51,7 @@ public final class ZillaStartCommand extends ZillaCommand
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
             hidden = true)
-    public URI configURL = Paths.get("zilla.json").toUri();
+    public URI configURL = Paths.get("zilla.yaml").toUri();
 
     @Option(name = { "-v", "--verbose" },
             description = "Show verbose output")
@@ -102,9 +102,14 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
         }
 
-        if (Files.notExists(Paths.get("zilla.json")) && Files.exists(Paths.get("zilla.yaml")))
+        if (Files.exists(Paths.get("zilla.json")) && Files.exists(Paths.get("zilla.yaml")))
         {
-            configURL = Paths.get("zilla.yaml").toUri();
+            System.out.println("picked zilla.yaml to load properties");
+        }
+        else if (Files.exists(Paths.get("zilla.json")) && Files.notExists(Paths.get("zilla.yaml")))
+        {
+            System.out.println("warning: zilla.json is deprecated, migrate to zilla.yaml");
+            configURL = Paths.get("zilla.json").toUri();
         }
 
         EngineConfiguration config = new EngineConfiguration(props);
