@@ -68,12 +68,12 @@ public class FileWatcherTask extends WatcherTask
                 }
                 catch (InterruptedException ex)
                 {
-                    watchService.close();
                     Thread.currentThread().interrupt();
+                    break;
                 }
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             initConfigLatch.countDown();
             rethrowUnchecked(ex);
