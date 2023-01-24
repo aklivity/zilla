@@ -61,7 +61,6 @@ public class EngineTest
                 .build())
         {
             engine.start().get();
-            Thread.sleep(5000);
         }
         catch (Throwable ex)
         {

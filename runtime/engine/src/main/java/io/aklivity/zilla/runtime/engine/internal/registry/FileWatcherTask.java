@@ -36,9 +36,10 @@ public class FileWatcherTask extends WatcherTask
     public boolean run()
     {
         doInitialConfiguration();
-
-        try (WatchService watchService = FileSystems.getDefault().newWatchService())
+        try
         {
+            WatchService watchService = FileSystems.getDefault().newWatchService();
+
             Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
 
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
@@ -68,6 +69,7 @@ public class FileWatcherTask extends WatcherTask
                 }
                 catch (InterruptedException ex)
                 {
+                    watchService.close();
                     Thread.currentThread().interrupt();
                     break;
                 }
