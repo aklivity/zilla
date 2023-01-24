@@ -1,5 +1,16 @@
 {
     "name": "test",
+    "guards":
+    {
+        "test0":
+        {
+            "type": "test",
+            "options":
+            {
+                "roles": [ "write:items" ]
+            }
+        }
+    },
     "bindings":
     {
         "http0":
@@ -9,6 +20,10 @@
             "routes":
             [
                 {
+                    "guarded":
+                    {
+                        "test0": [ "write:items" ]
+                    },
                     "exit": "kafka0",
                     "when":
                     [
@@ -23,6 +38,10 @@
                         "topic": "items-commands",
                         "acks": "leader_only",
                         "key": "${idempotencyKey}",
+                        "overrides":
+                        {
+                            "zilla:identity": "${guarded['test0'].identity}"
+                        },
                         "reply-to": "items-replies"
                     }
                 }

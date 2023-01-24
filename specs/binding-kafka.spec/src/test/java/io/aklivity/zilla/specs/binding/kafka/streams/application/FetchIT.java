@@ -486,6 +486,24 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/follow.message.with.message/client",
+        "${app}/follow.message.with.message/server"})
+    public void shouldFollowMessageWithMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/followed.message.with.message/client",
+        "${app}/followed.message.with.message/server"})
+    public void shouldReceiveMessageFollowedAfterMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.not.header/client",
         "${app}/filter.not.header/server"})
     public void shouldReceiveMessagesWithNotHeaderFilter() throws Exception

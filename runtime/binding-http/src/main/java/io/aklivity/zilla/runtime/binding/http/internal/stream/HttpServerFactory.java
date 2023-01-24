@@ -5287,9 +5287,10 @@ public final class HttpServerFactory implements HttpStreamFactory
             while (progress < limit)
             {
                 final int length = Math.min(limit - progress, remoteSettings.maxFrameSize);
+                final boolean markEndResponse = endResponse && limit - progress < remoteSettings.maxFrameSize;
                 final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, frameOffset, frameBuffer.capacity())
                         .streamId(streamId)
-                        .endStream(endResponse)
+                        .endStream(markEndResponse)
                         .payload(buffer, progress, length)
                         .build();
                 frameOffset = http2Data.limit();

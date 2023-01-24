@@ -21,6 +21,7 @@ module io.aklivity.zilla.runtime.engine
     exports io.aklivity.zilla.runtime.engine.binding;
     exports io.aklivity.zilla.runtime.engine.binding.function;
     exports io.aklivity.zilla.runtime.engine.guard;
+    exports io.aklivity.zilla.runtime.engine.util.function;
     exports io.aklivity.zilla.runtime.engine.vault;
 
     exports io.aklivity.zilla.runtime.engine.ext;

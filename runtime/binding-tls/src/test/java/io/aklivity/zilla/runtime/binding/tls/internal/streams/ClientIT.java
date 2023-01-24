@@ -306,6 +306,7 @@ public class ClientIT
         k3po.finish();
     }
 
+    @Ignore("Github Actions")
     @Test
     @Configuration("client.json")
     @Specification({

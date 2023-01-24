@@ -1,5 +1,16 @@
 {
     "name": "test",
+    "guards":
+    {
+        "test0":
+        {
+            "type": "test",
+            "options":
+            {
+                "roles": [ "read:items" ]
+            }
+        }
+    },
     "bindings":
     {
         "http0":
@@ -9,6 +20,10 @@
             "routes":
             [
                 {
+                    "guarded":
+                    {
+                        "test0": [ "read:items" ]
+                    },
                     "exit": "kafka0",
                     "when":
                     [
@@ -24,7 +39,11 @@
                         "filters":
                         [
                             {
-                                "key": "${params.id}"
+                                "key": "${params.id}",
+                                "headers":
+                                {
+                                    "zilla:identity": "${guarded['test0'].identity}"
+                                }
                             }
                         ]
                     }

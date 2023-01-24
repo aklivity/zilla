@@ -83,7 +83,6 @@ public final class Engine implements AutoCloseable
         Collection<Guard> guards,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
-        URL configURL,
         Collection<EngineAffinity> affinities)
     {
         this.nextTaskId = new AtomicInteger();
@@ -132,7 +131,7 @@ public final class Engine implements AutoCloseable
         for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
         {
             DispatchAgent agent =
-                new DispatchAgent(config, configURL, tasks, labels, errorHandler, tuning::affinity,
+                new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
                         bindings, guards, vaults, coreIndex);
             dispatchers.add(agent);
         }
@@ -154,7 +153,7 @@ public final class Engine implements AutoCloseable
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
         final Callable<Void> configure =
-                new ConfigureTask(configURL, schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
+                new ConfigureTask(config.configURL(), schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
                         dispatchers, errorHandler, logger, context, config, extensions);
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());

@@ -1002,13 +1002,16 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCacheEntryFW entry = markEntryDirty(lastAckOffsetHighWatermark);
                 final long memberStreamId = entry.ownerId();
                 final KafkaCacheClientProduceStream member = members.get(memberStreamId);
-                if (error != NO_ERROR)
+                if (member != null)
                 {
-                    member.onMessageError(error, traceId, partitionOffset);
-                }
-                else
-                {
-                    member.onMessageAck(traceId, entry.offset$(), entry.acknowledge());
+                    if (error != NO_ERROR)
+                    {
+                        member.onMessageError(error, traceId, partitionOffset);
+                    }
+                    else
+                    {
+                        member.onMessageAck(traceId, entry.offset$(), entry.acknowledge());
+                    }
                 }
                 lastAckOffsetHighWatermark++;
             }

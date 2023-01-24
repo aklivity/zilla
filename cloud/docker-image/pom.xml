@@ -153,6 +153,7 @@
         <configuration>
           <excludes>
             <exclude>src/main/docker/*/zpmw</exclude>
+            <exclude>src/main/docker/*/zilla.properties</exclude>
           </excludes>
         </configuration>
       </plugin>
