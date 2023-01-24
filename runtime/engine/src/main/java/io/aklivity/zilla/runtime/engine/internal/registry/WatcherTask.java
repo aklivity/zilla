@@ -4,7 +4,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinTask;
 import java.util.function.BiConsumer;
 
@@ -12,7 +11,6 @@ import java.util.function.BiConsumer;
 public abstract class WatcherTask extends ForkJoinTask<Void>
 {
     protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
-    protected final CountDownLatch initConfigLatch = new CountDownLatch(1);
     private Thread thread;
     protected final BiConsumer<URL, String> configChangeListener;
     protected final Map<Path, URL> configURLs;
