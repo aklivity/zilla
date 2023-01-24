@@ -70,7 +70,6 @@ public class FileWatcherTask extends WatcherTask
                 catch (InterruptedException ex)
                 {
                     watchService.close();
-                    Thread.currentThread().interrupt();
                     break;
                 }
             }
