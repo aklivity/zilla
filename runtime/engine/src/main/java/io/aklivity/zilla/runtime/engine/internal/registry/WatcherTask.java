@@ -58,8 +58,4 @@ public abstract class WatcherTask extends ForkJoinTask<Void>
     }
 
     protected abstract void doInitialConfiguration(URL configURL);
-    public void awaitInitConfig() throws InterruptedException
-    {
-        initConfigLatch.await();
-    }
 }

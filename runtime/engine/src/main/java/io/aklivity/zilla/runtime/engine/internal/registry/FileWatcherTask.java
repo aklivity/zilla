@@ -34,6 +34,15 @@ public class FileWatcherTask extends WatcherTask
     {
         super(configChangeListener);
         this.configHashes = new HashMap<>();
+        try
+        {
+            watchService = FileSystems.getDefault().newWatchService();
+        }
+        catch (IOException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+
     }
 
     @Override
@@ -41,8 +50,6 @@ public class FileWatcherTask extends WatcherTask
     {
         try
         {
-            watchService = FileSystems.getDefault().newWatchService();
-
             while (true)
             {
                 try
