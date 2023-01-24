@@ -23,6 +23,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -80,6 +82,8 @@ public final class Engine implements AutoCloseable
     private final RegisterTask registerTask;
     private final UnregisterTask unregisterTask;
     private final WatcherTask watcherTask;
+    private final Map<URL, NamespaceConfig> namespaces;
+    private final URL rootConfigURL;
 
     Engine(
         EngineConfiguration config,
@@ -156,33 +160,25 @@ public final class Engine implements AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-
-        registerTask = new RegisterTask(schemaTypes, guardsByType::get,
-            labels::supplyLabelId, maxWorkers, tuning, dispatchers, errorHandler, logger, context, config, extensions);
-        unregisterTask = new UnregisterTask(dispatchers, context, extensions);
-
-        URL configURL = config.configURL();
-        if (configURL == null)
+        this.rootConfigURL = config.configURL();
+        if (this.rootConfigURL == null)
         {
-            this.watcherTask = new FileWatcherTask(config.configURL(), this::reconfigure);
+            this.watcherTask = new FileWatcherTask(this::reconfigure);
         }
-        else if ("http".equals(configURL.getProtocol()) || "https".equals(configURL.getProtocol()))
+        else if ("http".equals(this.rootConfigURL.getProtocol()) || "https".equals(this.rootConfigURL.getProtocol()))
         {
-            //TODO: implement watcherTask for HTTP config
-            this.watcherTask = new WatcherTask(config.configURL(), this::reconfigure)
-            {
-                @Override
-                public boolean run()
-                {
-                    initConfigLatch.countDown();
-                    throw new UnsupportedOperationException();
-                }
-            };
+            throw new UnsupportedOperationException();
         }
         else
         {
-            this.watcherTask = new FileWatcherTask(config.configURL(), this::reconfigure);
+            this.watcherTask = new FileWatcherTask(this::reconfigure);
         }
+
+        registerTask = new RegisterTask(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning, dispatchers,
+            errorHandler, logger, context, config, extensions, watcherTask::onURLDiscovered);
+        unregisterTask = new UnregisterTask(dispatchers, context, extensions);
+
+        this.namespaces = new HashMap<>();
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
         dispatchers.forEach(d -> runners.add(d.runner()));
@@ -223,14 +219,14 @@ public final class Engine implements AutoCloseable
         return counter.applyAsLong(name);
     }
 
-    public Future<Void> start() throws ExecutionException, InterruptedException
+    public Future<Void> start() throws Exception
     {
         for (AgentRunner runner : runners)
         {
             AgentRunner.startOnThread(runner, Thread::new);
         }
         commonPool().submit(watcherTask);
-        watcherTask.awaitInitConfig();
+        watcherTask.onURLDiscovered(rootConfigURL);
         return CompletableFuture.completedFuture(null);
     }
 
@@ -270,13 +266,15 @@ public final class Engine implements AutoCloseable
         }
     }
 
-    private void reconfigure(String configText)
+    private void reconfigure(URL configURL, String configText)
     {
         try
         {
+            NamespaceConfig namespace = namespaces.get(configURL);
+            unregisterTask.setRootNamespace(namespace);
             commonPool().submit(unregisterTask).get();
             registerTask.setConfigText(configText);
-            unregisterTask.setRootNamespace(commonPool().submit(registerTask).get());
+            namespaces.put(configURL, commonPool().submit(registerTask).get());
         }
         catch (InterruptedException | ExecutionException ex)
         {

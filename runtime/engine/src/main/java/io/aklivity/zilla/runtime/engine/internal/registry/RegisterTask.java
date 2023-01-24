@@ -78,6 +78,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
+    private final Consumer<URL> onURLDiscovered;
     private String configText;
 
     public RegisterTask(
@@ -91,7 +92,8 @@ public class RegisterTask implements Callable<NamespaceConfig>
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
-        List<EngineExtSpi> extensions)
+        List<EngineExtSpi> extensions,
+        Consumer<URL> onURLDiscovered)
     {
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
@@ -104,6 +106,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
         this.context = context;
         this.config = config;
         this.extensions = extensions;
+        this.onURLDiscovered = onURLDiscovered;
     }
 
     @Override
@@ -125,6 +128,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
         parse:
         try
         {
+            //TODO: detect configURLs and call onURLDiscovered
             InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
 
             JsonProvider schemaProvider = JsonProvider.provider();

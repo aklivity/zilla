@@ -20,31 +20,29 @@ import java.nio.file.WatchService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 
 public class FileWatcherTask extends WatcherTask
 {
-    private byte[] configHash;
+    private final Map<Path, byte[]> configHashes;
+    private WatchService watchService;
 
-    public FileWatcherTask(URL configURL, Consumer<String> configChangeListener)
+    public FileWatcherTask(BiConsumer<URL, String> configChangeListener)
     {
-        super(configURL, configChangeListener);
+        super(configChangeListener);
+        this.configHashes = new HashMap<>();
     }
 
     @Override
     public boolean run()
     {
-        doInitialConfiguration();
         try
         {
-            WatchService watchService = FileSystems.getDefault().newWatchService();
+            watchService = FileSystems.getDefault().newWatchService();
 
-            Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
-
-            configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
-
-            Path configFileName = configPath.getFileName();
             while (true)
             {
                 try
@@ -53,15 +51,15 @@ public class FileWatcherTask extends WatcherTask
 
                     for (WatchEvent<?> event : key.pollEvents())
                     {
-                        final Path changed = (Path) event.context();
-                        if (changed.equals(configFileName))
+                        final Path changed = ((Path) key.watchable()).resolve((Path) event.context());
+                        if (configHashes.containsKey(changed))
                         {
-                            String configText = readConfigText();
+                            String configText = readConfigText(configURLs.get(changed));
                             byte[] newConfigHash = computeHash(configText);
-                            if (!Arrays.equals(configHash, newConfigHash))
+                            if (!Arrays.equals(configHashes.get(changed), newConfigHash))
                             {
-                                configHash = newConfigHash;
-                                configChangeListener.accept(configText);
+                                configHashes.put(changed, newConfigHash);
+                                configChangeListener.accept(configURLs.get(changed), configText);
                             }
                         }
                     }
@@ -76,21 +74,31 @@ public class FileWatcherTask extends WatcherTask
         }
         catch (IOException ex)
         {
-            initConfigLatch.countDown();
             rethrowUnchecked(ex);
         }
         return true;
     }
 
-    private void doInitialConfiguration()
+    @Override
+    protected void doInitialConfiguration(URL configURL)
     {
-        String configText = readConfigText();
-        configChangeListener.accept(configText);
-        initConfigLatch.countDown();
-        configHash = computeHash(configText);
+        Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
+        configURLs.put(configPath, configURL);
+        String configText = readConfigText(configURL);
+        configHashes.put(configPath, computeHash(configText));
+
+        try
+        {
+            configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+        }
+        catch (IOException ignored)
+        {
+        }
+
+        configChangeListener.accept(configURL, configText);
     }
 
-    private String readConfigText()
+    private String readConfigText(URL configURL)
     {
         String configText;
         if (configURL == null)
