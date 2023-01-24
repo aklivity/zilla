@@ -58,6 +58,43 @@ public class TcpOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadOptionsWithPortRange()
+    {
+        String text =
+                "{" +
+                    "\"host\": \"localhost\"," +
+                    "\"port\": \"8080-8081\"" +
+                "}";
+
+        TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.host, equalTo("localhost"));
+        assertThat(options.ports, not(nullValue()));
+        assertThat(options.ports.length, equalTo(2));
+        assertThat(options.ports[0], equalTo(8080));
+        assertThat(options.ports[1], equalTo(8081));
+    }
+
+    @Test
+    public void shouldReadOptionsWithPortRangeSingleton()
+    {
+        String text =
+                "{" +
+                    "\"host\": \"localhost\"," +
+                    "\"port\": \"8080\"" +
+                "}";
+
+        TcpOptionsConfig options = jsonb.fromJson(text, TcpOptionsConfig.class);
+
+        assertThat(options, not(nullValue()));
+        assertThat(options.host, equalTo("localhost"));
+        assertThat(options.ports, not(nullValue()));
+        assertThat(options.ports.length, equalTo(1));
+        assertThat(options.ports[0], equalTo(8080));
+    }
+
+    @Test
     public void shouldWriteOptions()
     {
         TcpOptionsConfig options = new TcpOptionsConfig("localhost", new int[] { 8080 }, 0, true, false);
