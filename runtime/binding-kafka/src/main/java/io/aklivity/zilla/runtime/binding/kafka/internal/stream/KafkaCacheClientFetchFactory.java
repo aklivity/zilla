@@ -1112,7 +1112,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 }
 
                 final long descendantOffset = nextEntry.descendant();
-                if (descendantOffset != -1L && descendantOffset <= initialGroupPartitionOffset)
+                if (descendantOffset != -1L && descendantOffset <= initialGroupPartitionOffset &&
+                    group.partition.cleanupPolicy().compact())
                 {
                     this.messageOffset = 0;
 

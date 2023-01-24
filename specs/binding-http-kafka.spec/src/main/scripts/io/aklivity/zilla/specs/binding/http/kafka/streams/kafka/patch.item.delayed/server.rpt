@@ -44,6 +44,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("content-type", "application/json-patch+json")
                                .header("idempotency-key", "afe0e568-cfbe-4bf4-a405-98578c98e4ca")
                                .header("zilla:reply-to", "items-replies")
+                               .header("zilla:identity", "test")
                                .build()
                            .build()}
 read zilla:data.empty
@@ -54,7 +55,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
                                .partition(-1, -1)
-                               .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
+                               .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-2d2dc8a7f496b08290ddce7d943ee16b")
                                .build()
                            .build()}
 read zilla:data.empty
@@ -71,7 +72,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
+                                    .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-2d2dc8a7f496b08290ddce7d943ee16b")
                                     .build()
                                   .build()
                               .build()}
@@ -90,7 +91,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("items-replies")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
+                                    .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-2d2dc8a7f496b08290ddce7d943ee16b")
                                     .build()
                                   .build()
                               .build()}
@@ -105,7 +106,7 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(1, 1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header(":status", "204")
-                                .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-7da916b37b56d367ff6910cde541e5c1")
+                                .header("zilla:correlation-id", "afe0e568-cfbe-4bf4-a405-98578c98e4ca-2d2dc8a7f496b08290ddce7d943ee16b")
                                 .build()
                             .build()}
 write flush

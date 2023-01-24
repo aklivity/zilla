@@ -23,6 +23,9 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,6 +38,7 @@ public class EngineConfiguration extends Configuration
 {
     public static final boolean DEBUG_BUDGETS = Boolean.getBoolean("zilla.engine.debug.budgets");
 
+    public static final PropertyDef<URL> ENGINE_CONFIG_URL;
     public static final PropertyDef<String> ENGINE_NAME;
     public static final PropertyDef<String> ENGINE_DIRECTORY;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
@@ -70,6 +74,7 @@ public class EngineConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.engine");
+        ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.json");
         ENGINE_NAME = config.property("name", "engine");
         ENGINE_DIRECTORY = config.property("directory", ".");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
@@ -125,6 +130,11 @@ public class EngineConfiguration extends Configuration
     public EngineConfiguration()
     {
         super(ENGINE_CONFIG, new Configuration());
+    }
+
+    public URL configURL()
+    {
+        return ENGINE_CONFIG_URL.get(this);
     }
 
     public String name()
@@ -282,6 +292,23 @@ public class EngineConfiguration extends Configuration
         Configuration config)
     {
         return ENGINE_BUFFER_SLOT_CAPACITY.get(config) * 64;
+    }
+
+    private static URL configURL(
+        Configuration config,
+        String url
+    )
+    {
+        URL configURL = null;
+        try
+        {
+            configURL = URI.create(url).toURL();
+        }
+        catch (MalformedURLException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+        return configURL;
     }
 
     private static Path cacheDirectory(

@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 
 import java.net.URL;
 import java.util.List;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongToIntFunction;
 
@@ -71,6 +72,15 @@ public final class TestGuard implements Guard
         return sessionId -> verify(guardId, indexOf.applyAsInt(sessionId), sessionId, roles);
     }
 
+    @Override
+    public LongFunction<String> identifier(
+        LongToIntFunction indexOf,
+        GuardedConfig config)
+    {
+        long guardId = config.id;
+        return sessionId -> identitfy(guardId, indexOf.applyAsInt(sessionId), sessionId);
+    }
+
     private boolean verify(
         long guardId,
         int index,
@@ -80,5 +90,15 @@ public final class TestGuard implements Guard
         TestGuardContext context = contexts[index];
         TestGuardHandler handler = context.handler(guardId);
         return handler.verify(sessionId, roles);
+    }
+
+    private String identitfy(
+        long guardId,
+        int index,
+        long sessionId)
+    {
+        TestGuardContext context = contexts[index];
+        TestGuardHandler handler = context.handler(guardId);
+        return handler.identity(sessionId);
     }
 }

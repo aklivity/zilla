@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.Window
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class FileSystemServerFactory implements FileSystemStreamFactory
@@ -84,6 +85,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final OctetsFW payloadRO = new OctetsFW();
 
     private final Long2ObjectHashMap<FileSystemBindingConfig> bindings;
+    private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer readBuffer;
@@ -97,6 +99,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         FileSystemConfiguration config,
         EngineContext context)
     {
+        this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -466,31 +469,34 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 {
                     try
                     {
-                        int length = Math.min(replyWin, input.available());
-                        int reserved = length + replyPad;
+                        int reserved = Math.min(replyWin, input.available() + replyPad);
+                        int length = Math.max(reserved - replyPad, 0);
 
                         if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
                         {
-                            final int minimum = reserved; // TODO: fragmentation
-                            reserved = replyDeb.claim(0L, replyDebIndex, replyId, minimum, reserved, 0);
+                            final int minimum = Math.min(bufferPool.slotCapacity(), reserved); // TODO: fragmentation
+                            reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
                             length = Math.max(reserved - replyPad, 0);
                         }
 
-                        final byte[] readArray = readBuffer.byteArray();
-                        int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
-
-                        if (bytesRead != -1)
+                        if (length > 0)
                         {
-                            OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+                            final byte[] readArray = readBuffer.byteArray();
+                            int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
 
-                            doAppData(traceId, reserved, payload);
+                            if (bytesRead != -1)
+                            {
+                                OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
 
-                            replyBytes += bytesRead;
-                            replyClosable = replyBytes == attributes.size();
-                        }
-                        else
-                        {
-                            input.close();
+                                doAppData(traceId, reserved, payload);
+
+                                replyBytes += bytesRead;
+                                replyClosable = replyBytes == attributes.size();
+                            }
+                            else
+                            {
+                                input.close();
+                            }
                         }
                     }
                     catch (IOException ex)

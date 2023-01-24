@@ -13,13 +13,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.util.funtion;
+package io.aklivity.zilla.runtime.engine.util.function;
 
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.internal.util.function.LongObjectBiConsumer;
 
 public class LongObjectBiConsumerTest
 {

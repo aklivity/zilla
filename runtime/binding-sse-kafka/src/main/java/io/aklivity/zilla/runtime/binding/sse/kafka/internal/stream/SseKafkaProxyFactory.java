@@ -165,7 +165,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         {
             final long resolvedId = route.id;
             final SseKafkaWithResult resolved = route.with
-                    .map(r -> r.resolve(sseBeginEx, sseEventId))
+                    .map(r -> r.resolve(authorization, sseBeginEx, sseEventId))
                     .orElse(null);
 
             newStream = new SseProxy(sse, routeId, initialId, resolvedId, resolved)::onSseMessage;
