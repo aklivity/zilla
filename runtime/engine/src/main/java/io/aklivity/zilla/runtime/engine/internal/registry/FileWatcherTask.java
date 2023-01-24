@@ -35,13 +35,12 @@ public class FileWatcherTask extends WatcherTask
     @Override
     public boolean run()
     {
-        try
-        {
-            doInitialConfiguration();
+        doInitialConfiguration();
 
+        try (WatchService watchService = FileSystems.getDefault().newWatchService())
+        {
             Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
 
-            WatchService watchService = FileSystems.getDefault().newWatchService();
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
 
             Path configFileName = configPath.getFileName();
