@@ -56,6 +56,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -63,7 +64,6 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
-import io.aklivity.zilla.runtime.engine.internal.util.Mustache;
 
 public class RegisterTask implements Callable<NamespaceConfig>
 {
@@ -78,6 +78,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
+    private final ExpressionResolver expressions;
     private final Consumer<URL> onURLDiscovered;
     private String configText;
 
@@ -107,6 +108,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
         this.config = config;
         this.extensions = extensions;
         this.onURLDiscovered = onURLDiscovered;
+        this.expressions = ExpressionResolver.instantiate();
     }
 
     @Override
@@ -117,12 +119,12 @@ public class RegisterTask implements Callable<NamespaceConfig>
 
     private NamespaceConfig configure(String configText)
     {
-        if (config.configSyntaxMustache())
-        {
-            configText = Mustache.resolve(configText, System::getenv);
-        }
-
         logger.accept(configText);
+
+        if (config.configResolveExpressions())
+        {
+            configText = expressions.resolve(configText);
+        }
 
         List<String> errors = new LinkedList<>();
         parse:
