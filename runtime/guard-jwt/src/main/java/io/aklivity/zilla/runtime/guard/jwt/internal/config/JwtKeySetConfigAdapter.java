@@ -54,7 +54,7 @@ public final class JwtKeySetConfigAdapter implements JsonbAdapter<JwtKeySetConfi
                 .getJsonArray(KEYS_NAME)
                 .stream()
                 .map(JsonValue::asJsonObject)
-                .map(new JwtKeyConfigAdapter()::adaptFromJson)
+                .map(keyAdapter::adaptFromJson)
                 .collect(toList());
         return new JwtKeySetConfig(keysConfig);
     }
