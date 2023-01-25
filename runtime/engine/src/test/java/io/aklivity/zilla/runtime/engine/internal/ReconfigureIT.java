@@ -75,8 +75,8 @@ public class ReconfigureIT
     @Test
     @Configuration("zilla.reconfigure.modify.json")
     @Specification({
-        "${app}/client.sent.data.reconfigure.modify/server",
-        "${net}/client.sent.data.reconfigure.modify/client"
+        "${app}/file.reconfigure.modify/server",
+        "${net}/file.reconfigure.modify/client"
     })
     public void shouldReconfigureWhenModified() throws Exception
     {
@@ -95,29 +95,10 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configuration("zilla.reconfigure.delete.json")
-    @Specification({
-        "${app}/client.sent.data.reconfigure.delete/server",
-        "${net}/client.sent.data.reconfigure.delete/client"
-    })
-    public void shouldReconfigureWhenDeleted() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("CONNECTED");
-
-        configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
-
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_DELETED");
-
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("zilla.reconfigure.missing.json")
     @Specification({
-        "${app}/client.sent.data.reconfigure.create/server",
-        "${net}/client.sent.data.reconfigure.create/client"
+        "${app}/file.reconfigure.create/server",
+        "${net}/file.reconfigure.create/client"
     })
     public void shouldReconfigureWhenCreated() throws Exception
     {
@@ -130,6 +111,25 @@ public class ReconfigureIT
 
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CREATED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("zilla.reconfigure.delete.json")
+    @Specification({
+        "${app}/file.reconfigure.delete/server",
+        "${net}/file.reconfigure.delete/client"
+    })
+    public void shouldReconfigureWhenDeleted() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+
+        configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
+
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_DELETED");
 
         k3po.finish();
     }

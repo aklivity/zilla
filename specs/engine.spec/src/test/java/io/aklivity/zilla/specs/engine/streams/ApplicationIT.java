@@ -38,27 +38,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/client.sent.data.reconfigure.modify/client",
-        "${app}/client.sent.data.reconfigure.modify/server" })
-    public void shouldConnectToZillaOnNewPortWhenConfigModified() throws Exception
+        "${app}/file.reconfigure.modify/client",
+        "${app}/file.reconfigure.modify/server" })
+    public void shouldReconfigureWhenModified() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/client.sent.data.reconfigure.create/client",
-        "${app}/client.sent.data.reconfigure.create/server" })
-    public void shouldConnectToZillaWhenConfigCreated() throws Exception
+        "${app}/file.reconfigure.create/client",
+        "${app}/file.reconfigure.create/server" })
+    public void shouldReconfigureWhenCreated() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/client.sent.data.reconfigure.delete/client",
-        "${app}/client.sent.data.reconfigure.delete/server" })
-    public void shouldNotConnectToZillaWhenConfigDeleted() throws Exception
+        "${app}/file.reconfigure.delete/client",
+        "${app}/file.reconfigure.delete/server" })
+    public void shouldReconfigureWhenDeleted() throws Exception
     {
         k3po.finish();
     }
