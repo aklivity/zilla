@@ -15,6 +15,8 @@ services:
       - ./web:/var/www:ro
     networks:
       - net0
+    environment:
+      - KEYSTORE_PASSWORD=generated 
     ports:
       - "8080:8080"
       - "9090:9090"

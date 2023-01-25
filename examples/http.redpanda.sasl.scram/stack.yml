@@ -14,6 +14,10 @@ services:
       - ./conf:/etc/zilla:ro
     networks:
       - net0
+    environment:
+      - SASL_USERNAME=user
+      - SASL_PASSWORD=redpanda
+      - KEYSTORE_PASSWORD=generated
     ports:
       - "8080:8080"
       - "9090:9090"

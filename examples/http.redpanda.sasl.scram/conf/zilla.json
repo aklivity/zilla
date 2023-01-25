@@ -11,7 +11,7 @@
                 {
                     "store": "tls/localhost.p12",
                     "type": "pkcs12",
-                    "password": "generated"
+                    "password": "${{env.KEYSTORE_PASSWORD}}"
                 }
             }
         }
@@ -124,8 +124,8 @@
                 "sasl":
                 {
                     "mechanism": "scram-sha-256",
-                    "username": "user",
-                    "password": "redpanda"
+                    "username": "${{env.SASL_USERNAME}}",
+                    "password": "${{env.SASL_PASSWORD}}"
                 }
             },
             "exit": "tcp_client0"

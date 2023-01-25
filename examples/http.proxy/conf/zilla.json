@@ -11,7 +11,7 @@
                 {
                     "store": "tls/truststore.p12",
                     "type": "pkcs12",
-                    "password": "generated"
+                    "password": "${{env.KEYSTORE_PASSWORD}}"
                 }
             }
         },

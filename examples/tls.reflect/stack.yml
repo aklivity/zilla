@@ -14,5 +14,7 @@ services:
       - ./conf:/etc/zilla:ro
     networks:
       - net0
+    environment:
+      - KEYSTORE_PASSWORD=generated 
     ports:
       - "23456:23456"
