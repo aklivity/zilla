@@ -108,17 +108,25 @@ public final class ZillaStartCommand extends ZillaCommand
             props.setProperty(ENGINE_VERBOSE.name(), Boolean.toString(verbose));
         }
 
-        if (Files.exists(Paths.get("zilla.json")) && Files.exists(Paths.get("zilla.yaml")))
-        {
-            System.out.println("picked zilla.yaml to load properties");
-        }
-        else if (Files.exists(Paths.get("zilla.json")) && Files.notExists(Paths.get("zilla.yaml")))
-        {
-            System.out.println("warning: zilla.json is deprecated, migrate to zilla.yaml");
-            configURL = Paths.get("zilla.json").toUri();
-        }
-
         EngineConfiguration config = new EngineConfiguration(props);
+        if ("file".equals(config.configURL().getProtocol()))
+        {
+            System.out.println(config.configURL().getPath());
+            System.out.println(Paths.get(config.configURL().getPath()).getParent());
+            if (config.configURL().toString().endsWith("zilla.yaml") &&
+                    Files.notExists(Paths.get(config.configURL().getPath())))
+            {
+                String jsonConfig = Paths.get(config.configURL().getPath()).getParent() != null ?
+                        Paths.get(config.configURL().getPath()).getParent() + "/zilla.json" : "zilla.json";
+                props.setProperty(ENGINE_CONFIG_URL.name(), "file:" + jsonConfig);
+                config = new EngineConfiguration(props);
+                System.out.println("zilla.yaml file not found, loading zilla.json instead");
+            }
+            if (config.configURL().toString().endsWith(".json"))
+            {
+                System.out.println("warning: json syntax is deprecated, migrate to yaml");
+            }
+        }
         Consumer<Throwable> report = exceptions
                 ? e -> e.printStackTrace(System.err)
                 : e -> System.err.println(e.getMessage());
