@@ -67,6 +67,7 @@ import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 public class RegisterTask implements Callable<NamespaceConfig>
 {
+    protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
@@ -114,10 +115,15 @@ public class RegisterTask implements Callable<NamespaceConfig>
     @Override
     public NamespaceConfig call() throws Exception
     {
+        if (configText == null || configText.isEmpty())
+        {
+            configText = CONFIG_TEXT_DEFAULT;
+        }
         return configure(configText);
     }
 
-    private NamespaceConfig configure(String configText)
+    private NamespaceConfig configure(
+        String configText)
     {
         logger.accept(configText);
 
@@ -267,7 +273,8 @@ public class RegisterTask implements Callable<NamespaceConfig>
         return null;
     }
 
-    public void setConfigText(String configText)
+    public void setConfigText(
+        String configText)
     {
         this.configText = configText;
     }

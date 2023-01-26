@@ -38,8 +38,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/file.reconfigure.modify/client",
-        "${app}/file.reconfigure.modify/server" })
+        "${app}/reconfigure.modify.via.file/client",
+        "${app}/reconfigure.modify.via.file/server" })
     public void shouldReconfigureWhenModified() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/file.reconfigure.create/client",
-        "${app}/file.reconfigure.create/server" })
+        "${app}/reconfigure.create.via.file/client",
+        "${app}/reconfigure.create.via.file/server" })
     public void shouldReconfigureWhenCreated() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class ApplicationIT
 
     @Test
     @Specification({
-        "${app}/file.reconfigure.delete/client",
-        "${app}/file.reconfigure.delete/server" })
+        "${app}/reconfigure.delete.via.file/client",
+        "${app}/reconfigure.delete.via.file/server" })
     public void shouldReconfigureWhenDeleted() throws Exception
     {
         k3po.finish();

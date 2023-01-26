@@ -161,17 +161,18 @@ public final class Engine implements AutoCloseable
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
         this.rootConfigURL = config.configURL();
-        if (this.rootConfigURL == null)
+        String protocol = rootConfigURL.getProtocol();
+        if ("file".equals(protocol) || "jar".equals(protocol))
         {
             this.watcherTask = new FileWatcherTask(this::reconfigure);
         }
-        else if ("http".equals(this.rootConfigURL.getProtocol()) || "https".equals(this.rootConfigURL.getProtocol()))
+        else if ("http".equals(protocol) || "https".equals(protocol))
         {
             throw new UnsupportedOperationException();
         }
         else
         {
-            this.watcherTask = new FileWatcherTask(this::reconfigure);
+            throw new UnsupportedOperationException();
         }
 
         registerTask = new RegisterTask(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning, dispatchers,
@@ -266,7 +267,9 @@ public final class Engine implements AutoCloseable
         }
     }
 
-    private void reconfigure(URL configURL, String configText)
+    private void reconfigure(
+        URL configURL,
+        String configText)
     {
         try
         {

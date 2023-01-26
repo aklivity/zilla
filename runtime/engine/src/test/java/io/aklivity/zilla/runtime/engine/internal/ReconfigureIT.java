@@ -75,8 +75,8 @@ public class ReconfigureIT
     @Test
     @Configuration("zilla.reconfigure.modify.json")
     @Specification({
-        "${app}/file.reconfigure.modify/server",
-        "${net}/file.reconfigure.modify/client"
+        "${app}/reconfigure.modify.via.file/server",
+        "${net}/reconfigure.modify.via.file/client"
     })
     public void shouldReconfigureWhenModified() throws Exception
     {
@@ -97,8 +97,8 @@ public class ReconfigureIT
     @Test
     @Configuration("zilla.reconfigure.missing.json")
     @Specification({
-        "${app}/file.reconfigure.create/server",
-        "${net}/file.reconfigure.create/client"
+        "${app}/reconfigure.create.via.file/server",
+        "${net}/reconfigure.create.via.file/client"
     })
     public void shouldReconfigureWhenCreated() throws Exception
     {
@@ -118,8 +118,8 @@ public class ReconfigureIT
     @Test
     @Configuration("zilla.reconfigure.delete.json")
     @Specification({
-        "${app}/file.reconfigure.delete/server",
-        "${net}/file.reconfigure.delete/client"
+        "${app}/reconfigure.delete.via.file/server",
+        "${net}/reconfigure.delete.via.file/client"
     })
     public void shouldReconfigureWhenDeleted() throws Exception
     {

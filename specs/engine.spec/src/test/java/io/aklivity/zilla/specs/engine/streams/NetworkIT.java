@@ -38,8 +38,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/file.reconfigure.modify/client",
-        "${net}/file.reconfigure.modify/server" })
+        "${net}/reconfigure.modify.via.file/client",
+        "${net}/reconfigure.modify.via.file/server" })
     public void shouldReconfigureWhenModified() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/file.reconfigure.create/client",
-        "${net}/file.reconfigure.create/server" })
+        "${net}/reconfigure.create.via.file/client",
+        "${net}/reconfigure.create.via.file/server" })
     public void shouldReconfigureWhenCreated() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class NetworkIT
 
     @Test
     @Specification({
-        "${net}/file.reconfigure.delete/client",
-        "${net}/file.reconfigure.delete/server" })
+        "${net}/reconfigure.delete.via.file/client",
+        "${net}/reconfigure.delete.via.file/server" })
     public void shouldReconfigureWhenDeleted() throws Exception
     {
         k3po.finish();

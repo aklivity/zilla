@@ -58,7 +58,8 @@ public class UnregisterTask implements Callable<Void>
         return null;
     }
 
-    public void setRootNamespace(NamespaceConfig rootNamespace)
+    public void setRootNamespace(
+        NamespaceConfig rootNamespace)
     {
         this.rootNamespace = rootNamespace;
     }

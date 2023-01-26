@@ -28,17 +28,22 @@ import java.util.function.BiConsumer;
 public class FileWatcherTask extends WatcherTask
 {
     private final Map<Path, byte[]> configHashes;
+    private final Map<Path, URL> configURLs;
+    private MessageDigest md5;
     private WatchService watchService;
 
-    public FileWatcherTask(BiConsumer<URL, String> configChangeListener)
+    public FileWatcherTask(
+        BiConsumer<URL, String> configChangeListener)
     {
         super(configChangeListener);
         this.configHashes = new HashMap<>();
+        this.configURLs = new HashMap<>();
         try
         {
-            watchService = FileSystems.getDefault().newWatchService();
+            this.md5 = MessageDigest.getInstance("MD5");
+            this.watchService = FileSystems.getDefault().newWatchService();
         }
-        catch (IOException ex)
+        catch (NoSuchAlgorithmException | IOException ex)
         {
             rethrowUnchecked(ex);
         }
@@ -61,12 +66,13 @@ public class FileWatcherTask extends WatcherTask
                         final Path changed = ((Path) key.watchable()).resolve((Path) event.context());
                         if (configHashes.containsKey(changed))
                         {
-                            String configText = readConfigText(configURLs.get(changed));
-                            byte[] newConfigHash = computeHash(configText);
-                            if (!Arrays.equals(configHashes.get(changed), newConfigHash))
+                            String newConfigText = readConfigText(configURLs.get(changed));
+                            byte[] oldConfigHash = configHashes.get(changed);
+                            byte[] newConfigHash = computeHash(newConfigText);
+                            if (!Arrays.equals(oldConfigHash, newConfigHash))
                             {
                                 configHashes.put(changed, newConfigHash);
-                                configChangeListener.accept(configURLs.get(changed), configText);
+                                configChangeListener.accept(configURLs.get(changed), newConfigText);
                             }
                         }
                     }
@@ -87,13 +93,15 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    protected void doInitialConfiguration(URL configURL)
+    protected void doInitialConfiguration(
+        URL configURL)
     {
         Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
         configURLs.put(configPath, configURL);
-        String configText = readConfigText(configURL);
-        configHashes.put(configPath, computeHash(configText));
 
+        String configText = "";
+        configText = readConfigText(configURL);
+        configHashes.put(configPath, computeHash(configText));
         try
         {
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
@@ -105,43 +113,28 @@ public class FileWatcherTask extends WatcherTask
         configChangeListener.accept(configURL, configText);
     }
 
-    private String readConfigText(URL configURL)
+    private String readConfigText(
+        URL configURL)
     {
         String configText;
-        if (configURL == null)
+        try
         {
-            configText = CONFIG_TEXT_DEFAULT;
+            URLConnection connection = configURL.openConnection();
+            try (InputStream input = connection.getInputStream())
+            {
+                configText = new String(input.readAllBytes(), UTF_8);
+            }
         }
-        else
+        catch (IOException ex)
         {
-            try
-            {
-                URLConnection connection = configURL.openConnection();
-                try (InputStream input = connection.getInputStream())
-                {
-                    configText = new String(input.readAllBytes(), UTF_8);
-                }
-            }
-            catch (IOException ex)
-            {
-                configText = CONFIG_TEXT_DEFAULT;
-            }
+            return "";
         }
         return configText;
     }
 
-    private byte[] computeHash(String configText)
+    private byte[] computeHash(
+        String configText)
     {
-        byte[] hash = new byte[0];
-        try
-        {
-            MessageDigest md5Digest = MessageDigest.getInstance("MD5");
-            hash = md5Digest.digest(configText.getBytes(UTF_8));
-        }
-        catch (NoSuchAlgorithmException ex)
-        {
-            return hash;
-        }
-        return hash;
+        return md5.digest(configText.getBytes(UTF_8));
     }
 }
