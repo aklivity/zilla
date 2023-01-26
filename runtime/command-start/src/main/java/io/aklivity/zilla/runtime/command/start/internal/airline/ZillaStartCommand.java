@@ -111,8 +111,6 @@ public final class ZillaStartCommand extends ZillaCommand
         EngineConfiguration config = new EngineConfiguration(props);
         if ("file".equals(config.configURL().getProtocol()))
         {
-            System.out.println(config.configURL().getPath());
-            System.out.println(Paths.get(config.configURL().getPath()).getParent());
             if (config.configURL().toString().endsWith("zilla.yaml") &&
                     Files.notExists(Paths.get(config.configURL().getPath())))
             {
