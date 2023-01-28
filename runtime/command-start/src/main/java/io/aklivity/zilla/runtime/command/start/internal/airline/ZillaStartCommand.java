@@ -24,6 +24,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,11 +49,12 @@ public final class ZillaStartCommand extends ZillaCommand
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
     private final Collection<Throwable> errors = new LinkedHashSet<>();
+    private URL configURL;
 
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
             hidden = true)
-    public URI configURL;
+    public URI configURI;
 
     @Option(name = { "-v", "--verbose" },
             description = "Show verbose output")
@@ -93,9 +95,9 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        if (configURL != null)
+        if (configURI != null)
         {
-            props.setProperty(ENGINE_CONFIG_URL.name(), configURL.toString());
+            props.setProperty(ENGINE_CONFIG_URL.name(), configURI.toString());
         }
 
         if (workers >= 0)
@@ -109,15 +111,15 @@ public final class ZillaStartCommand extends ZillaCommand
         }
 
         EngineConfiguration config = new EngineConfiguration(props);
-        if ("file".equals(config.configURL().getProtocol()))
+        configURL = config.configURL();
+        if ("file".equals(configURL.getProtocol()))
         {
-            if (config.configURL().toString().endsWith("zilla.yaml") &&
-                    Files.notExists(Paths.get(config.configURL().getPath())))
+            if (configURL.toString().endsWith("zilla.yaml") &&
+                    Files.notExists(Paths.get(configURL.getPath())))
             {
-                String jsonConfig = Paths.get(config.configURL().getPath()).getParent() != null ?
-                        Paths.get(config.configURL().getPath()).getParent() + "/zilla.json" : "zilla.json";
+                String jsonConfig = Paths.get(configURL.getPath()).getParent() != null ?
+                        Paths.get(configURL.getPath()).getParent() + "/zilla.json" : "zilla.json";
                 props.setProperty(ENGINE_CONFIG_URL.name(), "file:" + jsonConfig);
-                config = new EngineConfiguration(props);
                 System.out.println("zilla.yaml file not found, loading zilla.json instead");
             }
             if (config.configURL().toString().endsWith(".json"))
