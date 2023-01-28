@@ -49,7 +49,6 @@ public final class ZillaStartCommand extends ZillaCommand
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
     private final Collection<Throwable> errors = new LinkedHashSet<>();
-    private URL configURL;
 
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
@@ -122,7 +121,7 @@ public final class ZillaStartCommand extends ZillaCommand
                 configPath = Paths.get(config.configURL().getPath());
                 System.out.println("zilla.yaml file not found, loading zilla.json instead");
             }
-            if (configPath.getFileName().endsWith(".json"))
+            if (configPath.getFileName().toString().endsWith(".json"))
             {
                 System.out.println("warning: json syntax is deprecated, migrate to yaml");
             }
