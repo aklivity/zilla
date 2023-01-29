@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.aklivity.zilla</groupId>
   <artifactId>zilla</artifactId>
-  <version>0.9.41</version>
+  <version>0.9.42</version>
   <packaging>pom</packaging>
   <name>zilla</name>
   <url>https://github.com/aklivity/zilla</url>
@@ -74,6 +74,11 @@
         <groupId>jakarta.json.bind</groupId>
         <artifactId>jakarta.json.bind-api</artifactId>
         <version>2.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.leadpony.joy</groupId>
+        <artifactId>joy-yaml</artifactId>
+        <version>2.1.0</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse</groupId>
