@@ -1,0 +1,17 @@
+---
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 12345
+    exit: fan_server0
+  fan_server0:
+    type: fan
+    kind: server
+    exit: echo_server0
+  echo_server0:
+    type: echo
+    kind: server

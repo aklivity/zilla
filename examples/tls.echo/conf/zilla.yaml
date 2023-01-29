@@ -1,0 +1,36 @@
+---
+name: example
+vaults:
+  server:
+    type: filesystem
+    options:
+      keys:
+        store: tls/localhost.p12
+        type: pkcs12
+        password: "${{env.KEYSTORE_PASSWORD}}"
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 23456
+    exit: tls_server0
+  tls_server0:
+    type: tls
+    kind: server
+    vault: server
+    options:
+      keys:
+      - localhost
+      sni:
+      - localhost
+      alpn:
+      - echo
+    routes:
+    - when:
+      - alpn: echo
+      exit: echo_server0
+  echo_server0:
+    type: echo
+    kind: server
