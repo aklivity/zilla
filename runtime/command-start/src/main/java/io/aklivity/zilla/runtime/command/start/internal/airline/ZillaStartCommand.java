@@ -24,6 +24,7 @@ import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -52,7 +53,7 @@ public final class ZillaStartCommand extends ZillaCommand
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
             hidden = true)
-    public URI configURL;
+    public URI configURI;
 
     @Option(name = { "-v", "--verbose" },
             description = "Show verbose output")
@@ -93,9 +94,9 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
-        if (configURL != null)
+        if (configURI != null)
         {
-            props.setProperty(ENGINE_CONFIG_URL.name(), configURL.toString());
+            props.setProperty(ENGINE_CONFIG_URL.name(), configURI.toString());
         }
 
         if (workers >= 0)
@@ -109,6 +110,22 @@ public final class ZillaStartCommand extends ZillaCommand
         }
 
         EngineConfiguration config = new EngineConfiguration(props);
+        URL configURL = config.configURL();
+        if ("file".equals(configURL.getProtocol()))
+        {
+            Path configPath = Paths.get(configURL.getPath());
+            if (configPath.endsWith("zilla.yaml") && Files.notExists(configPath))
+            {
+                String configJSON = String.format("file:%s", configPath.resolveSibling("zilla.json"));
+                props.setProperty(ENGINE_CONFIG_URL.name(), configJSON);
+                configPath = Paths.get(config.configURL().getPath());
+                System.out.println("zilla.yaml file not found, loading zilla.json instead");
+            }
+            if (configPath.getFileName().toString().endsWith(".json"))
+            {
+                System.out.println("warning: json syntax is deprecated, migrate to yaml");
+            }
+        }
         Consumer<Throwable> report = exceptions
                 ? e -> e.printStackTrace(System.err)
                 : e -> System.err.println(e.getMessage());
