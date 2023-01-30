@@ -52,7 +52,7 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public boolean run()
+    public Void call()
     {
         while (true)
         {
@@ -84,7 +84,7 @@ public class FileWatcherTask extends WatcherTask
             }
         }
 
-        return true;
+        return null;
     }
 
     @Override
