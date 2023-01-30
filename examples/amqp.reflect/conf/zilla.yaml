@@ -7,7 +7,7 @@ vaults:
       keys:
         store: tls/localhost.p12
         type: pkcs12
-        password: "${{env.KEYSTORE_PASSWORD}}"
+        password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
   tcp_server0:
     type: tcp
@@ -29,17 +29,17 @@ bindings:
     vault: server
     options:
       keys:
-      - localhost
+        - localhost
       sni:
-      - localhost
+        - localhost
     exit: amqp_server0
   amqp_server0:
     type: amqp
     kind: server
     routes:
-    - when:
-      - address: zilla
-      exit: fan_server0
+      - when:
+          - address: zilla
+        exit: fan_server0
   fan_server0:
     type: fan
     kind: server

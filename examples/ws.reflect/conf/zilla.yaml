@@ -7,7 +7,7 @@ vaults:
       keys:
         store: tls/localhost.p12
         type: pkcs12
-        password: "${{env.KEYSTORE_PASSWORD}}"
+        password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
   tcp_server0:
     type: tcp
@@ -29,29 +29,29 @@ bindings:
     vault: server
     options:
       keys:
-      - localhost
+        - localhost
       sni:
-      - localhost
+        - localhost
     exit: http_server0
   http_server0:
     type: http
     kind: server
     routes:
-    - when:
-      - headers:
-          ":scheme": http
-          ":authority": localhost:8080
-      - headers:
-          ":scheme": https
-          ":authority": localhost:9090
-      exit: ws_server0
+      - when:
+          - headers:
+              :scheme: http
+              :authority: localhost:8080
+          - headers:
+              :scheme: https
+              :authority: localhost:9090
+        exit: ws_server0
   ws_server0:
     type: ws
     kind: server
     routes:
-    - when:
-      - protocol: echo
-      exit: fan_server0
+      - when:
+          - protocol: echo
+        exit: fan_server0
   fan_server0:
     type: fan
     kind: server

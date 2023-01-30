@@ -7,7 +7,7 @@ vaults:
       keys:
         store: tls/localhost.p12
         type: pkcs12
-        password: "${{env.KEYSTORE_PASSWORD}}"
+        password: ${{env.KEYSTORE_PASSWORD}}
 guards:
   jwt0:
     type: jwt
@@ -15,11 +15,11 @@ guards:
       issuer: https://auth.example.com
       audience: https://api.example.com
       keys:
-      - kty: RSA
-        n: qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==
-        e: AQAB
-        alg: RS256
-        kid: example
+        - kty: RSA
+          n: qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==
+          e: AQAB
+          alg: RS256
+          kid: example
 bindings:
   tcp_server0:
     type: tcp
@@ -41,12 +41,12 @@ bindings:
     vault: server
     options:
       keys:
-      - localhost
+        - localhost
       sni:
-      - localhost
+        - localhost
       alpn:
-      - http/1.1
-      - h2
+        - http/1.1
+        - h2
     exit: http_server0
   http_server0:
     type: http
@@ -58,17 +58,17 @@ bindings:
             headers:
               authorization: Bearer {credentials}
     routes:
-    - guarded:
-        jwt0:
-        - echo:stream
-      when:
-      - headers:
-          ":scheme": http
-          ":authority": localhost:8080
-      - headers:
-          ":scheme": https
-          ":authority": localhost:9090
-      exit: echo_server0
+      - guarded:
+          jwt0:
+            - echo:stream
+        when:
+          - headers:
+              :scheme: http
+              :authority: localhost:8080
+          - headers:
+              :scheme: https
+              :authority: localhost:9090
+        exit: echo_server0
   echo_server0:
     type: echo
     kind: server

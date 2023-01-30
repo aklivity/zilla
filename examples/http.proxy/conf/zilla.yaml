@@ -7,7 +7,7 @@ vaults:
       trust:
         store: tls/truststore.p12
         type: pkcs12
-        password: "${{env.KEYSTORE_PASSWORD}}"
+        password: ${{env.KEYSTORE_PASSWORD}}
   server:
     type: filesystem
     options:
@@ -29,11 +29,11 @@ bindings:
     vault: server
     options:
       keys:
-      - localhost
+        - localhost
       sni:
-      - localhost
+        - localhost
       alpn:
-      - h2
+        - h2
     exit: http_server0
   http_server0:
     type: http
@@ -42,12 +42,12 @@ bindings:
       access-control:
         policy: cross-origin
     routes:
-    - when:
-      - headers:
-          ":scheme": https
-          ":authority": localhost:9090
-          ":path": "/*"
-      exit: http_client0
+      - when:
+          - headers:
+              :scheme: https
+              :authority: localhost:9090
+              :path: /*
+        exit: http_client0
   http_client0:
     type: http
     kind: client
@@ -59,11 +59,11 @@ bindings:
     options:
       trustcacerts: true
       trust:
-      - nginx.internal.net
+        - nginx.internal.net
       sni:
-      - nginx.internal.net
+        - nginx.internal.net
       alpn:
-      - h2
+        - h2
     exit: tcp_client0
   tcp_client0:
     type: tcp

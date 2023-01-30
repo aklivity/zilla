@@ -7,7 +7,7 @@ vaults:
       keys:
         store: tls/localhost.p12
         type: pkcs12
-        password: "${{env.KEYSTORE_PASSWORD}}"
+        password: ${{env.KEYSTORE_PASSWORD}}
 bindings:
   tcp_server0:
     type: tcp
@@ -29,77 +29,77 @@ bindings:
     vault: server
     options:
       keys:
-      - localhost
+        - localhost
       sni:
-      - localhost
+        - localhost
       alpn:
-      - http/1.1
-      - h2
+        - http/1.1
+        - h2
     exit: http_server0
   http_server0:
     type: http
     kind: server
     routes:
-    - when:
-      - headers:
-          ":scheme": http
-          ":authority": localhost:8080
-      - headers:
-          ":scheme": https
-          ":authority": localhost:9090
-      exit: http_kafka_proxy0
+      - when:
+          - headers:
+              :scheme: http
+              :authority: localhost:8080
+          - headers:
+              :scheme: https
+              :authority: localhost:9090
+        exit: http_kafka_proxy0
   http_kafka_proxy0:
     type: http-kafka
     kind: proxy
     routes:
-    - when:
-      - method: POST
-        path: "/items"
-      exit: kafka_cache_client0
-      with:
-        capability: produce
-        topic: items-snapshots
-        key: "${idempotencyKey}"
-    - when:
-      - method: PUT
-        path: "/items/{id}"
-      exit: kafka_cache_client0
-      with:
-        capability: produce
-        topic: items-snapshots
-        key: "${params.id}"
-    - when:
-      - method: DELETE
-        path: "/items/{id}"
-      exit: kafka_cache_client0
-      with:
-        capability: produce
-        topic: items-snapshots
-        key: "${params.id}"
-    - when:
-      - method: GET
-        path: "/items"
-      exit: kafka_cache_client0
-      with:
-        capability: fetch
-        topic: items-snapshots
-        merge:
-          content-type: application/json
-    - exit: kafka_cache_client0
-      when:
-      - method: GET
-        path: "/items/{id}"
-      with:
-        capability: fetch
-        topic: items-snapshots
-        filters:
-        - key: "${params.id}"
+      - when:
+          - method: POST
+            path: /items
+        exit: kafka_cache_client0
+        with:
+          capability: produce
+          topic: items-snapshots
+          key: ${idempotencyKey}
+      - when:
+          - method: PUT
+            path: /items/{id}
+        exit: kafka_cache_client0
+        with:
+          capability: produce
+          topic: items-snapshots
+          key: ${params.id}
+      - when:
+          - method: DELETE
+            path: /items/{id}
+        exit: kafka_cache_client0
+        with:
+          capability: produce
+          topic: items-snapshots
+          key: ${params.id}
+      - when:
+          - method: GET
+            path: /items
+        exit: kafka_cache_client0
+        with:
+          capability: fetch
+          topic: items-snapshots
+          merge:
+            content-type: application/json
+      - exit: kafka_cache_client0
+        when:
+          - method: GET
+            path: /items/{id}
+        with:
+          capability: fetch
+          topic: items-snapshots
+          filters:
+            - key: ${params.id}
   kafka_cache_client0:
     type: kafka
     kind: cache_client
     options:
       bootstrap:
-      - items-snapshots
+        - items-snapshots
     exit: kafka_cache_server0
   kafka_cache_server0:
     type: kafka
@@ -116,5 +116,5 @@ bindings:
       host: kafka.internal.net
       port: 29092
     routes:
-    - when:
-      - cidr: 0.0.0.0/0
+      - when:
+          - cidr: 0.0.0.0/0
