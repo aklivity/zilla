@@ -36,12 +36,7 @@ public abstract class WatcherTask extends ForkJoinTask<Void> implements Closeabl
 
     protected abstract boolean run();
 
-    public void onURLDiscovered(
-        URL configURL)
-    {
-        doInitialConfiguration(configURL);
-    }
-
-    protected abstract void doInitialConfiguration(
+    public abstract void onURLDiscovered(
         URL configURL);
+
 }

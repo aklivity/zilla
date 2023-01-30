@@ -88,7 +88,7 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    protected void doInitialConfiguration(
+    public void onURLDiscovered(
         URL configURL)
     {
         Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
