@@ -21,7 +21,6 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,6 +28,7 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
-public class RegisterTask implements Callable<NamespaceConfig>
+public class ConfigManager
 {
     protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
     private final Collection<URL> schemaTypes;
@@ -81,9 +81,8 @@ public class RegisterTask implements Callable<NamespaceConfig>
     private final List<EngineExtSpi> extensions;
     private final ExpressionResolver expressions;
     private final Consumer<URL> onURLDiscovered;
-    private String configText;
 
-    public RegisterTask(
+    public ConfigManager(
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -112,19 +111,14 @@ public class RegisterTask implements Callable<NamespaceConfig>
         this.expressions = ExpressionResolver.instantiate();
     }
 
-    @Override
-    public NamespaceConfig call() throws Exception
+    public NamespaceConfig register(
+        String configText)
     {
+        NamespaceConfig namespace = null;
         if (configText == null || configText.isEmpty())
         {
             configText = CONFIG_TEXT_DEFAULT;
         }
-        return configure(configText);
-    }
-
-    private NamespaceConfig configure(
-        String configText)
-    {
         logger.accept(configText);
 
         if (config.configResolveExpressions())
@@ -176,7 +170,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
                 .withConfig(config)
                 .build();
 
-            NamespaceConfig namespace = jsonb.fromJson(configText, NamespaceConfig.class);
+            namespace = jsonb.fromJson(configText, NamespaceConfig.class);
 
             if (!errors.isEmpty())
             {
@@ -186,7 +180,7 @@ public class RegisterTask implements Callable<NamespaceConfig>
             namespace.id = supplyId.applyAsInt(namespace.name);
 
             // TODO: consider qualified name "namespace::name"
-            namespace.resolveId = name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
+            namespace.resolveId = idResolver(namespace);
 
             for (GuardConfig guard : namespace.guards)
             {
@@ -227,11 +221,11 @@ public class RegisterTask implements Callable<NamespaceConfig>
                                 .orElse(session -> false);
 
                             LongFunction<String> identifier = namespace.guards.stream()
-                                    .filter(g -> g.id == guarded.id)
-                                    .findFirst()
-                                    .map(g -> guardByType.apply(g.type))
-                                    .map(g -> g.identifier(DispatchAgent::indexOfId, guarded))
-                                    .orElse(session -> null);
+                                .filter(g -> g.id == guarded.id)
+                                .findFirst()
+                                .map(g -> guardByType.apply(g.type))
+                                .map(g -> g.identifier(DispatchAgent::indexOfId, guarded))
+                                .orElse(session -> null);
 
                             guarded.identity = identifier;
 
@@ -259,7 +253,6 @@ public class RegisterTask implements Callable<NamespaceConfig>
             future.join();
 
             extensions.forEach(e -> e.onRegistered(context));
-            return namespace;
         }
         catch (Throwable ex)
         {
@@ -270,12 +263,27 @@ public class RegisterTask implements Callable<NamespaceConfig>
         {
             errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
         }
-        return null;
+        return namespace;
     }
 
-    public void setConfigText(
-        String configText)
+    public void unRegister(
+        NamespaceConfig namespace)
     {
-        this.configText = configText;
+        if (namespace != null)
+        {
+            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+            for (DispatchAgent dispatcher : dispatchers)
+            {
+                future = CompletableFuture.allOf(future, dispatcher.detach(namespace));
+            }
+            future.join();
+            extensions.forEach(e -> e.onUnregistered(context));
+        }
     }
+
+    private ToLongFunction<String> idResolver(NamespaceConfig namespace)
+    {
+        return name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
+    }
+
 }

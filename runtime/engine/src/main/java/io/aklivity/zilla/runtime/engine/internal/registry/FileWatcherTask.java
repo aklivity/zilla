@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,9 +34,9 @@ public class FileWatcherTask extends WatcherTask
     private WatchService watchService;
 
     public FileWatcherTask(
-        BiConsumer<URL, String> configChangeListener)
+        BiConsumer<URL, String> changeListener)
     {
-        super(configChangeListener);
+        super(changeListener);
         this.configHashes = new HashMap<>();
         this.configURLs = new HashMap<>();
         try
@@ -53,42 +54,36 @@ public class FileWatcherTask extends WatcherTask
     @Override
     public boolean run()
     {
-        try
+        while (true)
         {
-            while (true)
+            try
             {
-                try
+                final WatchKey key = watchService.take();
+                final Path parent = (Path) key.watchable();
+                for (WatchEvent<?> event : key.pollEvents())
                 {
-                    final WatchKey key = watchService.take();
-
-                    for (WatchEvent<?> event : key.pollEvents())
+                    final Path changed = parent.resolve((Path) event.context());
+                    if (configHashes.containsKey(changed))
                     {
-                        final Path changed = ((Path) key.watchable()).resolve((Path) event.context());
-                        if (configHashes.containsKey(changed))
+                        String newConfigText = readConfigText(configURLs.get(changed));
+                        byte[] oldConfigHash = configHashes.get(changed);
+                        byte[] newConfigHash = computeHash(newConfigText);
+                        if (!Arrays.equals(oldConfigHash, newConfigHash))
                         {
-                            String newConfigText = readConfigText(configURLs.get(changed));
-                            byte[] oldConfigHash = configHashes.get(changed);
-                            byte[] newConfigHash = computeHash(newConfigText);
-                            if (!Arrays.equals(oldConfigHash, newConfigHash))
-                            {
-                                configHashes.put(changed, newConfigHash);
-                                configChangeListener.accept(configURLs.get(changed), newConfigText);
-                            }
+                            configHashes.put(changed, newConfigHash);
+                            URL changedURL = configURLs.get(changed);
+                            changeListener.accept(changedURL, newConfigText);
                         }
                     }
-                    key.reset();
                 }
-                catch (InterruptedException ex)
-                {
-                    watchService.close();
-                    break;
-                }
+                key.reset();
+            }
+            catch (InterruptedException | ClosedWatchServiceException ex)
+            {
+                break;
             }
         }
-        catch (IOException ex)
-        {
-            rethrowUnchecked(ex);
-        }
+
         return true;
     }
 
@@ -110,7 +105,7 @@ public class FileWatcherTask extends WatcherTask
         {
         }
 
-        configChangeListener.accept(configURL, configText);
+        changeListener.accept(configURL, configText);
     }
 
     private String readConfigText(
@@ -136,5 +131,11 @@ public class FileWatcherTask extends WatcherTask
         String configText)
     {
         return md5.digest(configText.getBytes(UTF_8));
+    }
+
+    @Override
+    public void close() throws IOException
+    {
+        watchService.close();
     }
 }

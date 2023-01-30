@@ -259,7 +259,7 @@ public final class EngineRule implements TestRule
 
                 try
                 {
-                    engine.start().get();
+                    engine.start();
 
                     base.evaluate();
                 }

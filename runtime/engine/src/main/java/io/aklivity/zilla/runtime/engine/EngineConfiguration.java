@@ -74,7 +74,7 @@ public class EngineConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.engine");
-        ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.json");
+        ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:///zilla.json");
         ENGINE_NAME = config.property("name", "engine");
         ENGINE_DIRECTORY = config.property("directory", ".");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");

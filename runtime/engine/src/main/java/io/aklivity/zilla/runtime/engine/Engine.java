@@ -30,11 +30,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -57,10 +55,9 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
+import io.aklivity.zilla.runtime.engine.internal.registry.ConfigManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
-import io.aklivity.zilla.runtime.engine.internal.registry.RegisterTask;
-import io.aklivity.zilla.runtime.engine.internal.registry.UnregisterTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -79,11 +76,11 @@ public final class Engine implements AutoCloseable
     private final ThreadFactory factory;
 
     private final ToIntFunction<String> supplyLabelId;
-    private final RegisterTask registerTask;
-    private final UnregisterTask unregisterTask;
+    private final ConfigManager configManager;
     private final WatcherTask watcherTask;
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
+    private ForkJoinTask<Void> watcherTaskRef;
 
     Engine(
         EngineConfiguration config,
@@ -175,9 +172,8 @@ public final class Engine implements AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        registerTask = new RegisterTask(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning, dispatchers,
+        configManager = new ConfigManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning, dispatchers,
             errorHandler, logger, context, config, extensions, watcherTask::onURLDiscovered);
-        unregisterTask = new UnregisterTask(dispatchers, context, extensions);
 
         this.namespaces = new HashMap<>();
 
@@ -220,15 +216,14 @@ public final class Engine implements AutoCloseable
         return counter.applyAsLong(name);
     }
 
-    public Future<Void> start() throws Exception
+    public void start() throws Exception
     {
         for (AgentRunner runner : runners)
         {
             AgentRunner.startOnThread(runner, Thread::new);
         }
-        commonPool().submit(watcherTask);
+        watcherTaskRef = commonPool().submit(watcherTask);
         watcherTask.onURLDiscovered(rootConfigURL);
-        return CompletableFuture.completedFuture(null);
     }
 
     @Override
@@ -236,7 +231,8 @@ public final class Engine implements AutoCloseable
     {
         final List<Throwable> errors = new ArrayList<>();
 
-        watcherTask.interrupt();
+        watcherTask.close();
+        watcherTaskRef.get();
 
         for (AgentRunner runner : runners)
         {
@@ -271,18 +267,9 @@ public final class Engine implements AutoCloseable
         URL configURL,
         String configText)
     {
-        try
-        {
-            NamespaceConfig namespace = namespaces.get(configURL);
-            unregisterTask.setRootNamespace(namespace);
-            commonPool().submit(unregisterTask).get();
-            registerTask.setConfigText(configText);
-            namespaces.put(configURL, commonPool().submit(registerTask).get());
-        }
-        catch (InterruptedException | ExecutionException ex)
-        {
-            rethrowUnchecked(ex);
-        }
+        NamespaceConfig oldNamespace = namespaces.get(configURL);
+        configManager.unRegister(oldNamespace);
+        namespaces.put(configURL, configManager.register(configText));
     }
 
     public static EngineBuilder builder()

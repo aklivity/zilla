@@ -60,7 +60,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
         }
         catch (Throwable ex)
         {
@@ -86,7 +86,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
 
             EngineStats stats = engine.stats("default", "test0");
             assertEquals(0L, stats.initialOpens());
@@ -122,7 +122,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
         }
         catch (Throwable ex)
         {
@@ -145,7 +145,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
         }
         catch (Throwable ex)
         {

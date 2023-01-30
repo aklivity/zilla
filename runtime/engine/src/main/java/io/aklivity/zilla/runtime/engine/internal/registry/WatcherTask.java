@@ -1,25 +1,24 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import java.io.Closeable;
 import java.net.URL;
 import java.util.concurrent.ForkJoinTask;
 import java.util.function.BiConsumer;
 
 
-public abstract class WatcherTask extends ForkJoinTask<Void>
+public abstract class WatcherTask extends ForkJoinTask<Void> implements Closeable
 {
-    private Thread thread;
-    protected final BiConsumer<URL, String> configChangeListener;
+    protected final BiConsumer<URL, String> changeListener;
 
     protected WatcherTask(
-        BiConsumer<URL, String> configChangeListener)
+        BiConsumer<URL, String> changeListener)
     {
-        this.configChangeListener = configChangeListener;
+        this.changeListener = changeListener;
     }
 
     @Override
     protected boolean exec()
     {
-        this.thread = Thread.currentThread();
         return run();
     }
 
@@ -36,14 +35,6 @@ public abstract class WatcherTask extends ForkJoinTask<Void>
     }
 
     protected abstract boolean run();
-
-    public void interrupt()
-    {
-        if (thread != null)
-        {
-            thread.interrupt();
-        }
-    }
 
     public void onURLDiscovered(
         URL configURL)
