@@ -27,7 +27,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public final class JwtKeySetConfigAdapter implements JsonbAdapter<JwtKeySetConfig, JsonObject>
 {
-
     private static final String KEYS_NAME = "keys";
 
     private final JwtKeyConfigAdapter keyAdapter = new JwtKeyConfigAdapter();

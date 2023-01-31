@@ -18,8 +18,7 @@ import java.util.List;
 
 public class JwtKeySetConfig
 {
-
-    public List<JwtKeyConfig> keys;
+    public final List<JwtKeyConfig> keys;
 
     public JwtKeySetConfig(
         List<JwtKeyConfig> keys)

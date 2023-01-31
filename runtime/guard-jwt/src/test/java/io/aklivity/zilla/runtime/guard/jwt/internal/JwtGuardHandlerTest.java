@@ -25,9 +25,11 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URL;
 import java.security.KeyPair;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.function.Function;
 
 import org.agrona.collections.MutableLong;
 import org.jose4j.jws.JsonWebSignature;
@@ -39,13 +41,15 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 public class JwtGuardHandlerTest
 {
+    private Function<URL, String> keysURL = url -> "{}";
+
     @Test
     public void shouldAuthorize() throws Exception
     {
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -73,7 +77,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -97,7 +101,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -120,7 +124,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -144,7 +148,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -168,7 +172,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenAlgorithmDiffers() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
@@ -185,7 +189,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenSignatureInvalid() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
@@ -204,7 +208,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenIssuerDiffers() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "not test issuer");
@@ -221,7 +225,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenAudienceDiffers() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
@@ -238,7 +242,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenExpired() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -258,7 +262,7 @@ public class JwtGuardHandlerTest
     public void shouldNotAuthorizeWhenNotYetValid() throws Exception
     {
         JwtOptionsConfig options = new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), null);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -280,7 +284,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(30L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         JwtClaims claims = new JwtClaims();
         claims.setClaim("iss", "test issuer");
@@ -301,7 +305,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -331,7 +335,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -362,7 +366,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -392,7 +396,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -424,7 +428,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -456,7 +460,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 
@@ -487,7 +491,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(30L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
-        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, keysURL);
 
         Instant now = Instant.now();
 

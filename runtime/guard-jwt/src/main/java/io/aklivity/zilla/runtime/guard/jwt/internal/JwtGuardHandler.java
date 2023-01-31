@@ -66,13 +66,6 @@ public class JwtGuardHandler implements GuardHandler
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
-        LongSupplier supplyAuthorizedId)
-    {
-        this(options, supplyAuthorizedId, url -> "{}");
-    }
-
-    public JwtGuardHandler(
-        JwtOptionsConfig options,
         LongSupplier supplyAuthorizedId,
         Function<URL, String> readURL)
     {
@@ -80,12 +73,8 @@ public class JwtGuardHandler implements GuardHandler
         this.audience = options.audience;
         this.challenge = options.challenge.orElse(null);
 
-        Map<String, JsonWebKey> resolvedKeys = new HashMap<>();
-        if (options.keys != null)
-        {
-            resolvedKeys = getKeys(options.keys);
-        }
-        else if (options.keysURL.isPresent())
+        List<JwtKeyConfig> keysConfig = options.keys;
+        if (keysConfig == null && options.keysURL.isPresent())
         {
             try
             {
@@ -97,14 +86,20 @@ public class JwtGuardHandler implements GuardHandler
 
                 String keysText = readURL.apply(URI.create(options.keysURL.get()).toURL());
                 JwtKeySetConfig jwks = jsonb.fromJson(keysText, JwtKeySetConfig.class);
-                List<JwtKeyConfig> keysConfig = jwks.keys;
-                resolvedKeys = getKeys(keysConfig);
+                keysConfig = jwks.keys;
             }
             catch (MalformedURLException | JsonbException ex)
             {
                 rethrowUnchecked(ex);
             }
         }
+
+        Map<String, JsonWebKey> resolvedKeys = new HashMap<>();
+        if (keysConfig != null)
+        {
+            resolvedKeys = getKeys(keysConfig);
+        }
+
         this.keys = resolvedKeys;
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();

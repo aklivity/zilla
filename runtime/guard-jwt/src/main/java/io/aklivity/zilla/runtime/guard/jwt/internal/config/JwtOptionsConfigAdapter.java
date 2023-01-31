@@ -107,7 +107,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 : null;
 
         List<JwtKeyConfig> keys = KEYS_DEFAULT;
-        String keysUrl = null;
+        String keysURL = null;
         if (object.containsKey(KEYS_NAME))
         {
             JsonValue keysValue = object.getValue(String.format("/%s", KEYS_NAME));
@@ -121,7 +121,7 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                         .collect(toList());
                 break;
             case STRING:
-                keysUrl = ((JsonString) keysValue).getString();
+                keysURL = ((JsonString) keysValue).getString();
                 break;
 
             }
@@ -130,8 +130,9 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         {
             if (issuer != null)
             {
-                keysUrl = (issuer.endsWith("/")) ?
-                        String.format("%s.well-known/jwks.json", issuer) : String.format("%s/.well-known/jwks.json", issuer);
+                keysURL = (issuer.endsWith("/"))
+                    ? String.format("%s.well-known/jwks.json", issuer)
+                    : String.format("%s/.well-known/jwks.json", issuer);
             }
         }
 
@@ -139,6 +140,6 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 ? Duration.ofSeconds(object.getInt(CHALLENGE_NAME))
                 : null;
 
-        return new JwtOptionsConfig(issuer, audience, keys, challenge, keysUrl);
+        return new JwtOptionsConfig(issuer, audience, keys, challenge, keysURL);
     }
 }
