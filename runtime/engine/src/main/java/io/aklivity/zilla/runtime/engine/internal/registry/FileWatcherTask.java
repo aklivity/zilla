@@ -70,13 +70,16 @@ public class FileWatcherTask extends WatcherTask
                         byte[] newConfigHash = computeHash(newConfigText);
                         if (!Arrays.equals(oldConfigHash, newConfigHash))
                         {
-                            configHashes.put(changed, newConfigHash);
-                            URL changedURL = configURLs.get(changed);
+                            URL changedURL = configURLs.remove(changed);
+                            // Real path could change with symlinks -> recalculate real path
+                            Path configPath = getRealPathAndRegisterWatcher(changedURL);
+                            configHashes.put(configPath, newConfigHash);
+                            configURLs.put(configPath, changedURL);
                             changeListener.accept(changedURL, newConfigText);
                         }
                     }
                 }
-                key.reset();
+                key.cancel();
             }
             catch (InterruptedException | ClosedWatchServiceException ex)
             {
@@ -91,12 +94,26 @@ public class FileWatcherTask extends WatcherTask
     public void onURLDiscovered(
         URL configURL)
     {
-        Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
+        Path configPath = getRealPathAndRegisterWatcher(configURL);
+
         configURLs.put(configPath, configURL);
 
-        String configText = "";
-        configText = readConfigText(configURL);
+        String configText = readConfigText(configURL);
         configHashes.put(configPath, computeHash(configText));
+        changeListener.accept(configURL, configText);
+    }
+
+    private Path getRealPathAndRegisterWatcher(URL configURL)
+    {
+        Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
+        try
+        {
+            configPath = configPath.toRealPath();
+        }
+        catch (IOException ignored)
+        {
+            // If the file not exists, we can ignore and create a watcher regardless.
+        }
         try
         {
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
@@ -104,8 +121,7 @@ public class FileWatcherTask extends WatcherTask
         catch (IOException ignored)
         {
         }
-
-        changeListener.accept(configURL, configText);
+        return configPath;
     }
 
     private String readConfigText(

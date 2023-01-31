@@ -61,6 +61,7 @@ public final class EngineRule implements TestRule
     // needed by test annotations
     public static final String ENGINE_BUFFER_POOL_CAPACITY_NAME = "zilla.engine.buffer.pool.capacity";
     public static final String ENGINE_BUFFER_SLOT_CAPACITY_NAME = "zilla.engine.buffer.slot.capacity";
+    public static final String ENGINE_CONFIG_URL_NAME = "zilla.engine.config.url";
 
     private static final long EXTERNAL_AFFINITY_MASK = 1L << (Long.SIZE - 1);
     private static final Pattern DATA_FILENAME_PATTERN = Pattern.compile("data\\d+");
@@ -205,31 +206,26 @@ public final class EngineRule implements TestRule
         try
         {
             Configure[] configures = testClass
-                       .getDeclaredMethod(testMethod)
-                       .getAnnotationsByType(Configure.class);
+                .getDeclaredMethod(testMethod)
+                .getAnnotationsByType(Configure.class);
             Arrays.stream(configures).forEach(
                 p -> properties.setProperty(p.name(), p.value()));
 
             Configuration config = description.getAnnotation(Configuration.class);
             if (config != null)
             {
-                URL configURL;
                 if (configurationRoot != null)
                 {
                     String resourceName = String.format("%s/%s", configurationRoot, config.value());
-                    configURL = testClass.getClassLoader().getResource(resourceName);
-                    if (configURL == null)
-                    {
-                        configURL = new URL(testClass.getClassLoader().getResource(configurationRoot).toString() +
-                            "/" + config.value());
-                    }
+                    URL configURL = testClass.getClassLoader().getResource(resourceName);
+                    configure(ENGINE_CONFIG_URL, configURL);
                 }
                 else
                 {
                     String resourceName = String.format("%s-%s", testClass.getSimpleName(), config.value());
-                    configURL = testClass.getResource(resourceName);
+                    URL configURL = testClass.getResource(resourceName);
+                    configure(ENGINE_CONFIG_URL, configURL);
                 }
-                configure(ENGINE_CONFIG_URL, configURL);
             }
 
             cleanup();
@@ -254,8 +250,8 @@ public final class EngineRule implements TestRule
                     baseThread.interrupt();
                 };
                 engine = builder.config(config)
-                                 .errorHandler(errorHandler)
-                                 .build();
+                    .errorHandler(errorHandler)
+                    .build();
 
                 try
                 {
@@ -295,16 +291,16 @@ public final class EngineRule implements TestRule
         if (clean && exists(directory))
         {
             Files.walk(directory, FOLLOW_LINKS)
-                 .filter(this::shouldDeletePath)
-                 .map(Path::toFile)
-                 .forEach(File::delete);
+                .filter(this::shouldDeletePath)
+                .map(Path::toFile)
+                .forEach(File::delete);
         }
 
         if (clean && exists(cacheDirectory))
         {
             Files.walk(cacheDirectory)
-                 .map(Path::toFile)
-                 .forEach(File::delete);
+                .map(Path::toFile)
+                .forEach(File::delete);
         }
     }
 
@@ -313,9 +309,9 @@ public final class EngineRule implements TestRule
     {
         String filename = path.getFileName().toString();
         return "control".equals(filename) ||
-               "routes".equals(filename) ||
-               "streams".equals(filename) ||
-               "labels".equals(filename) ||
-               DATA_FILENAME_PATTERN.matcher(filename).matches();
+            "routes".equals(filename) ||
+            "streams".equals(filename) ||
+            "labels".equals(filename) ||
+            DATA_FILENAME_PATTERN.matcher(filename).matches();
     }
 }

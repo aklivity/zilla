@@ -16,16 +16,19 @@
 package io.aklivity.zilla.runtime.engine.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CONFIG_URL_NAME;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -36,6 +39,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 
 public class ReconfigureIT
@@ -60,8 +64,16 @@ public class ReconfigureIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    private final String packageName = ReconfigureIT.class.getPackageName();
-    private Path configDir = Paths.get("target/test-classes", packageName.replace(".", "/"));
+    private static final String PACKAGE_NAME = ReconfigureIT.class.getPackageName();
+    private static final Path CONFIG_DIR = Paths.get("target/test-classes", PACKAGE_NAME.replace(".", "/"));
+
+    @BeforeClass
+    public static void createSymlink() throws IOException
+    {
+        Path link =  CONFIG_DIR.resolve("zilla.reconfigure.modify.symlink.json");
+        Path target = CONFIG_DIR.resolve("symlink/zilla.reconfigure.modify.symlink.source.json").toAbsolutePath();
+        Files.createSymbolicLink(link, target);
+    }
 
     @Before
     public void init() throws Exception
@@ -84,7 +96,7 @@ public class ReconfigureIT
         k3po.awaitBarrier("CONNECTED");
 
         Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.after.json").toURI());
-        Path target = configDir.resolve("zilla.reconfigure.modify.json");
+        Path target = CONFIG_DIR.resolve("zilla.reconfigure.modify.json");
 
         Files.move(source, target, ATOMIC_MOVE);
 
@@ -95,7 +107,31 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configuration("zilla.reconfigure.missing.json")
+    @Configuration("zilla.reconfigure.modify.symlink.json")
+    @Specification({
+        "${app}/reconfigure.modify.via.file/server",
+        "${net}/reconfigure.modify.via.file/client"
+    })
+    public void shouldReconfigureWhenModifiedUsingSymlink() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+
+        Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.symlink.after.json").toURI());
+        Path target = CONFIG_DIR.resolve("symlink/zilla.reconfigure.modify.symlink.source.json");
+
+        Files.move(source, target, ATOMIC_MOVE);
+
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CHANGED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configure(
+        name = ENGINE_CONFIG_URL_NAME,
+        value = "file:target/test-classes/io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.missing.json")
     @Specification({
         "${app}/reconfigure.create.via.file/server",
         "${net}/reconfigure.create.via.file/client"
@@ -105,7 +141,7 @@ public class ReconfigureIT
         k3po.start();
 
         Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.original.json").toURI());
-        Path target = configDir.resolve("zilla.reconfigure.missing.json");
+        Path target = CONFIG_DIR.resolve("zilla.reconfigure.missing.json");
 
         Files.move(source, target, ATOMIC_MOVE);
 
@@ -126,7 +162,7 @@ public class ReconfigureIT
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
-        configDir.resolve("zilla.reconfigure.delete.json").toFile().delete();
+        CONFIG_DIR.resolve("zilla.reconfigure.delete.json").toFile().delete();
 
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_DELETED");
