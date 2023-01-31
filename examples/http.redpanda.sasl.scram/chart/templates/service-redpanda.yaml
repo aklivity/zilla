@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redpanda
+  labels:
+    app.kubernetes.io/instance: redpanda
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: redpanda
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: redpanda
+    spec:
+      containers:
+        - name: redpanda
+          args:
+            - redpanda
+            - start
+            - '--set redpanda.enable_sasl=true'
+            - '--set redpanda.superusers=["user"]'
+            - '--smp'
+            - '1'
+            - '--reserve-memory'
+            - '0M'
+            - '--overprovisioned'
+            - '--node-id'
+            - '0'
+            - '--kafka-addr'
+            - 'INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092'
+            - '--advertise-kafka-addr'
+            - 'INSIDE://redpanda:29092,OUTSIDE://localhost:9092'
+          image: "docker.vectorized.io/vectorized/redpanda:v22.3.4"
+          ports:
+            - containerPort: 9092
+            - containerPort: 29092
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redpanda
+spec:
+  selector:
+    app.kubernetes.io/instance: redpanda
+  ports:
+    - name: broker-localhost
+      port: 9092
+    - name: broker-redpanda
+      port: 29092
+  type: ClusterIP

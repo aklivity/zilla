@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  labels:
+    app.kubernetes.io/instance: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kafka
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: kafka
+    spec:
+      initContainers:
+        - name: wait-for-zookeeper
+          image: "busybox:latest"
+          command: ['/bin/sh', '-c', 'until echo srvr | nc -w 2 zookeeper 2181 2>/dev/null; do echo . && sleep 5; done']
+      containers:
+        - name: kafka
+          image: "bitnami/kafka:3.1.0"
+          env:
+            - name: ALLOW_PLAINTEXT_LISTENER
+              value: "yes"
+            - name: KAFKA_CFG_NODE_ID
+              value: "1"
+            - name: KAFKA_CFG_BROKER_ID
+              value: "1"
+            - name: KAFKA_CFG_ZOOKEEPER_CONNECT
+              value: "zookeeper:2181"
+            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,ZILLA:SASL_PLAINTEXT"
+            - name: KAFKA_CFG_LOG_DIRS
+              value: "/tmp/logs"
+            - name: KAFKA_CFG_LISTENERS
+              value: "CLIENT://:9092,INTERNAL://:29092,ZILLA://:29091"
+            - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+              value: "INTERNAL"
+            - name: KAFKA_CFG_ADVERTISED_LISTENERS
+              value: "CLIENT://localhost:9092,INTERNAL://kafka:29092,ZILLA://kafka:29091"
+            - name: KAFKA_CFG_SASL_ENABLED_MECHANISMS
+              value: "SCRAM-SHA-256"
+          ports:
+            - containerPort: 9092
+            - containerPort: 29091
+            - containerPort: 29092
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: kafka-jaas-conf
+              mountPath: /opt/bitnami/kafka/config/kafka_jaas.conf
+              subPath: kafka_jaas.conf
+      volumes:
+        - name: kafka-jaas-conf
+          configMap:
+            name: kafka-jaas-conf
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-jaas-conf
+data:
+  kafka_jaas.conf: |-
+{{ .Files.Get "files-kafka/kafka_jaas.conf" | indent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+spec:
+  selector:
+    app.kubernetes.io/instance: kafka
+  ports:
+    - name: broker-localhost
+      port: 9092
+    - name: broker-zilla
+      port: 29091
+    - name: broker-kafka
+      port: 29092
+  type: ClusterIP

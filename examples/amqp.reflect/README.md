@@ -1,26 +1,51 @@
 # amqp.reflect (incubator)
+
 Listens on amqp port `5672` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
 Listens on amqps port `5671` and will echo back whatever is sent to the server, broadcasting to all receiving clients.
 
 ### Requirements
- - Zilla docker image local incubator build, `develop-SNAPSHOT` version
- - Docker 20.10+
 
-### Start zilla engine
+- bash, jq, nc
+- Zilla docker image local incubator build, `develop-SNAPSHOT` version
+- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
+- kubectl
+- helm 3.0+
+- cli-rhea
+
+### Setup
+
+The `setup.sh` script:
+- installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
+- starts port forwarding
+
 ```bash
-$ docker stack deploy -c stack.yml example
-Creating network example_net0
-Creating service example_zilla
+$ ./setup.sh
++ helm install zilla-amqp-reflect chart --namespace zilla-amqp-reflect --create-namespace --wait
+NAME: zilla-amqp-reflect
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-amqp-reflect
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
++ nc -z localhost 5671
++ kubectl port-forward --namespace zilla-amqp-reflect service/zilla 5671 5672
++ sleep 1
++ nc -z localhost 5671
+Connection to localhost port 5671 [tcp/*] succeeded!
 ```
 
 ### Install amqp client
+
 Requires AMQP 1.0 client, such as `cli-rhea`.
+
 ```bash
 $ npm install cli-rhea -g
 ```
 
 ### Verify behavior
+
 Connect two receiving clients first, then send `Hello, world` from sending client.
+
 ```bash
 $ cli-rhea-receiver --address 'zilla' --log-lib 'TRANSPORT_DRV' --log-msgs 'body' --broker localhost:5671 --conn-ssl-trust-store test-ca.crt
   rhea:events [connection-1] Connection got event: connection_open +0ms
@@ -105,4 +130,19 @@ $ cli-rhea-sender --address 'zilla' --msg-content 'Hello, world' --log-lib 'TRAN
   rhea:events [connection-1] Session got event: sendable +0ms
   rhea:events [connection-1] Connection got event: sendable +0ms
   rhea:events [efd09fe2-4090-4141-91e6-5ce5223d1dbc] Container got event: sendable +0ms
+```
+
+### Teardown
+
+The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
+
+```bash
+$ ./teardown.sh
++ pgrep kubectl
+99999
++ killall kubectl
++ helm uninstall zilla-amqp-echo --namespace zilla-amqp-echo
+release "zilla-amqp-echo" uninstalled
++ kubectl delete namespace zilla-amqp-echo
+namespace "zilla-amqp-echo" deleted
 ```

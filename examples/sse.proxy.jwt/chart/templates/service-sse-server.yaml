@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sse-server
+  labels:
+    app.kubernetes.io/instance: sse-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: sse-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: sse-server
+    spec:
+      containers:
+        - name: sse-server
+          args: ["-v", "-p", "8001", "-i", "7001"]
+          image: "zilla-examples/sse-server:latest"
+          ports:
+            - containerPort: 8001
+            - containerPort: 7001
+          readinessProbe:
+            tcpSocket:
+              port: 8001
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          tty: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sse-server
+spec:
+  selector:
+    app.kubernetes.io/instance: sse-server
+  ports:
+    - name: sse
+      port: 8001
+    - name: input
+      port: 7001
+  type: ClusterIP

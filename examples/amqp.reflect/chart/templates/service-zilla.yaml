@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zilla
+  labels:
+    app.kubernetes.io/instance: zilla
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: zilla
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: zilla
+    spec:
+      containers:
+        - name: zilla
+          image: "ghcr.io/aklivity/zilla:develop-SNAPSHOT"
+          args: ["start", "-v", "-e"]
+          env:
+            - name: KEYSTORE_PASSWORD
+              value: generated
+          ports:
+            - containerPort: 5671
+            - containerPort: 5672
+          readinessProbe:
+            tcpSocket:
+              port: 5671
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          volumeMounts:
+            - name: config
+              mountPath: /etc/zilla
+            - name: tls
+              mountPath: /etc/zilla/tls
+      volumes:
+        - name: config
+          configMap:
+            name: zilla
+        - name: tls
+          secret:
+            secretName: tls
+            items:
+              - key: localhost.p12
+                path: localhost.p12
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zilla
+data:
+  zilla.yaml: |-
+{{ .Files.Get "files/zilla.yaml" | indent 4 }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls
+type: Opaque
+data:
+  localhost.p12: |-
+{{ .Files.Get "files/localhost.p12" | b64enc | indent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zilla
+spec:
+  selector:
+    app.kubernetes.io/instance: zilla
+  ports:
+    - name: amqps
+      port: 5671
+    - name: apqp
+      port: 5672
+  type: ClusterIP

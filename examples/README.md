@@ -2,30 +2,36 @@
 
 [![Slack Community][community-image]][community-join]
 
-Try out these Zilla example configurations using `docker` in your local development enivronment.
+Try out these Zilla example configurations using Kubernetes.
 
-| Name | Description|
-|------|------------|
-| [tcp.echo](tcp.echo) | Echoes bytes sent to the TCP server |
-| [tcp.reflect](tcp.reflect) | Echoes bytes sent to the TCP server, broadcasting to all TCP clients |
-| [tls.echo](tls.echo) | Echoes encrypted bytes sent to the TLS server |
-| [tls.reflect](tls.reflect) | Echoes encrypted bytes sent to the TLS server, broadcasting to all TLS clients |
-| [http.filesystem](http.filesystem) | Serves files from a directory on the local filesystem |
-| [http.echo](http.echo) | Echoes request sent to the HTTP server from an HTTP client |
-| [http.echo.jwt](http.echo.jwt) | Echoes request sent to the HTTP server from a JWT-authorized HTTP client |
-| [http.proxy](http.proxy)               | Proxy request sent to the HTTP server from an HTTP client        |
-| [http.kafka.sync](http.kafka.sync) | Correlates requests and responses over separate Kafka topics |
-| [http.kafka.async](http.kafka.async) | Correlates requests and responses over separate Kafka topics, asynchronously |
-| [http.kafka.cache](http.kafka.cache) | Serves cached responses from a Kafka topic, detect when updated |
-| [http.kafka.oneway](http.kafka.oneway) | Sends messages to a Kafka topic, fire-and-forget |
-| [http.kafka.sasl.scram](http.kafka.sasl.scram) | Sends messages to a SASL/SCRAM enabled Kafka |
-| [http.redpanda.sasl.scram](http.redpanda.sasl.scram) | Sends messages to a SASL/SCRAM enabled Redpanda Cluster |
-| [amqp.reflect](amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
-| [mqtt.reflect](mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
-| [sse.kafka.fanout](sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
-| [sse.proxy.jwt](sse.proxy.jwt) | Proxies messages delivered by the SSE server, enforcing streaming security constraints |
-| [ws.echo](ws.echo) | Echoes messages sent to the WebSocket server |
-| [ws.reflect](ws.reflect) | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients |
+If you are running Docker Desktop, enable Kubernetes, and it will start up a one-node local Kubernetes cluster.
+It puts `kubectl` to `/usr/local/bin` and it creates the appropriate `~/.kube/config` file for you.
+You can install `helm` with `$ brew install helm`.
+
+
+| Name                                                 | Description                                                                               |
+|------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| [tcp.echo](tcp.echo)                                 | Echoes bytes sent to the TCP server                                                       |
+| [tcp.reflect](tcp.reflect)                           | Echoes bytes sent to the TCP server, broadcasting to all TCP clients                      |
+| [tls.echo](tls.echo)                                 | Echoes encrypted bytes sent to the TLS server                                             |
+| [tls.reflect](tls.reflect)                           | Echoes encrypted bytes sent to the TLS server, broadcasting to all TLS clients            |
+| [http.filesystem](http.filesystem)                   | Serves files from a directory on the local filesystem                                     |
+| [http.echo](http.echo)                               | Echoes request sent to the HTTP server from an HTTP client                                |
+| [http.echo.jwt](http.echo.jwt)                       | Echoes request sent to the HTTP server from a JWT-authorized HTTP client                  |
+| [http.proxy](http.proxy)                             | Proxy request sent to the HTTP server from an HTTP client                                 |
+| [http.kafka.sync](http.kafka.sync)                   | Correlates requests and responses over separate Kafka topics                              |
+| [http.kafka.async](http.kafka.async)                 | Correlates requests and responses over separate Kafka topics, asynchronously              |
+| [http.kafka.cache](http.kafka.cache)                 | Serves cached responses from a Kafka topic, detect when updated                           |
+| [http.kafka.oneway](http.kafka.oneway)               | Sends messages to a Kafka topic, fire-and-forget                                          |
+| [http.kafka.crud](http.kafka.crud)                   | Exposes a REST API with CRUD operations where a log-compacted Kafka topic acts as a table |
+| [http.kafka.sasl.scram](http.kafka.sasl.scram)       | Sends messages to a SASL/SCRAM enabled Kafka                                              |
+| [http.redpanda.sasl.scram](http.redpanda.sasl.scram) | Sends messages to a SASL/SCRAM enabled Redpanda Cluster                                   |
+| [amqp.reflect](amqp.reflect)                         | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients  |
+| [mqtt.reflect](mqtt.reflect)                         | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients  |
+| [sse.kafka.fanout](sse.kafka.fanout)                 | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
+| [sse.proxy.jwt](sse.proxy.jwt)                       | Proxies messages delivered by the SSE server, enforcing streaming security constraints    |
+| [ws.echo](ws.echo)                                   | Echoes messages sent to the WebSocket server                                              |
+| [ws.reflect](ws.reflect)                             | Echoes messages sent to the WebSocket server, broadcasting to all WebSocket clients       |
 
 Read the [docs][zilla-docs].
 Try the [examples][zilla-examples].

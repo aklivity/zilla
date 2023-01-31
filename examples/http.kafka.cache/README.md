@@ -1,10 +1,14 @@
 # http.kafka.cache
+
 Listens on http port `8080` or https port `9090` and will serve cached responses from the `items-snapshots` topic in Kafka.
 
 ### Requirements
- - Docker 20.10+
- - curl
- - kcat
+
+- bash, jq, nc
+- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
+- kubectl
+- helm 3.0+
+- kcat
 
 ### Install kcat client
 Requires Kafka client, such as `kcat`.
@@ -12,30 +16,40 @@ Requires Kafka client, such as `kcat`.
 $ brew install kcat
 ```
 
-### Start kafka broker and zilla engine
-```bash
-$ docker stack deploy -c stack.yml example --resolve-image never
-Creating network example_net0
-Creating service example_zilla
-Creating service example_kafka
-```
+### Setup
 
-### Create compacted Kafka topic
-When `example_kafka` service has finished starting up, execute the following commands to create the topic if it does not already exist:
-```
-$ docker exec -it $(docker ps -q -f name=example_kafka) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --create \
-        --topic items-snapshots \
-        --config cleanup.policy=compact \
-        --if-not-exists
+The `setup.sh` script:
+- installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
+- creates the `items-snapshots` topic in Kafka with the `cleanup.policy=compact` topic configuration
+- starts port forwarding
+
+```bash
+$ ./setup.sh
++ helm install zilla-http-kafka-cache chart --namespace zilla-http-kafka-cache --create-namespace --wait
+NAME: zilla-http-kafka-cache
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-kafka-cache
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+++ kubectl get pods --namespace zilla-http-kafka-cache --selector app.kubernetes.io/instance=kafka -o name
++ KAFKA_POD=pod/1234567890-abcde
++ kubectl exec --namespace zilla-http-kafka-cache pod/1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-snapshots --config cleanup.policy=compact --if-not-exists
 Created topic items-snapshots.
++ kubectl port-forward --namespace zilla-http-kafka-cache service/zilla 8080 9090
++ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-kafka-cache service/kafka 9092 29092
++ sleep 1
++ nc -z localhost 8080
+Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 9092
+Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
-Note the `cleanup.policy=compact` topic configuration.
 
 ### Verify behavior
+
 Retrieve all the items, initially returns empty array.
+
 ```bash
 $ curl -v http://localhost:8080/items
 ...
@@ -161,22 +175,18 @@ $ curl -v http://localhost:8080/items
 [{"greeting":"Hello, world ..."}]
 ```
 
-### Delete compacted Kafka topic
-Optionally delete the topicsto clean up, otherwise it will still be present when the stack is deployed again next time.
-```
-$ docker exec -it $(docker ps -q -f name=example_kafka) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --delete \
-        --topic items-snapshots \
-        --if-exists
-```
+### Teardown
 
-### Stop Kafka broker and Zilla engine
+The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
+
 ```bash
-$ docker stack rm example
-Removing service example_kafka
-Removing service example_zilla
-Removing network example_net0
+$ ./teardown.sh
++ pgrep kubectl
+99999
+99998
++ killall kubectl
++ helm uninstall zilla-http-kafka-cache --namespace zilla-http-kafka-cache
+release "zilla-http-kafka-cache" uninstalled
++ kubectl delete namespace zilla-http-kafka-cache
+namespace "zilla-http-kafka-cache" deleted
 ```
-

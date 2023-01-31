@@ -16,5 +16,5 @@ cat test-ca.crt >> localhost.chain.pem
 echo "Export password: generated"
 openssl pkcs12 -export -in localhost.chain.pem -name localhost -out localhost.p12
 
-cp test-ca.crt ../conf/tls
-cp localhost.p12 ../conf/tls
+cp test-ca.crt ..
+cp localhost.p12 ../chart/files

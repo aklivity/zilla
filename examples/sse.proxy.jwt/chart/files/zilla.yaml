@@ -1,0 +1,122 @@
+---
+name: example
+vaults:
+  server:
+    type: filesystem
+    options:
+      keys:
+        store: tls/localhost.p12
+        type: pkcs12
+        password: ${{env.KEYSTORE_PASSWORD}}
+guards:
+  jwt0:
+    type: jwt
+    options:
+      issuer: https://auth.example.com
+      audience: https://api.example.com
+      keys:
+        - kty: RSA
+          n: qqEu50hX+43Bx4W1UYWnAVKwFm+vDbP0kuIOSLVNa+HKQdHTf+3Sei5UCnkskn796izA29D0DdCy3ET9oaKRHIJyKbqFl0rv6f516QzOoXKC6N01sXBHBE/ovs0wwDvlaW+gFGPgkzdcfUlyrWLDnLV7LcuQymhTND2uH0oR3wJnNENN/OFgM1KGPPDOe19YsIKdLqARgxrhZVsh06OurEviZTXOBFI5r+yac7haDwOQhLHXNv+Y9MNvxs5QLWPFIM3bNUWfYrJnLrs4hGJS+y/KDM9Si+HL30QAFXy4YNO33J8DHjZ7ddG5n8/FqplOKvRtUgjcKWlxoGY4VdVaDQ==
+          e: AQAB
+          alg: RS256
+          kid: example
+        - kty: EC
+          crv: P-256
+          x: f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU
+          y: x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0
+          alg: ES256
+          kid: example_ec
+      challenge: 10
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 9090
+    exit: tls_server0
+  tls_server0:
+    type: tls
+    kind: server
+    vault: server
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+      alpn:
+        - h2
+    exit: http_server0
+  http_server0:
+    type: http
+    kind: server
+    options:
+      versions:
+        - h2
+      authorization:
+        jwt0:
+          credentials:
+            headers:
+              authorization: Bearer {credentials}
+            query:
+              access_token: "{credentials}"
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              :authority: localhost:8080
+              :path: /events
+          - headers:
+              :scheme: https
+              :authority: localhost:9090
+              :path: /events
+        exit: sse_server0
+      - when:
+          - headers:
+              :scheme: http
+              :authority: localhost:8080
+          - headers:
+              :scheme: https
+              :authority: localhost:9090
+        exit: http_filesystem_proxy0
+  http_filesystem_proxy0:
+    type: http-filesystem
+    kind: proxy
+    routes:
+      - exit: filesystem_server0
+        when:
+          - path: /{path}
+        with:
+          path: ${params.path}
+  filesystem_server0:
+    type: filesystem
+    kind: server
+    options:
+      location: /var/www/
+  sse_server0:
+    type: sse
+    kind: server
+    routes:
+      - guarded:
+          jwt0:
+            - proxy:stream
+        exit: sse_client0
+  sse_client0:
+    type: sse
+    kind: client
+    exit: http_client0
+  http_client0:
+    type: http
+    kind: client
+    options:
+      versions:
+        - http/1.1
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: sse-server
+      port: 8001

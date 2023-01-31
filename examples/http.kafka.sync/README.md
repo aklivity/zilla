@@ -1,50 +1,61 @@
 # http.kafka.sync
-Listens on http port `8080` or https port `9090` and will correlate requests and responses over the `items-requests` and `items-responses` topics in Kafka, synchronously.
+
+Listens on http port `8080` or https port `9090` and will correlate requests and responses over the `items-requests`
+and `items-responses` topics in Kafka, synchronously.
 
 ### Requirements
- - Docker 20.10+
- - curl
- - kcat
- - jq
+
+- bash, jq, nc
+- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
+- kubectl
+- helm 3.0+
+- kcat
 
 ### Install kcat client
+
 Requires Kafka client, such as `kcat`.
+
 ```bash
 $ brew install kcat
 ```
 
-### Start kafka broker and zilla engine
-```bash
-$ docker stack deploy -c stack.yml example --resolve-image never
-Creating network example_net0
-Creating service example_zilla
-Creating service example_kafka
-```
+### Setup
 
-### Create request and response Kafka topics
-When `example_kafka` service has finished starting up, execute the following commands to create the topics if they do not already exist:
-```
-$ docker exec -it $(docker ps -q -f name=example_kafka) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --create \
-        --topic items-requests \
-        --if-not-exists
+The `setup.sh` script:
+- installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
+- creates the `items-requests` and `items-responses` topics in Kafka
+- starts port forwarding
+
+```bash
+$ ./setup.sh
++ helm install zilla-http-kafka-sync chart --namespace zilla-http-kafka-sync --create-namespace --wait
+NAME: zilla-http-kafka-sync
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-kafka-sync
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+++ kubectl get pods --namespace zilla-http-kafka-sync --selector app.kubernetes.io/instance=kafka -o name
++ KAFKA_POD=pod/kafka-1234567890-abcde
++ kubectl exec --namespace zilla-http-kafka-sync pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-requests --if-not-exists
 Created topic items-requests.
-```
-```
-$ docker exec -it $(docker ps -q -f name=example_kafka) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --create \
-        --topic items-responses \
-        --if-not-exists
++ kubectl exec --namespace zilla-http-kafka-sync pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic items-responses --if-not-exists
 Created topic items-responses.
++ kubectl port-forward --namespace zilla-http-kafka-sync service/zilla 8080 9090
++ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-kafka-sync service/kafka 9092 29092
++ sleep 1
++ nc -z localhost 8080
+Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 9092
+Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
 
 ### Verify behavior
+
 Send a `PUT` request for a specific item.
 Note that the response will not return until you complete the following step to produce the response with `kcat`.
+
 ```bash
 $ curl -v \
        -X "PUT" http://localhost:8080/items/5cf7a1d5-3772-49ef-86e7-ba6f2c7d7d07 \
@@ -108,29 +119,18 @@ $ echo "{\"greeting\":\"Hello, world `date`\"}" | \
          -H "zilla:correlation-id=1-e75a4e507cc0dc66a28f5a9617392fe8"
 ```
 
-### Delete request and response Kafka topics
-Optionally delete the topics to clean up, otherwise they will still be present when the stack is deployed again next time.
-```
-$ docker exec -it $(docker ps -q -f name=example_kafka) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --delete \
-        --topic items-requests \
-        --if-exists
-```
-```
-$ docker exec -it $(docker ps -q -f name=example_kafka) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --delete \
-        --topic items-responses \
-        --if-exists
-```
+### Teardown
 
-### Stop Kafka broker and Zilla engine
+The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
+
 ```bash
-$ docker stack rm example
-Removing service example_kafka
-Removing service example_zilla
-Removing network example_net0
+$ ./teardown.sh
++ pgrep kubectl
+99999
+99998
++ killall kubectl
++ helm uninstall zilla-http-kafka-sync --namespace zilla-http-kafka-sync
+release "zilla-http-kafka-sync" uninstalled
++ kubectl delete namespace zilla-http-kafka-sync
+namespace "zilla-http-kafka-sync" deleted
 ```

@@ -1,46 +1,56 @@
 # http.redpanda.sasl.scram
-Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in `SASL/SCRAM` enabled Redpanda cluster, synchronously.
+
+Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in `SASL/SCRAM`
+enabled Redpanda cluster, synchronously.
 
 ### Requirements
-- Docker 20.10+
-- curl
+
+- bash, jq, nc
+- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
+- kubectl
+- helm 3.0+
 - kcat
-- jq
 
 ### Install kcat client
+
 Requires Kafka client, such as `kcat`.
+
 ```bash
 $ brew install kcat
 ```
 
-### Start Redpanda one-node cluster and zilla engine
-```bash
-$ docker stack deploy -c stack.yml example --resolve-image never
-Creating network example_net0
-Creating service example_redpanda
-Creating service example_zilla
-```
+### Setup
 
-### Create SCRAM credentials
-When `example_redpanda` service has finished starting up, execute the following commands to create user(`user`):
-```bash
-$ docker exec -it $(docker ps -q -f name=example_redpanda) \
-        rpk acl user \
-        create user \
-        -p redpanda
-Created user "user".        
-```
+The `setup.sh` script:
+- installs Zilla and Redpanda to the Kubernetes cluster with helm and waits for the pods to start up
+- creates the `user` user in Redpanda
+- creates the `events` topic in Redpanda
+- starts port forwarding
 
-### Create events topic
-Execute the following commands to create the topic if it does not already exist:
 ```bash
-$ docker exec -it $(docker ps -q -f name=example_redpanda) \
-    rpk topic create events \
-                --user user \
-                --password redpanda \
-                --sasl-mechanism SCRAM-SHA-256
+$ ./setup.sh
++ helm install zilla-http-redpanda-sasl-scram chart --namespace zilla-http-redpanda-sasl-scram --create-namespace --wait
+NAME: zilla-http-redpanda-sasl-scram
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-redpanda-sasl-scram
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+++ kubectl get pods --namespace zilla-http-redpanda-sasl-scram --selector app.kubernetes.io/instance=redpanda -o name
++ REDPANDA_POD=pod/redpanda-1234567890-abcde
++ kubectl exec --namespace zilla-http-redpanda-sasl-scram pod/redpanda-1234567890-abcde -- rpk acl user create user -p redpanda
+Created user "user".
++ kubectl exec --namespace zilla-http-redpanda-sasl-scram pod/redpanda-1234567890-abcde -- rpk topic create events --user user --password redpanda --sasl-mechanism SCRAM-SHA-256
 TOPIC   STATUS
 events  OK
++ kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/zilla 8080 9090
++ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-redpanda-sasl-scram service/redpanda 9092
++ sleep 1
++ nc -z localhost 8080
+Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 9092
+Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
 
 ### Verify behavior
@@ -79,10 +89,18 @@ $ kcat -b localhost:9092 -X security.protocol=SASL_PLAINTEXT \
 % Reached end of topic events [0] at offset 1
 ```
 
-### Stop Redpanda and Zilla engine
+### Teardown
+
+The `teardown.sh` script stops port forwarding, uninstalls Zilla and Redpanda and deletes the namespace.
+
 ```bash
-$ docker stack rm example
-Removing service example_redpanda
-Removing service example_zilla
-Removing network example_net0
+$ ./teardown.sh
++ pgrep kubectl
+99999
+99998
++ killall kubectl
++ helm uninstall zilla-http-redpanda-sasl-scram --namespace zilla-http-redpanda-sasl-scram
+release "zilla-http-redpanda-sasl-scram" uninstalled
++ kubectl delete namespace zilla-http-redpanda-sasl-scram
+namespace "zilla-http-redpanda-sasl-scram" deleted
 ```

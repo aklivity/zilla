@@ -1,0 +1,6 @@
+apiVersion: v2
+name: zilla
+description: zilla mqtt.reflect example
+type: application
+version: 0.1.0
+appVersion: "latest"

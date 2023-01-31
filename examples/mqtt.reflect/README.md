@@ -1,26 +1,51 @@
 # mqtt.reflect (incubator)
+
 Listens on mqtt port `1883` and will echo back whatever is published to the server, broadcasting to all subscribed clients.
 Listens on mqtts port `8883` and will echo back whatever is published to the server, broadcasting to all subscribed clients.
 
 ### Requirements
- - Zilla docker image local incubator build, `develop-SNAPSHOT` version
- - Docker 20.10+
 
-### Start zilla engine
+- bash, jq, nc
+- Zilla docker image local incubator build, `develop-SNAPSHOT` version
+- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
+- kubectl
+- helm 3.0+
+- mosquitto
+
+### Setup
+
+The `setup.sh` script:
+- installs Zilla to the Kubernetes cluster with helm and waits for the pod to start up
+- starts port forwarding
+
 ```bash
-$ docker stack deploy -c stack.yml example
-Creating network example_net0
-Creating service example_zilla
+$ ./setup.sh
++ helm install zilla-mqtt-reflect chart --namespace zilla-mqtt-reflect --create-namespace --wait
+NAME: zilla-mqtt-reflect
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-mqtt-reflect
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
++ nc -z localhost 1883
++ kubectl port-forward --namespace zilla-mqtt-reflect service/zilla 1883 8883
++ sleep 1
++ nc -z localhost 1883
+Connection to localhost port 1883 [tcp/ibm-mqisdp] succeeded!
 ```
 
 ### Install mqtt client
+
 Requires MQTT 5.0 client, such as Mosquitto clients.
+
 ```bash
 $ brew install mosquitto
 ```
 
 ### Verify behavior
+
 Connect two subsribing clients first, then send `Hello, world` from publishing client.
+
 ```bash
 $ mosquitto_sub -V '5' -t 'zilla' -d
 Client null sending CONNECT
@@ -47,4 +72,19 @@ Client null sending CONNECT
 Client 5beb7f61-1b92-460c-8a2d-30a38156c601 received CONNACK (0)
 Client 5beb7f61-1b92-460c-8a2d-30a38156c601 sending PUBLISH (d0, q0, r0, m1, 'zilla', ... (12 bytes))
 Client 5beb7f61-1b92-460c-8a2d-30a38156c601 sending DISCONNECT
+```
+
+### Teardown
+
+The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
+
+```bash
+$ ./teardown.sh
++ pgrep kubectl
+99999
++ killall kubectl
++ helm uninstall zilla-mqtt-echo --namespace zilla-mqtt-echo
+release "zilla-mqtt-echo" uninstalled
++ kubectl delete namespace zilla-mqtt-echo
+namespace "zilla-mqtt-echo" deleted
 ```

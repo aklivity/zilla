@@ -1,40 +1,58 @@
 # http.kafka.oneway
+
 Listens on http port `8080` or https port `9090` and will produce messages to the `events` topic in Kafka, synchronously.
 
 ### Requirements
- - Docker 20.10+
- - curl
- - kcat
- - jq
+
+- bash, jq, nc
+- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
+- kubectl
+- helm 3.0+
+- kcat
+
 
 ### Install kcat client
+
 Requires Kafka client, such as `kcat`.
+
 ```bash
 $ brew install kcat
 ```
 
-### Start kafka broker and zilla engine
-```bash
-$ docker stack deploy -c stack.yml example --resolve-image never
-Creating network example_net0
-Creating service example_zilla
-Creating service example_kafka
-```
+### Setup
 
-### Create events Kafka topics
-When `example_kafka` service has finished starting up, execute the following commands to create the topic if it does not already exist:
-```
-$ docker exec -it $(docker ps -q -f name=example_kafka) \
-    /opt/bitnami/kafka/bin/kafka-topics.sh \
-        --bootstrap-server localhost:9092 \
-        --create \
-        --topic events \
-        --if-not-exists
+The `setup.sh` script:
+- installs Zilla and Kafka to the Kubernetes cluster with helm and waits for the pods to start up
+- creates the `events` topic in Kafka.
+- starts port forwarding
+
+```bash
+$ ./setup.sh
++ helm install zilla-http-kafka-oneway chart --namespace zilla-http-kafka-oneway --create-namespace --wait
+NAME: zilla-http-kafka-oneway
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-http-kafka-oneway
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+++ kubectl get pods --namespace zilla-http-kafka-oneway --selector app.kubernetes.io/instance=kafka -o name
++ KAFKA_POD=pod/kafka-1234567890-abcde
++ kubectl exec --namespace zilla-http-kafka-oneway pod/kafka-1234567890-abcde -- /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic events --if-not-exists
 Created topic events.
++ kubectl port-forward --namespace zilla-http-kafka-oneway service/zilla 8080 9090
++ nc -z localhost 8080
++ kubectl port-forward --namespace zilla-http-kafka-oneway service/kafka 9092 29092
++ sleep 1
++ nc -z localhost 8080
+Connection to localhost port 8080 [tcp/http-alt] succeeded!
++ nc -z localhost 9092
+Connection to localhost port 9092 [tcp/XmlIpcRegSvc] succeeded!
 ```
 
 ### Verify behavior
+
 Send a `POST` request with an event body.
+
 ```bash
 $ curl -v \
        -X "POST" http://localhost:8080/events \
@@ -46,7 +64,9 @@ $ curl -v \
 ...
 < HTTP/1.1 204 No Content
 ```
+
 Verify that the event has been produced to the `events` Kafka topic.
+
 ```bash
 $ kcat -C -b localhost:9092 -t events -J -u | jq .
 {
@@ -65,10 +85,18 @@ $ kcat -C -b localhost:9092 -t events -J -u | jq .
 % Reached end of topic events [0] at offset 1
 ```
 
-### Stop Kafka broker and Zilla engine
+### Teardown
+
+The `teardown.sh` script stops port forwarding, uninstalls Zilla and Kafka and deletes the namespace.
+
 ```bash
-$ docker stack rm example
-Removing service example_kafka
-Removing service example_zilla
-Removing network example_net0
+$ ./teardown.sh
++ pgrep kubectl
+99999
+99998
++ killall kubectl
++ helm uninstall zilla-http-kafka-oneway --namespace zilla-http-kafka-oneway
+release "zilla-http-kafka-oneway" uninstalled
++ kubectl delete namespace zilla-http-kafka-oneway
+namespace "zilla-http-kafka-oneway" deleted
 ```

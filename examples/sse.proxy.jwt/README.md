@@ -1,19 +1,26 @@
 # sse.proxy.jwt
+
 Listens on https port `9090` and will stream back whatever is published to `sse_server` on tcp port `7001`.
 
 ### Requirements
- - Docker 20.10+
- - jwt-cli (https://github.com/mike-engel/jwt-cli)
- - nc (netcat)
+
+- bash, jq, nc
+- Kubernetes (e.g. Docker Desktop with Kubernetes enabled)
+- kubectl
+- helm 3.0+
+- jwt-cli (https://github.com/mike-engel/jwt-cli)
 
 ### Install jwt-cli client
+
 Generates JWT tokens from the command line.
+
 ```bash
 $ brew install mike-engel/jwt-cli/jwt-cli
 ```
 
 ### Build the sse-server docker image
-```
+
+```bash
 $ docker build -t zilla-examples/sse-server:latest .
 ...
  => exporting to image                                                                                                                                                                       1.4s 
@@ -22,12 +29,34 @@ $ docker build -t zilla-examples/sse-server:latest .
  => => naming to docker.io/zilla-examples/sse-server:latest
 ```
 
-### Start SSE server and Zilla engine
+### Setup
+
+The `setup.sh` script:
+- installs Zilla and SSE server to the Kubernetes cluster with helm and waits for the pods to start up
+- copies the contents of the www directory to the Zilla pod
+- starts port forwarding
+
 ```bash
-$ docker stack deploy -c stack.yml example --resolve-image never
-Creating network example_net0
-Creating service example_sse
-Creating service example_zilla
+$ ./setup.sh
++ helm install zilla-sse-proxy-jwt chart --namespace zilla-sse-proxy-jwt --create-namespace --wait
+NAME: zilla-sse-proxy-jwt
+LAST DEPLOYED: [...]
+NAMESPACE: zilla-sse-proxy-jwt
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+++ kubectl get pods --namespace zilla-sse-proxy-jwt --selector app.kubernetes.io/instance=zilla -o json
+++ jq -r '.items[0].metadata.name'
++ ZILLA_POD=zilla-1234567890-abcde
++ kubectl cp --namespace zilla-sse-proxy-jwt www zilla-1234567890-abcde:/var/
++ kubectl port-forward --namespace zilla-sse-proxy-jwt service/zilla 9090
++ nc -z localhost 9090
++ kubectl port-forward --namespace zilla-sse-proxy-jwt service/sse-server 8001 7001
+Connection to localhost port 9090 [tcp/websm] succeeded!
++ nc -z localhost 8001
++ sleep 1
++ nc -z localhost 8001
+Connection to localhost port 8001 [tcp/vcom-tunnel] succeeded!
 ```
 
 ### Generate JWT token
@@ -46,10 +75,12 @@ $ export JWT_TOKEN=$(jwt encode \
 ```
 
 ### Verify behavior
+
 Connect `curl` client first, then send `Hello, world ...` from `nc` client.
 Note that the `Hello, world ...` event will not arrive until after using `nc` to send the `Hello, world ...` message in the next step.
+
 ```bash
-curl -v --cacert test-ca.crt "https://localhost:9090/events?access_token=${JWT_TOKEN}"
+$ curl -v --cacert test-ca.crt "https://localhost:9090/events?access_token=${JWT_TOKEN}"
 *   Trying 127.0.0.1:9090...
 * Connected to localhost (127.0.0.1) port 9090 (#0)
 * ALPN, offering h2
@@ -89,8 +120,8 @@ curl -v --cacert test-ca.crt "https://localhost:9090/events?access_token=${JWT_T
 < access-control-allow-origin: *
 < 
 data:Hello, world Wed Aug 29 9:05:52 PDT 2022
-
 ```
+
 ```bash
 $ echo '{ "data": "Hello, world '`date`'" }' | nc -c localhost 7001
 ```
@@ -119,10 +150,17 @@ The `challenge` event will show there, and the corresponding `fetch` request for
 
 Note: if you uncheck the `reauthorize` checkbox, then the `challenge` event will be ignored and the event stream will end with an error event logged to the console when the JWT token expires, as expected.
 
-### Stop SSE server and Zilla engine
+### Teardown
+
+The `teardown.sh` script stops port forwarding, uninstalls Zilla and deletes the namespace.
+
 ```bash
-$ docker stack rm example
-Removing service example_zilla
-Removing service example_sse
-Removing network example_net0
+$ ./teardown.sh
++ pgrep kubectl
+99999
++ killall kubectl
++ helm uninstall zilla-sse-proxy-jwt --namespace zilla-sse-proxy-jwt
+release "zilla-sse-proxy-jwt" uninstalled
++ kubectl delete namespace zilla-sse-proxy-jwt
+namespace "zilla-sse-proxy-jwt" deleted
 ```
