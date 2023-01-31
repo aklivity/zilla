@@ -144,7 +144,7 @@ public class ReconfigureIT
         Path target = CONFIG_DIR.resolve("zilla.reconfigure.missing.json");
 
         Files.move(source, target, ATOMIC_MOVE);
-        System.out.println("FILE_MOVED");
+        System.out.println("FILE_MOVED from: " + source + " to: " + target);
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CREATED");
         System.out.println("CONFIG_CREATED");
