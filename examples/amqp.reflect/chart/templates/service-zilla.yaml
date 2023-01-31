@@ -72,6 +72,6 @@ spec:
   ports:
     - name: amqps
       port: 5671
-    - name: apqp
+    - name: amqp
       port: 5672
   type: ClusterIP
