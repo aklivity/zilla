@@ -269,6 +269,7 @@ public final class Engine implements AutoCloseable
     {
         NamespaceConfig oldNamespace = namespaces.get(configURL);
         configManager.unRegister(oldNamespace);
+        System.out.println("Registering with configText: " + configText);
         namespaces.put(configURL, configManager.register(configText));
     }
 

@@ -116,7 +116,9 @@ public class FileWatcherTask extends WatcherTask
         }
         try
         {
+            System.out.println("Real configPath is: " + configPath);
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
+            System.out.println("Registered watcher to: " + configPath.getParent());
         }
         catch (IOException ignored)
         {
