@@ -76,13 +76,19 @@ public class FileWatcherTask extends WatcherTask
                             URL changedURL = configURLs.remove(changed);
                             // Real path could change with symlinks -> recalculate real path
                             Path configPath = getRealPathAndRegisterWatcher(changedURL);
+                            System.out.println("Key cancelled");
+                            key.cancel();
                             configHashes.put(configPath, newConfigHash);
                             configURLs.put(configPath, changedURL);
                             changeListener.accept(changedURL, newConfigText);
                         }
                     }
+                    else
+                    {
+                        System.out.println("Key reset");
+                        key.reset();
+                    }
                 }
-                key.cancel();
             }
             catch (InterruptedException | ClosedWatchServiceException ex)
             {

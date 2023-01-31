@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.engine.internal;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CONFIG_URL_NAME;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -144,7 +143,7 @@ public class ReconfigureIT
         Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.original.json").toURI());
         Path target = CONFIG_DIR.resolve("zilla.reconfigure.missing.json");
 
-        Files.copy(source, target, REPLACE_EXISTING);
+        Files.move(source, target, ATOMIC_MOVE);
         System.out.println("FILE_MOVED from: " + source + " to: " + target);
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CREATED");
