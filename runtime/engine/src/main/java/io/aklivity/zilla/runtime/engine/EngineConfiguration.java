@@ -306,7 +306,6 @@ public class EngineConfiguration extends Configuration
         }
         catch (MalformedURLException ex)
         {
-            ex.printStackTrace();
             LangUtil.rethrowUnchecked(ex);
         }
         return configURL;
