@@ -63,12 +63,9 @@ public class FileWatcherTask extends WatcherTask
                 for (WatchEvent<?> event : key.pollEvents())
                 {
                     final Path changed = parent.resolve((Path) event.context());
-                    System.out.println("Got event for: " + changed + " event type is: " + event.kind());
-                    System.out.println("Confighashes: " + configHashes);
                     if (configHashes.containsKey(changed))
                     {
                         String newConfigText = readConfigText(configURLs.get(changed));
-                        System.out.println("New config text: " + newConfigText);
                         byte[] oldConfigHash = configHashes.remove(changed);
                         byte[] newConfigHash = computeHash(newConfigText);
                         if (!Arrays.equals(oldConfigHash, newConfigHash))
@@ -76,7 +73,6 @@ public class FileWatcherTask extends WatcherTask
                             URL changedURL = configURLs.remove(changed);
                             // Real path could change with symlinks -> recalculate real path
                             Path configPath = getRealPathAndRegisterWatcher(changedURL);
-                            System.out.println("Key cancelled");
                             key.cancel();
                             configHashes.put(configPath, newConfigHash);
                             configURLs.put(configPath, changedURL);
@@ -85,7 +81,6 @@ public class FileWatcherTask extends WatcherTask
                     }
                     else
                     {
-                        System.out.println("Key reset");
                         key.reset();
                     }
                 }
@@ -125,9 +120,7 @@ public class FileWatcherTask extends WatcherTask
         }
         try
         {
-            System.out.println("Real configPath is: " + configPath);
             configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
-            System.out.println("Registered watcher to: " + configPath.getParent());
         }
         catch (IOException ignored)
         {

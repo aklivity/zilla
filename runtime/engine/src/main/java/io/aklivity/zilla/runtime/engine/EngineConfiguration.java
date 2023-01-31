@@ -302,7 +302,6 @@ public class EngineConfiguration extends Configuration
         URL configURL = null;
         try
         {
-            System.out.println("configURL: " + url);
             configURL = URI.create(url).toURL();
         }
         catch (MalformedURLException ex)
@@ -310,7 +309,6 @@ public class EngineConfiguration extends Configuration
             ex.printStackTrace();
             LangUtil.rethrowUnchecked(ex);
         }
-        System.out.println("Returning configURL: " + url);
         return configURL;
     }
 
