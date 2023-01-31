@@ -14,32 +14,19 @@
 # under the License.
 #
 
-connect "http://localhost:8080/"
+accept "zilla://streams/net0"
+       option zilla:transmission "duplex"
+       option zilla:window 8192
+accepted
 connected
 
-write http:method "GET"
-write http:header "If-None-Match"
-write http:header "Prefer" "wait=86400"
+write notify CONFIG_CHANGED
+read abort
+write aborted
+rejected
 
-read http:status "404" "Not Found"
-read closed
-write notify FIRST_ABORTED
-
-connect "http://localhost:8080/"
-connected
-
-write http:method "GET"
-write http:header "If-None-Match"
-write http:header "Prefer" "wait=86400"
-write close
-
-read http:status "200" "OK"
-read http:header "Etag" "AAAAAAA"
-read '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
-read closed
-
-connect "zilla://streams/app0"
-    option zilla:window 8192
-    option zilla:transmission "duplex"
-
+accept "zilla://streams/net1"
+       option zilla:transmission "duplex"
+       option zilla:window 8192
+accepted
 connected

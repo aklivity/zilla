@@ -166,7 +166,8 @@ public final class Engine implements AutoCloseable
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
-            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds());
+            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds(),
+                config.configLongPollingWaitSeconds());
         }
         else
         {

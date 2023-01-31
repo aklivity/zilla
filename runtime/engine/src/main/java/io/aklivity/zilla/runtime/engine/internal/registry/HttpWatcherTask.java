@@ -26,6 +26,7 @@ import java.util.function.BiConsumer;
 
 public class HttpWatcherTask extends WatcherTask
 {
+    private static final String INTIAL_ETAG = "INIT";
     private final Map<URI, String> etags;
     private final Map<URI, byte[]> configHashes;
     private final Map<URI, Instant> startTimes;
@@ -34,12 +35,13 @@ public class HttpWatcherTask extends WatcherTask
 
     //If server does not support long-polling use this interval
     private final int pollIntervalSeconds;
+    private final int longPollingWaitSeconds;
     private volatile boolean closed = false;
-    private static final int LONG_POLLING_WAIT_SECONDS = 86400;
 
     public HttpWatcherTask(
         BiConsumer<URL, String> configChangeListener,
-        int pollIntervalSeconds)
+        int pollIntervalSeconds,
+        int longPollingWaitSeconds)
     {
         super(configChangeListener);
         this.etags = new ConcurrentHashMap<>();
@@ -48,6 +50,7 @@ public class HttpWatcherTask extends WatcherTask
         this.futures = new ConcurrentHashMap<>();
         this.configWatcherQueue = new LinkedBlockingQueue<>();
         this.pollIntervalSeconds = pollIntervalSeconds;
+        this.longPollingWaitSeconds = longPollingWaitSeconds;
     }
 
     @Override
@@ -78,7 +81,7 @@ public class HttpWatcherTask extends WatcherTask
         {
             rethrowUnchecked(ex);
         }
-        sendAsync(configURI, "");
+        sendAsync(configURI, INTIAL_ETAG);
     }
 
     @Override
@@ -99,7 +102,7 @@ public class HttpWatcherTask extends WatcherTask
             .build();
         HttpRequest request = HttpRequest.newBuilder()
             .GET()
-            .headers("If-None-Match", etag, "Prefer", "wait=86400")
+            .headers("If-None-Match", etag, "Prefer", "wait=" + longPollingWaitSeconds)
             .uri(configURI)
             .build();
         startTimes.put(configURI, Instant.now());
@@ -110,6 +113,7 @@ public class HttpWatcherTask extends WatcherTask
         return future;
     }
 
+    //TODO: scenario: we already configured, 500 occurs -> no changes in config
     private Void handleException(
         Throwable ex,
         URI configURI)
@@ -132,23 +136,19 @@ public class HttpWatcherTask extends WatcherTask
         try
         {
             URI configURI = response.request().uri();
-            Optional<String> requestEtag = response.request().headers().firstValue("If-None-Match");
-            Optional<String> etagOptional = response.headers().firstValue("Etag");
             int statusCode = response.statusCode();
-            if (statusCode == 404 || !isLongPollingSupported(configURI, requestEtag, etagOptional, Instant.now()))
+            if (statusCode == 404)
             {
                 changeListener.accept(configURI.toURL(), "");
                 initConfigLatch.countDown();
+                TimeUnit.SECONDS.sleep(pollIntervalSeconds);
             }
             else if (statusCode == 200)
             {
+                Optional<String> requestEtag = response.request().headers().firstValue("If-None-Match");
+                Optional<String> etagOptional = response.headers().firstValue("Etag");
                 String configText = response.body();
-                if (etagOptional.isPresent() && !etags.getOrDefault(configURI, "").equals(etagOptional.get()))
-                {
-                    etags.put(configURI, etagOptional.get());
-                    changeListener.accept(configURI.toURL(), configText);
-                }
-                else if (etagOptional.isEmpty())
+                if (!isLongPollingSupported(configURI, requestEtag, etagOptional, Instant.now()))
                 {
                     byte[] configHash = configHashes.get(configURI);
                     byte[] newConfigHash = computeHash(configText);
@@ -156,9 +156,16 @@ public class HttpWatcherTask extends WatcherTask
                     {
                         configHashes.put(configURI, newConfigHash);
                         changeListener.accept(configURI.toURL(), configText);
+                        initConfigLatch.countDown();
                     }
+                    TimeUnit.SECONDS.sleep(pollIntervalSeconds);
                 }
-                initConfigLatch.countDown();
+                else
+                {
+                    etags.put(configURI, etagOptional.get());
+                    changeListener.accept(configURI.toURL(), configText);
+                    initConfigLatch.countDown();
+                }
             }
             futures.remove(configURI);
             configWatcherQueue.add(configURI);
@@ -166,6 +173,10 @@ public class HttpWatcherTask extends WatcherTask
         catch (MalformedURLException ex)
         {
             rethrowUnchecked(ex);
+        }
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -179,7 +190,11 @@ public class HttpWatcherTask extends WatcherTask
         {
             return false;
         }
-        return requestEtag.get().isEmpty() || !etags.getOrDefault(configURI, "").equals(responseEtag.get()) ||
-            Duration.between(startTimes.get(configURI), end).getSeconds() >= LONG_POLLING_WAIT_SECONDS;
+        // At first call, we assume it's supported
+        // If old etag != new etag -> supported
+        // If old etag == new etag, supported only if the LONG_POLLING_WAIT_SECONDS has elapsed.
+        return requestEtag.get().equals(INTIAL_ETAG) ||
+            !etags.getOrDefault(configURI, "").equals(responseEtag.get()) ||
+            Duration.between(startTimes.get(configURI), end).getSeconds() >= longPollingWaitSeconds;
     }
 }

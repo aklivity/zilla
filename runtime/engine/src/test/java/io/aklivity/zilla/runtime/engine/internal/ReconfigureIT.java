@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CONFIG_LONG_POLLING_WAIT_SECONDS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CONFIG_URL_NAME;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
@@ -46,12 +47,13 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public class ReconfigureIT
 {
     public static final String ENGINE_CONFIG_POLL_INTERVAL_SECONDS = "zilla.engine.config.poll.interval.seconds";
+    public static final String ENGINE_CONFIG_LONG_POLLING_WAIT_SECONDS = "zilla.engine.config.long.polling.wait.seconds";
 
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -243,7 +245,7 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "2")
     @Configuration("http://localhost:8080/")
     @Specification({
         "${app}/reconfigure.create.via.http/server",
@@ -270,6 +272,39 @@ public class ReconfigureIT
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_DELETED");
 
+        k3po.finish();
+    }
+
+    @Test
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
+    @Configuration("http://localhost:8080/")
+    @Specification({
+        "${app}/reconfigure.modify.no.etag.via.http/server",
+        "${net}/reconfigure.modify.no.etag.via.http/client"
+    })
+    public void shouldReconfigureWhenModifiedHTTPEtagNotSupported() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CHANGED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
+    @Configure(name = ENGINE_CONFIG_LONG_POLLING_WAIT_SECONDS, value = "2")
+    @Configuration("http://localhost:8080/")
+    @Specification({
+        "${app}/reconfigure.modify.no.prefer.wait.via.http/server",
+        "${net}/reconfigure.modify.no.prefer.wait.via.http/client"
+    })
+    public void shouldReconfigureWhenModifiedHTTPPreferWaitNotSupported() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CHANGED");
         k3po.finish();
     }
 }

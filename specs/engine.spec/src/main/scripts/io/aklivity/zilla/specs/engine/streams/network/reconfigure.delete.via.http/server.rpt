@@ -18,9 +18,11 @@
 accept "zilla://streams/net0"
        option zilla:transmission "duplex"
        option zilla:window 8192
-rejected
-
-write notify CONFIG_CREATED
-
 accepted
 connected
+
+write notify CONFIG_DELETED
+read abort
+write aborted
+
+rejected

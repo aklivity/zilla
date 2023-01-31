@@ -251,7 +251,6 @@ public class ConfigManager
                 future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
             }
             future.join();
-
             extensions.forEach(e -> e.onRegistered(context));
         }
         catch (Throwable ex)

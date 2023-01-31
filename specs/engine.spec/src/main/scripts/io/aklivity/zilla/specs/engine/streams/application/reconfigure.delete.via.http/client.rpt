@@ -20,8 +20,11 @@ connected
 write http:method "GET"
 write http:header "If-None-Match"
 write http:header "Prefer" "wait=86400"
+write close
 
-read http:status "404" "Not Found"
+read http:status "200" "OK"
+read http:header "Etag" "AAAAAAA"
+read '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
 read closed
 
 connect "http://localhost:8080/"
@@ -31,11 +34,9 @@ write http:method "GET"
 write http:header "If-None-Match"
 write http:header "Prefer" "wait=86400"
 write close
-write notify FIRST_ABORTED
+write notify FIRST_CONNECTED
 
-read http:status "200" "OK"
-read http:header "Etag" "AAAAAAA"
-read '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
+read http:status "404" "Not Found"
 read closed
 
 connect "zilla://streams/app0"
@@ -43,3 +44,7 @@ connect "zilla://streams/app0"
     option zilla:transmission "duplex"
 
 connected
+
+write notify CONFIG_DELETED
+write abort
+read abort

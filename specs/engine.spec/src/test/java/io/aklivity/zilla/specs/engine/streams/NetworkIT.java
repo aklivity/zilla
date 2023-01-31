@@ -89,4 +89,13 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.delete.via.http/client",
+        "${net}/reconfigure.delete.via.http/server" })
+    public void shouldReconfigureWhenDeletedHTTP() throws Exception
+    {
+        k3po.finish();
+    }
 }
