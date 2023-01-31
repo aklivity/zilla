@@ -63,10 +63,13 @@ public class FileWatcherTask extends WatcherTask
                 for (WatchEvent<?> event : key.pollEvents())
                 {
                     final Path changed = parent.resolve((Path) event.context());
+                    System.out.println("Got event for: " + changed + " event type is: " + event.kind());
+                    System.out.println("Confighashes: " + configHashes);
                     if (configHashes.containsKey(changed))
                     {
                         String newConfigText = readConfigText(configURLs.get(changed));
-                        byte[] oldConfigHash = configHashes.get(changed);
+                        System.out.println("New config text: " + newConfigText);
+                        byte[] oldConfigHash = configHashes.remove(changed);
                         byte[] newConfigHash = computeHash(newConfigText);
                         if (!Arrays.equals(oldConfigHash, newConfigHash))
                         {
