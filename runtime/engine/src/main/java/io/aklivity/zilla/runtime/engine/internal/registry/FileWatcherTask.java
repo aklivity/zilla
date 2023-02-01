@@ -1,35 +1,42 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 
 public class FileWatcherTask extends WatcherTask
 {
-    private final Map<Path, byte[]> configHashes;
-    private final Map<Path, URL> configURLs;
+    private final Map<WatchKey, WatchedConfig> watchedConfigsByKey;
     private MessageDigest md5;
     private WatchService watchService;
 
@@ -37,8 +44,7 @@ public class FileWatcherTask extends WatcherTask
         BiConsumer<URL, String> changeListener)
     {
         super(changeListener);
-        this.configHashes = new HashMap<>();
-        this.configURLs = new HashMap<>();
+        this.watchedConfigsByKey = new IdentityHashMap<>();
         try
         {
             this.md5 = MessageDigest.getInstance("MD5");
@@ -59,29 +65,20 @@ public class FileWatcherTask extends WatcherTask
             try
             {
                 final WatchKey key = watchService.take();
-                final Path parent = (Path) key.watchable();
-                for (WatchEvent<?> event : key.pollEvents())
+
+                WatchedConfig watchedConfig = watchedConfigsByKey.get(key);
+
+                if (watchedConfig != null && watchedConfig.isWatchedKey(key))
                 {
-                    final Path changed = parent.resolve((Path) event.context());
-                    if (configHashes.containsKey(changed))
+                    // Even if no reconfigure needed, recalculation is needed, since symlinks might have changed.
+                    watchedConfig.cancelKeys(watchedConfigsByKey);
+                    watchedConfigsByKey.putAll(watchedConfig.registerPaths());
+                    String newConfigText = readConfigText(watchedConfig.getURL());
+                    byte[] newConfigHash = computeHash(newConfigText);
+                    if (watchedConfig.isReconfigureNeeded(newConfigHash))
                     {
-                        String newConfigText = readConfigText(configURLs.get(changed));
-                        byte[] oldConfigHash = configHashes.remove(changed);
-                        byte[] newConfigHash = computeHash(newConfigText);
-                        if (!Arrays.equals(oldConfigHash, newConfigHash))
-                        {
-                            URL changedURL = configURLs.remove(changed);
-                            // Real path could change with symlinks -> recalculate real path
-                            Path configPath = getRealPathAndRegisterWatcher(changedURL);
-                            key.cancel();
-                            configHashes.put(configPath, newConfigHash);
-                            configURLs.put(configPath, changedURL);
-                            changeListener.accept(changedURL, newConfigText);
-                        }
-                    }
-                    else
-                    {
-                        key.reset();
+                        watchedConfig.setConfigHash(newConfigHash);
+                        changeListener.accept(watchedConfig.getURL(), newConfigText);
                     }
                 }
             }
@@ -98,38 +95,20 @@ public class FileWatcherTask extends WatcherTask
     public void onURLDiscovered(
         URL configURL)
     {
-        Path configPath = getRealPathAndRegisterWatcher(configURL);
-
-        configURLs.put(configPath, configURL);
-
+        WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
+        watchedConfigsByKey.putAll(watchedConfig.registerPaths());
         String configText = readConfigText(configURL);
-        configHashes.put(configPath, computeHash(configText));
+        watchedConfig.setConfigHash(computeHash(configText));
         changeListener.accept(configURL, configText);
     }
 
-    private Path getRealPathAndRegisterWatcher(URL configURL)
+    @Override
+    public void close() throws IOException
     {
-        Path configPath = Paths.get(new File(configURL.getPath()).getAbsolutePath());
-        try
-        {
-            configPath = configPath.toRealPath();
-        }
-        catch (IOException ignored)
-        {
-            // If the file not exists, we can ignore and create a watcher regardless.
-        }
-        try
-        {
-            configPath.getParent().register(watchService, ENTRY_MODIFY, ENTRY_CREATE, ENTRY_DELETE);
-        }
-        catch (IOException ignored)
-        {
-        }
-        return configPath;
+        watchService.close();
     }
 
-    private String readConfigText(
-        URL configURL)
+    private String readConfigText(URL configURL)
     {
         String configText;
         try
@@ -151,11 +130,5 @@ public class FileWatcherTask extends WatcherTask
         String configText)
     {
         return md5.digest(configText.getBytes(UTF_8));
-    }
-
-    @Override
-    public void close() throws IOException
-    {
-        watchService.close();
     }
 }
