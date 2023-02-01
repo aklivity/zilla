@@ -97,7 +97,27 @@ public class JwtGuardHandler implements GuardHandler
         Map<String, JsonWebKey> resolvedKeys = new HashMap<>();
         if (keysConfig != null)
         {
-            resolvedKeys = getKeys(keysConfig);
+            for (JwtKeyConfig key : keysConfig)
+            {
+                try
+                {
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("kty", key.kty);
+                    params.put("kid", key.kid);
+                    params.put("e", key.e);
+                    params.put("n", key.n);
+                    params.put("alg", key.alg);
+                    params.put("crv", key.crv);
+                    params.put("x", key.x);
+                    params.put("y", key.y);
+                    params.put("use", key.use);
+                    resolvedKeys.put(key.kid, JsonWebKey.Factory.newJwk(params));
+                }
+                catch (JoseException ex)
+                {
+                    rethrowUnchecked(ex);
+                }
+            }
         }
 
         this.keys = resolvedKeys;
@@ -256,34 +276,6 @@ public class JwtGuardHandler implements GuardHandler
         long contextId)
     {
         return sessionStoresByContextId.computeIfAbsent(contextId, JwtSessionStore::new);
-    }
-
-    private Map<String, JsonWebKey> getKeys(
-        List<JwtKeyConfig> keysConfig)
-    {
-        Map<String, JsonWebKey> keys = new HashMap<>();
-        for (JwtKeyConfig key : keysConfig)
-        {
-            try
-            {
-                Map<String, Object> params = new HashMap<>();
-                params.put("kty", key.kty);
-                params.put("kid", key.kid);
-                params.put("e", key.e);
-                params.put("n", key.n);
-                params.put("alg", key.alg);
-                params.put("crv", key.crv);
-                params.put("x", key.x);
-                params.put("y", key.y);
-                params.put("use", key.use);
-                keys.put(key.kid, JsonWebKey.Factory.newJwk(params));
-            }
-            catch (JoseException ex)
-            {
-                rethrowUnchecked(ex);
-            }
-        }
-        return keys;
     }
 
     private final class JwtSessionStore

@@ -123,14 +123,13 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             case STRING:
                 keysURL = ((JsonString) keysValue).getString();
                 break;
-
             }
         }
         else
         {
             if (issuer != null)
             {
-                keysURL = (issuer.endsWith("/"))
+                keysURL = issuer.endsWith("/")
                     ? String.format("%s.well-known/jwks.json", issuer)
                     : String.format("%s/.well-known/jwks.json", issuer);
             }
