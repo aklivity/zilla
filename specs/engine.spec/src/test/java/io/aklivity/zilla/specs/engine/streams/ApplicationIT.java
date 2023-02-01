@@ -47,6 +47,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/reconfigure.modify.complex.chain.via.file/client",
+        "${app}/reconfigure.modify.complex.chain.via.file/server" })
+    public void shouldReconfigureWhenModifiedUsingComplexSymlinkChain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reconfigure.create.via.file/client",
         "${app}/reconfigure.create.via.file/server" })
     public void shouldReconfigureWhenCreated() throws Exception

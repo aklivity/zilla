@@ -21,6 +21,7 @@ import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -59,6 +60,7 @@ public class ReconfigureIT
         .configurationRoot("io/aklivity/zilla/runtime/engine/internal")
         .external("app0")
         .external("app1")
+        .external("app2")
         .clean();
 
     @Rule
@@ -70,9 +72,25 @@ public class ReconfigureIT
     @BeforeClass
     public static void createSymlink() throws IOException
     {
-        Path link =  CONFIG_DIR.resolve("zilla.reconfigure.modify.symlink.json");
-        Path target = CONFIG_DIR.resolve("symlink/zilla.reconfigure.modify.symlink.source.json").toAbsolutePath();
-        Files.createSymbolicLink(link, target);
+        Path simpleLink =  CONFIG_DIR.resolve("zilla.reconfigure.modify.symlink.json");
+        Path simpleTarget = CONFIG_DIR.resolve("symlink/zilla.reconfigure.modify.symlink.source.json").toAbsolutePath();
+
+        // zilla.reconfigure.modify.complex.chain.json -> ..data/configs/zilla.reconfigure.modify.complex.chain.json
+        // ..data -> symlink
+        // configs -> realConfigs
+        // Real config is at: symlink/realConfigs/zilla.reconfigure.modify.complex.chain.json
+
+        Path link1 =  CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json");
+        Path target1 = Paths.get("..data/configs/zilla.reconfigure.modify.complex.chain.json");
+        Path link2 = CONFIG_DIR.resolve("..data");
+        Path target2 = Paths.get("symlink");
+        Path link3 =  CONFIG_DIR.resolve("symlink/configs");
+        Path target3 = Paths.get("realConfigs");
+
+        Files.createSymbolicLink(simpleLink, simpleTarget);
+        Files.createSymbolicLink(link1, target1);
+        Files.createSymbolicLink(link2, target2);
+        Files.createSymbolicLink(link3, target3);
     }
 
     @Before
@@ -124,6 +142,45 @@ public class ReconfigureIT
 
         EngineTest.TestEngineExt.registerLatch.await();
         k3po.notifyBarrier("CONFIG_CHANGED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configure(
+        name = ENGINE_CONFIG_URL_NAME,
+        value = "file:target/test-classes/io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.modify.complex.chain.json")
+    @Specification({
+        "${app}/reconfigure.modify.complex.chain.via.file/server",
+        "${net}/reconfigure.modify.complex.chain.via.file/client"
+    })
+    public void shouldReconfigureWhenModifiedUsingComplexSymlinkChain() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+
+        // config symlink targets realConfigs.after.modify
+        Path target = Paths.get("realConfigs.after.modify");
+
+        Path link = CONFIG_DIR.resolve("symlink/configs");
+        File linkFile = new File(String.valueOf(link));
+        linkFile.delete();
+        Files.createSymbolicLink(link, target);
+
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CHANGED1");
+        k3po.awaitBarrier("CONNECTED2");
+
+        // zilla.reconfigure.modify.complex.chain.json symlink targets zilla.reconfigure.modify.complex.chain.after.json
+        EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
+        link = CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json");
+        linkFile = new File(String.valueOf(link));
+        linkFile.delete();
+        target = Paths.get("zilla.reconfigure.modify.complex.chain.after.json");
+        Files.createSymbolicLink(link, target);
+
+        EngineTest.TestEngineExt.registerLatch.await();
+        k3po.notifyBarrier("CONFIG_CHANGED2");
 
         k3po.finish();
     }

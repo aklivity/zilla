@@ -47,6 +47,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reconfigure.modify.complex.chain.via.file/client",
+        "${net}/reconfigure.modify.complex.chain.via.file/server" })
+    public void shouldReconfigureWhenModifiedUsingComplexSymlinkChain() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/reconfigure.create.via.file/client",
         "${net}/reconfigure.create.via.file/server" })
     public void shouldReconfigureWhenCreated() throws Exception
