@@ -20,7 +20,7 @@ connected
 
 read http:method "GET"
 read http:header "If-None-Match"
-read http:header "Prefer" "wait=2"
+read http:header "Prefer" "wait=86400"
 read closed
 
 write http:status "200" "OK"
@@ -34,16 +34,14 @@ connected
 
 read http:method "GET"
 read http:header "If-None-Match" "AAAAAAA"
-read http:header "Prefer" "wait=2"
+read http:header "Prefer" "wait=86400"
 read closed
 
 write await CONNECTED
-write http:status "200" "OK"
+write http:status "500" "Internal Server Error"
 write http:content-length
-write http:header "Etag" "AAAAAAA"
-write '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
 write close
-
+write notify SERVER_ERROR
 
 accept "zilla://streams/app0"
      option zilla:window 8192
@@ -52,14 +50,5 @@ accept "zilla://streams/app0"
 accepted
 connected
 write notify CONNECTED
-
-read aborted
-write aborted
-
-accept "zilla://streams/app1"
-     option zilla:window 8192
-     option zilla:transmission "duplex"
-
 accepted
 connected
-
