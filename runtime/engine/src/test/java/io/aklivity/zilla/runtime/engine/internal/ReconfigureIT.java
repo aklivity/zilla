@@ -75,14 +75,14 @@ public class ReconfigureIT
         Path simpleLink =  CONFIG_DIR.resolve("zilla.reconfigure.modify.symlink.json");
         Path simpleTarget = CONFIG_DIR.resolve("symlink/zilla.reconfigure.modify.symlink.source.json").toAbsolutePath();
 
-        // zilla.reconfigure.modify.complex.chain.json -> ..data/configs/zilla.reconfigure.modify.complex.chain.json
-        // ..data -> symlink
+        // zilla.reconfigure.modify.complex.chain.json -> data/configs/zilla.reconfigure.modify.complex.chain.json
+        // data -> symlink
         // configs -> realConfigs
         // Real config is at: symlink/realConfigs/zilla.reconfigure.modify.complex.chain.json
 
         Path link1 =  CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json");
-        Path target1 = Paths.get("..data/configs/zilla.reconfigure.modify.complex.chain.json");
-        Path link2 = CONFIG_DIR.resolve("..data");
+        Path target1 = Paths.get("data/configs/zilla.reconfigure.modify.complex.chain.json");
+        Path link2 = CONFIG_DIR.resolve("data");
         Path target2 = Paths.get("symlink");
         Path link3 =  CONFIG_DIR.resolve("symlink/configs");
         Path target3 = Paths.get("realConfigs");
@@ -92,7 +92,7 @@ public class ReconfigureIT
         System.out.println(Files.createSymbolicLink(link2, target2));
         System.out.println(Files.createSymbolicLink(link3, target3));
         System.out.println("Set config path is: " +
-            CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json"));
+            CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json").toAbsolutePath());
         System.out.println("Real config path is: " +
             CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json").toRealPath());
     }
