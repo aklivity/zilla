@@ -87,10 +87,10 @@ public class ReconfigureIT
         Path link3 =  CONFIG_DIR.resolve("symlink/configs");
         Path target3 = Paths.get("realConfigs");
 
-        Files.createSymbolicLink(simpleLink, simpleTarget);
-        Files.createSymbolicLink(link1, target1);
-        Files.createSymbolicLink(link2, target2);
-        Files.createSymbolicLink(link3, target3);
+        System.out.println(Files.createSymbolicLink(simpleLink, simpleTarget));
+        System.out.println(Files.createSymbolicLink(link1, target1));
+        System.out.println(Files.createSymbolicLink(link2, target2));
+        System.out.println(Files.createSymbolicLink(link3, target3));
     }
 
     @Before
@@ -147,9 +147,7 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configure(
-        name = ENGINE_CONFIG_URL_NAME,
-        value = "file:target/test-classes/io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.modify.complex.chain.json")
+    @Configuration("zilla.reconfigure.modify.complex.chain.json")
     @Specification({
         "${app}/reconfigure.modify.complex.chain.via.file/server",
         "${net}/reconfigure.modify.complex.chain.via.file/client"
