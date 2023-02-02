@@ -108,8 +108,7 @@ public class FileWatcherTask extends WatcherTask
         watchService.close();
     }
 
-    private String readConfigText(
-        URL configURL)
+    private String readConfigText(URL configURL)
     {
         String configText;
         try
