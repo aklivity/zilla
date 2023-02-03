@@ -77,15 +77,15 @@ public class ReconfigureIT
 
         // zilla.reconfigure.modify.complex.chain.json -> data/configs/zilla.reconfigure.modify.complex.chain.json
         // data -> symlink
-        // configs -> realConfigs
-        // Real config is at: symlink/realConfigs/zilla.reconfigure.modify.complex.chain.json
+        // configs -> realconfigs
+        // Real config is at: symlink/realconfigs/zilla.reconfigure.modify.complex.chain.json
 
         Path link1 =  CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json");
         Path target1 = Paths.get("data/configs/zilla.reconfigure.modify.complex.chain.json");
         Path link2 = CONFIG_DIR.resolve("data");
         Path target2 = Paths.get("symlink");
         Path link3 =  CONFIG_DIR.resolve("symlink/configs");
-        Path target3 = Paths.get("realConfigs");
+        Path target3 = Paths.get("realconfigs");
 
         System.out.println(Files.createSymbolicLink(simpleLink, simpleTarget));
         System.out.println(Files.createSymbolicLink(link1, target1));
@@ -151,9 +151,7 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configure(
-        name = ENGINE_CONFIG_URL_NAME,
-        value = "file:target/test-classes/io/aklivity/zilla/runtime/engine/internal/zilla.reconfigure.modify.complex.chain.json")
+    @Configuration("zilla.reconfigure.modify.complex.chain.json")
     @Specification({
         "${app}/reconfigure.modify.complex.chain.via.file/server",
         "${net}/reconfigure.modify.complex.chain.via.file/client"
@@ -163,8 +161,8 @@ public class ReconfigureIT
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
-        // config symlink targets realConfigs.after.modify
-        Path target = Paths.get("realConfigs.after.modify");
+        // config symlink targets realconfigs.after.modify
+        Path target = Paths.get("realconfigs.after.modify");
 
         Path link = CONFIG_DIR.resolve("symlink/configs");
         File linkFile = new File(String.valueOf(link));
