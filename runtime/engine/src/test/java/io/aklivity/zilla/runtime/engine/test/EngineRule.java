@@ -206,8 +206,8 @@ public final class EngineRule implements TestRule
         try
         {
             Configure[] configures = testClass
-                .getDeclaredMethod(testMethod)
-                .getAnnotationsByType(Configure.class);
+                        .getDeclaredMethod(testMethod)
+                        .getAnnotationsByType(Configure.class);
             Arrays.stream(configures).forEach(
                 p -> properties.setProperty(p.name(), p.value()));
 
@@ -251,8 +251,8 @@ public final class EngineRule implements TestRule
                     baseThread.interrupt();
                 };
                 engine = builder.config(config)
-                    .errorHandler(errorHandler)
-                    .build();
+                                .errorHandler(errorHandler)
+                                .build();
 
                 try
                 {
@@ -262,7 +262,6 @@ public final class EngineRule implements TestRule
                 }
                 catch (Throwable t)
                 {
-                    t.printStackTrace();
                     errors.add(t);
                 }
                 finally
@@ -293,16 +292,16 @@ public final class EngineRule implements TestRule
         if (clean && exists(directory))
         {
             Files.walk(directory, FOLLOW_LINKS)
-                .filter(this::shouldDeletePath)
-                .map(Path::toFile)
-                .forEach(File::delete);
+                 .filter(this::shouldDeletePath)
+                 .map(Path::toFile)
+                 .forEach(File::delete);
         }
 
         if (clean && exists(cacheDirectory))
         {
             Files.walk(cacheDirectory)
-                .map(Path::toFile)
-                .forEach(File::delete);
+                 .map(Path::toFile)
+                 .forEach(File::delete);
         }
     }
 
@@ -311,9 +310,9 @@ public final class EngineRule implements TestRule
     {
         String filename = path.getFileName().toString();
         return "control".equals(filename) ||
-            "routes".equals(filename) ||
-            "streams".equals(filename) ||
-            "labels".equals(filename) ||
-            DATA_FILENAME_PATTERN.matcher(filename).matches();
+               "routes".equals(filename) ||
+               "streams".equals(filename) ||
+               "labels".equals(filename) ||
+               DATA_FILENAME_PATTERN.matcher(filename).matches();
     }
 }

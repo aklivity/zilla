@@ -70,7 +70,7 @@ public class FileWatcherTask extends WatcherTask
 
                 if (watchedConfig != null && watchedConfig.isWatchedKey(key))
                 {
-                    // Even if no reconfigure needed, recalculation is needed, since symlinks might have changed.
+                    // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
                     watchedConfig.cancelKeys(watchedConfigsByKey);
                     watchedConfigsByKey.putAll(watchedConfig.registerPaths());
                     String newConfigText = readConfigText(watchedConfig.getURL());
@@ -108,7 +108,8 @@ public class FileWatcherTask extends WatcherTask
         watchService.close();
     }
 
-    private String readConfigText(URL configURL)
+    private String readConfigText(
+        URL configURL)
     {
         String configText;
         try

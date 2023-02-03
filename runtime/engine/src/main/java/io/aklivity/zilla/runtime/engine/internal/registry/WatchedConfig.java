@@ -167,8 +167,6 @@ public class WatchedConfig
     {
         try
         {
-            System.out.println("ConfigPath in WatchedConfig: " + configPath);
-            System.out.println("RealPath in WatchedConfig: " + configPath.toRealPath());
             configPath = configPath.toRealPath();
         }
         catch (IOException ex)

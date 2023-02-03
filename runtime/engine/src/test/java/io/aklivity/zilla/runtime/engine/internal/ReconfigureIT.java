@@ -70,7 +70,7 @@ public class ReconfigureIT
     private static final Path CONFIG_DIR = Paths.get("target/test-classes", PACKAGE_NAME.replace(".", "/"));
 
     @BeforeClass
-    public static void createSymlink() throws IOException
+    public static void createSymlinks() throws IOException
     {
         Path simpleLink =  CONFIG_DIR.resolve("zilla.reconfigure.modify.symlink.json");
         Path simpleTarget = CONFIG_DIR.resolve("symlink/zilla.reconfigure.modify.symlink.source.json").toAbsolutePath();
@@ -87,14 +87,10 @@ public class ReconfigureIT
         Path link3 =  CONFIG_DIR.resolve("symlink/configs");
         Path target3 = Paths.get("realconfigs");
 
-        System.out.println(Files.createSymbolicLink(simpleLink, simpleTarget));
-        System.out.println(Files.createSymbolicLink(link1, target1));
-        System.out.println(Files.createSymbolicLink(link2, target2));
-        System.out.println(Files.createSymbolicLink(link3, target3));
-        System.out.println("Set config path is: " +
-            CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json").toAbsolutePath());
-        System.out.println("Real config path is: " +
-            CONFIG_DIR.resolve("zilla.reconfigure.modify.complex.chain.json").toRealPath());
+        Files.createSymbolicLink(simpleLink, simpleTarget);
+        Files.createSymbolicLink(link1, target1);
+        Files.createSymbolicLink(link2, target2);
+        Files.createSymbolicLink(link3, target3);
     }
 
     @Before
