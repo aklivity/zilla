@@ -163,6 +163,10 @@ public class ConfigureTask implements Callable<Void>
             }
         }
 
+        if (!configText.endsWith(System.lineSeparator()))
+        {
+            configText += System.lineSeparator();
+        }
         logger.accept(configText);
 
         if (config.configResolveExpressions())
