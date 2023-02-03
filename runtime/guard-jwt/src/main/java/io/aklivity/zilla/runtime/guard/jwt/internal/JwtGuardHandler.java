@@ -74,7 +74,7 @@ public class JwtGuardHandler implements GuardHandler
         this.challenge = options.challenge.orElse(null);
 
         List<JwtKeyConfig> keysConfig = options.keys;
-        if (keysConfig == null && options.keysURL.isPresent())
+        if ((keysConfig == null || keysConfig.isEmpty()) && options.keysURL.isPresent())
         {
             try
             {

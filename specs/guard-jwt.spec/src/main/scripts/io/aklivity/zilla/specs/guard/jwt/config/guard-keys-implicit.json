@@ -7,8 +7,8 @@
       "type": "jwt",
       "options":
       {
-        "issuer": "https://aklivity.us.auth0.com/",
-        "audience": "https://api.example.com",
+        "issuer": "https://aklivity.us.auth0.com",
+        "audience": "https://api.aklivity.com",
         "challenge": 30
       }
     }
