@@ -66,7 +66,7 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
     public static final IntPropertyDef ENGINE_WORKERS;
-    public static final BooleanPropertyDef ENGINE_CONFIG_SYNTAX_MUSTACHE;
+    public static final BooleanPropertyDef ENGINE_CONFIG_RESOLVE_EXPRESSIONS;
 
     private static final ConfigurationDef ENGINE_CONFIG;
 
@@ -74,7 +74,7 @@ public class EngineConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.engine");
-        ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.json");
+        ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.yaml");
         ENGINE_NAME = config.property("name", "engine");
         ENGINE_DIRECTORY = config.property("directory", ".");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
@@ -104,7 +104,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
-        ENGINE_CONFIG_SYNTAX_MUSTACHE = config.property("config.syntax.mustache", false);
+        ENGINE_CONFIG_RESOLVE_EXPRESSIONS = config.property("config.resolve.expressions", true);
         ENGINE_CONFIG = config;
     }
 
@@ -278,9 +278,9 @@ public class EngineConfiguration extends Configuration
         return ENGINE_WORKERS.getAsInt(this);
     }
 
-    public boolean configSyntaxMustache()
+    public boolean configResolveExpressions()
     {
-        return ENGINE_CONFIG_SYNTAX_MUSTACHE.getAsBoolean(this);
+        return ENGINE_CONFIG_RESOLVE_EXPRESSIONS.getAsBoolean(this);
     }
 
     public Function<String, InetAddress[]> hostResolver()
