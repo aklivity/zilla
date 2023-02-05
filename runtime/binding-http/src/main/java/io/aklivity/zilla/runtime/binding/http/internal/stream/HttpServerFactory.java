@@ -6652,11 +6652,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                         .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
                         .item(h -> h.name(HEADER_STATUS).value(status));
 
-        final String16FW server = config.serverHeader();
-        if (server != null)
-        {
-            builder.item(h -> h.name(HEADER_SERVER).value(server));
-        }
         builder.item(h -> h.name(HEADER_CONTENT_LENGTH).value("0"));
         return builder.build();
     }
