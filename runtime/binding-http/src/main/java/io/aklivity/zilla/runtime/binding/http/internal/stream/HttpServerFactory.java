@@ -164,20 +164,6 @@ public final class HttpServerFactory implements HttpStreamFactory
                 .item(h -> h.name(":status").value("200"))
                 .build();
 
-    private static final Array32FW<HttpHeaderFW> HEADERS_400_BAD_REQUEST =
-            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .item(h -> h.name(":status").value("400"))
-                .item(h -> h.name("content-length").value("0"))
-                .build();
-
-    private static final Array32FW<HttpHeaderFW> HEADERS_404_NOT_FOUND =
-            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .item(h -> h.name(":status").value("404"))
-                .item(h -> h.name("content-length").value("0"))
-                .build();
-
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
@@ -262,7 +248,9 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final String16FW STATUS_200 = new String16FW("200");
     private static final String16FW STATUS_204 = new String16FW("204");
     private static final String16FW STATUS_304 = new String16FW("304");
+    private static final String16FW STATUS_400 = new String16FW("400");
     private static final String16FW STATUS_403 = new String16FW("403");
+    private static final String16FW STATUS_404 = new String16FW("404");
     private static final String16FW TRANSFER_ENCODING_CHUNKED = new String16FW("chunked");
 
     private static final HttpHeaderFW HEADER_ACCESS_CONTROL_ALLOW_ORIGIN_WILDCARD =
@@ -414,7 +402,9 @@ public final class HttpServerFactory implements HttpStreamFactory
             new String16FW.Builder().wrap(new UnsafeBuffer(new byte[16]), 0, 16);
 
     private final Array32FW<HttpHeaderFW> headers204;
+    private final Array32FW<HttpHeaderFW> headers400;
     private final Array32FW<HttpHeaderFW> headers403;
+    private final Array32FW<HttpHeaderFW> headers404;
     private final DirectBuffer response403;
     private final DirectBuffer response404;
 
@@ -583,7 +573,9 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
 
         this.headers204 = initHeaders(config, STATUS_204);
+        this.headers400 = initHeadersEmpty(config, STATUS_400);
         this.headers403 = initHeaders(config, STATUS_403);
+        this.headers404 = initHeadersEmpty(config, STATUS_404);
         this.response403 = initResponse(config, 403, "Forbidden");
         this.response404 = initResponse(config, 404, "Not Found");
     }
@@ -2823,7 +2815,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 else
                 {
                     responseState = HttpExchangeState.CLOSED;
-                    doEncodeHeaders(this, traceId, authorization, 0L, HEADERS_404_NOT_FOUND);
+                    doEncodeHeaders(this, traceId, authorization, 0L, headers404);
                 }
 
                 requestState = HttpExchangeState.CLOSED;
@@ -4735,7 +4727,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 {
                     if (!endRequest)
                     {
-                        doEncodeHeaders(traceId, authorization, streamId, HEADERS_400_BAD_REQUEST, true);
+                        doEncodeHeaders(traceId, authorization, streamId, headers400, true);
                     }
                     else
                     {
@@ -4782,7 +4774,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                         final HttpRouteConfig route = binding.resolve(exchangeAuth, headers::get);
                         if (route == null)
                         {
-                            doEncodeHeaders(traceId, authorization, streamId, HEADERS_404_NOT_FOUND, true);
+                            doEncodeHeaders(traceId, authorization, streamId, headers404, true);
                         }
                         else
                         {
@@ -5645,7 +5637,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    doEncodeHeaders(traceId, sessionId, streamId, HEADERS_404_NOT_FOUND, true);
+                    doEncodeHeaders(traceId, sessionId, streamId, headers404, true);
                 }
 
                 decodeNetworkIfNecessary(traceId);
@@ -6214,7 +6206,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                             path++;
                             if (!HttpUtil.isPathValid(value))
                             {
-                                httpErrorHeader = HEADERS_400_BAD_REQUEST;
+                                httpErrorHeader = headers400;
                             }
                         }
                         break;
@@ -6652,6 +6644,24 @@ public final class HttpServerFactory implements HttpStreamFactory
             builder.item(h -> h.name(HEADER_SERVER).value(server));
         }
 
+        return builder.build();
+    }
+
+    private static Array32FW<HttpHeaderFW> initHeadersEmpty(
+            HttpConfiguration config,
+            String16FW status)
+    {
+        final Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW> builder =
+                new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+                        .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                        .item(h -> h.name(HEADER_STATUS).value(status));
+
+        final String16FW server = config.serverHeader();
+        if (server != null)
+        {
+            builder.item(h -> h.name(HEADER_SERVER).value(server));
+        }
+        builder.item(h -> h.name(HEADER_CONTENT_LENGTH).value("0"));
         return builder.build();
     }
 
