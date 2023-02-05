@@ -158,12 +158,6 @@ public final class HttpServerFactory implements HttpStreamFactory
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer(new byte[0]);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
 
-    private static final Array32FW<HttpHeaderFW> HEADERS_200_OK =
-            new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
-                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-                .item(h -> h.name(":status").value("200"))
-                .build();
-
     private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
             new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
                 .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
@@ -401,6 +395,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final String16FW.Builder httpStatusRW =
             new String16FW.Builder().wrap(new UnsafeBuffer(new byte[16]), 0, 16);
 
+    private final Array32FW<HttpHeaderFW> headers200;
     private final Array32FW<HttpHeaderFW> headers204;
     private final Array32FW<HttpHeaderFW> headers400;
     private final Array32FW<HttpHeaderFW> headers403;
@@ -572,6 +567,7 @@ public final class HttpServerFactory implements HttpStreamFactory
         this.encodeMax = bufferPool.slotCapacity();
         this.bindings = new Long2ObjectHashMap<>();
 
+        this.headers200 = initHeaders(config, STATUS_200);
         this.headers204 = initHeaders(config, STATUS_204);
         this.headers400 = initHeadersEmpty(config, STATUS_400);
         this.headers403 = initHeaders(config, STATUS_403);
@@ -5763,7 +5759,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 responseAck = acknowledge;
 
                 final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : HEADERS_200_OK;
+                final Array32FW<HttpHeaderFW> headers = beginEx != null ? beginEx.headers() : headers200;
 
                 final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
                         header.name().equals(HEADER_CONTENT_LENGTH));
