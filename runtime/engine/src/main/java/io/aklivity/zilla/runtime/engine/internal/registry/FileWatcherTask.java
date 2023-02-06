@@ -33,27 +33,32 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-
 public class FileWatcherTask extends WatcherTask
 {
-    private final Map<WatchKey, WatchedConfig> watchedConfigsByKey;
-    private MessageDigest md5;
-    private WatchService watchService;
+    private final Map<WatchKey, WatchedConfig> watchedConfigs;
+    private final MessageDigest md5;
+    private final WatchService watchService;
 
     public FileWatcherTask(
         BiConsumer<URL, String> changeListener)
     {
         super(changeListener);
-        this.watchedConfigsByKey = new IdentityHashMap<>();
+        this.watchedConfigs = new IdentityHashMap<>();
+        MessageDigest md5 = null;
+        WatchService watchService = null;
+
         try
         {
-            this.md5 = MessageDigest.getInstance("MD5");
-            this.watchService = FileSystems.getDefault().newWatchService();
+            md5 = MessageDigest.getInstance("MD5");
+            watchService = FileSystems.getDefault().newWatchService();
         }
         catch (NoSuchAlgorithmException | IOException ex)
         {
             rethrowUnchecked(ex);
         }
+
+        this.md5 = md5;
+        this.watchService = watchService;
 
     }
 
@@ -66,13 +71,15 @@ public class FileWatcherTask extends WatcherTask
             {
                 final WatchKey key = watchService.take();
 
-                WatchedConfig watchedConfig = watchedConfigsByKey.get(key);
+                WatchedConfig watchedConfig = watchedConfigs.get(key);
 
                 if (watchedConfig != null && watchedConfig.isWatchedKey(key))
                 {
                     // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
-                    watchedConfig.cancelKeys(watchedConfigsByKey);
-                    watchedConfigsByKey.putAll(watchedConfig.registerPaths());
+                    watchedConfig.keys().forEach(watchedConfigs::remove);
+                    watchedConfig.unregister();
+                    watchedConfig.register();
+                    watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
                     String newConfigText = readConfigText(watchedConfig.getURL());
                     byte[] newConfigHash = computeHash(newConfigText);
                     if (watchedConfig.isReconfigureNeeded(newConfigHash))
@@ -92,11 +99,12 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public void onURLDiscovered(
+    public void watch(
         URL configURL)
     {
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
-        watchedConfigsByKey.putAll(watchedConfig.registerPaths());
+        watchedConfig.register();
+        watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
         changeListener.accept(configURL, configText);

@@ -247,7 +247,6 @@ public final class EngineRule implements TestRule
                 final ErrorHandler errorHandler = ex ->
                 {
                     errors.add(ex);
-                    ex.printStackTrace();
                     baseThread.interrupt();
                 };
                 engine = builder.config(config)

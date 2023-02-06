@@ -51,7 +51,12 @@ public class WatchedConfig
         this.configURL = configURL;
     }
 
-    public Map<WatchKey, WatchedConfig> registerPaths()
+    public Set<WatchKey> keys()
+    {
+        return watchKeys;
+    }
+
+    public void register()
     {
         Map<WatchKey, WatchedConfig> watchedConfigsByKey = new IdentityHashMap<>();
         Path configPath = Paths.get(configURL.getPath()).toAbsolutePath();
@@ -65,15 +70,13 @@ public class WatchedConfig
             if (Files.isSymbolicLink(configPath))
             {
                 Path targetPath = Files.readSymbolicLink(configPath);
-                if (!targetPath.isAbsolute())
-                {
-                    targetPath = configPath.getParent().resolve(targetPath);
-                }
+                targetPath = configPath.resolveSibling(targetPath);
                 // This is needed so if the symlink contains a symlink chain, those are watched as well
                 observablePaths.addLast(targetPath);
                 // We need to watch for the actual file changes as well
-                watchedPaths.add(toRealPath(targetPath));
+                //watchedPaths.add(toRealPath(targetPath));
             }
+
             while (!observablePaths.isEmpty())
             {
                 Path observablePath = observablePaths.removeFirst();
@@ -95,6 +98,7 @@ public class WatchedConfig
                     }
                 }
             }
+
             for (Path watchedPath : watchedPaths)
             {
                 if (Files.exists(watchedPath.getParent()))
@@ -109,18 +113,11 @@ public class WatchedConfig
         {
             rethrowUnchecked(ex);
         }
-        return watchedConfigsByKey;
     }
 
-    public void cancelKeys(
-        Map<WatchKey, WatchedConfig> watchedConfigsByKey)
+    public void unregister()
     {
-        watchKeys.forEach(key ->
-            {
-                key.cancel();
-                watchedConfigsByKey.remove(key);
-            }
-        );
+        watchKeys.forEach(WatchKey::cancel);
         watchKeys.clear();
     }
 

@@ -28,7 +28,6 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
-import java.util.function.ToLongFunction;
 
 import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
@@ -40,6 +39,7 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
+import jakarta.json.stream.JsonParsingException;
 
 import org.agrona.ErrorHandler;
 import org.leadpony.justify.api.JsonSchema;
@@ -65,7 +65,7 @@ import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
-public class ConfigManager
+public class ConfigurationManager
 {
     protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
     private final Collection<URL> schemaTypes;
@@ -80,9 +80,9 @@ public class ConfigManager
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private final ExpressionResolver expressions;
-    private final Consumer<URL> onURLDiscovered;
+    private final Consumer<URL> handleConfigURL;
 
-    public ConfigManager(
+    public ConfigurationManager(
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -94,7 +94,7 @@ public class ConfigManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
-        Consumer<URL> onURLDiscovered)
+        Consumer<URL> handleConfigURL)
     {
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
@@ -107,7 +107,7 @@ public class ConfigManager
         this.context = context;
         this.config = config;
         this.extensions = extensions;
-        this.onURLDiscovered = onURLDiscovered;
+        this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
 
@@ -130,7 +130,7 @@ public class ConfigManager
         parse:
         try
         {
-            //TODO: detect configURLs and call onURLDiscovered
+            //TODO: detect configURLs and call handleConfigURL
             InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
 
             JsonProvider schemaProvider = JsonProvider.provider();
@@ -180,7 +180,8 @@ public class ConfigManager
             namespace.id = supplyId.applyAsInt(namespace.name);
 
             // TODO: consider qualified name "namespace::name"
-            namespace.resolveId = idResolver(namespace);
+            final NamespaceConfig finalNamespace = namespace;
+            namespace.resolveId = name -> name != null ? NamespacedId.id(finalNamespace.id, supplyId.applyAsInt(name)) : 0L;
 
             for (GuardConfig guard : namespace.guards)
             {
@@ -245,14 +246,12 @@ public class ConfigManager
                 tuning.affinity(binding.id, affinity);
             }
 
-            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-            for (DispatchAgent dispatcher : dispatchers)
-            {
-                future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
-            }
-            future.join();
-
+            attach(namespace);
             extensions.forEach(e -> e.onRegistered(context));
+        }
+        catch (JsonParsingException ex)
+        {
+            System.out.println(ex);
         }
         catch (Throwable ex)
         {
@@ -266,7 +265,17 @@ public class ConfigManager
         return namespace;
     }
 
-    public void unRegister(
+    public void attach(NamespaceConfig namespace)
+    {
+        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+        for (DispatchAgent dispatcher : dispatchers)
+        {
+            future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
+        }
+        future.join();
+    }
+
+    public void unregister(
         NamespaceConfig namespace)
     {
         if (namespace != null)
@@ -280,10 +289,4 @@ public class ConfigManager
             extensions.forEach(e -> e.onUnregistered(context));
         }
     }
-
-    private ToLongFunction<String> idResolver(NamespaceConfig namespace)
-    {
-        return name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
-    }
-
 }

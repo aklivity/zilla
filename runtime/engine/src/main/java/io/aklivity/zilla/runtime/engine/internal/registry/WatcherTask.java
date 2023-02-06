@@ -16,7 +16,7 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
         this.changeListener = changeListener;
     }
 
-    public abstract void onURLDiscovered(
+    public abstract void watch(
         URL configURL);
 
 }
