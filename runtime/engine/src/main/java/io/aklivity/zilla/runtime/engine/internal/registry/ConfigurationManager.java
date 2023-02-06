@@ -119,6 +119,11 @@ public class ConfigurationManager
         {
             configText = CONFIG_TEXT_DEFAULT;
         }
+
+        if (!configText.endsWith(System.lineSeparator()))
+        {
+            configText += System.lineSeparator();
+        }
         logger.accept(configText);
 
         if (config.configResolveExpressions())
