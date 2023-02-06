@@ -173,7 +173,7 @@ public final class Engine implements AutoCloseable
         }
 
         this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, dispatchers, errorHandler, logger, context, config, extensions, watcherTask::watch);
+            tuning, dispatchers, logger, context, config, extensions, watcherTask::watch);
 
         this.namespaces = new HashMap<>();
 
@@ -267,16 +267,12 @@ public final class Engine implements AutoCloseable
         URL configURL,
         String configText)
     {
-        NamespaceConfig oldNamespace = namespaces.get(configURL);
-        configurationManager.unregister(oldNamespace);
-        NamespaceConfig newNamespace = configurationManager.register(configText);
-        if (newNamespace == null)
+        NamespaceConfig newNamespace = configurationManager.parse(configText);
+        if (newNamespace != null)
         {
-            // Fall back to old namespace in case of parse error
-            configurationManager.attach(oldNamespace);
-        }
-        else
-        {
+            NamespaceConfig oldNamespace = namespaces.get(configURL);
+            configurationManager.unregister(oldNamespace);
+            configurationManager.register(newNamespace);
             namespaces.put(configURL, newNamespace);
         }
     }

@@ -21,12 +21,6 @@ accepted
 connected
 
 write notify CONFIG_CHANGED
-read abort
-write aborted
-rejected
 
-accept "zilla://streams/net1"
-       option zilla:transmission "duplex"
-       option zilla:window 8192
 accepted
 connected

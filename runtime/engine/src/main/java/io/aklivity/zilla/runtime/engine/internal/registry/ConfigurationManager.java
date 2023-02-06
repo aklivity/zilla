@@ -14,6 +14,7 @@
  * under the License.
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.InputStream;
 import java.io.StringReader;
@@ -37,11 +38,10 @@ import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
+import jakarta.json.bind.JsonbException;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
-import jakarta.json.stream.JsonParsingException;
 
-import org.agrona.ErrorHandler;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
@@ -74,7 +74,6 @@ public class ConfigurationManager
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
     private final Collection<DispatchAgent> dispatchers;
-    private final ErrorHandler errorHandler;
     private final Consumer<String> logger;
     private final EngineExtContext context;
     private final EngineConfiguration config;
@@ -89,7 +88,6 @@ public class ConfigurationManager
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
         Collection<DispatchAgent> dispatchers,
-        ErrorHandler errorHandler,
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
@@ -102,7 +100,6 @@ public class ConfigurationManager
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
-        this.errorHandler = errorHandler;
         this.logger = logger;
         this.context = context;
         this.config = config;
@@ -111,7 +108,7 @@ public class ConfigurationManager
         this.expressions = ExpressionResolver.instantiate();
     }
 
-    public NamespaceConfig register(
+    public NamespaceConfig parse(
         String configText)
     {
         NamespaceConfig namespace = null;
@@ -250,27 +247,26 @@ public class ConfigurationManager
 
                 tuning.affinity(binding.id, affinity);
             }
-
-            attach(namespace);
-            extensions.forEach(e -> e.onRegistered(context));
-        }
-        catch (JsonParsingException ex)
-        {
-            System.out.println(ex);
         }
         catch (Throwable ex)
         {
-            errorHandler.onError(ex);
+            logger.accept("Configuration parse exception: " + ex.getMessage());
+            rethrowUnchecked(ex);
         }
 
         if (!errors.isEmpty())
         {
-            errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
+            errors.forEach(msg ->
+            {
+                logger.accept("Configuration parsing error: " + msg);
+                rethrowUnchecked(new JsonException(msg));
+            });
         }
         return namespace;
     }
 
-    public void attach(NamespaceConfig namespace)
+    public void register(
+        NamespaceConfig namespace)
     {
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
         for (DispatchAgent dispatcher : dispatchers)
@@ -278,6 +274,7 @@ public class ConfigurationManager
             future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
         }
         future.join();
+        extensions.forEach(e -> e.onRegistered(context));
     }
 
     public void unregister(

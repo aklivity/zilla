@@ -71,4 +71,14 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.not.modify.parse.failed.via.file/server",
+        "${net}/reconfigure.not.modify.parse.failed.via.file/client"
+    })
+    public void shouldNotReconfigureWhenModifiedButParseFailed() throws Exception
+    {
+        k3po.finish();
+    }
 }
