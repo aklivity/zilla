@@ -244,7 +244,7 @@ public class ReconfigureIT
     }
 
     @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "2")
+    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
     @Configuration("http://localhost:8080/")
     @Specification({
         "${app}/reconfigure.create.via.http/server",
