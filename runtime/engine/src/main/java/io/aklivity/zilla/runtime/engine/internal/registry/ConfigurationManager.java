@@ -38,7 +38,6 @@ import jakarta.json.JsonReader;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
-import jakarta.json.bind.JsonbException;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
