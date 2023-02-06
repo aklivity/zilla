@@ -14,7 +14,6 @@
  * under the License.
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.InputStream;
 import java.io.StringReader;
@@ -31,7 +30,6 @@ import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 
 import jakarta.json.JsonArray;
-import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
@@ -249,19 +247,19 @@ public class ConfigurationManager
         }
         catch (Throwable ex)
         {
-            logger.accept("Configuration parse exception: " + ex.getMessage());
-            rethrowUnchecked(ex);
+            logError(ex.getMessage());
         }
 
         if (!errors.isEmpty())
         {
-            errors.forEach(msg ->
-            {
-                logger.accept("Configuration parsing error: " + msg);
-                rethrowUnchecked(new JsonException(msg));
-            });
+            errors.forEach(this::logError);
         }
         return namespace;
+    }
+
+    private void logError(String message)
+    {
+        logger.accept("Configuration parsing error: " + message);
     }
 
     public void register(

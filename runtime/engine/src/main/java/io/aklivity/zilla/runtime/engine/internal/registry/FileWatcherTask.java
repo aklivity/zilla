@@ -31,7 +31,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public class FileWatcherTask extends WatcherTask
 {
@@ -40,7 +42,7 @@ public class FileWatcherTask extends WatcherTask
     private final WatchService watchService;
 
     public FileWatcherTask(
-        BiConsumer<URL, String> changeListener)
+        BiFunction<URL, String, NamespaceConfig> changeListener)
     {
         super(changeListener);
         this.watchedConfigs = new IdentityHashMap<>();
@@ -85,7 +87,7 @@ public class FileWatcherTask extends WatcherTask
                     if (watchedConfig.isReconfigureNeeded(newConfigHash))
                     {
                         watchedConfig.setConfigHash(newConfigHash);
-                        changeListener.accept(watchedConfig.getURL(), newConfigText);
+                        changeListener.apply(watchedConfig.getURL(), newConfigText);
                     }
                 }
             }
@@ -99,7 +101,7 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public void watch(
+    public NamespaceConfig watch(
         URL configURL)
     {
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
@@ -107,7 +109,17 @@ public class FileWatcherTask extends WatcherTask
         watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
-        changeListener.accept(configURL, configText);
+        return changeListener.apply(configURL, configText);
+    }
+
+    @Override
+    public void doInitialConfiguration(URL configURL) throws Exception
+    {
+        NamespaceConfig initialConfig = watch(configURL);
+        if (initialConfig == null)
+        {
+            throw new Exception("Parsing of the initial configuration failed.");
+        }
     }
 
     @Override

@@ -3,20 +3,25 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import java.io.Closeable;
 import java.net.URL;
 import java.util.concurrent.Callable;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 
 public abstract class WatcherTask implements Callable<Void>, Closeable
 {
-    protected final BiConsumer<URL, String> changeListener;
+    protected final BiFunction<URL, String, NamespaceConfig> changeListener;
 
     protected WatcherTask(
-        BiConsumer<URL, String> changeListener)
+        BiFunction<URL, String, NamespaceConfig> changeListener)
     {
         this.changeListener = changeListener;
     }
 
-    public abstract void watch(
+    public abstract NamespaceConfig watch(
         URL configURL);
+
+    public abstract void doInitialConfiguration(
+        URL configURL) throws Exception;
 
 }

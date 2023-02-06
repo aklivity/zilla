@@ -223,7 +223,7 @@ public final class Engine implements AutoCloseable
             AgentRunner.startOnThread(runner, Thread::new);
         }
         watcherTaskRef = commonPool().submit(watcherTask);
-        watcherTask.watch(rootConfigURL);
+        watcherTask.doInitialConfiguration(rootConfigURL);
     }
 
     @Override
@@ -263,7 +263,7 @@ public final class Engine implements AutoCloseable
         }
     }
 
-    private void reconfigure(
+    private NamespaceConfig reconfigure(
         URL configURL,
         String configText)
     {
@@ -275,6 +275,7 @@ public final class Engine implements AutoCloseable
             configurationManager.register(newNamespace);
             namespaces.put(configURL, newNamespace);
         }
+        return newNamespace;
     }
 
     public static EngineBuilder builder()
