@@ -31,6 +31,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -101,7 +102,7 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public NamespaceConfig watch(
+    public CompletableFuture<NamespaceConfig> watch(
         URL configURL)
     {
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
@@ -109,18 +110,8 @@ public class FileWatcherTask extends WatcherTask
         watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
-        return changeListener.apply(configURL, configText);
-    }
-
-    @Override
-    public void doInitialConfiguration(
-        URL configURL) throws Exception
-    {
-        NamespaceConfig initialConfig = watch(configURL);
-        if (initialConfig == null)
-        {
-            throw new Exception("Parsing of the initial configuration failed.");
-        }
+        NamespaceConfig config = changeListener.apply(configURL, configText);
+        return CompletableFuture.completedFuture(config);
     }
 
     @Override

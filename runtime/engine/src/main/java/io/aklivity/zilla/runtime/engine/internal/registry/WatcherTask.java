@@ -3,6 +3,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import java.io.Closeable;
 import java.net.URL;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -18,10 +19,8 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
         this.changeListener = changeListener;
     }
 
-    public abstract NamespaceConfig watch(
+    public abstract CompletableFuture<NamespaceConfig> watch(
         URL configURL);
 
-    public abstract void doInitialConfiguration(
-        URL configURL) throws Exception;
 
 }
