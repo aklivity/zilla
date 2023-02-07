@@ -45,8 +45,6 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class ReconfigureFileIT
 {
-    public static final String ENGINE_CONFIG_POLL_INTERVAL_SECONDS = "zilla.engine.config.poll.interval.seconds";
-
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/engine/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/engine/streams/application");

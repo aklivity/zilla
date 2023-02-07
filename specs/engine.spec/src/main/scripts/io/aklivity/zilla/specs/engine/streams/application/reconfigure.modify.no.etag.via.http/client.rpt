@@ -23,7 +23,6 @@ write http:header "Prefer" "wait=86400"
 write close
 
 read http:status "200" "OK"
-read http:header "Etag" "AAAAAAA"
 read '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
 read closed
 
@@ -31,12 +30,11 @@ connect "http://localhost:8080/"
 connected
 
 write http:method "GET"
-write http:header "If-None-Match" "AAAAAAA"
+write http:header "If-None-Match"
 write http:header "Prefer" "wait=86400"
 write close
 
 read http:status "200" "OK"
-read http:header "Etag" "BBBBBBB"
 read '{"name": "test","bindings":{"net1":{"type" : "test","kind": "proxy","exit": "app1"}}}'
 read closed
 

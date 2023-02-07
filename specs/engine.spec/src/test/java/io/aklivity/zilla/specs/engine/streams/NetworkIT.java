@@ -108,4 +108,24 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.modify.no.etag.via.http/server",
+        "${net}/reconfigure.modify.no.etag.via.http/client"
+    })
+    public void shouldReconfigureWhenModifiedHTTPEtagNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.server.error.via.http/server",
+        "${net}/reconfigure.server.error.via.http/client"
+    })
+    public void shouldNotReconfigureWhen500Returned() throws Exception
+    {
+        k3po.finish();
+    }
 }

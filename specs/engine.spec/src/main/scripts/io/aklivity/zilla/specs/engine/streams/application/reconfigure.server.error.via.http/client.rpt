@@ -35,22 +35,16 @@ write http:header "If-None-Match" "AAAAAAA"
 write http:header "Prefer" "wait=86400"
 write close
 
-read http:status "200" "OK"
-read http:header "Etag" "BBBBBBB"
-read '{"name": "test","bindings":{"net1":{"type" : "test","kind": "proxy","exit": "app1"}}}'
+read http:status "500" "Internal Server Error"
 read closed
 
 
 connect "zilla://streams/app0"
 option zilla:window 8192
 option zilla:transmission "duplex"
-
 connected
 
-write abort
-read abort
-
-connect "zilla://streams/app1"
+connect "zilla://streams/app0"
 option zilla:window 8192
 option zilla:transmission "duplex"
 connected
