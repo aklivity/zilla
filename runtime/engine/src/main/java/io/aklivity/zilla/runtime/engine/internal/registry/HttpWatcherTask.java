@@ -195,7 +195,8 @@ public class HttpWatcherTask extends WatcherTask
         return config;
     }
 
-    private URI getUri(URL configURL)
+    private URI getUri(
+        URL configURL)
     {
         URI configURI = null;
         try

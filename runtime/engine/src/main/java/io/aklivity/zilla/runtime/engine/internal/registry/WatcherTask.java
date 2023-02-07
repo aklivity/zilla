@@ -40,7 +40,8 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
     public abstract void doInitialConfiguration(
         URL configURL) throws Exception;
 
-    protected byte[] computeHash(String configText)
+    protected byte[] computeHash(
+        String configText)
     {
         return md5.digest(configText.getBytes(UTF_8));
     }

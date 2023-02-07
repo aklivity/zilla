@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -44,7 +43,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 
-public class ReconfigureIT
+public class ReconfigureFileIT
 {
     public static final String ENGINE_CONFIG_POLL_INTERVAL_SECONDS = "zilla.engine.config.poll.interval.seconds";
 
@@ -67,9 +66,9 @@ public class ReconfigureIT
         .clean();
 
     @Rule
-    public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-    private static final String PACKAGE_NAME = ReconfigureIT.class.getPackageName();
+    private static final String PACKAGE_NAME = ReconfigureFileIT.class.getPackageName();
     private static final Path CONFIG_DIR = Paths.get("target/test-classes", PACKAGE_NAME.replace(".", "/"));
 
     @BeforeClass
@@ -116,7 +115,7 @@ public class ReconfigureIT
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
-        Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.after.json").toURI());
+        Path source = Paths.get(ReconfigureFileIT.class.getResource("zilla.reconfigure.after.json").toURI());
         Path target = CONFIG_DIR.resolve("zilla.reconfigure.modify.json");
 
         Files.move(source, target, ATOMIC_MOVE);
@@ -138,7 +137,7 @@ public class ReconfigureIT
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
-        Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.symlink.after.json").toURI());
+        Path source = Paths.get(ReconfigureFileIT.class.getResource("zilla.reconfigure.symlink.after.json").toURI());
         Path target = CONFIG_DIR.resolve("symlink/zilla.reconfigure.modify.symlink.source.json");
 
         Files.move(source, target, ATOMIC_MOVE);
@@ -198,7 +197,7 @@ public class ReconfigureIT
     {
         k3po.start();
 
-        Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.original.json").toURI());
+        Path source = Paths.get(ReconfigureFileIT.class.getResource("zilla.reconfigure.original.json").toURI());
         Path target = CONFIG_DIR.resolve("zilla.reconfigure.missing.json");
 
         Files.move(source, target, ATOMIC_MOVE);
@@ -238,89 +237,13 @@ public class ReconfigureIT
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
 
-        Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.not.modify.parse.failed.after.json").toURI());
+        Path source = Paths.get(ReconfigureFileIT.class.getResource("zilla.reconfigure.not.modify.parse.failed.after.json")
+            .toURI());
         Path target = CONFIG_DIR.resolve("zilla.reconfigure.not.modify.parse.failed.json");
 
         Files.move(source, target, ATOMIC_MOVE);
 
         k3po.notifyBarrier("CONFIG_CHANGED");
-        k3po.finish();
-    }
-
-    @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
-    @Specification({
-        "${app}/reconfigure.modify.via.http/server",
-        "${net}/reconfigure.modify.via.http/client"
-    })
-    public void shouldReconfigureWhenModifiedHTTP() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("CONNECTED");
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_CHANGED");
-        k3po.finish();
-    }
-
-    @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
-    @Specification({
-        "${app}/reconfigure.create.via.http/server",
-        "${net}/reconfigure.create.via.http/client"
-    })
-    public void shouldReconfigureWhenCreatedHTTP() throws Exception
-    {
-        k3po.start();
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_CREATED");
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("http://localhost:8080/")
-    @Specification({
-        "${app}/reconfigure.delete.via.http/server",
-        "${net}/reconfigure.delete.via.http/client"
-    })
-    public void shouldReconfigureWhenDeletedHTTP() throws Exception
-    {
-        k3po.start();
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_DELETED");
-        k3po.finish();
-    }
-
-    @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
-    @Specification({
-        "${app}/reconfigure.modify.no.etag.via.http/server",
-        "${net}/reconfigure.modify.no.etag.via.http/client"
-    })
-    public void shouldReconfigureWhenModifiedHTTPEtagNotSupported() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("CONNECTED");
-        EngineTest.TestEngineExt.registerLatch.await();
-        k3po.notifyBarrier("CONFIG_CHANGED");
-        k3po.finish();
-    }
-
-    @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
-    @Specification({
-        "${app}/reconfigure.server.error.via.http/server",
-        "${net}/reconfigure.server.error.via.http/client"
-    })
-    public void shouldNotReconfigureWhen500Returned() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("CHECK_RECONFIGURE");
-        Assert.assertEquals("Reconfigure should not happen at server error", 1,
-            EngineTest.TestEngineExt.registerLatch.getCount());
         k3po.finish();
     }
 }
