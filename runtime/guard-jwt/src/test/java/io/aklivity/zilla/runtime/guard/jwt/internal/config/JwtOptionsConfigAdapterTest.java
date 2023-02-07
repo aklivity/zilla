@@ -24,15 +24,21 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.time.Duration;
 
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-public class JwtOptionsConfigAdapterTest extends AbstractJwtConfigAdapterTest
+public class JwtOptionsConfigAdapterTest
 {
+    private Jsonb jsonb;
     @Before
     public void initJson()
     {
-        initJson(new JwtOptionsConfigAdapter());
+        JsonbConfig config = new JsonbConfig()
+                .withAdapters(new JwtOptionsConfigAdapter());
+        jsonb = JsonbBuilder.create(config);
     }
 
     @Test
