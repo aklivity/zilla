@@ -225,7 +225,6 @@ public final class Engine implements AutoCloseable
         }
         watcherTaskRef = commonPool().submit(watcherTask);
         watcherTask.doInitialConfiguration(rootConfigURL);
-        watcherTask.awaitInitConfig();
     }
 
     @Override

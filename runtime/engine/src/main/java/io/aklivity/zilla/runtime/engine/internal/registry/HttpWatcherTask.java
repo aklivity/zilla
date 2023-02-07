@@ -19,7 +19,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public class HttpWatcherTask extends WatcherTask
 {
@@ -34,10 +36,10 @@ public class HttpWatcherTask extends WatcherTask
     private volatile boolean closed = false;
 
     public HttpWatcherTask(
-        BiConsumer<URL, String> configChangeListener,
+        BiFunction<URL, String, NamespaceConfig> changeListener,
         int pollIntervalSeconds)
     {
-        super(configChangeListener);
+        super(changeListener);
         this.etags = new ConcurrentHashMap<>();
         this.configHashes = new ConcurrentHashMap<>();
         this.futures = new ConcurrentHashMap<>();
@@ -61,19 +63,33 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     @Override
-    public void onURLDiscovered(
+    public void watch(
         URL configURL)
     {
-        URI configURI = null;
-        try
-        {
-            configURI = configURL.toURI();
-        }
-        catch (URISyntaxException ex)
-        {
-            rethrowUnchecked(ex);
-        }
+        URI configURI = getUri(configURL);
         sendAsync(configURI, INTIAL_ETAG);
+    }
+
+    @Override
+    public void doInitialConfiguration(
+        URL configURL) throws Exception
+    {
+        URI configURI = getUri(configURL);
+        HttpClient client = HttpClient.newBuilder()
+            .version(HTTP_2)
+            .followRedirects(NORMAL)
+            .build();
+        HttpRequest request = HttpRequest.newBuilder()
+            .GET()
+            .headers("If-None-Match", INTIAL_ETAG, "Prefer", "wait=86400")
+            .uri(configURI)
+            .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        NamespaceConfig initialConfig = handleConfigChange(response);
+        if (initialConfig == null)
+        {
+            throw new Exception("Parsing of the initial configuration failed.");
+        }
     }
 
     @Override
@@ -103,14 +119,14 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     private Void handleException(
-        Throwable ex,
+        Throwable throwable,
         URI configURI)
     {
         try
         {
             TimeUnit.SECONDS.sleep(pollIntervalSeconds);
         }
-        catch (InterruptedException e)
+        catch (InterruptedException ex)
         {
             Thread.currentThread().interrupt();
         }
@@ -118,17 +134,17 @@ public class HttpWatcherTask extends WatcherTask
         return null;
     }
 
-    private void handleConfigChange(
+    private NamespaceConfig handleConfigChange(
         HttpResponse<String> response)
     {
+        NamespaceConfig config = null;
         try
         {
             URI configURI = response.request().uri();
             int statusCode = response.statusCode();
             if (statusCode == 404)
             {
-                changeListener.accept(configURI.toURL(), "");
-                initConfigLatch.countDown();
+                config = changeListener.apply(configURI.toURL(), "");
                 TimeUnit.SECONDS.sleep(pollIntervalSeconds);
             }
             else if (statusCode >= 500 && statusCode <= 599)
@@ -146,8 +162,7 @@ public class HttpWatcherTask extends WatcherTask
                     if (!oldEtag.equals(etagOptional.get()))
                     {
                         etags.put(configURI, etagOptional.get());
-                        changeListener.accept(configURI.toURL(), configText);
-                        initConfigLatch.countDown();
+                        config = changeListener.apply(configURI.toURL(), configText);
                     }
                     else if (response.statusCode() != 304)
                     {
@@ -161,8 +176,7 @@ public class HttpWatcherTask extends WatcherTask
                     if (!Arrays.equals(configHash, newConfigHash))
                     {
                         configHashes.put(configURI, newConfigHash);
-                        changeListener.accept(configURI.toURL(), configText);
-                        initConfigLatch.countDown();
+                        config = changeListener.apply(configURI.toURL(), configText);
                     }
                     TimeUnit.SECONDS.sleep(pollIntervalSeconds);
                 }
@@ -174,9 +188,24 @@ public class HttpWatcherTask extends WatcherTask
         {
             rethrowUnchecked(ex);
         }
-        catch (InterruptedException e)
+        catch (InterruptedException ex)
         {
             Thread.currentThread().interrupt();
         }
+        return config;
+    }
+
+    private URI getUri(URL configURL)
+    {
+        URI configURI = null;
+        try
+        {
+            configURI = configURL.toURI();
+        }
+        catch (URISyntaxException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return configURI;
     }
 }

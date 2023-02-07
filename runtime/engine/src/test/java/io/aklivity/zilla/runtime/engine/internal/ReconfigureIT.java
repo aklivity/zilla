@@ -312,19 +312,6 @@ public class ReconfigureIT
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
     @Configuration("http://localhost:8080/")
     @Specification({
-        "${app}/reconfigure.init.server.error.via.http/server",
-        "${net}/reconfigure.init.server.error.via.http/client"
-    })
-    public void shouldRetryConfigurationAfterServerError() throws Exception
-    {
-        k3po.start();
-        k3po.finish();
-    }
-
-    @Test
-    @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
-    @Configuration("http://localhost:8080/")
-    @Specification({
         "${app}/reconfigure.server.error.via.http/server",
         "${net}/reconfigure.server.error.via.http/client"
     })

@@ -95,23 +95,26 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public NamespaceConfig watch(
+    public void watch(
         URL configURL)
+    {
+        register(configURL);
+    }
+
+    private NamespaceConfig register(URL configURL)
     {
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
         watchedConfig.register();
         watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
-        NamespaceConfig newNamespace = changeListener.apply(configURL, configText);
-        initConfigLatch.countDown();
-        return newNamespace;
+        return changeListener.apply(configURL, configText);
     }
 
     @Override
     public void doInitialConfiguration(URL configURL) throws Exception
     {
-        NamespaceConfig initialConfig = watch(configURL);
+        NamespaceConfig initialConfig = register(configURL);
         if (initialConfig == null)
         {
             throw new Exception("Parsing of the initial configuration failed.");
