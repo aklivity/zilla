@@ -69,35 +69,25 @@ started
 
 #### Configure Zilla to behave as a `tcp` `echo` server in 2mins.
 
-First create a local `zilla.json` with the following contents.
-```json
-{
-    "name": "example",
-    "bindings":
-    {
-        "tcp_server0":
-        {
-            "type" : "tcp",
-            "kind": "server",
-            "options":
-            {
-                "host": "0.0.0.0",
-                "port": 12345
-            },
-            "exit": "echo_server0"
-        },
-        "echo_server0":
-        {
-            "type" : "echo",
-            "kind": "server"
-        }
-    }
-}
-
+First create a local `zilla.yaml` with the following contents.
+```yaml
+---
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 12345
+    exit: echo_server0
+  echo_server0:
+    type: echo
+    kind: server
 ```
-Then run Zilla again, this time mounting your local `zilla.json` as a docker volume file.
+Then run Zilla again, this time mounting your local `zilla.yaml` as a docker volume file.
 ```
-docker run -v `pwd`/zilla.json:/zilla.json ghcr.io/aklivity/zilla:latest start -v
+docker run -v `pwd`/zilla.yaml:/zilla.yaml ghcr.io/aklivity/zilla:latest start -v
 ```
 Now, try it out using `netcat`.
 ```bash
@@ -111,10 +101,10 @@ Hello, world
 ### Connect your Kafka and Create REST and SSE API Endpoints
 Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, and `SASL/PLAIN`.
 
-Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
+Follow the [docs][zilla-get-started] that show you how to modify your `zilla.yaml` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
 <br>
 #### Zilla Studio
-Besides directly creating and modifying a `zilla.json` file, you can use the <a href="https://zilla-studio.aklivity.io/#/">Zilla Studio</a> GUI tool to generate one instead. This simplifies getting started with Zilla even further and helps visualize a Zilla configuration.
+Besides directly creating and modifying a `zilla.yaml` file, you can use the <a href="https://zilla-studio.aklivity.io/#/">Zilla Studio</a> GUI tool to generate one instead. This simplifies getting started with Zilla even further and helps visualize a Zilla configuration.
 <div align="center" float="left">
     <img src="./assets/zilla-studio@2x.png" height="300">  
 </div>
