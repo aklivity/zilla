@@ -30,9 +30,7 @@ import java.nio.file.WatchService;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Set;
 
 public class WatchedConfig
@@ -58,7 +56,6 @@ public class WatchedConfig
 
     public void register()
     {
-        Map<WatchKey, WatchedConfig> watchedConfigsByKey = new IdentityHashMap<>();
         Path configPath = Paths.get(configURL.getPath()).toAbsolutePath();
         try
         {
@@ -67,22 +64,19 @@ public class WatchedConfig
             Deque<Path> observablePaths = new LinkedList<>();
             observablePaths.addLast(configPath);
 
-            if (Files.isSymbolicLink(configPath))
-            {
-                Path targetPath = Files.readSymbolicLink(configPath);
-                targetPath = configPath.resolveSibling(targetPath);
-                // This is needed so if the symlink contains a symlink chain, those are watched as well
-                observablePaths.addLast(targetPath);
-                // We need to watch for the actual file changes as well
-                watchedPaths.add(toRealPath(targetPath));
-            }
-
             while (!observablePaths.isEmpty())
             {
                 Path observablePath = observablePaths.removeFirst();
 
                 if (watchedPaths.add(observablePath))
                 {
+                    if (Files.isSymbolicLink(observablePath))
+                    {
+                        Path targetPath = Files.readSymbolicLink(observablePath);
+                        targetPath = configPath.resolveSibling(targetPath).normalize();
+                        observablePaths.addLast(targetPath);
+                    }
+
                     for (Path ancestorPath = observablePath.getParent();
                          ancestorPath != null;
                          ancestorPath = ancestorPath.getParent())
@@ -92,7 +86,7 @@ public class WatchedConfig
                             if (watchedPaths.add(ancestorPath))
                             {
                                 Path targetPath = Files.readSymbolicLink(ancestorPath);
-                                observablePaths.addLast(ancestorPath.resolve(targetPath));
+                                observablePaths.addLast(ancestorPath.resolve(targetPath).normalize());
                             }
                         }
                     }
@@ -105,7 +99,6 @@ public class WatchedConfig
                 {
                     WatchKey key = registerPath(watchedPath.getParent());
                     watchKeys.add(key);
-                    watchedConfigsByKey.put(key, this);
                 }
             }
         }
