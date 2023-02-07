@@ -228,6 +228,26 @@ public class ReconfigureIT
     }
 
     @Test
+    @Configuration("zilla.reconfigure.not.modify.parse.failed.json")
+    @Specification({
+        "${app}/reconfigure.not.modify.parse.failed.via.file/server",
+        "${net}/reconfigure.not.modify.parse.failed.via.file/client"
+    })
+    public void shouldNotReconfigureWhenModifiedButParseFailed() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+
+        Path source = Paths.get(ReconfigureIT.class.getResource("zilla.reconfigure.not.modify.parse.failed.after.json").toURI());
+        Path target = CONFIG_DIR.resolve("zilla.reconfigure.not.modify.parse.failed.json");
+
+        Files.move(source, target, ATOMIC_MOVE);
+
+        k3po.notifyBarrier("CONFIG_CHANGED");
+        k3po.finish();
+    }
+
+    @Test
     @Configure(name = ENGINE_CONFIG_POLL_INTERVAL_SECONDS, value = "1")
     @Configuration("http://localhost:8080/")
     @Specification({

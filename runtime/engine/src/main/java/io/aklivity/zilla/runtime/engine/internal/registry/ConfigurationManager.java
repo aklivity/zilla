@@ -28,10 +28,8 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
-import java.util.function.ToLongFunction;
 
 import jakarta.json.JsonArray;
-import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
@@ -41,7 +39,6 @@ import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.ErrorHandler;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
@@ -65,7 +62,7 @@ import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
-public class ConfigManager
+public class ConfigurationManager
 {
     protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
     private final Collection<URL> schemaTypes;
@@ -74,27 +71,25 @@ public class ConfigManager
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
     private final Collection<DispatchAgent> dispatchers;
-    private final ErrorHandler errorHandler;
     private final Consumer<String> logger;
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private final ExpressionResolver expressions;
-    private final Consumer<URL> onURLDiscovered;
+    private final Consumer<URL> handleConfigURL;
 
-    public ConfigManager(
+    public ConfigurationManager(
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
         Collection<DispatchAgent> dispatchers,
-        ErrorHandler errorHandler,
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
-        Consumer<URL> onURLDiscovered)
+        Consumer<URL> handleConfigURL)
     {
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
@@ -102,22 +97,26 @@ public class ConfigManager
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
-        this.errorHandler = errorHandler;
         this.logger = logger;
         this.context = context;
         this.config = config;
         this.extensions = extensions;
-        this.onURLDiscovered = onURLDiscovered;
+        this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
 
-    public NamespaceConfig register(
+    public NamespaceConfig parse(
         String configText)
     {
         NamespaceConfig namespace = null;
         if (configText == null || configText.isEmpty())
         {
             configText = CONFIG_TEXT_DEFAULT;
+        }
+
+        if (!configText.endsWith(System.lineSeparator()))
+        {
+            configText += System.lineSeparator();
         }
         logger.accept(configText);
 
@@ -130,7 +129,7 @@ public class ConfigManager
         parse:
         try
         {
-            //TODO: detect configURLs and call onURLDiscovered
+            //TODO: detect configURLs and call handleConfigURL
             InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
 
             JsonProvider schemaProvider = JsonProvider.provider();
@@ -180,7 +179,8 @@ public class ConfigManager
             namespace.id = supplyId.applyAsInt(namespace.name);
 
             // TODO: consider qualified name "namespace::name"
-            namespace.resolveId = idResolver(namespace);
+            final NamespaceConfig finalNamespace = namespace;
+            namespace.resolveId = name -> name != null ? NamespacedId.id(finalNamespace.id, supplyId.applyAsInt(name)) : 0L;
 
             for (GuardConfig guard : namespace.guards)
             {
@@ -244,28 +244,37 @@ public class ConfigManager
 
                 tuning.affinity(binding.id, affinity);
             }
-
-            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-            for (DispatchAgent dispatcher : dispatchers)
-            {
-                future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
-            }
-            future.join();
-            extensions.forEach(e -> e.onRegistered(context));
         }
         catch (Throwable ex)
         {
-            errorHandler.onError(ex);
+            logError(ex.getMessage());
         }
 
         if (!errors.isEmpty())
         {
-            errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
+            errors.forEach(this::logError);
         }
         return namespace;
     }
 
-    public void unRegister(
+    private void logError(String message)
+    {
+        logger.accept("Configuration parsing error: " + message);
+    }
+
+    public void register(
+        NamespaceConfig namespace)
+    {
+        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
+        for (DispatchAgent dispatcher : dispatchers)
+        {
+            future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
+        }
+        future.join();
+        extensions.forEach(e -> e.onRegistered(context));
+    }
+
+    public void unregister(
         NamespaceConfig namespace)
     {
         if (namespace != null)
@@ -279,10 +288,4 @@ public class ConfigManager
             extensions.forEach(e -> e.onUnregistered(context));
         }
     }
-
-    private ToLongFunction<String> idResolver(NamespaceConfig namespace)
-    {
-        return name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
-    }
-
 }

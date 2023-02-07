@@ -74,6 +74,16 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/reconfigure.not.modify.parse.failed.via.file/server",
+        "${app}/reconfigure.not.modify.parse.failed.via.file/client"
+    })
+    public void shouldNotReconfigureWhenModifiedButParseFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/reconfigure.modify.via.http/client",
         "${app}/reconfigure.modify.via.http/server" })
     public void shouldReconfigureWhenModifiedHTTP() throws Exception

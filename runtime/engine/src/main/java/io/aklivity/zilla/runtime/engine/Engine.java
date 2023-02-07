@@ -55,7 +55,7 @@ import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.registry.ConfigManager;
+import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
@@ -77,7 +77,7 @@ public final class Engine implements AutoCloseable
     private final ThreadFactory factory;
 
     private final ToIntFunction<String> supplyLabelId;
-    private final ConfigManager configManager;
+    private final ConfigurationManager configurationManager;
     private final WatcherTask watcherTask;
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
@@ -173,8 +173,8 @@ public final class Engine implements AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        configManager = new ConfigManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning, dispatchers,
-            errorHandler, logger, context, config, extensions, watcherTask::onURLDiscovered);
+        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
+            tuning, dispatchers, logger, context, config, extensions, watcherTask::watch);
 
         this.namespaces = new HashMap<>();
 
@@ -224,7 +224,7 @@ public final class Engine implements AutoCloseable
             AgentRunner.startOnThread(runner, Thread::new);
         }
         watcherTaskRef = commonPool().submit(watcherTask);
-        watcherTask.onURLDiscovered(rootConfigURL);
+        watcherTask.doInitialConfiguration(rootConfigURL);
         watcherTask.awaitInitConfig();
     }
 
@@ -265,13 +265,19 @@ public final class Engine implements AutoCloseable
         }
     }
 
-    private void reconfigure(
+    private NamespaceConfig reconfigure(
         URL configURL,
         String configText)
     {
-        NamespaceConfig oldNamespace = namespaces.get(configURL);
-        configManager.unRegister(oldNamespace);
-        namespaces.put(configURL, configManager.register(configText));
+        NamespaceConfig newNamespace = configurationManager.parse(configText);
+        if (newNamespace != null)
+        {
+            NamespaceConfig oldNamespace = namespaces.get(configURL);
+            configurationManager.unregister(oldNamespace);
+            configurationManager.register(newNamespace);
+            namespaces.put(configURL, newNamespace);
+        }
+        return newNamespace;
     }
 
     public static EngineBuilder builder()

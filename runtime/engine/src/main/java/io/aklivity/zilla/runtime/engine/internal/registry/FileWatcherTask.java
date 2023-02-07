@@ -29,27 +29,32 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public class FileWatcherTask extends WatcherTask
 {
-    private final Map<WatchKey, WatchedConfig> watchedConfigsByKey;
-    private WatchService watchService;
+    private final Map<WatchKey, WatchedConfig> watchedConfigs;
+    private final WatchService watchService;
 
     public FileWatcherTask(
-        BiConsumer<URL, String> changeListener)
+        BiFunction<URL, String, NamespaceConfig> changeListener)
     {
         super(changeListener);
-        this.watchedConfigsByKey = new IdentityHashMap<>();
+        this.watchedConfigs = new IdentityHashMap<>();
+        WatchService watchService = null;
+
         try
         {
-            this.watchService = FileSystems.getDefault().newWatchService();
+            watchService = FileSystems.getDefault().newWatchService();
         }
         catch (IOException ex)
         {
             rethrowUnchecked(ex);
         }
+
+        this.watchService = watchService;
 
     }
 
@@ -62,19 +67,21 @@ public class FileWatcherTask extends WatcherTask
             {
                 final WatchKey key = watchService.take();
 
-                WatchedConfig watchedConfig = watchedConfigsByKey.get(key);
+                WatchedConfig watchedConfig = watchedConfigs.get(key);
 
                 if (watchedConfig != null && watchedConfig.isWatchedKey(key))
                 {
                     // Even if no reconfigure needed, recalculation is necessary, since symlinks might have changed.
-                    watchedConfig.cancelKeys(watchedConfigsByKey);
-                    watchedConfigsByKey.putAll(watchedConfig.registerPaths());
+                    watchedConfig.keys().forEach(watchedConfigs::remove);
+                    watchedConfig.unregister();
+                    watchedConfig.register();
+                    watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
                     String newConfigText = readConfigText(watchedConfig.getURL());
                     byte[] newConfigHash = computeHash(newConfigText);
                     if (watchedConfig.isReconfigureNeeded(newConfigHash))
                     {
                         watchedConfig.setConfigHash(newConfigHash);
-                        changeListener.accept(watchedConfig.getURL(), newConfigText);
+                        changeListener.apply(watchedConfig.getURL(), newConfigText);
                     }
                 }
             }
@@ -88,15 +95,27 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public void onURLDiscovered(
+    public NamespaceConfig watch(
         URL configURL)
     {
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
-        watchedConfigsByKey.putAll(watchedConfig.registerPaths());
+        watchedConfig.register();
+        watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
-        changeListener.accept(configURL, configText);
+        NamespaceConfig newNamespace = changeListener.apply(configURL, configText);
         initConfigLatch.countDown();
+        return newNamespace;
+    }
+
+    @Override
+    public void doInitialConfiguration(URL configURL) throws Exception
+    {
+        NamespaceConfig initialConfig = watch(configURL);
+        if (initialConfig == null)
+        {
+            throw new Exception("Parsing of the initial configuration failed.");
+        }
     }
 
     @Override
