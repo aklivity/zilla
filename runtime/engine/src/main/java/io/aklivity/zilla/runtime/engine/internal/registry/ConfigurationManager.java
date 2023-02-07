@@ -257,7 +257,8 @@ public class ConfigurationManager
         return namespace;
     }
 
-    private void logError(String message)
+    private void logError(
+        String message)
     {
         logger.accept("Configuration parsing error: " + message);
     }
