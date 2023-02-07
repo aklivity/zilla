@@ -134,7 +134,14 @@ public class ConfigureTask implements Callable<Void>
         }
         else
         {
-            configText = readURL(configURL);
+            try
+            {
+                configText = readURL(configURL);
+            }
+            catch (Exception ex)
+            {
+                configText = CONFIG_TEXT_DEFAULT;
+            }
         }
 
         if (!configText.endsWith(System.lineSeparator()))
