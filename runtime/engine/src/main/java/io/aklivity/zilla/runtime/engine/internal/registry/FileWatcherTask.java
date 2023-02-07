@@ -16,6 +16,7 @@
 
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager.CONFIG_TEXT_DEFAULT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -134,7 +135,7 @@ public class FileWatcherTask extends WatcherTask
         }
         catch (IOException ex)
         {
-            return "";
+            return CONFIG_TEXT_DEFAULT;
         }
         return configText;
     }
