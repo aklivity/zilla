@@ -112,7 +112,8 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public void doInitialConfiguration(URL configURL) throws Exception
+    public void doInitialConfiguration(
+        URL configURL) throws Exception
     {
         NamespaceConfig initialConfig = register(configURL);
         if (initialConfig == null)

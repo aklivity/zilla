@@ -74,7 +74,7 @@ public class WatchedConfig
                 // This is needed so if the symlink contains a symlink chain, those are watched as well
                 observablePaths.addLast(targetPath);
                 // We need to watch for the actual file changes as well
-                //watchedPaths.add(toRealPath(targetPath));
+                watchedPaths.add(toRealPath(targetPath));
             }
 
             while (!observablePaths.isEmpty())
