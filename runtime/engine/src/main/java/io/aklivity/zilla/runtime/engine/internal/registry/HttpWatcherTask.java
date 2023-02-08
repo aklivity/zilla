@@ -63,33 +63,16 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     @Override
-    public void watch(
+    public CompletableFuture<NamespaceConfig> watch(
         URL configURL)
     {
         URI configURI = getUri(configURL);
-        sendAsync(configURI, INTIAL_ETAG);
-    }
-
-    @Override
-    public void doInitialConfiguration(
-        URL configURL) throws Exception
-    {
-        URI configURI = getUri(configURL);
-        HttpClient client = HttpClient.newBuilder()
-            .version(HTTP_2)
-            .followRedirects(NORMAL)
-            .build();
-        HttpRequest request = HttpRequest.newBuilder()
-            .GET()
-            .headers("If-None-Match", INTIAL_ETAG, "Prefer", "wait=86400")
-            .uri(configURI)
-            .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        NamespaceConfig initialConfig = handleConfigChange(response);
-        if (initialConfig == null)
+        NamespaceConfig config = sendSync(configURI, INTIAL_ETAG);
+        if (config == null)
         {
-            throw new Exception("Parsing of the initial configuration failed.");
+            return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
         }
+        return CompletableFuture.completedFuture(config);
     }
 
     @Override
@@ -97,6 +80,32 @@ public class HttpWatcherTask extends WatcherTask
     {
         futures.values().forEach(future -> future.cancel(true));
         closed = true;
+    }
+
+    private NamespaceConfig sendSync(
+        URI configURI,
+        String etag)
+    {
+        HttpClient client = HttpClient.newBuilder()
+            .version(HTTP_2)
+            .followRedirects(NORMAL)
+            .build();
+        HttpRequest request = HttpRequest.newBuilder()
+            .GET()
+            .headers("If-None-Match", etag, "Prefer", "wait=86400")
+            .uri(configURI)
+            .build();
+        HttpResponse<String> response;
+        try
+        {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        }
+        catch (Exception ex)
+        {
+            handleException(ex, configURI);
+            return null;
+        }
+        return handleConfigChange(response);
     }
 
     private void sendAsync(

@@ -16,6 +16,7 @@
 
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager.CONFIG_TEXT_DEFAULT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -29,6 +30,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -95,31 +97,20 @@ public class FileWatcherTask extends WatcherTask
     }
 
     @Override
-    public void watch(
+    public CompletableFuture<NamespaceConfig> watch(
         URL configURL)
-    {
-        register(configURL);
-    }
-
-    private NamespaceConfig register(URL configURL)
     {
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
         watchedConfig.register();
         watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
-        return changeListener.apply(configURL, configText);
-    }
-
-    @Override
-    public void doInitialConfiguration(
-        URL configURL) throws Exception
-    {
-        NamespaceConfig initialConfig = register(configURL);
-        if (initialConfig == null)
+        NamespaceConfig config = changeListener.apply(configURL, configText);
+        if (config == null)
         {
-            throw new Exception("Parsing of the initial configuration failed.");
+            return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
         }
+        return CompletableFuture.completedFuture(config);
     }
 
     @Override
@@ -142,7 +133,7 @@ public class FileWatcherTask extends WatcherTask
         }
         catch (IOException ex)
         {
-            return "";
+            return CONFIG_TEXT_DEFAULT;
         }
         return configText;
     }

@@ -8,6 +8,7 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -34,11 +35,9 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
         this.md5 = md5;
     }
 
-    public abstract void watch(
+    public abstract CompletableFuture<NamespaceConfig> watch(
         URL configURL);
 
-    public abstract void doInitialConfiguration(
-        URL configURL) throws Exception;
 
     protected byte[] computeHash(
         String configText)

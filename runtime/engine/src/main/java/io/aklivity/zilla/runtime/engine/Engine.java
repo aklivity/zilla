@@ -224,7 +224,7 @@ public final class Engine implements AutoCloseable
             AgentRunner.startOnThread(runner, Thread::new);
         }
         watcherTaskRef = commonPool().submit(watcherTask);
-        watcherTask.doInitialConfiguration(rootConfigURL);
+        watcherTask.watch(rootConfigURL).get();
     }
 
     @Override

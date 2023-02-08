@@ -257,12 +257,6 @@ public class ConfigurationManager
         return namespace;
     }
 
-    private void logError(
-        String message)
-    {
-        logger.accept("Configuration parsing error: " + message);
-    }
-
     public void register(
         NamespaceConfig namespace)
     {
@@ -289,4 +283,11 @@ public class ConfigurationManager
             extensions.forEach(e -> e.onUnregistered(context));
         }
     }
+
+    private void logError(
+        String message)
+    {
+        logger.accept("Configuration parsing error: " + message);
+    }
+
 }
