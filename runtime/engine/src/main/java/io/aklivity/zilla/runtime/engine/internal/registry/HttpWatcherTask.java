@@ -17,7 +17,9 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
@@ -26,14 +28,15 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public class HttpWatcherTask extends WatcherTask
 {
     private static final String INTIAL_ETAG = "INIT";
+
     private final Map<URI, String> etags;
     private final Map<URI, byte[]> configHashes;
     private final Map<URI, CompletableFuture<Void>> futures;
     private final Queue<URI> configWatcherQueue;
-
+    private final ScheduledExecutorService executor;
     //If server does not support long-polling use this interval
     private final int pollIntervalSeconds;
-    private volatile boolean closed = false;
+    private volatile boolean closed;
 
     public HttpWatcherTask(
         BiFunction<URL, String, NamespaceConfig> changeListener,
@@ -45,6 +48,7 @@ public class HttpWatcherTask extends WatcherTask
         this.futures = new ConcurrentHashMap<>();
         this.configWatcherQueue = new LinkedBlockingQueue<>();
         this.pollIntervalSeconds = pollIntervalSeconds;
+        this.executor  = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Override
@@ -66,7 +70,7 @@ public class HttpWatcherTask extends WatcherTask
     public CompletableFuture<NamespaceConfig> watch(
         URL configURL)
     {
-        URI configURI = getUri(configURL);
+        URI configURI = toURI(configURL);
         NamespaceConfig config = sendSync(configURI, INTIAL_ETAG);
         if (config == null)
         {
@@ -131,15 +135,7 @@ public class HttpWatcherTask extends WatcherTask
         Throwable throwable,
         URI configURI)
     {
-        try
-        {
-            TimeUnit.SECONDS.sleep(pollIntervalSeconds);
-        }
-        catch (InterruptedException ex)
-        {
-            Thread.currentThread().interrupt();
-        }
-        configWatcherQueue.add(configURI);
+        scheduleRequest(configURI, pollIntervalSeconds);
         return null;
     }
 
@@ -151,14 +147,15 @@ public class HttpWatcherTask extends WatcherTask
         {
             URI configURI = response.request().uri();
             int statusCode = response.statusCode();
+            int pollIntervalSeconds = 0;
             if (statusCode == 404)
             {
                 config = changeListener.apply(configURI.toURL(), "");
-                TimeUnit.SECONDS.sleep(pollIntervalSeconds);
+                pollIntervalSeconds = this.pollIntervalSeconds;
             }
             else if (statusCode >= 500 && statusCode <= 599)
             {
-                TimeUnit.SECONDS.sleep(pollIntervalSeconds);
+                pollIntervalSeconds = this.pollIntervalSeconds;
             }
             else
             {
@@ -175,7 +172,7 @@ public class HttpWatcherTask extends WatcherTask
                     }
                     else if (response.statusCode() != 304)
                     {
-                        TimeUnit.SECONDS.sleep(pollIntervalSeconds);
+                        pollIntervalSeconds = this.pollIntervalSeconds;
                     }
                 }
                 else
@@ -187,24 +184,32 @@ public class HttpWatcherTask extends WatcherTask
                         configHashes.put(configURI, newConfigHash);
                         config = changeListener.apply(configURI.toURL(), configText);
                     }
-                    TimeUnit.SECONDS.sleep(pollIntervalSeconds);
+                    pollIntervalSeconds = this.pollIntervalSeconds;
                 }
             }
             futures.remove(configURI);
-            configWatcherQueue.add(configURI);
+            scheduleRequest(configURI, pollIntervalSeconds);
         }
         catch (MalformedURLException ex)
         {
             rethrowUnchecked(ex);
         }
-        catch (InterruptedException ex)
-        {
-            Thread.currentThread().interrupt();
-        }
         return config;
     }
 
-    private URI getUri(
+    private void scheduleRequest(URI configURI, int pollIntervalSeconds)
+    {
+        if (pollIntervalSeconds == 0)
+        {
+            configWatcherQueue.add(configURI);
+        }
+        else
+        {
+            executor.schedule(() -> configWatcherQueue.add(configURI), pollIntervalSeconds, TimeUnit.SECONDS);
+        }
+    }
+
+    private URI toURI(
         URL configURL)
     {
         URI configURI = null;
