@@ -46,6 +46,24 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${filesystem}/client.read.file.map.modified/client",
+        "${filesystem}/client.read.file.map.modified/server"})
+    public void shouldReceiveClientReadFileMapModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${filesystem}/client.read.file.map.not.modified/client",
+        "${filesystem}/client.read.file.map.not.modified/server"})
+    public void shouldReceiveClientReadFileMapNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${filesystem}/client.read.file.info/client",
         "${filesystem}/client.read.file.info/server"})
     public void shouldReceiveClientReadFileInfo() throws Exception

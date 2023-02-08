@@ -22,6 +22,8 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
                                  .capabilities("READ_PAYLOAD")
                                  .path("index.html")
+                                 .tag("f2c912a30f38a124c3249f8e802e0d90")
+                                 .timeout(1000)
                                  .build()}
 connected
 
@@ -29,18 +31,10 @@ read closed
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("READ_PAYLOAD")
+                                  .capabilities()
                                   .path("index.html")
-                                  .type("text/html")
-                                  .payloadSize(77)
                                   .tag("f2c912a30f38a124c3249f8e802e0d90")
                                   .build()}
-write flush
-
-write "<html>\n"
-      "<head><title>Welcome</title></head>\n"
-      "<body>Hello, world</body>\n"
-      "</html>\n"
 write flush
 
 write close

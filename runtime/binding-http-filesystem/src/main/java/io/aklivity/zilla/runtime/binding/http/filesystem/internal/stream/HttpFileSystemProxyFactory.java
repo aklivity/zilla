@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.http.filesystem.internal.HttpFileSystem
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemBindingConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemRouteConfig;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.config.HttpFileSystemWithResult;
+import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.http.filesystem.internal.types.OctetsFW;
@@ -53,8 +54,12 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
     private static final String8FW HEADER_STATUS_NAME = new String8FW(":status");
     private static final String16FW HEADER_STATUS_VALUE_200 = new String16FW("200");
+    private static final String16FW HEADER_STATUS_VALUE_304 = new String16FW("304");
+    private static final String16FW HEADER_STATUS_VALUE_404 = new String16FW("404");
+    private static final String8FW HEADER_ETAG_NAME = new String8FW("Etag");
     private static final String8FW HEADER_CONTENT_TYPE_NAME = new String8FW("content-type");
     private static final String8FW HEADER_CONTENT_LENGTH_NAME = new String8FW("content-length");
+    private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
 
     private static final Predicate<HttpHeaderFW> HEADER_METHOD_GET_OR_HEAD;
 
@@ -96,7 +101,6 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
 
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
-
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
@@ -105,7 +109,6 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
 
     private final FileSystemBeginExFW.Builder fsBeginExRW = new FileSystemBeginExFW.Builder();
-
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
@@ -134,8 +137,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     public void attach(
         BindingConfig binding)
     {
-        HttpFileSystemBindingConfig sseKafkaBinding = new HttpFileSystemBindingConfig(binding);
-        bindings.put(binding.id, sseKafkaBinding);
+        HttpFileSystemBindingConfig httpFileSystemBinding = new HttpFileSystemBindingConfig(binding);
+        bindings.put(binding.id, httpFileSystemBinding);
     }
 
     @Override
@@ -617,16 +620,39 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                     dataEx != null && dataEx.typeId() == fsTypeId ? extension.get(fsBeginExRO::tryWrap) : null;
             final String length = fsBeginEx != null ? Long.toString(fsBeginEx.payloadSize()) : null;
             final String16FW type = fsBeginEx != null ? fsBeginEx.type() : null;
-            final Flyweight httpBeginEx = fsBeginEx == null
-                    ? emptyExRO
-                    : httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+            final String16FW tag = fsBeginEx != null ? fsBeginEx.tag() : null;
+            Flyweight httpBeginEx = emptyExRO;
+            if (fsBeginEx != null)
+            {
+                final HttpBeginExFW.Builder httpBeginExBuilder =
+                    httpBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
-                        .headersItem(h -> h.name(HEADER_STATUS_NAME).value(HEADER_STATUS_VALUE_200))
+                        .headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)))
                         .headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type))
-                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length))
-                        .build();
+                        .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
+                if (tag != null && tag.asString() != null)
+                {
+                    httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
+                }
+                httpBeginEx = httpBeginExBuilder.build();
+            }
 
             delegate.doHttpBegin(traceId, authorization, affinity, httpBeginEx);
+        }
+
+        private String16FW getStatus(FileSystemBeginExFW fsBeginEx)
+        {
+            if (fsBeginEx.tag().asString() == null)
+            {
+                return HEADER_STATUS_VALUE_200;
+            }
+            return canReadPayload(fsBeginEx.capabilities()) ? HEADER_STATUS_VALUE_200 : HEADER_STATUS_VALUE_304;
+        }
+
+        private boolean canReadPayload(
+            int capabilities)
+        {
+            return (capabilities & READ_PAYLOAD_MASK) != 0;
         }
 
         private void onFileSystemData(
@@ -934,6 +960,8 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .typeId(fsTypeId)
                 .capabilities(resolved.capabilities())
                 .path(resolved.path())
+                .tag(resolved.tag())
+                .timeout(resolved.timeout() * 1000)
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

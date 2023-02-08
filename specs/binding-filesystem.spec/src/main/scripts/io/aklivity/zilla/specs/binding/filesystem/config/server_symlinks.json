@@ -1,0 +1,16 @@
+{
+    "name": "test",
+    "bindings":
+    {
+        "app0":
+        {
+            "type" : "filesystem",
+            "kind": "server",
+            "options":
+            {
+                "location": "target/files/",
+                "symlinks": "follow"
+            }
+        }
+    }
+}

@@ -112,6 +112,8 @@ public interface EngineContext
     VaultHandler supplyVault(
         long vaultId);
 
+    FileSystemWatcher supplyFileSystemWatcher();
+
     URL resolvePath(
         String path);
 

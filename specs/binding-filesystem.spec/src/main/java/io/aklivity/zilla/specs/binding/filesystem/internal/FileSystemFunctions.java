@@ -90,10 +90,17 @@ public final class FileSystemFunctions
             return this;
         }
 
-        public FileSystemBeginExBuilder modifiedTime(
-            long modifiedTime)
+        public FileSystemBeginExBuilder tag(
+            String tag)
         {
-            beginExRW.modifiedTime(modifiedTime);
+            beginExRW.tag(tag);
+            return this;
+        }
+
+        public FileSystemBeginExBuilder timeout(
+            int timeout)
+        {
+            beginExRW.timeout(timeout);
             return this;
         }
 
@@ -118,6 +125,8 @@ public final class FileSystemFunctions
         private String type;
         private Long payloadSize;
         private Long modifiedTime;
+        private String tag;
+        private Integer timeout;
 
         public FileSystemBeginExMatcherBuilder typeId(
             int typeId)
@@ -158,10 +167,17 @@ public final class FileSystemFunctions
             return this;
         }
 
-        public FileSystemBeginExMatcherBuilder modifiedTime(
-            long modifiedTime)
+        public FileSystemBeginExMatcherBuilder tag(
+            String tag)
         {
-            this.modifiedTime = modifiedTime;
+            this.tag = tag;
+            return this;
+        }
+
+        public FileSystemBeginExMatcherBuilder timeout(
+            int timeout)
+        {
+            this.timeout = timeout;
             return this;
         }
 
@@ -187,7 +203,8 @@ public final class FileSystemFunctions
                 matchPath(beginEx) &&
                 matchType(beginEx) &&
                 matchPayloadSize(beginEx) &&
-                matchModifiedTime(beginEx))
+                matchTag(beginEx) &&
+                matchTimeout(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
                 return beginEx;
@@ -226,10 +243,16 @@ public final class FileSystemFunctions
             return type == null || type.equals(beginEx.type().asString());
         }
 
-        private boolean matchModifiedTime(
+        private boolean matchTag(
             FileSystemBeginExFW beginEx)
         {
-            return modifiedTime == null || modifiedTime == beginEx.modifiedTime();
+            return tag == null || tag.equals(beginEx.tag().asString());
+        }
+
+        private boolean matchTimeout(
+            FileSystemBeginExFW beginEx)
+        {
+            return timeout == null || timeout == beginEx.timeout();
         }
     }
 

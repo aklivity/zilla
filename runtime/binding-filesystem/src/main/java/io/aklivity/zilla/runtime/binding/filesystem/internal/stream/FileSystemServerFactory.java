@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemSymbolicLinksConfig.IGNORE;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+import static java.time.Instant.now;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,8 +27,11 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -42,18 +47,20 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemOp
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.filesystem.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.FileSystemWatcher;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class FileSystemServerFactory implements FileSystemStreamFactory
@@ -65,12 +72,15 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+    private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
+    private static final int FILE_CHANGED_SIGNAL_ID = 1;
 
     private final BeginFW beginRO = new BeginFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final SignalFW signalRO = new SignalFW();
 
     private final FileSystemBeginExFW beginExRO = new FileSystemBeginExFW();
 
@@ -94,6 +104,9 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final int fileSystemTypeId;
 
     private final URI serverRoot;
+    private final FileSystemWatcher fileSystemWatcher;
+    private final MessageDigest md5;
+    private final Signaler signaler;
 
     public FileSystemServerFactory(
         FileSystemConfiguration config,
@@ -107,8 +120,20 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
-
+        this.fileSystemWatcher = context.supplyFileSystemWatcher();
         this.bindings = new Long2ObjectHashMap<>();
+        this.signaler = context.signaler();
+        MessageDigest md5 = null;
+        try
+        {
+            md5 = MessageDigest.getInstance("MD5");
+        }
+        catch (NoSuchAlgorithmException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+
+        this.md5 = md5;
     }
 
     @Override
@@ -157,15 +182,12 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final String resolvedPath = resolvedRoot.resolve(relativePath).getPath();
 
             final Path path = fileSystem.getPath(resolvedPath);
-
+            final String tag = beginEx.tag().asString();
             try
             {
                 String type = probeContentTypeOrDefault(path);
-                BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class, symlinks);
-                BasicFileAttributes attributes = view.readAttributes();
-                InputStream input = canReadPayload(capabilities) ? Files.newInputStream(path, symlinks) : null;
-
-                return new FileSystemServer(app, routeId, initialId, attributes, type, input)::onAppMessage;
+                return new FileSystemServer(app, routeId, initialId, type, symlinks,
+                    relativePath, resolvedPath, capabilities, tag)::onAppMessage;
             }
             catch (IOException ex)
             {
@@ -189,11 +211,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private final long routeId;
         private final long initialId;
         private final long replyId;
-
-        private final BasicFileAttributes attributes;
         private final String type;
-        private final InputStream input;
-
+        private final String relativePath;
+        private final Path resolvedPath;
+        private final int capabilities;
+        private final String tag;
+        private final LinkOption[] symlinks;
+        private FileSystemWatcher.WatchedFile watchedFile;
+        private BasicFileAttributes attributes;
         private long initialSeq;
         private long initialAck;
         private int initialMax;
@@ -215,17 +240,23 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             MessageConsumer app,
             long routeId,
             long initialId,
-            BasicFileAttributes attributes,
             String type,
-            InputStream input)
+            LinkOption[] symlinks,
+            String relativePath,
+            String resolvedPath,
+            int capabilities,
+            String tag)
         {
             this.app = app;
             this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.attributes = attributes;
             this.type = type;
-            this.input = input;
+            this.symlinks = symlinks;
+            this.relativePath = relativePath;
+            this.resolvedPath = Paths.get(resolvedPath);
+            this.capabilities = capabilities;
+            this.tag = tag;
         }
 
         private void onAppMessage(
@@ -256,6 +287,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onAppSignal(signal);
+                break;
             default:
                 break;
             }
@@ -284,24 +319,114 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             doAppWindow(traceId);
 
-            final int capabilities = beginEx.capabilities();
-            final String16FW path = beginEx.path();
-            final long size = attributes.size();
-            final long modifiedTime = attributes.lastModifiedTime().toMillis();
+            if (tag == null || tag.isEmpty())
+            {
+                Flyweight replyBeginEx = getReplyBeginEx(traceId);
+                doAppBegin(traceId, replyBeginEx);
+                flushAppData(traceId);
+            }
+            else
+            {
+                long timeoutAt = now().toEpochMilli() + beginEx.timeout();
+                long timeoutId = signaler.signalAt(timeoutAt, routeId, replyId, TIMEOUT_EXPIRED_SIGNAL_ID, 0);
+                watchedFile = new FileSystemWatcher.WatchedFile(
+                    resolvedPath, symlinks, this::calculateTag, tag, timeoutId, routeId, replyId);
+                fileSystemWatcher.watch(watchedFile);
+            }
+        }
 
-            Flyweight newBeginEx = beginExRW
+        private Flyweight getReplyBeginEx(
+            long traceId)
+        {
+            String newTag = calculateTag();
+            if (newTag == null)
+            {
+                doAppAbort(traceId);
+            }
+            int capabilities = tag == null || !tag.equals(newTag) ? this.capabilities : 0;
+            return getReplyBeginEx(newTag, capabilities);
+        }
+
+        private Flyweight getReplyBeginEx(
+            String newTag,
+            int capabilities)
+        {
+            attributes = getAttributes();
+            final long size = attributes.size();
+            Flyweight replyBeginEx = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(fileSystemTypeId)
                 .capabilities(capabilities)
-                .path(path)
+                .path(relativePath)
                 .type(type)
                 .payloadSize(size)
-                .modifiedTime(modifiedTime)
+                .tag(newTag)
                 .build();
+            return replyBeginEx;
+        }
 
-            doAppBegin(traceId, newBeginEx);
+        private BasicFileAttributes getAttributes()
+        {
+            BasicFileAttributes attributes = null;
+            try
+            {
+                BasicFileAttributeView view = Files.getFileAttributeView(resolvedPath, BasicFileAttributeView.class, symlinks);
+                attributes = view.readAttributes();
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return attributes;
+        }
 
-            flushAppData(traceId);
+        private String calculateTag()
+        {
+            String newTag = null;
+            try
+            {
+                InputStream input = getInputStream();
+                if (input != null)
+                {
+                    final byte[] readArray = readBuffer.byteArray();
+                    int bytesRead = input.read(readArray, 0, readArray.length);
+                    byte[] content = new byte[bytesRead];
+                    readBuffer.getBytes(0, content, 0, bytesRead);
+                    newTag = calculateHash(content);
+                }
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return newTag;
+        }
+
+        private InputStream getInputStream()
+        {
+            InputStream input = null;
+            try
+            {
+                input = canReadPayload(capabilities) ? Files.newInputStream(resolvedPath, symlinks) : null;
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return input;
+        }
+
+        private String calculateHash(
+            byte[] content)
+        {
+
+            byte[] hash = md5.digest(content);
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b: hash)
+            {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
         }
 
         private void onAppEnd(
@@ -360,15 +485,17 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = FileSystemState.openReply(state);
-
-            if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyOpened(state))
             {
-                replyDeb = supplyDebitor.apply(budgetId);
-                replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
-            }
+                state = FileSystemState.openReply(state);
 
-            flushAppData(traceId);
+                if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+                {
+                    replyDeb = supplyDebitor.apply(budgetId);
+                    replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
+                }
+                flushAppData(traceId);
+            }
         }
 
         private void onAppReset(
@@ -390,12 +517,31 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             doAppReset(traceId);
         }
 
+        private void onAppSignal(
+            SignalFW signal)
+        {
+            long traceId = signal.traceId();
+            switch (signal.signalId())
+            {
+            case FILE_CHANGED_SIGNAL_ID:
+                flushAppData(traceId);
+                break;
+            case TIMEOUT_EXPIRED_SIGNAL_ID:
+                Flyweight replyBeginEx = getReplyBeginEx(tag, 0);
+                doAppBegin(traceId, replyBeginEx);
+                doAppEnd(traceId);
+                break;
+            default:
+                break;
+            }
+            fileSystemWatcher.unregister(watchedFile);
+        }
+
         private void doAppBegin(
             long traceId,
             Flyweight extension)
         {
             state = FileSystemState.openingReply(state);
-
             doBegin(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
         }
 
@@ -460,9 +606,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         {
             final int replyNoAck = (int)(replySeq - replyAck);
             final int replyWin = replyMax - replyNoAck - replyPad;
-
+            if (!FileSystemState.replyOpening(state))
+            {
+                Flyweight replyBeginEx = getReplyBeginEx(traceId);
+                doAppBegin(traceId, replyBeginEx);
+            }
             if (replyWin > 0)
             {
+                InputStream input = getInputStream();
                 boolean replyClosable = input == null;
 
                 if (input != null)
@@ -483,7 +634,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         {
                             final byte[] readArray = readBuffer.byteArray();
                             int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
-
                             if (bytesRead != -1)
                             {
                                 OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);

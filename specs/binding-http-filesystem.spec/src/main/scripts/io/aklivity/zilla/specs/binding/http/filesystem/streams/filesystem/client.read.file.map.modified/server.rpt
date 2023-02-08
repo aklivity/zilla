@@ -13,15 +13,17 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
+accept "zilla://streams/filesystem0"
        option zilla:window 8192
        option zilla:transmission "half-duplex"
 accepted
 
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
-                                 .capabilities("READ_PAYLOAD")
+                                 .capabilities("READ_PAYLOAD", "READ_EXTENSION")
                                  .path("index.html")
+                                 .tag("AAAAAAAAAAAAAAAA")
+                                 .timeout(60000)
                                  .build()}
 connected
 
@@ -29,11 +31,11 @@ read closed
 
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
-                                  .capabilities("READ_PAYLOAD")
+                                  .capabilities("READ_PAYLOAD", "READ_EXTENSION")
                                   .path("index.html")
                                   .type("text/html")
                                   .payloadSize(77)
-                                  .tag("f2c912a30f38a124c3249f8e802e0d90")
+                                  .tag("BBBBBBBBBBBBBBBB")
                                   .build()}
 write flush
 

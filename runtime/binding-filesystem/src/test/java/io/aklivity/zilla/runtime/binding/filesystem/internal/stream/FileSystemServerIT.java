@@ -14,8 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,6 +79,61 @@ public class FileSystemServerIT
         "${app}/read.file.payload/client",
     })
     public void shouldReadFilePayloadOnly() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${app}/read.file.payload.modified/client",
+    })
+    public void shouldReadFilePayloadModified() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+        Path filesDirectory = Paths.get("target/files");
+        Path source = filesDirectory.resolve("index_modify_after.html");
+        Path target = filesDirectory.resolve("index_modify.html");
+
+        Files.move(source, target, ATOMIC_MOVE);
+        k3po.notifyBarrier("FILE_MODIFIED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server_symlinks.json")
+    @Specification({
+        "${app}/read.file.payload.modified.follow.symlinks/client",
+    })
+    public void shouldReadFilePayloadModifiedFollowSymlinks() throws Exception
+    {
+        Path filesDirectory = Paths.get("target/files").toAbsolutePath();
+        Path link = filesDirectory.resolve("index_modify_symlink.html");
+        Path targetData = Paths.get("data");
+        Path linkData = filesDirectory.resolve("data");
+        Path targetFile = Paths.get("symlink_before/index.html");
+        Files.createSymbolicLink(link, targetData);
+        Files.createSymbolicLink(linkData, targetFile);
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+
+        Path targetFileAfter = Paths.get("symlink_after/index.html");
+        File linkFile = new File(String.valueOf(linkData));
+        linkFile.delete();
+        Files.createSymbolicLink(linkData, targetFileAfter);
+        k3po.notifyBarrier("FILE_MODIFIED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.json")
+    @Specification({
+        "${app}/client.read.begin.not.modified/client",
+    })
+    public void shouldReadBeginNotModified() throws Exception
     {
         k3po.finish();
     }

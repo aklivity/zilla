@@ -21,25 +21,28 @@ accepted
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
                                  .capabilities("READ_PAYLOAD")
-                                 .path("index.html")
+                                 .path("index_modify_symlink.html")
+                                 .tag("f2c912a30f38a124c3249f8e802e0d90")
+                                 .timeout(60000)
                                  .build()}
 connected
 
 read closed
 
+write notify FILE_MODIFIED
 write zilla:begin.ext ${filesystem:beginEx()
                                   .typeId(zilla:id("filesystem"))
                                   .capabilities("READ_PAYLOAD")
-                                  .path("index.html")
+                                  .path("index_modify_symlink.html")
                                   .type("text/html")
-                                  .payloadSize(77)
-                                  .tag("f2c912a30f38a124c3249f8e802e0d90")
+                                  .payloadSize(74)
+                                  .tag("67894ed719735261d543842e5b966619")
                                   .build()}
 write flush
 
 write "<html>\n"
       "<head><title>Welcome</title></head>\n"
-      "<body>Hello, world</body>\n"
+      "<body>Hi, world</body>\n"
       "</html>\n"
 write flush
 

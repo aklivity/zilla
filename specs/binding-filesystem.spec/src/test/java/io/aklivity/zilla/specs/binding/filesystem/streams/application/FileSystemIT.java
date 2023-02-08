@@ -67,6 +67,36 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.file.payload.modified/client",
+        "${app}/read.file.payload.modified/server"
+    })
+    public void shouldReadFilePayloadModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.file.payload.modified.follow.symlinks/client",
+        "${app}/read.file.payload.modified.follow.symlinks/server"
+    })
+    public void shouldReadFilePayloadModifiedFollowSymlinks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.read.begin.not.modified/client",
+        "${app}/client.read.begin.not.modified/server"
+    })
+    public void shouldReadBeginNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload.extension/client",
         "${app}/read.file.payload.extension/server",
     })

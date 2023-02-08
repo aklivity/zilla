@@ -63,6 +63,26 @@ public class HttpFileSystemProxyIT
     @Test
     @Configuration("proxy.with.path.json")
     @Specification({
+        "${http}/client.read.file.map.modified/client",
+        "${filesystem}/client.read.file.map.modified/server"})
+    public void shouldReceiveClientReadFileMapModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.json")
+    @Specification({
+        "${http}/client.read.file.map.not.modified/client",
+        "${filesystem}/client.read.file.map.not.modified/server"})
+    public void shouldReceiveClientReadFileMapNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.with.path.json")
+    @Specification({
         "${http}/client.read.file.with.query/client",
         "${filesystem}/client.read.file/server"})
     public void shouldReceiveClientReadFileWithQuery() throws Exception
