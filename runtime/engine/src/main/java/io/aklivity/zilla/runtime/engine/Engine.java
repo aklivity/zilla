@@ -223,11 +223,7 @@ public final class Engine implements AutoCloseable
             AgentRunner.startOnThread(runner, Thread::new);
         }
         watcherTaskRef = commonPool().submit(watcherTask);
-        NamespaceConfig initialConfig = watcherTask.watch(rootConfigURL).get();
-        if (initialConfig == null)
-        {
-            throw new Exception("Parsing of the initial configuration failed.");
-        }
+        watcherTask.watch(rootConfigURL).get();
     }
 
     @Override

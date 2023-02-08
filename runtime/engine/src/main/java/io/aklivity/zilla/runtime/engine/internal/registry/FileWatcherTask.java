@@ -112,6 +112,10 @@ public class FileWatcherTask extends WatcherTask
         String configText = readConfigText(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
         NamespaceConfig config = changeListener.apply(configURL, configText);
+        if (config == null)
+        {
+            return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
+        }
         return CompletableFuture.completedFuture(config);
     }
 
