@@ -42,7 +42,7 @@ final class JwtGuardContext implements GuardContext
         GuardConfig guard)
     {
         JwtOptionsConfig options = (JwtOptionsConfig) guard.options;
-        JwtGuardHandler handler = new JwtGuardHandler(options, supplyAuthorizedId);
+        JwtGuardHandler handler = new JwtGuardHandler(options, supplyAuthorizedId, guard.readURL);
         handlersById.put(guard.id, handler);
         return handler;
     }
