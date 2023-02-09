@@ -46,4 +46,16 @@ public class JwtGuardIT
     public void shouldInitialize() throws Exception
     {
     }
+
+    @Test
+    @Configuration("guard-keys-dynamic.json")
+    public void shouldInitializeGuardWithDynamicKeys() throws Exception
+    {
+    }
+
+    @Test
+    @Configuration("guard-keys-implicit.json")
+    public void shouldInitializeGuardWithImplicitKeys() throws Exception
+    {
+    }
 }
