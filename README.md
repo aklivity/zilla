@@ -87,7 +87,7 @@ bindings:
 ```
 Then run Zilla again, this time mounting your local `zilla.yaml` as a docker volume file.
 ```
-docker run -v `pwd`/zilla.yaml:/zilla.yaml ghcr.io/aklivity/zilla:latest start -v
+docker run -v `pwd`/zilla.yaml:/etc/zilla/zilla.yaml ghcr.io/aklivity/zilla:latest start -v
 ```
 Now, try it out using `netcat`.
 ```bash
