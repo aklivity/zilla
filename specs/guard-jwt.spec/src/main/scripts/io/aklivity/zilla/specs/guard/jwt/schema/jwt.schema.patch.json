@@ -27,31 +27,40 @@
                         "keys":
                         {
                             "title": "Keys",
-                            "type": "array",
-                            "items":
-                            {
-                                "title": "Key",
-                                "type": "object",
-                                "properties":
+                            "oneOf": [
                                 {
-                                    "kty":
-                                    {
-                                        "title": "Key Type",
-                                        "type": "string"
-                                    },
-                                    "kid":
-                                    {
-                                        "title": "Key ID",
-                                        "type": "string"
-                                    }
+                                    "type": "string",
+                                    "format": "uri",
+                                    "pattern": "^(https?)://"
                                 },
-                                "additionalProperties": true,
-                                "required":
-                                [
-                                    "kty",
-                                    "kid"
-                                ]
-                            }
+                                {
+                                    "type": "array",
+                                    "items":
+                                    {
+                                        "title": "Key",
+                                        "type": "object",
+                                        "properties":
+                                        {
+                                            "kty":
+                                            {
+                                                "title": "Key Type",
+                                                "type": "string"
+                                            },
+                                            "kid":
+                                            {
+                                                "title": "Key ID",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": true,
+                                        "required":
+                                        [
+                                            "kty",
+                                            "kid"
+                                        ]
+                                    }
+                                }
+                            ]
                         },
                         "challenge":
                         {
