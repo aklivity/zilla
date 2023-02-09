@@ -140,7 +140,7 @@ public class FileWatcherTask extends WatcherTask
         }
         catch (IOException ex)
         {
-            return CONFIG_TEXT_DEFAULT;
+            return "";
         }
         return configText;
     }
