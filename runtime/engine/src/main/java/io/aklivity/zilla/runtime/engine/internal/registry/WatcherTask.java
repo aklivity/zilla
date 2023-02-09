@@ -18,9 +18,9 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
     {
         this.changeListener = changeListener;
     }
-
+    public abstract String readURL(
+        URL configURL);
     public abstract CompletableFuture<NamespaceConfig> watch(
         URL configURL);
-
 
 }

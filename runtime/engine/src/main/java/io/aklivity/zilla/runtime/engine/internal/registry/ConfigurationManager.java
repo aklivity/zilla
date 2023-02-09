@@ -15,10 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -63,10 +61,6 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 public class ConfigurationManager
 {
@@ -82,6 +76,7 @@ public class ConfigurationManager
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private final ExpressionResolver expressions;
+    private final Function<URL, String> readURL;
     private final Consumer<URL> handleConfigURL;
 
     public ConfigurationManager(
@@ -95,6 +90,7 @@ public class ConfigurationManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
+        Function<URL, String> readURL,
         Consumer<URL> handleConfigURL)
     {
         this.schemaTypes = schemaTypes;
@@ -107,6 +103,7 @@ public class ConfigurationManager
         this.context = context;
         this.config = config;
         this.extensions = extensions;
+        this.readURL = readURL;
         this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
@@ -118,17 +115,6 @@ public class ConfigurationManager
         if (configText == null || configText.isEmpty())
         {
             configText = CONFIG_TEXT_DEFAULT;
-        }
-        else
-        {
-            try
-            {
-                configText = readURL(configURL);
-            }
-            catch (Exception ex)
-            {
-                configText = CONFIG_TEXT_DEFAULT;
-            }
         }
 
         if (!configText.endsWith(System.lineSeparator()))
@@ -195,7 +181,7 @@ public class ConfigurationManager
 
             namespace.id = supplyId.applyAsInt(namespace.name);
 
-            namespace.readURL = this::readURL;
+            namespace.readURL = this.readURL;
 
             // TODO: consider qualified name "namespace::name"
             final NamespaceConfig finalNamespace = namespace;
@@ -309,45 +295,4 @@ public class ConfigurationManager
     {
         logger.accept("Configuration parsing error: " + message);
     }
-
-    private String readURL(
-        URL location)
-    {
-        String output = null;
-        try
-        {
-            if ("http".equals(location.getProtocol()) || "https".equals(location.getProtocol()))
-            {
-                HttpClient client = HttpClient.newBuilder()
-                    .version(HTTP_2)
-                    .followRedirects(NORMAL)
-                    .build();
-
-                HttpRequest request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(location.toURI())
-                    .build();
-
-                HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
-
-                output = response.body();
-            }
-            else
-            {
-                URLConnection connection = location.openConnection();
-                try (InputStream input = connection.getInputStream())
-                {
-                    output = new String(input.readAllBytes(), UTF_8);
-                }
-            }
-        }
-        catch (IOException | URISyntaxException | InterruptedException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return output;
-    }
-
 }
