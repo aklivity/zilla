@@ -34,7 +34,8 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
         }
         this.md5 = md5;
     }
-
+    public abstract String readURL(
+        URL configURL);
     public abstract CompletableFuture<NamespaceConfig> watch(
         URL configURL);
 

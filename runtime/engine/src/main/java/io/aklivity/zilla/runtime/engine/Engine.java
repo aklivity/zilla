@@ -174,7 +174,7 @@ public final class Engine implements AutoCloseable
         }
 
         this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, dispatchers, logger, context, config, extensions, watcherTask::watch);
+            tuning, dispatchers, logger, context, config, extensions, watcherTask::readURL, watcherTask::watch);
 
         this.namespaces = new HashMap<>();
 

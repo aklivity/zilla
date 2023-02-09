@@ -78,7 +78,7 @@ public class FileWatcherTask extends WatcherTask
                     watchedConfig.unregister();
                     watchedConfig.register();
                     watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-                    String newConfigText = readConfigText(watchedConfig.getURL());
+                    String newConfigText = readURL(watchedConfig.getURL());
                     byte[] newConfigHash = computeHash(newConfigText);
                     if (watchedConfig.isReconfigureNeeded(newConfigHash))
                     {
@@ -103,7 +103,7 @@ public class FileWatcherTask extends WatcherTask
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
         watchedConfig.register();
         watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-        String configText = readConfigText(configURL);
+        String configText = readURL(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
         NamespaceConfig config = changeListener.apply(configURL, configText);
         if (config == null)
@@ -119,7 +119,8 @@ public class FileWatcherTask extends WatcherTask
         watchService.close();
     }
 
-    private String readConfigText(
+    @Override
+    public String readURL(
         URL configURL)
     {
         String configText;

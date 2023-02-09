@@ -29,15 +29,28 @@ public class JwtOptionsConfig extends OptionsConfig
     public final List<JwtKeyConfig> keys;
     public final Optional<Duration> challenge;
 
+    public final Optional<String> keysURL;
+
     public JwtOptionsConfig(
         String issuer,
         String audience,
         List<JwtKeyConfig> keys,
         Duration challenge)
     {
+        this(issuer, audience, keys, challenge, null);
+    }
+
+    public JwtOptionsConfig(
+            String issuer,
+            String audience,
+            List<JwtKeyConfig> keys,
+            Duration challenge,
+            String keysURL)
+    {
         this.issuer = issuer;
         this.audience = audience;
         this.keys = keys;
         this.challenge = ofNullable(challenge);
+        this.keysURL = ofNullable(keysURL);
     }
 }

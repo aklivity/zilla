@@ -76,6 +76,7 @@ public class ConfigurationManager
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private final ExpressionResolver expressions;
+    private final Function<URL, String> readURL;
     private final Consumer<URL> handleConfigURL;
 
     public ConfigurationManager(
@@ -89,6 +90,7 @@ public class ConfigurationManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
+        Function<URL, String> readURL,
         Consumer<URL> handleConfigURL)
     {
         this.schemaTypes = schemaTypes;
@@ -101,6 +103,7 @@ public class ConfigurationManager
         this.context = context;
         this.config = config;
         this.extensions = extensions;
+        this.readURL = readURL;
         this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
@@ -178,6 +181,8 @@ public class ConfigurationManager
 
             namespace.id = supplyId.applyAsInt(namespace.name);
 
+            namespace.readURL = this.readURL;
+
             // TODO: consider qualified name "namespace::name"
             final NamespaceConfig finalNamespace = namespace;
             namespace.resolveId = name -> name != null ? NamespacedId.id(finalNamespace.id, supplyId.applyAsInt(name)) : 0L;
@@ -185,6 +190,7 @@ public class ConfigurationManager
             for (GuardConfig guard : namespace.guards)
             {
                 guard.id = namespace.resolveId.applyAsLong(guard.name);
+                guard.readURL = namespace.readURL;
             }
 
             for (VaultConfig vault : namespace.vaults)
@@ -289,5 +295,4 @@ public class ConfigurationManager
     {
         logger.accept("Configuration parsing error: " + message);
     }
-
 }
