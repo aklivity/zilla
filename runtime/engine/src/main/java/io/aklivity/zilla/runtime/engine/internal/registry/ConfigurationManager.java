@@ -184,8 +184,8 @@ public class ConfigurationManager
             namespace.readURL = this.readURL;
 
             // TODO: consider qualified name "namespace::name"
-            final NamespaceConfig finalNamespace = namespace;
-            namespace.resolveId = name -> name != null ? NamespacedId.id(finalNamespace.id, supplyId.applyAsInt(name)) : 0L;
+            final NamespaceConfig namespace0 = namespace;
+            namespace.resolveId = name -> name != null ? NamespacedId.id(namespace0.id, supplyId.applyAsInt(name)) : 0L;
 
             for (GuardConfig guard : namespace.guards)
             {
@@ -266,12 +266,10 @@ public class ConfigurationManager
     public void register(
         NamespaceConfig namespace)
     {
-        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-        for (DispatchAgent dispatcher : dispatchers)
-        {
-            future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
-        }
-        future.join();
+        dispatchers.stream()
+            .map(d -> d.attach(namespace))
+            .reduce(CompletableFuture::allOf)
+            .ifPresent(CompletableFuture::join);
         extensions.forEach(e -> e.onRegistered(context));
     }
 
@@ -280,12 +278,10 @@ public class ConfigurationManager
     {
         if (namespace != null)
         {
-            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-            for (DispatchAgent dispatcher : dispatchers)
-            {
-                future = CompletableFuture.allOf(future, dispatcher.detach(namespace));
-            }
-            future.join();
+            dispatchers.stream()
+                .map(d -> d.detach(namespace))
+                .reduce(CompletableFuture::allOf)
+                .ifPresent(CompletableFuture::join);
             extensions.forEach(e -> e.onUnregistered(context));
         }
     }
