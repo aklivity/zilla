@@ -18,6 +18,7 @@
 
   <modules>
     <module>binding-amqp.spec</module>
+    <module>binding-grpc.spec</module>
     <module>binding-mqtt.spec</module>
 
     <module>binding-amqp</module>
