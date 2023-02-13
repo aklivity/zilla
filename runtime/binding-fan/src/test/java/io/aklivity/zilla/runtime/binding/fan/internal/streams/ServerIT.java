@@ -50,7 +50,7 @@ public class ServerIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.connected/client",
         "${app}/client.connected/server"})
@@ -60,7 +60,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.data/client",
         "${app}/client.sent.data/server"})
@@ -70,7 +70,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.received.data/client",
         "${app}/client.received.data/server"})
@@ -80,7 +80,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.and.received.data/client",
         "${app}/client.sent.and.received.data/server"})
@@ -90,7 +90,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.received.data/client",
         "${net}/client.received.data/client",
@@ -104,7 +104,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.flush/client",
         "${app}/client.sent.flush/server"})
@@ -114,7 +114,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.flush/client",
         "${app}/server.sent.flush/server"})
@@ -124,7 +124,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.flush/client",
         "${net}/server.sent.flush/client",

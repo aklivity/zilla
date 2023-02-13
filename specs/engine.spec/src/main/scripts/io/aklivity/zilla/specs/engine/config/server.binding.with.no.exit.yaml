@@ -1,0 +1,6 @@
+---
+name: test
+bindings:
+    test-_.123:
+        type: test
+        kind: server

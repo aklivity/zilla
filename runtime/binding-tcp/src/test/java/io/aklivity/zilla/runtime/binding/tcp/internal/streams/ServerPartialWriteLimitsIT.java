@@ -78,7 +78,7 @@ public class ServerPartialWriteLimitsIT
                                   .around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.data.multiple.frames/server",
         "${client}/server.sent.data.multiple.frames/client"
@@ -94,7 +94,7 @@ public class ServerPartialWriteLimitsIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.data.multiple.streams.second.was.reset/server"
     })

@@ -1,0 +1,14 @@
+---
+name: test
+bindings:
+  app0:
+    type: proxy
+    kind: client
+    routes:
+      - exit: net0
+        when:
+          - transport: stream
+            family: inet
+            destination:
+              host: example.com
+              port: 443

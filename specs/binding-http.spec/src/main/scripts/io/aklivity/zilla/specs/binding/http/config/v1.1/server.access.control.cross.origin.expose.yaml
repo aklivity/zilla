@@ -1,0 +1,20 @@
+---
+name: test
+bindings:
+    net0:
+        type: http
+        kind: server
+        options:
+            versions:
+                - http/1.1
+            access-control:
+                policy: cross-origin
+                expose:
+                    headers:
+                        - x-custom-header
+        routes:
+            - exit: app0
+              when:
+                  - headers:
+                        :scheme: https
+                        :authority: example.com:9090

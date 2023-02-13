@@ -1,0 +1,7 @@
+---
+name: test
+bindings:
+    net0:
+        type: proxy
+        kind: server
+        exit: app0

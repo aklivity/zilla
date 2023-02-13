@@ -1,0 +1,15 @@
+---
+name: test
+bindings:
+  net0:
+    type: http
+    kind: server
+    options:
+      versions:
+        - h2
+    routes:
+      - exit: app0
+        when:
+          - headers:
+              :scheme: https
+              :authority: localhost:443

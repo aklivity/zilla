@@ -1,0 +1,11 @@
+---
+name: test
+bindings:
+  net0:
+    type: mqtt
+    kind: server
+    routes:
+      - exit: app0
+        when:
+          - topic: sensor/one
+            capabilities: subscribe_only

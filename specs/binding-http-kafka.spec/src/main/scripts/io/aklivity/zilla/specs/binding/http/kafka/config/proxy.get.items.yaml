@@ -1,0 +1,31 @@
+---
+name: test
+guards:
+  test0:
+    type: test
+    options:
+      roles:
+        - read:items
+bindings:
+  http0:
+    type: http-kafka
+    kind: proxy
+    routes:
+      - guarded:
+          test0:
+            - read:items
+        exit: kafka0
+        when:
+          - method: GET
+            path: /items
+        with:
+          capability: fetch
+          topic: items-snapshots
+          filters:
+            - headers:
+                zilla:identity: ${guarded['test0'].identity}
+          merge:
+            content-type: application/json
+            patch:
+              initial: "[]"
+              path: /-

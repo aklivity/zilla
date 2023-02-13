@@ -1,0 +1,16 @@
+---
+name: test
+bindings:
+  net0:
+    type: proxy
+    kind: server
+    routes:
+      - exit: app0
+        when:
+          - transport: stream
+            family: inet4
+            destination:
+              port: 443
+            info:
+              secure:
+                version: TLSv1.3

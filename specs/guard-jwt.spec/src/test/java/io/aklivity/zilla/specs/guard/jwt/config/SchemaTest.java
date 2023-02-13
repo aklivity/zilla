@@ -40,7 +40,7 @@ public class SchemaTest
     @Test
     public void shouldValidateGuard()
     {
-        JsonObject config = schema.validate("guard.json");
+        JsonObject config = schema.validate("guard.yaml");
 
         assertThat(config, not(nullValue()));
         JsonValue value = config.getValue("/guards/jwt0/options/keys");
@@ -50,7 +50,7 @@ public class SchemaTest
     @Test
     public void shouldValidateGuardWithDynamicKeys()
     {
-        JsonObject config = schema.validate("guard-keys-dynamic.json");
+        JsonObject config = schema.validate("guard-keys-dynamic.yaml");
 
         assertThat(config, not(nullValue()));
         JsonValue value = config.getValue("/guards/jwt0/options/keys");
@@ -61,7 +61,7 @@ public class SchemaTest
     @Test
     public void shouldValidateGuardWithImplicitKeys()
     {
-        JsonObject config = schema.validate("guard-keys-implicit.json");
+        JsonObject config = schema.validate("guard-keys-implicit.yaml");
 
         assertThat(config, not(nullValue()));
         JsonObject optionsConfig = (JsonObject) config.getValue("/guards/jwt0/options");

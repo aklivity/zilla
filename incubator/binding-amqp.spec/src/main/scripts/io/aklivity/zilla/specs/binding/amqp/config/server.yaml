@@ -1,0 +1,7 @@
+---
+name: test
+bindings:
+    net0:
+        type: amqp
+        kind: server
+        exit: app0

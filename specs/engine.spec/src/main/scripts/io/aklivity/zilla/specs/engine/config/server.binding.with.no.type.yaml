@@ -1,0 +1,6 @@
+---
+name: test
+bindings:
+    test:
+        kind: server
+        exit: test

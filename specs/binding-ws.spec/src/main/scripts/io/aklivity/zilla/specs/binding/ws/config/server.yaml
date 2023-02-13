@@ -1,0 +1,7 @@
+---
+name: test
+bindings:
+    net0:
+        type: ws
+        kind: server
+        exit: app0

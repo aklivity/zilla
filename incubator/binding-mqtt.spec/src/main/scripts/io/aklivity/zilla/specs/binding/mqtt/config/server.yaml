@@ -1,0 +1,8 @@
+---
+name: test
+bindings:
+    net0:
+        type: mqtt
+        kind: server
+        routes:
+            - exit: app0

@@ -1,0 +1,21 @@
+---
+name: test
+bindings:
+  app0:
+    type: kafka
+    kind: cache_client
+    routes:
+      - exit: cache0
+        when:
+          - topic: test
+  cache0:
+    type: kafka
+    kind: cache_server
+    options:
+      topics:
+        - name: test
+          deltaType: json_patch
+    routes:
+      - exit: app1
+        when:
+          - topic: test

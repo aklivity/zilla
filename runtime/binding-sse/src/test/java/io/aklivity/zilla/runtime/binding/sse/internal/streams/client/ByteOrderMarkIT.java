@@ -50,7 +50,7 @@ public class ByteOrderMarkIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/empty/client",
         "${net}/empty/response" })
@@ -60,7 +60,7 @@ public class ByteOrderMarkIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/non.empty/client",
         "${net}/non.empty/response" })

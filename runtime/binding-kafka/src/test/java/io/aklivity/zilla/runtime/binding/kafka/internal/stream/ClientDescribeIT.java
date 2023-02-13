@@ -52,7 +52,7 @@ public class ClientDescribeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.unknown/client"})
     public void shouldRejectWhenTopicUnknown() throws Exception
@@ -61,7 +61,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.config.info.incomplete/client",
         "${net}/topic.config.info.incomplete/server"})
@@ -71,7 +71,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.config.info/client",
         "${net}/topic.config.info/server"})
@@ -81,7 +81,7 @@ public class ClientDescribeIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.config.info.changed/client",
         "${net}/topic.config.info.changed/server"})

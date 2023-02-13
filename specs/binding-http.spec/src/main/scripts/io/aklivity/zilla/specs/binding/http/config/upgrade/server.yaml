@@ -1,0 +1,7 @@
+---
+name: test
+bindings:
+    net0:
+        type: http
+        kind: server
+        exit: app0

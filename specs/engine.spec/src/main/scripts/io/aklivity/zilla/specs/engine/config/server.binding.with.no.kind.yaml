@@ -1,0 +1,6 @@
+---
+name: test
+bindings:
+    test:
+        type: test
+        exit: test

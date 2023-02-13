@@ -53,7 +53,7 @@ public class ServerStatsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/non.empty/request",
         "${app}/non.empty/server" })

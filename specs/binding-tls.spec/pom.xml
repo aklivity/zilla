@@ -88,6 +88,7 @@
             <exclude>**/signers</exclude>
             <exclude>**/*.csr</exclude>
             <exclude>**/*.crt</exclude>
+            <exclude>**/*.yaml</exclude>
           </excludes>
         </configuration>
       </plugin>

@@ -1,0 +1,11 @@
+---
+name: test
+bindings:
+  app0:
+    type: amqp
+    kind: client
+    routes:
+      - exit: net0
+        when:
+          - address: clients
+            capabilities: receive_only

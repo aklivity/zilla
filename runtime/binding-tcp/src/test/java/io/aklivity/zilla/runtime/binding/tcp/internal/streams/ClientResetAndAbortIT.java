@@ -62,7 +62,7 @@ public class ClientResetAndAbortIT
             .around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.abort/client"
     })
@@ -89,7 +89,7 @@ public class ClientResetAndAbortIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.abort.and.reset/client"
     })
@@ -127,7 +127,7 @@ public class ClientResetAndAbortIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.reset/client"
     })
@@ -168,7 +168,7 @@ public class ClientResetAndAbortIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.reset.and.end/client"
     })

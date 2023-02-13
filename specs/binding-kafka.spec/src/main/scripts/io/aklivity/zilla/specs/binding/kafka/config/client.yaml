@@ -1,0 +1,7 @@
+---
+name: test
+bindings:
+    app0:
+        type: kafka
+        kind: client
+        exit: net0

@@ -1,0 +1,11 @@
+---
+name: test
+bindings:
+    app0:
+        type: kafka
+        kind: cache_client
+        exit: cache0
+    cache0:
+        type: kafka
+        kind: cache_server
+        exit: app1

@@ -1,0 +1,33 @@
+---
+name: test
+vaults:
+    server:
+        type: filesystem
+        options:
+            keys:
+                store: stores/server/keys
+                type: pkcs12
+                password: generated
+            trust:
+                store: stores/server/trust
+                type: pkcs12
+                password: generated
+            signers:
+                store: stores/server/signers
+                type: pkcs12
+                password: generated
+    client:
+        type: filesystem
+        options:
+            keys:
+                store: stores/client/keys
+                type: pkcs12
+                password: generated
+            trust:
+                store: stores/client/trust
+                type: pkcs12
+                password: generated
+            signers:
+                store: stores/client/signers
+                type: pkcs12
+                password: generated

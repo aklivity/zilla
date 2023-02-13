@@ -1,0 +1,12 @@
+---
+name: test
+bindings:
+    net0:
+        type: http
+        kind: server
+        options:
+            versions:
+                - h2
+            overrides:
+                :authority: otherhost:8181
+        exit: app0

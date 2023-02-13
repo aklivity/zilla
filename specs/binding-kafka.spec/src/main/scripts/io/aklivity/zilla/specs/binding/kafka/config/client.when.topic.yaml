@@ -1,0 +1,10 @@
+---
+name: test
+bindings:
+  app0:
+    type: kafka
+    kind: client
+    routes:
+      - exit: net0
+        when:
+          - topic: test

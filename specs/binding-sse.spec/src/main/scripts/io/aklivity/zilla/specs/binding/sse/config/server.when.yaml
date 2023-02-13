@@ -1,0 +1,10 @@
+---
+name: test
+bindings:
+  net0:
+    type: sse
+    kind: server
+    routes:
+      - exit: app0
+        when:
+          - path: /events/*

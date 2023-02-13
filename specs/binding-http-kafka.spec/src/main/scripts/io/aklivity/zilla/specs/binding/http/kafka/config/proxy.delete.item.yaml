@@ -1,0 +1,35 @@
+---
+name: test
+guards:
+    test0:
+        type: test
+        options:
+            roles:
+                - write:items
+bindings:
+    http0:
+        type: http-kafka
+        kind: proxy
+        options:
+            idempotency:
+                header: idempotency-key
+            correlation:
+                headers:
+                    reply-to: zilla:reply-to
+                    correlation-id: zilla:correlation-id
+        routes:
+            - guarded:
+                  test0:
+                      - write:items
+              exit: kafka0
+              when:
+                  - method: DELETE
+                    path: /items/{id}
+              with:
+                  capability: produce
+                  topic: items-commands
+                  acks: leader_only
+                  key: ${params.id}
+                  overrides:
+                      zilla:identity: ${guarded['test0'].identity}
+                  reply-to: items-replies

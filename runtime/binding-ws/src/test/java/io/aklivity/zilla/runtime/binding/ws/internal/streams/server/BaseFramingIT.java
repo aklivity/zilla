@@ -55,7 +55,7 @@ public class BaseFramingIT
 
     @Test
     @Ignore("Need capability to read or write 0 length data frame at high level")
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.binary.payload.length.0/handshake.request.and.frame",
         "${app}/echo.binary.payload.length.0/handshake.response.and.frame" })
@@ -65,7 +65,7 @@ public class BaseFramingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.binary.payload.length.125/handshake.request.and.frame",
         "${app}/echo.binary.payload.length.125/handshake.response.and.frame" })
@@ -75,7 +75,7 @@ public class BaseFramingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.binary.payload.length.126/handshake.request.and.frame",
         "${app}/echo.binary.payload.length.126/handshake.response.and.frame" })
@@ -103,7 +103,7 @@ public class BaseFramingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.binary.payload.length.65535/handshake.request.and.frame",
         "${app}/echo.binary.payload.length.65535/handshake.response.and.frame" })

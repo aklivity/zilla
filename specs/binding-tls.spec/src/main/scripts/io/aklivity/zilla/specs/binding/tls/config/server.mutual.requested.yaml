@@ -1,0 +1,26 @@
+---
+name: test
+vaults:
+    server:
+        type: filesystem
+        options:
+            keys:
+                store: stores/server/keys
+                type: pkcs12
+                password: generated
+            trust:
+                store: stores/server/trust
+                type: pkcs12
+                password: generated
+bindings:
+    net0:
+        type: tls
+        kind: server
+        vault: server
+        options:
+            keys:
+                - localhost
+            trust:
+                - clientca
+            mutual: requested
+        exit: app0

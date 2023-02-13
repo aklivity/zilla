@@ -96,6 +96,7 @@
         <configuration>
           <excludes>
             <exclude>src/main/scripts/io/aklivity/zilla/specs/binding/filesystem/config/files/**/*</exclude>
+            <exclude>**/*.yaml</exclude>
           </excludes>
         </configuration>
       </plugin>

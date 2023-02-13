@@ -1,0 +1,9 @@
+---
+name: test
+bindings:
+    app0:
+        type: tls
+        kind: client
+        options:
+            trustcacerts: true
+        exit: net0

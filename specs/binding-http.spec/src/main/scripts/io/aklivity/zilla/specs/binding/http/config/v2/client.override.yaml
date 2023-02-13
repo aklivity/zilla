@@ -1,0 +1,12 @@
+---
+name: test
+bindings:
+    app0:
+        type: http
+        kind: client
+        options:
+            versions:
+                - h2
+            overrides:
+                :authority: localhost:8080
+        exit: net0

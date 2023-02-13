@@ -1,0 +1,13 @@
+---
+name: test
+bindings:
+    app0:
+        type: kafka
+        kind: client
+        options:
+            sasl:
+                mechanism: plain
+                username: username
+                password: password
+        routes:
+            - exit: net0

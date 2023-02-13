@@ -1,0 +1,6 @@
+---
+name: test
+bindings:
+    echo0:
+        type: echo
+        kind: server

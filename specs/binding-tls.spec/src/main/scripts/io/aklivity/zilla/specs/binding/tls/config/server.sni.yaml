@@ -1,0 +1,21 @@
+---
+name: test
+vaults:
+    server:
+        type: filesystem
+        options:
+            keys:
+                store: stores/server/keys
+                type: pkcs12
+                password: generated
+bindings:
+    net0:
+        type: tls
+        kind: server
+        vault: server
+        options:
+            keys:
+                - localhost
+            sni:
+                - localhost
+        exit: app0

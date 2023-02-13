@@ -54,7 +54,7 @@ public class ClientMetaSaslIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.options.sasl.plain.json")
+    @Configuration("client.options.sasl.plain.yaml")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info.sasl.plain/server"})
@@ -64,7 +64,7 @@ public class ClientMetaSaslIT
     }
 
     @Test
-    @Configuration("client.options.sasl.scram.json")
+    @Configuration("client.options.sasl.scram.yaml")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info.sasl.scram/server"})

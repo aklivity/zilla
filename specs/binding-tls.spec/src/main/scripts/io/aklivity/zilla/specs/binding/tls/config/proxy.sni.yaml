@@ -1,0 +1,10 @@
+---
+name: test
+bindings:
+  net0:
+    type: tls
+    kind: proxy
+    routes:
+      - when:
+          - authority: localhost
+        exit: net1
