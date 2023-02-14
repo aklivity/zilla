@@ -13,7 +13,7 @@
   </parent>
 
   <artifactId>binding-grpc.spec</artifactId>
-  <name>zilla::specs::binding-grpc.spec</name>
+  <name>zilla::incubator::binding-grpc.spec</name>
 
   <licenses>
     <license>
@@ -78,7 +78,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core sse kafka</scopeNames>
+          <scopeNames>core grpc</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.grpc.internal.types</packageName>
         </configuration>
         <executions>
