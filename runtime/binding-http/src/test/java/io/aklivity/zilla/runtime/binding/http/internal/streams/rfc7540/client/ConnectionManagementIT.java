@@ -55,7 +55,7 @@ public class ConnectionManagementIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/http.get.exchange/client",
         "${net}/http.get.exchange/server" })
@@ -66,7 +66,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.override.json")
+    @Configuration("client.override.yaml")
     @Specification({
         "${app}/http.get.exchange.with.header.override/client",
         "${net}/http.get.exchange.with.header.override/server" })
@@ -77,7 +77,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/http.post.exchange/client",
         "${net}/http.post.exchange/server" })
@@ -88,7 +88,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/http.post.exchange.streaming/client",
         "${net}/http.post.exchange.streaming/server" })
@@ -99,7 +99,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.has.two.streams/client",
         "${net}/connection.has.two.streams/server" })
@@ -110,7 +110,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/multiple.data.frames/client",
         "${net}/multiple.data.frames/server" })
@@ -121,7 +121,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.abort.on.closed.request/client",
         "${net}/client.sent.rst.stream.on.closed.request/server" })
@@ -132,7 +132,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/ignore.server.rst.stream/client",
         "${net}/ignore.server.rst.stream/server" })
@@ -143,7 +143,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.read.abort.on.closed.request/client",
         "${net}/client.sent.rst.stream.on.closed.request/server"
@@ -155,7 +155,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.abort.on.open.request/client",
         "${net}/client.sent.rst.stream.on.open.request.response/server"
@@ -167,7 +167,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.abort.on.closed.request/client",
         "${net}/client.sent.rst.stream.on.closed.request/server"
@@ -179,7 +179,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.close/client",
         "${net}/client.sent.rst.stream.on.open.request.response/server"
@@ -191,7 +191,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.read.abort.on.open.request/client",
         "${net}/server.sent.read.abort.on.open.request/server"
@@ -203,7 +203,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.read.abort.before.response/client",
         "${net}/client.sent.read.abort.before.response/server"
@@ -215,7 +215,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.write.rst.frame.on.open.request.response/client",
         "${net}/server.sent.write.abort.on.open.request/server"
@@ -227,7 +227,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.write.abort.on.closed.request/client",
         "${net}/server.sent.write.abort.on.closed.request/server"
@@ -239,7 +239,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.end.stream.before.payload/client",
         "${net}/server.sent.end.stream.before.payload/server"
@@ -251,7 +251,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.authority.json")
+    @Configuration("client.authority.yaml")
     @Specification({
         "${app}/http.authority.default.port/client",
         "${net}/http.authority.default.port/server" })
@@ -262,7 +262,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.path.prefix.json")
+    @Configuration("client.path.prefix.yaml")
     @Specification({
         "${app}/http.path.prefix/client",
         "${net}/http.path.prefix/server" })
@@ -273,7 +273,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.path.json")
+    @Configuration("client.path.yaml")
     @Specification({
         "${app}/http.path.with.query/client",
         "${net}/http.path.with.query/server" })
@@ -284,7 +284,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/http.unknown.authority/client" })
     public void httpUnknownAuthority() throws Exception
@@ -293,7 +293,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.path.prefix.json")
+    @Configuration("client.path.prefix.yaml")
     @Specification({
         "${app}/http.unknown.path/client" })
     public void httpUnknownPath() throws Exception
@@ -303,7 +303,7 @@ public class ConnectionManagementIT
 
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/http.response.trailer/client",
         "${net}/http.response.trailer/server" })
@@ -314,7 +314,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.close.before.response.headers/client",
         "${net}/server.sent.close.before.response.headers/server" })
@@ -325,7 +325,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/http.push.promise/client",
         "${net}/http.push.promise/server" })
@@ -340,7 +340,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/http.get.exchange/client",
         "${net}/http.push.promise.none.cacheable.request/server" })

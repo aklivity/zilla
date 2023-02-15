@@ -56,7 +56,7 @@ public class ServerStatsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/client.and.server.sent.data.multiple.frames/server",
         "${client}/client.and.server.sent.data.multiple.frames/client"

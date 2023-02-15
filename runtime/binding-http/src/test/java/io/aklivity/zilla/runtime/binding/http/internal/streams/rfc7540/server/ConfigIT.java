@@ -55,7 +55,7 @@ public class ConfigIT
 
     @Test
     @Configure(name = HTTP_SERVER_HEADER_NAME, value = "zilla")
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.header/client",
         "${app}/server.header/server" })

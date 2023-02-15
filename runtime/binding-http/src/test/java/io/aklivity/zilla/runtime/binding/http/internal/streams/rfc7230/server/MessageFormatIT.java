@@ -54,7 +54,7 @@ public class MessageFormatIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.headers/client",
         "${app}/request.with.headers/server" })
@@ -64,7 +64,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.content.length/client",
         "${app}/request.with.content.length/server" })
@@ -74,7 +74,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/response.with.headers/client",
         "${app}/response.with.headers/server" })
@@ -84,7 +84,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/response.with.content.length/client",
         "${app}/response.with.content.length/server" })
@@ -94,7 +94,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/invalid.request.whitespace.after.start.line/client"})
     public void invalidRequestWhitespaceAfterStartLine() throws Exception
@@ -105,7 +105,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/invalid.request.missing.target/client"})
     public void invalidRequestMissingTarget() throws Exception
@@ -114,7 +114,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/invalid.request.not.http/client"})
     public void invalidRequestNotHttp() throws Exception
@@ -123,7 +123,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/incomplete.request.with.unimplemented.method/client"})
     public void incompleteRequestWithUnimplementedMethod() throws Exception
@@ -132,7 +132,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.unimplemented.method/client"})
     public void requestWithUnimplementedMethod() throws Exception
@@ -141,7 +141,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.extra.CRLF.before.request.line/client",
         "${app}/request.with.extra.CRLF.before.request.line/server" })
@@ -151,7 +151,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.start.line.too.long/client"})
     public void requestWithStartLineTooLong() throws Exception
@@ -160,7 +160,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/invalid.request.space.before.colon.in.header/client"})
     public void invalidRequestSpaceBeforeColonInHeader() throws Exception
@@ -169,7 +169,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.obsolete.line.folding/client"})
     public void requestWithObsoleteLineFolding() throws Exception
@@ -178,7 +178,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.header.value.too.long/client"})
     @ScriptProperty("headerSize \"9001\"")
@@ -188,7 +188,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.unknown.transfer.encoding/client"})
     public void requestWithUnknownTransferEncoding() throws Exception
@@ -197,7 +197,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/post.request.with.no.content/client",
         "${app}/post.request.with.no.content/server" })
@@ -207,7 +207,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/head.request.and.response/client",
         "${app}/head.request.and.response/server" })
@@ -217,7 +217,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/head.request.and.response.with.content.length/client",
         "${app}/head.request.and.response.with.content.length/server" })
@@ -227,7 +227,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/invalid.request.multiple.content.lengths/client"})
     public void invalidRequestMultipleContentLengths() throws Exception
@@ -236,7 +236,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/gateway.must.reject.request.with.multiple.different.content.length/client",
         "${gateway}/gateway.must.reject.request.with.multiple.different.content.length/gateway",
@@ -248,7 +248,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/on.response.proxy.must.remove.space.in.header.with.space.between.header.name.and.colon/client",
         "${app}/on.response.proxy.must.remove.space.in.header.with.space.between.header.name.and.colon/server",
@@ -260,7 +260,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/proxy.or.gateway.must.reject.obs.in.header.value/client",
         "${app}/proxy.or.gateway.must.reject.obs.in.header.value/server" })
@@ -271,7 +271,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/proxy.should.preserve.unrecongnized.headers/client",
         "${app}/proxy.should.preserve.unrecongnized.headers/server",

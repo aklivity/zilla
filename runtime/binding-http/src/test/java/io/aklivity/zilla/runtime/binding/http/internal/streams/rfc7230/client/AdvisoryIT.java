@@ -50,7 +50,7 @@ public class AdvisoryIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.flush/client",
         "${net}/request.and.flush/server" })

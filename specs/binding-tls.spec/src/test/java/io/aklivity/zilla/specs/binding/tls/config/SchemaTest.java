@@ -38,7 +38,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClient()
     {
-        JsonObject config = schema.validate("client.json");
+        JsonObject config = schema.validate("client.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -46,7 +46,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientAlpnDefault()
     {
-        JsonObject config = schema.validate("client.alpn.default.json");
+        JsonObject config = schema.validate("client.alpn.default.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -54,7 +54,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientAlpn()
     {
-        JsonObject config = schema.validate("client.alpn.json");
+        JsonObject config = schema.validate("client.alpn.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -62,7 +62,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientCaCerts()
     {
-        JsonObject config = schema.validate("client.cacerts.json");
+        JsonObject config = schema.validate("client.cacerts.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -70,7 +70,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientMutual()
     {
-        JsonObject config = schema.validate("client.mutual.json");
+        JsonObject config = schema.validate("client.mutual.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -78,7 +78,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientMutualSigner()
     {
-        JsonObject config = schema.validate("client.mutual.signer.json");
+        JsonObject config = schema.validate("client.mutual.signer.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -86,7 +86,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientSni()
     {
-        JsonObject config = schema.validate("client.sni.json");
+        JsonObject config = schema.validate("client.sni.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -94,7 +94,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientProxyName()
     {
-        JsonObject config = schema.validate("proxy.sni.json");
+        JsonObject config = schema.validate("proxy.sni.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -102,7 +102,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.json");
+        JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -110,7 +110,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerAlpnDefault()
     {
-        JsonObject config = schema.validate("server.alpn.default.json");
+        JsonObject config = schema.validate("server.alpn.default.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -118,7 +118,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerAlpn()
     {
-        JsonObject config = schema.validate("server.alpn.json");
+        JsonObject config = schema.validate("server.alpn.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -126,7 +126,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerMutual()
     {
-        JsonObject config = schema.validate("server.mutual.json");
+        JsonObject config = schema.validate("server.mutual.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -134,7 +134,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerMutualRequested()
     {
-        JsonObject config = schema.validate("server.mutual.requested.json");
+        JsonObject config = schema.validate("server.mutual.requested.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -143,7 +143,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerRealm()
     {
-        JsonObject config = schema.validate("server.realm.json");
+        JsonObject config = schema.validate("server.realm.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -151,7 +151,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerSigner()
     {
-        JsonObject config = schema.validate("server.signer.json");
+        JsonObject config = schema.validate("server.signer.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -159,7 +159,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerSni()
     {
-        JsonObject config = schema.validate("server.sni.json");
+        JsonObject config = schema.validate("server.sni.yaml");
 
         assertThat(config, not(nullValue()));
     }

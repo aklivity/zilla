@@ -38,7 +38,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClient()
     {
-        JsonObject config = schema.validate("client.json");
+        JsonObject config = schema.validate("client.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -47,7 +47,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhenTopic()
     {
-        JsonObject config = schema.validate("client.when.topic.json");
+        JsonObject config = schema.validate("client.when.topic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -56,7 +56,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhenTopicOrSessions()
     {
-        JsonObject config = schema.validate("client.when.topic.or.sessions.json");
+        JsonObject config = schema.validate("client.when.topic.or.sessions.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -65,7 +65,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhenTopicPublishOnly()
     {
-        JsonObject config = schema.validate("client.when.topic.publish.only.json");
+        JsonObject config = schema.validate("client.when.topic.publish.only.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -74,7 +74,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhenTopicSubscribeOnly()
     {
-        JsonObject config = schema.validate("client.when.topic.subscribe.only.json");
+        JsonObject config = schema.validate("client.when.topic.subscribe.only.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -82,7 +82,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.json");
+        JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -90,7 +90,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenTopic()
     {
-        JsonObject config = schema.validate("server.when.topic.json");
+        JsonObject config = schema.validate("server.when.topic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -98,7 +98,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenTopicOrSessions()
     {
-        JsonObject config = schema.validate("server.when.topic.or.sessions.json");
+        JsonObject config = schema.validate("server.when.topic.or.sessions.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -106,7 +106,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenTopicPublishOnly()
     {
-        JsonObject config = schema.validate("server.when.topic.publish.only.json");
+        JsonObject config = schema.validate("server.when.topic.publish.only.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -114,7 +114,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenTopicSubscribeOnly()
     {
-        JsonObject config = schema.validate("server.when.topic.subscribe.only.json");
+        JsonObject config = schema.validate("server.when.topic.subscribe.only.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -54,7 +54,7 @@ public class ClientDescribeSaslIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.options.sasl.plain.json")
+    @Configuration("client.options.sasl.plain.yaml")
     @Specification({
         "${app}/topic.config.info/client",
         "${net}/topic.config.info.sasl.plain/server"})
@@ -64,7 +64,7 @@ public class ClientDescribeSaslIT
     }
 
     @Test
-    @Configuration("client.options.sasl.scram.json")
+    @Configuration("client.options.sasl.scram.yaml")
     @Specification({
         "${app}/topic.config.info/client",
         "${net}/topic.config.info.sasl.scram/server"})

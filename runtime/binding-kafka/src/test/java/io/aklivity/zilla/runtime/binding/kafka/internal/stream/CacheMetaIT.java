@@ -58,7 +58,7 @@ public class CacheMetaIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/topic.unreachable/client" })
     public void shouldRejectWhenTopicUnreachable() throws Exception
@@ -67,7 +67,7 @@ public class CacheMetaIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/topic.invalid/client"})
     public void shouldRejectWhenTopicInvalid() throws Exception
@@ -76,7 +76,7 @@ public class CacheMetaIT
     }
 
     @Test
-    @Configuration("cache.when.topic.json")
+    @Configuration("cache.when.topic.yaml")
     @Specification({
         "${app}/topic.partition.info/client",
         "${app}/topic.partition.info/server"})
@@ -87,7 +87,7 @@ public class CacheMetaIT
     }
 
     @Test
-    @Configuration("cache.when.topic.json")
+    @Configuration("cache.when.topic.yaml")
     @Specification({
         "${app}/topic.partition.info.changed/client",
         "${app}/topic.partition.info.changed/server"
