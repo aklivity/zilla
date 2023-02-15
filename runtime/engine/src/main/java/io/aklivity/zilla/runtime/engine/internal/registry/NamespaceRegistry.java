@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -41,6 +42,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<BindingRegistry> bindingsById;
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
+    private final LongConsumer detachBinding;
 
     public NamespaceRegistry(
         NamespaceConfig namespace,
@@ -48,7 +50,8 @@ public class NamespaceRegistry
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
         ToIntFunction<String> supplyLabelId,
-        LongConsumer supplyLoadEntry)
+        LongConsumer supplyLoadEntry,
+        LongConsumer detachBinding)
     {
         this.namespace = namespace;
         this.bindingsByType = bindingsByType;
@@ -56,6 +59,7 @@ public class NamespaceRegistry
         this.vaultsByType = vaultsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
+        this.detachBinding = detachBinding;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
         this.bindingsById = new Int2ObjectHashMap<>();
         this.guardsById = new Int2ObjectHashMap<>();
@@ -103,6 +107,7 @@ public class NamespaceRegistry
         {
             context.detach();
         }
+        detachBinding.accept(NamespacedId.id(namespaceId, bindingId));
     }
 
     private void attachVault(

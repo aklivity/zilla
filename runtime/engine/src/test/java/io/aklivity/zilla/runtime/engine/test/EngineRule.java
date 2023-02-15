@@ -61,6 +61,7 @@ public final class EngineRule implements TestRule
     // needed by test annotations
     public static final String ENGINE_BUFFER_POOL_CAPACITY_NAME = "zilla.engine.buffer.pool.capacity";
     public static final String ENGINE_BUFFER_SLOT_CAPACITY_NAME = "zilla.engine.buffer.slot.capacity";
+    public static final String ENGINE_CONFIG_URL_NAME = "zilla.engine.config.url";
 
     private static final long EXTERNAL_AFFINITY_MASK = 1L << (Long.SIZE - 1);
     private static final Pattern DATA_FILENAME_PATTERN = Pattern.compile("data\\d+");
@@ -205,8 +206,8 @@ public final class EngineRule implements TestRule
         try
         {
             Configure[] configures = testClass
-                       .getDeclaredMethod(testMethod)
-                       .getAnnotationsByType(Configure.class);
+                        .getDeclaredMethod(testMethod)
+                        .getAnnotationsByType(Configure.class);
             Arrays.stream(configures).forEach(
                 p -> properties.setProperty(p.name(), p.value()));
 
@@ -249,12 +250,12 @@ public final class EngineRule implements TestRule
                     baseThread.interrupt();
                 };
                 engine = builder.config(config)
-                                 .errorHandler(errorHandler)
-                                 .build();
+                                .errorHandler(errorHandler)
+                                .build();
 
                 try
                 {
-                    engine.start().get();
+                    engine.start();
 
                     base.evaluate();
                 }

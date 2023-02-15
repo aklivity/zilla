@@ -15,24 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.agrona.LangUtil.rethrowUnchecked;
-
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -42,7 +30,6 @@ import java.util.function.LongPredicate;
 import java.util.function.ToIntFunction;
 
 import jakarta.json.JsonArray;
-import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonPatch;
 import jakarta.json.JsonReader;
@@ -52,7 +39,6 @@ import jakarta.json.bind.JsonbConfig;
 import jakarta.json.spi.JsonProvider;
 import jakarta.json.stream.JsonParser;
 
-import org.agrona.ErrorHandler;
 import org.leadpony.justify.api.JsonSchema;
 import org.leadpony.justify.api.JsonSchemaReader;
 import org.leadpony.justify.api.JsonValidationService;
@@ -76,72 +62,59 @@ import io.aklivity.zilla.runtime.engine.internal.config.NamespaceAdapter;
 import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKeysSchema;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
-public class ConfigureTask implements Callable<Void>
+public class ConfigurationManager
 {
-    private static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
-
-    private final URL configURL;
+    protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
     private final Collection<DispatchAgent> dispatchers;
-    private final ErrorHandler errorHandler;
     private final Consumer<String> logger;
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
     private final ExpressionResolver expressions;
+    private final Function<URL, String> readURL;
+    private final Consumer<URL> handleConfigURL;
 
-    public ConfigureTask(
-        URL configURL,
+    public ConfigurationManager(
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
         Collection<DispatchAgent> dispatchers,
-        ErrorHandler errorHandler,
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
-        List<EngineExtSpi> extensions)
+        List<EngineExtSpi> extensions,
+        Function<URL, String> readURL,
+        Consumer<URL> handleConfigURL)
     {
-        this.configURL = configURL;
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
         this.dispatchers = dispatchers;
-        this.errorHandler = errorHandler;
         this.logger = logger;
         this.context = context;
         this.config = config;
         this.extensions = extensions;
+        this.readURL = readURL;
+        this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
 
-    @Override
-    public Void call() throws Exception
+    public NamespaceConfig parse(
+        String configText)
     {
-        String configText;
-
-        if (configURL == null)
+        NamespaceConfig namespace = null;
+        if (configText == null || configText.isEmpty())
         {
             configText = CONFIG_TEXT_DEFAULT;
-        }
-        else
-        {
-            try
-            {
-                configText = readURL(configURL);
-            }
-            catch (Exception ex)
-            {
-                configText = CONFIG_TEXT_DEFAULT;
-            }
         }
 
         if (!configText.endsWith(System.lineSeparator()))
@@ -156,10 +129,10 @@ public class ConfigureTask implements Callable<Void>
         }
 
         List<String> errors = new LinkedList<>();
-
         parse:
         try
         {
+            //TODO: detect configURLs and call handleConfigURL
             InputStream schemaInput = Engine.class.getResourceAsStream("internal/schema/engine.schema.json");
 
             JsonProvider schemaProvider = JsonProvider.provider();
@@ -193,13 +166,13 @@ public class ConfigureTask implements Callable<Void>
             }
 
             JsonbConfig config = new JsonbConfig()
-                    .withAdapters(new NamespaceAdapter());
+                .withAdapters(new NamespaceAdapter());
             Jsonb jsonb = JsonbBuilder.newBuilder()
-                    .withProvider(provider)
-                    .withConfig(config)
-                    .build();
+                .withProvider(provider)
+                .withConfig(config)
+                .build();
 
-            NamespaceConfig namespace = jsonb.fromJson(configText, NamespaceConfig.class);
+            namespace = jsonb.fromJson(configText, NamespaceConfig.class);
 
             if (!errors.isEmpty())
             {
@@ -208,10 +181,11 @@ public class ConfigureTask implements Callable<Void>
 
             namespace.id = supplyId.applyAsInt(namespace.name);
 
-            namespace.readURL = this::readURL;
+            namespace.readURL = this.readURL;
 
             // TODO: consider qualified name "namespace::name"
-            namespace.resolveId = name -> name != null ? NamespacedId.id(namespace.id, supplyId.applyAsInt(name)) : 0L;
+            final NamespaceConfig namespace0 = namespace;
+            namespace.resolveId = name -> name != null ? NamespacedId.id(namespace0.id, supplyId.applyAsInt(name)) : 0L;
 
             for (GuardConfig guard : namespace.guards)
             {
@@ -253,11 +227,11 @@ public class ConfigureTask implements Callable<Void>
                                 .orElse(session -> false);
 
                             LongFunction<String> identifier = namespace.guards.stream()
-                                    .filter(g -> g.id == guarded.id)
-                                    .findFirst()
-                                    .map(g -> guardByType.apply(g.type))
-                                    .map(g -> g.identifier(DispatchAgent::indexOfId, guarded))
-                                    .orElse(session -> null);
+                                .filter(g -> g.id == guarded.id)
+                                .findFirst()
+                                .map(g -> guardByType.apply(g.type))
+                                .map(g -> g.identifier(DispatchAgent::indexOfId, guarded))
+                                .orElse(session -> null);
 
                             guarded.identity = identifier;
 
@@ -276,69 +250,45 @@ public class ConfigureTask implements Callable<Void>
 
                 tuning.affinity(binding.id, affinity);
             }
-
-            CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-            for (DispatchAgent dispatcher : dispatchers)
-            {
-                future = CompletableFuture.allOf(future, dispatcher.attach(namespace));
-            }
-            future.join();
-
-            extensions.forEach(e -> e.onConfigured(context));
         }
         catch (Throwable ex)
         {
-            errorHandler.onError(ex);
+            logError(ex.getMessage());
         }
 
         if (!errors.isEmpty())
         {
-            errors.forEach(msg -> errorHandler.onError(new JsonException(msg)));
+            errors.forEach(this::logError);
         }
-
-        // TODO: repeat to detect and apply changes
-
-        return null;
+        return namespace;
     }
 
-
-    private String readURL(
-        URL location)
+    public void register(
+        NamespaceConfig namespace)
     {
-        String output = null;
-        try
+        dispatchers.stream()
+            .map(d -> d.attach(namespace))
+            .reduce(CompletableFuture::allOf)
+            .ifPresent(CompletableFuture::join);
+        extensions.forEach(e -> e.onRegistered(context));
+    }
+
+    public void unregister(
+        NamespaceConfig namespace)
+    {
+        if (namespace != null)
         {
-            if ("http".equals(location.getProtocol()) || "https".equals(location.getProtocol()))
-            {
-                HttpClient client = HttpClient.newBuilder()
-                        .version(HTTP_2)
-                        .followRedirects(NORMAL)
-                        .build();
-
-                HttpRequest request = HttpRequest.newBuilder()
-                        .GET()
-                        .uri(location.toURI())
-                        .build();
-
-                HttpResponse<String> response = client.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString());
-
-                output = response.body();
-            }
-            else
-            {
-                URLConnection connection = location.openConnection();
-                try (InputStream input = connection.getInputStream())
-                {
-                    output = new String(input.readAllBytes(), UTF_8);
-                }
-            }
+            dispatchers.stream()
+                .map(d -> d.detach(namespace))
+                .reduce(CompletableFuture::allOf)
+                .ifPresent(CompletableFuture::join);
+            extensions.forEach(e -> e.onUnregistered(context));
         }
-        catch (IOException | URISyntaxException | InterruptedException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return output;
+    }
+
+    private void logError(
+        String message)
+    {
+        logger.accept("Configuration parsing error: " + message);
     }
 }

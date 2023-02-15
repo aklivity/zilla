@@ -135,7 +135,7 @@ public final class ZillaStartCommand extends ZillaCommand
             .errorHandler(this::onError)
             .build())
         {
-            engine.start().get();
+            engine.start();
 
             System.out.println("started");
 
