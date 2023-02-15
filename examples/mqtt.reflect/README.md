@@ -83,8 +83,8 @@ $ ./teardown.sh
 + pgrep kubectl
 99999
 + killall kubectl
-+ helm uninstall zilla-mqtt-echo --namespace zilla-mqtt-echo
-release "zilla-mqtt-echo" uninstalled
-+ kubectl delete namespace zilla-mqtt-echo
-namespace "zilla-mqtt-echo" deleted
++ helm uninstall zilla-mqtt-reflect --namespace zilla-mqtt-reflect
+release "zilla-mqtt-reflect" uninstalled
++ kubectl delete namespace zilla-mqtt-reflect
+namespace "zilla-mqtt-reflect" deleted
 ```
