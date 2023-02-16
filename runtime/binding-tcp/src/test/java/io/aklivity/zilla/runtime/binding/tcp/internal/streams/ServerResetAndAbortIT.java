@@ -62,7 +62,7 @@ public class ServerResetAndAbortIT
             .around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.abort/server"
     })
@@ -85,7 +85,7 @@ public class ServerResetAndAbortIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.abort.and.reset/server"
     })
@@ -118,7 +118,7 @@ public class ServerResetAndAbortIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.reset/server"
     })
@@ -160,7 +160,7 @@ public class ServerResetAndAbortIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.reset.and.end/server"
     })

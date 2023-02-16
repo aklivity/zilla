@@ -38,7 +38,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClient()
     {
-        JsonObject config = schema.validate("client.json");
+        JsonObject config = schema.validate("client.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -47,7 +47,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhenAddressReceiveOnly()
     {
-        JsonObject config = schema.validate("client.when.address.receive.only.json");
+        JsonObject config = schema.validate("client.when.address.receive.only.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -56,7 +56,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhenAddressSendOnly()
     {
-        JsonObject config = schema.validate("client.when.address.send.only.json");
+        JsonObject config = schema.validate("client.when.address.send.only.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -64,7 +64,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.json");
+        JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -72,7 +72,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenAddressReceiveOnly()
     {
-        JsonObject config = schema.validate("server.when.address.receive.only.json");
+        JsonObject config = schema.validate("server.when.address.receive.only.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -80,7 +80,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhenAddressSendOnly()
     {
-        JsonObject config = schema.validate("server.when.address.send.only.json");
+        JsonObject config = schema.validate("server.when.address.send.only.yaml");
 
         assertThat(config, not(nullValue()));
     }

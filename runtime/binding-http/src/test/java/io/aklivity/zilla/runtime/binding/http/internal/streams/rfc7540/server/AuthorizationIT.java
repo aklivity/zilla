@@ -54,7 +54,7 @@ public class AuthorizationIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/reject.credentials.cookie/client",
     })
@@ -64,7 +64,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/reject.credentials.header/client",
     })
@@ -74,7 +74,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/reject.credentials.query/client",
     })
@@ -84,7 +84,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/authorize.credentials.cookie/client",
         "${app}/authorize.credentials.cookie/server",
@@ -95,7 +95,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/authorize.credentials.header/client",
         "${app}/authorize.credentials.header/server",
@@ -106,7 +106,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/authorize.credentials.query/client",
         "${app}/authorize.credentials.query/server",
@@ -117,7 +117,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/expire.credentials.cookie/client",
         "${app}/expire.credentials.cookie/server",
@@ -128,7 +128,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/expire.credentials.header/client",
         "${app}/expire.credentials.header/server",
@@ -139,7 +139,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/expire.credentials.query/client",
         "${app}/expire.credentials.query/server",
@@ -150,7 +150,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/challenge.credentials.cookie/client",
         "${app}/challenge.credentials.cookie/server",
@@ -161,7 +161,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/challenge.credentials.header/client",
         "${app}/challenge.credentials.header/server",
@@ -172,7 +172,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/challenge.credentials.query/client",
         "${app}/challenge.credentials.query/server",
@@ -183,7 +183,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/reauthorize.credentials.cookie/client",
         "${app}/reauthorize.credentials.cookie/server",
@@ -194,7 +194,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/reauthorize.credentials.header/client",
         "${app}/reauthorize.credentials.header/server",
@@ -205,7 +205,7 @@ public class AuthorizationIT
     }
 
     @Test
-    @Configuration("server.authorization.credentials.json")
+    @Configuration("server.authorization.credentials.yaml")
     @Specification({
         "${net}/reauthorize.credentials.query/client",
         "${app}/reauthorize.credentials.query/server",

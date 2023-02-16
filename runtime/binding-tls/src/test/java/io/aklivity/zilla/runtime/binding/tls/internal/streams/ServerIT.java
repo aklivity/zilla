@@ -56,7 +56,7 @@ public class ServerIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.established/client",
         "${app}/connection.established/server" })
@@ -66,7 +66,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.alpn.json")
+    @Configuration("server.alpn.yaml")
     @Specification({
         "${net}/connection.established.with.alpn/client",
         "${app}/connection.established.with.alpn/server" })
@@ -76,7 +76,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.established.with.alpn/client",
         "${app}/connection.established/server" })
@@ -87,7 +87,7 @@ public class ServerIT
 
     @Ignore("https://github.com/k3po/k3po/issues/454 - Support connect aborted")
     @Test
-    @Configuration("server.alpn.json")
+    @Configuration("server.alpn.yaml")
     @Specification({
         "${net}/connection.not.established.with.wrong.alpn/client",
         "${app}/connection.established/server" })
@@ -98,7 +98,7 @@ public class ServerIT
 
     @Ignore("https://github.com/k3po/k3po/issues/454 - Support connect aborted")
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.established/client" })
     public void shouldNegotiateWithNoAlpnButRouteMismatch() throws Exception
@@ -107,7 +107,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.alpn.default.json")
+    @Configuration("server.alpn.default.yaml")
     @Specification({
         "${net}/connection.established.with.alpn/client",
         "${app}/connection.established.with.alpn/server" })
@@ -117,7 +117,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.alpn.json")
+    @Configuration("server.alpn.yaml")
     @Specification({
         "${net}/connection.established.with.alpn/client",
         "${app}/connection.established.with.alpn/server" })
@@ -127,7 +127,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.alpn.default.json")
+    @Configuration("server.alpn.default.yaml")
     @Specification({
         "${net}/connection.established/client",
         "${app}/connection.established/server" })
@@ -137,7 +137,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.payload.length.10k/client",
         "${app}/echo.payload.length.10k/server"})
@@ -147,7 +147,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.payload.length.100k/client",
         "${app}/echo.payload.length.100k/server"})
@@ -157,7 +157,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.payload.length.1000k/client",
         "${app}/echo.payload.length.1000k/server"})
@@ -167,7 +167,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.write.close/client",
         "${app}/server.sent.write.close/server"})
@@ -177,7 +177,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.close.before.handshake/client"})
     public void shouldReceiveClientSentWriteCloseBeforeHandshake() throws Exception
@@ -186,7 +186,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.close/client",
         "${app}/client.sent.write.close/server"})
@@ -196,7 +196,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.close.read.closed/client",
         "${app}/client.sent.write.close.read.closed/server"})
@@ -206,7 +206,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.write.abort/client",
         "${app}/server.sent.write.abort/server"})
@@ -216,7 +216,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.abort.before.handshake/client"})
     public void shouldReceiveClientSentWriteAbortBeforeHandshake() throws Exception
@@ -225,7 +225,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.abort/client",
         "${app}/client.sent.write.abort/server"})
@@ -236,7 +236,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.read.abort/client",
         "${app}/server.sent.read.abort/server"})
@@ -246,7 +246,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.read.abort.before.handshake/client"})
     public void shouldReceiveClientSentReadAbortBeforeHandshake() throws Exception
@@ -255,7 +255,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.read.abort/client",
         "${app}/client.sent.read.abort/server"})
@@ -266,7 +266,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.hello.malformed/client"})
     public void shouldResetMalformedClientHello() throws Exception
@@ -275,7 +275,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.mutual.json")
+    @Configuration("server.mutual.yaml")
     @Specification({
         "${net}/server.mutual.auth/client",
         "${app}/server.mutual.auth/server"})
@@ -285,7 +285,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.mutual.requested.json")
+    @Configuration("server.mutual.requested.yaml")
     @Specification({
         "${net}/server.mutual.auth/client",
         "${app}/server.mutual.auth/server"})
@@ -295,7 +295,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.handshake.timeout/client"})
     @Configure(name = TlsConfigurationTest.TLS_HANDSHAKE_TIMEOUT_NAME, value = "1")

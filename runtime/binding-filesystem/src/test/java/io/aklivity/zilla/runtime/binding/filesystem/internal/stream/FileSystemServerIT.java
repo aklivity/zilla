@@ -54,7 +54,7 @@ public class FileSystemServerIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/read.file.extension/client",
     })
@@ -64,7 +64,7 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/read.file.extension.default/client",
     })
@@ -74,7 +74,7 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/read.file.payload/client",
     })
@@ -84,7 +84,7 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/read.file.payload.modified/client",
     })
@@ -149,7 +149,7 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.write.abort/client",
     })
@@ -159,7 +159,7 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.read.abort/client",
     })

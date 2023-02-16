@@ -50,7 +50,7 @@ public class EngineIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/handshake/client",
         "${app}/handshake/server"})
@@ -60,7 +60,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.data/client",
         "${app}/client.sent.data/server"})
@@ -70,7 +70,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.read.advise.challenge/client",
         "${app}/client.sent.read.advise.challenge/server"})
@@ -80,7 +80,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.advise.flush/client",
         "${app}/client.sent.write.advise.flush/server"})
@@ -90,7 +90,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.read.abort/client",
         "${app}/client.sent.read.abort/server"})
@@ -100,7 +100,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.write.abort/client",
         "${app}/client.sent.write.abort/server"})
@@ -110,7 +110,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.write.close/client",
         "${app}/client.write.close/server"})
@@ -120,7 +120,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.data/client",
         "${app}/server.sent.data/server"})
@@ -130,7 +130,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.read.advise.challenge/client",
         "${app}/server.sent.read.advise.challenge/server"})
@@ -140,7 +140,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.write.advise.flush/client",
         "${app}/server.sent.write.advise.flush/server"})
@@ -150,7 +150,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.read.abort/client",
         "${app}/server.sent.read.abort/server"})
@@ -160,7 +160,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.write.abort/client",
         "${app}/server.sent.write.abort/server"})
@@ -170,7 +170,7 @@ public class EngineIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.write.close/client",
         "${app}/server.write.close/server"})

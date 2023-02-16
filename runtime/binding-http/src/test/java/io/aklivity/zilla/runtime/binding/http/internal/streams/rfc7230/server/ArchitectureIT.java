@@ -50,7 +50,7 @@ public class ArchitectureIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.and.response/client",
         "${app}/request.and.response/server" })
@@ -60,7 +60,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.uri.with.percent.chars/client",
         "${app}/request.uri.with.percent.chars/server" })
@@ -70,7 +70,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.version.1.2+/client",
         "${app}/request.version.1.2+/server" })
@@ -80,7 +80,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.header.host.missing/client" })
     public void shouldRejectRequestWhenHostHeaderMissing() throws Exception
@@ -89,7 +89,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.version.invalid/client" })
     public void shouldRejectRequestWhenVersionInvalid() throws Exception
@@ -98,7 +98,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.version.missing/client" })
     public void shouldRejectRequestWhenVersionMissing() throws Exception
@@ -107,7 +107,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.version.not.1.x/client" })
     public void shouldRejectRequestWhenVersionNotHttp1x() throws Exception
@@ -116,7 +116,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.uri.with.user.info/client", })
     public void shouldRejectRequestWithUserInfo() throws Exception

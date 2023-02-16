@@ -59,7 +59,7 @@ public class ServerIOExceptionFromWriteIT
     public final TestRule chain = outerRule(SocketChannelHelper.RULE).around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.data.received.reset.and.abort/server"
     })
@@ -83,7 +83,7 @@ public class ServerIOExceptionFromWriteIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.data.received.reset.and.abort/server"
     })

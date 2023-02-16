@@ -51,7 +51,7 @@ public class HttpFileSystemProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.read.file/client",
         "${filesystem}/client.read.file/server"})
@@ -61,7 +61,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.read.file.map.modified/client",
         "${filesystem}/client.read.file.map.modified/server"})
@@ -91,7 +91,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.read.file.info/client",
         "${filesystem}/client.read.file.info/server"})
@@ -101,7 +101,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.dynamic.json")
+    @Configuration("proxy.with.path.dynamic.yaml")
     @Specification({
         "${http}/client.read.file/client",
         "${filesystem}/client.read.file/server"})
@@ -111,7 +111,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.dynamic.json")
+    @Configuration("proxy.with.path.dynamic.yaml")
     @Specification({
         "${http}/client.read.file.info/client",
         "${filesystem}/client.read.file.info/server"})
@@ -121,7 +121,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.rejected/client"})
     public void shouldRejectClientWithNoBinding() throws Exception
@@ -130,7 +130,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.write.file.rejected/client"})
     public void shouldRejectClientWriteFile() throws Exception
@@ -147,7 +147,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.sent.message/client",
         "${filesystem}/client.sent.abort/server"})
@@ -157,7 +157,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/server.sent.abort/client",
         "${filesystem}/server.sent.abort/server"})
@@ -167,7 +167,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/server.sent.reset/client",
         "${filesystem}/server.sent.reset/server"})
@@ -177,7 +177,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/server.sent.flush/client",
         "${filesystem}/server.sent.flush/server"})
@@ -187,7 +187,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.sent.reset/client",
         "${filesystem}/client.sent.reset/server"})
@@ -197,7 +197,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.sent.abort/client",
         "${filesystem}/client.sent.abort/server"})

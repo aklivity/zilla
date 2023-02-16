@@ -55,7 +55,7 @@ public class StartingIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/upgrade.http/client",
         "${net}/upgrade.pri.with.tls.and.alpn.h2/server"})
@@ -67,7 +67,7 @@ public class StartingIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/upgrade.http/client",
         "${net}/upgrade.h2c.with.no.tls/server"})
@@ -79,7 +79,7 @@ public class StartingIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/upgrade.multiple.requests.pipelined/client",
         "${net}/upgrade.h2c.with.multiple.requests.pipelined/server"})

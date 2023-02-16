@@ -51,7 +51,7 @@ public class ProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.sni.json")
+    @Configuration("proxy.sni.yaml")
     @Specification({
         "${proxy}/client/client.hello.with.sni/client",
         "${proxy}/server/client.hello.with.sni/server" })
@@ -61,7 +61,7 @@ public class ProxyIT
     }
 
     @Test
-    @Configuration("proxy.sni.json")
+    @Configuration("proxy.sni.yaml")
     @Specification({
         "${proxy}/client/reject.client.hello.with.sni/client" })
     public void shouldRejectClientHelloWithServerName() throws Exception

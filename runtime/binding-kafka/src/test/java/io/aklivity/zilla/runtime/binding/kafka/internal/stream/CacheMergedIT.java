@@ -63,7 +63,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.header/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -73,7 +73,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.header.with.compaction/client",
         "${app}/unmerged.fetch.filter.none.with.compaction/server"})
@@ -84,7 +84,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.not.key/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -95,7 +95,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.not.header/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -106,7 +106,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key.and.not.header/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -116,7 +116,7 @@ public class CacheMergedIT
     }
 
     @Ignore("requires k3po parallel reads")
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Test
     @Specification({
         "${app}/merged.fetch.filter.header.and.header/client",
@@ -127,7 +127,7 @@ public class CacheMergedIT
     }
 
     @Ignore("requires k3po parallel reads")
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Test
     @Specification({
         "${app}/merged.fetch.filter.header.or.header/client",
@@ -139,7 +139,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -150,7 +150,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key.and.header/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -161,7 +161,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key.or.header/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -172,7 +172,7 @@ public class CacheMergedIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.none/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -187,7 +187,7 @@ public class CacheMergedIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/merged.fetch.message.values/client",
         "${app}/unmerged.fetch.message.values/server"})
@@ -202,7 +202,7 @@ public class CacheMergedIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.message.values/client",
         "${app}/unmerged.fetch.message.values/server"})
@@ -216,7 +216,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.partition.leader.changed/client",
         "${app}/unmerged.fetch.partition.leader.changed/server"})
@@ -230,7 +230,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.partition.leader.aborted/client",
         "${app}/unmerged.fetch.partition.leader.aborted/server"})
@@ -240,7 +240,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.partition.offsets.earliest/client",
         "${app}/unmerged.fetch.partition.offsets.earliest/server"})
@@ -250,7 +250,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.partition.offsets.earliest.overflow/client",
         "${app}/unmerged.fetch.partition.offsets.earliest/server"})
@@ -261,7 +261,7 @@ public class CacheMergedIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.isolation.read.committed/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -275,7 +275,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/merged.produce.message.values/client",
         "${app}/unmerged.produce.message.values/server"})
@@ -285,7 +285,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values.null/client",
         "${app}/unmerged.produce.message.values.null/server"})
@@ -295,7 +295,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values/client",
         "${app}/unmerged.produce.message.values/server"})
@@ -305,7 +305,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.value.10k/client",
         "${app}/unmerged.produce.message.value.10k/server"})
@@ -315,7 +315,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.value.100k/client",
         "${app}/unmerged.produce.message.value.100k/server"})
@@ -325,7 +325,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values.dynamic/client",
         "${app}/unmerged.produce.message.values.dynamic/server"})
@@ -335,7 +335,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values.dynamic.hashed/client",
         "${app}/unmerged.produce.message.values.dynamic.hashed/server"})
@@ -345,7 +345,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.flags.incomplete/client",
         "${app}/unmerged.produce.message.flags.incomplete/server"})
@@ -355,7 +355,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.close/client",
         "${app}/unmerged.fetch.server.sent.close/server"})
@@ -366,7 +366,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.close.with.message/client",
         "${app}/unmerged.fetch.server.sent.close.with.message/server"})
@@ -380,7 +380,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.abort/client",
         "${app}/unmerged.fetch.server.sent.abort/server"})
@@ -391,7 +391,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.abort.with.message/client",
         "${app}/unmerged.fetch.server.sent.abort.with.message/server"})
@@ -405,7 +405,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.abort/client",
         "${app}/unmerged.fetch.server.sent.reset/server"})
@@ -416,7 +416,7 @@ public class CacheMergedIT
     }
 
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.server.sent.abort.with.message/client",
         "${app}/unmerged.fetch.server.sent.reset.and.abort.with.message/server"})
@@ -431,7 +431,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.one/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -442,7 +442,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.one.empty/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -453,7 +453,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.many/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -464,7 +464,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.many.empty/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -475,7 +475,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.skip.one/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -486,7 +486,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.skip.two/client",
         "${app}/unmerged.fetch.filter.none/server"})
@@ -497,7 +497,7 @@ public class CacheMergedIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("cache.options.merged.json")
+    @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.skip.many/client",
         "${app}/unmerged.fetch.filter.none/server"})

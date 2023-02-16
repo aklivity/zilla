@@ -1,0 +1,12 @@
+{
+  "name": "test", It should fail at parsing
+  "bindings":
+  {
+    "net1":
+    {
+      "type" : "test",
+      "kind": "proxy",
+      "exit": "app1"
+    }
+  }
+}

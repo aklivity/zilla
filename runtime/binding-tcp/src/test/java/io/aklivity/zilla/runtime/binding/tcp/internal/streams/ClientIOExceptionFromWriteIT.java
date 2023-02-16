@@ -61,7 +61,7 @@ public class ClientIOExceptionFromWriteIT
                     .around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.data.received.abort.and.reset/client"
     })
@@ -89,7 +89,7 @@ public class ClientIOExceptionFromWriteIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.data.received.abort.and.reset/client"
     })

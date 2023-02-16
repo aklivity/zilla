@@ -68,6 +68,9 @@ public interface EngineContext
     void detachSender(
         long replyId);
 
+    void detachStreams(
+        long bindingId);
+
     BudgetCreditor creditor();
 
     BudgetDebitor supplyDebitor(

@@ -50,7 +50,7 @@ public class EndOfLineIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/carriage.return/client",
         "${net}/carriage.return/response" })
@@ -60,7 +60,7 @@ public class EndOfLineIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/line.feed/client",
         "${net}/line.feed/response" })
@@ -70,7 +70,7 @@ public class EndOfLineIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/carriage.return.line.feed/client",
         "${net}/carriage.return.line.feed/response" })
@@ -80,7 +80,7 @@ public class EndOfLineIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/carriage.return.line.feed.fragmented/client",
         "${net}/carriage.return.line.feed.fragmented/response" })

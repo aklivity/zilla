@@ -54,7 +54,7 @@ public class ClientFetchSaslIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.options.sasl.plain.json")
+    @Configuration("client.options.sasl.plain.yaml")
     @Specification({
         "${app}/partition.offset/client",
         "${net}/partition.offset.sasl.plain/server"})
@@ -64,7 +64,7 @@ public class ClientFetchSaslIT
     }
 
     @Test
-    @Configuration("client.options.sasl.scram.json")
+    @Configuration("client.options.sasl.scram.yaml")
     @Specification({
         "${app}/partition.offset/client",
         "${net}/partition.offset.sasl.scram/server"})

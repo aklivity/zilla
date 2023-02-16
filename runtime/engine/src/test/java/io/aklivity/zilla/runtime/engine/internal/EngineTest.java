@@ -27,6 +27,7 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +60,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
         }
         catch (Throwable ex)
         {
@@ -85,7 +86,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
 
             EngineStats stats = engine.stats("default", "test0");
             assertEquals(0L, stats.initialOpens());
@@ -121,7 +122,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
         }
         catch (Throwable ex)
         {
@@ -144,7 +145,7 @@ public class EngineTest
                 .errorHandler(errors::add)
                 .build())
         {
-            engine.start().get();
+            engine.start();
         }
         catch (Throwable ex)
         {
@@ -158,16 +159,27 @@ public class EngineTest
 
     public static final class TestEngineExt implements EngineExtSpi
     {
+        public static volatile CountDownLatch registerLatch = new CountDownLatch(1);
+        public static volatile CountDownLatch unregisterLatch = new CountDownLatch(1);
+
         @Override
-        public void onConfigured(
+        public void onRegistered(
             EngineExtContext context)
         {
+            if (registerLatch != null)
+            {
+                registerLatch.countDown();
+            }
         }
 
         @Override
-        public void onClosed(
+        public void onUnregistered(
             EngineExtContext context)
         {
+            if (unregisterLatch != null)
+            {
+                unregisterLatch.countDown();
+            }
         }
     }
 }
