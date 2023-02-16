@@ -50,7 +50,7 @@ public class ErrorIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/server.reset/client",
         "${net}/server.reset/response" })
@@ -60,7 +60,7 @@ public class ErrorIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/client.abort/client",
         "${net}/client.reset/response" })
@@ -70,7 +70,7 @@ public class ErrorIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/server.abort/client",
         "${net}/server.abort/response" })
@@ -80,7 +80,7 @@ public class ErrorIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/client.reset/client",
         "${net}/client.reset/response" })

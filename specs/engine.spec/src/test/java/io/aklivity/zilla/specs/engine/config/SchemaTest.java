@@ -37,7 +37,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerBinding()
     {
-        JsonObject config = schema.validate("server.json");
+        JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -45,7 +45,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerBindingWithRoutesAndNoExit()
     {
-        JsonObject config = schema.validate("server.binding.with.routes.and.no.exit.json");
+        JsonObject config = schema.validate("server.binding.with.routes.and.no.exit.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -53,18 +53,18 @@ public class SchemaTest
     @Test(expected = JsonException.class)
     public void shouldRejectServerBindingWithNoType()
     {
-        schema.validate("server.binding.with.no.type.json");
+        schema.validate("server.binding.with.no.type.yaml");
     }
 
     @Test(expected = JsonException.class)
     public void shouldRejectServerBindingWithNoKind()
     {
-        schema.validate("server.binding.with.no.kind.json");
+        schema.validate("server.binding.with.no.kind.yaml");
     }
 
     @Test(expected = JsonException.class)
     public void shouldRejectServerBindingWithNoExit()
     {
-        schema.validate("server.binding.with.no.exit.json");
+        schema.validate("server.binding.with.no.exit.yaml");
     }
 }

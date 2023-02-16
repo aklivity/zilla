@@ -54,7 +54,7 @@ public class FlowControlLimitsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/response.headers.too.long/client.5xx.response",
         "${app}/flow.control/response.headers.too.long/server.response.reset"})

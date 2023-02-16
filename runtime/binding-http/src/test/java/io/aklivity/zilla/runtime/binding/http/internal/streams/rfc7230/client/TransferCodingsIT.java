@@ -51,7 +51,7 @@ public class TransferCodingsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.transfer.encoding.chunked/client",
         "${net}/request.transfer.encoding.chunked/server" })
@@ -62,7 +62,7 @@ public class TransferCodingsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/response.transfer.encoding.chunked/client",
         "${net}/response.transfer.encoding.chunked/server" })
@@ -86,7 +86,7 @@ public class TransferCodingsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.transfer.encoding.chunked.with.trailer/client",
         "${net}/request.transfer.encoding.chunked.with.trailer/server" })
@@ -97,7 +97,7 @@ public class TransferCodingsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/response.transfer.encoding.chunked.with.trailer/client",
         "${net}/response.transfer.encoding.chunked.with.trailer/server" })

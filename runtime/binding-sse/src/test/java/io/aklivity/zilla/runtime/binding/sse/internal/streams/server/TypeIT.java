@@ -52,7 +52,7 @@ public class TypeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/empty/request",
         "${app}/empty/server" })
@@ -62,7 +62,7 @@ public class TypeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/non.empty/request",
         "${app}/non.empty/server" })
@@ -72,7 +72,7 @@ public class TypeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/non.empty.trailing/request",
         "${app}/non.empty.trailing/server" })
@@ -82,7 +82,7 @@ public class TypeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/non.empty.interleaved/request",
         "${app}/non.empty.interleaved/server" })
@@ -92,7 +92,7 @@ public class TypeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/fragmented/request",
         "${app}/fragmented/server" })

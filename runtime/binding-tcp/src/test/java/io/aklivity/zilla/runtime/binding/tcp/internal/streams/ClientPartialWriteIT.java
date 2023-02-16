@@ -75,7 +75,7 @@ public class ClientPartialWriteIT
     public final TestRule chain = outerRule(SocketChannelHelper.RULE).around(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.data/client",
         "${server}/client.sent.data/server"
@@ -88,7 +88,7 @@ public class ClientPartialWriteIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.data/client",
         "${server}/client.sent.data/server"
@@ -100,7 +100,7 @@ public class ClientPartialWriteIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.data/client",
         "${server}/client.sent.data/server"
@@ -113,7 +113,7 @@ public class ClientPartialWriteIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.data.multiple.frames/client",
         "${server}/client.sent.data.multiple.frames/server"
@@ -131,7 +131,7 @@ public class ClientPartialWriteIT
     }
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${client}/client.sent.data.then.end/client"
     })

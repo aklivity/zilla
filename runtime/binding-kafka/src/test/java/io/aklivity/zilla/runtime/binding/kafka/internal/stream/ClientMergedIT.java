@@ -61,7 +61,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.header/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -72,7 +72,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.not.key/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -83,7 +83,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.not.header/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -94,7 +94,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key.and.not.header/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -105,7 +105,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.header.and.header/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -116,7 +116,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.header.or.header/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -127,7 +127,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -138,7 +138,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key.and.header/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -149,7 +149,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.key.or.header/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -159,7 +159,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.none/client",
         "${net}/unmerged.fetch.filter.none.read.committed/server"})
@@ -173,7 +173,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.message.values/client",
         "${net}/unmerged.fetch.message.values.read.committed/server"})
@@ -183,7 +183,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/merged.fetch.message.values/client",
         "${net}/unmerged.fetch.message.values.read.committed/server"})
@@ -193,7 +193,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.none.read.uncommitted/client",
         "${net}/unmerged.fetch.filter.none.read.uncommitted/server"})
@@ -208,7 +208,7 @@ public class ClientMergedIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values.null/client",
         "${net}/unmerged.produce.message.values.null/server"})
@@ -219,7 +219,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values/client",
         "${net}/unmerged.produce.message.values/server"})
@@ -229,7 +229,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.value.10k/client",
         "${net}/unmerged.produce.message.value.10k/server"})
@@ -243,7 +243,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.value.100k/client",
         "${net}/unmerged.produce.message.value.100k/server"})
@@ -257,7 +257,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/merged.produce.message.values/client",
         "${net}/unmerged.produce.message.values/server"})
@@ -267,7 +267,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values.dynamic/client",
         "${net}/unmerged.produce.message.values.dynamic/server"})
@@ -277,7 +277,7 @@ public class ClientMergedIT
     }
 
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.produce.message.values.dynamic.hashed/client",
         "${net}/unmerged.produce.message.values.dynamic.hashed/server"})
@@ -288,7 +288,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.one/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -299,7 +299,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.one.empty/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -310,7 +310,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.many/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -321,7 +321,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.many.empty/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -332,7 +332,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.skip.one/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -343,7 +343,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.skip.two/client",
         "${net}/unmerged.fetch.filter.none/server"})
@@ -354,7 +354,7 @@ public class ClientMergedIT
 
     @Ignore("filtered")
     @Test
-    @Configuration("client.options.merged.json")
+    @Configuration("client.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.headers.skip.many/client",
         "${net}/unmerged.fetch.filter.none/server"})
