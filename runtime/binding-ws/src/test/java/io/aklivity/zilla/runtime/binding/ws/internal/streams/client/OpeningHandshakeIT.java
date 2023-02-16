@@ -54,7 +54,7 @@ public class OpeningHandshakeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established/handshake.request",
         "${net}/connection.established/handshake.response" })
@@ -64,7 +64,7 @@ public class OpeningHandshakeIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/connection.established/handshake.request",
         "${net}/request.header.sec.websocket.protocol/handshake.response" })

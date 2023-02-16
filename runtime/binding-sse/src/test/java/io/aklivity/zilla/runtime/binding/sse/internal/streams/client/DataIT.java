@@ -52,7 +52,7 @@ public class DataIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/empty/client",
         "${net}/empty/response" })
@@ -62,7 +62,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/non.empty/client",
         "${net}/non.empty/response" })
@@ -72,7 +72,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/multiple/client",
         "${net}/multiple/response" })
@@ -82,7 +82,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/fragmented.10k/client",
         "${net}/fragmented.10k/response" })
@@ -92,7 +92,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/fragmented.100k/client",
         "${net}/fragmented.100k/response" })
@@ -102,7 +102,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/name.only/client",
         "${net}/name.only/response" })
@@ -112,7 +112,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/multi.line/client",
         "${net}/multi.line/response" })

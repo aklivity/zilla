@@ -57,7 +57,7 @@ public class FlowControlLimitsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/flow.control/request.headers.too.long/client"})
     public void shouldNotWriteRequestExceedingMaximumHeadersSize() throws Exception
@@ -66,7 +66,7 @@ public class FlowControlLimitsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/flow.control/response.first.fragment.maximum.headers/client",
         "${net}/flow.control/response.first.fragment.maximum.headers/server"})
@@ -78,7 +78,7 @@ public class FlowControlLimitsIT
     @Configure(name = ENGINE_BUFFER_POOL_CAPACITY_NAME, value = "16384")
     @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/flow.control/response.fragmented.with.padding/client",
         "${net}/flow.control/response.fragmented.with.padding/server" })
@@ -88,7 +88,7 @@ public class FlowControlLimitsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/transfer.codings/response.transfer.encoding.chunked/client",
         "${net}/transfer.codings/response.transfer.encoding.chunked/server" })
@@ -98,7 +98,7 @@ public class FlowControlLimitsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/flow.control/response.chunked.with.extensions.filling.maximum.headers/client",
         "${net}/flow.control/response.chunked.with.extensions.filling.maximum.headers/server" })
@@ -109,7 +109,7 @@ public class FlowControlLimitsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/flow.control/response.headers.too.long/client.no.response",
         "${net}/flow.control/response.headers.too.long/server.response.reset"})
@@ -119,7 +119,7 @@ public class FlowControlLimitsIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/flow.control/response.with.content.exceeding.window/client",
         "${net}/flow.control/response.with.content.exceeding.window/server"})

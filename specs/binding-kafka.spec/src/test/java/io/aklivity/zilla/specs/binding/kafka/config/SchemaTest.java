@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateCache()
     {
-        JsonObject config = schema.validate("cache.json");
+        JsonObject config = schema.validate("cache.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -44,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateCacheOptionsBootstrap()
     {
-        JsonObject config = schema.validate("cache.options.bootstrap.json");
+        JsonObject config = schema.validate("cache.options.bootstrap.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -52,7 +52,7 @@ public class SchemaTest
     @Test
     public void shouldValidateCacheOptionsDeltaType()
     {
-        JsonObject config = schema.validate("cache.options.delta.type.json");
+        JsonObject config = schema.validate("cache.options.delta.type.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -60,7 +60,7 @@ public class SchemaTest
     @Test
     public void shouldValidateCacheOptionsMerged()
     {
-        JsonObject config = schema.validate("cache.options.merged.json");
+        JsonObject config = schema.validate("cache.options.merged.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -68,7 +68,7 @@ public class SchemaTest
     @Test
     public void shouldValidateCacheWhenTopic()
     {
-        JsonObject config = schema.validate("cache.when.topic.json");
+        JsonObject config = schema.validate("cache.when.topic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -76,7 +76,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClient()
     {
-        JsonObject config = schema.validate("client.json");
+        JsonObject config = schema.validate("client.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -84,7 +84,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientOptionsMerged()
     {
-        JsonObject config = schema.validate("client.options.merged.json");
+        JsonObject config = schema.validate("client.options.merged.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -92,7 +92,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientOptionsSaslPlain()
     {
-        JsonObject config = schema.validate("client.options.sasl.plain.json");
+        JsonObject config = schema.validate("client.options.sasl.plain.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -100,7 +100,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientOptionsSaslScram()
     {
-        JsonObject config = schema.validate("client.options.sasl.scram.json");
+        JsonObject config = schema.validate("client.options.sasl.scram.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -108,7 +108,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhenTopic()
     {
-        JsonObject config = schema.validate("client.when.topic.json");
+        JsonObject config = schema.validate("client.when.topic.yaml");
 
         assertThat(config, not(nullValue()));
     }

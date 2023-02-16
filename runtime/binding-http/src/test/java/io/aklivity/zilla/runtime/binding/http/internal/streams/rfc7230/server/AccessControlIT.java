@@ -52,7 +52,7 @@ public class AccessControlIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.access.control.cross.origin.json")
+    @Configuration("server.access.control.cross.origin.yaml")
     @Specification({
         "${net}/allow.origin.wildcard/client",
         "${app}/allow.origin/server",
@@ -63,7 +63,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
     @Specification({
         "${net}/allow.origin.explicit/client",
         "${app}/allow.origin/server",
@@ -74,7 +74,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.credentials.json")
+    @Configuration("server.access.control.cross.origin.allow.credentials.yaml")
     @Specification({
         "${net}/allow.origin.credentials/client",
         "${app}/allow.origin/server",
@@ -85,7 +85,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.same.origin.json")
+    @Configuration("server.access.control.same.origin.yaml")
     @Specification({
         "${net}/allow.origin.same.origin/client",
         "${app}/allow.origin.same.origin/server",
@@ -96,7 +96,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.json")
+    @Configuration("server.access.control.cross.origin.yaml")
     @Specification({
         "${net}/allow.origin.same.origin/client",
         "${app}/allow.origin.same.origin/server",
@@ -107,7 +107,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.same.origin.json")
+    @Configuration("server.access.control.same.origin.yaml")
     @Specification({
         "${net}/allow.origin.omitted.same.origin/client",
         "${app}/allow.origin.omitted/server",
@@ -118,7 +118,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.json")
+    @Configuration("server.access.control.cross.origin.yaml")
     @Specification({
         "${net}/allow.origin.omitted.cross.origin/client",
         "${app}/allow.origin.omitted/server",
@@ -129,7 +129,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
     @Specification({
         "${net}/reject.origin.not.allowed/client",
     })
@@ -139,7 +139,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.same.origin.json")
+    @Configuration("server.access.control.same.origin.yaml")
     @Specification({
         "${net}/reject.origin.not.allowed/client",
     })
@@ -149,7 +149,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.json")
+    @Configuration("server.access.control.cross.origin.yaml")
     @Specification({
         "${net}/allow.methods.wildcard/client",
         "${app}/allow.methods/server",
@@ -160,7 +160,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.cached.json")
+    @Configuration("server.access.control.cross.origin.cached.yaml")
     @Specification({
         "${net}/allow.methods.wildcard.cached/client",
         "${app}/allow.methods/server",
@@ -171,7 +171,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
     @Specification({
         "${net}/allow.methods.explicit/client",
         "${app}/allow.methods/server",
@@ -182,7 +182,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.cached.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.cached.yaml")
     @Specification({
         "${net}/allow.methods.explicit.cached/client",
         "${app}/allow.methods/server",
@@ -193,7 +193,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.credentials.json")
+    @Configuration("server.access.control.cross.origin.allow.credentials.yaml")
     @Specification({
         "${net}/allow.methods.credentials/client",
         "${app}/allow.methods/server",
@@ -204,7 +204,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.credentials.cached.json")
+    @Configuration("server.access.control.cross.origin.allow.credentials.cached.yaml")
     @Specification({
         "${net}/allow.methods.credentials.cached/client",
         "${app}/allow.methods/server",
@@ -215,7 +215,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
     @Specification({
         "${net}/reject.method.not.allowed/client",
     })
@@ -225,7 +225,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.json")
+    @Configuration("server.access.control.cross.origin.yaml")
     @Specification({
         "${net}/allow.headers.wildcard/client",
         "${app}/allow.headers/server",
@@ -236,7 +236,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
     @Specification({
         "${net}/allow.headers.explicit/client",
         "${app}/allow.headers/server",
@@ -247,7 +247,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.credentials.json")
+    @Configuration("server.access.control.cross.origin.allow.credentials.yaml")
     @Specification({
         "${net}/allow.headers.credentials/client",
         "${app}/allow.headers/server",
@@ -258,7 +258,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.cached.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.cached.yaml")
     @Specification({
         "${net}/allow.headers.explicit.cached/client",
         "${app}/allow.headers/server",
@@ -269,7 +269,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.credentials.cached.json")
+    @Configuration("server.access.control.cross.origin.allow.credentials.cached.yaml")
     @Specification({
         "${net}/allow.headers.credentials.cached/client",
         "${app}/allow.headers/server",
@@ -280,7 +280,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.cached.json")
+    @Configuration("server.access.control.cross.origin.cached.yaml")
     @Specification({
         "${net}/allow.headers.wildcard.cached/client",
         "${app}/allow.headers/server",
@@ -291,7 +291,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.explicit.json")
+    @Configuration("server.access.control.cross.origin.allow.explicit.yaml")
     @Specification({
         "${net}/reject.header.not.allowed/client",
     })
@@ -301,7 +301,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.json")
+    @Configuration("server.access.control.cross.origin.yaml")
     @Specification({
         "${net}/expose.headers.wildcard/client",
         "${app}/expose.headers/server",
@@ -312,7 +312,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.expose.json")
+    @Configuration("server.access.control.cross.origin.expose.yaml")
     @Specification({
         "${net}/expose.headers.explicit/client",
         "${app}/expose.headers/server",
@@ -323,7 +323,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.credentials.json")
+    @Configuration("server.access.control.cross.origin.allow.credentials.yaml")
     @Specification({
         "${net}/expose.headers.credentials/client",
         "${app}/expose.headers/server",
@@ -334,7 +334,7 @@ public class AccessControlIT
     }
 
     @Test
-    @Configuration("server.access.control.cross.origin.allow.credentials.json")
+    @Configuration("server.access.control.cross.origin.allow.credentials.yaml")
     @Specification({
         "${net}/allow.credentials.cookie/client",
         "${app}/allow.credentials.cookie/server" })

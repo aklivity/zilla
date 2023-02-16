@@ -59,7 +59,7 @@ public class ConfigIT
 
     @Test
     @Configure(name = HTTP_USER_AGENT_HEADER_NAME, value = "zilla")
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/user.agent.header/client",
         "${net}/user.agent.header/server" })

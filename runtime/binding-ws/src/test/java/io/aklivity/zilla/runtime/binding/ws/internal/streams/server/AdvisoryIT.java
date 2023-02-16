@@ -55,7 +55,7 @@ public class AdvisoryIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.flush/client",
         "${app}/server.sent.flush/server" })
@@ -65,7 +65,7 @@ public class AdvisoryIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.flush/client",
         "${app}/client.sent.flush/server" })
@@ -75,7 +75,7 @@ public class AdvisoryIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.sent.challenge/client",
         "${app}/server.sent.challenge/server" })
@@ -85,7 +85,7 @@ public class AdvisoryIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.challenge/client",
         "${app}/client.sent.challenge/server" })

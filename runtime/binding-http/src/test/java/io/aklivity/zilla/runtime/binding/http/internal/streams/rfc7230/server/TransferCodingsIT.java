@@ -51,7 +51,7 @@ public class TransferCodingsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.transfer.encoding.chunked/client",
         "${app}/request.transfer.encoding.chunked/server" })
@@ -61,7 +61,7 @@ public class TransferCodingsIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/invalid.chunked.request.no.crlf.at.end.of.chunk/client",
         "${app}/invalid.chunked.request.no.crlf.at.end.of.chunk/server" })
@@ -71,7 +71,7 @@ public class TransferCodingsIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/response.transfer.encoding.chunked/client",
         "${app}/response.transfer.encoding.chunked/server" })
@@ -96,7 +96,7 @@ public class TransferCodingsIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.transfer.encoding.chunked.with.trailer/client",
         "${app}/request.transfer.encoding.chunked.with.trailer/server" })
@@ -107,7 +107,7 @@ public class TransferCodingsIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/response.transfer.encoding.chunked.with.trailer/client",
         "${app}/response.transfer.encoding.chunked.with.trailer/server" })

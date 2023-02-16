@@ -57,7 +57,7 @@ public class CacheBootstrapIT
     public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
 
     @Test
-    @Configuration("cache.options.bootstrap.json")
+    @Configuration("cache.options.bootstrap.yaml")
     @Specification({
         "${app}/unmerged.fetch.message.values/server"})
     public void shouldReceiveMergedMessageValues() throws Exception

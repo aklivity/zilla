@@ -50,7 +50,7 @@ public class ReconnectIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.last.event.id.and.data/request",
         "${app}/last.event.id.data/server" })
@@ -60,7 +60,7 @@ public class ReconnectIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.last.event.id/request",
         "${app}/last.event.id.end/server" })
@@ -70,7 +70,7 @@ public class ReconnectIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.last.event.id.fragmented/request",
         "${app}/last.event.id.end.fragmented/server" })
@@ -80,7 +80,7 @@ public class ReconnectIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.and.parameter.last.event.id/request",
         "${app}/initial.last.event.id/server" })

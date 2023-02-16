@@ -58,7 +58,7 @@ public class ServerLimitsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.sent.data.received.reset/server"
     })

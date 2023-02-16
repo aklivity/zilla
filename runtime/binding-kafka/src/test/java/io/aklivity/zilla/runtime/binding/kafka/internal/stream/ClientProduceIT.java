@@ -57,7 +57,7 @@ public class ClientProduceIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.missing/client"})
     public void shouldRejectWhenTopicMissing() throws Exception
@@ -66,7 +66,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.not.routed/client"})
     public void shouldRejectWhenTopicNotRouted() throws Exception
@@ -75,7 +75,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.unknown/client",
         "${net}/partition.unknown/server"})
@@ -85,7 +85,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.not.leader/client",
         "${net}/partition.not.leader/server"})
@@ -95,7 +95,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key/client",
         "${net}/message.key/server"})
@@ -105,7 +105,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.null/client",
         "${net}/message.key.null/server"})
@@ -115,7 +115,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.with.value.null/client",
         "${net}/message.key.with.value.null/server"})
@@ -125,7 +125,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.with.value.distinct/client",
         "${net}/message.key.with.value.distinct/server"})
@@ -135,7 +135,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.with.header/client",
         "${net}/message.key.with.header/server"})
@@ -145,7 +145,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.distinct/client",
         "${net}/message.key.distinct/server"})
@@ -155,7 +155,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value/client",
         "${net}/message.value/server"})
@@ -165,7 +165,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.null/client",
         "${net}/message.value.null/server"})
@@ -175,7 +175,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.10k/client",
         "${net}/message.value.10k/server"})
@@ -185,7 +185,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.100k/client",
         "${net}/message.value.100k/server"})
@@ -196,7 +196,7 @@ public class ClientProduceIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.gzip/client",
         "${net}/message.value.gzip/server"})
@@ -207,7 +207,7 @@ public class ClientProduceIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.snappy/client",
         "${net}/message.value.snappy/server"})
@@ -218,7 +218,7 @@ public class ClientProduceIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.lz4/client",
         "${net}/message.value.lz4/server"})
@@ -228,7 +228,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.distinct/client",
         "${net}/message.value.distinct/server"})
@@ -238,7 +238,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.header/client",
         "${net}/message.header/server"})
@@ -248,7 +248,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.header.null/client",
         "${net}/message.header.null/server"})
@@ -258,7 +258,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.headers.distinct/client",
         "${net}/message.headers.distinct/server"})
@@ -268,7 +268,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.headers.repeated/client",
         "${net}/message.headers.repeated/server"})
@@ -278,7 +278,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.repeated/client",
         "${net}/message.value.repeated/server"})
@@ -289,7 +289,7 @@ public class ClientProduceIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.values.sequential/client",
         "${net}/message.values.sequential/server"})

@@ -28,6 +28,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -58,6 +59,7 @@ public final class Target implements AutoCloseable
     private final boolean timestamps;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
+    private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final MessageConsumer writeHandler;
     private final LongFunction<LoadEntry> supplyLoadEntry;
@@ -71,6 +73,7 @@ public final class Target implements AutoCloseable
         MutableDirectBuffer writeBuffer,
         Long2ObjectHashMap<MessageConsumer> correlations,
         Int2ObjectHashMap<MessageConsumer>[] streams,
+        Long2ObjectHashMap<LongHashSet> streamSets,
         Int2ObjectHashMap<MessageConsumer>[] throttles,
         LongFunction<LoadEntry> supplyLoadEntry)
     {
@@ -92,6 +95,7 @@ public final class Target implements AutoCloseable
         this.supplyLoadEntry = supplyLoadEntry;
         this.correlations = correlations;
         this.streams = streams;
+        this.streamSets = streamSets;
         this.throttles = throttles;
 
         this.writeHandler = this::handleWrite;
@@ -231,6 +235,11 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 supplyLoadEntry.apply(routeId).initialClosed(1L).initialErrored(1L);
+                LongHashSet streamIdSet = streamSets.get(routeId);
+                if (streamIdSet != null)
+                {
+                    streamIdSet.remove(streamId);
+                }
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -299,6 +308,11 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
+                LongHashSet streamIdSet = streamSets.get(routeId);
+                if (streamIdSet != null)
+                {
+                    streamIdSet.remove(streamId);
+                }
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
