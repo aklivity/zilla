@@ -218,6 +218,8 @@ public final class EngineRule implements TestRule
                 {
                     String resourceName = String.format("%s/%s", configurationRoot, config.value());
                     URL configURL = testClass.getClassLoader().getResource(resourceName);
+                    //   io/aklivity/zilla/specs/binding/filesystem/config/server.yaml
+                    //   io/aklivity/zilla/specs/binding/filesystem/config/server.json
                     configure(ENGINE_CONFIG_URL, configURL);
                 }
                 else

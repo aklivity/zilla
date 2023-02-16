@@ -77,6 +77,16 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.file.payload.etag.not.matched/client",
+        "${app}/read.file.payload.etag.not.matched/server"
+    })
+    public void shouldReadFilePayloadEtagNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload.modified.follow.symlinks/client",
         "${app}/read.file.payload.modified.follow.symlinks/server"
     })

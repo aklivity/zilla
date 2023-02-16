@@ -185,6 +185,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final String tag = beginEx.tag().asString();
             try
             {
+                if (!Files.exists(Paths.get(resolvedPath), symlinks))
+                {
+                    return null;
+                }
                 String type = probeContentTypeOrDefault(path);
                 return new FileSystemServer(app, routeId, initialId, type, symlinks,
                     relativePath, resolvedPath, capabilities, tag)::onAppMessage;
@@ -318,10 +322,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             state = FileSystemState.openingInitial(state);
 
             doAppWindow(traceId);
-
-            if (tag == null || tag.isEmpty())
+            String currentTag = calculateTag();
+            if (tag == null || tag.isEmpty() || !tag.equals(currentTag))
             {
-                Flyweight replyBeginEx = getReplyBeginEx(traceId);
+                Flyweight replyBeginEx = getReplyBeginEx(currentTag);
                 doAppBegin(traceId, replyBeginEx);
                 flushAppData(traceId);
             }
@@ -335,14 +339,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             }
         }
 
-        private Flyweight getReplyBeginEx(
-            long traceId)
+        private Flyweight getReplyBeginEx(String newTag)
         {
-            String newTag = calculateTag();
-            if (newTag == null)
-            {
-                doAppAbort(traceId);
-            }
             int capabilities = tag == null || !tag.equals(newTag) ? this.capabilities : 0;
             return getReplyBeginEx(newTag, capabilities);
         }
@@ -352,7 +350,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             int capabilities)
         {
             attributes = getAttributes();
-            final long size = attributes.size();
+            long size = 0L;
+            if (attributes != null)
+            {
+                size = attributes.size();
+            }
             Flyweight replyBeginEx = beginExRW
                 .wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(fileSystemTypeId)
@@ -608,7 +610,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final int replyWin = replyMax - replyNoAck - replyPad;
             if (!FileSystemState.replyOpening(state))
             {
-                Flyweight replyBeginEx = getReplyBeginEx(traceId);
+                String newTag = calculateTag();
+                Flyweight replyBeginEx = getReplyBeginEx(newTag);
                 doAppBegin(traceId, replyBeginEx);
             }
             if (replyWin > 0)

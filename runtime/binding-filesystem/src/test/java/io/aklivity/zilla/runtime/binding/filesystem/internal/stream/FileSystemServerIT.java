@@ -103,7 +103,17 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server_symlinks.json")
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/read.file.payload.etag.not.matched/client",
+    })
+    public void shouldReadFilePayloadEtagNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server_symlinks.yaml")
     @Specification({
         "${app}/read.file.payload.modified.follow.symlinks/client",
     })
@@ -129,7 +139,7 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.read.begin.not.modified/client",
     })
@@ -139,7 +149,7 @@ public class FileSystemServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/read.file.payload.extension/client",
     })
