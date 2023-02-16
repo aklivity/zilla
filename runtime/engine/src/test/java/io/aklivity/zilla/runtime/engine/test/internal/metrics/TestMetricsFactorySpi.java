@@ -13,25 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.binding;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import org.junit.Test;
+package io.aklivity.zilla.runtime.engine.test.internal.metrics;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.TestBinding;
+import io.aklivity.zilla.runtime.engine.metrics.MetricsFactorySpi;
 
-public final class BindingFactoryTest
+public final class TestMetricsFactorySpi implements MetricsFactorySpi
 {
-    @Test
-    public void shouldLoadAndCreate()
+    @Override
+    public String type()
     {
-        Configuration config = new Configuration();
-        BindingFactory factory = BindingFactory.instantiate();
-        Binding binding = factory.create("test", config);
+        return TestMetrics.NAME;
+    }
 
-        assertThat(binding, instanceOf(TestBinding.class));
+    @Override
+    public TestMetrics create(
+        Configuration config)
+    {
+        return new TestMetrics(config);
     }
 }

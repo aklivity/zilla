@@ -13,25 +13,25 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.binding;
+package io.aklivity.zilla.runtime.engine.config;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static java.util.Objects.requireNonNull;
 
-import org.junit.Test;
-
-import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.test.internal.binding.TestBinding;
-
-public final class BindingFactoryTest
+public class MetricsConfig
 {
-    @Test
-    public void shouldLoadAndCreate()
-    {
-        Configuration config = new Configuration();
-        BindingFactory factory = BindingFactory.instantiate();
-        Binding binding = factory.create("test", config);
+    public transient long id;
 
-        assertThat(binding, instanceOf(TestBinding.class));
+    public final String name;
+    public final String type;
+    public final OptionsConfig options;
+
+    public MetricsConfig(
+        String name,
+        String type,
+        OptionsConfig options)
+    {
+        this.name = requireNonNull(name);
+        this.type = requireNonNull(type);
+        this.options = options;
     }
 }

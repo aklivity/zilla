@@ -36,6 +36,27 @@
             },
             "additionalProperties": false
         },
+        "telemetry":
+        {
+            "title": "Telemetry",
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "patternProperties":
+                    {
+                        "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$":
+                        {
+                            "type": "string"
+                        }
+                    },
+                },
+                "metrics": {
+                    "$ref": "#/$defs/telemetry/metrics"
+                },
+            },
+            "additionalProperties": false
+        },
         "bindings":
         {
             "title": "Bindings",
@@ -107,6 +128,20 @@
             "oneOf":
             [
             ]
+        },
+        "telemetry":
+        {
+            "metrics":
+            {
+                "type": "array",
+                "items":
+                {
+                    "enum":
+                    [
+                    ]
+                },
+                "uniqueItems": true
+            },
         },
         "binding":
         {
