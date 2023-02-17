@@ -20,10 +20,10 @@ connected
 write http:method "GET"
 write http:header "If-None-Match"
 write http:header "Prefer" "wait=86400"
+write close
 
 read http:status "404" "Not Found"
 read closed
-write notify FIRST_ABORTED
 
 connect "http://localhost:8080/"
 connected
@@ -33,9 +33,17 @@ write http:header "If-None-Match"
 write http:header "Prefer" "wait=86400"
 write close
 
+write notify FIRST_ABORTED
 read http:status "200" "OK"
 read http:header "Etag" "AAAAAAA"
-read '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
+read '---\n'
+     'name: test\n'
+     'bindings:\n'
+     '  net0:\n'
+     '    type: test\n'
+     '    kind: proxy\n'
+     '    exit: app0\n'
+
 read closed
 
 connect "zilla://streams/app0"

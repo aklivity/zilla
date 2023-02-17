@@ -24,7 +24,13 @@ write close
 
 read http:status "200" "OK"
 read http:header "Etag" "AAAAAAA"
-read '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
+read '---\n'
+     'name: test\n'
+     'bindings:\n'
+     '  net0:\n'
+     '    type: test\n'
+     '    kind: proxy\n'
+     '    exit: app0\n'
 read closed
 
 connect "http://localhost:8080/"
@@ -37,7 +43,13 @@ write close
 
 read http:status "200" "OK"
 read http:header "Etag" "BBBBBBB"
-read '{"name": "test","bindings":{"net1":{"type" : "test","kind": "proxy","exit": "app1"}}}'
+read '---\n'
+     'name: test\n'
+     'bindings:\n'
+     '  net1:\n'
+     '    type: test\n'
+     '    kind: proxy\n'
+     '    exit: app1\n'
 read closed
 
 

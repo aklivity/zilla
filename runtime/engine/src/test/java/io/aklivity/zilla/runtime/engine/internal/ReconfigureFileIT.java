@@ -94,7 +94,7 @@ public class ReconfigureFileIT
     }
 
     @Before
-    public void waitForInitialConfig() throws Exception
+    public void setupRegisterLatch() throws Exception
     {
         //Make sure that the initial configuration has finished
         EngineTest.TestEngineExt.registerLatch.await();

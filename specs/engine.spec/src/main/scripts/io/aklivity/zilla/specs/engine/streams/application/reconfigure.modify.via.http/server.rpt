@@ -26,7 +26,13 @@ read closed
 write http:status "200" "OK"
 write http:content-length
 write http:header "Etag" "AAAAAAA"
-write '{"name": "test","bindings":{"net0":{"type" : "test","kind": "proxy","exit": "app0"}}}'
+write '---\n'
+     'name: test\n'
+     'bindings:\n'
+     '  net0:\n'
+     '    type: test\n'
+     '    kind: proxy\n'
+     '    exit: app0\n'
 write close
 
 accepted
@@ -41,7 +47,13 @@ write await CONNECTED
 write http:status "200" "OK"
 write http:content-length
 write http:header "Etag" "BBBBBBB"
-write '{"name": "test","bindings":{"net1":{"type" : "test","kind": "proxy","exit": "app1"}}}'
+write '---\n'
+     'name: test\n'
+     'bindings:\n'
+     '  net1:\n'
+     '    type: test\n'
+     '    kind: proxy\n'
+     '    exit: app1\n'
 write close
 
 

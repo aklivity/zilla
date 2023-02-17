@@ -62,7 +62,7 @@ public class ReconfigureHttpIT
     public final TestRule chain = outerRule(k3po).around(engine).around(timeout);
 
     @Before
-    public void waitForInitialConfig() throws Exception
+    public void setupRegisterLatch() throws Exception
     {
         //Make sure that the initial configuration has finished
         EngineTest.TestEngineExt.registerLatch.await();

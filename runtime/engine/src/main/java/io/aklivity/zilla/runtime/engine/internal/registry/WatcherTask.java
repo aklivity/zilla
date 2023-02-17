@@ -17,32 +17,40 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public abstract class WatcherTask implements Callable<Void>, Closeable
 {
     private final MessageDigest md5;
+
     protected final BiFunction<URL, String, NamespaceConfig> changeListener;
 
     protected WatcherTask(
         BiFunction<URL, String, NamespaceConfig> changeListener)
     {
         this.changeListener = changeListener;
-        MessageDigest md5 = null;
-        try
-        {
-            md5 = MessageDigest.getInstance("MD5");
-        }
-        catch (NoSuchAlgorithmException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        this.md5 = md5;
+        this.md5 = initMessageDigest("MD5");
     }
+
     public abstract String readURL(
         URL configURL);
+
     public abstract CompletableFuture<NamespaceConfig> watch(
         URL configURL);
-
 
     protected byte[] computeHash(
         String configText)
     {
         return md5.digest(configText.getBytes(UTF_8));
+    }
+
+    private MessageDigest initMessageDigest(
+        String algorithm)
+    {
+        MessageDigest md5 = null;
+        try
+        {
+            md5 = MessageDigest.getInstance(algorithm);
+        }
+        catch (NoSuchAlgorithmException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return md5;
     }
 }
