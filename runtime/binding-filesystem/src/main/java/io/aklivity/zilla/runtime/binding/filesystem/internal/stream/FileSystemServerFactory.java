@@ -123,17 +123,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.fileSystemWatcher = context.supplyFileSystemWatcher();
         this.bindings = new Long2ObjectHashMap<>();
         this.signaler = context.signaler();
-        MessageDigest md5 = null;
-        try
-        {
-            md5 = MessageDigest.getInstance("MD5");
-        }
-        catch (NoSuchAlgorithmException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-
-        this.md5 = md5;
+        this.md5 = initMessageDigest("MD5");
     }
 
     @Override
@@ -202,6 +192,21 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         return newStream;
     }
 
+
+    private static MessageDigest initMessageDigest(
+        String algorithm)
+    {
+        MessageDigest messageDigest = null;
+        try
+        {
+            messageDigest = MessageDigest.getInstance(algorithm);
+        }
+        catch (NoSuchAlgorithmException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return messageDigest;
+    }
     private String probeContentTypeOrDefault(
         Path path) throws IOException
     {

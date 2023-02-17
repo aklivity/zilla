@@ -630,7 +630,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                         .headersItem(h -> h.name(HEADER_STATUS_NAME).value(getStatus(fsBeginEx)))
                         .headersItem(h -> h.name(HEADER_CONTENT_TYPE_NAME).value(type))
                         .headersItem(h -> h.name(HEADER_CONTENT_LENGTH_NAME).value(length));
-                if (tag != null && tag.asString() != null)
+                if (tag.length() != -1 && tag.asString() != null)
                 {
                     httpBeginExBuilder.headersItem(h -> h.name(HEADER_ETAG_NAME).value(tag));
                 }
@@ -640,9 +640,10 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
             delegate.doHttpBegin(traceId, authorization, affinity, httpBeginEx);
         }
 
-        private String16FW getStatus(FileSystemBeginExFW fsBeginEx)
+        private String16FW getStatus(
+            FileSystemBeginExFW fsBeginEx)
         {
-            if (fsBeginEx.tag().asString() == null)
+            if (fsBeginEx.tag().length() == -1)
             {
                 return HEADER_STATUS_VALUE_200;
             }
@@ -961,7 +962,7 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
                 .capabilities(resolved.capabilities())
                 .path(resolved.path())
                 .tag(resolved.tag())
-                .timeout(resolved.timeout() * 1000)
+                .timeout(resolved.timeout())
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

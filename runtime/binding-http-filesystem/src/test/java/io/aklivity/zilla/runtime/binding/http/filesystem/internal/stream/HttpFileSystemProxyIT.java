@@ -71,7 +71,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.read.file.map.not.modified/client",
         "${filesystem}/client.read.file.map.not.modified/server"})
@@ -81,7 +81,7 @@ public class HttpFileSystemProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.path.json")
+    @Configuration("proxy.with.path.yaml")
     @Specification({
         "${http}/client.read.file.with.query/client",
         "${filesystem}/client.read.file/server"})
