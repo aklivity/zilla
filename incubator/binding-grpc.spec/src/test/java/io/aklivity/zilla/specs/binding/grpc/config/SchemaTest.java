@@ -48,4 +48,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateClient()
+    {
+        JsonObject config = schema.validate("client.json");
+
+        assertThat(config, not(nullValue()));
+    }
 }
