@@ -14,5 +14,26 @@
  */
 scope grpc
 {
-	
+    scope stream
+    {
+        enum GrpcKind
+        {
+            UNARY,
+            STREAM
+        }
+
+        struct GrpcMetadata
+        {
+            string8 name;
+            string16 value;
+        }
+
+        struct GrpcBeginEx extends core::stream::Extension
+        {
+            string16 method;
+            GrpcKind request;
+            GrpcKind response;
+            GrpcMetadata[] metadata;
+        }
+    }
 }
