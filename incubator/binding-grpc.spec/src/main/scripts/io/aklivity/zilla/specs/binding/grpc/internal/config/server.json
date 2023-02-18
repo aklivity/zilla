@@ -1,0 +1,17 @@
+{
+  "name": "test",
+  "bindings":
+  {
+    "net0":
+    {
+      "type" : "grpc",
+      "kind": "server",
+      "routes":
+      [
+        {
+          "exit": "app0"
+        }
+      ]
+    }
+  }
+}

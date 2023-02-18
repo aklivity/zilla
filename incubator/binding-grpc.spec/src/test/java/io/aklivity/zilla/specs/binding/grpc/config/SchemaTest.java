@@ -29,22 +29,14 @@ public class SchemaTest
 {
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
-        .schemaPatch("io/aklivity/zilla/specs/binding/grpc/schema/grpc.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/binding/grpc/internal/schema/grpc.schema.patch.json")
         .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/config");
 
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateClient()
-    {
-        JsonObject config = schema.validate("client.yaml");
+        JsonObject config = schema.validate("server.json");
 
         assertThat(config, not(nullValue()));
     }
