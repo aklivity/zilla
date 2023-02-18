@@ -54,38 +54,6 @@ scope mqtt
 
     scope stream
     {
-        struct MqttBeginEx extends core::stream::Extension
-        {
-            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
-            string16 clientId;
-            string16 topic;
-            uint8 flags = 0;
-            varuint32 subscriptionId = 0;
-            MqttUserProperty[] properties;
-        }
-
-        struct MqttDataEx extends core::stream::Extension
-        {
-            int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
-            string16 topic = null;
-            uint8 flags = 0;
-            int32 expiryInterval = -1;
-            string16 contentType = null;
-            MqttPayloadFormat format = BINARY;
-            string16 responseTopic = null;
-            MqttBinary correlation;
-            MqttUserProperty[] properties;
-        }
-
-        struct MqttAbortEx extends core::stream::Extension
-        {
-            uint8 reason;
-        }
-
-        struct MqttFlushEx extends core::stream::Extension
-        {
-            uint8 flags = 0;
-            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
-        }
+        w
     }
 }

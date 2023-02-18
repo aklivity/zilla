@@ -297,7 +297,7 @@ public final class GrpcFunctions
         {
             MutableBoolean match = new MutableBoolean(true);
             metadata.forEach((k, v) -> match.value &= beginEx.metadata().anyMatch(h ->
-                 h.type().get() == v.type && k.equals(h.name()) && v.value.test(h.value())));
+                h.type().get() == v.type && k.equals(h.name()) && v.value.test(h.value())));
             return match.value;
         }
 
