@@ -1,17 +1,16 @@
 /*
- * Copyright 2021-2022 Aklivity Inc.
+ * Copyright 2021-2022 Aklivity Inc
  *
- * Aklivity licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.aklivity.io/aklivity-community-license/
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package io.aklivity.zilla.specs.binding.grpc.streams.network;
 
@@ -29,7 +28,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class StreamIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/internal/streams/network");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -82,6 +81,16 @@ public class StreamIT
         "${net}/unsupported.http.method/server",
     })
     public void shouldRejectUnsupportedHttpMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/method.not.found/client",
+        "${net}/method.not.found/server",
+    })
+    public void shouldRejectNotFoundMethod() throws Exception
     {
         k3po.finish();
     }
