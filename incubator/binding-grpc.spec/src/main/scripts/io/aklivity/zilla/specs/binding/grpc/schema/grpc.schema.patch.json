@@ -54,23 +54,7 @@
                                             "type": "object",
                                             "additionalProperties" :
                                             {
-                                                "oneOf":
-                                                [
-                                                    {
-                                                        "type": "string"
-                                                    },
-                                                    {
-                                                        "type": "object",
-                                                        "properties":
-                                                        {
-                                                            "base64":
-                                                            {
-                                                                "title": "Base64 value",
-                                                                "type": "string"
-                                                            }
-                                                        }
-                                                    }
-                                                ]
+                                                "type": "string"
                                             }
                                         }
                                     },
