@@ -141,7 +141,7 @@ public final class Engine implements AutoCloseable
             dispatchers.add(agent);
         }
 
-        final Consumer<String> logger = config.verbose() ? System.out::print : m -> {};
+        final Consumer<String> logger = config.verbose() ? System.out::println : m -> {};
 
         final List<EngineExtSpi> extensions = ServiceLoader.load(EngineExtSpi.class).stream()
                 .map(Provider::get)

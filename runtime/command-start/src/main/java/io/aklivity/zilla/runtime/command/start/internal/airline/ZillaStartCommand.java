@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
@@ -44,7 +45,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 @Command(name = "start", description = "Start engine")
 public final class ZillaStartCommand extends ZillaCommand
 {
-    private static final String OPTION_PROPERTIES_DEFAULT = ".zilla/zilla.properties";
+    private static final String OPTION_PROPERTIES_PATH_DEFAULT = ".zilla/zilla.properties";
 
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
@@ -63,10 +64,15 @@ public final class ZillaStartCommand extends ZillaCommand
             description = "Worker count")
     public int workers = -1;
 
+    @Option(name = { "-P", "--property" },
+            description = "Property name=value",
+            hidden = true)
+    public List<String> properties;
+
     @Option(name = { "-p", "--properties" },
             description = "Path to properties",
             hidden = true)
-    public String properties;
+    public String propertiesPath;
 
     @Option(name = "-e",
             description = "Show exception traces",
@@ -80,8 +86,8 @@ public final class ZillaStartCommand extends ZillaCommand
         Properties props = new Properties();
         props.setProperty(ENGINE_DIRECTORY.name(), ".zilla/engine");
 
-        Path path = Paths.get(properties != null ? properties : OPTION_PROPERTIES_DEFAULT);
-        if (Files.exists(path) || properties != null)
+        Path path = Paths.get(propertiesPath != null ? propertiesPath : OPTION_PROPERTIES_PATH_DEFAULT);
+        if (Files.exists(path) || propertiesPath != null)
         {
             try
             {
@@ -91,6 +97,18 @@ public final class ZillaStartCommand extends ZillaCommand
             {
                 System.out.println("Failed to load properties: " + path);
                 rethrowUnchecked(ex);
+            }
+        }
+
+        if (properties != null)
+        {
+            for (String property : properties)
+            {
+                final int equalsAt = property.indexOf('=');
+                String name = equalsAt != -1 ? property.substring(0, equalsAt) : property;
+                String value = equalsAt != -1 ? property.substring(equalsAt + 1) : "true";
+
+                props.put(name, value);
             }
         }
 
