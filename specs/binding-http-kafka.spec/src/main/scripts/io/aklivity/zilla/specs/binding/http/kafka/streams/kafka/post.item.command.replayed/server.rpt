@@ -55,9 +55,9 @@ read zilla:data.empty
 read option zilla:flags 0x00
 read '{ "name": "widget" }'
 
-read await SEND_ASYNC_REQUEST
+read await RECEIVED_ASYNC_RESPONSE
 
-read option zilla:flags 0x01
+read option zilla:flags 0x04
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -87,10 +87,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write advise zilla:flush
-
-write notify SEND_ASYNC_REQUEST
-
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -103,6 +99,8 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 write flush
+
+write notify RECEIVED_ASYNC_RESPONSE
 
 write close
 read closed

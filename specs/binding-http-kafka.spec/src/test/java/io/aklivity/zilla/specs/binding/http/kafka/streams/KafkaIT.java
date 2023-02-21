@@ -388,6 +388,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/post.item.command.replayed/client",
+        "${kafka}/post.item.command.replayed/server"})
+    public void shouldPostItemCommandReplayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/post.item.command.delayed/client",
         "${kafka}/post.item.command.delayed/server"})
     public void shouldPostItemCommandDelayed() throws Exception

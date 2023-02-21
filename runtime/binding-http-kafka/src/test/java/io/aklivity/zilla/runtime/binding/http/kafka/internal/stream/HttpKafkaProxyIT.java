@@ -593,6 +593,16 @@ public class HttpKafkaProxyIT
     @Test
     @Configuration("proxy.post.item.command.yaml")
     @Specification({
+            "${http}/post.item.command/client",
+            "${kafka}/post.item.command.replayed/server"})
+    public void shouldPostItemCommandReplayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.post.item.command.yaml")
+    @Specification({
         "${http}/post.item.command.if.match/client",
         "${kafka}/post.item.command.if.match/server"})
     public void shouldPostItemCommandIfMatch() throws Exception

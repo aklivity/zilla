@@ -56,9 +56,9 @@ write flush
 
 write notify SENDING_ASYNC_REQUEST
 
-write await RECEIVED_ASYNC_FLUSH
+write await SEND_ASYNC_REQUEST_INCOMPLETE
 
-write option zilla:flags 0x01
+write option zilla:flags 0x04
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -91,10 +91,6 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read advised zilla:flush
-
-read notify RECEIVED_ASYNC_FLUSH
-
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -107,6 +103,8 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read zilla:data.null
+
+read notify SEND_ASYNC_REQUEST_INCOMPLETE
 
 read closed
 write close
