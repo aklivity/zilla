@@ -15,8 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
+import static java.util.Collections.singletonMap;
+
 import java.io.InputStream;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -117,10 +121,6 @@ public class ConfigurationManager
             configText = CONFIG_TEXT_DEFAULT;
         }
 
-        if (!configText.endsWith(System.lineSeparator()))
-        {
-            configText += System.lineSeparator();
-        }
         logger.accept(configText);
 
         if (config.configResolveExpressions())
@@ -147,6 +147,18 @@ public class ConfigurationManager
                 JsonPatch schemaPatch = schemaProvider.createPatch(schemaPatchArray);
 
                 schemaObject = schemaPatch.apply(schemaObject);
+            }
+
+            if (config.verboseSchema())
+            {
+                final StringWriter out = new StringWriter();
+                schemaProvider.createGeneratorFactory(singletonMap(PRETTY_PRINTING, true))
+                    .createGenerator(out)
+                    .write(schemaObject)
+                    .close();
+
+                final String schemaText = out.getBuffer().toString();
+                logger.accept(schemaText);
             }
 
             JsonParser schemaParser = schemaProvider.createParserFactory(null)

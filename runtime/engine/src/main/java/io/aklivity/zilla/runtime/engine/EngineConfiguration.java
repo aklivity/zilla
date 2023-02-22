@@ -65,6 +65,7 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
+    public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final IntPropertyDef ENGINE_WORKERS;
     public static final BooleanPropertyDef ENGINE_CONFIG_RESOLVE_EXPRESSIONS;
 
@@ -103,6 +104,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
+        ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
         ENGINE_CONFIG_RESOLVE_EXPRESSIONS = config.property("config.resolve.expressions", true);
         ENGINE_CONFIG = config;
@@ -271,6 +273,11 @@ public class EngineConfiguration extends Configuration
     public boolean verbose()
     {
         return ENGINE_VERBOSE.getAsBoolean(this);
+    }
+
+    public boolean verboseSchema()
+    {
+        return ENGINE_VERBOSE_SCHEMA.getAsBoolean(this);
     }
 
     public int workers()
