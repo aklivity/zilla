@@ -107,6 +107,16 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/client.read.file.not.found/client",
+        "${app}/client.read.file.not.found/server"
+    })
+    public void shouldAbortFileNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload.extension/client",
         "${app}/read.file.payload.extension/server",
     })

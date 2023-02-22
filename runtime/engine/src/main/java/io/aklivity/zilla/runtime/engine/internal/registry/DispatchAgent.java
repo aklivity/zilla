@@ -27,7 +27,6 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIn
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
-import static java.util.concurrent.ForkJoinPool.commonPool;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
@@ -46,7 +45,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -79,7 +77,6 @@ import org.agrona.hints.ThreadHints;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.FileSystemWatcher;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -191,8 +188,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
-    private final FileSystemWatcher fileSystemWatcher;
-    private final ForkJoinTask<Void> fileSystemWatcherRef;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -310,8 +305,6 @@ public class DispatchAgent implements EngineContext, Agent
         this.debitorsByIndex = new Int2ObjectHashMap<DefaultBudgetDebitor>();
         this.countersByName = new HashMap<>();
 
-        this.fileSystemWatcher = new FileSystemWatcher(signaler);
-        this.fileSystemWatcherRef = commonPool().submit(fileSystemWatcher);
         Map<String, BindingContext> bindingsByType = new LinkedHashMap<>();
         for (Binding binding : bindings)
         {
@@ -561,12 +554,6 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public FileSystemWatcher supplyFileSystemWatcher()
-    {
-        return fileSystemWatcher;
-    }
-
-    @Override
     public URL resolvePath(
         String path)
     {
@@ -635,15 +622,6 @@ public class DispatchAgent implements EngineContext, Agent
             {
                 break;
             }
-        }
-        quietClose(fileSystemWatcher);
-        try
-        {
-            fileSystemWatcherRef.get();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
         }
         configuration.detachAll();
 

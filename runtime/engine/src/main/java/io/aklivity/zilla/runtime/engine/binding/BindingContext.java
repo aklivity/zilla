@@ -29,4 +29,8 @@ public interface BindingContext
         BindingConfig binding)
     {
     }
+
+    default void close()
+    {
+    }
 }

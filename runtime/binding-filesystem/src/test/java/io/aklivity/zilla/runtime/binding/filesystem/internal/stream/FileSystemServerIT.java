@@ -86,7 +86,7 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/read.file.payload.modified/client",
+        "${app}/read.file.payload.modified/client"
     })
     public void shouldReadFilePayloadModified() throws Exception
     {
@@ -105,7 +105,7 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/read.file.payload.etag.not.matched/client",
+        "${app}/read.file.payload.etag.not.matched/client"
     })
     public void shouldReadFilePayloadEtagNotMatched() throws Exception
     {
@@ -115,7 +115,7 @@ public class FileSystemServerIT
     @Test
     @Configuration("server_symlinks.yaml")
     @Specification({
-        "${app}/read.file.payload.modified.follow.symlinks/client",
+        "${app}/read.file.payload.modified.follow.symlinks/client"
     })
     public void shouldReadFilePayloadModifiedFollowSymlinks() throws Exception
     {
@@ -139,9 +139,40 @@ public class FileSystemServerIT
     }
 
     @Test
+    @Configuration("server_symlinks.yaml")
+    @Specification({
+        "${app}/read.file.payload.modified.follow.symlink.changes/client"
+    })
+    public void shouldReadFilePayloadModifiedSymlinkChanges() throws Exception
+    {
+        Path filesDirectory = Paths.get("target/files").toAbsolutePath();
+        Path link = filesDirectory.resolve("index_modify_symlink_changes.html");
+        Path target1 = filesDirectory.resolve("index.html");
+        Files.createSymbolicLink(link, target1);
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED");
+
+        Path targetFileAfter = Paths.get("symlink/index.html");
+        File linkFile = new File(String.valueOf(link));
+        linkFile.delete();
+        Files.createSymbolicLink(link, targetFileAfter);
+
+        // Wait for registering the new watched directories.
+        Thread.sleep(2000);
+
+        Path source = filesDirectory.resolve("index_actual_after.html");
+        Path target = filesDirectory.resolve("symlink/index.html");
+
+        Files.move(source, target, ATOMIC_MOVE);
+        k3po.notifyBarrier("FILE_MODIFIED");
+
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/client.read.begin.not.modified/client",
+        "${app}/client.read.begin.not.modified/client"
     })
     public void shouldReadBeginNotModified() throws Exception
     {
@@ -151,7 +182,17 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/read.file.payload.extension/client",
+        "${app}/client.read.file.not.found/client"
+    })
+    public void shouldAbortFileNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${app}/read.file.payload.extension/client"
     })
     public void shouldReadFilePayloadAndExtension() throws Exception
     {

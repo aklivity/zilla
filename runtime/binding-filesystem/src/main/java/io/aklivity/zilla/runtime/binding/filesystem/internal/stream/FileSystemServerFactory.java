@@ -42,6 +42,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemConfiguration;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemWatcher;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemBindingConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.FileSystemCapabilities;
@@ -56,7 +57,6 @@ import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetF
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.FileSystemWatcher;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
@@ -110,7 +110,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     public FileSystemServerFactory(
         FileSystemConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        FileSystemWatcher fileSystemWatcher)
     {
         this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
@@ -120,7 +121,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
-        this.fileSystemWatcher = context.supplyFileSystemWatcher();
+        this.fileSystemWatcher = fileSystemWatcher;
         this.bindings = new Long2ObjectHashMap<>();
         this.signaler = context.signaler();
         this.md5 = initMessageDigest("MD5");
@@ -175,13 +176,12 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final String tag = beginEx.tag().asString();
             try
             {
-                if (!Files.exists(Paths.get(resolvedPath), symlinks))
+                if (Files.exists(Paths.get(resolvedPath), symlinks))
                 {
-                    return null;
+                    String type = probeContentTypeOrDefault(path);
+                    newStream = new FileSystemServer(app, routeId, initialId, type, symlinks,
+                        relativePath, resolvedPath, capabilities, tag)::onAppMessage;
                 }
-                String type = probeContentTypeOrDefault(path);
-                return new FileSystemServer(app, routeId, initialId, type, symlinks,
-                    relativePath, resolvedPath, capabilities, tag)::onAppMessage;
             }
             catch (IOException ex)
             {
@@ -492,17 +492,15 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (FileSystemState.replyOpening(state) && !FileSystemState.replyOpened(state))
-            {
-                state = FileSystemState.openReply(state);
 
-                if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
-                {
-                    replyDeb = supplyDebitor.apply(budgetId);
-                    replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
-                }
-                flushAppData(traceId);
+            state = FileSystemState.openReply(state);
+
+            if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+            {
+                replyDeb = supplyDebitor.apply(budgetId);
+                replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
             }
+            flushAppData(traceId);
         }
 
         private void onAppReset(
@@ -623,7 +621,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 InputStream input = getInputStream();
                 boolean replyClosable = input == null;
-
                 if (input != null)
                 {
                     try
@@ -642,19 +639,19 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         {
                             final byte[] readArray = readBuffer.byteArray();
                             int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
-                            if (bytesRead != -1)
-                            {
-                                OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+                            assert bytesRead != -1;
 
-                                doAppData(traceId, reserved, payload);
+                            OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
 
-                                replyBytes += bytesRead;
-                                replyClosable = replyBytes == attributes.size();
-                            }
-                            else
-                            {
-                                input.close();
-                            }
+                            doAppData(traceId, reserved, payload);
+
+                            replyBytes += bytesRead;
+                            replyClosable = replyBytes == attributes.size();
+                        }
+                        if (replyClosable)
+                        {
+                            input.close();
+                            doAppEnd(traceId);
                         }
                     }
                     catch (IOException ex)
@@ -662,11 +659,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         doAppAbort(traceId);
                     }
                 }
-
-                if (replyClosable)
+                else
                 {
                     doAppEnd(traceId);
                 }
+
             }
         }
     }

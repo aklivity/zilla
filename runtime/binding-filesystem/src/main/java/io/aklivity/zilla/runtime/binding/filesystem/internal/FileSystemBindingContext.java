@@ -15,9 +15,13 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static java.util.concurrent.ForkJoinPool.commonPool;
+import static org.agrona.CloseHelper.quietClose;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.ForkJoinTask;
 
 import io.aklivity.zilla.runtime.binding.filesystem.internal.stream.FileSystemServerFactory;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.stream.FileSystemStreamFactory;
@@ -30,14 +34,18 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 final class FileSystemBindingContext implements BindingContext
 {
     private final Map<KindConfig, FileSystemStreamFactory> factories;
+    private final FileSystemWatcher fileSystemWatcher;
+    private final ForkJoinTask<Void> fileSystemWatcherRef;
 
     FileSystemBindingContext(
         FileSystemConfiguration config,
         EngineContext context)
     {
         Map<KindConfig, FileSystemStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new FileSystemServerFactory(config, context));
         this.factories = factories;
+        this.fileSystemWatcher = new FileSystemWatcher(context.signaler());
+        this.fileSystemWatcherRef = commonPool().submit(fileSystemWatcher);
+        factories.put(SERVER, new FileSystemServerFactory(config, context, fileSystemWatcher));
     }
 
     @Override
@@ -63,6 +71,20 @@ final class FileSystemBindingContext implements BindingContext
         if (factory != null)
         {
             factory.detach(binding.id);
+        }
+    }
+
+    @Override
+    public void close()
+    {
+        quietClose(fileSystemWatcher);
+        try
+        {
+            fileSystemWatcherRef.get();
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
         }
     }
 
