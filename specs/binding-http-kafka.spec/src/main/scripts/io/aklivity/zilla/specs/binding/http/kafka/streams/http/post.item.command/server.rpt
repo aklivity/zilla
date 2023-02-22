@@ -40,4 +40,6 @@ write zilla:begin.ext ${http:beginEx()
 
 write flush
 
+write advise zilla:flush
+
 write close
