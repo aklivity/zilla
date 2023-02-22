@@ -66,6 +66,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
+    private static final int DATA_FLAG_INCOMPLETE = 0x04;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
@@ -3854,7 +3855,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                                     .headers(producer.resolved::trailers))
                             .build();
 
-                    producer.doKafkaData(traceId, authorization, 0L, 0, 0x04, emptyRO, kafkaDataEx);
+                    producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INCOMPLETE, emptyRO, kafkaDataEx);
 
                     producer.doKafkaEndDeferred(traceId, authorization);
 
