@@ -14,7 +14,7 @@ import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -32,7 +32,7 @@ public class HttpWatcherTask extends WatcherTask
     private final Map<URI, String> etags;
     private final Map<URI, byte[]> configHashes;
     private final Map<URI, CompletableFuture<Void>> futures;
-    private final Queue<URI> configWatcherQueue;
+    private final BlockingQueue<URI> configWatcherQueue;
     private final ScheduledExecutorService executor;
     //If server does not support long-polling use this interval
     private final int pollIntervalSeconds;
@@ -52,16 +52,13 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     @Override
-    public Void call()
+    public Void call() throws InterruptedException
     {
         while (!closed)
         {
-            if (!configWatcherQueue.isEmpty())
-            {
-                URI configURI = configWatcherQueue.poll();
-                String etag = etags.getOrDefault(configURI, "");
-                sendAsync(configURI, etag);
-            }
+            URI configURI = configWatcherQueue.take();
+            String etag = etags.getOrDefault(configURI, "");
+            sendAsync(configURI, etag);
         }
         return null;
     }
