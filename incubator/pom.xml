@@ -19,9 +19,11 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
+    <module>metrics-stream.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
+    <module>metrics-stream</module>
 
     <module>command-load</module>
     <module>command-log</module>
