@@ -19,18 +19,20 @@
   <modules>
     <module>binding-amqp.spec</module>
     <module>binding-mqtt.spec</module>
+
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
-    <module>metrics-stream</module>
-    <module>metrics-http</module>
 
     <module>command-load</module>
     <module>command-log</module>
     <module>command-dump</module>
     <module>command-tune</module>
+
+    <module>metrics-stream</module>
+    <module>metrics-http</module>
   </modules>
 
   <dependencyManagement>
@@ -63,6 +65,16 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>command-dump</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-stream</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-http</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

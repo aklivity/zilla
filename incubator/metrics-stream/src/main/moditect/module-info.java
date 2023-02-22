@@ -16,6 +16,6 @@ module io.aklivity.zilla.runtime.metrics.stream
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    provides io.aklivity.zilla.runtime.engine.metrics.MetricsFactorySpi
-        with io.aklivity.zilla.runtime.metrics.stream.internal.StreamMetricsFactorySpi;
+//    provides io.aklivity.zilla.runtime.engine.metrics.MetricsFactorySpi
+//        with io.aklivity.zilla.runtime.metrics.stream.internal.StreamMetricsFactorySpi;
 }
