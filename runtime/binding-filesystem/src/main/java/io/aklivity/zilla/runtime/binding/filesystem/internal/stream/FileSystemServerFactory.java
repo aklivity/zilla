@@ -639,14 +639,16 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         {
                             final byte[] readArray = readBuffer.byteArray();
                             int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
-                            assert bytesRead != -1;
+                            if (bytesRead != -1)
+                            {
 
-                            OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+                                OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
 
-                            doAppData(traceId, reserved, payload);
+                                doAppData(traceId, reserved, payload);
 
-                            replyBytes += bytesRead;
-                            replyClosable = replyBytes == attributes.size();
+                                replyBytes += bytesRead;
+                                replyClosable = replyBytes == attributes.size();
+                            }
                         }
                         if (replyClosable)
                         {
