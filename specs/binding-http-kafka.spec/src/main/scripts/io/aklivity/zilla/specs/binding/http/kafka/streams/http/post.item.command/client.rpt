@@ -40,6 +40,4 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":status", "204")
                            .build()}
 
-read advised zilla:flush
-
 read closed
