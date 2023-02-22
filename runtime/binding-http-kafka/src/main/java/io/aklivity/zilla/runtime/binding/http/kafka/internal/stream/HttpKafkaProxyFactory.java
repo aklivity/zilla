@@ -3894,18 +3894,24 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long budgetId,
             int reserved)
         {
-            Flyweight kafkaDataEx = kafkaDataExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .merged(m -> m
-                            .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                            .headers(producer.resolved::trailers))
-                    .build();
+            if (!HttpKafkaState.initialClosing(producer.state))
+            {
+                Flyweight kafkaDataEx = kafkaDataExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .merged(m -> m
+                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                                .headers(producer.resolved::trailers))
+                        .build();
 
-            producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
+                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
 
-            producer.doKafkaEndDeferred(traceId, authorization);
-
+                producer.doKafkaEndDeferred(traceId, authorization);
+            }
+            else
+            {
+                doHttpFlush(traceId, authorization, budgetId, reserved);
+            }
         }
 
         @Override
