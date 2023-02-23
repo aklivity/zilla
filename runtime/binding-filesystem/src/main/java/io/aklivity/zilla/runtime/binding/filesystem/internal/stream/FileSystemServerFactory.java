@@ -492,15 +492,17 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             assert replyAck <= replySeq;
 
-
-            state = FileSystemState.openReply(state);
-
-            if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyOpened(state))
             {
-                replyDeb = supplyDebitor.apply(budgetId);
-                replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
+                state = FileSystemState.openReply(state);
+
+                if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+                {
+                    replyDeb = supplyDebitor.apply(budgetId);
+                    replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
+                }
+                flushAppData(traceId);
             }
-            flushAppData(traceId);
         }
 
         private void onAppReset(
@@ -641,7 +643,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                             int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
                             if (bytesRead != -1)
                             {
-
                                 OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
 
                                 doAppData(traceId, reserved, payload);
