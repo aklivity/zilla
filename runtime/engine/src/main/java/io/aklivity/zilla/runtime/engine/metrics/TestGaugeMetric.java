@@ -24,7 +24,7 @@ public class TestGaugeMetric implements Metric
 
     @Override
     public MetricHandler supply(
-            LongConsumer recorder)
+        LongConsumer recorder)
     {
         return null;
     }

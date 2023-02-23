@@ -30,14 +30,14 @@ public final class TestMetricsHandler implements MetricHandler
 
     @Override
     public MessageConsumer onReceived(
-            int msgTypeId, DirectBuffer buffer, int index, int length)
+        int msgTypeId, DirectBuffer buffer, int index, int length)
     {
         return null;
     }
 
     @Override
     public MessageConsumer onSent(
-            int msgTypeId, DirectBuffer buffer, int index, int length)
+        int msgTypeId, DirectBuffer buffer, int index, int length)
     {
         return null;
     }

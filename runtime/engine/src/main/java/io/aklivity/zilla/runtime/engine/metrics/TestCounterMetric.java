@@ -24,7 +24,7 @@ public class TestCounterMetric implements Metric
 
     @Override
     public MetricHandler supply(
-            LongConsumer recorder)
+        LongConsumer recorder)
     {
         return null;
     }

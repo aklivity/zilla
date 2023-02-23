@@ -28,19 +28,19 @@ import io.aklivity.zilla.runtime.engine.metrics.TestHistogramMetric;
 public final class TestMetricsContext implements MetricsContext
 {
     private final Map<String, Supplier<Metric>> testMetrics = Map.of(
-            "test.counter", TestCounterMetric::new,
-            "test.gauge", TestGaugeMetric::new,
-            "test.histogram", TestHistogramMetric::new
+        "test.counter", TestCounterMetric::new,
+        "test.gauge", TestGaugeMetric::new,
+        "test.histogram", TestHistogramMetric::new
     );
 
     public TestMetricsContext(
-            CollectorContext context)
+        CollectorContext context)
     {
     }
 
     @Override
     public Metric resolve(
-            String name)
+        String name)
     {
         return testMetrics.getOrDefault(name, () -> null).get();
     }

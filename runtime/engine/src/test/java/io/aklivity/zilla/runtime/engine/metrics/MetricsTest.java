@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetrics;
@@ -16,8 +17,8 @@ public class MetricsTest
     {
         Configuration config = new Configuration();
         Metrics metrics = new TestMetrics(config);
-        TestCollectorContext testCollectorContext = new TestCollectorContext();
-        MetricsContext metricsContext = metrics.supply(testCollectorContext);
+        CollectorContext collector = Mockito.mock(CollectorContext.class);
+        MetricsContext metricsContext = metrics.supply(collector);
         Metric metric = metricsContext.resolve("test.counter");
 
         assertThat(metric, instanceOf(TestCounterMetric.class));
@@ -29,8 +30,8 @@ public class MetricsTest
     {
         Configuration config = new Configuration();
         Metrics metrics = new TestMetrics(config);
-        TestCollectorContext testCollectorContext = new TestCollectorContext();
-        MetricsContext metricsContext = metrics.supply(testCollectorContext);
+        CollectorContext collector = Mockito.mock(CollectorContext.class);
+        MetricsContext metricsContext = metrics.supply(collector);
         Metric metric = metricsContext.resolve("test.gauge");
 
         assertThat(metric, instanceOf(TestGaugeMetric.class));
@@ -42,8 +43,8 @@ public class MetricsTest
     {
         Configuration config = new Configuration();
         Metrics metrics = new TestMetrics(config);
-        TestCollectorContext testCollectorContext = new TestCollectorContext();
-        MetricsContext metricsContext = metrics.supply(testCollectorContext);
+        CollectorContext collector = Mockito.mock(CollectorContext.class);
+        MetricsContext metricsContext = metrics.supply(collector);
         Metric metric = metricsContext.resolve("test.histogram");
 
         assertThat(metric, instanceOf(TestHistogramMetric.class));

@@ -7,7 +7,7 @@ public interface Metrics
     String name();
 
     MetricsContext supply(
-            CollectorContext context);
+        CollectorContext context);
 
     URL type();
 }

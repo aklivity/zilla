@@ -12,10 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.metrics.http
-{
-    requires io.aklivity.zilla.runtime.engine;
+package io.aklivity.zilla.runtime.metrics.http.internal;
 
-    provides io.aklivity.zilla.runtime.engine.metrics.MetricsFactorySpi
-        with io.aklivity.zilla.runtime.metrics.http.internal.HttpMetricsFactorySpi;
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.Metrics;
+import io.aklivity.zilla.runtime.engine.metrics.MetricsFactorySpi;
+
+public class HttpMetricsFactorySpi implements MetricsFactorySpi
+{
+    @Override
+    public String type()
+    {
+        return HttpMetrics.NAME;
+    }
+
+    @Override
+    public Metrics create(
+        Configuration config)
+    {
+        return new HttpMetrics(config);
+    }
 }
