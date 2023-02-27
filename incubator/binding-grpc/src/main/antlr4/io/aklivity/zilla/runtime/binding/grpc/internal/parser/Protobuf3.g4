@@ -28,7 +28,7 @@ proto
 // Syntax
 
 syntax
-  : SYNTAX EQ (PROTO3_LIT_SINGLE | PROTO3_LIT_DOUBLE) SEMI
+  : SYNTAX EQ (PROTO3_LIT_SINGLE | PROTO3_LIT_DOBULE) SEMI
   ;
 
 // Import Statement

@@ -19,7 +19,7 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${grpc:beginEx()
                               .typeId(zilla:id("grpc"))
-                              .method("/io.aklivity.zilla.runtime.spec.grpc.EchoService/EchoUnary")
+                              .method("io.aklivity.zilla.runtime.spec.grpc.EchoService/EchoUnary")
                               .request(0)
                               .response(0)
                               .metadata("custom", "test")

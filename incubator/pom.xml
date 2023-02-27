@@ -22,6 +22,7 @@
     <module>binding-grpc-kafka.spec</module>
     <module>binding-mqtt.spec</module>
 
+    <module>binding-grpc</module>
     <module>binding-amqp</module>
     <module>binding-grpc</module>
     <module>binding-grpc-kafka</module>
