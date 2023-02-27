@@ -42,7 +42,4 @@ write zilla:begin.ext ${http:beginEx()
                             .header("grpc-status", "13")
                             .build()}
 
-write "Method is not supported"
-write flush
-
 write close

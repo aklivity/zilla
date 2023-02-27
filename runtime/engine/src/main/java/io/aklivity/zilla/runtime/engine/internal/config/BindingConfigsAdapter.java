@@ -32,6 +32,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -52,11 +53,12 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private final RouteAdapter route;
     private final OptionsAdapter options;
 
-    public BindingConfigsAdapter()
+    public BindingConfigsAdapter(
+        ConfigAdapterContext context)
     {
-        this.kind = new KindAdapter();
-        this.route = new RouteAdapter();
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING);
+        this.kind = new KindAdapter(context);
+        this.route = new RouteAdapter(context);
+        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
     }
 
     @Override

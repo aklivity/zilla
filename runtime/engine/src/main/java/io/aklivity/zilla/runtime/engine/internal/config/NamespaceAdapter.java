@@ -29,6 +29,7 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -51,12 +52,13 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private final VaultAdapter vault;
     private final GuardAdapter guard;
 
-    public NamespaceAdapter()
+    public NamespaceAdapter(
+        ConfigAdapterContext context)
     {
-        reference = new NamspaceRefAdapter();
-        binding = new BindingConfigsAdapter();
-        guard = new GuardAdapter();
-        vault = new VaultAdapter();
+        reference = new NamspaceRefAdapter(context);
+        binding = new BindingConfigsAdapter(context);
+        guard = new GuardAdapter(context);
+        vault = new VaultAdapter(context);
     }
 
     @Override

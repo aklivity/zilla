@@ -264,6 +264,7 @@
           <artifactId>antlr4-maven-plugin</artifactId>
           <version>${antlr4.version}</version>
           <configuration>
+            <listener>true</listener>
             <visitor>true</visitor>
           </configuration>
           <executions>
@@ -292,6 +293,7 @@
             </excludes>
             <mapping>
               <g4>SLASHSTAR_STYLE</g4>
+              <proto>SLASHSTAR_STYLE</proto>
               <idl>SLASHSTAR_STYLE</idl>
               <rpt>SCRIPT_STYLE</rpt>
             </mapping>

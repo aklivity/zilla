@@ -51,6 +51,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -102,13 +106,16 @@
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
+        <configuration>
+          <licenseMapping>src/conf/notice/license-mappings.xml</licenseMapping>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>${project.groupId}</groupId>
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core grpc</scopeNames>
+          <scopeNames>core http grpc protocol</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.grpc.internal.types</packageName>
         </configuration>
         <executions>
@@ -118,6 +125,10 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>com.mycila</groupId>

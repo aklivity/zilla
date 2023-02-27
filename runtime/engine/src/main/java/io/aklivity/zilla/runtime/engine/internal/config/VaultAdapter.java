@@ -19,6 +19,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -30,9 +31,10 @@ public class VaultAdapter
 
     private final OptionsAdapter options;
 
-    public VaultAdapter()
+    public VaultAdapter(
+        ConfigAdapterContext context)
     {
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.VAULT);
+        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.VAULT, context);
     }
 
     public JsonObject adaptToJson(

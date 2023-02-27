@@ -21,6 +21,7 @@
     <module>binding-grpc.spec</module>
     <module>binding-mqtt.spec</module>
 
+    <module>binding-grpc</module>
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
 
