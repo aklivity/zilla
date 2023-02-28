@@ -184,7 +184,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.delete.item.async.yaml")
     @Specification({
         "${http}/delete.item.prefer.async/client",
-        "${kafka}/delete.item/server"})
+        "${kafka}/delete.item.async/server"})
     public void shouldDeleteItemPreferAsync() throws Exception
     {
         k3po.finish();
@@ -194,7 +194,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.delete.item.async.yaml")
     @Specification({
         "${http}/delete.item.prefer.async.with.body/client",
-        "${kafka}/delete.item/server"})
+        "${kafka}/delete.item.async/server"})
     public void shouldDeleteItemPreferAsyncWithBody() throws Exception
     {
         k3po.finish();
@@ -204,7 +204,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.delete.item.async.yaml")
     @Specification({
         "${http}/delete.item.prefer.async.read.abort/client",
-        "${kafka}/delete.item.read.abort/server"})
+        "${kafka}/delete.item.async.read.abort/server"})
     public void shouldNotDeleteItemPreferAsyncWhenReadAbort() throws Exception
     {
         k3po.finish();
@@ -224,7 +224,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.delete.item.async.yaml")
     @Specification({
         "${http}/delete.item.prefer.async.write.flush/client",
-        "${kafka}/delete.item.write.flush/server"})
+        "${kafka}/delete.item.async.write.flush/server"})
     public void shouldDeleteItemPreferAsyncWriteFlush() throws Exception
     {
         k3po.finish();
@@ -554,7 +554,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.patch.item.async.yaml")
     @Specification({
         "${http}/patch.item.prefer.async/client",
-        "${kafka}/patch.item/server"})
+        "${kafka}/patch.item.async/server"})
     public void shouldPatchItemPreferAsync() throws Exception
     {
         k3po.finish();
@@ -624,8 +624,18 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.post.item.command.async.yaml")
     @Specification({
         "${http}/post.item.command.prefer.async/client",
-        "${kafka}/post.item.command/server"})
+        "${kafka}/post.item.async.command/server"})
     public void shouldPostItemCommandPreferAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.post.item.command.async.yaml")
+    @Specification({
+        "${http}/post.item.command.prefer.async/client",
+        "${kafka}/post.item.command.async.replayed/server"})
+    public void shouldPostItemCommandPreferAsyncReplayed() throws Exception
     {
         k3po.finish();
     }
@@ -664,7 +674,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.post.items.async.yaml")
     @Specification({
         "${http}/post.items.prefer.async/client",
-        "${kafka}/post.items/server"})
+        "${kafka}/post.items.async/server"})
     public void shouldPostItemsPreferAsync() throws Exception
     {
         k3po.finish();
@@ -674,7 +684,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.post.items.async.yaml")
     @Specification({
         "${http}/post.items.prefer.async.delayed/client",
-        "${kafka}/post.items.delayed/server"})
+        "${kafka}/post.items.async.delayed/server"})
     public void shouldPostItemsPreferAsyncDelayed() throws Exception
     {
         k3po.finish();
@@ -734,7 +744,7 @@ public class HttpKafkaProxyIT
     @Configuration("proxy.put.item.async.yaml")
     @Specification({
         "${http}/put.item.prefer.async/client",
-        "${kafka}/put.item/server"})
+        "${kafka}/put.item.async/server"})
     public void shouldPutItemPreferAsync() throws Exception
     {
         k3po.finish();
