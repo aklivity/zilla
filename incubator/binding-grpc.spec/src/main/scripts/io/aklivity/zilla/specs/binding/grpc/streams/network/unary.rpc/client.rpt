@@ -47,7 +47,6 @@ read ${grpc:message()
            .string(1, "Hello World")
            .build()}
 
-
 read zilla:end.ext ${http:endEx()
                          .typeId(zilla:id("http"))
                          .trailer("grpc-status", "0")
