@@ -129,7 +129,25 @@ public class KafkaIT
     @Specification({
         "${kafka}/delete.item.write.abort/client",
         "${kafka}/delete.item.write.abort/server"})
-    public void shouldNotDeleteItemWhenWriteAbort() throws Exception
+    public void shouldNotDeleteItemAsyncWhenWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.item.async.read.abort/client",
+        "${kafka}/delete.item.async.read.abort/server"})
+    public void shouldNotDeleteItemAsyncWhenReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/delete.item.async.write.flush/client",
+        "${kafka}/delete.item.async.write.flush/server"})
+    public void shouldDeleteItemAsyncWriteFlush() throws Exception
     {
         k3po.finish();
     }
@@ -352,6 +370,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/patch.item.async/client",
+        "${kafka}/patch.item.async/server"})
+    public void shouldPatchItemAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/patch.item.delayed/client",
         "${kafka}/patch.item.delayed/server"})
     public void shouldPatchItemDelayed() throws Exception
@@ -382,6 +409,15 @@ public class KafkaIT
         "${kafka}/post.item.command/client",
         "${kafka}/post.item.command/server"})
     public void shouldPostItemCommand() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.item.async.command/client",
+        "${kafka}/post.item.async.command/server"})
+    public void shouldPostItemAsyncCommand() throws Exception
     {
         k3po.finish();
     }
@@ -445,6 +481,15 @@ public class KafkaIT
         "${kafka}/put.item/client",
         "${kafka}/put.item/server"})
     public void shouldPutItem() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/put.item.async/client",
+        "${kafka}/put.item.async/server"})
+    public void shouldPutItemAsync() throws Exception
     {
         k3po.finish();
     }

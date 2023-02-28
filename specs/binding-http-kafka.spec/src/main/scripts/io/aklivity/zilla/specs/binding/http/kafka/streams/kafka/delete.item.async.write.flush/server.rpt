@@ -49,6 +49,9 @@ read zilla:data.empty
 
 read await SEND_ASYNC_REQUEST
 
+read advised zilla:flush
+read notify RECEIVED_ADVISE_FLUSH
+
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -100,25 +103,6 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write close
-read closed
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                  .capabilities("FETCH_ONLY")
-                                  .topic("items-replies")
-                                  .partition(-1, -2)
-                                  .filter()
-                                    .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-040487c782b6bfee62fcbd96a008bd4c")
-                                    .build()
-                                  .build()
-                              .build()}
-
-connected
-
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -131,6 +115,9 @@ write zilla:data.ext ${kafka:dataEx()
                                 .build()
                             .build()}
 write flush
+
+write await RECEIVED_ADVISE_FLUSH
+write advise zilla:flush
 
 write close
 read closed

@@ -20,14 +20,14 @@ accept "zilla://streams/kafka0"
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("items-commands")
-                                .partition(-1, -2)
-                                .ackMode("LEADER_ONLY")
-                                .build()
-                            .build()}
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("PRODUCE_ONLY")
+                                  .topic("items-commands")
+                                  .partition(-1, -2)
+                                  .ackMode("LEADER_ONLY")
+                                  .build()
+                              .build()}
 
 connected
 
@@ -51,10 +51,10 @@ read zilla:data.empty
 
 read '{ "name": "widget" }'
 
+read await SEND_ASYNC_REQUEST
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
-                               .partition(-1, -1)
                                .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5-ee284177921a96f23e9b3166f12ca058")
                                .build()
                            .build()}
@@ -62,6 +62,29 @@ read zilla:data.empty
 
 read closed
 write close
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("FETCH_ONLY")
+                                  .topic("items-replies")
+                                  .partition(-1, -2)
+                                  .filter()
+                                    .header("zilla:correlation-id", "3f96592e-c8f1-4167-8c46-85f2aabb70a5-ee284177921a96f23e9b3166f12ca058")
+                                    .build()
+                                  .build()
+                              .build()}
+
+connected
+
+write advise zilla:flush
+
+write notify SEND_ASYNC_REQUEST
+
+write close
+read closed
 
 accepted
 

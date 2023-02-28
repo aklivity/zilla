@@ -52,6 +52,10 @@ write flush
 write '{ "name": "widget" }'
 write flush
 
+write notify SENT_ASYNC_REQUEST
+
+write await RECEIVED_ASYNC_FLUSH
+
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -84,6 +88,10 @@ write zilla:begin.ext ${kafka:beginEx()
                                .build()}
 
 connected
+
+read advised zilla:flush
+
+read notify RECEIVED_ASYNC_FLUSH
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))

@@ -19,17 +19,19 @@ accept "zilla://streams/kafka0"
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
                                 .topic("items-commands")
-                                 .partition(-1, -2)
-                                 .ackMode("LEADER_ONLY")
+                                .partition(-1, -2)
+                                .ackMode("LEADER_ONLY")
                                 .build()
                             .build()}
 
 connected
+
+read option zilla:flags 0x02
 
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
@@ -50,8 +52,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
+read option zilla:flags 0x00
 read '{ "name": "widget" }'
 
+read await SEND_ASYNC_REQUEST
+
+read option zilla:flags 0x01
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -64,9 +70,33 @@ read zilla:data.empty
 read closed
 write close
 
+
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("FETCH_ONLY")
+                                  .topic("items-replies")
+                                  .partition(-1, -2)
+                                  .filter()
+                                    .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-5d1dfda51f846bbd53ed6c92e633912b")
+                                    .build()
+                                  .build()
+                              .build()}
+
+connected
+
+write advise zilla:flush
+
+write notify SEND_ASYNC_REQUEST
+
+write close
+read closed
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .capabilities("FETCH_ONLY")

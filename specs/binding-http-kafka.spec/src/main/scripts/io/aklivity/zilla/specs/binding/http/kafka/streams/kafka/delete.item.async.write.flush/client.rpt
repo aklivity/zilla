@@ -18,59 +18,52 @@ connect "zilla://streams/kafka0"
     option zilla:transmission "duplex"
 
 write zilla:begin.ext ${kafka:beginEx()
-                             .typeId(zilla:id("kafka"))
-                             .merged()
-                                 .capabilities("PRODUCE_ONLY")
-                                 .topic("items-commands")
-                                 .partition(-1, -2)
-                                 .ackMode("LEADER_ONLY")
-                                 .build()
-                             .build()}
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("PRODUCE_ONLY")
+                                   .topic("items-commands")
+                                   .partition(-1, -2)
+                                   .ackMode("LEADER_ONLY")
+                                   .build()
+                               .build()}
 
 connected
 
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
-                                .deferred(20)
                                 .partition(-1, -1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                                .header(":method", "POST")
+                                .header(":method", "DELETE")
                                 .header(":scheme", "https")
                                 .header(":authority", "example.com:9090")
-                                .header(":path", "/items")
-                                .header("content-type", "application/json")
-                                .header("idempotency-key", "92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header(":path", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header("idempotency-key", "7101a8ea-5745-43c8-8d0c-b2f9baba7004")
                                 .header("zilla:reply-to", "items-replies")
                                 .header("zilla:identity", "test")
                                 .build()
                             .build()}
-write option zilla:flags "init"
 write zilla:data.empty
-write flush
 
-write option zilla:flags "none"
-write '{ "name"'
-write option zilla:flags "none"
-write ' : '
-write option zilla:flags "none"
-write '"widget" }'
 write flush
 
 write notify SENT_ASYNC_REQUEST
 
 write await RECEIVED_ASYNC_FLUSH
 
+write advise zilla:flush
+
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .partition(-1, -1)
-                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
+                                .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-040487c782b6bfee62fcbd96a008bd4c")
                                 .build()
                             .build()}
-write option zilla:flags "fin"
 write zilla:data.empty
 write flush
+
+write notify SEND_ASYNC_REQUEST
 
 write close
 read closed
@@ -87,7 +80,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("items-replies")
                                    .partition(-1, -2)
                                    .filter()
-                                     .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
+                                     .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-040487c782b6bfee62fcbd96a008bd4c")
                                      .build()
                                    .build()
                                .build()}
@@ -98,6 +91,28 @@ read advised zilla:flush
 
 read notify RECEIVED_ASYNC_FLUSH
 
+read closed
+write close
+
+connect await SEND_ASYNC_REQUEST
+        "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("items-replies")
+                                   .partition(-1, -2)
+                                   .filter()
+                                     .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-040487c782b6bfee62fcbd96a008bd4c")
+                                     .build()
+                                   .build()
+                               .build()}
+
+connected
+
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -105,12 +120,14 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .progress(0, 2)
                                .progress(1, 1)
                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                               .header(":status", "201")
-                               .header("location", "/items/92d0bf92-63e0-4cfc-ae73-71dee92d1544")
-                               .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
+                               .header(":status", "204")
+                               .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-040487c782b6bfee62fcbd96a008bd4c")
                                .build()
                            .build()}
-read '{ "name": "widget" }'
+read zilla:data.null
+
+read advised zilla:flush
 
 read closed
 write close
+
