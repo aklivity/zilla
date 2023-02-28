@@ -35,5 +35,10 @@ scope grpc
             GrpcKind response;
             GrpcMetadata[] metadata;
         }
+
+        struct GrpcDataEx extends core::stream::Extension
+        {
+            int32 deferred = 0;
+        }
     }
 }

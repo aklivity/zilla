@@ -16,11 +16,10 @@ scope protocol
 {
     scope codec
     {
-        struct GrpcMessage
-        {
-            uint8 flag;
-            int32 length;
-            octets[length] protobuf = null;
-        }
+            struct GrpcMessage
+            {
+                uint8 flag;
+                int32 length;
+            }
     }
 }
