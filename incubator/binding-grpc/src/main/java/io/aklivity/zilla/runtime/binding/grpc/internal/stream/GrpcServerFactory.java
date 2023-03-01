@@ -67,6 +67,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
+    private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
+    private static final String8FW HEADER_NAME_GRPC_ENCODING = new String8FW("grpc-encoding");
+    private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC = new String16FW("application/grpc");
+    private static final String16FW HEADER_VALUE_GRPC_ENCODING = new String16FW("identity");
     private static final String16FW HEADER_VALUE_METHOD_POST = new String16FW("POST");
     private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
     private static final String16FW HEADER_VALUE_STATUS_200 = new String16FW("200");
@@ -232,8 +236,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 initialId,
                 replyId,
                 affinity,
-                methodConfig,
-                0)::onNetMessage;
+                route.id,
+                methodConfig)::onNetMessage;
         }
         else
         {
@@ -270,8 +274,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long initialId,
             long replyId,
             long affinity,
-            GrpcMethodConfig methodConfig,
-            long budgetId)
+            long resolveId,
+            GrpcMethodConfig methodConfig)
         {
             this.network = network;
             this.routeId = routeId;
@@ -280,7 +284,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             this.affinity = affinity;
             this.methodConfig = methodConfig;
 
-            this.stream = new GrpcStream(routeId);
+            this.stream = new GrpcStream(resolveId);
         }
 
         private void onNetMessage(
@@ -369,7 +373,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            stream.doAppEndDeferred(traceId, authorization);
+            stream.doAppEnd(traceId, authorization);
         }
 
         private void onNetAbort(
@@ -453,7 +457,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             doBegin(network, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, hs -> hs.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_200))
-                    .item(h -> h.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_OK)));
+                    .item(h -> h.name(HEADER_NAME_CONTENT_TYPE).value(HEADER_VALUE_CONTENT_TYPE_GRPC))
+                    .item(h -> h.name(HEADER_NAME_GRPC_ENCODING).value(HEADER_VALUE_GRPC_ENCODING)));
 
             state = GrpcState.openingReply(state);
         }
@@ -464,10 +469,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long budgetId,
             int reserved,
             int flags,
-            Flyweight payload)
+            DirectBuffer buffer,
+            int offset,
+            int length)
         {
-            GrpcServerFactory.this.doData(network, routeId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, flags, reserved, payload);
+            doData(network, routeId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, budgetId, flags, reserved, buffer, offset, length);
 
             replySeq += reserved;
 
@@ -483,10 +490,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 replySeq = stream.grpcReplySeq;
                 state = GrpcState.closeReply(state);
 
-                HttpEndExFW trailer = httpEndExRW
-                    .wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_OK))
-                        .build();
+                HttpEndExFW trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                    .typeId(httpTypeId)
+                    .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_OK))
+                    .build();
 
                 doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, trailer);
@@ -502,8 +509,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             {
                 state = GrpcState.closeReply(state);
 
-                HttpEndExFW trailer = httpEndExRW
-                    .wrap(writeBuffer, 0, writeBuffer.capacity())
+                HttpEndExFW trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                    .typeId(httpTypeId)
                     .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_ABORTED))
                     .build();
 
@@ -524,7 +531,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             else
             {
                 HttpEndExFW trailer = httpEndExRW
-                    .wrap(writeBuffer, 0, writeBuffer.capacity())
+                    .wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                    .typeId(httpTypeId)
                     .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_ABORTED))
                     .build();
 
@@ -596,11 +604,16 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             {
                 assert GrpcState.initialOpening(state);
 
+                final DirectBuffer buffer = payload.buffer();
+                final int offset = payload.offset();
+                final int limit = payload.limit();
+                final int size = payload.sizeof();
+
                 if (clientMessageDeferred == 0)
                 {
-                    final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(payload.buffer(), payload.offset(), payload.limit());
+                    final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(buffer, offset, limit);
                     final int messageLength = grpcMessage.length();
-                    final int payloadSize = payload.sizeof() - GRPC_MESSAGE_METADATA_SIZE;
+                    final int payloadSize = size - GRPC_MESSAGE_METADATA_SIZE;
                     clientMessageDeferred = messageLength - payloadSize;
 
                     Flyweight dataEx = clientMessageDeferred > 0 ?
@@ -612,32 +625,19 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
                     flags = clientMessageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
                     flushGrpcData(traceId, authorization, budgetId, reserved, flags,
-                        payload.buffer(), payload.offset() + GRPC_MESSAGE_METADATA_SIZE, payload.limit(), dataEx);
+                        buffer, offset + GRPC_MESSAGE_METADATA_SIZE, payloadSize, dataEx);
                 }
                 else
                 {
-                    final int payloadSize = payload.sizeof();
-                    clientMessageDeferred -= payloadSize;
+                    clientMessageDeferred -= size;
                     assert clientMessageDeferred >= 0;
 
                     flags = clientMessageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
 
                     flushGrpcData(traceId, authorization, budgetId, reserved, flags,
-                        payload.buffer(), payload.offset(), payload.limit(), EMPTY_OCTETS);
+                        buffer, offset, size, EMPTY_OCTETS);
                 }
 
-            }
-
-            private void doAppEndDeferred(
-                long traceId,
-                long authorization)
-            {
-                if (GrpcState.initialClosing(state))
-                {
-                    doAppEnd(traceId, authorization);
-                }
-
-                state = GrpcState.closingInitial(state);
             }
 
             private void doAppEnd(
@@ -664,7 +664,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 grpcReplyMax = replyMax;
 
                 doWindow(application, routeId, replyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
-                    traceId, authorization, budgetId, padding, capabilities);
+                    traceId, authorization, budgetId, padding + 5, capabilities);
             }
 
             private void doAppAbort(
@@ -822,19 +822,30 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 final OctetsFW payload = data.payload();
                 final OctetsFW extension = data.extension();
 
-                if (extension.sizeof() > 0)
+                final MutableDirectBuffer encodeBuffer = writeBuffer;
+                final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+                final int encodeLimit = encodeBuffer.capacity();
+                final int payloadSize = payload.sizeof();
+
+                int encodeProgress = encodeOffset;
+
+                if ((flags & DATA_FLAG_INIT) != 0x00)
                 {
-                    final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::wrap);
-                    final int serverMessageDeferred = grpcDataEx.deferred();
+                    final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
+                    final int serverMessageDeferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;
                     GrpcMessageFW grpcMessage = grpcMessageRW
-                        .wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                        .wrap(encodeBuffer, encodeOffset, encodeLimit)
                         .flag(0)
-                        .length(payload.sizeof() + serverMessageDeferred)
+                        .length(payloadSize + serverMessageDeferred)
                         .build();
-                    doNetData(traceId, authorization, budgetId, reserved, DATA_FLAG_INIT | DATA_FLAG_FIN, grpcMessage);
+                    encodeProgress = grpcMessage.limit();
                 }
 
-                doNetData(traceId, authorization, budgetId, reserved, flags, payload);
+                encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
+                encodeProgress += payloadSize;
+
+                doNetData(traceId, authorization, budgetId, reserved, flags, encodeBuffer, encodeOffset,
+                    encodeProgress - encodeOffset);
             }
 
             private void onAppEnd(
@@ -927,23 +938,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long budgetId,
         int flags,
         int reserved,
-        Flyweight payload)
+        DirectBuffer payload,
+        int offset,
+        int length)
     {
-        final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .flags(flags)
-            .budgetId(budgetId)
-            .reserved(reserved)
-            .payload(payload.buffer(), payload.offset(), payload.sizeof())
-            .build();
-
-        receiver.accept(frame.typeId(), frame.buffer(), frame.offset(), frame.sizeof());
+        doData(receiver, routeId, streamId, sequence, acknowledge, maximum, traceId, authorization, budgetId, flags,
+            reserved, payload, offset, length, EMPTY_OCTETS);
     }
 
     private void doData(

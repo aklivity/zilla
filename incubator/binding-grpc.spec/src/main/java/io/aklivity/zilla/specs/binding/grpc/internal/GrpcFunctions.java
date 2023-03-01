@@ -48,6 +48,12 @@ public final class GrpcFunctions
     }
 
     @Function
+    public static ProtobufBuilder protobuf()
+    {
+        return new ProtobufBuilder();
+    }
+
+    @Function
     public static GrpcBeginExBuilder beginEx()
     {
         return new GrpcBeginExBuilder();
@@ -84,16 +90,16 @@ public final class GrpcFunctions
         }
 
         public GrpcBeginExBuilder request(
-            int request)
+            String request)
         {
-            beginExRW.request(builder -> builder.set(GrpcKind.valueOf(request)));
+            beginExRW.request(r -> r.set(GrpcKind.valueOf(request)));
             return this;
         }
 
         public GrpcBeginExBuilder response(
-            int response)
+            String response)
         {
-            beginExRW.response(builder -> builder.set(GrpcKind.valueOf(response)));
+            beginExRW.response(r -> r.set(GrpcKind.valueOf(response)));
             return this;
         }
 
@@ -123,8 +129,8 @@ public final class GrpcFunctions
         private final Map<String, Predicate<String>> metadata = new LinkedHashMap<>();
 
         private String method;
-        private int request;
-        private int response;
+        private GrpcKind request;
+        private GrpcKind response;
         private int typeId;
 
         public GrpcBeginExMatcherBuilder typeId(
@@ -142,16 +148,16 @@ public final class GrpcFunctions
         }
 
         public GrpcBeginExMatcherBuilder request(
-            int request)
+            String request)
         {
-            this.request = request;
+            this.request = GrpcKind.valueOf(request);
             return this;
         }
 
         public GrpcBeginExMatcherBuilder response(
-            int response)
+            String response)
         {
-            this.response = response;
+            this.response = GrpcKind.valueOf(response);
             return this;
         }
 
@@ -211,13 +217,13 @@ public final class GrpcFunctions
         private boolean matchRequest(
             GrpcBeginExFW beginEx)
         {
-            return GrpcKind.valueOf(request) == beginEx.request().get();
+            return request == beginEx.request().get();
         }
 
         private boolean matchResponse(
             GrpcBeginExFW beginEx)
         {
-            return GrpcKind.valueOf(response) == beginEx.response().get();
+            return response == beginEx.response().get();
         }
 
         private boolean matchTypeId(
@@ -268,6 +274,49 @@ public final class GrpcFunctions
             final byte[] array = new byte[messageBufferLimit];
             messageBuffer.putByte(0, (byte) 0);
             messageBuffer.putInt(1, messageBufferLimit - 5, ByteOrder.BIG_ENDIAN);
+            messageBuffer.getBytes(0, array);
+            return array;
+        }
+    }
+
+    public static final class ProtobufBuilder
+    {
+        private final Varuint32FW.Builder keyRW;
+        private final Varuint32FW.Builder lenRW;
+        private final MutableDirectBuffer messageBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private int messageBufferLimit = 0;
+
+
+        private ProtobufBuilder()
+        {
+            MutableDirectBuffer keyBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            keyRW = new Varuint32FW.Builder().wrap(keyBuffer, 0, keyBuffer.capacity());
+            MutableDirectBuffer lenBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            lenRW = new Varuint32FW.Builder().wrap(lenBuffer, 0, lenBuffer.capacity());
+        }
+
+        public ProtobufBuilder string(
+            int field,
+            String value)
+        {
+            Varuint32FW key = keyRW.set(field << 3 | BYTES_WIRE_TYPE).build();
+            final int keySize = key.sizeof();
+            messageBuffer.putBytes(messageBufferLimit, key.buffer(), key.offset(), key.sizeof());
+            messageBufferLimit += keySize;
+
+            final byte[] bytes = value.getBytes();
+            Varuint32FW len = lenRW.set(bytes.length).build();
+            int lenSize = len.sizeof();
+            messageBuffer.putBytes(messageBufferLimit, len.buffer(), len.offset(), lenSize);
+            messageBufferLimit += lenSize;
+            messageBuffer.putBytes(messageBufferLimit, bytes);
+            messageBufferLimit += bytes.length;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final byte[] array = new byte[messageBufferLimit];
             messageBuffer.getBytes(0, array);
             return array;
         }

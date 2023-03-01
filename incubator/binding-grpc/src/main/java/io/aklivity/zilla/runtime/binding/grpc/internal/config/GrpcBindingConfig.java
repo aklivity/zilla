@@ -35,7 +35,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class GrpcBindingConfig
 {
-    private static final Pattern METHOD_PATTERN = Pattern.compile("/(?<ServiceName>.*?)/(?<Method>.*)");
+    private static final Pattern METHOD_PATTERN = Pattern.compile("/(?<ServiceName>.*?)\\/(?<Method>.*)");
     private static final String SERVICE_NAME = "ServiceName";
     private static final String METHOD = "Method";
     public final long id;
@@ -72,15 +72,23 @@ public final class GrpcBindingConfig
         helper.visit(beginExFW);
 
         CharSequence path = helper.path;
-        final Matcher matcher = METHOD_PATTERN.matcher(path);
-        final CharSequence serviceName = helper.serviceName != null ? helper.serviceName : matcher.group(SERVICE_NAME);
-        final String fullMethodName = String.format("%s/%s", serviceName, matcher.group(METHOD));
+        GrpcMethodConfig grpcMethodConfig = null;
 
-        return options.protobufConfigs.stream()
-            .map(p -> p.serviceConfigs.stream().filter(s -> s.serviceName.equals(serviceName)).findFirst().get())
-            .map(s -> s.methodConfigs.stream().filter(m -> m.method.equals(fullMethodName)).findFirst().get())
-            .findFirst()
-            .orElse(null);
+        final Matcher matcher = METHOD_PATTERN.matcher(path);
+
+        if (matcher.find())
+        {
+            final CharSequence serviceName = helper.serviceName != null ? helper.serviceName : matcher.group(SERVICE_NAME);
+            final String fullMethodName = String.format("%s/%s", serviceName, matcher.group(METHOD));
+
+            grpcMethodConfig = options.protobufConfigs.stream()
+                .map(p -> p.serviceConfigs.stream().filter(s -> s.serviceName.equals(serviceName)).findFirst().get())
+                .map(s -> s.methodConfigs.stream().filter(m -> m.method.equals(fullMethodName)).findFirst().get())
+                .findFirst()
+                .orElse(null);
+        }
+
+        return grpcMethodConfig;
     }
 
     private static final class HttpGrpcHeaderHelper

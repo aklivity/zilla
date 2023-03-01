@@ -38,8 +38,8 @@ public class GrpcFunctionsTest
         byte[] build = GrpcFunctions.beginEx()
             .typeId(0x01)
             .method(method)
-            .request(0x00)
-            .response(0x00)
+            .request(UNARY.name())
+            .response(UNARY.name())
             .metadata("name", "value")
             .build();
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -62,8 +62,8 @@ public class GrpcFunctionsTest
         BytesMatcher matcher = GrpcFunctions.matchBeginEx()
             .typeId(0x01)
             .method(method)
-            .request(0x00)
-            .response(0x00)
+            .request(UNARY.name())
+            .response(UNARY.name())
             .metadata("name", "value")
             .build();
 
@@ -85,6 +85,14 @@ public class GrpcFunctionsTest
     {
         byte[] message = GrpcFunctions.message().string(1, "value").build();
         byte[] expected = {0, 0, 0, 0, 7, 10, 5, 118, 97, 108, 117, 101};
+        assertArrayEquals(expected, message);
+    }
+
+    @Test
+    public void shouldGenerateProtobuf()
+    {
+        byte[] message = GrpcFunctions.protobuf().string(1, "value").build();
+        byte[] expected = {10, 5, 118, 97, 108, 117, 101};
         assertArrayEquals(expected, message);
     }
 }

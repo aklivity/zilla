@@ -22,7 +22,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":method", "GET")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
-                            .header(":path", "/io.aklivity.zilla.runtime.spec.grpc.EchoService/EchoUnary")
+                            .header(":path", "/io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
                             .header("content-type", "application/grpc")
                             .build()}
 
@@ -42,6 +42,5 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header("grpc-status", "13")
                            .build()}
 
-read "Method is not supported"
 
 read closed

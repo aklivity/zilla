@@ -12,16 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-scope protocol
-{
-    option byteorder network;
 
-    scope codec
-    {
-            struct GrpcMessage
-            {
-                uint8 flag;
-                int32 length;
-            }
-    }
+syntax = "proto3";
+
+package io.aklivity.zilla.runtime.binding.grpc.internal;
+
+option java_multiple_files = true;
+option java_outer_classname = "EchoProto";
+
+service EchoService {
+
+  rpc EchoUnary(stream EchoMessage) returns (EchoMessage) {
+  }
+
+  rpc EchoStream(EchoMessage) returns (stream EchoMessage) {
+  }
 }
+
+message EchoMessage {
+  string message = 1;
+}
+

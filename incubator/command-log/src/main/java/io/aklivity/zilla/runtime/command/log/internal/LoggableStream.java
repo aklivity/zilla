@@ -391,6 +391,8 @@ public final class LoggableStream implements AutoCloseable
         final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
         if (extension != null)
         {
+            System.out.println(extension.typeId());
+            System.out.println(endHandlers);
             final Consumer<EndFW> endHandler = endHandlers.get(extension.typeId());
             if (endHandler != null)
             {

@@ -47,8 +47,8 @@ public final class GrpcRouteConfig extends OptionsConfig
     }
 
     boolean matches(
-        CharSequence path)
+        CharSequence method)
     {
-        return when.isEmpty() || path != null && when.stream().anyMatch(m -> m.matches(path));
+        return when.isEmpty() || method != null && when.stream().anyMatch(m -> m.matches(method));
     }
 }

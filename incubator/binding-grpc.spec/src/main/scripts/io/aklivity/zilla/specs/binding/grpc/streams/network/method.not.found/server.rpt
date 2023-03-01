@@ -23,7 +23,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":method", "POST")
                              .header(":scheme", "http")
                              .header(":authority", "localhost:8080")
-                             .header(":path", "/io.aklivity.zilla.runtime.spec.grpc.EchoService/WrongEchoUnary")
+                             .header(":path", "/io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/WrongEchoUnary")
                              .header("content-type", "application/grpc")
                              .build()}
 
