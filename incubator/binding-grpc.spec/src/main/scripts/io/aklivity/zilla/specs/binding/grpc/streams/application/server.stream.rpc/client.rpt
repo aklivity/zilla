@@ -19,21 +19,21 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${grpc:beginEx()
                               .typeId(zilla:id("grpc"))
-                              .method("io.aklivity.zilla.runtime.spec.grpc.EchoService/EchoUnary")
-                              .request(0)
-                              .response(0)
+                              .method("io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
+                              .request("UNARY")
+                              .response("STREAM")
                               .metadata("custom", "test")
                               .build()}
 connected
 
-write ${grpc:message()
+write ${grpc:protobuf()
             .string(1, "Hello World")
             .build()}
 write flush
 
 write close
 
-read ${grpc:message()
+read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 

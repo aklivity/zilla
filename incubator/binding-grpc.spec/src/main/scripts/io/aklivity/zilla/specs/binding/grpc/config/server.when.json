@@ -1,0 +1,27 @@
+{
+  "name": "test",
+  "bindings":
+  {
+    "net0":
+    {
+      "type" : "grpc",
+      "kind": "server",
+      "options":
+      {
+        "services": [ "file:/Users/akramyakubov/workspace/aklivity/zilla/incubator/binding-grpc/src/test/resources/proto/echo.proto" ]
+      },
+      "routes":
+      [
+        {
+          "exit": "app0",
+          "when":
+          [
+            {
+              "method": "io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

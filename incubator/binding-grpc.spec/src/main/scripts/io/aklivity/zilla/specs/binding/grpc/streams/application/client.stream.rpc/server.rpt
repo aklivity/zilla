@@ -20,18 +20,18 @@ accepted
 
 read zilla:begin.ext ${grpc:matchBeginEx()
                            .typeId(zilla:id("grpc"))
-                           .method("io.aklivity.zilla.runtime.spec.grpc.EchoService/EchoUnary")
-                           .request(0)
-                           .response(0)
+                           .method("io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
+                           .request("STREAM")
+                           .response("UNARY")
                            .metadata("custom", "test")
                            .build()}
 connected
 
-read ${grpc:message()
+read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 
-write ${grpc:message()
+write ${grpc:protobuf()
             .string(1, "Hello World")
             .build()}
 write flush
