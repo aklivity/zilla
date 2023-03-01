@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
@@ -60,10 +63,12 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class GrpcServerFactory implements GrpcStreamFactory
 {
-    private static final int GRPC_MESSAGE_METADATA_SIZE = 5;
+    private static final int GRPC_MESSAGE_PADDING = 5;
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final String HTTP_TYPE_NAME = "http";
+    private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
+
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
@@ -185,12 +190,13 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         else
         {
             final GrpcBindingConfig binding = bindings.get(routeId);
+            final Map<String, String> headers = httpBeginEx != null ? asHeadersMap(httpBeginEx.headers()) : EMPTY_HEADERS;
 
-            final GrpcMethodConfig methodConfig = binding.resolveGrpcMethodConfig(httpBeginEx);
+            final GrpcMethodConfig methodConfig = binding.resolveGrpcMethodConfig(headers);
 
             if (methodConfig != null)
             {
-                newStream = newInitialGrpcStream(begin, network, methodConfig);
+                newStream = newInitialGrpcStream(begin, network, headers, methodConfig);
             }
             else
             {
@@ -206,6 +212,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     public MessageConsumer newInitialGrpcStream(
         final BeginFW begin,
         final MessageConsumer network,
+        final Map<String, String> headers,
         final GrpcMethodConfig methodConfig)
     {
         final long routeId = begin.routeId();
@@ -223,7 +230,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         if (binding != null)
         {
-            route = binding.resolve(begin.authorization(), methodConfig);
+            route = binding.resolve(begin.authorization(), headers::get, methodConfig);
         }
 
         MessageConsumer newStream = null;
@@ -261,7 +268,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
-        private int replyPad;
         private long replySeq;
         private long replyAck;
         private int replyMax;
@@ -414,7 +420,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             replySeq = acknowledge;
             replyMax = maximum;
-            replyPad = padding;
             state = GrpcState.openReply(state);
 
             assert replyAck <= replySeq;
@@ -613,7 +618,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 {
                     final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(buffer, offset, limit);
                     final int messageLength = grpcMessage.length();
-                    final int payloadSize = size - GRPC_MESSAGE_METADATA_SIZE;
+                    final int payloadSize = size - GRPC_MESSAGE_PADDING;
                     clientMessageDeferred = messageLength - payloadSize;
 
                     Flyweight dataEx = clientMessageDeferred > 0 ?
@@ -625,7 +630,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
                     flags = clientMessageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
                     flushGrpcData(traceId, authorization, budgetId, reserved, flags,
-                        buffer, offset + GRPC_MESSAGE_METADATA_SIZE, payloadSize, dataEx);
+                        buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
                 }
                 else
                 {
@@ -664,7 +669,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 grpcReplyMax = replyMax;
 
                 doWindow(application, routeId, replyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
-                    traceId, authorization, budgetId, padding + 5, capabilities);
+                    traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING, capabilities);
             }
 
             private void doAppAbort(
@@ -1164,5 +1169,13 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         return httpBeginEx != null &&
             httpBeginEx.headers().anyMatch(h -> HEADER_NAME_METHOD.equals(h.name()) &&
                 HEADER_VALUE_METHOD_POST.equals(h.value()));
+    }
+
+    private Map<String, String> asHeadersMap(
+        Array32FW<HttpHeaderFW> headers)
+    {
+        Map<String, String> headersMap = new LinkedHashMap<>();
+        headers.forEach(h -> headersMap.put(h.name().asString(), h.value().asString()));
+        return headersMap;
     }
 }

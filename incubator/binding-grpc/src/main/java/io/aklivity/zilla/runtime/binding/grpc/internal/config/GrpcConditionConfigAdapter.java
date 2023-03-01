@@ -17,15 +17,20 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String METHOD_NAME = "method";
+    private static final String METADATA_NAME = "metadata";
 
     @Override
     public String type()
@@ -41,6 +46,20 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        if (grpcCondition.metadata != null &&
+            !grpcCondition.metadata.isEmpty())
+        {
+            JsonObjectBuilder entries = Json.createObjectBuilder();
+            grpcCondition.metadata.forEach(entries::add);
+
+            object.add(METADATA_NAME, entries);
+        }
+
+        if (grpcCondition.method != null)
+        {
+            object.add(METHOD_NAME, grpcCondition.method);
+        }
+
         return object.build();
     }
 
@@ -52,6 +71,19 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             ? object.getString(METHOD_NAME)
             : null;
 
-        return new GrpcConditionConfig(method);
+        JsonObject metadata = object.containsKey(METADATA_NAME)
+            ? object.getJsonObject(METADATA_NAME)
+            : null;
+
+        Map<String, String> newMetadata = null;
+
+        if (metadata != null)
+        {
+            Map<String, String> newHeaders0 = new LinkedHashMap<>();
+            metadata.forEach((k, v) -> newHeaders0.put(k, JsonString.class.cast(v).getString()));
+            newMetadata = newHeaders0;
+        }
+
+        return new GrpcConditionConfig(method, newMetadata);
     }
 }

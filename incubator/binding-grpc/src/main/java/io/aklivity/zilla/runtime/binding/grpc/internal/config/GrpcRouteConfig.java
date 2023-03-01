@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
@@ -47,8 +48,9 @@ public final class GrpcRouteConfig extends OptionsConfig
     }
 
     boolean matches(
-        CharSequence method)
+        CharSequence method,
+        Function<String, String> headerByName)
     {
-        return when.isEmpty() || method != null && when.stream().anyMatch(m -> m.matches(method));
+        return when.isEmpty() || method != null && when.stream().anyMatch(m -> m.matches(method, headerByName));
     }
 }

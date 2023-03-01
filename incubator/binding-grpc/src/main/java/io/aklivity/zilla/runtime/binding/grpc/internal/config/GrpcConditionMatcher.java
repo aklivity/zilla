@@ -15,23 +15,42 @@
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class GrpcConditionMatcher
 {
     private final Matcher method;
+    public final Map<String, Matcher> metadataMatch;
 
     public GrpcConditionMatcher(
         GrpcConditionConfig condition)
     {
         this.method = condition.method != null ? asMatcher(condition.method) : null;
+        this.metadataMatch = condition.metadata != null ? asMatcherMap(condition.metadata) : null;
     }
 
     public boolean matches(
-        CharSequence path)
+        CharSequence path,
+        Function<String, String> metadataByName)
     {
-        return matchMethod(path);
+        boolean match = true;
+
+        if (metadataMatch != null)
+        {
+            for (Map.Entry<String, Matcher> entry : metadataMatch.entrySet())
+            {
+                String name = entry.getKey();
+                Matcher matcher = entry.getValue();
+                String value = metadataByName.apply(name);
+                match &= value != null && matcher.reset(value).matches();
+            }
+        }
+
+        return match && matchMethod(path);
     }
 
     private boolean matchMethod(
@@ -49,5 +68,27 @@ public final class GrpcConditionMatcher
                 .replace("+", "[^/]*")
                 .replace("#", ".*"))
             .matcher("");
+    }
+
+    private static Map<String, Matcher> asMatcherMap(
+        Map<String, String> patterns)
+    {
+        Map<String, Matcher> matchers = new LinkedHashMap<>();
+        patterns.forEach((k, v) -> matchers.put(k, asMatcher(k, v)));
+        return matchers;
+    }
+
+    private static Matcher asMatcher(
+        String header,
+        String wildcard)
+    {
+        String pattern = wildcard.replace(".", "\\.").replace("*", ".*");
+
+        if (":path".equals(header) && !pattern.endsWith(".*"))
+        {
+            pattern = pattern + "(\\?.*)?";
+        }
+
+        return Pattern.compile(pattern).matcher("");
     }
 }
