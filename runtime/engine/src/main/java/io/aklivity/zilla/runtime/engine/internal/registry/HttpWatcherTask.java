@@ -36,6 +36,7 @@ public class HttpWatcherTask extends WatcherTask
     private final ScheduledExecutorService executor;
     //If server does not support long-polling use this interval
     private final int pollIntervalSeconds;
+    private Thread callThread;
     private volatile boolean closed;
 
     public HttpWatcherTask(
@@ -54,11 +55,19 @@ public class HttpWatcherTask extends WatcherTask
     @Override
     public Void call() throws InterruptedException
     {
+        callThread = Thread.currentThread();
         while (!closed)
         {
-            URI configURI = configWatcherQueue.take();
-            String etag = etags.getOrDefault(configURI, "");
-            sendAsync(configURI, etag);
+            try
+            {
+                URI configURI = configWatcherQueue.take();
+                String etag = etags.getOrDefault(configURI, "");
+                sendAsync(configURI, etag);
+            }
+            catch (InterruptedException ex)
+            {
+                break;
+            }
         }
         return null;
     }
@@ -107,6 +116,7 @@ public class HttpWatcherTask extends WatcherTask
     {
         futures.values().forEach(future -> future.cancel(true));
         closed = true;
+        callThread.interrupt();
     }
 
     private NamespaceConfig sendSync(
