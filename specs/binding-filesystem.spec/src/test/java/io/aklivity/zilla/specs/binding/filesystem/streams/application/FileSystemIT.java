@@ -77,6 +77,16 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.file.payload.modified.multi.client/client",
+        "${app}/read.file.payload.modified.multi.client/server"
+    })
+    public void shouldReadFilePayloadModifiedMultiClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload.etag.not.matched/client",
         "${app}/read.file.payload.etag.not.matched/server"
     })

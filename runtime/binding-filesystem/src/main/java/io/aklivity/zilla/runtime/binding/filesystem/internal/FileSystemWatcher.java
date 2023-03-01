@@ -43,7 +43,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public class FileSystemWatcher implements Callable<Void>, Closeable
 {
     private static final int FILE_CHANGED_SIGNAL_ID = 1;
-    private final Map<WatchKey, WatchedFile> watchedFiles;
+    private final Map<WatchKey, Set<WatchedFile>> watchedFiles;
     private final WatchService watchService;
     private final Signaler signaler;
 
@@ -86,31 +86,36 @@ public class FileSystemWatcher implements Callable<Void>, Closeable
         {
             try
             {
-                final WatchKey key = watchService.take();
-                WatchedFile changedFile = watchedFiles.get(key);
-                if (changedFile != null)
+                final WatchKey watchKey = watchService.take();
+                Set<WatchedFile> changedFiles = watchedFiles.get(watchKey);
+                if (changedFiles != null)
                 {
-                    String oldTag = changedFile.getOriginalHash();
-                    String newTag = changedFile.calculateHash();
-                    if (!oldTag.equals(newTag))
+                    for (WatchedFile changedFile : changedFiles)
                     {
-                        changedFile.cancelTimeoutSignal(signaler);
-                        changedFile.keys.forEach(watchedFiles::remove);
-                        changedFile.unregister();
-                        changedFile.signalChange(signaler);
-                    }
-                    else
-                    {
-                        if (changedFile.symlinks.length == 0)
+                        String oldTag = changedFile.getOriginalHash();
+                        String newTag = changedFile.calculateHash();
+                        if (!oldTag.equals(newTag))
                         {
+                            changedFile.cancelTimeoutSignal(signaler);
                             changedFile.keys.forEach(watchedFiles::remove);
                             changedFile.unregister();
-                            changedFile.registerWithSymlinks(watchService);
-                            changedFile.keys.forEach(k -> watchedFiles.put(k, changedFile));
+                            changedFile.signalChange(signaler);
                         }
                         else
                         {
-                            key.reset();
+                            if (changedFile.symlinks.length == 0)
+                            {
+                                changedFile.keys.forEach(watchedFiles::remove);
+                                changedFile.unregister();
+                                changedFile.registerWithSymlinks(watchService);
+                                changedFile.keys.forEach(key ->
+                                    watchedFiles.computeIfAbsent(key, k -> new HashSet<>()).add(changedFile)
+                                );
+                            }
+                            else
+                            {
+                                watchKey.reset();
+                            }
                         }
                     }
                 }
@@ -127,7 +132,9 @@ public class FileSystemWatcher implements Callable<Void>, Closeable
         WatchedFile watchedFile)
     {
         watchedFile.register(watchService);
-        watchedFile.keys.forEach(k -> watchedFiles.put(k, watchedFile));
+        watchedFile.keys.forEach(key ->
+            watchedFiles.computeIfAbsent(key, k -> new HashSet<>()).add(watchedFile)
+        );
     }
 
     public void unregister(

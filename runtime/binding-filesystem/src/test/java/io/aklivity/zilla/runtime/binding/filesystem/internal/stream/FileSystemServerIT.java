@@ -105,6 +105,26 @@ public class FileSystemServerIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${app}/read.file.payload.modified.multi.client/client"
+    })
+    public void shouldReadFilePayloadModifiedMultiClient() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CONNECTED1");
+        k3po.awaitBarrier("CONNECTED2");
+        Path filesDirectory = Paths.get("target/files");
+        Path source = filesDirectory.resolve("index_modify_multi_client_after.html");
+        Path target = filesDirectory.resolve("index_modify_multi_client.html");
+
+        Files.move(source, target, ATOMIC_MOVE);
+        k3po.notifyBarrier("FILE_MODIFIED");
+
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${app}/read.file.payload.etag.not.matched/client"
     })
     public void shouldReadFilePayloadEtagNotMatched() throws Exception
