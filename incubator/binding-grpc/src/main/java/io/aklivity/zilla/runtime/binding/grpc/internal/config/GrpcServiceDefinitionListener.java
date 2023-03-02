@@ -17,23 +17,19 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind.STREAM;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind.UNARY;
 
-import java.util.Set;
-
-import org.agrona.collections.ObjectHashSet;
-
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3BaseListener;
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Parser;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 
 public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
 {
-    private final Set<GrpcServiceConfig> services;
+    private final GrpcProtobufConfig protoConfig;
     private String package_;
 
     public GrpcServiceDefinitionListener(
-        Set<GrpcServiceConfig> services)
+        GrpcProtobufConfig protoConfig)
     {
-        this.services = services;
+        this.protoConfig = protoConfig;
     }
 
     @Override
@@ -48,19 +44,18 @@ public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
         Protobuf3Parser.ServiceDefContext ctx)
     {
         String serviceName = String.format("%s.%s", package_, ctx.serviceName().getText());
-        final ObjectHashSet<GrpcMethodConfig> methods = new ObjectHashSet<>();
+        final GrpcServiceConfig serviceConfig = new GrpcServiceConfig(serviceName);
+        protoConfig.setServiceConfig(serviceConfig);
 
         ctx.serviceElement().forEach(element ->
         {
             Protobuf3Parser.RpcContext rpc = element.rpc();
 
-            String method = rpc.rpcName().getText();
+            String method = String.format("%s/%s", serviceName, rpc.rpcName().getText());
             GrpcKind request = rpc.clientStreaming != null ? STREAM : UNARY;
             GrpcKind response = rpc.serverStreaming != null ? STREAM : UNARY;
-            methods.add(new GrpcMethodConfig(method, request, response));
+            serviceConfig.setMethodConfig(new GrpcMethodConfig(method, request, response));
         });
-        final GrpcServiceConfig service = new GrpcServiceConfig(serviceName, methods);
-        services.add(service);
     }
 
 }

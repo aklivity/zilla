@@ -22,6 +22,7 @@ write zilla:begin.ext ${grpc:beginEx()
                               .method("io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
                               .request("UNARY")
                               .response("UNARY")
+                              .metadata("custom", "test")
                               .build()}
 connected
 

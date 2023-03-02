@@ -17,7 +17,11 @@
           "when":
           [
             {
-              "method": "io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary"
+              "method": "io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary",
+              "metadata":
+              {
+                "custom": "test"
+              }
             }
           ]
         }

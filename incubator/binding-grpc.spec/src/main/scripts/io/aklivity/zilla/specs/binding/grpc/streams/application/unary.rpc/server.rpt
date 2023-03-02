@@ -23,6 +23,7 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .method("io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
                            .request("UNARY")
                            .response("UNARY")
+                           .metadata("custom", "test")
                            .build()}
 connected
 
