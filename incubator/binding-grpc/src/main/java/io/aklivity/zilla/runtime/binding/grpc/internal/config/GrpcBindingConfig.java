@@ -42,7 +42,7 @@ public final class GrpcBindingConfig
     private static final Pattern METHOD_PATTERN = Pattern.compile("/(?<ServiceName>.*?)/(?<Method>.*)");
     private static final String SERVICE_NAME = "ServiceName";
     private static final String METHOD = "Method";
-    private static final Set<String8FW> GRPC_HEADERS =
+    private static final Set<String8FW> HTTP_HEADERS =
         new HashSet<>(asList(new String8FW(":path"),
                              new String8FW(":method"),
                              new String8FW(":scheme"),
@@ -209,12 +209,12 @@ public final class GrpcBindingConfig
         {
             final String8FW name = header.name();
             final String16FW value = header.value();
-            final boolean notGrpcHeader = !GRPC_HEADERS.contains(name);
+            final boolean notHttpHeader = !HTTP_HEADERS.contains(name);
 
             final int offset = name.offset();
             name.buffer().getBytes(offset, HEADER_PREFIX);
 
-            if (notGrpcHeader && !GRPC_PREFIX.equals(HEADER_PREFIX))
+            if (notHttpHeader && !GRPC_PREFIX.equals(HEADER_PREFIX))
             {
                 metadataHeaders.put(name, value);
             }
