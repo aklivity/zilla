@@ -18,6 +18,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public class HttpWatcherTask extends WatcherTask
 {
     private static final String INTIAL_ETAG = "INIT";
+    private static final URI CLOSE_REQUESTED = URI.create("http://localhost:12345");
 
     private final Map<URI, String> etags;
     private final Map<URI, byte[]> configHashes;
@@ -36,8 +38,6 @@ public class HttpWatcherTask extends WatcherTask
     private final ScheduledExecutorService executor;
     //If server does not support long-polling use this interval
     private final int pollIntervalSeconds;
-    private Thread callThread;
-    private volatile boolean closed;
 
     public HttpWatcherTask(
         BiFunction<URL, String, NamespaceConfig> changeListener,
@@ -49,25 +49,27 @@ public class HttpWatcherTask extends WatcherTask
         this.futures = new ConcurrentHashMap<>();
         this.configWatcherQueue = new LinkedBlockingQueue<>();
         this.pollIntervalSeconds = pollIntervalSeconds;
-        this.executor  = Executors.newSingleThreadScheduledExecutor();
+        this.executor  = Executors.newScheduledThreadPool(2);
+    }
+
+    @Override
+    public Future<Void> submit()
+    {
+        return executor.submit(this);
     }
 
     @Override
     public Void call() throws InterruptedException
     {
-        callThread = Thread.currentThread();
-        while (!closed)
+        while (true)
         {
-            try
-            {
-                URI configURI = configWatcherQueue.take();
-                String etag = etags.getOrDefault(configURI, "");
-                sendAsync(configURI, etag);
-            }
-            catch (InterruptedException ex)
+            URI configURI = configWatcherQueue.take();
+            if (configURI == CLOSE_REQUESTED)
             {
                 break;
             }
+            String etag = etags.getOrDefault(configURI, "");
+            sendAsync(configURI, etag);
         }
         return null;
     }
@@ -115,8 +117,7 @@ public class HttpWatcherTask extends WatcherTask
     public void close()
     {
         futures.values().forEach(future -> future.cancel(true));
-        closed = true;
-        callThread.interrupt();
+        configWatcherQueue.add(CLOSE_REQUESTED);
     }
 
     private NamespaceConfig sendSync(
