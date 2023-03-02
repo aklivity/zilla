@@ -29,7 +29,6 @@ connected
 write close
 write notify CONNECTED
 
-read await FILE_MODIFIED
 read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .typeId(zilla:id("filesystem"))
                                  .capabilities("READ_PAYLOAD")
