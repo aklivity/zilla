@@ -91,13 +91,14 @@ public class FileSystemServerIT
     public void shouldReadFilePayloadModified() throws Exception
     {
         k3po.start();
+        Thread.sleep(1000);
+
         k3po.awaitBarrier("CONNECTED");
         Path filesDirectory = Paths.get("target/files");
         Path source = filesDirectory.resolve("index_modify_after.html");
         Path target = filesDirectory.resolve("index_modify.html");
 
         Files.move(source, target, ATOMIC_MOVE);
-        Thread.sleep(1000);
         k3po.finish();
     }
 
@@ -108,6 +109,7 @@ public class FileSystemServerIT
     })
     public void shouldReadFilePayloadModifiedMultiClient() throws Exception
     {
+        Thread.sleep(1000);
         k3po.start();
         k3po.awaitBarrier("CONNECTED1");
         k3po.awaitBarrier("CONNECTED2");
@@ -145,15 +147,16 @@ public class FileSystemServerIT
         Path targetFile = Paths.get("symlink_before/index.html");
         Files.createSymbolicLink(link, targetData);
         Files.createSymbolicLink(linkData, targetFile);
+
         k3po.start();
+        Thread.sleep(1000);
+
         k3po.awaitBarrier("CONNECTED");
 
         Path targetFileAfter = Paths.get("symlink_after/index.html");
         File linkFile = new File(String.valueOf(linkData));
         linkFile.delete();
         Files.createSymbolicLink(linkData, targetFileAfter);
-        Thread.sleep(1000);
-
         k3po.finish();
     }
 
@@ -169,6 +172,7 @@ public class FileSystemServerIT
         Path target1 = filesDirectory.resolve("index.html");
         Files.createSymbolicLink(link, target1);
         k3po.start();
+        Thread.sleep(1000);
         k3po.awaitBarrier("CONNECTED");
 
         Path targetFileAfter = Paths.get("symlink/index.html");
@@ -183,8 +187,6 @@ public class FileSystemServerIT
         Path target = filesDirectory.resolve("symlink/index.html");
 
         Files.move(source, target, ATOMIC_MOVE);
-        Thread.sleep(1000);
-
         k3po.finish();
     }
 
