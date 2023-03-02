@@ -21,12 +21,12 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3BaseListe
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3Parser;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 
-public class ServiceDefinitionListener extends Protobuf3BaseListener
+public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
 {
     private final GrpcProtobufConfig protoConfig;
     private String package_;
 
-    public ServiceDefinitionListener(
+    public GrpcServiceDefinitionListener(
         GrpcProtobufConfig protoConfig)
     {
         this.protoConfig = protoConfig;

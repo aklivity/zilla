@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -49,7 +51,7 @@ public final class GrpcRouteConfig extends OptionsConfig
 
     boolean matches(
         CharSequence method,
-        Function<String, String> headerByName)
+        Function<String8FW, String16FW> headerByName)
     {
         return when.isEmpty() || method != null && when.stream().anyMatch(m -> m.matches(method, headerByName));
     }

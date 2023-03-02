@@ -121,7 +121,7 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
             Protobuf3Parser parser = new Protobuf3Parser(tokens);
             parser.setErrorHandler(new BailErrorStrategy());
             ParseTreeWalker walker = new ParseTreeWalker();
-            ServiceDefinitionListener listener = new ServiceDefinitionListener(protobufConfig);
+            GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(protobufConfig);
             walker.walk(listener, parser.proto());
         }
         catch (MalformedURLException ex)

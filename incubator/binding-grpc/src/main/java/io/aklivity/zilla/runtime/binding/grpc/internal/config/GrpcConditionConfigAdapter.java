@@ -14,18 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
@@ -50,7 +54,14 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             !grpcCondition.metadata.isEmpty())
         {
             JsonObjectBuilder entries = Json.createObjectBuilder();
-            grpcCondition.metadata.forEach(entries::add);
+            grpcCondition.metadata.forEach((k, v) ->
+            {
+                String key = k.asString();
+                if (!key.contains("-bin"))
+                {
+                    entries.add(key, v.asString());
+                }
+            });
 
             object.add(METADATA_NAME, entries);
         }
@@ -75,15 +86,19 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             ? object.getJsonObject(METADATA_NAME)
             : null;
 
-        Map<String, String> newMetadata = null;
+        final Map<String8FW, String16FW> newMetadata = new LinkedHashMap<>();
 
         if (metadata != null)
         {
-            Map<String, String> newHeaders0 = new LinkedHashMap<>();
-            metadata.forEach((k, v) -> newHeaders0.put(k, JsonString.class.cast(v).getString()));
-            newMetadata = newHeaders0;
+            metadata.forEach((k, v) ->
+            {
+                String8FW key = new String8FW(k);
+                String16FW value = new String16FW(JsonString.class.cast(v).getString());
+                newMetadata.put(key, value);
+            });
         }
 
         return new GrpcConditionConfig(method, newMetadata);
     }
+
 }

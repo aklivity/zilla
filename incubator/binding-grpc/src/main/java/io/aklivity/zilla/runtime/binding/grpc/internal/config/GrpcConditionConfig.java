@@ -14,19 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-
 import java.util.Map;
+
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class GrpcConditionConfig extends ConditionConfig
 {
-
     public final String method;
-    public final Map<String, String> metadata;
+    public final Map<String8FW, String16FW> metadata;
 
     public GrpcConditionConfig(
         String method,
-        Map<String, String> metadata)
+        Map<String8FW, String16FW> metadata)
     {
         this.method = method;
         this.metadata = metadata;

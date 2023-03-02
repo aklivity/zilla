@@ -14,11 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC;
+import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC_WEB_PROTO;
+import static java.lang.Character.toLowerCase;
+import static java.lang.Character.toUpperCase;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -31,7 +35,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcMethodConfig;
-import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteConfig;
+import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteResolver;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
@@ -55,8 +59,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
-import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -66,9 +68,19 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final int GRPC_MESSAGE_PADDING = 5;
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
+    private static final byte COLON_BYTE = ':';
+    private static final byte HYPHEN_BYTE = '-';
+    private static final byte COMMA_BYTE = ',';
+    private static final byte SPACE_BYTE = ' ';
+    private static final byte[] SEMICOLON_BYTES = ";".getBytes(US_ASCII);
+    private static final byte[] COLON_SPACE_BYTES = ": ".getBytes(US_ASCII);
+    private static final byte[] CRLFCRLF_BYTES = "\r\n\r\n".getBytes(US_ASCII);
+    private static final byte[] CRLF_BYTES = "\r\n".getBytes(US_ASCII);
     private static final String HTTP_TYPE_NAME = "http";
+    private static final String CONTENT_TYPE_HEADER = "content-type";
+    private static final String APPLICATION_GRPC = "application/grpc";
+    private static final String APPLICATION_GRPC_WEB_PROTO = "application/grpc-web+proto";
     private static final Map<String, String> EMPTY_HEADERS = Collections.emptyMap();
-
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
@@ -113,18 +125,68 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
     private final MutableDirectBuffer writeBuffer;
     private final BufferPool bufferPool;
-    private final BudgetCreditor creditor;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final LongSupplier supplyBudgetId;
-    private final LongFunction<BudgetDebitor> supplyDebitor;
     private final Long2ObjectHashMap<GrpcBindingConfig> bindings;
     private final int grpcTypeId;
     private final int httpTypeId;
 
+    enum ContentType
+    {
+        GRPC
+        {
+            @Override
+            public void doNetEnd(
+                GrpcServer server,
+                long traceId,
+                long authorization)
+            {
+                server.doGrpcNetEnd(traceId, authorization);
+            }
+
+            @Override
+            public void doNetAbort(
+                GrpcServer server,
+                long traceId,
+                long authorization)
+            {
+                server.doGrpcNetAbort(traceId, authorization);
+            }
+        },
+        GRPC_WEB_PROTO
+        {
+            @Override
+            public void doNetEnd(
+                GrpcServer server,
+                long traceId,
+                long authorization)
+            {
+                server.doGrpcWebNetEnd(traceId, authorization);
+            }
+
+            @Override
+            public void doNetAbort(
+                GrpcServer server,
+                long traceId,
+                long authorization)
+            {
+                server.doGrpcWebNetAbort(traceId, authorization);
+            }
+        };
+
+        public abstract void doNetEnd(
+            GrpcServer server,
+            long traceId,
+            long authorization);
+
+        public abstract void doNetAbort(
+            GrpcServer server,
+            long traceId,
+            long authorization);
+    }
 
     public GrpcServerFactory(
         GrpcConfiguration config,
@@ -132,13 +194,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.bufferPool = context.bufferPool();
-        this.creditor = context.creditor();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
-        this.supplyDebitor = context::supplyDebitor;
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
-        this.supplyBudgetId = context::supplyBudgetId;
         this.supplyTraceId = context::supplyTraceId;
         this.bindings = new Long2ObjectHashMap<>();
         this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
@@ -190,13 +249,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         else
         {
             final GrpcBindingConfig binding = bindings.get(routeId);
-            final Map<String, String> headers = httpBeginEx != null ? asHeadersMap(httpBeginEx.headers()) : EMPTY_HEADERS;
 
-            final GrpcMethodConfig methodConfig = binding.resolveGrpcMethodConfig(headers);
+            final GrpcMethodConfig methodConfig = binding.resolveGrpcMethodConfig(httpBeginEx);
 
             if (methodConfig != null)
             {
-                newStream = newInitialGrpcStream(begin, network, headers, methodConfig);
+                newStream = newInitialGrpcStream(begin, network, httpBeginEx, methodConfig);
             }
             else
             {
@@ -209,10 +267,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         return newStream;
     }
 
-    public MessageConsumer newInitialGrpcStream(
+    public MessageConsumer  newInitialGrpcStream(
         final BeginFW begin,
         final MessageConsumer network,
-        final Map<String, String> headers,
+        final HttpBeginExFW httpBeginEx,
         final GrpcMethodConfig methodConfig)
     {
         final long routeId = begin.routeId();
@@ -226,17 +284,19 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         GrpcBindingConfig binding = bindings.get(routeId);
 
-        GrpcRouteConfig route = null;
+        GrpcRouteResolver route = null;
 
         if (binding != null)
         {
-            route = binding.resolve(begin.authorization(), headers::get, methodConfig);
+            route = binding.resolve(begin.authorization(), httpBeginEx, methodConfig);
         }
 
         MessageConsumer newStream = null;
 
         if (route != null)
         {
+            final ContentType contentType = asContentType(route.contentType);
+
             newStream = new GrpcServer(
                 network,
                 routeId,
@@ -244,6 +304,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 replyId,
                 affinity,
                 route.id,
+                contentType,
+                route.metadata,
                 methodConfig)::onNetMessage;
         }
         else
@@ -260,11 +322,14 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final class GrpcServer
     {
         private final MessageConsumer network;
+        private final ContentType contentType;
+        private Map<String8FW, String16FW> metadata;
+        private final GrpcMethodConfig methodConfig;
+        private final GrpcStream stream;
         private final long routeId;
         private final long initialId;
         private final long replyId;
         private final long affinity;
-        private final GrpcStream stream;
         private long initialSeq;
         private long initialAck;
         private int initialMax;
@@ -272,7 +337,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private long replyAck;
         private int replyMax;
         private int state;
-        private GrpcMethodConfig methodConfig;
 
         private GrpcServer(
             MessageConsumer network,
@@ -281,6 +345,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long replyId,
             long affinity,
             long resolveId,
+            ContentType contentType,
+            Map<String8FW, String16FW> metadata,
             GrpcMethodConfig methodConfig)
         {
             this.network = network;
@@ -288,6 +354,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             this.initialId = initialId;
             this.replyId = replyId;
             this.affinity = affinity;
+            this.contentType = contentType;
+            this.metadata = metadata;
             this.methodConfig = methodConfig;
 
             this.stream = new GrpcStream(resolveId);
@@ -495,14 +563,45 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 replySeq = stream.grpcReplySeq;
                 state = GrpcState.closeReply(state);
 
-                HttpEndExFW trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
-                    .typeId(httpTypeId)
-                    .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_OK))
-                    .build();
-
-                doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, trailer);
+                contentType.doNetEnd(this, traceId, authorization);
             }
+        }
+
+        private void doGrpcNetEnd(
+            long traceId,
+            long authorization)
+        {
+            HttpEndExFW trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+                .typeId(httpTypeId)
+                .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_OK))
+                .build();
+
+            doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, trailer);
+        }
+
+        private void doGrpcWebNetEnd(
+            long traceId,
+            long authorization)
+        {
+            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+            int encodeProgress = encodeOffset;
+
+            //TODO: Buffer it for flow control
+            GrpcMessageFW grpcMessage = grpcMessageRW.wrap(encodeBuffer, encodeOffset, encodeOffset)
+                .flag(1)
+                .build();
+            encodeProgress = grpcMessage.limit();
+            encodeProgress = doEncodeHeader(encodeBuffer, encodeProgress,
+                HEADER_NAME_GRPC_STATUS.value(), HEADER_VALUE_GRPC_OK.value(), false);
+
+            doNetData(traceId, authorization, 0, 0, DATA_FLAG_INIT | DATA_FLAG_FIN,
+                encodeBuffer, encodeOffset, encodeProgress - encodeOffset);
+
+            doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, EMPTY_OCTETS);
         }
 
         private void doNetAbort(
@@ -513,15 +612,44 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             if (!GrpcState.replyClosed(state))
             {
                 state = GrpcState.closeReply(state);
+                contentType.doNetAbort(this, traceId, authorization);
+            }
+        }
 
-                HttpEndExFW trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
+        private void doGrpcNetAbort(
+            long traceId,
+            long authorization)
+        {
+            HttpEndExFW trailer = httpEndExRW.wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(httpTypeId)
                     .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_ABORTED))
                     .build();
 
-                doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, trailer);
-            }
+            doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, trailer);
+        }
+
+        private void doGrpcWebNetAbort(
+            long traceId,
+            long authorization)
+        {
+            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+            int encodeProgress = encodeOffset;
+
+            GrpcMessageFW grpcMessage = grpcMessageRW.wrap(encodeBuffer, encodeOffset, encodeOffset)
+                .flag(1)
+                .build();
+            encodeProgress = grpcMessage.limit();
+            encodeProgress = doEncodeHeader(encodeBuffer, encodeProgress,
+                HEADER_NAME_GRPC_STATUS.value(), HEADER_VALUE_GRPC_ABORTED.value(), false);
+
+            doNetData(traceId, authorization, 0, 0, DATA_FLAG_INIT | DATA_FLAG_FIN,
+                encodeBuffer, encodeOffset, encodeProgress - encodeOffset);
+
+            doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, EMPTY_OCTETS);
         }
 
         private void doNetReset(
@@ -535,11 +663,11 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             }
             else
             {
-                HttpEndExFW trailer = httpEndExRW
+                Flyweight trailer =  contentType == GRPC ? httpEndExRW
                     .wrap(writeBuffer, EndFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
                     .typeId(httpTypeId)
                     .trailersItem(t -> t.name(HEADER_NAME_GRPC_STATUS).value(HEADER_VALUE_GRPC_ABORTED))
-                    .build();
+                    .build() : EMPTY_OCTETS;
 
                 doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, trailer);
@@ -595,7 +723,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             {
                 application = newGrpcStream(this::onAppMessage, routeId, initialId, grpcInitialSeq, grpcInitialAck,
                     grpcInitialMax, traceId, authorization, affinity, methodConfig.method,
-                    methodConfig.request, methodConfig.response);
+                    methodConfig.request, methodConfig.response, metadata);
             }
 
 
@@ -1134,13 +1262,15 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long affinity,
         String method,
         GrpcKind request,
-        GrpcKind response)
+        GrpcKind response,
+        Map<String8FW, String16FW> metadata)
     {
         final GrpcBeginExFW grpcBegin = grpcBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
             .typeId(grpcTypeId)
             .method(new String16FW(method))
             .request(r -> r.set(request).build())
             .response(r -> r.set(response).build())
+            .metadata(m -> metadata.forEach((k, v) -> m.item(h -> h.name(k).value(v))))
             .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -1171,11 +1301,69 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 HEADER_VALUE_METHOD_POST.equals(h.value()));
     }
 
-    private Map<String, String> asHeadersMap(
-        Array32FW<HttpHeaderFW> headers)
+    private static ContentType asContentType(
+        CharSequence value)
     {
-        Map<String, String> headersMap = new LinkedHashMap<>();
-        headers.forEach(h -> headersMap.put(h.name().asString(), h.value().asString()));
-        return headersMap;
+        ContentType type = GRPC;
+        if (APPLICATION_GRPC_WEB_PROTO.contentEquals(value))
+        {
+            type = GRPC_WEB_PROTO;
+        }
+        return type;
+    }
+
+    private int doEncodeHeader(
+        MutableDirectBuffer buffer,
+        int offset,
+        DirectBuffer name,
+        DirectBuffer value,
+        boolean valueInitCaps)
+    {
+        int progress = offset;
+        progress = doEncodeInitialCaps(buffer, name, progress);
+
+        buffer.putBytes(progress, COLON_SPACE_BYTES);
+        progress += COLON_SPACE_BYTES.length;
+
+        if (valueInitCaps)
+        {
+            progress = doEncodeInitialCaps(buffer, value, progress);
+        }
+        else
+        {
+            buffer.putBytes(progress, value, 0, value.capacity());
+            progress += value.capacity();
+        }
+
+        buffer.putBytes(progress, CRLF_BYTES);
+        progress += CRLF_BYTES.length;
+
+        return progress;
+    }
+
+    private int doEncodeInitialCaps(
+        MutableDirectBuffer buffer,
+        DirectBuffer name,
+        int offset)
+    {
+        int progress = offset;
+
+        boolean uppercase = true;
+        for (int pos = 0, len = name.capacity(); pos < len; pos++, progress++)
+        {
+            byte ch = name.getByte(pos);
+            if (uppercase)
+            {
+                ch = (byte) toUpperCase(ch);
+            }
+            else
+            {
+                ch |= (byte) toLowerCase(ch);
+            }
+            buffer.putByte(progress, ch);
+            uppercase = ch == HYPHEN_BYTE || ch == COMMA_BYTE || ch == SPACE_BYTE;
+        }
+
+        return progress;
     }
 }
