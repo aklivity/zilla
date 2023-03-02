@@ -20,12 +20,13 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 
 public final class GrpcConditionMatcher
 {
