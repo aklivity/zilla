@@ -15,27 +15,30 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static java.util.concurrent.ForkJoinPool.commonPool;
 import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import io.aklivity.zilla.runtime.binding.filesystem.internal.stream.FileSystemServerFactory;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.stream.FileSystemStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class FileSystemBindingContext implements BindingContext
 {
     private final Map<KindConfig, FileSystemStreamFactory> factories;
-    private final FileSystemWatcher fileSystemWatcher;
-    private final ForkJoinTask<Void> fileSystemWatcherRef;
+    private final Signaler signaler;
+    private FileSystemWatcher fileSystemWatcher;
+    private Future<Void> fileSystemWatcherRef;
+    private int bindings = 0;
 
     FileSystemBindingContext(
         FileSystemConfiguration config,
@@ -43,9 +46,8 @@ final class FileSystemBindingContext implements BindingContext
     {
         Map<KindConfig, FileSystemStreamFactory> factories = new EnumMap<>(KindConfig.class);
         this.factories = factories;
-        this.fileSystemWatcher = new FileSystemWatcher(context.signaler());
-        this.fileSystemWatcherRef = commonPool().submit(fileSystemWatcher);
-        factories.put(SERVER, new FileSystemServerFactory(config, context, fileSystemWatcher));
+        this.signaler = context.signaler();
+        factories.put(SERVER, new FileSystemServerFactory(config, context));
     }
 
     @Override
@@ -56,9 +58,13 @@ final class FileSystemBindingContext implements BindingContext
 
         if (factory != null)
         {
-            factory.attach(binding);
+            if (bindings++ == 0)
+            {
+                this.fileSystemWatcher = new FileSystemWatcher(signaler);
+                this.fileSystemWatcherRef = Executors.newFixedThreadPool(1).submit(fileSystemWatcher);
+            }
+            factory.attach(binding, fileSystemWatcher);
         }
-
         return factory;
     }
 
@@ -72,10 +78,19 @@ final class FileSystemBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+        if (--bindings == 0)
+        {
+            close();
+        }
     }
 
     @Override
-    public void close()
+    public String toString()
+    {
+        return String.format("%s %s", getClass().getSimpleName(), factories);
+    }
+
+    private void close()
     {
         quietClose(fileSystemWatcher);
         try
@@ -86,11 +101,5 @@ final class FileSystemBindingContext implements BindingContext
         {
             rethrowUnchecked(ex);
         }
-    }
-
-    @Override
-    public String toString()
-    {
-        return String.format("%s %s", getClass().getSimpleName(), factories);
     }
 }

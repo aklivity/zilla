@@ -104,14 +104,13 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final int fileSystemTypeId;
 
     private final URI serverRoot;
-    private final FileSystemWatcher fileSystemWatcher;
+    private FileSystemWatcher fileSystemWatcher;
     private final MessageDigest md5;
     private final Signaler signaler;
 
     public FileSystemServerFactory(
         FileSystemConfiguration config,
-        EngineContext context,
-        FileSystemWatcher fileSystemWatcher)
+        EngineContext context)
     {
         this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
@@ -121,7 +120,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
-        this.fileSystemWatcher = fileSystemWatcher;
         this.bindings = new Long2ObjectHashMap<>();
         this.signaler = context.signaler();
         this.md5 = initMessageDigest("MD5");
@@ -129,10 +127,13 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     @Override
     public void attach(
-        BindingConfig binding)
+        BindingConfig binding,
+        FileSystemWatcher fileSystemWatcher)
     {
         FileSystemBindingConfig fsBinding = new FileSystemBindingConfig(binding);
         bindings.put(binding.id, fsBinding);
+        this.fileSystemWatcher = fileSystemWatcher;
+
     }
 
     @Override

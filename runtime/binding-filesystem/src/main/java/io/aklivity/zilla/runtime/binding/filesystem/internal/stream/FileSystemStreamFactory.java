@@ -14,13 +14,15 @@
  */
 package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 
+import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemWatcher;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public interface FileSystemStreamFactory extends BindingHandler
 {
     void attach(
-        BindingConfig binding);
+        BindingConfig binding,
+        FileSystemWatcher fileSystemWatcher);
 
     void detach(
         long bindingId);
