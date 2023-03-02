@@ -132,6 +132,7 @@ public class FileSystemServerIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("server_symlinks.yaml")
     @Specification({
