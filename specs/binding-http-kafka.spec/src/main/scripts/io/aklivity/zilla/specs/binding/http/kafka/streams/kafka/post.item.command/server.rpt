@@ -32,7 +32,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 connected
 
 read option zilla:flags 0x02
-
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()

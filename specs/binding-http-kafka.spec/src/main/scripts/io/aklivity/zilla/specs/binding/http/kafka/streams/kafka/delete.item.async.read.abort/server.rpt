@@ -31,6 +31,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read option zilla:flags "init"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -49,7 +50,18 @@ read zilla:data.empty
 
 read await SEND_ASYNC_REQUEST
 
-read abort
+read option zilla:flags "fin"
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .partition(-1, -1)
+                               .header("zilla:correlation-id", "7101a8ea-5745-43c8-8d0c-b2f9baba7004-040487c782b6bfee62fcbd96a008bd4c")
+                               .build()
+                           .build()}
+read zilla:data.empty
+
+read closed
+write close
 
 accepted
 
