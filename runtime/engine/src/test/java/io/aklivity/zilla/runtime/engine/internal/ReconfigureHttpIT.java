@@ -64,9 +64,7 @@ public class ReconfigureHttpIT
     @Before
     public void setupRegisterLatch() throws Exception
     {
-        //Make sure that the initial configuration has finished
         EngineTest.TestEngineExt.registerLatch.await();
-        //Register new CountDownLatch
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 
@@ -77,7 +75,7 @@ public class ReconfigureHttpIT
         "${app}/reconfigure.modify.via.http/server",
         "${net}/reconfigure.modify.via.http/client"
     })
-    public void shouldReconfigureWhenModifiedHTTP() throws Exception
+    public void shouldReconfigureWhenModifiedHttp() throws Exception
     {
         k3po.start();
         k3po.awaitBarrier("CONNECTED");
@@ -93,7 +91,7 @@ public class ReconfigureHttpIT
         "${app}/reconfigure.create.via.http/server",
         "${net}/reconfigure.create.via.http/client"
     })
-    public void shouldReconfigureWhenCreatedHTTP() throws Exception
+    public void shouldReconfigureWhenCreatedHttp() throws Exception
     {
         k3po.start();
         EngineTest.TestEngineExt.registerLatch.await();
@@ -107,7 +105,7 @@ public class ReconfigureHttpIT
         "${app}/reconfigure.delete.via.http/server",
         "${net}/reconfigure.delete.via.http/client"
     })
-    public void shouldReconfigureWhenDeletedHTTP() throws Exception
+    public void shouldReconfigureWhenDeletedHttp() throws Exception
     {
         k3po.start();
         EngineTest.TestEngineExt.registerLatch.await();
@@ -122,7 +120,7 @@ public class ReconfigureHttpIT
         "${app}/reconfigure.modify.no.etag.via.http/server",
         "${net}/reconfigure.modify.no.etag.via.http/client"
     })
-    public void shouldReconfigureWhenModifiedHTTPEtagNotSupported() throws Exception
+    public void shouldReconfigureWhenModifiedHttpEtagNotSupported() throws Exception
     {
         k3po.start();
         k3po.awaitBarrier("CONNECTED");

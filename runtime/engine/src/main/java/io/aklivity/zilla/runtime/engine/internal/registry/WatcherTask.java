@@ -9,7 +9,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -18,6 +20,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public abstract class WatcherTask implements Callable<Void>, Closeable
 {
     private final MessageDigest md5;
+    protected final ScheduledExecutorService executor;
 
     protected final BiFunction<URL, String, NamespaceConfig> changeListener;
 
@@ -26,6 +29,7 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
     {
         this.changeListener = changeListener;
         this.md5 = initMessageDigest("MD5");
+        this.executor  = Executors.newScheduledThreadPool(2);
     }
 
     public abstract Future<Void> submit();

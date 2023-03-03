@@ -97,9 +97,7 @@ public class ReconfigureFileIT
     @Before
     public void setupRegisterLatch() throws Exception
     {
-        //Make sure that the initial configuration has finished
         EngineTest.TestEngineExt.registerLatch.await();
-        //Register new CountDownLatch
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 

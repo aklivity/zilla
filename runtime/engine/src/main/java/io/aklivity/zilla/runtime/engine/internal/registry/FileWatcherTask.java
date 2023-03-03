@@ -17,7 +17,6 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.ForkJoinPool.commonPool;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
@@ -64,9 +63,8 @@ public class FileWatcherTask extends WatcherTask
     @Override
     public Future<Void> submit()
     {
-        return commonPool().submit(this);
+        return executor.submit(this);
     }
-
     @Override
     public Void call()
     {

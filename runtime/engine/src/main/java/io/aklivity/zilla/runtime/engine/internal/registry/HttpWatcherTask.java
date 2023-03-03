@@ -17,10 +17,8 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
@@ -34,22 +32,19 @@ public class HttpWatcherTask extends WatcherTask
     private final Map<URI, String> etags;
     private final Map<URI, byte[]> configHashes;
     private final Map<URI, CompletableFuture<Void>> futures;
-    private final BlockingQueue<URI> configWatcherQueue;
-    private final ScheduledExecutorService executor;
-    //If server does not support long-polling use this interval
-    private final int pollIntervalSeconds;
+    private final BlockingQueue<URI> configQueue;
+    private final int pollSeconds;
 
     public HttpWatcherTask(
         BiFunction<URL, String, NamespaceConfig> changeListener,
-        int pollIntervalSeconds)
+        int pollSeconds)
     {
         super(changeListener);
         this.etags = new ConcurrentHashMap<>();
         this.configHashes = new ConcurrentHashMap<>();
         this.futures = new ConcurrentHashMap<>();
-        this.configWatcherQueue = new LinkedBlockingQueue<>();
-        this.pollIntervalSeconds = pollIntervalSeconds;
-        this.executor  = Executors.newScheduledThreadPool(2);
+        this.configQueue = new LinkedBlockingQueue<>();
+        this.pollSeconds = pollSeconds;
     }
 
     @Override
@@ -63,7 +58,7 @@ public class HttpWatcherTask extends WatcherTask
     {
         while (true)
         {
-            URI configURI = configWatcherQueue.take();
+            URI configURI = configQueue.take();
             if (configURI == CLOSE_REQUESTED)
             {
                 break;
@@ -117,7 +112,7 @@ public class HttpWatcherTask extends WatcherTask
     public void close()
     {
         futures.values().forEach(future -> future.cancel(true));
-        configWatcherQueue.add(CLOSE_REQUESTED);
+        configQueue.add(CLOSE_REQUESTED);
     }
 
     private NamespaceConfig sendSync(
@@ -169,7 +164,7 @@ public class HttpWatcherTask extends WatcherTask
         Throwable throwable,
         URI configURI)
     {
-        scheduleRequest(configURI, pollIntervalSeconds);
+        scheduleRequest(configURI, pollSeconds);
         return null;
     }
 
@@ -185,11 +180,11 @@ public class HttpWatcherTask extends WatcherTask
             if (statusCode == 404)
             {
                 config = changeListener.apply(configURI.toURL(), "");
-                pollIntervalSeconds = this.pollIntervalSeconds;
+                pollIntervalSeconds = this.pollSeconds;
             }
             else if (statusCode >= 500 && statusCode <= 599)
             {
-                pollIntervalSeconds = this.pollIntervalSeconds;
+                pollIntervalSeconds = this.pollSeconds;
             }
             else
             {
@@ -206,7 +201,7 @@ public class HttpWatcherTask extends WatcherTask
                     }
                     else if (response.statusCode() != 304)
                     {
-                        pollIntervalSeconds = this.pollIntervalSeconds;
+                        pollIntervalSeconds = this.pollSeconds;
                     }
                 }
                 else
@@ -218,7 +213,7 @@ public class HttpWatcherTask extends WatcherTask
                         configHashes.put(configURI, newConfigHash);
                         config = changeListener.apply(configURI.toURL(), configText);
                     }
-                    pollIntervalSeconds = this.pollIntervalSeconds;
+                    pollIntervalSeconds = this.pollSeconds;
                 }
             }
             futures.remove(configURI);
@@ -235,11 +230,11 @@ public class HttpWatcherTask extends WatcherTask
     {
         if (pollIntervalSeconds == 0)
         {
-            configWatcherQueue.add(configURI);
+            configQueue.add(configURI);
         }
         else
         {
-            executor.schedule(() -> configWatcherQueue.add(configURI), pollIntervalSeconds, TimeUnit.SECONDS);
+            executor.schedule(() -> configQueue.add(configURI), pollIntervalSeconds, TimeUnit.SECONDS);
         }
     }
 
