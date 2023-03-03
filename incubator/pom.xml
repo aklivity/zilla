@@ -21,8 +21,8 @@
     <module>binding-grpc.spec</module>
     <module>binding-mqtt.spec</module>
 
-    <module>binding-grpc</module>
     <module>binding-amqp</module>
+    <module>binding-grpc</module>
     <module>binding-mqtt</module>
 
     <module>command-load</module>
@@ -36,6 +36,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-grpc</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
