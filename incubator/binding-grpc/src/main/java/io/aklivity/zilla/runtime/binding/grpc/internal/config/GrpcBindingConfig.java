@@ -42,15 +42,6 @@ public final class GrpcBindingConfig
     private static final Pattern METHOD_PATTERN = Pattern.compile("/(?<ServiceName>.*?)/(?<Method>.*)");
     private static final String SERVICE_NAME = "ServiceName";
     private static final String METHOD = "Method";
-    private static final Set<String8FW> HTTP_HEADERS =
-        new HashSet<>(asList(new String8FW(":path"),
-                             new String8FW(":method"),
-                             new String8FW(":scheme"),
-                             new String8FW(":authority"),
-                             new String8FW("service-name"),
-                             new String8FW("te"),
-                             new String8FW("content-type"),
-                             new String8FW("user-agent")));
     private static final byte[] HEADER_PREFIX = new byte[5];
     private static final byte[] GRPC_PREFIX = "grpc-".getBytes();
     private final HttpGrpcHeaderHelper helper;
@@ -78,10 +69,7 @@ public final class GrpcBindingConfig
         HttpBeginExFW beginEx,
         GrpcMethodConfig methodConfig)
     {
-        if (beginEx != helper.beginEx)
-        {
-            helper.visit(beginEx);
-        }
+        helper.visit(beginEx);
 
         final GrpcRouteConfig grpcRouteConfig = routes.stream()
             .filter(r -> r.authorized(authorization) && r.matches(methodConfig.method, helper.metadataHeaders::get))
@@ -98,14 +86,14 @@ public final class GrpcBindingConfig
         return resolver;
     }
 
-    public GrpcMethodConfig resolveGrpcMethodConfig(
+    public GrpcMethodConfig resolveMethod(
         HttpBeginExFW beginEx)
     {
         helper.visit(beginEx);
 
         final CharSequence path = helper.path;
         final CharSequence serviceNameHeader = helper.serviceName;
-        GrpcMethodConfig grpcMethodConfig = null;
+        GrpcMethodConfig method = null;
 
         final Matcher matcher = METHOD_PATTERN.matcher(path);
 
@@ -114,14 +102,14 @@ public final class GrpcBindingConfig
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String fullMethodName = String.format("%s/%s", serviceName, matcher.group(METHOD));
 
-            grpcMethodConfig = options.protobufConfigs.stream()
-                .map(p -> p.serviceConfigs.stream().filter(s -> s.serviceName.equals(serviceName)).findFirst().get())
-                .map(s -> s.methodConfigs.stream().filter(m -> m.method.equals(fullMethodName)).findFirst().get())
+            method = options.protobufs.stream()
+                .map(p -> p.services.stream().filter(s -> s.serviceName.equals(serviceName)).findFirst().get())
+                .map(s -> s.methods.stream().filter(m -> m.method.equals(fullMethodName)).findFirst().get())
                 .findFirst()
                 .orElse(null);
         }
 
-        return grpcMethodConfig;
+        return method;
     }
 
     private static final class HttpGrpcHeaderHelper
@@ -130,6 +118,16 @@ public final class GrpcBindingConfig
         private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
         private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
 
+        private HttpBeginExFW beginEx;
+        private final Set<String8FW> httpHeaders =
+            new HashSet<>(asList(new String8FW(":path"),
+                new String8FW(":method"),
+                new String8FW(":scheme"),
+                new String8FW(":authority"),
+                new String8FW("service-name"),
+                new String8FW("te"),
+                new String8FW("content-type"),
+                new String8FW("user-agent")));
         private final Map<String8FW, Consumer<String16FW>> visitors;
         {
             Map<String8FW, Consumer<String16FW>> visitors = new HashMap<>();
@@ -138,8 +136,6 @@ public final class GrpcBindingConfig
             visitors.put(HEADER_NAME_CONTENT_TYPE, this::visitContentType);
             this.visitors = visitors;
         }
-
-        public HttpBeginExFW beginEx;
         private final AsciiSequenceView serviceNameRO = new AsciiSequenceView();
         private final AsciiSequenceView pathRO = new AsciiSequenceView();
         private final AsciiSequenceView contentTypeRO = new AsciiSequenceView();
@@ -152,13 +148,18 @@ public final class GrpcBindingConfig
         private void visit(
             HttpBeginExFW beginEx)
         {
-            this.beginEx = beginEx;
-            serviceName = null;
-            path = null;
-
-            if (beginEx != null)
+            if (!this.beginEx.buffer().equals(beginEx.buffer()) &&
+                this.beginEx.offset() != beginEx.offset() &&
+                this.beginEx.sizeof() != beginEx.sizeof())
             {
-                beginEx.headers().matchFirst(this::dispatch);
+                this.beginEx = beginEx;
+                serviceName = null;
+                path = null;
+
+                if (beginEx != null)
+                {
+                    beginEx.headers().forEach(this::dispatch);
+                }
             }
         }
 
@@ -173,8 +174,7 @@ public final class GrpcBindingConfig
             }
             visitHeader(header);
 
-
-            return serviceName != null && path != null;
+            return serviceName != null && path != null && contentType != null;
         }
 
         private void visitServiceName(
@@ -209,7 +209,7 @@ public final class GrpcBindingConfig
         {
             final String8FW name = header.name();
             final String16FW value = header.value();
-            final boolean notHttpHeader = !HTTP_HEADERS.contains(name);
+            final boolean notHttpHeader = !httpHeaders.contains(name);
 
             final int offset = name.offset();
             name.buffer().getBytes(offset, HEADER_PREFIX);

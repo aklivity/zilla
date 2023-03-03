@@ -46,6 +46,7 @@ public class RouteConfigAdapterTest
 {
     @Rule
     public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
+
     @Mock
     private ConfigAdapterContext context;
 

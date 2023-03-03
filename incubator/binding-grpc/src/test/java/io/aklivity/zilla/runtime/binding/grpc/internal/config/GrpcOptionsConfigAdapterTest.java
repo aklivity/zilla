@@ -19,7 +19,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -42,8 +41,6 @@ import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
 
 public class GrpcOptionsConfigAdapterTest
 {
-    private static final String PROTO_FILE_PATH = "protobuf/echo.proto";
-
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
     @Mock
@@ -57,10 +54,10 @@ public class GrpcOptionsConfigAdapterTest
     @Before
     public void initJson() throws IOException
     {
-        Path resources = Path.of("", "src/test/resources/proto");
+        Path resources = Path.of("src/test/resources/proto");
         Path file = resources.resolve("echo.proto");
         String content = Files.readString(file);
-        Mockito.doReturn(content).when(context).readURL(PROTO_FILE_PATH);
+        Mockito.doReturn(content).when(context).readURL("protobuf/echo.proto");
         adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("grpc");
         JsonbConfig config = new JsonbConfig()
@@ -73,7 +70,7 @@ public class GrpcOptionsConfigAdapterTest
     {
         String text =
             "{" +
-                "\"services\": [" + PROTO_FILE_PATH + "]" +
+                "\"services\": [\"protobuf/echo.proto\"]" +
             "}";
 
         GrpcOptionsConfig options = jsonb.fromJson(text, GrpcOptionsConfig.class);
@@ -84,7 +81,7 @@ public class GrpcOptionsConfigAdapterTest
     @Test
     public void shouldWriteOptions()
     {
-        GrpcOptionsConfig options = new GrpcOptionsConfig(Arrays.asList(new GrpcProtobufConfig(PROTO_FILE_PATH)));
+        GrpcOptionsConfig options = new GrpcOptionsConfig(Arrays.asList(new GrpcProtobufConfig("protobuf/echo.proto")));
 
         String text = jsonb.toJson(options);
 

@@ -21,19 +21,19 @@ import org.agrona.collections.ObjectHashSet;
 
 public class GrpcProtobufConfig
 {
-    public String location;
-    public Set<GrpcServiceConfig> serviceConfigs;
+    public final String location;
+    public final Set<GrpcServiceConfig> services;
 
     public GrpcProtobufConfig(
         String location)
     {
         this.location = location;
-        this.serviceConfigs = new ObjectHashSet<>();
+        this.services = new ObjectHashSet<>();
     }
 
     public void setServiceConfig(
         GrpcServiceConfig service)
     {
-        serviceConfigs.add(service);
+        services.add(service);
     }
 }

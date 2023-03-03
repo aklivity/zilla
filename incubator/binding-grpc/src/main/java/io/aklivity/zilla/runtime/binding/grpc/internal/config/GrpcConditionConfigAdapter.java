@@ -47,17 +47,17 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
 
     @Override
     public JsonObject adaptToJson(
-        ConditionConfig condition)
+        ConditionConfig adaptable)
     {
-        GrpcConditionConfig grpcCondition = (GrpcConditionConfig) condition;
+        GrpcConditionConfig condition = (GrpcConditionConfig) adaptable;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (grpcCondition.metadata != null &&
-            !grpcCondition.metadata.isEmpty())
+        if (condition.metadata != null &&
+            !condition.metadata.isEmpty())
         {
             JsonObjectBuilder entries = Json.createObjectBuilder();
-            grpcCondition.metadata.forEach((k, v) ->
+            condition.metadata.forEach((k, v) ->
             {
                 String key = k.asString();
                 if (!key.contains("-bin"))
@@ -69,9 +69,9 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             object.add(METADATA_NAME, entries);
         }
 
-        if (grpcCondition.method != null)
+        if (condition.method != null)
         {
-            object.add(METHOD_NAME, grpcCondition.method);
+            object.add(METHOD_NAME, condition.method);
         }
 
         return object.build();

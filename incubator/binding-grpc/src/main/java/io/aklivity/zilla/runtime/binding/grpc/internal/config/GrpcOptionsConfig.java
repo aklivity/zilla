@@ -20,11 +20,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class GrpcOptionsConfig extends OptionsConfig
 {
-    public final List<GrpcProtobufConfig> protobufConfigs;
+    public final List<GrpcProtobufConfig> protobufs;
 
     public GrpcOptionsConfig(
-        List<GrpcProtobufConfig> protobufConfigs)
+        List<GrpcProtobufConfig> protobufs)
     {
-        this.protobufConfigs = protobufConfigs;
+        this.protobufs = protobufs;
     }
 }

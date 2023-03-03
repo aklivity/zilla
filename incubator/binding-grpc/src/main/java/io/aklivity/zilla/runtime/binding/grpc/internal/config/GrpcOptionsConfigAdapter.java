@@ -67,10 +67,10 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (grpcOptions.protobufConfigs != null)
+        if (grpcOptions.protobufs != null)
         {
             JsonArrayBuilder keys = Json.createArrayBuilder();
-            grpcOptions.protobufConfigs.forEach(p -> keys.add(p.location));
+            grpcOptions.protobufs.forEach(p -> keys.add(p.location));
             object.add(SERVICES_NAME, keys);
         }
 
@@ -81,11 +81,11 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        List<GrpcProtobufConfig> protobufConfigs = object.containsKey(SERVICES_NAME)
-                ? asListGrpcProtobufConfig(object.getJsonArray(SERVICES_NAME))
+        List<GrpcProtobufConfig> protobufs = object.containsKey(SERVICES_NAME)
+                ? asListProtobufs(object.getJsonArray(SERVICES_NAME))
                 : null;
 
-        return new GrpcOptionsConfig(protobufConfigs);
+        return new GrpcOptionsConfig(protobufs);
     }
 
     @Override
@@ -95,19 +95,19 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         this.readURL = context::readURL;
     }
 
-    private List<GrpcProtobufConfig> asListGrpcProtobufConfig(
+    private List<GrpcProtobufConfig> asListProtobufs(
         JsonArray array)
     {
         return array.stream()
-            .map(this::asGrpcProtobufConfig)
+            .map(this::asProtobuf)
             .collect(toList());
     }
 
-    private GrpcProtobufConfig asGrpcProtobufConfig(
+    private GrpcProtobufConfig asProtobuf(
         JsonValue value)
     {
         final String location = ((JsonString) value).getString();
-        final GrpcProtobufConfig protobufConfig = new GrpcProtobufConfig(location);
+        final GrpcProtobufConfig protobuf = new GrpcProtobufConfig(location);
         final String protoService = readURL.apply(location);
         CharStream input = CharStreams.fromString(protoService);
         Protobuf3Lexer lexer = new Protobuf3Lexer(input);
@@ -116,9 +116,9 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         Protobuf3Parser parser = new Protobuf3Parser(tokens);
         parser.setErrorHandler(new BailErrorStrategy());
         ParseTreeWalker walker = new ParseTreeWalker();
-        GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(protobufConfig);
+        GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(protobuf);
         walker.walk(listener, parser.proto());
 
-        return protobufConfig;
+        return protobuf;
     }
 }

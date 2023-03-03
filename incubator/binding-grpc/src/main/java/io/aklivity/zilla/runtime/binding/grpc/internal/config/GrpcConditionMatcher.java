@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Int2ObjectCache;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -32,11 +33,12 @@ public final class GrpcConditionMatcher
 {
     private final byte[] base64RW = new byte[256];
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
-    private final MutableDirectBuffer bufferRW = new UnsafeBuffer(0L, 0);
+    private final MutableDirectBuffer bufferRO = new UnsafeBuffer(0L, 0);
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
     private final Matcher method;
-    public final Map<String8FW, DirectBuffer> metadataMatch;
-    public final Map<String8FW, BinMetadata> metadataBinMatch;
+    private final Map<String8FW, DirectBuffer> metadataMatch;
+    private final Map<String8FW, BinMetadata> metadataBinMatch;
+    private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
 
     public GrpcConditionMatcher(
         GrpcConditionConfig condition)
@@ -106,12 +108,12 @@ public final class GrpcConditionMatcher
         final int index,
         final int length)
     {
-        final byte[] encodableRaw = new byte[length];
+        final byte[] encodableRaw = byteArrays.computeIfAbsent(length, byte[]::new);
         buffer.getBytes(index, encodableRaw);
 
         final byte[] encodedBase64 = base64RW;
         final int encodedBytes = encoder64.encode(encodableRaw, encodedBase64);
-        MutableDirectBuffer encodeBuf = bufferRW;
+        MutableDirectBuffer encodeBuf = bufferRO;
         encodeBuf.wrap(encodedBase64, 0, encodedBytes);
         return octetsRW.set(encodeBuf, 0, encodeBuf.capacity()).build();
     }
