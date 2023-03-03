@@ -55,7 +55,7 @@ public class ServerIOExceptionFromReadIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.received.reset.and.abort/server"
     })
@@ -76,7 +76,7 @@ public class ServerIOExceptionFromReadIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${server}/server.received.abort.sent.end/server"
     })

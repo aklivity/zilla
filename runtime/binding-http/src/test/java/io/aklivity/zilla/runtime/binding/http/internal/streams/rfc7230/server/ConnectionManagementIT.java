@@ -51,7 +51,7 @@ public class ConnectionManagementIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.rejected/client",
         "${app}/request.rejected/server",
@@ -62,7 +62,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.override.json")
+    @Configuration("server.override.yaml")
     @Specification({
         "${net}/request.with.header.override/client",
         "${app}/request.with.header.override/server" })
@@ -72,7 +72,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.with.connection.close/client",
         "${app}/request.with.connection.close/server" })
@@ -83,7 +83,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${client}response.with.connection.close/client",
         "${server}response.with.connection.close/server" })
@@ -94,7 +94,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/multiple.requests.same.connection/client",
         "${app}/multiple.requests.serialized/server" })
@@ -104,7 +104,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/multiple.requests.pipelined/client",
         "${app}/concurrent.requests/server" })
@@ -115,7 +115,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/multiple.requests.pipelined.with.retry/client",
         "${app}/multiple.requests.pipelined.with.retry/server" })
@@ -126,7 +126,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/first.pipelined.response.has.connection.close/client",
         "${app}/first.pipelined.response.has.connection.close/server" })
@@ -136,7 +136,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.request.and.response/client",
         "${app}/upgrade.request.and.response/server" })
@@ -146,7 +146,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.authority.json")
+    @Configuration("server.authority.yaml")
     @Specification({
         "${net}/request.authority.with.no.port/client",
         "${app}/request.authority.with.no.port/server" })
@@ -156,7 +156,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.authority.json")
+    @Configuration("server.authority.yaml")
     @Specification({
         "${net}/request.authority.with.port/client",
         "${app}/request.authority.with.no.port/server" })
@@ -166,7 +166,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.authority.mismatch/client" })
     public void shouldRejectRequestAuthorityMismatch() throws Exception
@@ -175,7 +175,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/send.end.after.upgrade.request.completed/client",
         "${app}/send.end.after.upgrade.request.completed/server" })
@@ -185,7 +185,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.request.and.abort/client",
         "${app}/upgrade.request.and.abort/server" })
@@ -196,7 +196,7 @@ public class ConnectionManagementIT
 
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/request.and.upgrade.required.response/client",
         "${app}/request.and.upgrade.required.response/server" })
@@ -206,7 +206,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.request.and.response.with.data/client",
         "${app}/upgrade.request.and.response.with.data/server" })
@@ -216,7 +216,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/proxy.must.not.forward.connection.header/client",
         "${app}/proxy.must.not.forward.connection.header/proxy",
@@ -228,7 +228,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/reverse.proxy.connection.established/client",
         "${app}/reverse.proxy.connection.established/proxy",
@@ -240,7 +240,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/proxy.must.not.retry.non.idempotent.requests/client",
         "${app}/proxy.must.not.retry.non.idempotent.requests/proxy",

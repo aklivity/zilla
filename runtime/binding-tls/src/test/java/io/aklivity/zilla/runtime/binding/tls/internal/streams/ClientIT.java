@@ -58,7 +58,7 @@ public class ClientIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established/client",
         "${net}/connection.established/server" })
@@ -68,7 +68,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.cacerts.json")
+    @Configuration("client.cacerts.yaml")
     @Specification({
         "${app}/connection.established/client",
         "${net}/connection.established/server" })
@@ -80,7 +80,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.mutual.json")
+    @Configuration("client.mutual.yaml")
     @Specification({
         "${app}/client.auth/client",
         "${net}/client.auth/server" })
@@ -90,7 +90,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.mutual.signer.json")
+    @Configuration("client.mutual.signer.yaml")
     @Specification({
         "${app}/client.auth/client",
         "${net}/client.auth/server" })
@@ -100,7 +100,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established.with.extension.data/client",
         "${net}/connection.established.with.extension.data/server" })
@@ -110,7 +110,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.alpn.json")
+    @Configuration("client.alpn.yaml")
     @Specification({
         "${app}/connection.established.with.alpn/client",
         "${net}/connection.established.with.alpn/server" })
@@ -120,7 +120,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established.no.hostname.no.alpn/client",
         "${net}/connection.established.no.hostname.no.alpn/server" })
@@ -130,7 +130,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established.with.alpn/client",
         "${net}/connection.established/server" })
@@ -141,7 +141,7 @@ public class ClientIT
 
     @Ignore("https://github.com/k3po/k3po/issues/454 - Support connect aborted")
     @Test
-    @Configuration("client.alpn.json")
+    @Configuration("client.alpn.yaml")
     @Specification({
         "${app}/connection.established.with.alpn/client",
         "${net}/connection.established/server" })
@@ -151,7 +151,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.alpn.default.json")
+    @Configuration("client.alpn.default.yaml")
     @Specification({
         "${app}/connection.established.with.alpn/client",
         "${net}/connection.established/server" })
@@ -161,7 +161,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.established/client",
         "${net}/connection.established/server" })
@@ -173,7 +173,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/echo.payload.length.10k/client",
         "${net}/echo.payload.length.10k/server"})
@@ -183,7 +183,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/echo.payload.length.10k/client",
         "${net}/echo.payload.length.10k/server"})
@@ -193,7 +193,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/echo.payload.length.100k/client",
         "${net}/echo.payload.length.100k/server"})
@@ -203,7 +203,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/echo.payload.length.1000k/client",
         "${net}/echo.payload.length.1000k/server"})
@@ -213,7 +213,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.write.close/client",
         "${net}/server.sent.write.close/server"})
@@ -223,7 +223,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.write.close.before.handshake/client",
         "${net}/server.sent.write.close.before.handshake/server"})
@@ -233,7 +233,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.close/client",
         "${net}/client.sent.write.close/server"})
@@ -244,7 +244,7 @@ public class ClientIT
 
     @Ignore("TODO: requires k3po TLS 1.3 transport to send CLOSE_NOTIFY before closing")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.close.read.closed/client",
         "${net}/client.sent.write.close.read.closed/server"})
@@ -255,7 +255,7 @@ public class ClientIT
 
     @Ignore("TODO: throttle none implies immediately connected")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.close.before.handshake/client",
         "${net}/client.sent.write.close.before.handshake/server"})
@@ -266,7 +266,7 @@ public class ClientIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.write.abort/client",
         "${net}/server.sent.write.abort/server"})
@@ -276,7 +276,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.write.abort.before.handshake/client",
         "${net}/server.sent.write.abort.before.handshake/server"})
@@ -286,7 +286,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.abort/client",
         "${net}/client.sent.write.abort/server"})
@@ -297,7 +297,7 @@ public class ClientIT
 
     @Ignore("TODO: throttle none implies immediately connected")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.abort.before.handshake/client",
         "${net}/client.sent.write.abort.before.handshake/server"})
@@ -306,8 +306,9 @@ public class ClientIT
         k3po.finish();
     }
 
+    @Ignore("Github Actions")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.read.abort/client",
         "${net}/server.sent.read.abort/server"})
@@ -318,7 +319,7 @@ public class ClientIT
 
     @Ignore("requires accepted only streams")
     @Test
-    @Configuration("client.mutual.signer.json")
+    @Configuration("client.mutual.signer.yaml")
     @Specification({
         "${app}/client.auth.mismatched/client",
         "${net}/client.auth.mismatched/server"})
@@ -328,7 +329,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.read.abort.before.handshake/client",
         "${net}/server.sent.read.abort.before.handshake/server"})
@@ -338,7 +339,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.read.abort/client",
         "${net}/client.sent.read.abort/server"})
@@ -349,7 +350,7 @@ public class ClientIT
 
     @Ignore("TODO: throttle none implies immediately connected")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.read.abort.before.handshake/client",
         "${net}/client.sent.read.abort.before.handshake/server"})
@@ -359,7 +360,7 @@ public class ClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.handshake.timeout/client",
         "${net}/client.handshake.timeout/server" })

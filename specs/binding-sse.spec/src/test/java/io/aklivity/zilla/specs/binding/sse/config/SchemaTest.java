@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientWhen()
     {
-        JsonObject config = schema.validate("client.when.json");
+        JsonObject config = schema.validate("client.when.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -44,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerWhen()
     {
-        JsonObject config = schema.validate("server.when.json");
+        JsonObject config = schema.validate("server.when.yaml");
 
         assertThat(config, not(nullValue()));
     }

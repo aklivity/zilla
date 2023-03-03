@@ -51,7 +51,7 @@ public class SseKafkaProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/handshake/client",
         "${kafka}/handshake/server"})
@@ -61,7 +61,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.and.filters.json")
+    @Configuration("proxy.with.topic.and.filters.yaml")
     @Specification({
         "${sse}/handshake/client",
         "${kafka}/handshake.with.filters/server"})
@@ -71,7 +71,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.dynamic.json")
+    @Configuration("proxy.with.topic.dynamic.yaml")
     @Specification({
         "${sse}/handshake/client",
         "${kafka}/handshake/server"})
@@ -81,7 +81,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.and.filters.dynamic.json")
+    @Configuration("proxy.with.topic.and.filters.dynamic.yaml")
     @Specification({
         "${sse}/handshake.with.filters.dynamic/client",
         "${kafka}/handshake.with.filters/server"})
@@ -91,7 +91,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/handshake.reconnect/client",
         "${kafka}/handshake.reconnect/server"})
@@ -101,7 +101,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/handshake.reconnect.with.etag/client",
         "${kafka}/handshake.reconnect.with.etag/server"})
@@ -111,7 +111,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.and.event.id.json")
+    @Configuration("proxy.with.topic.and.event.id.yaml")
     @Specification({
         "${sse}/handshake.reconnect.with.key.and.etag/client",
         "${kafka}/handshake.reconnect.with.etag/server"})
@@ -121,7 +121,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/handshake.rejected/client"})
     public void shouldRejectHandshakeWithNoBinding() throws Exception
@@ -138,7 +138,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/server.sent.messages/client",
         "${kafka}/server.sent.messages/server"})
@@ -148,7 +148,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/server.sent.messages.with.etag/client",
         "${kafka}/server.sent.messages.with.etag/server"})
@@ -158,7 +158,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.and.event.id.json")
+    @Configuration("proxy.with.topic.and.event.id.yaml")
     @Specification({
         "${sse}/server.sent.messages.with.key.and.etag/client",
         "${kafka}/server.sent.messages.with.etag/server"})
@@ -168,7 +168,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.and.event.id.json")
+    @Configuration("proxy.with.topic.and.event.id.yaml")
     @Specification({
         "${sse}/server.sent.messages.with.null.key/client",
         "${kafka}/server.sent.messages.with.null.key/server"})
@@ -178,7 +178,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/server.sent.null/client",
         "${kafka}/server.sent.null/server"})
@@ -188,7 +188,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/server.sent.abort/client",
         "${kafka}/server.sent.abort/server"})
@@ -198,7 +198,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/server.sent.reset/client",
         "${kafka}/server.sent.reset/server"})
@@ -208,7 +208,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/server.sent.flush/client",
         "${kafka}/server.sent.flush/server"})
@@ -218,7 +218,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/client.sent.reset/client",
         "${kafka}/client.sent.reset/server"})
@@ -228,7 +228,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/client.sent.abort/client",
         "${kafka}/client.sent.abort/server"})
@@ -238,7 +238,7 @@ public class SseKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.with.topic.json")
+    @Configuration("proxy.with.topic.yaml")
     @Specification({
         "${sse}/client.sent.message/client",
         "${kafka}/client.sent.abort/server"})

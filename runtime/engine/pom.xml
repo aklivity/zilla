@@ -50,6 +50,11 @@
       <artifactId>justify</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.leadpony.joy</groupId>
+      <artifactId>joy-yaml</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>org.agrona</groupId>
       <artifactId>agrona</artifactId>
     </dependency>
@@ -57,6 +62,12 @@
       <groupId>org.eclipse</groupId>
       <artifactId>yasson</artifactId>
       <scope>runtime</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.glassfish</groupId>
+          <artifactId>jakarta.json</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jmock</groupId>
@@ -218,17 +229,18 @@
               <includes>
                 <include>META-INF/**/*</include>
                 <include>io/aklivity/zilla/runtime/engine/test/EngineRule*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/internal/EngineTest*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/annotation/Configur*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/**/*.schema.patch.json</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/expression/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/vault/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/internal/concurrent/bench/**/*.class</include>
                 <include>org/openjdk/jmh/infra/generated/**/*.class</include>
               </includes>
               <excludes>
-                <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.EngineExtSpi</exclude>
                 <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi</exclude>
                 <exclude>META-INF/services/io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi</exclude>
                 <exclude>**/*IT.class</exclude>

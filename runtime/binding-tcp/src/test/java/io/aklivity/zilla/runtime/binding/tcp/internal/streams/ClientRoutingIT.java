@@ -50,7 +50,7 @@ public class ClientRoutingIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.host.json")
+    @Configuration("client.host.yaml")
     @Specification({
         "${app}/client.connect.with.host.extension/client",
         "${net}/client.connect.with.host.extension/server"
@@ -61,7 +61,7 @@ public class ClientRoutingIT
     }
 
     @Test
-    @Configuration("client.subnet.json")
+    @Configuration("client.subnet.yaml")
     @Specification({
         "${app}/client.connect.with.ipv4.extension/client",
         "${net}/client.connect.with.ipv4.extension/server"
@@ -72,7 +72,7 @@ public class ClientRoutingIT
     }
 
     @Test
-    @Configuration("client.authority.json")
+    @Configuration("client.authority.yaml")
     @Specification({
         "${app}/client.connect.with.ipv4.extension/client",
         "${net}/client.connect.with.ipv4.extension/server"
@@ -83,7 +83,7 @@ public class ClientRoutingIT
     }
 
     @Test
-    @Configuration("client.host.and.subnet.json")
+    @Configuration("client.host.and.subnet.yaml")
     @Specification({
         "${app}/client.connect.with.ipv4.extension/client",
         "${net}/client.connect.with.ipv4.extension/server"
@@ -95,7 +95,7 @@ public class ClientRoutingIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.subnet.ipv6.json")
+    @Configuration("client.subnet.ipv6.yaml")
     @Specification({
         "${app}/client.connect.with.ipv6.extension/client",
         "${net}/client.connect.with.ipv6.extension/server"
@@ -107,7 +107,7 @@ public class ClientRoutingIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.host.and.subnet.ipv6.json")
+    @Configuration("client.host.and.subnet.ipv6.yaml")
     @Specification({
         "${app}/client.connect.with.ipv6.extension/client",
         "${net}/client.connect.with.ipv6.extension/server"
@@ -118,7 +118,7 @@ public class ClientRoutingIT
     }
 
     @Test
-    @Configuration("client.subnet.json")
+    @Configuration("client.subnet.yaml")
     @Specification({
         "${app}/client.connect.with.host.extension/client",
         "${net}/client.connect.with.host.extension/server"
@@ -129,7 +129,7 @@ public class ClientRoutingIT
     }
 
     @Test
-    @Configuration("client.subnet.json")
+    @Configuration("client.subnet.yaml")
     @Specification({
         "${app}/client.reset.with.no.subnet.match/client"
     })

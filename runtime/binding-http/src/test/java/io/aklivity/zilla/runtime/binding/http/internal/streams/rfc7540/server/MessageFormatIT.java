@@ -52,7 +52,7 @@ public class MessageFormatIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/continuation.frames/client",
         "${app}/continuation.frames/server" })
@@ -62,7 +62,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/dynamic.table.requests/client",
         "${app}/dynamic.table.requests/server" })
@@ -72,7 +72,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/server.max.frame.size/client",
         "${app}/server.max.frame.size/server" })
@@ -82,7 +82,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/max.frame.size.error/client",
         "${app}/max.frame.size.error/server" })
@@ -92,7 +92,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/ping.frame.size.error/client" })
     public void pingFrameSizeError() throws Exception
@@ -101,7 +101,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.window.frame.size.error/client" })
     public void connectionWindowFrameSizeError() throws Exception
@@ -110,7 +110,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/window.frame.size.error/client",
         "${app}/window.frame.size.error/server" })
@@ -120,7 +120,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rst.stream.frame.size.error/client",
         "${app}/rst.stream.frame.size.error/server" })
@@ -130,7 +130,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/priority.frame.size.error/client",
         "${app}/priority.frame.size.error/server" })
@@ -140,7 +140,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.headers/client",
         "${app}/connection.headers/server" })
@@ -150,7 +150,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/stream.id.order/client",
         "${app}/stream.id.order/server" })
@@ -160,7 +160,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/invalid.hpack.index/client" })
     public void invalidHpackIndex() throws Exception

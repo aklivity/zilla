@@ -58,7 +58,7 @@ public class CacheDescribeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/topic.unknown/client" })
     public void shouldRejectWhenTopicUnknown() throws Exception
@@ -67,7 +67,7 @@ public class CacheDescribeIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/topic.config.info/client",
         "${app}/topic.config.info/server"})
@@ -78,7 +78,7 @@ public class CacheDescribeIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/topic.config.info.changed/client",
         "${app}/topic.config.info.changed/server"})

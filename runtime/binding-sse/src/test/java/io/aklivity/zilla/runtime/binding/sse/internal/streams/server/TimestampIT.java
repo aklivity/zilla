@@ -51,7 +51,7 @@ public class TimestampIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/empty/request",
         "${app}/empty/server" })
@@ -61,7 +61,7 @@ public class TimestampIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/non.empty/request",
         "${app}/non.empty/server" })
@@ -71,7 +71,7 @@ public class TimestampIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/fragmented.10k/request",
         "${app}/fragmented.10k/server" })
@@ -81,7 +81,7 @@ public class TimestampIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/non.empty.with.type/request",
         "${appType}/non.empty/server" })

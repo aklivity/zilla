@@ -50,7 +50,7 @@ public class ProxyServerIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local/client",
         "${app}/connected.local/server" })
@@ -60,7 +60,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.discard/client",
         "${app}/connected.local.discard/server" })
@@ -70,7 +70,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.client.sent.begin.ext/client",
         "${app}/connected.local.client.sent.begin.ext/server" })
@@ -80,7 +80,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.client.sent.data/client",
         "${app}/connected.local.client.sent.data/server"})
@@ -90,7 +90,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.client.sent.flush/client",
         "${app}/connected.local.client.sent.flush/server"})
@@ -100,7 +100,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.client.sent.challenge/client",
         "${app}/connected.local.client.sent.challenge/server"})
@@ -110,7 +110,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.client.sent.close/client",
         "${app}/connected.local.client.sent.close/server"})
@@ -120,7 +120,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.client.sent.abort/client",
         "${app}/connected.local.client.sent.abort/server"})
@@ -130,7 +130,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.client.sent.reset/client",
         "${app}/connected.local.client.sent.reset/server"})
@@ -140,7 +140,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.server.sent.data/client",
         "${app}/connected.local.server.sent.data/server"})
@@ -150,7 +150,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.server.sent.flush/client",
         "${app}/connected.local.server.sent.flush/server"})
@@ -160,7 +160,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.server.sent.challenge/client",
         "${app}/connected.local.server.sent.challenge/server"})
@@ -170,7 +170,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.server.sent.close/client",
         "${app}/connected.local.server.sent.close/server"})
@@ -180,7 +180,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.server.sent.abort/client",
         "${app}/connected.local.server.sent.abort/server"})
@@ -190,7 +190,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.local.server.sent.reset/client",
         "${app}/connected.local.server.sent.reset/server"})
@@ -200,7 +200,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.tcp4.json")
+    @Configuration("server.tcp4.yaml")
     @Specification({
         "${net}/connected.tcp4/client",
         "${app}/connected.tcp4/server"})
@@ -210,7 +210,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.tcp4.alpn.json")
+    @Configuration("server.tcp4.alpn.yaml")
     @Specification({
         "${net}/connected.tcp4.alpn/client",
         "${app}/connected.tcp4.alpn/server"})
@@ -220,7 +220,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.authority/client",
         "${app}/connected.tcp4.authority/server"})
@@ -230,7 +230,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.crc32c/client",
         "${app}/connected.tcp4.crc32c/server"})
@@ -240,7 +240,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.identity/client",
         "${app}/connected.tcp4.identity/server"})
@@ -250,7 +250,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.namespace/client",
         "${app}/connected.tcp4.namespace/server"})
@@ -260,7 +260,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.noop/client",
         "${app}/connected.tcp4.noop/server"})
@@ -270,7 +270,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.ssl/client",
         "${app}/connected.tcp4.ssl/server"})
@@ -280,7 +280,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.ssl.client.cert/client",
         "${app}/connected.tcp4.ssl.client.cert/server"})
@@ -290,7 +290,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.ssl.client.cert.session/client",
         "${app}/connected.tcp4.ssl.client.cert.session/server"})
@@ -300,7 +300,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.ssl.experimental/client",
         "${app}/connected.tcp4.ssl.experimental/server"})
@@ -310,7 +310,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.tcp4.experimental/client",
         "${app}/connected.tcp4.experimental/server"})
@@ -320,7 +320,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.udp4/client",
         "${app}/connected.udp4/server"})
@@ -330,7 +330,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.tcp6.json")
+    @Configuration("server.tcp6.yaml")
     @Specification({
         "${net}/connected.tcp6/client",
         "${app}/connected.tcp6/server"})
@@ -340,7 +340,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.udp6/client",
         "${app}/connected.udp6/server"})
@@ -350,7 +350,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.sock.stream.json")
+    @Configuration("server.sock.stream.yaml")
     @Specification({
         "${net}/connected.sock.stream/client",
         "${app}/connected.sock.stream/server"})
@@ -360,7 +360,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connected.sock.datagram/client",
         "${app}/connected.sock.datagram/server"})
@@ -370,7 +370,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.header.mismatch/client"})
     public void shouldRejectHeaderMismatch() throws Exception
@@ -379,7 +379,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.header.version.mismatch/client"})
     public void shouldRejectHeaderVersionMismatch() throws Exception
@@ -388,7 +388,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.tcp4.crc32c.mismatch/client"})
     public void shouldRejectTcp4WithCrc32cMismatch() throws Exception
@@ -397,7 +397,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.tcp4.crc32c.overflow/client"})
     public void shouldRejectTcp4WithCrc32cOverflow() throws Exception
@@ -406,7 +406,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.tcp4.crc32c.underflow/client"})
     public void shouldRejectTcp4WithCrc32cUnderflow() throws Exception
@@ -415,7 +415,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.tcp4.ssl.underflow/client"})
     public void shouldRejectTcp4WithSslUnderflow() throws Exception
@@ -424,7 +424,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.tcp4.underflow/client"})
     public void shouldRejectTcp4Underflow() throws Exception
@@ -433,7 +433,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.tcp6.underflow/client"})
     public void shouldRejectTcp6Underflow() throws Exception
@@ -442,7 +442,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.sock.stream.underflow/client"})
     public void shouldRejectSockStreamUnderflow() throws Exception
@@ -451,7 +451,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.address.family.mismatch/client"})
     public void shouldRejectAddressFamilyMismatch() throws Exception
@@ -460,7 +460,7 @@ public class ProxyServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/rejected.command.mismatch/client"})
     public void shouldRejectCommandMismatch() throws Exception

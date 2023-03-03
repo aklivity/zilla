@@ -53,7 +53,7 @@ public class ServerFragmentedIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.established/client",
         "${app}/connection.established/server" })
@@ -64,7 +64,7 @@ public class ServerFragmentedIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.payload.length.100k/client",
         "${app}/echo.payload.length.100k/server"})

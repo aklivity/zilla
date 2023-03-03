@@ -50,7 +50,7 @@ public class ArchitectureIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.response/client",
         "${net}/request.and.response/server" })
@@ -60,7 +60,7 @@ public class ArchitectureIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.uri.with.percent.chars/client",
         "${net}/request.uri.with.percent.chars/server" })

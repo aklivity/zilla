@@ -53,7 +53,7 @@ public class FlowControlIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/echo.payload.with.padding/client",
         "${net}/echo.payload.with.padding/server" })

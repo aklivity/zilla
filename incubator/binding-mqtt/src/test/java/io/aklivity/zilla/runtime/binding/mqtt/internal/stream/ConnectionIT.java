@@ -65,7 +65,7 @@ public class ConnectionIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/successful/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -78,7 +78,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/server.assigned.client.id/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -91,7 +91,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.missing.client.id/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -104,7 +104,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/ping/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -117,7 +117,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/disconnect/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -130,7 +130,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe/client",
         "${app}/subscribe.with.exact.topic.filter/server"})
@@ -144,7 +144,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe/aggregated.topic.filters.both.exact/client",
         "${app}/subscribe.with.aggregated.topic.filters.both.exact/server"})
@@ -158,7 +158,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.one.message/client",
         "${app}/publish.one.message/server"})
@@ -172,7 +172,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.publish.only.json")
+    @Configuration("server.when.topic.publish.only.yaml")
     @Specification({
         "${net}/publish.one.message/client",
         "${app}/publish.one.message/server"})
@@ -186,7 +186,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.retained/client",
         "${app}/publish.retained/server"})
@@ -200,7 +200,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
@@ -215,7 +215,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
@@ -229,7 +229,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.multiple.messages.with.delay/client",
         "${app}/publish.multiple.messages.with.delay/server"})
@@ -247,7 +247,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.messages.with.topic.alias.distinct/client",
         "${app}/publish.messages.with.topic.alias.distinct/server"})
@@ -262,7 +262,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.messages.with.topic.alias.repeated/client",
         "${app}/publish.messages.with.topic.alias.repeated/server"})
@@ -277,7 +277,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.messages.with.topic.alias.replaced/client",
         "${app}/publish.messages.with.topic.alias.replaced/server"})
@@ -292,7 +292,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.one.message/client",
         "${app}/subscribe.one.message/server"})
@@ -306,7 +306,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.subscribe.only.json")
+    @Configuration("server.when.topic.subscribe.only.yaml")
     @Specification({
         "${net}/subscribe.one.message/client",
         "${app}/subscribe.one.message/server"})
@@ -320,7 +320,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.one.message.then.publish.message/client",
         "${app}/subscribe.one.message.then.publish.message/server"})
@@ -334,7 +334,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.one.message.with.null.payload/client",
         "${app}/subscribe.one.message.with.null.payload/server"})
@@ -348,7 +348,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.fails.then.publish.message/client",
         "${app}/subscribe.fails.then.publish.message/server"})
@@ -362,7 +362,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.message.and.subscribe.correlated.message/client",
         "${app}/publish.message.and.subscribe.correlated.message/server"})
@@ -376,7 +376,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.retained/client",
         "${app}/subscribe.retained/server"})
@@ -390,7 +390,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.one.message.with.invalid.subscription.id/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -403,7 +403,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/invalid.protocol.version/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -416,7 +416,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/invalid.flags/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -429,7 +429,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/invalid.authentication.method/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -442,7 +442,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/invalid.fixed.header.flags/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -455,7 +455,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/invalid.topic.filter/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -468,7 +468,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe/invalid.fixed.header.flags/client",
         "${app}/subscribe.with.exact.topic.filter/server"})
@@ -482,7 +482,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/disconnect/invalid.fixed.header.flags/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -495,7 +495,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.second.connect/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -508,7 +508,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/successful.fragmented/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -521,7 +521,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/single.topic.filter.exact/client",
         "${app}/subscribe.with.exact.topic.filter/server"})
@@ -535,7 +535,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/single.topic.filter.wildcard/client",
         "${app}/subscribe.with.wildcard.topic.filter/server"})
@@ -549,7 +549,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/aggregated.topic.filters.both.exact/client",
         "${app}/subscribe.with.aggregated.topic.filters.both.exact/server"})
@@ -563,7 +563,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/isolated.topic.filters.both.exact/client",
         "${app}/subscribe.with.isolated.topic.filters.both.exact/server"})
@@ -577,7 +577,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/aggregated.topic.filters.both.wildcard/client",
         "${app}/subscribe.with.aggregated.topic.filters.both.wildcard/server"})
@@ -591,7 +591,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/isolated.topic.filters.both.wildcard/client",
         "${app}/subscribe.with.isolated.topic.filters.both.wildcard/server"})
@@ -605,7 +605,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/aggregated.topic.filters.exact.and.wildcard/client",
         "${app}/subscribe.with.aggregated.topic.filters.exact.and.wildcard/server"})
@@ -619,7 +619,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/isolated.topic.filters.exact.and.wildcard/client",
         "${app}/subscribe.with.isolated.topic.filters.exact.and.wildcard/server"})
@@ -633,7 +633,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.publish.only.json")
+    @Configuration("server.when.topic.publish.only.yaml")
     @Specification({
         "${net}/topic.not.routed/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -646,7 +646,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.publish.only.json")
+    @Configuration("server.when.topic.publish.only.yaml")
     @Specification({
         "${net}/publish.rejected/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -659,7 +659,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.publish.only.json")
+    @Configuration("server.when.topic.publish.only.yaml")
     @Specification({
         "${net}/reject.publish.when.topic.alias.exceeds.maximum/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -672,7 +672,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.publish.only.json")
+    @Configuration("server.when.topic.publish.only.yaml")
     @Specification({
         "${net}/reject.connect.when.topic.alias.maximum.repeated/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -685,7 +685,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.publish.only.json")
+    @Configuration("server.when.topic.publish.only.yaml")
     @Specification({
         "${net}/reject.publish.when.topic.alias.repeated/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -699,7 +699,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.close/client",
         "${app}/client.sent.abort/server"})
@@ -713,7 +713,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.abort/client",
         "${app}/client.sent.abort/server"})
@@ -727,7 +727,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.sent.reset/client",
         "${app}/client.sent.abort/server"})
@@ -741,7 +741,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
@@ -755,7 +755,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.with.user.properties.distinct/client",
         "${app}/publish.with.user.properties.distinct/server"})
@@ -769,7 +769,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.with.user.properties.repeated/client",
         "${app}/publish.with.user.properties.repeated/server"})
@@ -783,7 +783,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/disconnect.after.keep.alive.timeout/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -796,7 +796,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/keep.alive.with.pingreq/client",
         "${app}/subscribe.with.exact.topic.filter/server"})
@@ -810,7 +810,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/timeout.before.connect/client"})
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
@@ -821,7 +821,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.retain.as.published/client",
         "${app}/subscribe.retain.as.published/server"})
@@ -835,7 +835,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.ignore.retain.as.published/client",
         "${app}/subscribe.ignore.retain.as.published/server"})
@@ -849,7 +849,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.empty.retained.message/client",
         "${app}/publish.empty.retained.message/server"})
@@ -863,7 +863,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.empty.message/client",
         "${app}/publish.empty.message/server"})
@@ -877,7 +877,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/maximum.qos.0/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -889,7 +889,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/retain.unavailable/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -903,7 +903,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/wildcard.subscriptions.unavailable/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
@@ -916,7 +916,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/subscription.identifiers.unavailable/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -930,7 +930,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/shared.subscriptions.unavailable/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -942,7 +942,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.username/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -955,7 +955,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.password/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -968,7 +968,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.invalid.will.qos/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -981,7 +981,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.will.qos.1.without.will.flag/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -994,7 +994,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.will.qos.2.without.will.flag/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -1007,7 +1007,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect/reject.will.retain.without.will.flag/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -1020,7 +1020,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/reject.no.local/client"})
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -1033,7 +1033,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.or.sessions.json")
+    @Configuration("server.when.topic.or.sessions.yaml")
     @Specification({
         "${net}/connect/will.message.with.abrupt.disconnect/client",
         "${app}/publish.session.data/server"})
@@ -1047,7 +1047,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.or.sessions.json")
+    @Configuration("server.when.topic.or.sessions.yaml")
     @Specification({
         "${net}/connect/will.message.with.normal.disconnect/client",
         "${app}/unpublished.will.message/server"})
@@ -1061,7 +1061,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.then.subscribe.one.message/client",
         "${app}/publish.then.subscribe.one.message/server"})
@@ -1075,7 +1075,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.then.publish.no.local/client",
         "${app}/subscribe.then.publish.no.local/server"})
@@ -1089,7 +1089,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/publish.then.subscribe.no.local/client",
         "${app}/publish.then.subscribe.no.local/server"})
@@ -1103,7 +1103,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe.to.will.topic/client",
         "${app}/subscribe.to.will.topic/server"})
@@ -1117,7 +1117,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect.with.will.message.then.publish.one.message/client",
         "${app}/connect.with.will.message.then.publish.one.message/server"})
@@ -1132,7 +1132,7 @@ public class ConnectionIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/subscribe/messages.aggregated.topic.filters.both.exact/client",
         "${app}/subscribe.messages.with.aggregated.topic.filters.both.exact/server"})
@@ -1146,7 +1146,7 @@ public class ConnectionIT
     }
 
     @Test
-    @Configuration("server.when.topic.or.sessions.json")
+    @Configuration("server.when.topic.or.sessions.yaml")
     @Specification({
         "${net}/connect.with.session.expiry/client",
         "${app}/connect.with.session.expiry/server"})

@@ -18,10 +18,12 @@ package io.aklivity.zilla.runtime.engine.config;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.function.LongFunction;
 
 public class GuardedConfig
 {
     public transient long id;
+    public transient LongFunction<String> identity;
 
     public final String name;
     public final List<String> roles;

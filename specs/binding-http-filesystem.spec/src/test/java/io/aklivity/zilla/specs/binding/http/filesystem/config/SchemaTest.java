@@ -35,7 +35,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithPath()
     {
-        JsonObject config = schema.validate("proxy.with.path.json");
+        JsonObject config = schema.validate("proxy.with.path.yaml");
 
         assertThat(config, not(nullValue()));
     }

@@ -54,7 +54,7 @@ public class AbortIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.write.abort.on.open.request/client",
         "${net}/client.sent.rst/server" })
@@ -65,7 +65,7 @@ public class AbortIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.read.abort.on.open.response/client",
         "${net}/client.sent.rst/server" })
@@ -76,7 +76,7 @@ public class AbortIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.write.abort.on.open.response/client",
         "${net}/server.sent.write.abort.on.open.response/server" })
@@ -87,7 +87,7 @@ public class AbortIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.sent.read.abort.on.open.request/client",
         "${net}/server.sent.read.abort.on.open.request/server" })

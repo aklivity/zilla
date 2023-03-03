@@ -60,7 +60,7 @@ public class ConnectionManagementPoolSize1IT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/concurrent.requests/client",
         "${net}/multiple.requests.same.connection/server" })
@@ -74,7 +74,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/concurrent.upgrade.requests.and.responses.with.data/client",
         "${net}/concurrent.upgrade.requests.and.responses.with.data/server" })
@@ -89,7 +89,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response.with.retry/client",
         "${net}/request.incomplete.response.headers.and.abort/server" })
@@ -100,7 +100,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response.with.retry/client",
         "${net}/request.incomplete.response.headers.and.end/server" })
@@ -110,7 +110,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response.with.retry/client",
         "${net}/request.incomplete.response.headers.and.reset/server" })
@@ -120,7 +120,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response.with.retry/client",
         "${net}/request.no.response.and.end/server" })
@@ -130,7 +130,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response.with.retry/client",
         "${net}/request.no.response.and.reset/server" })
@@ -140,7 +140,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.abort/client",
         "${net}/request.and.abort/server"})
@@ -150,7 +150,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/pending.request.second.request.and.abort/client",
         "${net}/pending.request.second.request.and.abort/server"})
@@ -164,7 +164,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.receive.reset/client",
         "${net}/partial.request.receive.reset/server"})
@@ -174,7 +174,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.response.twice/client",
         "${net}/request.response.and.end/server"})
@@ -184,7 +184,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.response/client",
         "${net}/request.response.and.abort/server"})
@@ -194,7 +194,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.response.twice.awaiting.barrier/client",
         "${net}/request.response.and.reset/server"})
@@ -207,7 +207,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.response.with.incomplete.data.and.abort/client",
         "${net}/request.response.headers.incomplete.data.and.end/server"})
@@ -217,7 +217,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.response.with.incomplete.data.and.abort/client",
         "${net}/request.response.headers.incomplete.data.and.abort/server"})
@@ -227,7 +227,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/response.with.content.length.is.reset/client",
         "${net}/response.with.content.length.is.reset/server" })
@@ -237,7 +237,7 @@ public class ConnectionManagementPoolSize1IT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.send.abort.after.response.received/client",
         "${net}/request.send.abort.after.response.received/server"})

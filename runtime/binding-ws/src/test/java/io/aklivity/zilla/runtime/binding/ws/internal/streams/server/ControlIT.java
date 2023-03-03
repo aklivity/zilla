@@ -51,7 +51,7 @@ public class ControlIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.send.pong.payload.length.0/handshake.request.and.frame",
         "${app}/client.send.pong.payload.length.0/handshake.response" })
@@ -61,7 +61,7 @@ public class ControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.send.pong.payload.length.125/handshake.request.and.frame",
         "${app}/client.send.pong.payload.length.125/handshake.response" })
@@ -72,7 +72,7 @@ public class ControlIT
 
     @Ignore("TODO: WebSocket close handshake with status code")
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.send.pong.payload.length.126/handshake.request.and.frame",
         "${app}/client.send.pong.payload.length.126/handshake.response" })
