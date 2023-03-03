@@ -46,6 +46,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/delete.item.async/client",
+        "${kafka}/delete.item.async/server"})
+    public void shouldDeleteItemAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/delete.item.no.reply/client",
         "${kafka}/delete.item.no.reply/server"})
     public void shouldDeleteItemNoReply() throws Exception
@@ -433,6 +442,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/post.item.command.async.replayed/client",
+        "${kafka}/post.item.command.async.replayed/server"})
+    public void shouldPostItemAsyncCommandReplayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/post.item.command.delayed/client",
         "${kafka}/post.item.command.delayed/server"})
     public void shouldPostItemCommandDelayed() throws Exception
@@ -469,9 +487,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/post.items.async/client",
+        "${kafka}/post.items.async/server"})
+    public void shouldPostItemsAsync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/post.items.delayed/client",
         "${kafka}/post.items.delayed/server"})
     public void shouldPostItemsDelayed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/post.items.async.delayed/client",
+        "${kafka}/post.items.async.delayed/server"})
+    public void shouldPostAsyncItemsDelayed() throws Exception
     {
         k3po.finish();
     }

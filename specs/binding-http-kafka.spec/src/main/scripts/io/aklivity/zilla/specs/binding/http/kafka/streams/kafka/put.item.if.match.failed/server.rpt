@@ -31,6 +31,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read option zilla:flags "init"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -50,10 +51,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
+read option zilla:flags "none"
 read '{ "name": "widget" }'
 
 read await SEND_ASYNC_REQUEST
 
+read option zilla:flags "fin"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()

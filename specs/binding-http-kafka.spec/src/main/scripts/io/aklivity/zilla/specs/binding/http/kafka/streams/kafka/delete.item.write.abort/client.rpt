@@ -29,6 +29,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

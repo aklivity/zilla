@@ -29,6 +29,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -50,6 +51,7 @@ write notify SENT_ASYNC_REQUEST
 
 write await RECEIVED_ASYNC_FLUSH
 
+write option zilla:flags "fin"
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

@@ -31,8 +31,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-read option zilla:flags 0x02
-
+read option zilla:flags "init"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -52,12 +51,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
-read option zilla:flags 0x00
+read option zilla:flags "none"
 read '{ "name": "widget" }'
 
 read await RECEIVED_ASYNC_RESPONSE
 
-read option zilla:flags 0x04
+read option zilla:flags "incomplete"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()

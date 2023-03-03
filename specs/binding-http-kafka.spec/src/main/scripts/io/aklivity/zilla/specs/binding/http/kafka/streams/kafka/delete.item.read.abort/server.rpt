@@ -31,6 +31,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read option zilla:flags "init"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
