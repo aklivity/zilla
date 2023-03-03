@@ -60,10 +60,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             condition.metadata.forEach((k, v) ->
             {
                 String key = k.asString();
-                if (!key.contains("-bin"))
-                {
-                    entries.add(key, stringRW.set(v, 0, v.capacity()).build().asString());
-                }
+                entries.add(key, stringRW.set(v, 0, v.capacity()).build().asString());
             });
 
             object.add(METADATA_NAME, entries);

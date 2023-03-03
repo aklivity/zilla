@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind.STREAM;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind.UNARY;
 
+import java.util.Set;
+
 import org.agrona.collections.ObjectHashSet;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.parser.Protobuf3BaseListener;
@@ -25,13 +27,13 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 
 public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
 {
-    private final GrpcProtobufConfig protoConfig;
+    private final Set<GrpcServiceConfig> services;
     private String package_;
 
     public GrpcServiceDefinitionListener(
-        GrpcProtobufConfig protoConfig)
+        Set<GrpcServiceConfig> services)
     {
-        this.protoConfig = protoConfig;
+        this.services = services;
     }
 
     @Override
@@ -58,7 +60,7 @@ public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
             methods.add(new GrpcMethodConfig(method, request, response));
         });
         final GrpcServiceConfig service = new GrpcServiceConfig(serviceName, methods);
-        protoConfig.setServiceConfig(service);
+        services.add(service);
     }
 
 }

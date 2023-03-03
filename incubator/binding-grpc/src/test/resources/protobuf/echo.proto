@@ -12,21 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
+syntax = "proto3";
 
-import java.util.Set;
+package example;
 
-public class GrpcProtobufConfig
+option java_multiple_files = true;
+option java_outer_classname = "EchoProto";
+
+service EchoService
 {
-    public final String location;
-    public final Set<GrpcServiceConfig> services;
-
-    public GrpcProtobufConfig(
-        String location,
-        Set<GrpcServiceConfig> services)
-    {
-        this.location = location;
-        this.services = services;
-    }
+  rpc EchoUnary(EchoMessage) returns (EchoMessage);
 }
+
+message EchoMessage
+{
+  string message = 1;
+}
+

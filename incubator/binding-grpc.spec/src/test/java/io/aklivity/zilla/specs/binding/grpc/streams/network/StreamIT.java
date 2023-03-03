@@ -40,7 +40,7 @@ public class StreamIT
         "${net}/unary.rpc/client",
         "${net}/unary.rpc/server",
     })
-    public void unaryRequestResponseRpc() throws Exception
+    public void shouldEstablishUnaryRpc() throws Exception
     {
         k3po.finish();
     }
@@ -50,7 +50,7 @@ public class StreamIT
         "${net}/client.stream.rpc/client",
         "${net}/client.stream.rpc/server",
     })
-    public void clientStreamRpc() throws Exception
+    public void shouldEstablishClientStreamRpc() throws Exception
     {
         k3po.finish();
     }
@@ -60,7 +60,7 @@ public class StreamIT
         "${net}/server.stream.rpc/client",
         "${net}/server.stream.rpc/server",
     })
-    public void serverStreamRpc() throws Exception
+    public void shouldEstablishServerStreamRpc() throws Exception
     {
         k3po.finish();
     }
@@ -70,7 +70,7 @@ public class StreamIT
         "${net}/bidirectional.stream.rpc/client",
         "${net}/bidirectional.stream.rpc/server",
     })
-    public void bidirectionalStreamRpc() throws Exception
+    public void shouldEstablishBidirectionalRpc() throws Exception
     {
         k3po.finish();
     }

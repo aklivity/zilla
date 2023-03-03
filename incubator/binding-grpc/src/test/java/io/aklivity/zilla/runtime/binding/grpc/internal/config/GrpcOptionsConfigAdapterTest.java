@@ -17,12 +17,16 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -54,7 +58,7 @@ public class GrpcOptionsConfigAdapterTest
     @Before
     public void initJson() throws IOException
     {
-        Path resources = Path.of("src/test/resources/proto");
+        Path resources = Path.of("src/test/resources/protobuf");
         Path file = resources.resolve("echo.proto");
         String content = Files.readString(file);
         Mockito.doReturn(content).when(context).readURL("protobuf/echo.proto");
@@ -74,14 +78,23 @@ public class GrpcOptionsConfigAdapterTest
             "}";
 
         GrpcOptionsConfig options = jsonb.fromJson(text, GrpcOptionsConfig.class);
+        GrpcProtobufConfig protobuf = options.protobufs.stream().findFirst().get();
+        GrpcServiceConfig service = protobuf.services.stream().findFirst().get();
+        GrpcMethodConfig method = service.methods.stream().findFirst().get();
 
         assertThat(options, not(nullValue()));
+        assertEquals("protobuf/echo.proto", protobuf.location);
+        assertEquals("example.EchoService", service.serviceName);
+        assertEquals("example.EchoService/EchoUnary", method.method);
+        assertTrue(GrpcKind.UNARY == method.request);
+        assertTrue(GrpcKind.UNARY == method.response);
     }
 
     @Test
     public void shouldWriteOptions()
     {
-        GrpcOptionsConfig options = new GrpcOptionsConfig(Arrays.asList(new GrpcProtobufConfig("protobuf/echo.proto")));
+        GrpcOptionsConfig options = new GrpcOptionsConfig(Arrays.asList(
+            new GrpcProtobufConfig("protobuf/echo.proto", Collections.emptySet())));
 
         String text = jsonb.toJson(options);
 

@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 import jakarta.json.Json;
@@ -28,6 +29,7 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import org.agrona.collections.ObjectHashSet;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -107,7 +109,6 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         JsonValue value)
     {
         final String location = ((JsonString) value).getString();
-        final GrpcProtobufConfig protobuf = new GrpcProtobufConfig(location);
         final String protoService = readURL.apply(location);
         CharStream input = CharStreams.fromString(protoService);
         Protobuf3Lexer lexer = new Protobuf3Lexer(input);
@@ -116,8 +117,10 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         Protobuf3Parser parser = new Protobuf3Parser(tokens);
         parser.setErrorHandler(new BailErrorStrategy());
         ParseTreeWalker walker = new ParseTreeWalker();
-        GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(protobuf);
+        Set<GrpcServiceConfig> services = new ObjectHashSet<>();
+        GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(services);
         walker.walk(listener, parser.proto());
+        final GrpcProtobufConfig protobuf = new GrpcProtobufConfig(location, services);
 
         return protobuf;
     }

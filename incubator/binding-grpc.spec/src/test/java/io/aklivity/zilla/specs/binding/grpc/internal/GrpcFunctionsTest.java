@@ -62,7 +62,7 @@ public class GrpcFunctionsTest
     @Test
     public void shouldMatchBeginExtension() throws Exception
     {
-        final String method = "EchoService/EchoUnary";
+        final String method = "example.EchoService/EchoUnary";
         String value = "value";
         BytesMatcher matcher = GrpcFunctions.matchBeginEx()
             .typeId(0x01)
