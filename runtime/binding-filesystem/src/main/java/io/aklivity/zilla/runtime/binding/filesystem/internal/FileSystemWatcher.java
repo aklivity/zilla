@@ -15,12 +15,13 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal;
 
 
+import static io.aklivity.zilla.runtime.binding.filesystem.internal.stream.FileSystemServerFactory.FILE_CHANGED_SIGNAL_ID;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static org.agrona.CloseHelper.quietClose;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
@@ -40,9 +41,8 @@ import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
-public class FileSystemWatcher implements Callable<Void>, Closeable
+public class FileSystemWatcher implements Callable<Void>
 {
-    private static final int FILE_CHANGED_SIGNAL_ID = 1;
     private final Map<WatchKey, Set<WatchedFile>> watchedFiles;
     private final WatchService watchService;
     private final Signaler signaler;
@@ -53,30 +53,7 @@ public class FileSystemWatcher implements Callable<Void>, Closeable
     {
         this.watchedFiles = new HashMap<>();
         this.signaler = signaler;
-        WatchService watchService = null;
-        try
-        {
-            watchService = FileSystems.getDefault().newWatchService();
-        }
-        catch (IOException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-
-        this.watchService = watchService;
-    }
-
-    @Override
-    public void close()
-    {
-        try
-        {
-            watchService.close();
-        }
-        catch (IOException ex)
-        {
-            rethrowUnchecked(ex);
-        }
+        this.watchService = createWatchService();
     }
 
     @Override
@@ -122,6 +99,7 @@ public class FileSystemWatcher implements Callable<Void>, Closeable
             }
             catch (InterruptedException | ClosedWatchServiceException ex)
             {
+                quietClose(watchService);
                 break;
             }
         }
@@ -270,7 +248,7 @@ public class FileSystemWatcher implements Callable<Void>, Closeable
             }
         }
 
-        public void unregister()
+        private void unregister()
         {
             keys.forEach(WatchKey::cancel);
             keys.clear();
@@ -291,5 +269,19 @@ public class FileSystemWatcher implements Callable<Void>, Closeable
             }
             return key;
         }
+    }
+
+    private static WatchService createWatchService()
+    {
+        WatchService watchService = null;
+        try
+        {
+            watchService = FileSystems.getDefault().newWatchService();
+        }
+        catch (IOException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return watchService;
     }
 }

@@ -15,11 +15,10 @@
 package io.aklivity.zilla.runtime.binding.filesystem.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static org.agrona.CloseHelper.quietClose;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -38,6 +37,7 @@ final class FileSystemBindingContext implements BindingContext
     private final Signaler signaler;
     private FileSystemWatcher fileSystemWatcher;
     private Future<Void> fileSystemWatcherRef;
+    private ExecutorService executor;
     private int bindings = 0;
 
     FileSystemBindingContext(
@@ -47,7 +47,7 @@ final class FileSystemBindingContext implements BindingContext
         Map<KindConfig, FileSystemStreamFactory> factories = new EnumMap<>(KindConfig.class);
         this.factories = factories;
         this.signaler = context.signaler();
-        factories.put(SERVER, new FileSystemServerFactory(config, context));
+        factories.put(SERVER, new FileSystemServerFactory(config, context, this::supplyFileSystemWatcher));
     }
 
     @Override
@@ -61,9 +61,10 @@ final class FileSystemBindingContext implements BindingContext
             if (bindings++ == 0)
             {
                 this.fileSystemWatcher = new FileSystemWatcher(signaler);
-                this.fileSystemWatcherRef = Executors.newFixedThreadPool(1).submit(fileSystemWatcher);
+                this.executor = Executors.newFixedThreadPool(1);
+                this.fileSystemWatcherRef = executor.submit(fileSystemWatcher);
             }
-            factory.attach(binding, fileSystemWatcher);
+            factory.attach(binding);
         }
         return factory;
     }
@@ -80,7 +81,7 @@ final class FileSystemBindingContext implements BindingContext
         }
         if (--bindings == 0)
         {
-            close();
+            executor.shutdownNow();
         }
     }
 
@@ -90,16 +91,9 @@ final class FileSystemBindingContext implements BindingContext
         return String.format("%s %s", getClass().getSimpleName(), factories);
     }
 
-    private void close()
+    private FileSystemWatcher supplyFileSystemWatcher()
     {
-        quietClose(fileSystemWatcher);
-        try
-        {
-            fileSystemWatcherRef.get();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
+        return fileSystemWatcher;
     }
+
 }

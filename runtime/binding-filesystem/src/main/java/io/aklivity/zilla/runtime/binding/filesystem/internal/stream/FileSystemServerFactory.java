@@ -34,6 +34,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -73,7 +74,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
-    private static final int FILE_CHANGED_SIGNAL_ID = 1;
+    public static final int FILE_CHANGED_SIGNAL_ID = 1;
 
     private final BeginFW beginRO = new BeginFW();
     private final EndFW endRO = new EndFW();
@@ -102,15 +103,17 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
-
     private final URI serverRoot;
-    private FileSystemWatcher fileSystemWatcher;
     private final MessageDigest md5;
     private final Signaler signaler;
+    private final Supplier<FileSystemWatcher> fileSystemWatcherSupplier;
+
+    private FileSystemWatcher fileSystemWatcher;
 
     public FileSystemServerFactory(
         FileSystemConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        Supplier<FileSystemWatcher> fileSystemWatcherSupplier)
     {
         this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
@@ -123,17 +126,16 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.signaler = context.signaler();
         this.md5 = initMessageDigest("MD5");
+        this.fileSystemWatcherSupplier = fileSystemWatcherSupplier;
     }
 
     @Override
     public void attach(
-        BindingConfig binding,
-        FileSystemWatcher fileSystemWatcher)
+        BindingConfig binding)
     {
         FileSystemBindingConfig fsBinding = new FileSystemBindingConfig(binding);
         bindings.put(binding.id, fsBinding);
-        this.fileSystemWatcher = fileSystemWatcher;
-
+        fileSystemWatcher = fileSystemWatcherSupplier.get();
     }
 
     @Override
