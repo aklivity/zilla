@@ -143,7 +143,7 @@ public final class GrpcBindingConfig
         private final AsciiSequenceView serviceNameRO = new AsciiSequenceView();
         private final AsciiSequenceView pathRO = new AsciiSequenceView();
         private final AsciiSequenceView contentTypeRO = new AsciiSequenceView();
-        private final Map<String8FW, String16FW> metadataHeaders = new Object2ObjectHashMap<>();
+        private final Map<String8FW, DirectBuffer> metadataHeaders = new Object2ObjectHashMap<>();
 
         public CharSequence serviceName;
         public CharSequence path;
@@ -216,7 +216,7 @@ public final class GrpcBindingConfig
 
             if (notHttpHeader && !GRPC_PREFIX.equals(HEADER_PREFIX))
             {
-                metadataHeaders.put(name, value);
+                metadataHeaders.put(name, value.value());
             }
         }
     }

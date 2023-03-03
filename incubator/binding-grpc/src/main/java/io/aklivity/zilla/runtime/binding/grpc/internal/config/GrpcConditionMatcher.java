@@ -25,17 +25,17 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.UnsafeBuffer;
 
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 
 public final class GrpcConditionMatcher
 {
     private final byte[] base64RW = new byte[256];
-    private final String16FW.Builder stringRW = new String16FW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+    private final OctetsFW.Builder octetsRW = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
     private final MutableDirectBuffer bufferRW = new UnsafeBuffer(0L, 0);
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
     private final Matcher method;
-    public final Map<String8FW, String16FW> metadataMatch;
+    public final Map<String8FW, DirectBuffer> metadataMatch;
     public final Map<String8FW, BinMetadata> metadataBinMatch;
 
     public GrpcConditionMatcher(
@@ -46,35 +46,36 @@ public final class GrpcConditionMatcher
         this.metadataBinMatch = new Object2ObjectHashMap<>();
         this.metadataMatch.forEach((k, v) ->
         {
-            final DirectBuffer buffer = v.value();
+            final DirectBuffer buffer = v;
             final int index = 0;
             final int length = buffer.capacity();
-            String16FW encodedBuf = encode16(buffer, index, length);
-            metadataBinMatch.put(k, new BinMetadata(new String8FW(String.format("%s-bin", k.asString())), encodedBuf));
+            OctetsFW encodedBuf = encodeOctets(buffer, index, length);
+            metadataBinMatch.put(k, new BinMetadata(new String8FW(String.format("%s-bin", k.asString())),
+                encodedBuf.value()));
         });
     }
 
     public boolean matches(
         CharSequence path,
-        Function<String8FW, String16FW> metadataByName)
+        Function<String8FW, DirectBuffer> metadataByName)
     {
         boolean match = true;
 
         if (metadataMatch != null)
         {
-            for (Map.Entry<String8FW, String16FW> entry : metadataMatch.entrySet())
+            for (Map.Entry<String8FW, DirectBuffer> entry : metadataMatch.entrySet())
             {
                 String8FW name = entry.getKey();
-                String16FW matcher = entry.getValue();
+                DirectBuffer matcher = entry.getValue();
 
-                String16FW value = metadataByName.apply(name);
+                DirectBuffer value = metadataByName.apply(name);
                 match = matcher.equals(value);
                 if (!match)
                 {
                     BinMetadata binMetadata = metadataBinMatch.get(name);
                     String8FW binName = binMetadata.name;
-                    String16FW binMatcher = binMetadata.value;
-                    String16FW binValue = metadataByName.apply(binName);
+                    DirectBuffer binMatcher = binMetadata.value;
+                    DirectBuffer binValue = metadataByName.apply(binName);
                     match = binMatcher.equals(binValue);
                 }
             }
@@ -100,7 +101,7 @@ public final class GrpcConditionMatcher
             .matcher("");
     }
 
-    private String16FW encode16(
+    private OctetsFW encodeOctets(
         final DirectBuffer buffer,
         final int index,
         final int length)
@@ -112,19 +113,18 @@ public final class GrpcConditionMatcher
         final int encodedBytes = encoder64.encode(encodableRaw, encodedBase64);
         MutableDirectBuffer encodeBuf = bufferRW;
         encodeBuf.wrap(encodedBase64, 0, encodedBytes);
-        return stringRW.set(encodeBuf, 0, encodeBuf.capacity()).build();
+        return octetsRW.set(encodeBuf, 0, encodeBuf.capacity()).build();
     }
 
     private class BinMetadata
     {
         public String8FW name;
-        public String16FW value;
+        public DirectBuffer value;
 
         BinMetadata(
             String8FW name,
-            String16FW value)
+            DirectBuffer value)
         {
-
             this.name = name;
             this.value = value;
         }

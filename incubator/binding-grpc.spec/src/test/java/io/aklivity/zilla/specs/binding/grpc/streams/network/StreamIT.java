@@ -77,20 +77,20 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${net}/unsupported.http.method/client",
-        "${net}/unsupported.http.method/server",
+        "${net}/method.not.post/client",
+        "${net}/method.not.post/server",
     })
-    public void shouldRejectUnsupportedHttpMethod() throws Exception
+    public void shouldRejectMethodNotPost() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/method.not.found/client",
-        "${net}/method.not.found/server",
+        "${net}/unrecognized.rpc/client",
+        "${net}/unrecognized.rpc/server",
     })
-    public void shouldRejectNotFoundMethod() throws Exception
+    public void shouldRejectUnrecognizedMethod() throws Exception
     {
         k3po.finish();
     }

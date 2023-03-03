@@ -27,14 +27,18 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 
+import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 
 public class GrpcFunctionsTest
 {
+    private final OctetsFW.Builder valueBuilder =
+        new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
+
     @Test
     public void shouldGenerateBeginExtension()
     {
-        final String method = "EchoService/EchoUnary";
+        final String method = "example.EchoService/EchoUnary";
         byte[] build = GrpcFunctions.beginEx()
             .typeId(0x01)
             .method(method)
@@ -50,7 +54,7 @@ public class GrpcFunctionsTest
         beginEx.metadata().forEach(onlyHeader ->
         {
             assertEquals("name", onlyHeader.name().asString());
-            assertEquals("value", onlyHeader.value().asString());
+            assertTrue(valueBuilder.set("value".getBytes()).build().equals(onlyHeader.value()));
         });
         assertTrue(beginEx.metadata().sizeof() > 0);
     }
@@ -58,13 +62,14 @@ public class GrpcFunctionsTest
     @Test
     public void shouldMatchBeginExtension() throws Exception
     {
-        final String method = "EchoService/EchoUnary";
+        final String method = "example.EchoService/EchoUnary";
+        String value = "value";
         BytesMatcher matcher = GrpcFunctions.matchBeginEx()
             .typeId(0x01)
             .method(method)
             .request(UNARY.name())
             .response(UNARY.name())
-            .metadata("name", "value")
+            .metadata("name", value)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -74,7 +79,8 @@ public class GrpcFunctionsTest
             .method(method)
             .request(b -> b.set(UNARY).build())
             .response(b -> b.set(UNARY).build())
-            .metadataItem(h -> h.name("name").value("value"))
+            .metadataItem(h -> h.name("name")
+                .valueLen(value.length()).value(valueBuilder.set(value.getBytes()).build()))
             .build();
 
         assertNotNull(matcher.match(byteBuf));

@@ -13,16 +13,18 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property httpMethod ${http:randomMethodNot("post")}
+
 connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", "POST")
+                            .header(":method", ${httpMethod})
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
-                            .header(":path", "/io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/WrongEchoUnary")
+                            .header(":path", "/example.EchoService/EchoUnary")
                             .header("content-type", "application/grpc")
                             .build()}
 
@@ -37,9 +39,10 @@ write close
 
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("content-type", "application/grpc")
-                           .header("grpc-status", "12")
+                           .header(":status", "405")
+                           .header("content-type", "text/plain; encoding=utf-8")
+                           .header("grpc-status", "13")
                            .build()}
+
 
 read closed

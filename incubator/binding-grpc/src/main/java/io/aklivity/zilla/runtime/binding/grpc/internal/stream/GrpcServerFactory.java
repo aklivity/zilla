@@ -323,7 +323,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     {
         private final MessageConsumer network;
         private final ContentType contentType;
-        private Map<String8FW, String16FW> metadata;
+        private final Map<String8FW, DirectBuffer> metadata;
         private final GrpcMethodConfig methodConfig;
         private final GrpcStream stream;
         private final long routeId;
@@ -346,7 +346,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long affinity,
             long resolveId,
             ContentType contentType,
-            Map<String8FW, String16FW> metadata,
+            Map<String8FW, DirectBuffer> metadata,
             GrpcMethodConfig methodConfig)
         {
             this.network = network;
@@ -1263,14 +1263,14 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         String method,
         GrpcKind request,
         GrpcKind response,
-        Map<String8FW, String16FW> metadata)
+        Map<String8FW, DirectBuffer> metadata)
     {
         final GrpcBeginExFW grpcBegin = grpcBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
             .typeId(grpcTypeId)
             .method(new String16FW(method))
             .request(r -> r.set(request).build())
             .response(r -> r.set(response).build())
-            .metadata(m -> metadata.forEach((k, v) -> m.item(h -> h.name(k).value(v))))
+            .metadata(m -> metadata.forEach((k, v) -> m.item(h -> h.name(k).valueLen(v.capacity()).value(v, 0, v.capacity()))))
             .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

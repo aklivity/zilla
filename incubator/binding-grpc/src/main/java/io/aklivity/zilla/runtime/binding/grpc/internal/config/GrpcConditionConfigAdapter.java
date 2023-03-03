@@ -24,6 +24,9 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
@@ -32,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
+    private final String16FW.Builder stringRW = new String16FW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
     private static final String METHOD_NAME = "method";
     private static final String METADATA_NAME = "metadata";
 
@@ -58,7 +62,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
                 String key = k.asString();
                 if (!key.contains("-bin"))
                 {
-                    entries.add(key, v.asString());
+                    entries.add(key, stringRW.set(v, 0, v.capacity()).build().asString());
                 }
             });
 
@@ -85,7 +89,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             ? object.getJsonObject(METADATA_NAME)
             : null;
 
-        final Map<String8FW, String16FW> newMetadata = new LinkedHashMap<>();
+        final Map<String8FW, DirectBuffer> newMetadata = new LinkedHashMap<>();
 
         if (metadata != null)
         {
@@ -93,7 +97,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             {
                 String8FW key = new String8FW(k);
                 String16FW value = new String16FW(JsonString.class.cast(v).getString());
-                newMetadata.put(key, value);
+                newMetadata.put(key, value.value());
             });
         }
 

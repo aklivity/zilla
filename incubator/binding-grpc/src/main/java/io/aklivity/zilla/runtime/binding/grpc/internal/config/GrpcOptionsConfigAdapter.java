@@ -15,10 +15,7 @@
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import static java.util.stream.Collectors.toList;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.function.Function;
 
@@ -47,7 +44,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String SERVICES_NAME = "services";
-    private Function<URL, String> readURL;
+    private Function<String, String> readURL;
     private ConfigAdapterContext context;
 
     @Override
@@ -111,23 +108,16 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     {
         final String location = ((JsonString) value).getString();
         final GrpcProtobufConfig protobufConfig = new GrpcProtobufConfig(location);
-        try
-        {
-            final String protoService = readURL.apply(new URL(location));
-            CharStream input = CharStreams.fromString(protoService);
-            Protobuf3Lexer lexer = new Protobuf3Lexer(input);
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
+        final String protoService = readURL.apply(location);
+        CharStream input = CharStreams.fromString(protoService);
+        Protobuf3Lexer lexer = new Protobuf3Lexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
 
-            Protobuf3Parser parser = new Protobuf3Parser(tokens);
-            parser.setErrorHandler(new BailErrorStrategy());
-            ParseTreeWalker walker = new ParseTreeWalker();
-            GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(protobufConfig);
-            walker.walk(listener, parser.proto());
-        }
-        catch (MalformedURLException ex)
-        {
-            rethrowUnchecked(ex);
-        }
+        Protobuf3Parser parser = new Protobuf3Parser(tokens);
+        parser.setErrorHandler(new BailErrorStrategy());
+        ParseTreeWalker walker = new ParseTreeWalker();
+        GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(protobufConfig);
+        walker.walk(listener, parser.proto());
 
         return protobufConfig;
     }

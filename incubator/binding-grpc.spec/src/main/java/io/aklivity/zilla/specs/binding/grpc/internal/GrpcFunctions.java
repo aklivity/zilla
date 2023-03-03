@@ -28,6 +28,7 @@ import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
@@ -68,9 +69,11 @@ public final class GrpcFunctions
     public static final class GrpcBeginExBuilder
     {
         private final GrpcBeginExFW.Builder beginExRW;
+        private final OctetsFW.Builder valueBuilder;
 
         private GrpcBeginExBuilder()
         {
+            valueBuilder = new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             this.beginExRW = new GrpcBeginExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -107,7 +110,8 @@ public final class GrpcFunctions
             String name,
             String value)
         {
-            beginExRW.metadataItem(b -> b.name(name).value(value));
+            beginExRW.metadataItem(b -> b.name(name).valueLen(value.length())
+                .value(valueBuilder.set(value.getBytes()).build()));
             return this;
         }
 
@@ -125,8 +129,11 @@ public final class GrpcFunctions
         private final DirectBuffer bufferRO = new UnsafeBuffer();
 
         private final GrpcBeginExFW beginExRO = new GrpcBeginExFW();
+        private final OctetsFW.Builder valueBuilder =
+            new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
 
-        private final Map<String, Predicate<String>> metadata = new LinkedHashMap<>();
+        private final Map<String, Predicate<OctetsFW>> metadata = new LinkedHashMap<>();
+
 
         private String method;
         private GrpcKind request;
@@ -165,7 +172,7 @@ public final class GrpcFunctions
             String name,
             String value)
         {
-            metadata.put(name, value::equals);
+            metadata.put(name, valueBuilder.set(value.getBytes()).build()::equals);
             return this;
         }
 
@@ -204,7 +211,7 @@ public final class GrpcFunctions
         {
             MutableBoolean match = new MutableBoolean(true);
             metadata.forEach((k, v) -> match.value &= beginEx.metadata().anyMatch(h -> k.equals(h.name().asString()) &&
-                v.test(h.value().asString())));
+                v.test(h.value())));
             return match.value;
         }
 

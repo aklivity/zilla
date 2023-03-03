@@ -25,7 +25,8 @@ scope grpc
         struct GrpcMetadata
         {
             string8 name;
-            string16 value;
+            varint32 valueLen;
+            octets[valueLen] value = null;
         }
 
         struct GrpcBeginEx extends core::stream::Extension

@@ -8,7 +8,7 @@
       "kind": "server",
       "options":
       {
-        "services": [ "file:/Users/akramyakubov/workspace/aklivity/zilla/incubator/binding-grpc/src/test/resources/proto/echo.proto" ]
+        "services": [ "protobuf/echo.proto" ]
       },
       "routes":
       [
@@ -17,7 +17,7 @@
           "when":
           [
             {
-              "method": "io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary",
+              "method": "example.EchoService/EchoUnary",
               "metadata":
               {
                 "custom": "test"

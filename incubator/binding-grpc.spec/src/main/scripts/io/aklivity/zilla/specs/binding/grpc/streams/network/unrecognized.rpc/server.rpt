@@ -13,34 +13,34 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/net0"
+accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
+accepted
 
-write zilla:begin.ext ${http:beginEx()
-                            .typeId(zilla:id("http"))
-                            .header(":method", "GET")
-                            .header(":scheme", "http")
-                            .header(":authority", "localhost:8080")
-                            .header(":path", "/io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
-                            .header("content-type", "application/grpc")
-                            .build()}
+read zilla:begin.ext ${http:matchBeginEx()
+                             .typeId(zilla:id("http"))
+                             .header(":method", "POST")
+                             .header(":scheme", "http")
+                             .header(":authority", "localhost:8080")
+                             .header(":path", "/example.EchoService/Unrecognized")
+                             .header("content-type", "application/grpc")
+                             .build()}
 
 connected
 
-write ${grpc:message()
-            .string(1, "Hello World")
-            .build()}
+read ${grpc:message()
+           .string(1, "Hello World")
+           .build()}
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                            .typeId(zilla:id("http"))
+                            .header(":status", "200")
+                            .header("content-type", "application/grpc")
+                            .header("grpc-status", "12")
+                            .build()}
 write flush
 
 write close
-
-read zilla:begin.ext ${http:matchBeginEx()
-                           .typeId(zilla:id("http"))
-                           .header(":status", "405")
-                           .header("content-type", "text/plain; encoding=utf-8")
-                           .header("grpc-status", "13")
-                           .build()}
-
-
-read closed

@@ -42,7 +42,7 @@ import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
 
 public class GrpcOptionsConfigAdapterTest
 {
-    private static final String PROTO_FILE_PATH = "file://proto/echo.proto";
+    private static final String PROTO_FILE_PATH = "protobuf/echo.proto";
 
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
@@ -60,7 +60,7 @@ public class GrpcOptionsConfigAdapterTest
         Path resources = Path.of("", "src/test/resources/proto");
         Path file = resources.resolve("echo.proto");
         String content = Files.readString(file);
-        Mockito.doReturn(content).when(context).readURL(new URL(PROTO_FILE_PATH));
+        Mockito.doReturn(content).when(context).readURL(PROTO_FILE_PATH);
         adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("grpc");
         JsonbConfig config = new JsonbConfig()
