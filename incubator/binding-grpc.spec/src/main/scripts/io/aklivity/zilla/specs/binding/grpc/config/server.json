@@ -6,12 +6,7 @@
     {
       "type" : "grpc",
       "kind": "server",
-      "routes":
-      [
-        {
-          "exit": "app0"
-        }
-      ]
+      "exit": "app0"
     }
   }
 }

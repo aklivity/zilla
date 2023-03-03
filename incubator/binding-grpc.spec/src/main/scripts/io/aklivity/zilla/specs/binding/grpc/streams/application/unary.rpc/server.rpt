@@ -20,7 +20,7 @@ accepted
 
 read zilla:begin.ext ${grpc:matchBeginEx()
                            .typeId(zilla:id("grpc"))
-                           .method("io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
+                           .method("example.EchoService/EchoUnary")
                            .request("UNARY")
                            .response("UNARY")
                            .metadata("custom", "test")

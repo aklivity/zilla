@@ -22,7 +22,7 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":method", "POST")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
-                            .header(":path", "/io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/EchoUnary")
+                            .header(":path", "/example.EchoService/EchoUnary")
                             .header("content-type", "application/grpc")
                             .header("custom", "test")
                             .build()}
@@ -44,5 +44,9 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .build()}
 
 read ${grpc:message()
-           .string(1, "Hello World")
+           .string(1, "Hello World1")
+           .build()}
+
+read ${grpc:message()
+           .string(1, "Hello World2")
            .build()}

@@ -15,21 +15,20 @@
 
 syntax = "proto3";
 
-package io.aklivity.zilla.runtime.binding.grpc.internal;
+package example;
 
 option java_multiple_files = true;
 option java_outer_classname = "EchoProto";
 
-service EchoService {
+service EchoService
+{
+  rpc EchoUnary(EchoMessage) returns (EchoMessage);
 
-  rpc EchoUnary(stream EchoMessage) returns (EchoMessage) {
-  }
-
-  rpc EchoStream(EchoMessage) returns (stream EchoMessage) {
-  }
+  rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
 }
 
-message EchoMessage {
+message EchoMessage
+{
   string message = 1;
 }
 
