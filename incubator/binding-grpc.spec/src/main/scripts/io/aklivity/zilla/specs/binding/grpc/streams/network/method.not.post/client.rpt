@@ -21,7 +21,7 @@ connect "zilla://streams/net0"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", ${httpMethod})
+                            .header(":method", httpMethod)
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
                             .header(":path", "/example.EchoService/EchoUnary")
