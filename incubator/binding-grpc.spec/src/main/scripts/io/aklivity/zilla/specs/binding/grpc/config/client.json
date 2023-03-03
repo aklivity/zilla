@@ -6,12 +6,7 @@
     {
       "type" : "grpc",
       "kind": "client",
-      "routes":
-      [
-        {
-          "exit": "net0"
-        }
-      ]
+      "exit": "net0"
     }
   }
 }

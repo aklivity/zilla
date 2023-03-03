@@ -13,34 +13,33 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/net0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
-accepted
-
-read zilla:begin.ext ${http:matchBeginEx()
-                             .typeId(zilla:id("http"))
-                             .header(":method", "POST")
-                             .header(":scheme", "http")
-                             .header(":authority", "localhost:8080")
-                             .header(":path", "/io.aklivity.zilla.runtime.binding.grpc.internal.EchoService/WrongEchoUnary")
-                             .header("content-type", "application/grpc")
-                             .build()}
-
-connected
-
-read ${grpc:message()
-           .string(1, "Hello World")
-           .build()}
-
-read closed
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":status", "200")
+                            .header(":method", "POST")
+                            .header(":scheme", "http")
+                            .header(":authority", "localhost:8080")
+                            .header(":path", "/example.EchoService/Unrecognized")
                             .header("content-type", "application/grpc")
-                            .header("grpc-status", "12")
                             .build()}
+
+connected
+
+write ${grpc:message()
+            .string(1, "Hello World")
+            .build()}
 write flush
 
 write close
+
+read zilla:begin.ext ${http:matchBeginEx()
+                           .typeId(zilla:id("http"))
+                           .header(":status", "200")
+                           .header("content-type", "application/grpc")
+                           .header("grpc-status", "12")
+                           .build()}
+
+read closed
