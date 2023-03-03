@@ -120,7 +120,6 @@ public final class GrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
         Set<GrpcServiceConfig> services = new ObjectHashSet<>();
         GrpcServiceDefinitionListener listener = new GrpcServiceDefinitionListener(services);
         walker.walk(listener, parser.proto());
-        final GrpcProtobufConfig protobuf = new GrpcProtobufConfig(location, services);
 
         return new GrpcProtobufConfig(location, services);
     }
