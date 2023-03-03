@@ -99,5 +99,6 @@ public class GrpcOptionsConfigAdapterTest
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
+        assertEquals("{\"services\":[\"protobuf/echo.proto\"]}", text);
     }
 }
