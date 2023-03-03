@@ -53,7 +53,7 @@ public class StreamIT
     @Specification({
         "${net}/unary.rpc/client",
         "${app}/unary.rpc/server" })
-    public void unaryClientServerRpc() throws Exception
+    public void shouldEstablishUnaryRpc() throws Exception
     {
         k3po.finish();
     }
