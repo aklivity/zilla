@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property httpMethod ${http:randomMethodNot("post")}
+property httpMethod ${http:randomMethodNot("POST")}
 
 connect "zilla://streams/net0"
   option zilla:window 8192
