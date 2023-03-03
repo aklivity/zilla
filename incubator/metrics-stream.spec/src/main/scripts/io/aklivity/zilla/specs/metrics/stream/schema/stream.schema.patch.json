@@ -1,0 +1,42 @@
+[
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.opens.received"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.opens.sent"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.data.received"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.data.sent"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.errors.received"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.errors.sent"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.closes.received"
+  },
+  {
+    "op": "add",
+    "path": "/$defs/telemetry/metrics/items/enum/-",
+    "value": "stream.closes.sent"
+  }
+]
