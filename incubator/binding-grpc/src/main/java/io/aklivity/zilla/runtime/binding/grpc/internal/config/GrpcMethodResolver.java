@@ -19,21 +19,33 @@ import java.util.Map;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 
-public class GrpcRouteResolver
+public class GrpcMethodResolver
 {
-    public final long id;
+    public final CharSequence method;
+    public final CharSequence scheme;
+    public final CharSequence authority;
     public final CharSequence contentType;
+    public final GrpcKind request;
+    public final GrpcKind response;
     public final Map<String8FW, DirectBuffer> metadata;
 
-    public GrpcRouteResolver(
-        long id,
+    public GrpcMethodResolver(
+        CharSequence method,
+        CharSequence scheme,
+        CharSequence authority,
         CharSequence contentType,
-        Map<String8FW, DirectBuffer> metadata)
+        Map<String8FW, DirectBuffer> metadata,
+        GrpcKind request,
+        GrpcKind response)
     {
-
-        this.id = id;
+        this.method = method;
+        this.scheme = scheme;
+        this.authority = authority;
         this.contentType = contentType;
         this.metadata = metadata;
+        this.request = request;
+        this.response = response;
     }
 }
