@@ -49,11 +49,11 @@
                         {
                             "type": "string"
                         }
-                    },
+                    }
                 },
                 "metrics": {
                     "$ref": "#/$defs/telemetry/metrics"
-                },
+                }
             },
             "additionalProperties": false
         },
@@ -141,7 +141,7 @@
                     ]
                 },
                 "uniqueItems": true
-            },
+            }
         },
         "binding":
         {
@@ -219,6 +219,16 @@
                             }
                         },
                         "additionalProperties": false
+                    }
+                },
+                "telemetry":
+                {
+                    "title": "Telemetry",
+                    "type": "object",
+                    "properties": {
+                        "metrics": {
+                            "$ref": "#/$defs/telemetry/metrics"
+                        }
                     }
                 },
                 "exit":

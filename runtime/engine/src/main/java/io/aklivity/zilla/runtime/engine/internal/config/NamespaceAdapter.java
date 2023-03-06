@@ -31,12 +31,14 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
 public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String NAMESPACES_NAME = "references";
+    private static final String TELEMETRY_NAME = "telemetry";
     private static final String BINDINGS_NAME = "bindings";
     private static final String GUARDS_NAME = "guards";
     private static final String VAULTS_NAME = "vaults";
@@ -47,6 +49,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
 
     private final NamspaceRefAdapter reference;
+    private final TelemetryAdapter telemetry;
     private final BindingConfigsAdapter binding;
     private final VaultAdapter vault;
     private final GuardAdapter guard;
@@ -54,6 +57,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     public NamespaceAdapter()
     {
         reference = new NamspaceRefAdapter();
+        telemetry = new TelemetryAdapter();
         binding = new BindingConfigsAdapter();
         guard = new GuardAdapter();
         vault = new VaultAdapter();
@@ -86,6 +90,12 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
             object.add(VAULTS_NAME, vaults);
         }
 
+        if (config.telemetry != null)
+        {
+            JsonObject telemetry0 = telemetry.adaptToJson(config.telemetry);
+            object.add(TELEMETRY_NAME, telemetry0);
+        }
+
         if (!NAMESPACES_DEFAULT.equals(config.references))
         {
             JsonArrayBuilder references = Json.createArrayBuilder();
@@ -107,6 +117,9 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
                     .map(reference::adaptFromJson)
                     .collect(Collectors.toList())
                 : NAMESPACES_DEFAULT;
+        TelemetryConfig telemetry0 = object.containsKey(TELEMETRY_NAME)
+                ? telemetry.adaptFromJson(object.getJsonObject(TELEMETRY_NAME))
+                : null;
         List<BindingConfig> bindings = object.containsKey(BINDINGS_NAME)
                 ? Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME)))
                 : BINDINGS_DEFAULT;
@@ -125,6 +138,6 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
                     .collect(Collectors.toList())
                 : VAULTS_DEFAULT;
 
-        return new NamespaceConfig(name, references, bindings, guards, vaults);
+        return new NamespaceConfig(name, references, telemetry0, bindings, guards, vaults);
     }
 }

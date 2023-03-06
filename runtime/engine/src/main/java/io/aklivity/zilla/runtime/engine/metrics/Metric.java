@@ -23,5 +23,6 @@ public interface Metric
 
     Unit unit();
 
-    MetricHandler supply(LongConsumer recorder);
+    MetricHandler supply(
+        LongConsumer recorder);
 }

@@ -27,12 +27,15 @@ public class BindingConfig
 
     public transient long vaultId;
 
+    //public transient long[] metricIds;
+
     public final String vault;
     public final String entry;
     public final String type;
     public final KindConfig kind;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
+    public final TelemetryRefConfig telemetryRef;
 
     public BindingConfig(
         String vault,
@@ -40,7 +43,8 @@ public class BindingConfig
         String type,
         KindConfig kind,
         OptionsConfig options,
-        List<RouteConfig> routes)
+        List<RouteConfig> routes,
+        TelemetryRefConfig telemetryRef)
     {
         this.vault = vault;
         this.entry = entry;
@@ -48,5 +52,6 @@ public class BindingConfig
         this.kind = requireNonNull(kind);
         this.options = options;
         this.routes = routes;
+        this.telemetryRef = telemetryRef;
     }
 }

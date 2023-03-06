@@ -139,7 +139,7 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, guards, vaults, coreIndex);
+                        bindings, guards, metrics, vaults, coreIndex);
             dispatchers.add(agent);
         }
 

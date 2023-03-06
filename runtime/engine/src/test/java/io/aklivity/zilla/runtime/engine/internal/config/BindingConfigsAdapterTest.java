@@ -27,6 +27,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -35,7 +37,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBindingOptionsConfig;
 
 public class BindingConfigsAdapterTest
@@ -75,7 +79,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBinding()
     {
-        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null, emptyList()) };
+        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -111,7 +115,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBindingWithVault()
     {
-        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, emptyList()) };
+        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, emptyList(), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -148,7 +152,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithOptions()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, new TestBindingOptionsConfig("test"), emptyList()) };
+            { new BindingConfig(null, "test", "test", SERVER, new TestBindingOptionsConfig("test"), emptyList(), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -188,7 +192,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithRoute()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, null, singletonList(new RouteConfig("test"))) };
+            { new BindingConfig(null, "test", "test", SERVER, null, singletonList(new RouteConfig("test")), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -196,4 +200,45 @@ public class BindingConfigsAdapterTest
         assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\",\"routes\":[{\"exit\":\"test\"}]}}"));
     }
 
+    @Test
+    public void shouldReadBindingWithTelemetry()
+    {
+        String text =
+                "{" +
+                    "\"test\":" +
+                    "{" +
+                        "\"type\": \"test\"," +
+                        "\"kind\": \"server\"," +
+                        "\"telemetry\":" +
+                        "{" +
+                            "\"metrics\":" +
+                            "[" +
+                                "\"test.counter\"" +
+                            "]" +
+                        "}" +
+                    "}" +
+                "}";
+
+        BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
+
+        assertThat(bindings[0], not(nullValue()));
+        assertThat(bindings[0].entry, equalTo("test"));
+        assertThat(bindings[0].kind, equalTo(SERVER));
+        assertThat(bindings[0].telemetryRef.metricRefs, hasSize(1));
+        assertThat(bindings[0].telemetryRef.metricRefs.get(0).name, equalTo("test.counter"));
+    }
+
+    @Test
+    public void shouldWriteBindingWithTelemetry()
+    {
+        TelemetryRefConfig telemetry = new TelemetryRefConfig(List.of(new MetricRefConfig("test.counter")));
+        BindingConfig[] bindings =
+            { new BindingConfig(null, "test", "test", SERVER, null, List.of(), telemetry) };
+
+        String text = jsonb.toJson(bindings);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\"," +
+                "\"telemetry\":{\"metrics\":[\"test.counter\"]}}}"));
+    }
 }

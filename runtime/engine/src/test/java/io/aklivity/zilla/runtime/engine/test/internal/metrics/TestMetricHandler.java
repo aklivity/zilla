@@ -13,25 +13,35 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.test.internal.metrics;
 
-import static java.util.Objects.requireNonNull;
+import org.agrona.DirectBuffer;
 
-public class MetricsConfig
+import io.aklivity.zilla.runtime.engine.config.MetricConfig;
+import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
+
+public final class TestMetricHandler implements MetricHandler
 {
-    public transient long id;
-
-    public final String name;
-    public final String type;
-    public final OptionsConfig options;
-
-    public MetricsConfig(
-        String name,
-        String type,
-        OptionsConfig options)
+    public TestMetricHandler(
+        MetricConfig vault)
     {
-        this.name = requireNonNull(name);
-        this.type = requireNonNull(type);
-        this.options = options;
+    }
+
+    @Override
+    public void onReceived(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
+    }
+
+    @Override
+    public void onSent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
+    {
     }
 }

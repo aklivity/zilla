@@ -115,6 +115,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.Metrics;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
@@ -204,6 +205,7 @@ public class DispatchAgent implements EngineContext, Agent
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
         Collection<Guard> guards,
+        Collection<Metrics> metrics,
         Collection<Vault> vaults,
         int index)
     {
