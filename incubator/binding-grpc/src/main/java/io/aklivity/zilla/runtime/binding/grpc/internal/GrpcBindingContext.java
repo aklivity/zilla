@@ -37,6 +37,7 @@ final class GrpcBindingContext implements BindingContext
     {
         final EnumMap<KindConfig, GrpcStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new GrpcServerFactory(config, context));
+        //factories.put(CLIENT, new GrpcClientFactory(config, context));
         this.factories = factories;
     }
 

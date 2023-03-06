@@ -20,7 +20,6 @@ import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
@@ -33,8 +32,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
-import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcMethodConfig;
-import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteResolver;
+import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcMethodResolver;
+import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
@@ -49,7 +48,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
@@ -68,6 +66,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final String HTTP_TYPE_NAME = "http";
+    private static final String APPLICATION_GRPC = "application/grpc";
+    private static final String APPLICATION_GRPC_PROTO = "application/grpc+proto";
     private static final String APPLICATION_GRPC_WEB_PROTO = "application/grpc-web+proto";
     private static final byte HYPHEN_BYTE = '-';
     private static final byte COLON_BYTE = ':';
@@ -89,8 +89,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
     private static final String16FW HEADER_VALUE_METHOD_POST = new String16FW("POST");
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
-    private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
     private static final String16FW HEADER_VALUE_STATUS_200 = new String16FW("200");
+    private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
+    private static final String16FW HEADER_VALUE_STATUS_415 = new String16FW("415");
     private static final String16FW HEADER_VALUE_GRPC_UNIMPLEMENTED = new String16FW("12");
 
     private final BeginFW beginRO = new BeginFW();
@@ -269,11 +270,17 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             final GrpcBindingConfig binding = bindings.get(routeId);
 
-            final GrpcMethodConfig method = binding != null ? binding.resolveMethod(httpBeginEx) : null;
+            final GrpcMethodResolver method = binding != null ? binding.resolveMethod(httpBeginEx) : null;
+            final ContentType contentType = asContentType(method.contentType);
 
-            if (method != null)
+            if (contentType == null)
             {
-                newStream = newInitialGrpcStream(begin, network, httpBeginEx, method);
+                doHttpResponse(network, traceId, authorization, affinity, routeId, initialId, sequence, acknowledge,
+                    HEADER_VALUE_STATUS_415, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+            }
+            else if (method != null)
+            {
+                newStream = newInitialGrpcStream(begin, network, contentType, method);
             }
             else
             {
@@ -289,8 +296,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private MessageConsumer  newInitialGrpcStream(
         final BeginFW begin,
         final MessageConsumer network,
-        final HttpBeginExFW httpBeginEx,
-        final GrpcMethodConfig methodConfig)
+        final ContentType contentType,
+        final GrpcMethodResolver method)
     {
         final long routeId = begin.routeId();
         final long initialId = begin.streamId();
@@ -303,19 +310,17 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         GrpcBindingConfig binding = bindings.get(routeId);
 
-        GrpcRouteResolver route = null;
+        GrpcRouteConfig route = null;
 
         if (binding != null)
         {
-            route = binding.resolve(begin.authorization(), httpBeginEx, methodConfig);
+            route = binding.resolve(begin.authorization(), method.method, method.metadata);
         }
 
         MessageConsumer newStream = null;
 
         if (route != null)
         {
-            final ContentType contentType = asContentType(route.contentType);
-
             newStream = new GrpcServer(
                 network,
                 routeId,
@@ -324,8 +329,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 affinity,
                 route.id,
                 contentType,
-                route.metadata,
-                methodConfig)::onNetMessage;
+                method)::onNetMessage;
         }
         else
         {
@@ -341,10 +345,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final class GrpcServer
     {
         private final MessageConsumer network;
-        private final ContentType contentType;
-        private final Map<String8FW, DirectBuffer> metadata;
-        private final GrpcMethodConfig methodConfig;
         private final GrpcStream stream;
+        private final ContentType contentType;
+        private final GrpcMethodResolver method;
         private final long routeId;
         private final long initialId;
         private final long replyId;
@@ -367,8 +370,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long affinity,
             long resolveId,
             ContentType contentType,
-            Map<String8FW, DirectBuffer> metadata,
-            GrpcMethodConfig methodConfig)
+            GrpcMethodResolver method)
         {
             this.network = network;
             this.routeId = routeId;
@@ -376,8 +378,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             this.replyId = replyId;
             this.affinity = affinity;
             this.contentType = contentType;
-            this.metadata = metadata;
-            this.methodConfig = methodConfig;
+            this.method = method;
 
             this.stream = new GrpcStream(resolveId);
         }
@@ -733,8 +734,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 long affinity)
             {
                 application = newGrpcStream(this::onAppMessage, routeId, initialId, grpcInitialSeq, grpcInitialAck,
-                    grpcInitialMax, traceId, authorization, affinity, methodConfig.method,
-                    methodConfig.request, methodConfig.response, metadata);
+                    grpcInitialMax, traceId, authorization, affinity, method);
             }
 
             private void doAppData(
@@ -1270,17 +1270,18 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        String method,
-        GrpcKind request,
-        GrpcKind response,
-        Map<String8FW, DirectBuffer> metadata)
+        GrpcMethodResolver method)
     {
         final GrpcBeginExFW grpcBegin = grpcBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
             .typeId(grpcTypeId)
-            .method(new String16FW(method))
-            .request(r -> r.set(request).build())
-            .response(r -> r.set(response).build())
-            .metadata(m -> metadata.forEach((k, v) -> m.item(h -> h.name(k).valueLen(v.capacity()).value(v, 0, v.capacity()))))
+            .scheme(new String16FW((String) method.scheme))
+            .authority(new String16FW((String) method.authority))
+            .contentType(new String16FW((String) method.contentType))
+            .method(new String16FW((String) method.method))
+            .request(r -> r.set(method.request).build())
+            .response(r -> r.set(method.response).build())
+            .metadata(m -> method.metadata.forEach((k, v) ->
+                m.item(h -> h.name(k).valueLen(v.capacity()).value(v, 0, v.capacity()))))
             .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
@@ -1314,8 +1315,13 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static ContentType asContentType(
         CharSequence value)
     {
-        ContentType type = GRPC;
-        if (APPLICATION_GRPC_WEB_PROTO.contentEquals(value))
+        ContentType type = null;
+
+        if (APPLICATION_GRPC.contentEquals(value) || APPLICATION_GRPC_PROTO.contentEquals(value))
+        {
+            type = GRPC;
+        }
+        else if (APPLICATION_GRPC_WEB_PROTO.contentEquals(value))
         {
             type = GRPC_WEB_PROTO;
         }

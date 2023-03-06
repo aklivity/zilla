@@ -31,6 +31,9 @@ scope grpc
 
         struct GrpcBeginEx extends core::stream::Extension
         {
+            string16 scheme;
+            string16 authority;
+            string16 contentType;
             string16 method;
             GrpcKind request;
             GrpcKind response;

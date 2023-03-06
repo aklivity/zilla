@@ -64,36 +64,26 @@ public final class GrpcBindingConfig
     }
 
 
-    public GrpcRouteResolver resolve(
+    public GrpcRouteConfig resolve(
         long authorization,
-        HttpBeginExFW beginEx,
-        GrpcMethodConfig methodConfig)
+        CharSequence method,
+        Map<String8FW, DirectBuffer> metadataHeaders)
     {
-        helper.visit(beginEx);
-
-        final GrpcRouteConfig grpcRouteConfig = routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(methodConfig.method, helper.metadataHeaders::get))
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(method, metadataHeaders::get))
             .findFirst()
             .orElse(null);
-
-        GrpcRouteResolver resolver = null;
-
-        if (grpcRouteConfig != null)
-        {
-            resolver = new GrpcRouteResolver(grpcRouteConfig.id, helper.contentType, helper.metadataHeaders);
-        }
-
-        return resolver;
     }
 
-    public GrpcMethodConfig resolveMethod(
+    public GrpcMethodResolver resolveMethod(
         HttpBeginExFW beginEx)
     {
         helper.visit(beginEx);
 
         final CharSequence path = helper.path;
         final CharSequence serviceNameHeader = helper.serviceName;
-        GrpcMethodConfig method = null;
+
+        GrpcMethodResolver methodResolver = null;
 
         final Matcher matcher = METHOD_PATTERN.matcher(path);
 
@@ -102,23 +92,34 @@ public final class GrpcBindingConfig
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String fullMethodName = String.format("%s/%s", serviceName, matcher.group(METHOD));
 
-            method = options.protobufs.stream()
+            final GrpcMethodConfig method = options.protobufs.stream()
                 .map(p -> p.services.stream().filter(s -> s.serviceName.equals(serviceName)).findFirst().get())
                 .map(s -> s.methods.stream().filter(m -> m.method.equals(fullMethodName)).findFirst().get())
                 .findFirst()
                 .orElse(null);
+
+            methodResolver = new GrpcMethodResolver(
+                method.method,
+                helper.scheme,
+                helper.authority,
+                helper.contentType,
+                helper.metadataHeaders,
+                method.request,
+                method.response
+            );
         }
 
-        return method;
+        return methodResolver;
     }
 
     private static final class HttpGrpcHeaderHelper
     {
         private static final String8FW HEADER_NAME_SERVICE_NAME = new String8FW("service-name");
         private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
+        private static final String8FW HEADER_NAME_SCHEME = new String8FW(":scheme");
+        private static final String8FW HEADER_NAME_AUTHORITY = new String8FW(":authority");
         private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
 
-        private HttpBeginExFW beginEx;
         private final Set<String8FW> httpHeaders =
             new HashSet<>(asList(new String8FW(":path"),
                 new String8FW(":method"),
@@ -133,33 +134,36 @@ public final class GrpcBindingConfig
             Map<String8FW, Consumer<String16FW>> visitors = new HashMap<>();
             visitors.put(HEADER_NAME_SERVICE_NAME, this::visitServiceName);
             visitors.put(HEADER_NAME_PATH, this::visitPath);
+            visitors.put(HEADER_NAME_SCHEME, this::visitScheme);
+            visitors.put(HEADER_NAME_AUTHORITY, this::visitAuthority);
             visitors.put(HEADER_NAME_CONTENT_TYPE, this::visitContentType);
             this.visitors = visitors;
         }
         private final AsciiSequenceView serviceNameRO = new AsciiSequenceView();
         private final AsciiSequenceView pathRO = new AsciiSequenceView();
         private final AsciiSequenceView contentTypeRO = new AsciiSequenceView();
+        private final AsciiSequenceView schemeRO = new AsciiSequenceView();
+        private final AsciiSequenceView authorityRO = new AsciiSequenceView();
         private final Map<String8FW, DirectBuffer> metadataHeaders = new Object2ObjectHashMap<>();
 
         public CharSequence serviceName;
         public CharSequence path;
         public CharSequence contentType;
+        public CharSequence scheme;
+        public CharSequence authority;
 
         private void visit(
             HttpBeginExFW beginEx)
         {
-            if (!this.beginEx.buffer().equals(beginEx.buffer()) &&
-                this.beginEx.offset() != beginEx.offset() &&
-                this.beginEx.sizeof() != beginEx.sizeof())
-            {
-                this.beginEx = beginEx;
-                serviceName = null;
-                path = null;
+            serviceName = null;
+            path = null;
+            scheme = null;
+            authority = null;
+            contentType = null;
 
-                if (beginEx != null)
-                {
-                    beginEx.headers().forEach(this::dispatch);
-                }
+            if (beginEx != null)
+            {
+                beginEx.headers().forEach(this::dispatch);
             }
         }
 
@@ -174,7 +178,11 @@ public final class GrpcBindingConfig
             }
             visitHeader(header);
 
-            return serviceName != null && path != null && contentType != null;
+            return serviceName != null &&
+                path != null &&
+                scheme != null &&
+                authority != null &&
+                contentType != null;
         }
 
         private void visitServiceName(
@@ -193,6 +201,24 @@ public final class GrpcBindingConfig
             final int offset = value.offset() + value.fieldSizeLength();
             final int length = value.sizeof() - value.fieldSizeLength();
             path = pathRO.wrap(buffer, offset, length);
+        }
+
+        private void visitScheme(
+            String16FW value)
+        {
+            final DirectBuffer buffer = value.buffer();
+            final int offset = value.offset() + value.fieldSizeLength();
+            final int length = value.sizeof() - value.fieldSizeLength();
+            scheme = schemeRO.wrap(buffer, offset, length);
+        }
+
+        private void visitAuthority(
+            String16FW value)
+        {
+            final DirectBuffer buffer = value.buffer();
+            final int offset = value.offset() + value.fieldSizeLength();
+            final int length = value.sizeof() - value.fieldSizeLength();
+            authority = authorityRO.wrap(buffer, offset, length);
         }
 
         private void visitContentType(

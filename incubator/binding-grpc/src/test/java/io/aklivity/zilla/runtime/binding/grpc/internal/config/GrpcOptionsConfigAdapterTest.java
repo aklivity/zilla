@@ -26,7 +26,6 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -39,6 +38,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;

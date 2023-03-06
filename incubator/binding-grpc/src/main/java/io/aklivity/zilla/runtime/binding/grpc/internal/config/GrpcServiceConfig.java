@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import java.util.Set;
 
-import org.agrona.collections.ObjectHashSet;
-
 public class GrpcServiceConfig
 {
     public final Set<GrpcMethodConfig> methods;
