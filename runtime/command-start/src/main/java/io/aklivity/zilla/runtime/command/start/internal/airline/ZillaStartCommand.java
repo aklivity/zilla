@@ -133,6 +133,7 @@ public final class ZillaStartCommand extends ZillaCommand
         try (Engine engine = Engine.builder()
             .config(config)
             .errorHandler(this::onError)
+            .report(report)
             .build())
         {
             engine.start();
