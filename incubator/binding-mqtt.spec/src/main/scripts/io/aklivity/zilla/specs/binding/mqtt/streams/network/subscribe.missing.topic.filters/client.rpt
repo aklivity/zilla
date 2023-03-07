@@ -14,27 +14,31 @@
 # under the License.
 #
 
-accept "zilla://streams/net0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 
-accepted
 connected
 
-read  [0x10 0x1c]                   # CONNECT
+write [0x10 0x13]                   # CONNECT
       [0x00 0x04] "MQTT"            # protocol name
       [0x05]                        # protocol version
-      [0x06]                        # flags = will flag, clean start
+      [0x02]                        # flags = clean start
       [0x00 0x3c]                   # keep alive = 60s
       [0x00]                        # properties = none
       [0x00 0x06] "client"          # client id
-      [0x00]                        # properties = none
-      [0x00 0x05] "topic"           # will topic
-      [0x00 0x07] "payload"         # will payload
 
-write [0x20 0x03]                   # CONNACK
+read  [0x20 0x03]                   # CONNACK
       [0x00]                        # flags = none
-      [0x81]                        # reason = malformed packet
+      [0x00]                        # reason code
       [0x00]                        # properties = none
 
-write close
+write [0x82 0x03]                   # SUBSCRIBE
+      [0x00 0x01]                   # packet id = 1
+      [0x00]                        # properties = none
+
+read  [0xe0 0x02]                   # DISCONNECT
+      [0x00]                        # properties = none
+      [0x82]                        # reason = protocol error
+
+read closed   

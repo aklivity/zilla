@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class UnsubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/unsubscribe");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -38,17 +38,17 @@ public class UnsubscribeIT
 
     @Test
     @Specification({
-        "${net}/client",
-        "${net}/server"})
-    public void shouldUnsubscribeFromOneTopic() throws Exception
+        "${net}/unsubscribe.after.subscribe/client",
+        "${net}/unsubscribe.after.subscribe/server"})
+    public void shouldSubscribeAndUnsubscribeFromTopic() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.both.exact/client",
-        "${net}/aggregated.topic.filters.both.exact/server"})
+        "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
+        "${net}/unsubscribe.aggregated.topic.filters.both.exact/server"})
     public void shouldUnsubscribeFromMultipleTopics() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class UnsubscribeIT
 
     @Test
     @Specification({
-        "${net}/invalid.fixed.header.flags/client",
-        "${net}/invalid.fixed.header.flags/server"})
+        "${net}/unsubscribe.invalid.fixed.header.flags/client",
+        "${net}/unsubscribe.invalid.fixed.header.flags/server"})
     public void shouldRejectMalformedUnsubscribePacket() throws Exception
     {
         k3po.finish();
