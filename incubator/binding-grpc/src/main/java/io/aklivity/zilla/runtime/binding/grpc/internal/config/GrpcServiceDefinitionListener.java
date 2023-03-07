@@ -54,7 +54,7 @@ public class GrpcServiceDefinitionListener extends Protobuf3BaseListener
         {
             Protobuf3Parser.RpcContext rpc = element.rpc();
 
-            String method = String.format("%s/%s", serviceName, rpc.rpcName().getText());
+            String method = rpc.rpcName().getText();
             GrpcKind request = rpc.clientStreaming != null ? STREAM : UNARY;
             GrpcKind response = rpc.serverStreaming != null ? STREAM : UNARY;
             methods.add(new GrpcMethodConfig(method, request, response));

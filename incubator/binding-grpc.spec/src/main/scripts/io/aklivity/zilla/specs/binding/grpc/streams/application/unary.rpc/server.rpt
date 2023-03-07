@@ -20,7 +20,10 @@ accepted
 
 read zilla:begin.ext ${grpc:matchBeginEx()
                            .typeId(zilla:id("grpc"))
-                           .method("example.EchoService/EchoUnary")
+                           .scheme("http")
+                           .authority("localhost:8080")
+                           .service("example.EchoService")
+                           .method("EchoUnary")
                            .request("UNARY")
                            .response("UNARY")
                            .metadata("custom", "test")
