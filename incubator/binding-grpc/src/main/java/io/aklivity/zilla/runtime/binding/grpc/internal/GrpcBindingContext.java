@@ -14,11 +14,13 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcClientFactory;
 import io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory;
 import io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -37,7 +39,7 @@ final class GrpcBindingContext implements BindingContext
     {
         final EnumMap<KindConfig, GrpcStreamFactory> factories = new EnumMap<>(KindConfig.class);
         factories.put(SERVER, new GrpcServerFactory(config, context));
-        //factories.put(CLIENT, new GrpcClientFactory(config, context));
+        factories.put(CLIENT, new GrpcClientFactory(config, context));
         this.factories = factories;
     }
 

@@ -70,12 +70,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final String APPLICATION_GRPC_PROTO = "application/grpc+proto";
     private static final String APPLICATION_GRPC_WEB_PROTO = "application/grpc-web+proto";
     private static final byte HYPHEN_BYTE = '-';
-    private static final byte COLON_BYTE = ':';
     private static final byte COMMA_BYTE = ',';
     private static final byte SPACE_BYTE = ' ';
-    private static final byte[] SEMICOLON_BYTES = ";".getBytes(US_ASCII);
     private static final byte[] COLON_SPACE_BYTES = ": ".getBytes(US_ASCII);
-    private static final byte[] CRLFCRLF_BYTES = "\r\n\r\n".getBytes(US_ASCII);
     private static final byte[] CRLF_BYTES = "\r\n".getBytes(US_ASCII);
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(new byte[0]), 0, 0);
     private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
