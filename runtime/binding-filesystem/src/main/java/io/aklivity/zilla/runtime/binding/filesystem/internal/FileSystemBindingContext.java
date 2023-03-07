@@ -90,7 +90,7 @@ final class FileSystemBindingContext implements BindingContext
         return String.format("%s %s", getClass().getSimpleName(), factories);
     }
 
-    public FileSystemWatcher supplyWatcher()
+    private FileSystemWatcher supplyWatcher()
     {
         return watcher;
     }
