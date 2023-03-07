@@ -18,8 +18,6 @@ connect "http://localhost:8080/"
 connected
 
 write http:method "GET"
-write http:header "If-None-Match"
-write http:header "Prefer" "wait=86400"
 write close
 
 read http:status "404" "Not Found"
@@ -29,8 +27,6 @@ connect "http://localhost:8080/"
 connected
 
 write http:method "GET"
-write http:header "If-None-Match"
-write http:header "Prefer" "wait=86400"
 write close
 
 write notify FIRST_ABORTED

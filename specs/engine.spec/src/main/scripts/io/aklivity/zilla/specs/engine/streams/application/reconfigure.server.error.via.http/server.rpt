@@ -19,8 +19,6 @@ accepted
 connected
 
 read http:method "GET"
-read http:header "If-None-Match"
-read http:header "Prefer" "wait=86400"
 read closed
 
 write http:status "200" "OK"

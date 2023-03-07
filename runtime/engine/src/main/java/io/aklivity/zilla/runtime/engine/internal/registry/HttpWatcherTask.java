@@ -26,7 +26,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
 public class HttpWatcherTask extends WatcherTask
 {
-    private static final String INTIAL_ETAG = "INIT";
     private static final URI CLOSE_REQUESTED = URI.create("http://localhost:12345");
 
     private final Map<URI, String> etags;
@@ -74,7 +73,7 @@ public class HttpWatcherTask extends WatcherTask
         URL configURL)
     {
         URI configURI = toURI(configURL);
-        NamespaceConfig config = sendSync(configURI, INTIAL_ETAG);
+        NamespaceConfig config = sendSync(configURI);
         if (config == null)
         {
             return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
@@ -116,8 +115,7 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     private NamespaceConfig sendSync(
-        URI configURI,
-        String etag)
+        URI configURI)
     {
         HttpClient client = HttpClient.newBuilder()
             .version(HTTP_2)
@@ -125,7 +123,6 @@ public class HttpWatcherTask extends WatcherTask
             .build();
         HttpRequest request = HttpRequest.newBuilder()
             .GET()
-            .headers("If-None-Match", etag, "Prefer", "wait=86400")
             .uri(configURI)
             .build();
         HttpResponse<String> response;
@@ -149,12 +146,15 @@ public class HttpWatcherTask extends WatcherTask
             .version(HTTP_2)
             .followRedirects(NORMAL)
             .build();
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
             .GET()
-            .headers("If-None-Match", etag, "Prefer", "wait=86400")
-            .uri(configURI)
-            .build();
-        CompletableFuture<Void> future = client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .uri(configURI);
+        if (etag != null && !etag.isEmpty())
+        {
+            requestBuilder = requestBuilder.headers("If-None-Match", etag, "Prefer", "wait=86400");
+        }
+
+        CompletableFuture<Void> future = client.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofString())
             .thenAccept(this::handleConfigChange)
             .exceptionally(ex -> handleException(ex, configURI));
         futures.put(configURI, future);
