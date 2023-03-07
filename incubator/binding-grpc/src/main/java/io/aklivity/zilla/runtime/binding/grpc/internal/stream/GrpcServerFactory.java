@@ -121,6 +121,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final GrpcMessageFW.Builder grpcMessageRW = new GrpcMessageFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer metadataBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
     private final BindingHandler streamFactory;
@@ -130,6 +131,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final Long2ObjectHashMap<GrpcBindingConfig> bindings;
     private final int grpcTypeId;
     private final int httpTypeId;
+
 
     enum ContentType
     {
@@ -213,6 +215,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
+        this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
@@ -228,7 +231,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     public void attach(
         BindingConfig binding)
     {
-        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding);
+        GrpcBindingConfig grpcBinding = new GrpcBindingConfig(binding, metadataBuffer);
         bindings.put(binding.id, grpcBinding);
     }
 
@@ -314,7 +317,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         if (binding != null)
         {
-            route = binding.resolve(begin.authorization(), method.method, method.metadata);
+            route = binding.resolve(begin.authorization(), method.service, method.method, method.metadata);
         }
 
         MessageConsumer newStream = null;
@@ -1274,14 +1277,13 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     {
         final GrpcBeginExFW grpcBegin = grpcBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
             .typeId(grpcTypeId)
-            .scheme(new String16FW((String) method.scheme))
-            .authority(new String16FW((String) method.authority))
-            .contentType(new String16FW((String) method.contentType))
-            .method(new String16FW((String) method.method))
+            .scheme(method.scheme)
+            .authority(method.authority)
+            .service(method.service.toString())
+            .method(method.method.toString())
             .request(r -> r.set(method.request).build())
             .response(r -> r.set(method.response).build())
-            .metadata(m -> method.metadata.forEach((k, v) ->
-                m.item(h -> h.name(k).valueLen(v.capacity()).value(v, 0, v.capacity()))))
+            .metadata(method.metadata)
             .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

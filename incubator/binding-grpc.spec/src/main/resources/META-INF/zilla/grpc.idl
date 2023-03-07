@@ -22,9 +22,17 @@ scope grpc
             STREAM
         }
 
+        enum GrpcType
+        {
+            TEXT,
+            BASE64
+        }
+
         struct GrpcMetadata
         {
-            string8 name;
+            GrpcType type;
+            varint32 nameLen;
+            octets[nameLen] name;
             varint32 valueLen;
             octets[valueLen] value = null;
         }
@@ -33,7 +41,7 @@ scope grpc
         {
             string16 scheme;
             string16 authority;
-            string16 contentType;
+            string16 service;
             string16 method;
             GrpcKind request;
             GrpcKind response;

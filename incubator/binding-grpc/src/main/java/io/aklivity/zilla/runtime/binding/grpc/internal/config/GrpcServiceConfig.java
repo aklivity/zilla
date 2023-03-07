@@ -19,13 +19,13 @@ import java.util.Set;
 public class GrpcServiceConfig
 {
     public final Set<GrpcMethodConfig> methods;
-    public final String serviceName;
+    public final String service;
 
     public GrpcServiceConfig(
-        String serviceName,
+        String service,
         Set<GrpcMethodConfig> methods)
     {
-        this.serviceName = serviceName;
+        this.service = service;
         this.methods = methods;
     }
 }

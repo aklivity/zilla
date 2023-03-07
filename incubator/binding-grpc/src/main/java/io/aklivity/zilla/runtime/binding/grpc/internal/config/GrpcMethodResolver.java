@@ -14,32 +14,33 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-import java.util.Map;
-
-import org.agrona.DirectBuffer;
-
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 
 public class GrpcMethodResolver
 {
+    public final CharSequence service;
     public final CharSequence method;
-    public final CharSequence scheme;
-    public final CharSequence authority;
     public final CharSequence contentType;
+    public final String16FW scheme;
+    public final String16FW authority;
     public final GrpcKind request;
     public final GrpcKind response;
-    public final Map<String8FW, DirectBuffer> metadata;
+    public final Array32FW<GrpcMetadataFW> metadata;
 
     public GrpcMethodResolver(
+        CharSequence service,
         CharSequence method,
-        CharSequence scheme,
-        CharSequence authority,
         CharSequence contentType,
-        Map<String8FW, DirectBuffer> metadata,
+        String16FW scheme,
+        String16FW authority,
+        Array32FW<GrpcMetadataFW> metadata,
         GrpcKind request,
         GrpcKind response)
     {
+        this.service = service;
         this.method = method;
         this.scheme = scheme;
         this.authority = authority;

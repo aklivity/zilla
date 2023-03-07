@@ -19,7 +19,10 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${grpc:beginEx()
                               .typeId(zilla:id("grpc"))
-                              .method("example.EchoService/EchoUnary")
+                              .scheme("http")
+                              .authority("localhost:8080")
+                              .service("example.EchoService")
+                              .method("EchoServerStream")
                               .request("UNARY")
                               .response("STREAM")
                               .metadata("custom", "test")

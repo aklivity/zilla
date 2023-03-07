@@ -12,27 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-syntax = "proto3";
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 
-package example;
-
-option java_multiple_files = true;
-option java_outer_classname = "EchoProto";
-
-service EchoService
+public class GrpcMetadataValue
 {
-  rpc EchoUnary(EchoMessage) returns (EchoMessage);
+    public final String16FW textValue;
+    public final String16FW base64Value;
 
-  rpc EchoClientStream(stream EchoMessage) returns (EchoMessage);
+    public GrpcMetadataValue(
+        String16FW textValue,
+        String16FW base64Value)
+    {
 
-  rpc EchoServerStream( EchoMessage) returns (stream EchoMessage);
-
-  rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
+        this.textValue = textValue;
+        this.base64Value = base64Value;
+    }
 }
-
-message EchoMessage
-{
-  string message = 1;
-}
-

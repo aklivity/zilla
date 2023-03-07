@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 
-import java.util.LinkedHashMap;
+import java.util.Base64;
 import java.util.Map;
 
 import jakarta.json.Json;
@@ -24,8 +24,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
@@ -35,9 +34,12 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private final String16FW.Builder stringRW = new String16FW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
     private static final String METHOD_NAME = "method";
     private static final String METADATA_NAME = "metadata";
+    private static final int ASCII_20 = 0x20;
+    private static final int ASCII_7E = 0x7e;
+    private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
+    private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
 
     @Override
     public String type()
@@ -60,7 +62,8 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             condition.metadata.forEach((k, v) ->
             {
                 String key = k.asString();
-                entries.add(key, stringRW.set(v, 0, v.capacity()).build().asString());
+                String value = v.textValue != null ? v.textValue.asString() : v.base64Value.asString();
+                entries.add(key, value);
             });
 
             object.add(METADATA_NAME, entries);
@@ -86,19 +89,55 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             ? object.getJsonObject(METADATA_NAME)
             : null;
 
-        final Map<String8FW, DirectBuffer> newMetadata = new LinkedHashMap<>();
+        final Map<String8FW, GrpcMetadataValue> newMetadata = new Object2ObjectHashMap<>();
 
         if (metadata != null)
         {
             metadata.forEach((k, v) ->
             {
                 String8FW key = new String8FW(k);
-                String16FW value = new String16FW(JsonString.class.cast(v).getString());
-                newMetadata.put(key, value.value());
+                String value = JsonString.class.cast(v).getString();
+                boolean isBase64 = isBase64(value);
+                boolean isValidAcii = isValidAcii(value.getBytes());
+                String16FW text = isBase64 || !isValidAcii ? null : new String16FW(value);
+                String16FW base64 = isBase64 ? new String16FW(value) :
+                    new String16FW(encoder64.encodeToString(value.getBytes()));
+                GrpcMetadataValue metadataValue =  new GrpcMetadataValue(text, base64);
+                newMetadata.put(key, metadataValue);
             });
         }
 
         return new GrpcConditionConfig(method, newMetadata);
     }
 
+    private boolean isBase64(
+        String value)
+    {
+        boolean isBase64 = false;
+        try
+        {
+            isBase64 = isValidAcii(decoder64.decode(value.getBytes()));
+        }
+        catch (Exception ex)
+        {
+        }
+        return isBase64;
+    }
+
+    private boolean isValidAcii(
+        byte[] values)
+    {
+        boolean valid = true;
+
+        ascii:
+        for (int value : values)
+        {
+            if (value < ASCII_20  || value > ASCII_7E)
+            {
+                valid = false;
+                break ascii;
+            }
+        }
+        return valid;
+    }
 }

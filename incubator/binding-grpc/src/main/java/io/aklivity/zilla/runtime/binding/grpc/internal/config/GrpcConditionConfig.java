@@ -16,19 +16,17 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import java.util.Map;
 
-import org.agrona.DirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class GrpcConditionConfig extends ConditionConfig
 {
     public final String method;
-    public final Map<String8FW, DirectBuffer> metadata;
+    public final Map<String8FW, GrpcMetadataValue> metadata;
 
     public GrpcConditionConfig(
         String method,
-        Map<String8FW, DirectBuffer> metadata)
+        Map<String8FW, GrpcMetadataValue> metadata)
     {
         this.method = method;
         this.metadata = metadata;

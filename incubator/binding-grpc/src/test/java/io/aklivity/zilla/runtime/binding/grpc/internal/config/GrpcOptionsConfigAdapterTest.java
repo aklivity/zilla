@@ -84,7 +84,7 @@ public class GrpcOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertEquals("protobuf/echo.proto", protobuf.location);
-        assertEquals("example.EchoService", service.serviceName);
+        assertEquals("example.EchoService", service.service);
         assertEquals("example.EchoService/EchoUnary", method.method);
         assertTrue(GrpcKind.UNARY == method.request);
         assertTrue(GrpcKind.UNARY == method.response);
