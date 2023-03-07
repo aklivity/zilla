@@ -106,14 +106,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final URI serverRoot;
     private final MessageDigest md5;
     private final Signaler signaler;
-    private final Supplier<FileSystemWatcher> fileSystemWatcherSupplier;
+    private final Supplier<FileSystemWatcher> supplyWatcher;
 
     private FileSystemWatcher fileSystemWatcher;
 
     public FileSystemServerFactory(
         FileSystemConfiguration config,
         EngineContext context,
-        Supplier<FileSystemWatcher> fileSystemWatcherSupplier)
+        Supplier<FileSystemWatcher> supplyWatcher)
     {
         this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
@@ -126,7 +126,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.bindings = new Long2ObjectHashMap<>();
         this.signaler = context.signaler();
         this.md5 = initMessageDigest("MD5");
-        this.fileSystemWatcherSupplier = fileSystemWatcherSupplier;
+        this.supplyWatcher = supplyWatcher;
     }
 
     @Override
@@ -135,7 +135,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     {
         FileSystemBindingConfig fsBinding = new FileSystemBindingConfig(binding);
         bindings.put(binding.id, fsBinding);
-        fileSystemWatcher = fileSystemWatcherSupplier.get();
+        fileSystemWatcher = supplyWatcher.get();
     }
 
     @Override
@@ -195,7 +195,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         return newStream;
     }
 
-
     private static MessageDigest initMessageDigest(
         String algorithm)
     {
@@ -210,6 +209,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         }
         return messageDigest;
     }
+
     private String probeContentTypeOrDefault(
         Path path) throws IOException
     {
@@ -333,8 +333,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             String currentTag = calculateTag();
             if (tag == null || tag.isEmpty() || !tag.equals(currentTag))
             {
-                Flyweight replyBeginEx = getReplyBeginEx(currentTag);
-                doAppBegin(traceId, replyBeginEx);
+                doAppBegin(traceId, currentTag);
                 flushAppData(traceId);
             }
             else
@@ -345,34 +344,6 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                     resolvedPath, symlinks, this::calculateTag, tag, timeoutId, routeId, replyId);
                 fileSystemWatcher.watch(watchedFile);
             }
-        }
-
-        private Flyweight getReplyBeginEx(String newTag)
-        {
-            int capabilities = tag == null || !tag.equals(newTag) ? this.capabilities : 0;
-            return getReplyBeginEx(newTag, capabilities);
-        }
-
-        private Flyweight getReplyBeginEx(
-            String newTag,
-            int capabilities)
-        {
-            attributes = getAttributes();
-            long size = 0L;
-            if (attributes != null)
-            {
-                size = attributes.size();
-            }
-            Flyweight replyBeginEx = beginExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(fileSystemTypeId)
-                .capabilities(capabilities)
-                .path(relativePath)
-                .type(type)
-                .payloadSize(size)
-                .tag(newTag)
-                .build();
-            return replyBeginEx;
         }
 
         private BasicFileAttributes getAttributes()
@@ -537,8 +508,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 flushAppData(traceId);
                 break;
             case TIMEOUT_EXPIRED_SIGNAL_ID:
-                Flyweight replyBeginEx = getReplyBeginEx(tag, 0);
-                doAppBegin(traceId, replyBeginEx);
+                doAppBegin(traceId, tag, 0);
                 doAppEnd(traceId);
                 break;
             default:
@@ -549,9 +519,32 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private void doAppBegin(
             long traceId,
-            Flyweight extension)
+            String tag)
+        {
+            doAppBegin(traceId, tag, capabilities);
+        }
+
+        private void doAppBegin(
+            long traceId,
+            String tag,
+            int capabilities)
         {
             state = FileSystemState.openingReply(state);
+            attributes = getAttributes();
+            long size = 0L;
+            if (attributes != null)
+            {
+                size = attributes.size();
+            }
+            Flyweight extension = beginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(fileSystemTypeId)
+                .capabilities(capabilities)
+                .path(relativePath)
+                .type(type)
+                .payloadSize(size)
+                .tag(tag)
+                .build();
             doBegin(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
         }
 
@@ -619,8 +612,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             if (!FileSystemState.replyOpening(state))
             {
                 String newTag = calculateTag();
-                Flyweight replyBeginEx = getReplyBeginEx(newTag);
-                doAppBegin(traceId, replyBeginEx);
+                doAppBegin(traceId, newTag);
             }
             if (replyWin > 0)
             {
