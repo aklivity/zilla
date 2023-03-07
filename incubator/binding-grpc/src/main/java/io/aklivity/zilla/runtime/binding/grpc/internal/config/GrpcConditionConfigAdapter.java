@@ -36,8 +36,8 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
 {
     private static final String METHOD_NAME = "method";
     private static final String METADATA_NAME = "metadata";
-    private static final int ASCII_20 = 0x20;
-    private static final int ASCII_7E = 0x7e;
+    private static final int ASCII_SPACE = 0x20;
+    private static final int ASCII_TILDE = 0x7e;
     private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
 
@@ -97,10 +97,10 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             {
                 String8FW key = new String8FW(k);
                 String value = JsonString.class.cast(v).getString();
-                boolean isBase64 = isBase64(value);
-                boolean isValidAcii = isValidAcii(value.getBytes());
-                String16FW text = isBase64 || !isValidAcii ? null : new String16FW(value);
-                String16FW base64 = isBase64 ? new String16FW(value) :
+                boolean isBase64Ascii = isBase64Ascii(value);
+                boolean isAscii = isAscii(value.getBytes());
+                String16FW text = !isBase64Ascii && isAscii ? new String16FW(value) : null;
+                String16FW base64 = isBase64Ascii ? new String16FW(value) :
                     new String16FW(encoder64.encodeToString(value.getBytes()));
                 GrpcMetadataValue metadataValue =  new GrpcMetadataValue(text, base64);
                 newMetadata.put(key, metadataValue);
@@ -110,13 +110,13 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
         return new GrpcConditionConfig(method, newMetadata);
     }
 
-    private boolean isBase64(
+    private boolean isBase64Ascii(
         String value)
     {
         boolean isBase64 = false;
         try
         {
-            isBase64 = isValidAcii(decoder64.decode(value.getBytes()));
+            isBase64 = isAscii(decoder64.decode(value.getBytes()));
         }
         catch (Exception ex)
         {
@@ -124,7 +124,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
         return isBase64;
     }
 
-    private boolean isValidAcii(
+    private boolean isAscii(
         byte[] values)
     {
         boolean valid = true;
@@ -132,7 +132,7 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
         ascii:
         for (int value : values)
         {
-            if (value < ASCII_20  || value > ASCII_7E)
+            if (value < ASCII_SPACE || value > ASCII_TILDE)
             {
                 valid = false;
                 break ascii;
