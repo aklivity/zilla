@@ -38,26 +38,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.then.close/client",
-        "${app}/subscribe.then.close/server"})
-    public void shouldSubscribeThenClose() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/subscribe.then.abort/client",
-        "${app}/subscribe.then.abort/server"})
-    public void shouldSubscribeThenAbort() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/subscribe.with.exact.topic.filter/client",
-        "${app}/subscribe.with.exact.topic.filter/server"})
+        "${app}/subscribe.topic.filter.single.exact/client",
+        "${app}/subscribe.topic.filter.single.exact/server"})
     public void shouldSubscribeWithExactTopicFilter() throws Exception
     {
         k3po.finish();
@@ -65,8 +47,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.with.wildcard.topic.filter/client",
-        "${app}/subscribe.with.wildcard.topic.filter/server"})
+        "${app}/subscribe.topic.filter.single.wildcard/client",
+        "${app}/subscribe.topic.filter.single.wildcard/server"})
     public void shouldSubscribeWithWildcardTopicFilter() throws Exception
     {
         k3po.finish();
@@ -74,8 +56,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.with.aggregated.topic.filters.both.exact/client",
-        "${app}/subscribe.with.aggregated.topic.filters.both.exact/server"})
+        "${app}/subscribe.topic.filters.aggregated.both.exact/client",
+        "${app}/subscribe.topic.filters.aggregated.both.exact/server"})
     public void shouldSubscribeWithAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
@@ -83,8 +65,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.with.isolated.topic.filters.both.exact/client",
-        "${app}/subscribe.with.isolated.topic.filters.both.exact/server"})
+        "${app}/subscribe.topic.filters.isolated.both.exact/client",
+        "${app}/subscribe.topic.filters.isolated.both.exact/server"})
     public void shouldSubscribeWithIsolatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
@@ -92,8 +74,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.with.aggregated.topic.filters.both.wildcard/client",
-        "${app}/subscribe.with.aggregated.topic.filters.both.wildcard/server"})
+        "${app}/subscribe.topic.filters.aggregated.both.wildcard/client",
+        "${app}/subscribe.topic.filters.aggregated.both.wildcard/server"})
     public void shouldSubscribeWithAggregatedTopicFiltersBothWildcard() throws Exception
     {
         k3po.finish();
@@ -101,8 +83,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.with.isolated.topic.filters.both.wildcard/client",
-        "${app}/subscribe.with.isolated.topic.filters.both.wildcard/server"})
+        "${app}/subscribe.topic.filters.isolated.both.wildcard/client",
+        "${app}/subscribe.topic.filters.isolated.both.wildcard/server"})
     public void shouldSubscribeWithIsolatedTopicFiltersBothWildcard() throws Exception
     {
         k3po.finish();
@@ -110,8 +92,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.with.aggregated.topic.filters.exact.and.wildcard/client",
-        "${app}/subscribe.with.aggregated.topic.filters.exact.and.wildcard/server"})
+        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
+        "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
     public void shouldSubscribeWithAggregatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
@@ -119,8 +101,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.with.isolated.topic.filters.exact.and.wildcard/client",
-        "${app}/subscribe.with.isolated.topic.filters.exact.and.wildcard/server"})
+        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
+        "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
     public void shouldSubscribeWithIsolatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
@@ -137,8 +119,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/subscribe.then.publish.no.local/client",
-        "${app}/subscribe.then.publish.no.local/server"})
+        "${app}/subscribe.publish.no.local/client",
+        "${app}/subscribe.publish.no.local/server"})
     public void shouldSubscribeThenPublishNoLocal() throws Exception
     {
         k3po.finish();
@@ -146,8 +128,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/publish.then.subscribe.no.local/client",
-        "${app}/publish.then.subscribe.no.local/server"})
+        "${app}/subscribe.after.publish.no.local/client",
+        "${app}/subscribe.after.publish.no.local/server"})
     public void shouldPublishThenSubscribeNoLocal() throws Exception
     {
         k3po.finish();
@@ -155,8 +137,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/publish.then.subscribe.one.message/client",
-        "${app}/publish.then.subscribe.one.message/server"})
+        "${app}/subscribe.one.message.get.local/client",
+        "${app}/subscribe.one.message.get.local/server"})
     public void shouldPublishThenSubscribeOneMessage() throws Exception
     {
         k3po.finish();
@@ -167,6 +149,15 @@ public class StreamIT
         "${app}/subscribe.one.message.with.pattern.topic/client",
         "${app}/subscribe.one.message.with.pattern.topic/server"})
     public void shouldPublishToSubscriberOneMessageWithPatternTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.get.retained.as.published/client",
+        "${app}/subscribe.get.retained.as.published/server"})
+    public void shouldSubscribeGetRetainedMessageAsPublished() throws Exception
     {
         k3po.finish();
     }
@@ -191,8 +182,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/publish.message.and.subscribe.correlated.message/client",
-        "${app}/publish.message.and.subscribe.correlated.message/server"})
+        "${app}/subscribe.one.message.receive.correlation.data/client",
+        "${app}/subscribe.one.message.receive.correlation.data/server"})
     public void shouldPublishMessageAndSubscribeCorrelatedMessage() throws Exception
     {
         k3po.finish();
@@ -239,15 +230,6 @@ public class StreamIT
         "${app}/publish.one.message.then.disconnect/client",
         "${app}/publish.one.message.then.disconnect/server"})
     public void shouldPublishOneMessageThenDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/publish.rejected/client",
-        "${app}/publish.rejected/server"})
-    public void shouldRejectPublish() throws Exception
     {
         k3po.finish();
     }
@@ -362,18 +344,18 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/publish.session.data/client",
-        "${app}/publish.session.data/server"})
-    public void shouldPublishSessionData() throws Exception
+        "${app}/connect.will.message.with.abrupt.disconnect/client",
+        "${app}/connect.will.message.with.abrupt.disconnect/server"})
+    public void shouldPublishWillMessageAfterAbruptClientDisconnect() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/unpublished.will.message/client",
-        "${app}/unpublished.will.message/server"})
-    public void shouldIgnoreWillMessage() throws Exception
+        "${app}/connect.will.message.with.normal.disconnect/client",
+        "${app}/connect.will.message.with.normal.disconnect/server"})
+    public void shouldNotPublishWillMessageAfterNormalClientDisconnect() throws Exception
     {
         k3po.finish();
     }

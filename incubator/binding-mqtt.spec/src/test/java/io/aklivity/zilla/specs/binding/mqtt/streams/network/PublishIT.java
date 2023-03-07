@@ -104,35 +104,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.message.and.subscribe.correlated.message/client",
-        "${net}/publish.message.and.subscribe.correlated.message/server"})
-    public void shouldPublishMessageAndSubscribeCorrelatedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/subscribe.one.message.with.invalid.subscription.id/client",
-        "${net}/subscribe.one.message.with.invalid.subscription.id/server"})
-    public void shouldSubscribeOneMessageWithInvalidSubscriptionId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/reject.publish.one.message.with.packet.id/client",
-        "${net}/reject.publish.one.message.with.packet.id/server"})
-    public void shouldRejectPublishOneMessageWithPacketId() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/reject.publish.when.topic.alias.exceeds.maximum/client",
-        "${net}/reject.publish.when.topic.alias.exceeds.maximum/server"})
+        "${net}/publish.rejected.topic.alias.exceeds.maximum/client",
+        "${net}/publish.rejected.topic.alias.exceeds.maximum/server"})
     public void shouldRejectPublishWhenTopicAliasExceedsThanMaximum() throws Exception
     {
         k3po.finish();
@@ -140,8 +113,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/reject.publish.when.topic.alias.repeated/client",
-        "${net}/reject.publish.when.topic.alias.repeated/server"})
+        "${net}/publish.reject.topic.alias.repeated/client",
+        "${net}/publish.reject.topic.alias.repeated/server"})
     public void shouldRejectPublishWhenTopicAliasRepeated() throws Exception
     {
         k3po.finish();
@@ -158,8 +131,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/topic.not.routed/client",
-        "${net}/topic.not.routed/server"})
+        "${net}/publish.topic.not.routed/client",
+        "${net}/publish.topic.not.routed/server"})
     public void shouldRejectTopicNotRouted() throws Exception
     {
         k3po.finish();
@@ -266,27 +239,9 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/subscribe.then.publish.no.local/client",
-        "${net}/subscribe.then.publish.no.local/server"})
+        "${net}/subscribe.publish.no.local/client",
+        "${net}/subscribe.publish.no.local/server"})
     public void shouldSubscribeThenPublishNoLocal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/publish.then.subscribe.no.local/client",
-        "${net}/publish.then.subscribe.no.local/server"})
-    public void shouldPublishThenSubscribeNoLocal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/publish.then.subscribe.one.message/client",
-        "${net}/publish.then.subscribe.one.message/server"})
-    public void shouldPublishThenSubscribeOneMessage() throws Exception
     {
         k3po.finish();
     }
