@@ -14,14 +14,13 @@
 # under the License.
 #
 
-accept "zilla://streams/net0"
+connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
 
-accepted
 connected
 
-read   [0x10 0x13]                   # CONNECT
+write  [0x10 0x13]                   # CONNECT
        [0x00 0x04] "MQTT"            # protocol name
        [0x05]                        # protocol version
        [0x02]                        # flags = clean start
@@ -29,34 +28,33 @@ read   [0x10 0x13]                   # CONNECT
        [0x00]                        # properties = none
        [0x00 0x06] "client"          # client id
 
-write  [0x20 0x03]                   # CONNACK
+read   [0x20 0x03]                   # CONNACK
        [0x00]                        # flags = none
        [0x00]                        # reason code
        [0x00]                        # properties = none
 
-read   [0x82 0x1f]                   # SUBSCRIBE
+write  [0x82 0x1f]                   # SUBSCRIBE
        [0x00 0x01]                   # packet id = 1
        [0x02]                        # properties
        [0x0b 0x01]                   # subscription id = 1
        [0x00 0x0a] "sensor/one"      # topic filter
        [0x00]                        # options = at-most-once, send retained
 
-[0x00 0x0a] "sensor/two"      # topic filter
+       [0x00 0x0a] "sensor/two"      # topic filter
        [0x00]                        # options = at-most-once, send retained
 
-write  [0x90 0x05]                   # SUBACK
+read   [0x90 0x05]                   # SUBACK
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
-       [0x00 0x00]                   # reason codes
+       [0x00 0x00]                   # reason code
 
-
-read   [0xa2 0x0f]                   # UNSUBSCRIBE
+write  [0xa2 0x0f]                   # UNSUBSCRIBE
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
        [0x00 0x0a] "sensor/one"      # topic filter
        [0x00 0x0a] "sensor/two"      # topic filter
 
-write  [0xb0 0x05]                   # UNSUBACK
+read   [0xb0 0x05]                   # UNSUBACK
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
        [0x00 0x00]                   # reason codes

@@ -38,8 +38,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/successful/client",
-        "${net}/connect/successful/server"})
+        "${net}/connect.successful/client",
+        "${net}/connect.successful/server"})
     public void shouldConnect() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/server.assigned.client.id/client",
-        "${net}/connect/server.assigned.client.id/server"})
+        "${net}/connect.server.assigned.client.id/client",
+        "${net}/connect.server.assigned.client.id/server"})
     public void shouldConnectWithServerAssignedClientId() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.missing.client.id/client",
-        "${net}/connect/reject.missing.client.id/server"})
+        "${net}/connect.reject.missing.client.id/client",
+        "${net}/connect.reject.missing.client.id/server"})
     public void shouldRejectMissingClientId() throws Exception
     {
         k3po.finish();
@@ -74,8 +74,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/invalid.protocol.version/client",
-        "${net}/connect/invalid.protocol.version/server"})
+        "${net}/connect.invalid.protocol.version/client",
+        "${net}/connect.invalid.protocol.version/server"})
     public void shouldRejectInvalidProtocolVersion() throws Exception
     {
         k3po.finish();
@@ -83,8 +83,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/invalid.flags/client",
-        "${net}/connect/invalid.flags/server"})
+        "${net}/connect.invalid.flags/client",
+        "${net}/connect.invalid.flags/server"})
     public void shouldRejectMalformedConnectPacket() throws Exception
     {
         k3po.finish();
@@ -92,8 +92,17 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/disconnect/invalid.fixed.header.flags/client",
-        "${net}/disconnect/invalid.fixed.header.flags/server"})
+        "${net}/connect.invalid.authentication.method/client",
+        "${net}/connect.invalid.authentication.method/server"})
+    public void shouldRejectBadAuthenticationMethod() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/disconnect.invalid.fixed.header.flags/client",
+        "${net}/disconnect.invalid.fixed.header.flags/server"})
     public void shouldRejectMalformedDisconnectPacket() throws Exception
     {
         k3po.finish();
@@ -101,8 +110,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.second.connect/client",
-        "${net}/connect/reject.second.connect/server"})
+        "${net}/connect.reject.second.connect/client",
+        "${net}/connect.reject.second.connect/server"})
     public void shouldRejectSecondConnectPacket() throws Exception
     {
         k3po.finish();
@@ -110,8 +119,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/reject.connect.when.topic.alias.maximum.repeated/client",
-        "${net}/reject.connect.when.topic.alias.maximum.repeated/server"})
+        "${net}/connect.reject.topic.alias.maximum.repeated/client",
+        "${net}/connect.reject.topic.alias.maximum.repeated/server"})
     public void shouldRejectConnectWhenTopicAliasMaximumRepeated() throws Exception
     {
         k3po.finish();
@@ -119,8 +128,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/successful.fragmented/client",
-        "${net}/connect/successful.fragmented/server"})
+        "${net}/connect.successful.fragmented/client",
+        "${net}/connect.successful.fragmented/server"})
     public void shouldProcessFragmentedConnectPacket() throws Exception
     {
         k3po.finish();
@@ -164,8 +173,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/keep.alive.with.pingreq/client",
-        "${net}/keep.alive.with.pingreq/server"})
+        "${net}/ping.keep.alive/client",
+        "${net}/ping.keep.alive/server"})
     public void shouldKeepAliveWithPingreq() throws Exception
     {
         k3po.finish();
@@ -173,8 +182,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/timeout.before.connect/client",
-        "${net}/timeout.before.connect/server"})
+        "${net}/connect.timeout.before.connect/client",
+        "${net}/connect.timeout.before.connect/server"})
     public void shouldTimeoutBeforeConnect() throws Exception
     {
         k3po.finish();
@@ -182,8 +191,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/maximum.qos.0/client",
-        "${net}/connect/maximum.qos.0/server"})
+        "${net}/connect.maximum.qos.0/client",
+        "${net}/connect.maximum.qos.0/server"})
     public void shouldConnectWithMaximumQos0() throws Exception
     {
         k3po.finish();
@@ -191,8 +200,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/retain.unavailable/client",
-        "${net}/connect/retain.unavailable/server"})
+        "${net}/connect.retain.unavailable/client",
+        "${net}/connect.retain.unavailable/server"})
     public void shouldConnectWithRetainUnavailable() throws Exception
     {
         k3po.finish();
@@ -200,8 +209,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/wildcard.subscriptions.unavailable/client",
-        "${net}/connect/wildcard.subscriptions.unavailable/server"})
+        "${net}/connect.wildcard.subscriptions.unavailable/client",
+        "${net}/connect.wildcard.subscriptions.unavailable/server"})
     public void shouldConnectWithWildcardSubscriptionsUnavailable() throws Exception
     {
         k3po.finish();
@@ -209,8 +218,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/subscription.identifiers.unavailable/client",
-        "${net}/connect/subscription.identifiers.unavailable/server"})
+        "${net}/connect.subscription.identifiers.unavailable/client",
+        "${net}/connect.subscription.identifiers.unavailable/server"})
     public void shouldConnectWithSubscriptionIdentifiersUnavailable() throws Exception
     {
         k3po.finish();
@@ -218,8 +227,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/shared.subscriptions.unavailable/client",
-        "${net}/connect/shared.subscriptions.unavailable/server"})
+        "${net}/connect.shared.subscriptions.unavailable/client",
+        "${net}/connect.shared.subscriptions.unavailable/server"})
     public void shouldConnectWithSharedSubscriptionsUnavailable() throws Exception
     {
         k3po.finish();
@@ -227,8 +236,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.username/client",
-        "${net}/connect/reject.username/server"})
+        "${net}/connect.reject.username.not.authorized/client",
+        "${net}/connect.reject.username.not.authorized/server"})
     public void shouldRejectConnectWithUsername() throws Exception
     {
         k3po.finish();
@@ -236,8 +245,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.password/client",
-        "${net}/connect/reject.password/server"})
+        "${net}/connect.reject.password.not.authorized/client",
+        "${net}/connect.reject.password.not.authorized/server"})
     public void shouldRejectConnectWithPassword() throws Exception
     {
         k3po.finish();
@@ -245,17 +254,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.will.flag/client",
-        "${net}/connect/reject.will.flag/server"})
-    public void shouldRejectWillFlag() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/connect/reject.invalid.will.qos/client",
-        "${net}/connect/reject.invalid.will.qos/server"})
+        "${net}/connect.will.invalid.will.qos/client",
+        "${net}/connect.will.invalid.will.qos/server"})
     public void shouldRejectInvalidWillQos() throws Exception
     {
         k3po.finish();
@@ -263,8 +263,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.will.qos.1.without.will.flag/client",
-        "${net}/connect/reject.will.qos.1.without.will.flag/server"})
+        "${net}/connect.will.reject.will.qos.1.without.will.flag/client",
+        "${net}/connect.will.reject.will.qos.1.without.will.flag/server"})
     public void shouldRejectWillQos1WithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -272,8 +272,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.will.qos.2.without.will.flag/client",
-        "${net}/connect/reject.will.qos.2.without.will.flag/server"})
+        "${net}/connect.will.reject.will.qos.2.without.will.flag/client",
+        "${net}/connect.will.reject.will.qos.2.without.will.flag/server"})
     public void shouldRejectWillQos2WithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -281,8 +281,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/reject.will.retain.without.will.flag/client",
-        "${net}/connect/reject.will.retain.without.will.flag/server"})
+        "${net}/connect.will.reject.will.retain.without.will.flag/client",
+        "${net}/connect.will.reject.will.retain.without.will.flag/server"})
     public void shouldRejectWillRetainWithoutWillFlag() throws Exception
     {
         k3po.finish();
@@ -290,8 +290,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/will.message.with.abrupt.disconnect/client",
-        "${net}/connect/will.message.with.abrupt.disconnect/server"})
+        "${net}/connect.will.message.with.abrupt.disconnect/client",
+        "${net}/connect.will.message.with.abrupt.disconnect/server"})
     public void shouldConnectWithWillMessageThenAbruptDisconnect() throws Exception
     {
         k3po.finish();
@@ -299,8 +299,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect/will.message.with.normal.disconnect/client",
-        "${net}/connect/will.message.with.normal.disconnect/server"})
+        "${net}/connect.will.message.with.normal.disconnect/client",
+        "${net}/connect.will.message.with.normal.disconnect/server"})
     public void shouldConnectWithWillMessageThenNormalDisconnect() throws Exception
     {
         k3po.finish();

@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class SubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/subscribe");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -38,8 +38,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/missing.topic.filters/client",
-        "${net}/missing.topic.filters/server"})
+        "${net}/subscribe.missing.topic.filters/client",
+        "${net}/subscribe.missing.topic.filters/server"})
     public void shouldRejectSubscribeWithMissingTopicFilters() throws Exception
     {
         k3po.finish();
@@ -47,8 +47,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/invalid.topic.filter/client",
-        "${net}/invalid.topic.filter/server"})
+        "${net}/subscribe.invalid.topic.filter/client",
+        "${net}/subscribe.invalid.topic.filter/server"})
     public void shouldRejectSubscribeWithInvalidTopicFilter() throws Exception
     {
         k3po.finish();
@@ -56,8 +56,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/single.topic.filter.exact/client",
-        "${net}/single.topic.filter.exact/server"})
+        "${net}/subscribe.topic.filter.single.exact/client",
+        "${net}/subscribe.topic.filter.single.exact/server"})
     public void shouldSubscribeToExactTopicFilter() throws Exception
     {
         k3po.finish();
@@ -65,8 +65,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/single.topic.filter.wildcard/client",
-        "${net}/single.topic.filter.wildcard/server"})
+        "${net}/subscribe.topic.filter.single.wildcard/client",
+        "${net}/subscribe.topic.filter.single.wildcard/server"})
     public void shouldSubscribeToWildcardTopicFilter() throws Exception
     {
         k3po.finish();
@@ -74,8 +74,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.both.exact/client",
-        "${net}/aggregated.topic.filters.both.exact/server"})
+        "${net}/subscribe.topic.filters.aggregated.both.exact/client",
+        "${net}/subscribe.topic.filters.aggregated.both.exact/server"})
     public void shouldSubscribeToAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
@@ -83,8 +83,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/isolated.topic.filters.both.exact/client",
-        "${net}/isolated.topic.filters.both.exact/server"})
+        "${net}/subscribe.topic.filters.isolated.both.exact/client",
+        "${net}/subscribe.topic.filters.isolated.both.exact/server"})
     public void shouldSubscribeToIsolatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
@@ -92,8 +92,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.both.wildcard/client",
-        "${net}/aggregated.topic.filters.both.wildcard/server"})
+        "${net}/subscribe.topic.filters.aggregated.both.wildcard/client",
+        "${net}/subscribe.topic.filters.aggregated.both.wildcard/server"})
     public void shouldSubscribeToAggregatedTopicFiltersBothWildcard() throws Exception
     {
         k3po.finish();
@@ -101,8 +101,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/isolated.topic.filters.both.wildcard/client",
-        "${net}/isolated.topic.filters.both.wildcard/server"})
+        "${net}/subscribe.topic.filters.isolated.both.wildcard/client",
+        "${net}/subscribe.topic.filters.isolated.both.wildcard/server"})
     public void shouldSubscribeToIsolatedTopicFiltersBothWildcard() throws Exception
     {
         k3po.finish();
@@ -110,8 +110,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.exact.and.wildcard/client",
-        "${net}/aggregated.topic.filters.exact.and.wildcard/server"})
+        "${net}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
+        "${net}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
     public void shouldSubscribeToAggregatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
@@ -119,8 +119,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/isolated.topic.filters.exact.and.wildcard/client",
-        "${net}/isolated.topic.filters.exact.and.wildcard/server"})
+        "${net}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
+        "${net}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
     public void shouldSubscribeToIsolatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
@@ -128,8 +128,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/invalid.fixed.header.flags/client",
-        "${net}/invalid.fixed.header.flags/server"})
+        "${net}/subscribe.invalid.fixed.header.flags/client",
+        "${net}/subscribe.invalid.fixed.header.flags/server"})
     public void shouldRejectMalformedSubscribePacket() throws Exception
     {
         k3po.finish();
@@ -137,9 +137,54 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/reject.no.local/client",
-        "${net}/reject.no.local/server"})
+        "${net}/subscribe.reject.no.local/client",
+        "${net}/subscribe.reject.no.local/server"})
     public void shouldRejectNoLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.one.message.receive.correlation.data/client",
+        "${net}/subscribe.one.message.receive.correlation.data/server"})
+    public void shouldReceiveCorrelationDataAfterSendingSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.one.message.with.invalid.subscription.id/client",
+        "${net}/subscribe.one.message.with.invalid.subscription.id/server"})
+    public void shouldSubscribeOneMessageWithInvalidSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.after.publish.no.local/client",
+        "${net}/subscribe.after.publish.no.local/server"})
+    public void shouldSubscribeAfterPublishNoLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.one.message.get.local/client",
+        "${net}/subscribe.one.message.get.local/server"})
+    public void shouldSubscribeGetLocalPublishedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.get.retained.as.published/client",
+        "${net}/subscribe.get.retained.as.published/server"})
+    public void shouldSubscribeGetRetainedMessageAsPublished() throws Exception
     {
         k3po.finish();
     }
