@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
 import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcKind.UNARY;
+import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType.TEXT;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -32,29 +33,36 @@ import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 
 public class GrpcFunctionsTest
 {
+    private final OctetsFW.Builder nameBuilder =
+        new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
     private final OctetsFW.Builder valueBuilder =
         new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
 
     @Test
     public void shouldGenerateBeginExtension()
     {
-        final String method = "example.EchoService/EchoUnary";
         byte[] build = GrpcFunctions.beginEx()
             .typeId(0x01)
-            .method(method)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoUnary")
             .request(UNARY.name())
             .response(UNARY.name())
-            .metadata("name", "value")
+            .metadata("custom", "test")
             .build();
         DirectBuffer buffer = new UnsafeBuffer(build);
         GrpcBeginExFW beginEx = new GrpcBeginExFW().wrap(buffer, 0, buffer.capacity());
-        assertEquals(method, beginEx.method().asString());
+        assertEquals("http", beginEx.scheme().asString());
+        assertEquals("localhost:8080", beginEx.authority().asString());
+        assertEquals("example.EchoService", beginEx.service().asString());
+        assertEquals("EchoUnary", beginEx.method().asString());
         assertEquals(UNARY, beginEx.request().get());
         assertEquals(UNARY, beginEx.response().get());
-        beginEx.metadata().forEach(onlyHeader ->
+        beginEx.metadata().forEach(h ->
         {
-            assertEquals("name", onlyHeader.name().asString());
-            assertTrue(valueBuilder.set("value".getBytes()).build().equals(onlyHeader.value()));
+            assertTrue(nameBuilder.set("custom".getBytes()).build().equals(h.name()));
+            assertTrue(valueBuilder.set("test".getBytes()).build().equals(h.value()));
         });
         assertTrue(beginEx.metadata().sizeof() > 0);
     }
@@ -62,24 +70,31 @@ public class GrpcFunctionsTest
     @Test
     public void shouldMatchBeginExtension() throws Exception
     {
-        final String method = "example.EchoService/EchoUnary";
         String value = "value";
+        String custom = "custom";
         BytesMatcher matcher = GrpcFunctions.matchBeginEx()
             .typeId(0x01)
-            .method(method)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoUnary")
             .request(UNARY.name())
             .response(UNARY.name())
-            .metadata("name", value)
+            .metadata(custom, value)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
 
         new GrpcBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
             .typeId(0x01)
-            .method(method)
+            .scheme("http")
+            .authority("localhost:8080")
+            .service("example.EchoService")
+            .method("EchoUnary")
             .request(b -> b.set(UNARY).build())
             .response(b -> b.set(UNARY).build())
-            .metadataItem(h -> h.name("name")
+            .metadataItem(h -> h.type(t -> t.set(TEXT).build()).nameLen(custom.length())
+                .name(nameBuilder.set(custom.getBytes()).build())
                 .valueLen(value.length()).value(valueBuilder.set(value.getBytes()).build()))
             .build();
 
