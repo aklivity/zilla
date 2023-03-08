@@ -2,7 +2,7 @@
   "name": "test",
   "bindings":
   {
-    "net0":
+    "app0":
     {
       "type" : "grpc",
       "kind": "client",
