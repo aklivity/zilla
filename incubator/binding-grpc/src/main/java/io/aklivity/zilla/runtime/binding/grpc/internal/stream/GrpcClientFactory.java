@@ -27,7 +27,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Flyweight;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
@@ -60,14 +59,15 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String8FW HTTP_HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HTTP_HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HTTP_HEADER_PATH = new String8FW(":path");
-    private static final String8FW HTTP_HEADER_STATUS = new String8FW(":status");
     private static final String8FW HTTP_HEADER_GRPC_STATUS = new String8FW("grpc-status");
     private static final String8FW HTTP_HEADER_CONTENT_TYPE = new String8FW("content-type");
+    private static final String8FW HTTP_HEADER_TE = new String8FW("te");
 
-    private static final String16FW HTTP_HEADER_METHOD_POST = new String16FW("POST");
-    private static final String16FW HTTP_HEADER_STATUS_200 = new String16FW("200");
+    private static final String16FW HTTP_HEADER_VALUE_METHOD_POST = new String16FW("POST");
+    private static final String16FW HTTP_HEADER_VALUE_STATUS_200 = new String16FW("200");
     private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC = new String16FW("application/grpc");
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
+    private static final String16FW HEADER_VALUE_TRAILERS = new String16FW("trailers");
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
     private final BeginFW beginRO = new BeginFW();
@@ -105,6 +105,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final int grpcTypeId;
 
     private final Long2ObjectHashMap<GrpcBindingConfig> bindings;
+    private final HttpGrpcHeaderHelper helper;
 
     public GrpcClientFactory(
         GrpcConfiguration config,
@@ -118,6 +119,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
+        this.helper = new HttpGrpcHeaderHelper();
     }
 
     @Override
@@ -393,16 +395,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
             long authorization,
             long affinity)
         {
-            if (!GrpcState.replyOpening(state))
-            {
-                replySeq = delegate.replySeq;
-                replyAck = delegate.replyAck;
-                replyMax = delegate.replyMax;
-                state = GrpcState.openingReply(state);
+            state = GrpcState.openingReply(state);
 
-                doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization, affinity);
-            }
+            doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
+                traceId, authorization, affinity);
         }
 
         private void doAppData(
@@ -454,11 +450,16 @@ public class GrpcClientFactory implements GrpcStreamFactory
             long traceId,
             long authorization,
             long budgetId,
-            int padding)
+            int padding,
+            long initialAck,
+            int initialMax)
         {
             state = GrpcState.openInitial(state);
 
-            doWindow(application, routeId, initialId, initialSeq, initialAck, initialMax,
+            this.initialAck = initialAck;
+            this.initialMax = initialMax;
+
+            doWindow(application, routeId, initialId, initialSeq, this.initialAck, this.initialMax,
                 traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING);
         }
 
@@ -676,24 +677,13 @@ public class GrpcClientFactory implements GrpcStreamFactory
             final OctetsFW extension = begin.extension();
             final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
-            String16FW status = HTTP_HEADER_STATUS_200;
+            String16FW status = HTTP_HEADER_VALUE_STATUS_200;
             String16FW grpcStatus = null;
             if (httpBeginEx != null)
             {
-                final Array32FW<HttpHeaderFW> headers = httpBeginEx.headers();
-                final HttpHeaderFW statusHeader = headers.matchFirst(h -> HTTP_HEADER_STATUS.equals(h.name()));
-
-                if (statusHeader != null)
-                {
-                    status = statusHeader.value();
-                }
-
-                final HttpHeaderFW grpcStatusHeader = headers.matchFirst(h -> HTTP_HEADER_GRPC_STATUS.equals(h.name()));
-
-                if (grpcStatusHeader != null)
-                {
-                    grpcStatus = grpcStatusHeader.value();
-                }
+                helper.visit(httpBeginEx);
+                status = helper.status;
+                grpcStatus = helper.grpcStatus;
             }
 
             assert acknowledge <= sequence;
@@ -707,8 +697,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (!HTTP_HEADER_STATUS_200.equals(status) ||
-                !HTTP_HEADER_GRPC_STATUS.equals(grpcStatus))
+            if (!HTTP_HEADER_VALUE_STATUS_200.equals(status) ||
+                grpcStatus != null && !HEADER_VALUE_GRPC_OK.equals(grpcStatus))
             {
                 delegate.doAppReset(traceId, authorization);
                 doNetAbort(traceId, authorization);
@@ -854,7 +844,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             assert initialAck <= initialMax;
 
-            delegate.doAppWindow(traceId, authorization, budgetId, padding);
+            delegate.doAppWindow(traceId, authorization, budgetId, padding, initialAck, initialMax);
         }
 
         private void cleanupNet(
@@ -889,7 +879,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 hs.item(h -> h
                     .name(HTTP_HEADER_METHOD)
-                    .value(HTTP_HEADER_METHOD_POST));
+                    .value(HTTP_HEADER_VALUE_METHOD_POST));
                 hs.item(h -> h
                     .name(HTTP_HEADER_SCHEME)
                     .value(scheme));
@@ -902,6 +892,9 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 hs.item(h -> h
                     .name(HTTP_HEADER_CONTENT_TYPE)
                     .value(HEADER_VALUE_CONTENT_TYPE_GRPC));
+                hs.item(h -> h
+                    .name(HTTP_HEADER_TE)
+                    .value(HEADER_VALUE_TRAILERS));
 
                 metadata.forEach(m -> hs.item(h -> h
                     .name(m.name().value(), 0, m.nameLen())
