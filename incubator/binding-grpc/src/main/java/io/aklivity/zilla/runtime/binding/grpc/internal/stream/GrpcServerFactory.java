@@ -345,7 +345,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final class GrpcServer
     {
         private final MessageConsumer network;
-        private final GrpcStream stream;
+        private final GrpcStream delegate;
         private final ContentType contentType;
         private final GrpcMethodResolver method;
         private final long routeId;
@@ -361,6 +361,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private int replyPadding;
         private int replyMax;
         private int state;
+        private int messageDeferred;
 
         private GrpcServer(
             MessageConsumer network,
@@ -380,7 +381,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             this.contentType = contentType;
             this.method = method;
 
-            this.stream = new GrpcStream(resolveId);
+            this.delegate = new GrpcStream(resolveId, this);
         }
 
         private int replyWindow()
@@ -443,7 +444,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             state = GrpcState.openingInitial(state);
 
-            stream.doAppBegin(traceId, authorization, affinity);
+            delegate.doAppBegin(traceId, authorization, affinity);
         }
 
         private void onNetData(
@@ -455,26 +456,69 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long authorization = data.authorization();
             final long budgetId = data.budgetId();
             final int reserved = data.reserved();
-            final int flags = data.flags();
             final OctetsFW payload = data.payload();
+            int flags = data.flags();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + data.reserved();
 
             assert initialAck <= initialSeq;
+            assert initialSeq <= initialAck + initialMax;
 
-            stream.doAppData(traceId, authorization, budgetId, reserved, flags, payload);
+            final DirectBuffer buffer = payload.buffer();
+            final int offset = payload.offset();
+            final int limit = payload.limit();
+            final int size = payload.sizeof();
+
+            if (messageDeferred == 0)
+            {
+                final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(buffer, offset, limit);
+                final int messageLength = grpcMessage.length();
+                final int payloadSize = size - GRPC_MESSAGE_PADDING;
+                messageDeferred = messageLength - payloadSize;
+
+                Flyweight dataEx = messageDeferred > 0 ?
+                    grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                        .typeId(grpcTypeId)
+                        .deferred(messageDeferred)
+                        .build() : EMPTY_OCTETS;
+
+
+                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
+                    buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
+            }
+            else
+            {
+                messageDeferred -= size;
+                assert messageDeferred >= 0;
+
+                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+
+                delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
+                    buffer, offset, size, EMPTY_OCTETS);
+            }
         }
 
         private void onNetEnd(
             EndFW end)
         {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
             final long traceId = end.traceId();
             final long authorization = end.authorization();
 
-            stream.doAppEnd(traceId, authorization);
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = GrpcState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            delegate.doAppEnd(traceId, authorization);
         }
 
         private void onNetAbort(
@@ -493,7 +537,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             assert initialAck <= initialSeq;
 
-            stream.doAppAbort(traceId, authorization);
+            delegate.doAppAbort(traceId, authorization);
         }
 
         private void onNetWindow(
@@ -513,7 +557,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             assert acknowledge >= replyAck;
             assert maximum >= replyMax;
 
-            replySeq = acknowledge;
+            replyAck = acknowledge;
             replyMax = maximum;
             replyPadding = padding;
             state = GrpcState.openReply(state);
@@ -526,7 +570,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             }
             else
             {
-                stream.doAppWindow(traceId, authorization, budgetId, padding, capabilities);
+                delegate.doAppWindow(traceId, authorization, budgetId, padding, capabilities, replyAck, replyMax);
             }
         }
 
@@ -549,7 +593,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             state = GrpcState.closeReply(state);
 
             assert replyAck <= replySeq;
-            stream.doAppReset(traceId, authorization);
+            delegate.doAppReset(traceId, authorization);
         }
 
         private void doNetBegin(
@@ -595,7 +639,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             if (!GrpcState.replyClosed(state))
             {
-                replySeq = stream.grpcReplySeq;
+                replySeq = delegate.grpcReplySeq;
                 state = GrpcState.closeInitial(state);
 
                 contentType.doNetEnd(this, traceId, authorization);
@@ -638,8 +682,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             int padding,
             int capabilities)
         {
-            initialAck = stream.grpcInitialAck;
-            initialMax = stream.grpcInitialMax;
+            initialAck = delegate.grpcInitialAck;
+            initialMax = delegate.grpcInitialMax;
 
             doWindow(network, routeId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding, capabilities);
@@ -676,7 +720,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 final int encodeLimit = encodeBuffer.capacity();
                 int encodeProgress = encodeOffset;
 
-                GrpcMessageFW grpcMessage = grpcMessageRW.wrap(encodeBuffer, encodeOffset, encodeOffset)
+                GrpcMessageFW grpcMessage = grpcMessageRW.wrap(encodeBuffer, encodeOffset, encodeLimit)
                     .flag(1)
                     .build();
                 encodeProgress = grpcMessage.limit();
@@ -701,344 +745,302 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 }
             }
         }
+    }
 
-        private final class GrpcStream
+    private final class GrpcStream
+    {
+        private final GrpcServer delegate;
+        private final long routeId;
+        private final long initialId;
+        private final long replyId;
+
+        private MessageConsumer application;
+        private int state;
+
+        private long grpcInitialSeq;
+        private long grpcInitialAck;
+        private int grpcInitialMax;
+
+        private long grpcReplySeq;
+        private long grpcReplyAck;
+        private int grpcReplyMax;
+
+        private GrpcStream(
+            long routeId,
+            GrpcServer delegate)
         {
-            private MessageConsumer application;
-            private final long routeId;
-            private final long initialId;
-            private final long replyId;
+            this.routeId = routeId;
+            this.delegate = delegate;
+            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.replyId = supplyReplyId.applyAsLong(this.initialId);
+        }
 
-            private int state;
+        private void doAppBegin(
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            application = newGrpcStream(this::onAppMessage, routeId, initialId, grpcInitialSeq, grpcInitialAck,
+                grpcInitialMax, traceId, authorization, affinity, delegate.method);
+        }
 
-            private long grpcInitialSeq;
-            private long grpcInitialAck;
-            private int grpcInitialMax;
+        private void doAppData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            DirectBuffer buffer,
+            int offset,
+            int length,
+            Flyweight extension)
+        {
 
-            private long grpcReplySeq;
-            private long grpcReplyAck;
-            private int grpcReplyMax;
-            private int clientMessageDeferred;
+            doData(application, routeId, initialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
+                traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
 
-            private GrpcStream(
-                long routeId)
+            grpcInitialSeq += reserved;
+
+            assert grpcInitialSeq <= grpcInitialAck + grpcInitialMax;
+        }
+
+        private void doAppEnd(
+            long traceId,
+            long authorization)
+        {
+            if (!GrpcState.initialClosed(state))
             {
-                this.routeId = routeId;
-                this.initialId = supplyInitialId.applyAsLong(routeId);
-                this.replyId = supplyReplyId.applyAsLong(this.initialId);
+                state = GrpcState.closeInitial(state);
+
+                doEnd(application, routeId, initialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+        private void doAppWindow(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int padding,
+            int capabilities,
+            long replyAck,
+            int replyMax)
+        {
+            grpcReplyAck = replyAck;
+            grpcReplyMax = replyMax;
+
+            doWindow(application, routeId, replyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
+                traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING, capabilities);
+        }
+
+        private void doAppAbort(
+            long traceId,
+            long authorization)
+        {
+            if (!GrpcState.initialClosed(state))
+            {
+                state = GrpcState.closeInitial(state);
+
+                doAbort(application, routeId, initialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+        }
+
+        private void onAppMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onAppBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onAppData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onAppEnd(end);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onAppReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onAppWindow(window);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onAppAbort(abort);
+                break;
+            }
+        }
+
+        private void onAppReset(
+            ResetFW reset)
+        {
+
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+
+            assert acknowledge <= sequence;
+            assert acknowledge >= grpcInitialAck;
+
+            grpcInitialAck = acknowledge;
+
+            assert grpcInitialAck <= grpcInitialSeq;
+
+            delegate.doNetReset(traceId, authorization);
+        }
+
+        private void onAppWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final long traceId = window.traceId();
+            final long budgetId = window.budgetId();
+            final long authorization = window.authorization();
+            final int maximum = window.maximum();
+            final int padding = window.padding();
+            final int capabilities = window.capabilities();
+
+            assert acknowledge <= sequence;
+            assert sequence <= grpcInitialSeq;
+            assert acknowledge >= grpcInitialAck;
+            assert maximum >= grpcInitialMax;
+
+            state = GrpcState.openInitial(state);
+
+            grpcInitialAck = acknowledge;
+            grpcInitialMax = maximum;
+
+            delegate.doNetWindow(authorization, traceId, budgetId, padding, capabilities);
+        }
+
+        private void onAppBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+
+            state = GrpcState.openReply(state);
+
+            assert acknowledge <= sequence;
+            assert sequence >= grpcReplySeq;
+            assert acknowledge >= grpcReplyAck;
+
+            grpcReplySeq = sequence;
+            grpcReplyAck = acknowledge;
+            state = GrpcState.openingReply(state);
+
+            delegate.doNetBegin(traceId, authorization, grpcReplySeq, grpcReplyAck, grpcReplyMax);
+        }
+
+        private void onAppData(
+            DataFW data)
+        {
+            final long sequence = data.sequence();
+            final long acknowledge = data.acknowledge();
+            final long traceId = data.traceId();
+            final long authorization = data.authorization();
+            final long budgetId = data.budgetId();
+            final int reserved = data.reserved();
+
+            assert acknowledge <= sequence;
+            assert sequence >= grpcReplySeq;
+            assert acknowledge <= grpcReplyAck;
+
+            grpcReplySeq = sequence + reserved;
+
+            assert grpcReplyAck <= grpcReplySeq;
+
+            final int flags = data.flags();
+            final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
+
+            final MutableDirectBuffer encodeBuffer = writeBuffer;
+            final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
+            final int encodeLimit = encodeBuffer.capacity();
+            final int payloadSize = payload.sizeof();
+
+            int encodeProgress = encodeOffset;
+
+            if ((flags & DATA_FLAG_INIT) != 0x00)
+            {
+                final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
+                final int deferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;
+                GrpcMessageFW message = grpcMessageRW
+                    .wrap(encodeBuffer, encodeOffset, encodeLimit)
+                    .flag(0)
+                    .length(payloadSize + deferred)
+                    .build();
+                encodeProgress = message.limit();
             }
 
-            private void doAppBegin(
-                long traceId,
-                long authorization,
-                long affinity)
+            encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
+            encodeProgress += payloadSize;
+
+            delegate.doNetData(traceId, authorization, budgetId, reserved, flags, encodeBuffer, encodeOffset,
+                encodeProgress - encodeOffset);
+        }
+
+        private void onAppEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= grpcReplySeq;
+
+            grpcReplySeq = sequence;
+            state = GrpcState.closeReply(state);
+
+            delegate.doNetEnd(traceId, authorization);
+        }
+
+        private void onAppAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= grpcReplySeq;
+
+            grpcReplySeq = sequence;
+            state = GrpcState.closeReply(state);
+
+            assert grpcReplyAck <= grpcReplySeq;
+
+            delegate.doNetAbort(traceId, authorization);
+        }
+
+
+        private void doAppReset(
+            long traceId,
+            long authorization)
+        {
+            if (!GrpcState.replyClosed(state))
             {
-                application = newGrpcStream(this::onAppMessage, routeId, initialId, grpcInitialSeq, grpcInitialAck,
-                    grpcInitialMax, traceId, authorization, affinity, method);
+                doReset(application, routeId, replyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
+                    traceId, authorization, EMPTY_OCTETS);
             }
 
-            private void doAppData(
-                long traceId,
-                long authorization,
-                long budgetId,
-                int reserved,
-                int flags,
-                OctetsFW payload)
-            {
-                assert GrpcState.initialOpening(state);
-
-                final DirectBuffer buffer = payload.buffer();
-                final int offset = payload.offset();
-                final int limit = payload.limit();
-                final int size = payload.sizeof();
-
-                if (clientMessageDeferred == 0)
-                {
-                    final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(buffer, offset, limit);
-                    final int messageLength = grpcMessage.length();
-                    final int payloadSize = size - GRPC_MESSAGE_PADDING;
-                    clientMessageDeferred = messageLength - payloadSize;
-
-                    Flyweight dataEx = clientMessageDeferred > 0 ?
-                        grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                            .typeId(grpcTypeId)
-                            .deferred(clientMessageDeferred)
-                            .build() : EMPTY_OCTETS;
-
-
-                    flags = clientMessageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
-                    flushAppData(traceId, authorization, budgetId, reserved, flags,
-                        buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
-                }
-                else
-                {
-                    clientMessageDeferred -= size;
-                    assert clientMessageDeferred >= 0;
-
-                    flags = clientMessageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
-
-                    flushAppData(traceId, authorization, budgetId, reserved, flags,
-                        buffer, offset, size, EMPTY_OCTETS);
-                }
-
-            }
-
-            private void doAppEnd(
-                long traceId,
-                long authorization)
-            {
-                if (!GrpcState.initialClosed(state))
-                {
-                    state = GrpcState.closeInitial(state);
-
-                    doEnd(application, routeId, initialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
-                        traceId, authorization, EMPTY_OCTETS);
-                }
-            }
-
-            private void doAppWindow(
-                long traceId,
-                long authorization,
-                long budgetId,
-                int padding,
-                int capabilities)
-            {
-                grpcReplyAck = replyAck;
-                grpcReplyMax = replyMax;
-
-                doWindow(application, routeId, replyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
-                    traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING, capabilities);
-            }
-
-            private void doAppAbort(
-                long traceId,
-                long authorization)
-            {
-                if (!GrpcState.initialClosed(state))
-                {
-                    state = GrpcState.closeInitial(state);
-
-                    doAbort(application, routeId, initialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
-                        traceId, authorization, EMPTY_OCTETS);
-                }
-            }
-
-            private void flushAppData(
-                long traceId,
-                long authorization,
-                long budgetId,
-                int reserved,
-                int flags,
-                DirectBuffer buffer,
-                int offset,
-                int length,
-                Flyweight extension)
-            {
-
-                doData(application, routeId, initialId, grpcInitialSeq, grpcInitialAck, grpcInitialMax,
-                    traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
-
-                grpcInitialSeq += reserved;
-
-                assert grpcInitialSeq <= grpcInitialAck + grpcInitialMax;
-            }
-
-            private void onAppMessage(
-                int msgTypeId,
-                DirectBuffer buffer,
-                int index,
-                int length)
-            {
-                switch (msgTypeId)
-                {
-                case BeginFW.TYPE_ID:
-                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                    onAppBegin(begin);
-                    break;
-                case DataFW.TYPE_ID:
-                    final DataFW data = dataRO.wrap(buffer, index, index + length);
-                    onAppData(data);
-                    break;
-                case EndFW.TYPE_ID:
-                    final EndFW end = endRO.wrap(buffer, index, index + length);
-                    onAppEnd(end);
-                    break;
-                case ResetFW.TYPE_ID:
-                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                    onAppReset(reset);
-                    break;
-                case WindowFW.TYPE_ID:
-                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                    onAppWindow(window);
-                    break;
-                case AbortFW.TYPE_ID:
-                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                    onAppAbort(abort);
-                    break;
-                }
-            }
-
-            private void onAppReset(
-                ResetFW reset)
-            {
-
-                final long traceId = reset.traceId();
-                final long authorization = reset.authorization();
-                final long sequence = reset.sequence();
-                final long acknowledge = reset.acknowledge();
-
-                assert acknowledge <= sequence;
-                assert acknowledge >= grpcInitialAck;
-
-                grpcInitialAck = acknowledge;
-
-                assert grpcInitialAck <= grpcInitialSeq;
-
-                doNetReset(traceId, authorization);
-            }
-
-            private void onAppWindow(
-                WindowFW window)
-            {
-                final long sequence = window.sequence();
-                final long acknowledge = window.acknowledge();
-                final long traceId = window.traceId();
-                final long budgetId = window.budgetId();
-                final long authorization = window.authorization();
-                final int maximum = window.maximum();
-                final int padding = window.padding();
-                final int capabilities = window.capabilities();
-
-                assert acknowledge <= sequence;
-                assert sequence <= grpcInitialSeq;
-                assert acknowledge >= grpcInitialAck;
-                assert maximum >= grpcInitialMax;
-
-                state = GrpcState.openInitial(state);
-
-                grpcInitialAck = acknowledge;
-                grpcInitialMax = maximum;
-
-                doNetWindow(authorization, traceId, budgetId, padding, capabilities);
-            }
-
-            private void onAppBegin(
-                BeginFW begin)
-            {
-                final long sequence = begin.sequence();
-                final long acknowledge = begin.acknowledge();
-                final long traceId = begin.traceId();
-                final long authorization = begin.authorization();
-
-                state = GrpcState.openReply(state);
-
-                assert acknowledge <= sequence;
-                assert sequence >= grpcReplySeq;
-                assert acknowledge >= grpcReplyAck;
-
-                grpcReplySeq = sequence;
-                grpcReplyAck = acknowledge;
-                state = GrpcState.openingReply(state);
-
-                doNetBegin(traceId, authorization, grpcReplySeq, grpcReplyAck, grpcReplyMax);
-            }
-
-            private void onAppData(
-                DataFW data)
-            {
-                final long sequence = data.sequence();
-                final long acknowledge = data.acknowledge();
-                final long traceId = data.traceId();
-                final long authorization = data.authorization();
-                final long budgetId = data.budgetId();
-                final int reserved = data.reserved();
-
-                assert acknowledge <= sequence;
-                assert sequence >= grpcReplySeq;
-                assert acknowledge <= grpcReplyAck;
-
-                grpcReplySeq = sequence + reserved;
-
-                assert grpcReplyAck <= grpcReplySeq;
-
-                final int flags = data.flags();
-                final OctetsFW payload = data.payload();
-                final OctetsFW extension = data.extension();
-
-                final MutableDirectBuffer encodeBuffer = writeBuffer;
-                final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
-                final int encodeLimit = encodeBuffer.capacity();
-                final int payloadSize = payload.sizeof();
-
-                int encodeProgress = encodeOffset;
-
-                if ((flags & DATA_FLAG_INIT) != 0x00)
-                {
-                    final GrpcDataExFW grpcDataEx = extension.get(grpcDataExRO::tryWrap);
-                    final int deferred = grpcDataEx != null ? grpcDataEx.deferred() : 0;
-                    GrpcMessageFW message = grpcMessageRW
-                        .wrap(encodeBuffer, encodeOffset, encodeLimit)
-                        .flag(0)
-                        .length(payloadSize + deferred)
-                        .build();
-                    encodeProgress = message.limit();
-                }
-
-                encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
-                encodeProgress += payloadSize;
-
-                doNetData(traceId, authorization, budgetId, reserved, flags, encodeBuffer, encodeOffset,
-                    encodeProgress - encodeOffset);
-            }
-
-            private void onAppEnd(
-                EndFW end)
-            {
-                final long sequence = end.sequence();
-                final long acknowledge = end.acknowledge();
-                final long traceId = end.traceId();
-                final long authorization = end.authorization();
-
-                assert acknowledge <= sequence;
-                assert sequence >= grpcReplySeq;
-
-                grpcReplySeq = sequence;
-                state = GrpcState.closeReply(state);
-
-                doNetEnd(traceId, authorization);
-            }
-
-            private void onAppAbort(
-                AbortFW abort)
-            {
-                final long sequence = abort.sequence();
-                final long acknowledge = abort.acknowledge();
-                final long traceId = abort.traceId();
-                final long authorization = abort.authorization();
-
-                assert acknowledge <= sequence;
-                assert sequence >= grpcReplySeq;
-
-                grpcReplySeq = sequence;
-                state = GrpcState.closeReply(state);
-
-                assert grpcReplyAck <= grpcReplySeq;
-
-                doNetAbort(traceId, authorization);
-            }
-
-
-            private void doAppReset(
-                long traceId,
-                long authorization)
-            {
-                if (!GrpcState.replyClosed(state))
-                {
-                    doReset(application, routeId, replyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
-                        traceId, authorization, EMPTY_OCTETS);
-                }
-
-            }
         }
     }
 
