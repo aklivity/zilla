@@ -39,6 +39,7 @@ public class EngineConfiguration extends Configuration
     public static final boolean DEBUG_BUDGETS = Boolean.getBoolean("zilla.engine.debug.budgets");
 
     public static final PropertyDef<URL> ENGINE_CONFIG_URL;
+    public static final IntPropertyDef ENGINE_CONFIG_POLL_INTERVAL_SECONDS;
     public static final PropertyDef<String> ENGINE_NAME;
     public static final PropertyDef<String> ENGINE_DIRECTORY;
     public static final PropertyDef<Path> ENGINE_CACHE_DIRECTORY;
@@ -65,6 +66,7 @@ public class EngineConfiguration extends Configuration
     public static final LongPropertyDef ENGINE_ROUTED_DELAY_MILLIS;
     public static final LongPropertyDef ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS;
     public static final BooleanPropertyDef ENGINE_VERBOSE;
+    public static final BooleanPropertyDef ENGINE_VERBOSE_SCHEMA;
     public static final IntPropertyDef ENGINE_WORKERS;
     public static final BooleanPropertyDef ENGINE_CONFIG_RESOLVE_EXPRESSIONS;
 
@@ -75,6 +77,7 @@ public class EngineConfiguration extends Configuration
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.engine");
         ENGINE_CONFIG_URL = config.property(URL.class, "config.url", EngineConfiguration::configURL, "file:zilla.yaml");
+        ENGINE_CONFIG_POLL_INTERVAL_SECONDS = config.property("config.poll.interval.seconds", 60);
         ENGINE_NAME = config.property("name", "engine");
         ENGINE_DIRECTORY = config.property("directory", ".");
         ENGINE_CACHE_DIRECTORY = config.property(Path.class, "cache.directory", EngineConfiguration::cacheDirectory, "cache");
@@ -103,6 +106,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_ROUTED_DELAY_MILLIS = config.property("routed.delay.millis", 0L);
         ENGINE_CREDITOR_CHILD_CLEANUP_LINGER_MILLIS = config.property("child.cleanup.linger", SECONDS.toMillis(5L));
         ENGINE_VERBOSE = config.property("verbose", false);
+        ENGINE_VERBOSE_SCHEMA = config.property("verbose.schema", false);
         ENGINE_WORKERS = config.property("workers", Runtime.getRuntime().availableProcessors());
         ENGINE_CONFIG_RESOLVE_EXPRESSIONS = config.property("config.resolve.expressions", true);
         ENGINE_CONFIG = config;
@@ -135,6 +139,11 @@ public class EngineConfiguration extends Configuration
     public URL configURL()
     {
         return ENGINE_CONFIG_URL.get(this);
+    }
+
+    public int configPollIntervalSeconds()
+    {
+        return ENGINE_CONFIG_POLL_INTERVAL_SECONDS.getAsInt(this);
     }
 
     public String name()
@@ -271,6 +280,11 @@ public class EngineConfiguration extends Configuration
     public boolean verbose()
     {
         return ENGINE_VERBOSE.getAsBoolean(this);
+    }
+
+    public boolean verboseSchema()
+    {
+        return ENGINE_VERBOSE_SCHEMA.getAsBoolean(this);
     }
 
     public int workers()

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertSame;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.time.Instant;
 
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
@@ -38,8 +37,6 @@ import io.aklivity.zilla.specs.binding.filesystem.internal.types.stream.FileSyst
 
 public class FileSystemFunctionsTest
 {
-    private final Instant now = Instant.now();
-
     @Test
     public void shouldResolveFunction() throws Exception
     {
@@ -60,7 +57,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -70,7 +68,6 @@ public class FileSystemFunctionsTest
         assertEquals("index.html", beginEx.path().asString());
         assertEquals(1 << READ_PAYLOAD.ordinal(), beginEx.capabilities());
         assertEquals(77L, beginEx.payloadSize());
-        assertEquals(now.toEpochMilli(), beginEx.modifiedTime());
     }
 
     @Test
@@ -82,7 +79,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -93,7 +91,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -114,7 +113,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -127,7 +127,8 @@ public class FileSystemFunctionsTest
             .capabilities("READ_PAYLOAD")
             .path("index.html")
             .type("text/html")
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -138,7 +139,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         assertNull(matcher.match(byteBuf));
@@ -152,7 +154,8 @@ public class FileSystemFunctionsTest
             .capabilities("READ_PAYLOAD")
             .path("index.html")
             .type("text/html")
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -163,7 +166,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         matcher.match(byteBuf);
@@ -178,7 +182,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -189,7 +194,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         matcher.match(byteBuf);
@@ -204,7 +210,8 @@ public class FileSystemFunctionsTest
             .path("index.json")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -215,7 +222,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         matcher.match(byteBuf);
@@ -230,7 +238,6 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("application/json")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -241,7 +248,62 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExtensionWhenTagDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .capabilities("READ_PAYLOAD")
+            .path("index.html")
+            .type("text/html")
+            .payloadSize(77L)
+            .tag("AAAAA")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .capabilities(1 << READ_PAYLOAD.ordinal())
+            .path("index.html")
+            .type("text/html")
+            .payloadSize(77L)
+            .tag("BBBBBB")
+            .timeout(60)
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExtensionWhenTimeoutDiffers() throws Exception
+    {
+        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
+            .typeId(0x01)
+            .capabilities("READ_PAYLOAD")
+            .path("index.html")
+            .type("text/html")
+            .payloadSize(77L)
+            .timeout(50)
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .capabilities(1 << READ_PAYLOAD.ordinal())
+            .path("index.html")
+            .type("text/html")
+            .payloadSize(77L)
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         matcher.match(byteBuf);
@@ -256,7 +318,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(1024);
@@ -267,33 +330,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(76L)
-            .modifiedTime(now.toEpochMilli())
-            .build();
-
-        matcher.match(byteBuf);
-    }
-
-    @Test(expected = Exception.class)
-    public void shouldNotMatchBeginExtensionWhenModifiedTimeDiffers() throws Exception
-    {
-        BytesMatcher matcher = FileSystemFunctions.matchBeginEx()
-            .typeId(0x01)
-            .capabilities("READ_PAYLOAD")
-            .path("index.html")
-            .type("text/html")
-            .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli() + 1)
-            .build();
-
-        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-
-        new FileSystemBeginExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-            .typeId(0x01)
-            .capabilities(1 << READ_PAYLOAD.ordinal())
-            .path("index.html")
-            .type("text/html")
-            .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         matcher.match(byteBuf);
@@ -308,7 +346,8 @@ public class FileSystemFunctionsTest
             .path("index.html")
             .type("text/html")
             .payloadSize(77L)
-            .modifiedTime(now.toEpochMilli())
+            .tag("AAAAAAAAAAAAAAAA")
+            .timeout(60)
             .build();
 
         ByteBuffer byteBuf = ByteBuffer.allocate(0);
