@@ -39,4 +39,10 @@ public class StreamMetricsContext implements MetricsContext
     {
         return streamMetrics.getOrDefault(name, () -> null).get();
     }
+
+    /*@Override
+    public Collection<String> names()
+    {
+        return streamMetrics.keySet();
+    }*/
 }

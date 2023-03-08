@@ -24,10 +24,12 @@ import org.agrona.collections.Int2ObjectHashMap;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -36,12 +38,14 @@ public class NamespaceRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
+    private final Function<String, MetricsContext> metricsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
     private final Int2ObjectHashMap<BindingRegistry> bindingsById;
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
+    private final Int2ObjectHashMap<MetricRegistry> metricsById;
     private final LongConsumer detachBinding;
 
     public NamespaceRegistry(
@@ -49,6 +53,7 @@ public class NamespaceRegistry
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
+        Function<String, MetricsContext> metricsByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry,
         LongConsumer detachBinding)
@@ -57,6 +62,7 @@ public class NamespaceRegistry
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
+        this.metricsByType = metricsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.detachBinding = detachBinding;
@@ -64,6 +70,7 @@ public class NamespaceRegistry
         this.bindingsById = new Int2ObjectHashMap<>();
         this.guardsById = new Int2ObjectHashMap<>();
         this.vaultsById = new Int2ObjectHashMap<>();
+        this.metricsById = new Int2ObjectHashMap<>();
     }
 
     public int namespaceId()
@@ -76,6 +83,10 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
         namespace.bindings.forEach(this::attachBinding);
+        if (namespace.telemetry != null)
+        {
+            namespace.telemetry.metrics.forEach(this::attachMetric);
+        }
     }
 
     public void detach()
@@ -83,6 +94,10 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::detachVault);
         namespace.guards.forEach(this::detachGuard);
         namespace.bindings.forEach(this::detachBinding);
+        if (namespace.telemetry != null)
+        {
+            namespace.telemetry.metrics.forEach(this::detachMetric);
+        }
     }
 
     private void attachBinding(
@@ -93,6 +108,7 @@ public class NamespaceRegistry
 
         int bindingId = supplyLabelId.applyAsInt(config.entry);
         BindingRegistry registry = new BindingRegistry(config, context);
+        // TODO: Ati -- instantiate the MetricHandlers are needed for this binding -- chain them with andThen
         bindingsById.put(bindingId, registry);
         registry.attach();
         supplyLoadEntry.accept(config.id);
@@ -156,6 +172,27 @@ public class NamespaceRegistry
         }
     }
 
+    private void attachMetric(
+        MetricConfig config)
+    {
+        MetricsContext context = metricsByType.apply(config.group);
+        assert context != null : "Missing metrics type: " + config.group;
+
+        int metricsId = supplyLabelId.applyAsInt(config.group);
+        //MetricRegistry registry = metricsById.putIfAbsent(metricsId, id -> new MetricRegistry(config.type, context));
+        //MetricRegistry registry = metricsById.putIfAbsent(metricsId, id -> new MetricRegistry(config, context));
+        //registry.attach(config);
+        // TODO: Ati
+    }
+
+    private void detachMetric(
+        MetricConfig config)
+    {
+
+        // TODO: Ati
+
+    }
+
     BindingRegistry findBinding(
         int bindingId)
     {
@@ -173,4 +210,6 @@ public class NamespaceRegistry
     {
         return vaultsById.get(vaultId);
     }
+
+    // TODO: Ati - MetricRegistry findMetric
 }

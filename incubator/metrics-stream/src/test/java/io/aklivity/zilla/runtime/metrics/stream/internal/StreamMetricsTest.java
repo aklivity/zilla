@@ -42,6 +42,8 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.opens.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
 
     @Test
@@ -57,6 +59,8 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.opens.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
 
     @Test
@@ -72,6 +76,8 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.data.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
 
     @Test
@@ -87,7 +93,10 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.data.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
+
     @Test
     public void shouldResolveStreamErrorsReceived()
     {
@@ -101,6 +110,8 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.errors.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
 
     @Test
@@ -116,6 +127,8 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.errors.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
 
     @Test
@@ -131,6 +144,8 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.closes.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
 
     @Test
@@ -146,5 +161,7 @@ public class StreamMetricsTest
         assertThat(metric.name(), equalTo("stream.closes.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supplyReceived(0L), instanceOf(StreamMetricHandler.class));
+        assertThat(metric.supplySent(0L), instanceOf(StreamMetricHandler.class));
     }
 }

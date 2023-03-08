@@ -33,4 +33,10 @@ public class HttpMetricsContext implements MetricsContext
     {
         return httpMetrics.getOrDefault(name, () -> null).get();
     }
+
+    /*@Override
+    public Collection<String> names()
+    {
+        return httpMetrics.keySet();
+    }*/
 }

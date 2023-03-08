@@ -49,4 +49,12 @@ final class BindingRegistry
     {
         return attached;
     }
+
+    // TODO: Ati public MetricHandler metricRecorder() -- that should the one MetricHandler that was chained
+
+    // TODO: Ati -- remove this
+    /*public long[] getMetricIds()
+    {
+        return binding.metricIds;
+    }*/
 }

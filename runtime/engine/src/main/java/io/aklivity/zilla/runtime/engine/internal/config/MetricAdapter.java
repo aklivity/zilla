@@ -1,34 +1,38 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.Arrays;
-
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 
-public class MetricAdapter implements JsonbAdapter<MetricConfig[], JsonArray>
+public class MetricAdapter implements JsonbAdapter<MetricConfig, JsonValue>
 {
-    @Override
+    /*@Override
     public JsonArray adaptToJson(
         MetricConfig[] metrics)
     {
         JsonArrayBuilder array = Json.createArrayBuilder();
         Arrays.stream(metrics).forEach(metric -> array.add(metric.name));
         return array.build();
+    }*/
+
+    @Override
+    public JsonValue adaptToJson(
+        MetricConfig config)
+    {
+        // TODO: Ati
+        return null;
     }
 
     @Override
-    public MetricConfig[] adaptFromJson(
-        JsonArray jsonArray)
+    public MetricConfig adaptFromJson(
+        JsonValue jsonValue)
     {
-        return jsonArray.stream()
-                .map(i -> new MetricConfig(asJsonString(i)))
-                .toArray(MetricConfig[]::new);
+        String name = asJsonString(jsonValue);
+        String[] parts = name.split("\\.");
+        String group = parts[0];
+        return new MetricConfig(group, name);
     }
 
     private static String asJsonString(
@@ -36,4 +40,5 @@ public class MetricAdapter implements JsonbAdapter<MetricConfig[], JsonArray>
     {
         return ((JsonString) value).getString();
     }
+
 }

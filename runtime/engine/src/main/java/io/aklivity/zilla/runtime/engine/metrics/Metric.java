@@ -1,7 +1,5 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import java.util.function.LongConsumer;
-
 public interface Metric
 {
     enum Kind
@@ -23,6 +21,9 @@ public interface Metric
 
     Unit unit();
 
-    MetricHandler supply(
-        LongConsumer recorder);
+    MetricHandler supplyReceived(
+        long bindingId);
+
+    MetricHandler supplySent(
+        long bindingId);
 }

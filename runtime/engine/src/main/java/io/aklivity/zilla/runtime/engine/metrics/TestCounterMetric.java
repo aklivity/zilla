@@ -1,13 +1,13 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import java.util.function.LongConsumer;
-
 public class TestCounterMetric implements Metric
 {
+    private static final String NAME = "test.counter";
+
     @Override
     public String name()
     {
-        return "test.counter";
+        return NAME;
     }
 
     @Override
@@ -23,9 +23,16 @@ public class TestCounterMetric implements Metric
     }
 
     @Override
-    public MetricHandler supply(
-        LongConsumer recorder)
+    public MetricHandler supplyReceived(
+        long bindingId)
     {
-        return null;
+        return new TestMetricHandler(NAME, MetricHandler.Event.RECEIVED, bindingId);
+    }
+
+    @Override
+    public MetricHandler supplySent(
+        long bindingId)
+    {
+        return new TestMetricHandler(NAME, MetricHandler.Event.SENT, bindingId);
     }
 }

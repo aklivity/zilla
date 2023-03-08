@@ -1,32 +1,37 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.Arrays;
+import java.util.Map;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 
-public class AttributeAdapter implements JsonbAdapter<AttributeConfig[], JsonObject>
+public class AttributeAdapter implements JsonbAdapter<AttributeConfig, Map.Entry<String, JsonValue>>
 {
-    public JsonObject adaptToJson(
+    /*public JsonObject adaptToJson(
         AttributeConfig[] attributes)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
         Arrays.stream(attributes).forEach(attribute -> object.add(attribute.name, attribute.value));
         return object.build();
+    }*/
+
+    @Override
+    public Map.Entry<String, JsonValue> adaptToJson(
+        AttributeConfig attributeConfig)
+    {
+        // TODO: Ati
+        return null;
     }
 
-    public AttributeConfig[] adaptFromJson(
-        JsonObject jsonObject)
+    @Override
+    public AttributeConfig adaptFromJson(
+        Map.Entry<String, JsonValue> entry)
     {
-        return jsonObject.entrySet().stream()
-                .map(i -> new AttributeConfig(i.getKey(), asJsonString(i.getValue())))
-                .toArray(AttributeConfig[]::new);
+
+        return new AttributeConfig(entry.getKey(), asJsonString(entry.getValue()));
     }
 
     private static String asJsonString(

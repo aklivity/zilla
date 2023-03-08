@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
@@ -32,6 +33,7 @@ public class ConfigurationRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
+    private final Function<String, MetricsContext> metricsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
 
@@ -39,16 +41,18 @@ public class ConfigurationRegistry
     private final LongConsumer detachBinding;
 
     public ConfigurationRegistry(
-        Function<String, BindingContext> bindingsByType,
-        Function<String, GuardContext> guardsByType,
-        Function<String, VaultContext> vaultsByType,
-        ToIntFunction<String> supplyLabelId,
-        LongConsumer supplyLoadEntry,
-        LongConsumer detachBinding)
+            Function<String, BindingContext> bindingsByType,
+            Function<String, GuardContext> guardsByType,
+            Function<String, VaultContext> vaultsByType,
+            Function<String, MetricsContext> metricsByType,
+            ToIntFunction<String> supplyLabelId,
+            LongConsumer supplyLoadEntry,
+            LongConsumer detachBinding)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
+        this.metricsByType = metricsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespacesById = new Int2ObjectHashMap<>();
@@ -113,8 +117,8 @@ public class ConfigurationRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, supplyLabelId, supplyLoadEntry,
-                    detachBinding);
+                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByType, supplyLabelId,
+                    supplyLoadEntry, detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

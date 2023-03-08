@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
@@ -210,6 +211,14 @@ public class ConfigurationManager
                 vault.id = namespace.resolveId.applyAsLong(vault.name);
             }
 
+            if (namespace.telemetry != null)
+            {
+                for (MetricConfig metric : namespace.telemetry.metrics)
+                {
+                    metric.id = namespace.resolveId.applyAsLong(metric.name);
+                }
+            }
+
             for (BindingConfig binding : namespace.bindings)
             {
                 binding.id = namespace.resolveId.applyAsLong(binding.entry);
@@ -251,6 +260,12 @@ public class ConfigurationManager
                         }
                     }
                 }
+
+                // collect the id's of the metrics configured for the current binding to an array
+                binding.metricIds = binding.telemetryRef != null && binding.telemetryRef.metricRefs != null
+                        ? binding.telemetryRef.metricRefs.stream()
+                            .map(metricRef -> namespace0.resolveId.applyAsLong(metricRef.name)).mapToLong(l -> l).toArray()
+                        : new long[]{};
 
                 long affinity = tuning.affinity(binding.id);
 

@@ -14,42 +14,33 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
-public class StreamErrorsSentMetric implements Metric
+public class StreamMetricHandler implements MetricHandler
 {
-    private static final String NAME = String.format("%s.%s", StreamMetrics.NAME, "errors.sent");
+    private final String name;
+    private final Event event;
+    private final long bindingId;
 
-    @Override
-    public String name()
-    {
-        return NAME;
-    }
-
-    @Override
-    public Kind kind()
-    {
-        return Kind.COUNTER;
-    }
-
-    @Override
-    public Unit unit()
-    {
-        return Unit.COUNT;
-    }
-
-    @Override
-    public MetricHandler supplyReceived(
+    public StreamMetricHandler(
+        String name,
+        Event event,
         long bindingId)
     {
-        return new StreamMetricHandler(NAME, MetricHandler.Event.RECEIVED, bindingId);
+        this.name = name;
+        this.event = event;
+        this.bindingId = bindingId;
     }
 
     @Override
-    public MetricHandler supplySent(
-        long bindingId)
+    public void onEvent(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
-        return new StreamMetricHandler(NAME, MetricHandler.Event.SENT, bindingId);
+        System.out.format("%s %s %d %d %d %d\n", name, event, bindingId, msgTypeId, index, length);
     }
 }

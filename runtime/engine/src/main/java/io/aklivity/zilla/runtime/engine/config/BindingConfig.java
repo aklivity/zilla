@@ -27,7 +27,7 @@ public class BindingConfig
 
     public transient long vaultId;
 
-    //public transient long[] metricIds;
+    public transient long[] metricIds;
 
     public final String vault;
     public final String entry;

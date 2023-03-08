@@ -13,31 +13,28 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.metrics;
+package io.aklivity.zilla.runtime.engine.metrics;
 
 import org.agrona.DirectBuffer;
 
-import io.aklivity.zilla.runtime.engine.config.MetricConfig;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
-
 public final class TestMetricHandler implements MetricHandler
 {
+    private final String name;
+    private final Event event;
+    private final long bindingId;
+
     public TestMetricHandler(
-        MetricConfig vault)
+        String name,
+        Event event,
+        long bindingId)
     {
+        this.name = name;
+        this.event = event;
+        this.bindingId = bindingId;
     }
 
     @Override
-    public void onReceived(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-    }
-
-    @Override
-    public void onSent(
+    public void onEvent(
         int msgTypeId,
         DirectBuffer buffer,
         int index,

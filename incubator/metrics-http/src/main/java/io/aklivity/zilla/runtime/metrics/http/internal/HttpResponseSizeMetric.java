@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
-import java.util.function.LongConsumer;
-
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
@@ -42,8 +40,15 @@ public class HttpResponseSizeMetric implements Metric
     }
 
     @Override
-    public MetricHandler supply(
-        LongConsumer recorder)
+    public MetricHandler supplyReceived(
+            long bindingId)
+    {
+        return null;
+    }
+
+    @Override
+    public MetricHandler supplySent(
+            long bindingId)
     {
         return null;
     }

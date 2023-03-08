@@ -4,4 +4,6 @@ public interface MetricsContext
 {
     Metric resolve(
         String name);
+
+    /*Collection<String> names();*/
 }

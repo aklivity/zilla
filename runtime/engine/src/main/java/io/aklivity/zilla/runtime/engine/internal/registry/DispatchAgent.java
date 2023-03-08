@@ -115,7 +115,9 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metrics;
+import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
@@ -146,6 +148,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final LabelManager labels;
     private final String agentName;
     private final LongFunction<LoadEntry> supplyLoadEntry;
+    private final LongFunction<MetricHandler> supplyMetric;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -327,12 +330,78 @@ public class DispatchAgent implements EngineContext, Agent
             String type = vault.name();
             vaultsByType.put(type, vault.supply(this));
         }
+
+        // TODO: Ati ?????
+        Map<String, MetricsContext> metricsByType = new LinkedHashMap<>();
+        for (Metrics metrics0 : metrics)
+        {
+            String type = metrics0.name();
+            metricsByType.put(type, metrics0.supply(null)); // TODO: Ati - we need a CollectorContext here
+        }
+
+        /*Map<String, Metric> metricsByName = new LinkedHashMap<>();
+        for (Metrics metrics0 : metrics)
+        {
+            MetricsContext context = metrics0.supply(null);
+            context.names().forEach(name -> metricsByName.put(name, context.resolve(name)));
+        }*/
+
+
+
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByType::get,
                 labels::supplyLabelId, supplyLoadEntry::apply, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
+
+        this.supplyMetric = bindingId -> new MetricHandler()
+        {
+            @Override
+            public void onEvent(int msgTypeId, DirectBuffer buffer, int index, int length)
+            {
+                System.out.format("%d %d %d %d\n", bindingId, msgTypeId, index, length);
+            }
+        };
+        //if (metricsByType.get("stream") != null) // TODO: Ati
+        //{
+        //String[] metricNames = {"stream.opens.received", "stream.opens.sent"};
+        //this.supplyMetric = bindingId -> buildMetricHandlerChain(this.configuration, metricNames, metricsByType, bindingId);
+        //}
+        //else
+        //{
+        //this.supplyMetric = bindingId -> metricsByType.get("test").resolve("test.counter").supplyReceived(bindingId);
+        //}
     }
+
+    /*public MetricHandler buildMetricHandlerChain(
+        ConfigurationRegistry configuration,
+        String[] metricNames,
+        Map<String, MetricsContext> metricsByType,
+        long bindingId
+    )
+    {
+        BindingRegistry binding = configuration.resolveBinding(bindingId); // ?????
+        if (binding == null)
+        {
+            return null;
+        }
+
+        long[] metricIds = binding.getMetricIds();
+
+        MetricHandler handler = null;
+        for (long metricId : metricIds)
+        {
+            // TODO: Ati // get metric by metricId and do stuff here
+        }
+        for (String metricName : metricNames)
+        {
+            MetricsContext context = metricsByType.get("stream"); // TODO: Ati
+            handler = handler == null
+                    ? context.resolve(metricName).supplyReceived(bindingId)
+                    : handler.andThen(context.resolve(metricName).supplyReceived(bindingId));
+        }
+        return handler;
+    }*/
 
     public static int indexOfId(
         long indexedId)
@@ -554,6 +623,8 @@ public class DispatchAgent implements EngineContext, Agent
         VaultRegistry vault = configuration.resolveVault(vaultId);
         return vault != null ? vault.handler() : null;
     }
+
+    // TODO: Ati - supplyMetric
 
     @Override
     public URL resolvePath(
@@ -1012,6 +1083,9 @@ public class DispatchAgent implements EngineContext, Agent
             final MessageConsumer handler = dispatcher.get(instanceId);
             if (handler != null)
             {
+                supplyMetric.apply(routeId).onEvent(msgTypeId, buffer, index, length);
+                //supplyMetricRecorder.apply(bindingId).onEvenet(...)
+                // long -> MetricHandler
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
@@ -1019,6 +1093,9 @@ public class DispatchAgent implements EngineContext, Agent
                     break;
                 case DataFW.TYPE_ID:
                     int bytesRead = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
+                    //supplyMetrics.apply(routeId).onReceived(...)
+                    //              -> MetricHandler
+                    //supplyMetric.apply(routeId).onEvent(msgTypeId, buffer, index, length);
                     supplyLoadEntry.apply(routeId).initialBytesRead(bytesRead);
                     handler.accept(msgTypeId, buffer, index, length);
                     break;

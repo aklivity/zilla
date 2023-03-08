@@ -44,4 +44,10 @@ public final class TestMetricsContext implements MetricsContext
     {
         return testMetrics.getOrDefault(name, () -> null).get();
     }
+
+    /*@Override
+    public Collection<String> names()
+    {
+        return testMetrics.keySet();
+    }*/
 }

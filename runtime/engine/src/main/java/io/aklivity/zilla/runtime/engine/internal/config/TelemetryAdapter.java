@@ -1,12 +1,9 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
@@ -31,7 +28,7 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
     public JsonObject adaptToJson(
         TelemetryConfig telemetry)
     {
-        JsonObjectBuilder item = Json.createObjectBuilder();
+        /*JsonObjectBuilder item = Json.createObjectBuilder();
 
         JsonObject attributes = attribute.adaptToJson(telemetry.attributes.toArray(AttributeConfig[]::new));
         item.add(ATTRIBUTES_NAME, attributes);
@@ -39,7 +36,9 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
         JsonArray metrics = metric.adaptToJson(telemetry.metrics.toArray(MetricConfig[]::new));
         item.add(METRICS_NAME, metrics);
 
-        return item.build();
+        return item.build();*/
+        // TODO: Ati - handle the array thing here
+        return null;
     }
 
     @Override
@@ -47,11 +46,15 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
         JsonObject jsonObject)
     {
         List<AttributeConfig> attributes = jsonObject.containsKey(ATTRIBUTES_NAME)
-            ? Arrays.asList(attribute.adaptFromJson(jsonObject.getJsonObject(ATTRIBUTES_NAME)))
-            : List.of();
+                ? jsonObject.getJsonObject(ATTRIBUTES_NAME).entrySet().stream()
+                        .map(attribute::adaptFromJson)
+                        .collect(Collectors.toList())
+                : List.of();
         List<MetricConfig> metrics = jsonObject.containsKey(METRICS_NAME)
-            ? Arrays.asList(metric.adaptFromJson(jsonObject.getJsonArray(METRICS_NAME)))
-            : List.of();
+                ? jsonObject.getJsonArray(METRICS_NAME).stream()
+                        .map(metric::adaptFromJson)
+                        .collect(Collectors.toList())
+                : List.of();
         return new TelemetryConfig(attributes, metrics);
     }
 }

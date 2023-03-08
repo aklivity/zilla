@@ -25,8 +25,8 @@ public final class MetricsFactory
     }
 
     public Metrics create(
-            String type,
-            Configuration config)
+        String type,
+        Configuration config)
     {
         requireNonNull(type, "type");
 
@@ -36,7 +36,7 @@ public final class MetricsFactory
     }
 
     private static MetricsFactory instantiate(
-            ServiceLoader<MetricsFactorySpi> factories)
+        ServiceLoader<MetricsFactorySpi> factories)
     {
         Map<String, MetricsFactorySpi> factorySpisByName = new HashMap<>();
         factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.type(), factorySpi));
@@ -45,7 +45,7 @@ public final class MetricsFactory
     }
 
     private MetricsFactory(
-            Map<String, MetricsFactorySpi> factorySpis)
+        Map<String, MetricsFactorySpi> factorySpis)
     {
         this.factorySpis = factorySpis;
     }

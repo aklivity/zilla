@@ -43,7 +43,7 @@ public class HttpMetricsTest
         assertThat(metric.name(), equalTo("http.request.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
-        assertThat(metric.supply(null), nullValue());
+        assertThat(metric.supplyReceived(0L), nullValue());
     }
 
     @Test
@@ -59,6 +59,6 @@ public class HttpMetricsTest
         assertThat(metric.name(), equalTo("http.response.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
-        assertThat(metric.supply(null), nullValue());
+        assertThat(metric.supplyReceived(0L), nullValue());
     }
 }
