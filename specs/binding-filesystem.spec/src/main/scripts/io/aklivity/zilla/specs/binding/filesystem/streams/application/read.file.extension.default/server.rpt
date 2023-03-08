@@ -33,7 +33,6 @@ write zilla:begin.ext ${filesystem:beginEx()
                                   .path("script.js.map")
                                   .type("application/octet-stream")
                                   .payloadSize(3)
-                                  .modifiedTime(1643869342000)
                                   .build()}
 write flush
 

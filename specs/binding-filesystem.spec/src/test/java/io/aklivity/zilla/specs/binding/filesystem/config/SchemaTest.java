@@ -39,4 +39,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateServerFollowSymlinks()
+    {
+        JsonObject config = schema.validate("server_symlinks.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }
