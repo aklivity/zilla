@@ -639,8 +639,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             if (!GrpcState.replyClosed(state))
             {
-                replySeq = delegate.grpcReplySeq;
-                state = GrpcState.closeInitial(state);
+                state = GrpcState.closingReply(state);
 
                 contentType.doNetEnd(this, traceId, authorization);
             }
@@ -650,10 +649,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long traceId,
             long authorization)
         {
-
             if (!GrpcState.replyClosed(state))
             {
-                state = GrpcState.closeInitial(state);
+                state = GrpcState.closingReply(state);
+
                 contentType.doNetAbort(this, traceId, authorization);
             }
         }

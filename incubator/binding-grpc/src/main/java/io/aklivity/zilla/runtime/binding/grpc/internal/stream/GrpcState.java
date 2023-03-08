@@ -88,7 +88,7 @@ public final class GrpcState
     static int openReply(
         int state)
     {
-        return openingReply(state) | REPLY_OPENED;
+        return state | REPLY_OPENED;
     }
 
     static boolean replyOpening(
@@ -107,6 +107,12 @@ public final class GrpcState
         int state)
     {
         return state | REPLY_CLOSING;
+    }
+
+    static boolean replyClosing(
+        int state)
+    {
+        return (state & REPLY_CLOSING) != 0;
     }
 
     static int closeReply(

@@ -143,8 +143,8 @@ public final class GrpcBindingConfig
                 new String8FW("te"),
                 new String8FW("content-type"),
                 new String8FW("user-agent")));
-        private final Map<String8FW, Consumer<String16FW>> visitors;
         private final MutableDirectBuffer metadataBuffer;
+        private final Map<String8FW, Consumer<String16FW>> visitors;
         {
             Map<String8FW, Consumer<String16FW>> visitors = new HashMap<>();
             visitors.put(HEADER_NAME_SERVICE_NAME, this::visitServiceName);
