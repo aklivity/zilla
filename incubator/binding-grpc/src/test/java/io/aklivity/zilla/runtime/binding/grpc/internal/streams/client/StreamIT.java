@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.streams.client;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.rules.RuleChain.outerRule;
+
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import org.junit.Rule;
@@ -23,9 +26,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.rules.RuleChain.outerRule;
 
 public class StreamIT
 {
@@ -48,10 +48,10 @@ public class StreamIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("client.when.json")
     @Specification({
-        "${net}/unary.rpc/client",
-        "${app}/unary.rpc/server" })
+        "${app}/unary.rpc/client",
+        "${net}/unary.rpc/server" })
     public void shouldEstablishUnaryRpc() throws Exception
     {
         k3po.finish();
