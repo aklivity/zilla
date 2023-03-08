@@ -81,4 +81,51 @@ public class NetworkIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.modify.via.http/client",
+        "${net}/reconfigure.modify.via.http/server" })
+    public void shouldReconfigureWhenModifiedHTTP() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.create.via.http/client",
+        "${net}/reconfigure.create.via.http/server" })
+    public void shouldReconfigureWhenCreatedHTTP() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.delete.via.http/client",
+        "${net}/reconfigure.delete.via.http/server" })
+    public void shouldReconfigureWhenDeletedHTTP() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.modify.no.etag.via.http/server",
+        "${net}/reconfigure.modify.no.etag.via.http/client"
+    })
+    public void shouldReconfigureWhenModifiedHTTPEtagNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reconfigure.server.error.via.http/server",
+        "${net}/reconfigure.server.error.via.http/client"
+    })
+    public void shouldNotReconfigureWhen500Returned() throws Exception
+    {
+        k3po.finish();
+    }
 }
