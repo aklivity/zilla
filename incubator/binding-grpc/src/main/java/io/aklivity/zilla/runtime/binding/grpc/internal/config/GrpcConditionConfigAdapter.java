@@ -22,6 +22,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import org.agrona.collections.Object2ObjectHashMap;
@@ -34,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
+    private static final String BASE64_NAME = "base64";
     private static final String METHOD_NAME = "method";
     private static final String METADATA_NAME = "metadata";
     private static final int ASCII_SPACE = 0x20;
@@ -95,14 +97,24 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
         {
             metadata.forEach((k, v) ->
             {
-                String8FW key = new String8FW(k);
-                String value = JsonString.class.cast(v).getString();
-                boolean isBase64Ascii = isBase64Ascii(value);
-                boolean isAscii = isAscii(value.getBytes());
-                String16FW text = !isBase64Ascii && isAscii ? new String16FW(value) : null;
-                String16FW base64 = isBase64Ascii ? new String16FW(value) :
-                    new String16FW(encoder64.encodeToString(value.getBytes()));
-                GrpcMetadataValue metadataValue =  new GrpcMetadataValue(text, base64);
+                final String8FW key = new String8FW(k);
+                final JsonObject value = getJsonObject(v);
+
+                String textValue = null;
+                String base64Value = null;
+
+                if (value != null && value.containsKey(BASE64_NAME))
+                {
+                    base64Value = value.getString(BASE64_NAME);
+                }
+                else
+                {
+                    textValue = JsonString.class.cast(v).getString();
+                    base64Value = encoder64.encodeToString(textValue.getBytes());
+                }
+
+                GrpcMetadataValue metadataValue =  new GrpcMetadataValue(new String16FW(textValue),
+                    new String16FW(base64Value));
                 newMetadata.put(key, metadataValue);
             });
         }
@@ -110,34 +122,17 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
         return new GrpcConditionConfig(method, newMetadata);
     }
 
-    private boolean isBase64Ascii(
-        String value)
+    private static JsonObject getJsonObject(JsonValue v)
     {
-        boolean isBase64 = false;
+        JsonObject value = null;
         try
         {
-            isBase64 = isAscii(decoder64.decode(value.getBytes()));
+            value = JsonObject.class.cast(v);
         }
-        catch (Exception ex)
+        catch (ClassCastException ex)
         {
         }
-        return isBase64;
+        return value;
     }
 
-    private boolean isAscii(
-        byte[] values)
-    {
-        boolean valid = true;
-
-        ascii:
-        for (int value : values)
-        {
-            if (value < ASCII_SPACE || value > ASCII_TILDE)
-            {
-                valid = false;
-                break ascii;
-            }
-        }
-        return valid;
-    }
 }

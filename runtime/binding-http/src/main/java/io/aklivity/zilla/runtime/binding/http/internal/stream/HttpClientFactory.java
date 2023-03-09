@@ -3869,7 +3869,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Array32FW<HttpHeaderFW> headers,
             Map<String8FW, String16FW> overrides)
         {
-            final boolean endRequest = false; //exchange.requestContentLength == exchange.requestContentObserved;
+            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
 
             doEncodeHttp2Headers(traceId, authorization, exchange.streamId, headers, overrides, endRequest);
             exchange.flushResponseWindowUpdate(traceId, authorization);
@@ -3905,7 +3905,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             exchange.remoteBudget -= length;
             remoteSharedBudget -= length;
 
-            final boolean endRequest = false; //exchange.requestContentLength == exchange.requestContentObserved;
+            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
             doEncodeHttp2Data(traceId, authorization, reserved, exchange.streamId, payload, endRequest);
 
             final int remotePaddableMax = Math.min(exchange.remoteBudget, encodeMax);
@@ -3958,10 +3958,10 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Array32FW<HttpHeaderFW> trailers)
         {
-            //if (exchange.requestContentLength != exchange.requestContentObserved)
-            //{
-            //    doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
-            //}
+            if (exchange.requestContentLength != exchange.requestContentObserved)
+            {
+                doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
+            }
 
             if (trailers.isEmpty())
             {
@@ -4365,7 +4365,7 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final long requestId;
         private final long responseId;
         private final long sessionId;
-        //private int requestContentLength;
+        private int requestContentLength;
         private int requestContentObserved;
 
         private long responseContentLength;
@@ -4487,7 +4487,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
                         header.name().equals(HEADER_CONTENT_LENGTH));
-                //requestContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : 0;
+                requestContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : 0;
 
                 client.doNetworkBegin(traceId, authorization, 0);
 

@@ -19,6 +19,7 @@ import java.util.function.LongUnaryOperator;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
@@ -40,6 +41,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExF
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKindFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
@@ -54,6 +56,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final int GRPC_MESSAGE_PADDING = 5;
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
+    private final MutableInteger headerOffsetRW = new MutableInteger();
     private static final String HTTP_TYPE_NAME = "http";
     private static final String8FW HTTP_HEADER_METHOD = new String8FW(":method");
     private static final String8FW HTTP_HEADER_SCHEME = new String8FW(":scheme");
@@ -69,6 +72,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_TRAILERS = new String16FW("trailers");
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 4), 0, 4);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -85,6 +89,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
+    private final OctetsFW.Builder octetsRW = new OctetsFW.Builder();
 
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
     private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
@@ -98,6 +103,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer metadataBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -113,6 +119,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     {
         this.writeBuffer = context.writeBuffer();
         this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
@@ -896,9 +903,27 @@ public class GrpcClientFactory implements GrpcStreamFactory
                     .name(HTTP_HEADER_TE)
                     .value(HEADER_VALUE_TRAILERS));
 
-                metadata.forEach(m -> hs.item(h -> h
-                    .name(m.name().value(), 0, m.nameLen())
-                    .value(m.value().value(), 0, m.valueLen())));
+
+                headerOffsetRW.value = 0;
+                metadata.forEach(m ->
+                {
+                    if (m.type().get() == GrpcType.BASE64)
+                    {
+                        OctetsFW name = octetsRW.wrap(extBuffer, headerOffsetRW.value, extBuffer.capacity())
+                            .put(m.name()).put(DASH_BIN_OCTETS).build();
+                        headerOffsetRW.value += octetsRW.limit();
+
+                        hs.item(h -> h
+                            .name(name.value(), 0, name.sizeof())
+                            .value(m.value().value(), 0, m.valueLen()));
+                    }
+                    else
+                    {
+                        hs.item(h -> h
+                            .name(m.name().value(), 0, m.nameLen())
+                            .value(m.value().value(), 0, m.valueLen()));
+                    }
+                });
             }).build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
