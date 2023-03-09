@@ -36,10 +36,21 @@ public class SubscribeIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
+    // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/subscribe.missing.topic.filters/client",
-        "${net}/subscribe.missing.topic.filters/server"})
+        "${net}/subscribe.reject.missing.packet.id/client",
+        "${net}/subscribe.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    //TODO: create the actual test for it
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${net}/subscribe.reject.missing.topic.filters/server"})
     public void shouldRejectSubscribeWithMissingTopicFilters() throws Exception
     {
         k3po.finish();

@@ -102,6 +102,37 @@ public class PublishIT
         k3po.finish();
     }
 
+    // [MQTT-2.2.1-2]
+    @Test
+    @Specification({
+        "${net}/publish.qos0.reject.packet.id/client",
+        "${net}/publish.qos0.reject.packet.id/server"})
+    public void shouldRejectWithPacketIdAtQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/publish.qos1.reject.missing.packet.id/client",
+        "${net}/publish.qos1.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketIdAtQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/publish.qos2.reject.missing.packet.id/client",
+        "${net}/publish.qos2.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketIdAtQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+
     @Test
     @Specification({
         "${net}/publish.rejected.topic.alias.exceeds.maximum/client",
@@ -116,15 +147,6 @@ public class PublishIT
         "${net}/publish.reject.topic.alias.repeated/client",
         "${net}/publish.reject.topic.alias.repeated/server"})
     public void shouldRejectPublishWhenTopicAliasRepeated() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/publish.rejected/client",
-        "${net}/publish.rejected/server"})
-    public void shouldRejectPublish() throws Exception
     {
         k3po.finish();
     }

@@ -33,7 +33,7 @@ read  [0x20 0x03]                    # CONNACK
       [0x00]                         # reason code
       [0x00]                         # properties = none
 
-write [0x30 0x39]                    # PUBLISH
+write [0x34 0x39]                    # PUBLISH, qos = exactly once
       [0x00 0x0a] "sensor/one"       # topic name
       [0x25]                         # properties
       [0x02] 0x0f                    # expiry = 15 seconds
@@ -42,3 +42,9 @@ write [0x30 0x39]                    # PUBLISH
       [0x08 0x00 0x0a] "sensor/one"  # response topic
       [0x09 0x00 0x04] "info"        # correlation data
       "message"                      # payload
+
+read  [0xe0 0x02]                    # disconnect header
+      [0x82]                         # disconnect = protocol error
+      [0x00]                         # properties = none
+
+read closed

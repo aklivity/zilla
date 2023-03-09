@@ -135,6 +135,16 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    // [MQTT-3.1.0-1]
+    @Test
+    @Specification({
+        "${net}/connect.reject.other.packet.before.connect/client",
+        "${net}/connect.reject.other.packet.before.connect/server"})
+    public void shouldRejectOtherPacketBeforeConnect() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/client.sent.close/client",
@@ -167,6 +177,17 @@ public class ConnectionIT
         "${net}/disconnect.after.keep.alive.timeout/client",
         "${net}/disconnect.after.keep.alive.timeout/server"})
     public void shouldDisconnectClientAfterKeepAliveTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
+    // TODO: use subscribe.topic.filter.single.exact/server in the application side
+    @Test
+    @Specification({
+        "${net}/connect.server.overrides.keep.alive/client",
+        "${net}/connect.server.overrides.keep.alive/server"})
+    public void shouldUseServerOverridenKeepAlive() throws Exception
     {
         k3po.finish();
     }
@@ -288,29 +309,72 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect.will.message.with.abrupt.disconnect/client",
-        "${net}/connect.will.message.with.abrupt.disconnect/server"})
-    public void shouldConnectWithWillMessageThenAbruptDisconnect() throws Exception
+        "${net}/connect.will.reject.will.payload.not.present/client",
+        "${net}/connect.will.reject.will.payload.not.present/server"})
+    public void shouldRejectWillPayloadNotPresent() throws Exception
     {
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect.will.message.with.normal.disconnect/client",
-        "${net}/connect.will.message.with.normal.disconnect/server"})
-    public void shouldConnectWithWillMessageThenNormalDisconnect() throws Exception
+        "${net}/connect.will.reject.will.properties.not.present/client",
+        "${net}/connect.will.reject.will.properties.not.present/server"})
+    public void shouldRejectWillPropertiesNotPresent() throws Exception
     {
         k3po.finish();
     }
 
+    // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect.with.will.message.then.publish.one.message/client",
-        "${net}/connect.with.will.message.then.publish.one.message/server"})
-    public void shouldConnectWithWillMessageThenPublishOneMessage() throws Exception
+        "${net}/connect.will.reject.will.topic.not.present/client",
+        "${net}/connect.will.reject.will.topic.not.present/server"})
+    public void shouldRejectWillTopicNotPresent() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-16]
+    @Test
+    @Specification({
+        "${net}/connect.reject.username.no.user.flag/client",
+        "${net}/connect.reject.username.no.user.flag/server"})
+    public void shouldRejectUsernameWhenMissingUserFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-18]
+    @Test
+    @Specification({
+        "${net}/connect.reject.password.no.password.flag/client",
+        "${net}/connect.reject.password.no.password.flag/server"})
+    public void shouldRejectPasswordWhenMissingPasswordFlag() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-17]
+    @Test
+    @Specification({
+        "${net}/connect.reject.username.flag.no.username/client",
+        "${net}/connect.reject.username.flag.no.username/server"})
+    public void shouldRejectUserFlagWhenMissingUsername() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-19]
+    @Test
+    @Specification({
+        "${net}/connect.reject.password.flag.no.password/client",
+        "${net}/connect.reject.password.flag.no.password/server"})
+    public void shouldRejectPasswordFlagWhenMissingPassword() throws Exception
     {
         k3po.finish();
     }

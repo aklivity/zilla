@@ -26,7 +26,7 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class UnsubscribeIT
+public class SessionIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network");
@@ -36,39 +36,60 @@ public class UnsubscribeIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-    // [MQTT-2.2.1-3]
+
+    // [MQTT-3.1.2-5], [MQTT-3.1.2-23]
     @Test
     @Specification({
-        "${net}/unsubscribe.reject.missing.packet.id/client",
-        "${net}/unsubscribe.reject.missing.packet.id/server"})
-    public void shouldRejectWithoutPacketId() throws Exception
+        "${net}/session.close.connection.reconnect.non.clean.start/client",
+        "${net}/session.close.connection.reconnect.non.clean.start/server"})
+    public void shouldReconnectNonCleanStart() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/unsubscribe.after.subscribe/client",
-        "${net}/unsubscribe.after.subscribe/server"})
-    public void shouldSubscribeAndUnsubscribeFromTopic() throws Exception
+        "${net}/session.subscribe/client",
+        "${net}/session.subscribe/server"})
+    public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
-        "${net}/unsubscribe.aggregated.topic.filters.both.exact/server"})
-    public void shouldUnsubscribeFromMultipleTopics() throws Exception
+        "${net}/session.will.message.abrupt.disconnect/client",
+        "${net}/session.will.message.abrupt.disconnect/server"})
+    public void shouldConnectWithWillMessageThenAbruptDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    //TODO: use session.will.message.abrupt.disconnect/server on the app side when adding the actual test
+    @Test
+    @Specification({
+        "${net}/session.will.message.no.ping.within.keep.alive/client",
+        "${net}/session.will.message.no.ping.within.keep.alive/server"})
+    public void shouldConnectWithWillMessageThenNoPintWithingKeepAlive() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/unsubscribe.invalid.fixed.header.flags/client",
-        "${net}/unsubscribe.invalid.fixed.header.flags/server"})
-    public void shouldRejectMalformedUnsubscribePacket() throws Exception
+        "${net}/session.will.message.normal.disconnect/client",
+        "${net}/session.will.message.normal.disconnect/server"})
+    public void shouldConnectWithWillMessageThenNormalDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-15]
+    @Test
+    @Specification({
+        "${net}/session.will.message.retain/client",
+        "${net}/session.will.message.retain/server"})
+    public void shouldConnectWithWillMessageWithRetain() throws Exception
     {
         k3po.finish();
     }

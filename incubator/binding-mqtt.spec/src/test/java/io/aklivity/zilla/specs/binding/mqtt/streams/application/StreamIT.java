@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.mqtt.streams.application;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -344,8 +345,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/connect.will.message.with.abrupt.disconnect/client",
-        "${app}/connect.will.message.with.abrupt.disconnect/server"})
+        "${app}/session.will.message.abrupt.disconnect/client",
+        "${app}/session.will.message.abrupt.disconnect/server"})
     public void shouldPublishWillMessageAfterAbruptClientDisconnect() throws Exception
     {
         k3po.finish();
@@ -353,8 +354,8 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/connect.will.message.with.normal.disconnect/client",
-        "${app}/connect.will.message.with.normal.disconnect/server"})
+        "${app}/session.will.message.normal.disconnect/client",
+        "${app}/session.will.message.normal.disconnect/server"})
     public void shouldNotPublishWillMessageAfterNormalClientDisconnect() throws Exception
     {
         k3po.finish();
@@ -371,9 +372,19 @@ public class StreamIT
 
     @Test
     @Specification({
-        "${app}/connect.with.will.message.then.publish.one.message/client",
-        "${app}/connect.with.will.message.then.publish.one.message/server"})
-    public void shouldConnectWithWillMessageThenPublishOneMessage() throws Exception
+        "${app}/session.subscribe/client",
+        "${app}/session.subscribe/server"})
+    public void shouldSubscribeSaveSubscriptionsInSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.2-15]
+    @Test
+    @Specification({
+        "${app}/session.will.message.retain/client",
+        "${app}/session.will.message.retain/server"})
+    public void shouldConnectWithWillMessageWithRetain() throws Exception
     {
         k3po.finish();
     }
@@ -383,6 +394,15 @@ public class StreamIT
         "${app}/connect.with.session.expiry/client",
         "${app}/connect.with.session.expiry/server"})
     public void shouldConnectWithSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.close.connection.reconnect.non.clean.start/client",
+        "${app}/session.close.connection.reconnect.non.clean.start/server"})
+    public void shouldReconnectNonCleanStart() throws Exception
     {
         k3po.finish();
     }

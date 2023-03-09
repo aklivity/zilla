@@ -165,8 +165,7 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    //TODO: incorrect test. We should not reject the second connect, instead, session-takeover will happen.
-    // Rename session related tests to session... instead of connect...
+    // [MQTT-3.1.0-2]
     @Test
     @Configuration("server.yaml")
     @Specification({
