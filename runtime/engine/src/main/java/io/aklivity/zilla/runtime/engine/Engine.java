@@ -81,7 +81,6 @@ public final class Engine implements AutoCloseable
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
     private Future<Void> watcherTaskRef;
-    private final Consumer<Throwable> report;
 
     Engine(
         EngineConfiguration config,
@@ -89,7 +88,6 @@ public final class Engine implements AutoCloseable
         Collection<Guard> guards,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
-        Consumer<Throwable> report,
         Collection<EngineAffinity> affinities)
     {
         this.nextTaskId = new AtomicInteger();
@@ -193,7 +191,6 @@ public final class Engine implements AutoCloseable
         this.context = context;
         this.runners = runners;
         this.counter = counter;
-        this.report = report;
     }
 
     public <T> T binding(
@@ -280,12 +277,9 @@ public final class Engine implements AutoCloseable
                 configurationManager.register(newNamespace);
                 namespaces.put(configURL, newNamespace);
             }
-            catch (Throwable ex)
+            catch (Exception ex)
             {
-                if (report != null)
-                {
-                    report.accept(ex);
-                }
+                context.onError(ex);
                 configurationManager.register(oldNamespace);
                 namespaces.put(configURL, oldNamespace);
             }

@@ -28,12 +28,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -49,7 +46,6 @@ public final class ZillaStartCommand extends ZillaCommand
 
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
-    private final Collection<Throwable> errors = new LinkedHashSet<>();
 
     @Option(name = { "-c", "--config" },
             description = "Configuration location",
@@ -144,14 +140,10 @@ public final class ZillaStartCommand extends ZillaCommand
                 System.out.println("warning: json syntax is deprecated, migrate to yaml");
             }
         }
-        Consumer<Throwable> report = exceptions
-                ? e -> e.printStackTrace(System.err)
-                : e -> System.err.println(e.getMessage());
 
         try (Engine engine = Engine.builder()
             .config(config)
             .errorHandler(this::onError)
-            .report(report)
             .build())
         {
             engine.start();
@@ -161,8 +153,6 @@ public final class ZillaStartCommand extends ZillaCommand
             runtime.addShutdownHook(new Thread(this::onShutdown));
 
             stop.await();
-
-            errors.forEach(report);
 
             System.out.println("stopped");
 
@@ -178,7 +168,14 @@ public final class ZillaStartCommand extends ZillaCommand
     private void onError(
         Throwable error)
     {
-        errors.add(error);
+        if (exceptions)
+        {
+            error.printStackTrace(System.err);
+        }
+        else
+        {
+            System.err.println(error.getMessage());
+        }
         stop.countDown();
     }
 

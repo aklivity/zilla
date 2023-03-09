@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import org.agrona.ErrorHandler;
 
@@ -35,8 +34,6 @@ public class EngineBuilder
 {
     private Configuration config;
     private ErrorHandler errorHandler;
-    private Consumer<Throwable> report;
-
     private Collection<EngineAffinity> affinities;
 
     EngineBuilder()
@@ -64,13 +61,6 @@ public class EngineBuilder
         ErrorHandler errorHandler)
     {
         this.errorHandler = requireNonNull(errorHandler);
-        return this;
-    }
-
-    public EngineBuilder report(
-        Consumer<Throwable> report)
-    {
-        this.report = requireNonNull(report);
         return this;
     }
 
@@ -104,6 +94,6 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, guards, vaults, errorHandler, report, affinities);
+        return new Engine(config, bindings, guards, vaults, errorHandler, affinities);
     }
 }
