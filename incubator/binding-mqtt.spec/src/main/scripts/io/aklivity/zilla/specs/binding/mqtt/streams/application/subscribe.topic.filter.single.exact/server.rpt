@@ -29,13 +29,4 @@ read zilla:begin.ext ${mqtt:beginEx()
                              .subscriptionId(1)
                              .build()}
 
-write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .flags("SEND_RETAINED")
-                              .subscriptionId(1)
-                              .build()}
-
 connected

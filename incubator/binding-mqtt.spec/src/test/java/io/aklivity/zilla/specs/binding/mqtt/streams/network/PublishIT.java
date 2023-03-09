@@ -66,65 +66,101 @@ public class PublishIT
         k3po.finish();
     }
 
+    // [MQTT-2.2.1-2]
     @Test
     @Specification({
-        "${net}/subscribe.one.message/client",
-        "${net}/subscribe.one.message/server"})
-    public void shouldSubscribeOneMessage() throws Exception
+        "${net}/publish.qos0.reject.packet.id/client",
+        "${net}/publish.qos0.reject.packet.id/server"})
+    public void shouldRejectWithPacketIdAtQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.2-9], [MQTT-3.2.2-12]
+    @Test
+    @Specification({
+        "${net}/publish.reject.qos1.unavailable/client",
+        "${net}/publish.reject.qos1.unavailable/server"})
+    public void shouldRejectQos1Unavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.2.2-9], [MQTT-3.2.2-12]
+    @Test
+    @Specification({
+        "${net}/publish.reject.qos2.unavailable/client",
+        "${net}/publish.reject.qos2.unavailable/server"})
+    public void shouldRejectQos2Unavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/publish.qos1.reject.missing.packet.id/client",
+        "${net}/publish.qos1.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketIdAtQos1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/publish.qos2.reject.missing.packet.id/client",
+        "${net}/publish.qos2.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketIdAtQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/publish.reject.invalid.payload.format/client",
+        "${net}/publish.reject.invalid.payload.format/server"})
+    public void shouldRejectPublishInvalidPayloadFormat() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.4-6]
+    @Test
+    @Specification({
+        "${net}/publish.reject.client.sent.subscription.id/client",
+        "${net}/publish.reject.client.sent.subscription.id/server"})
+    public void shouldRejectPublishClientSentSubscriptionId() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/subscribe.one.message.with.pattern.topic/client",
-        "${net}/subscribe.one.message.with.pattern.topic/server"})
-    public void shouldSubscribeOneMessageWithPatternTopic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/subscribe.one.message.then.publish.message/client",
-        "${net}/subscribe.one.message.then.publish.message/server"})
-    public void shouldSubscriberOneMessageThenPublishMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/subscribe.retained/client",
-        "${net}/subscribe.retained/server"})
-    public void shouldSubscribeRetainedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/publish.rejected.topic.alias.exceeds.maximum/client",
-        "${net}/publish.rejected.topic.alias.exceeds.maximum/server"})
+        "${net}/publish.reject.topic.alias.exceeds.maximum/client",
+        "${net}/publish.reject.topic.alias.exceeds.maximum/server"})
     public void shouldRejectPublishWhenTopicAliasExceedsThanMaximum() throws Exception
     {
         k3po.finish();
     }
+
+    // [MQTT-3.2.2-14]
+    @Test
+    @Specification({
+        "${net}/publish.reject.retain.unavailable/client",
+        "${net}/publish.reject.retain.unavailable/server"})
+    public void shouldRejectRetainedPublishRetainUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
 
     @Test
     @Specification({
         "${net}/publish.reject.topic.alias.repeated/client",
         "${net}/publish.reject.topic.alias.repeated/server"})
     public void shouldRejectPublishWhenTopicAliasRepeated() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/publish.rejected/client",
-        "${net}/publish.rejected/server"})
-    public void shouldRejectPublish() throws Exception
     {
         k3po.finish();
     }
@@ -167,8 +203,8 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/subscribe.fails.then.publish.message/client",
-        "${net}/subscribe.fails.then.publish.message/server"})
+        "${net}/publish.message.after.subscribe.fails/client",
+        "${net}/publish.message.after.subscribe.fails/server"})
     public void shouldFailSubscribeThenPublishMessage() throws Exception
     {
         k3po.finish();
@@ -206,6 +242,16 @@ public class PublishIT
         "${net}/publish.messages.with.topic.alias.replaced/client",
         "${net}/publish.messages.with.topic.alias.replaced/server"})
     public void shouldPublishMessagesWithTopicAliasReplaced() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.3.2-7]
+    @Test
+    @Specification({
+        "${net}/publish.messages.no.carry.over.topic.alias/client",
+        "${net}/publish.messages.no.carry.over.topic.alias/server"})
+    public void shouldPublishMessagesNoCarryOverTopicAlias() throws Exception
     {
         k3po.finish();
     }

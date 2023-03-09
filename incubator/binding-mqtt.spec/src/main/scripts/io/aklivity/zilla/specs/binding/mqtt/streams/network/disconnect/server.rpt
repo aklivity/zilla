@@ -38,4 +38,4 @@ read  [0xe0 0x02]             # DISCONNECT
       [0x00]                  # normal disconnect
       [0x00]                  # properties = none
 
-read aborted
+read closed

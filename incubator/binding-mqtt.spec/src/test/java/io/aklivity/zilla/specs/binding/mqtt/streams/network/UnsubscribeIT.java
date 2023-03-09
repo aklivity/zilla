@@ -36,11 +36,31 @@ public class UnsubscribeIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.missing.packet.id/client",
+        "${net}/unsubscribe.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketId() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
         "${net}/unsubscribe.after.subscribe/server"})
     public void shouldSubscribeAndUnsubscribeFromTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.10.4-5]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.receive.suback.no.matching.subscription/client",
+        "${net}/unsubscribe.receive.suback.no.matching.subscription/server"})
+    public void shouldReceiveSubackAfterUnsubscribeWhenNoMatchingSubscriptionExists() throws Exception
     {
         k3po.finish();
     }
@@ -54,11 +74,22 @@ public class UnsubscribeIT
         k3po.finish();
     }
 
+    // [MQTT-3.10.1-1]
     @Test
     @Specification({
-        "${net}/unsubscribe.invalid.fixed.header.flags/client",
-        "${net}/unsubscribe.invalid.fixed.header.flags/server"})
+        "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
+        "${net}/unsubscribe.reject.invalid.fixed.header.flags/server"})
     public void shouldRejectMalformedUnsubscribePacket() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.10.3-2]
+    @Test
+    @Specification({
+        "${net}/unsubscribe.reject.no.topic.filter/client",
+        "${net}/unsubscribe.reject.no.topic.filter/server"})
+    public void shouldRejectUnsubscribeWithNoTopicFilter() throws Exception
     {
         k3po.finish();
     }

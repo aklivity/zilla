@@ -62,12 +62,12 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
-        "${app}/subscribe.topic.filter.single.exact/server"})
+        "${app}/unsubscribe.after.subscribe/server"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldExchangeConnectionPacketsThenUnsubscribeAfterSubscribe() throws Exception
+    public void shouldUnsubscribeAfterSubscribe() throws Exception
     {
         k3po.finish();
     }
@@ -76,7 +76,7 @@ public class UnsubscribeIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
-        "${app}/subscribe.topic.filters.aggregated.both.exact/server"})
+        "${app}/unsubscribe.aggregated.topic.filters.both.exact/server"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
