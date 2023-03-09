@@ -38,4 +38,3 @@ read  [0xe0 0x02]             # DISCONNECT
       [0x00]                  # properties = none
 
 read closed
-write close

@@ -31,7 +31,11 @@ read zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-accepted
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .flags("SEND_RETAINED")
+                                 .capabilities("PUBLISH_AND_SUBSCRIBE")
+                                 .build()}
 
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
@@ -42,4 +46,3 @@ read zilla:begin.ext ${mqtt:beginEx()
                              .subscriptionId(1)
                              .build()}
 
-connected

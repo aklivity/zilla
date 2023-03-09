@@ -56,4 +56,4 @@ read   [0x82 0x12]                   # SUBSCRIBE
 write  [0x90 0x04]                   # SUBACK
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
-       [0x00]                        # reason code
+       [0x00]                        # reason codes

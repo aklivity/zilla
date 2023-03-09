@@ -34,10 +34,12 @@ write  [0x20 0x03]                   # CONNACK
        [0x00]                        # reason code
        [0x00]                        # properties = none
 
-read   [0xE1 0x02]                   # malformed DISCONNECT
+read   [0xe1 0x02]                   # malformed DISCONNECT
        [0x00]                        # normal disconnect
        [0x00]                        # properties = none
 
 write  [0xe0 0x02]                   # DISCONNECT
        [0x81]                        # malformed packet
        [0x00]                        # properties = none
+
+write close
