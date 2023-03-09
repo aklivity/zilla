@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-
 import java.util.Base64;
 import java.util.Map;
 
@@ -38,9 +37,6 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
     private static final String BASE64_NAME = "base64";
     private static final String METHOD_NAME = "method";
     private static final String METADATA_NAME = "metadata";
-    private static final int ASCII_SPACE = 0x20;
-    private static final int ASCII_TILDE = 0x7e;
-    private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
 
     @Override
@@ -122,7 +118,8 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
         return new GrpcConditionConfig(method, newMetadata);
     }
 
-    private static JsonObject getJsonObject(JsonValue v)
+    private static JsonObject getJsonObject(
+        JsonValue v)
     {
         JsonObject value = null;
         try
