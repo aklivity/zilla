@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -103,21 +104,26 @@ public final class GrpcBindingConfig
             final String methodName = matcher.group(METHOD);
 
             final GrpcMethodConfig method = options.protobufs.stream()
-                .map(p -> p.services.stream().filter(s -> s.service.equals(serviceName)).findFirst().get())
-                .map(s -> s.methods.stream().filter(m -> m.method.equals(methodName)).findFirst().get())
+                .map(p -> p.services.stream().filter(s -> s.service.equals(serviceName)).findFirst().orElse(null))
+                .filter(Objects::nonNull)
+                .map(s -> s.methods.stream().filter(m -> m.method.equals(methodName)).findFirst().orElse(null))
+                .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
 
-            methodResolver = new GrpcMethodResolver(
-                serviceName,
-                methodName,
-                helper.contentType,
-                helper.scheme,
-                helper.authority,
-                helper.metadataHeaders,
-                method.request,
-                method.response
-            );
+            if (method != null)
+            {
+                methodResolver = new GrpcMethodResolver(
+                    serviceName,
+                    methodName,
+                    helper.contentType,
+                    helper.scheme,
+                    helper.authority,
+                    helper.metadataHeaders,
+                    method.request,
+                    method.response
+                );
+            }
         }
 
         return methodResolver;

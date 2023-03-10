@@ -25,6 +25,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .header(":path", "/example.EchoService/EchoUnary")
                              .header("content-type", "application/grpc")
+                             .header("te", "trailers")
                              .header("custom", "test")
                              .build()}
 
