@@ -52,5 +52,15 @@ scope grpc
         {
             int32 deferred = 0;
         }
+
+        struct GrpcAbortEx extends core::stream::Extension
+        {
+            string16 status;
+        }
+
+        struct GrpcResetEx extends core::stream::Extension
+        {
+            string16 status;
+        }
     }
 }

@@ -80,16 +80,16 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final String8FW HEADER_NAME_GRPC_STATUS = new String8FW("grpc-status");
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
-    private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC = new String16FW("application/grpc");
     private static final String16FW HEADER_VALUE_GRPC_ENCODING = new String16FW("identity");
-    private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
     private static final String16FW HEADER_VALUE_METHOD_POST = new String16FW("POST");
-    private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_STATUS_200 = new String16FW("200");
     private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
     private static final String16FW HEADER_VALUE_STATUS_415 = new String16FW("415");
+    private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
+    private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_UNIMPLEMENTED = new String16FW("12");
+    private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();

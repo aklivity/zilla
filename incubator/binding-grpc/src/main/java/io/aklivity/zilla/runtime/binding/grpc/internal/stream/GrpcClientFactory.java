@@ -37,10 +37,12 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKindFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
@@ -62,7 +64,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String8FW HTTP_HEADER_SCHEME = new String8FW(":scheme");
     private static final String8FW HTTP_HEADER_AUTHORITY = new String8FW(":authority");
     private static final String8FW HTTP_HEADER_PATH = new String8FW(":path");
-    private static final String8FW HTTP_HEADER_GRPC_STATUS = new String8FW("grpc-status");
     private static final String8FW HTTP_HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HTTP_HEADER_TE = new String8FW("te");
 
@@ -71,6 +72,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC = new String16FW("application/grpc");
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_TRAILERS = new String16FW("trailers");
+    private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
+    private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 4), 0, 4);
 
@@ -99,6 +102,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final HttpEndExFW.Builder httpEndExRW = new HttpEndExFW.Builder();
     private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
+    private final GrpcAbortExFW.Builder grpcAbortExRW = new GrpcAbortExFW.Builder();
+    private final GrpcResetExFW.Builder grpcResetExRW = new GrpcResetExFW.Builder();
     private final GrpcMessageFW.Builder grpcMessageRW = new GrpcMessageFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
@@ -435,8 +440,12 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 state = GrpcState.closeReply(state);
 
+                GrpcAbortExFW abortEx = grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .status(HEADER_VALUE_GRPC_ABORTED)
+                    .build();
+
                 doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                    traceId, authorization, abortEx);
             }
         }
 
@@ -472,24 +481,16 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private void doAppReset(
             long traceId,
-            long authorization)
+            long authorization,
+            Flyweight extension)
         {
             if (!GrpcState.initialClosed(state))
             {
                 state = GrpcState.closeInitial(state);
 
                 doReset(application, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization);
+                    traceId, authorization, extension);
             }
-        }
-
-        private void cleanupApp(
-            long traceId,
-            long authorization)
-        {
-            doAppReset(traceId, authorization);
-            doAppBegin(traceId, authorization, 0L);
-            doAppAbort(traceId, authorization);
         }
     }
 
@@ -601,7 +602,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 state = GrpcState.closeInitial(state);
 
                 doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization);
+                    traceId, authorization, EMPTY_OCTETS);
             }
         }
 
@@ -633,7 +634,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 state = GrpcState.closeReply(state);
 
                 doReset(network, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                    traceId, authorization, EMPTY_OCTETS);
             }
         }
 
@@ -707,7 +708,11 @@ public class GrpcClientFactory implements GrpcStreamFactory
             if (!HTTP_HEADER_VALUE_STATUS_200.equals(status) ||
                 grpcStatus != null && !HEADER_VALUE_GRPC_OK.equals(grpcStatus))
             {
-                delegate.doAppReset(traceId, authorization);
+                GrpcResetExFW resetEx = grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .status(grpcStatus)
+                        .build();
+
+                delegate.doAppReset(traceId, authorization, resetEx);
                 doNetAbort(traceId, authorization);
             }
             else
@@ -736,45 +741,38 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (replySeq > replyAck + replyMax)
+            final DirectBuffer buffer = payload.buffer();
+            final int offset = payload.offset();
+            final int limit = payload.limit();
+            final int size = payload.sizeof();
+
+            if (messageDeferred == 0)
             {
-                cleanupNet(traceId, authorization);
+                final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(buffer, offset, limit);
+                final int messageLength = grpcMessage.length();
+                final int payloadSize = size - GRPC_MESSAGE_PADDING;
+                messageDeferred = messageLength - payloadSize;
+
+                Flyweight dataEx = messageDeferred > 0 ?
+                    grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                        .typeId(grpcTypeId)
+                        .deferred(messageDeferred)
+                        .build() : EMPTY_OCTETS;
+
+
+                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
+                    buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
             }
             else
             {
-                final DirectBuffer buffer = payload.buffer();
-                final int offset = payload.offset();
-                final int limit = payload.limit();
-                final int size = payload.sizeof();
+                messageDeferred -= size;
+                assert messageDeferred >= 0;
 
-                if (messageDeferred == 0)
-                {
-                    final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(buffer, offset, limit);
-                    final int messageLength = grpcMessage.length();
-                    final int payloadSize = size - GRPC_MESSAGE_PADDING;
-                    messageDeferred = messageLength - payloadSize;
+                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
 
-                    Flyweight dataEx = messageDeferred > 0 ?
-                        grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                            .typeId(grpcTypeId)
-                            .deferred(messageDeferred)
-                            .build() : EMPTY_OCTETS;
-
-
-                    flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
-                    delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
-                        buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
-                }
-                else
-                {
-                    messageDeferred -= size;
-                    assert messageDeferred >= 0;
-
-                    flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
-
-                    delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
-                        buffer, offset, size, EMPTY_OCTETS);
-                }
+                delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
+                    buffer, offset, size, EMPTY_OCTETS);
             }
         }
 
@@ -826,7 +824,11 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             state = GrpcState.closeInitial(state);
 
-            delegate.doAppReset(traceId, authorization);
+            GrpcResetExFW resetEx = grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .status(HEADER_VALUE_GRPC_INTERNAL_ERROR)
+                .build();
+
+            delegate.doAppReset(traceId, authorization, resetEx);
         }
 
         private void onNetWindow(
@@ -853,16 +855,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             delegate.doAppWindow(traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING,
                 initialAck, initialMax);
-        }
-
-        private void cleanupNet(
-            long traceId,
-            long authorization)
-        {
-            doNetReset(traceId, authorization);
-            doNetAbort(traceId, authorization);
-
-            delegate.cleanupApp(traceId, authorization);
         }
     }
 
@@ -1038,7 +1030,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .routeId(routeId)
@@ -1048,36 +1041,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         sender.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-    }
-
-    private void doFlush(
-        MessageConsumer receiver,
-        long routeId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved)
-    {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
-            .streamId(streamId)
-            .sequence(sequence)
-            .acknowledge(acknowledge)
-            .maximum(maximum)
-            .traceId(traceId)
-            .authorization(authorization)
-            .budgetId(budgetId)
-            .reserved(reserved)
-            .build();
-
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doWindow(
@@ -1115,7 +1082,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        Flyweight extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
             .routeId(routeId)
@@ -1125,6 +1093,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             .maximum(maximum)
             .traceId(traceId)
             .authorization(authorization)
+            .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
