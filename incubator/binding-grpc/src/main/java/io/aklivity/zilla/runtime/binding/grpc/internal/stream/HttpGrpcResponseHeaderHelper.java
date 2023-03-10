@@ -26,7 +26,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
 
-public final class HttpGrpcHeaderHelper
+public final class HttpGrpcResponseHeaderHelper
 {
     private static final String8FW HTTP_HEADER_STATUS = new String8FW(":status");
     private static final String8FW HTTP_HEADER_GRPC_STATUS = new String8FW("grpc-status");

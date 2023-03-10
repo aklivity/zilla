@@ -19,12 +19,17 @@ import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcT
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.Period;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,6 +37,8 @@ import java.util.regex.Pattern;
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+
+
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
@@ -117,6 +124,7 @@ public final class GrpcBindingConfig
                     serviceName,
                     methodName,
                     helper.contentType,
+                    helper.grpcTimeout,
                     helper.scheme,
                     helper.authority,
                     helper.metadataHeaders,
@@ -131,11 +139,14 @@ public final class GrpcBindingConfig
 
     private static final class HttpGrpcHeaderHelper
     {
+        private static final Pattern PERIOD_PATTERN = Pattern.compile("([0-9]+)([HMSmun])");
         private static final String8FW HEADER_NAME_SERVICE_NAME = new String8FW("service-name");
         private static final String8FW HEADER_NAME_PATH = new String8FW(":path");
         private static final String8FW HEADER_NAME_SCHEME = new String8FW(":scheme");
         private static final String8FW HEADER_NAME_AUTHORITY = new String8FW(":authority");
         private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
+        private static final String8FW HEADER_NAME_GRPC_TIMEOUT = new String8FW("grpc_timeout");
+
 
         private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =
             new Array32FW.Builder<>(new GrpcMetadataFW.Builder(), new GrpcMetadataFW());
@@ -155,6 +166,7 @@ public final class GrpcBindingConfig
             Map<String8FW, Consumer<String16FW>> visitors = new HashMap<>();
             visitors.put(HEADER_NAME_SERVICE_NAME, this::visitServiceName);
             visitors.put(HEADER_NAME_PATH, this::visitPath);
+            visitors.put(HEADER_NAME_GRPC_TIMEOUT, this::visitGrpcTimeout);
             visitors.put(HEADER_NAME_SCHEME, this::visitScheme);
             visitors.put(HEADER_NAME_AUTHORITY, this::visitAuthority);
             visitors.put(HEADER_NAME_CONTENT_TYPE, this::visitContentType);
@@ -163,6 +175,7 @@ public final class GrpcBindingConfig
         private final AsciiSequenceView pathRO = new AsciiSequenceView();
         private final AsciiSequenceView contentTypeRO = new AsciiSequenceView();
         private final AsciiSequenceView serviceNameRO = new AsciiSequenceView();
+        private final AsciiSequenceView grpcTimeoutRO = new AsciiSequenceView();
         private final String16FW schemeRO = new String16FW();
         private final String16FW authorityRO = new String16FW();
 
@@ -170,8 +183,11 @@ public final class GrpcBindingConfig
         public CharSequence path;
         public CharSequence contentType;
         public CharSequence serviceName;
+        public Long grpcTimeout;
         public String16FW scheme;
         public String16FW authority;
+        private CharSequence grpcTimeoutText;
+
 
         HttpGrpcHeaderHelper(
             MutableDirectBuffer metadataBuffer)
@@ -184,6 +200,7 @@ public final class GrpcBindingConfig
         {
             serviceName = null;
             path = null;
+            grpcTimeout = null;
             scheme = null;
             authority = null;
             contentType = null;
@@ -212,7 +229,8 @@ public final class GrpcBindingConfig
                 path != null &&
                 scheme != null &&
                 authority != null &&
-                contentType != null;
+                contentType != null &&
+                grpcTimeout != null;
         }
 
         private void visitServiceName(
@@ -231,6 +249,16 @@ public final class GrpcBindingConfig
             final int offset = value.offset() + value.fieldSizeLength();
             final int length = value.sizeof() - value.fieldSizeLength();
             path = pathRO.wrap(buffer, offset, length);
+        }
+
+        private void visitGrpcTimeout(
+            String16FW value)
+        {
+            final DirectBuffer buffer = value.buffer();
+            final int offset = value.offset() + value.fieldSizeLength();
+            final int length = value.sizeof() - value.fieldSizeLength();
+            grpcTimeoutText = grpcTimeoutRO.wrap(buffer, offset, length);
+            grpcTimeout = parsePeriod(grpcTimeoutText);
         }
 
         private void visitScheme(
@@ -277,6 +305,45 @@ public final class GrpcBindingConfig
                     .valueLen(value.length())
                     .value(value.value(), 0, value.length()));
             }
+        }
+
+        private long parsePeriod(
+            CharSequence period)
+        {
+            long milliseconds = 0;
+
+            if (period != null)
+            {
+                Matcher matcher = PERIOD_PATTERN.matcher(period);
+
+                while (matcher.find())
+                {
+                    int number = Integer.parseInt(matcher.group(1));
+                    String type = matcher.group(2);
+                    switch (type)
+                    {
+                    case "H":
+                        milliseconds = TimeUnit.HOURS.toMillis(number);
+                        break;
+                    case "M":
+                        milliseconds = TimeUnit.MINUTES.toMillis(number);
+                        break;
+                    case "S":
+                        milliseconds = TimeUnit.SECONDS.toMillis(number);
+                        break;
+                    case "m":
+                        milliseconds = milliseconds;
+                        break;
+                    case "u":
+                        milliseconds = TimeUnit.MICROSECONDS.toMillis(number);
+                        break;
+                    case "n":
+                        milliseconds = TimeUnit.NANOSECONDS.toMillis(number);
+                        break;
+                    }
+                }
+            }
+            return milliseconds;
         }
     }
 }

@@ -116,7 +116,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final int grpcTypeId;
 
     private final Long2ObjectHashMap<GrpcBindingConfig> bindings;
-    private final HttpGrpcHeaderHelper helper;
+    private final HttpGrpcResponseHeaderHelper helper;
 
     public GrpcClientFactory(
         GrpcConfiguration config,
@@ -131,7 +131,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         this.httpTypeId = context.supplyTypeId(HTTP_TYPE_NAME);
         this.grpcTypeId = context.supplyTypeId(GrpcBinding.NAME);
         this.bindings = new Long2ObjectHashMap<>();
-        this.helper = new HttpGrpcHeaderHelper();
+        this.helper = new HttpGrpcResponseHeaderHelper();
     }
 
     @Override
@@ -185,7 +185,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 method,
                 grpcBeginEx.request(),
                 grpcBeginEx.response())::onAppMessage;
-
         }
 
         return newStream;

@@ -16,9 +16,11 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC;
 import static io.aklivity.zilla.runtime.binding.grpc.internal.stream.GrpcServerFactory.ContentType.GRPC_WEB_PROTO;
+import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.time.Instant.now;
 
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -67,6 +69,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final int GRPC_MESSAGE_PADDING = 5;
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
+    private static final int EXPIRING_SIGNAL = 1;
     private static final String HTTP_TYPE_NAME = "http";
     private static final String APPLICATION_GRPC = "application/grpc";
     private static final String APPLICATION_GRPC_PROTO = "application/grpc+proto";
@@ -89,6 +92,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_STATUS_405 = new String16FW("405");
     private static final String16FW HEADER_VALUE_STATUS_415 = new String16FW("415");
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
+    private static final String16FW HEADER_VALUE_GRPC_DEADLINE_EXCEEDED = new String16FW("4");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_UNIMPLEMENTED = new String16FW("12");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
@@ -372,6 +376,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private int replyMax;
         private int state;
         private int messageDeferred;
+        private long expiringId = NO_CANCEL_ID;
 
         private GrpcServer(
             MessageConsumer network,
@@ -431,6 +436,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onNetReset(reset);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onNetSignal(signal);
+                break;
             default:
                 break;
             }
@@ -455,6 +464,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             state = GrpcState.openingInitial(state);
 
             delegate.doAppBegin(traceId, authorization, affinity);
+
+            final long grpcTimeout = method.grpcTimeout;
+            if (grpcTimeout > 0L)
+            {
+                expiringId = signaler.signalAt(now().toEpochMilli() + grpcTimeout, routeId, initialId, EXPIRING_SIGNAL, 0);
+            }
         }
 
         private void onNetData(
@@ -606,6 +621,20 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             delegate.doAppReset(traceId, authorization);
         }
 
+        private void onNetSignal(
+            SignalFW signal)
+        {
+            long traceId = signal.traceId();
+            int signalId = signal.signalId();
+
+            switch (signalId)
+            {
+            case EXPIRING_SIGNAL:
+                onStreamExpiring(traceId);
+                break;
+            }
+        }
+
         private void doNetBegin(
             long traceId,
             long authorization,
@@ -652,6 +681,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 state = GrpcState.closingReply(state);
 
                 contentType.doNetEnd(this, traceId, authorization);
+
+                cleanupExpiringIfNecessary();
             }
         }
 
@@ -665,6 +696,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 state = GrpcState.closingReply(state);
 
                 contentType.doNetAbort(this, traceId, authorization, status);
+                cleanupExpiringIfNecessary();
             }
         }
 
@@ -673,6 +705,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long authorization,
             String16FW status)
         {
+
             if (GrpcState.initialOpening(state))
             {
                 doHttpResponse(network, traceId, authorization, affinity, routeId, initialId, initialSeq, initialAck,
@@ -682,8 +715,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             {
                 contentType.doNetReset(this, traceId, authorization, status);
             }
-
             state = GrpcState.closingReply(state);
+
+            cleanupExpiringIfNecessary();
+
         }
 
         private void doNetWindow(
@@ -756,6 +791,40 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 }
             }
         }
+
+        private void onStreamExpiring(
+            long traceId)
+        {
+            expiringId = NO_CANCEL_ID;
+
+            if (GrpcState.replyOpening(state))
+            {
+                contentType.doNetAbort(this, traceId, 0L, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED);
+            }
+            else
+            {
+                doHttpResponse(network, traceId, 0L, affinity, routeId, initialId, initialSeq, initialAck,
+                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_DEADLINE_EXCEEDED);
+            }
+            delegate.cleanup(traceId, 0L);
+        }
+
+        private void cleanupExpiringIfNecessary()
+        {
+            if (expiringId != NO_CANCEL_ID)
+            {
+                signaler.cancel(expiringId);
+                expiringId = NO_CANCEL_ID;
+            }
+        }
+
+        private void cleanup(
+            long traceId)
+        {
+            doRequestAbortIfNecessary(traceId);
+            doResponseResetIfNecessary(traceId);
+        }
+
     }
 
     private final class GrpcStream
@@ -1059,7 +1128,14 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 doReset(application, routeId, replyId, grpcReplySeq, grpcReplyAck, grpcReplyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
+        }
 
+        private void cleanup(
+            long traceId,
+            long authoritation)
+        {
+            doAppAbort(traceId, authoritation);
+            doAppReset(traceId, authoritation);
         }
     }
 
