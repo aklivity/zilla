@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.binding.grpc.streams.network;
+package io.aklivity.zilla.specs.binding.grpc.streams.application;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -25,33 +25,23 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class RejectedRpcIT
+public class BidirectionalStreamRpcIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network/rejected.rpc");
+        .addScriptRoot("app",
+            "io/aklivity/zilla/specs/binding/grpc/streams/application/bidirectional.stream.rpc");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-
     @Test
     @Specification({
-        "${net}/method.not.post/client",
-        "${net}/method.not.post/server",
+        "${app}/message.exchange/client",
+        "${app}/message.exchange/server",
     })
-    public void shouldRejectMethodNotPost() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/unrecognized.rpc/client",
-        "${net}/unrecognized.rpc/server",
-    })
-    public void shouldRejectUnrecognizedMethod() throws Exception
+    public void shouldEstablishBidirectionalRpc() throws Exception
     {
         k3po.finish();
     }

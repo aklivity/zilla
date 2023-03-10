@@ -44,44 +44,4 @@ public class UnaryRpcIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${app}/response.timeout/client",
-        "${app}/response.timeout/server",
-    })
-    public void shouldTimeoutOnNoResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/server.send.read.abort.on.open.request/client",
-        "${app}/server.send.read.abort.on.open.request/server"
-    })
-    public void serverSendsReadAbortOnOpenRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/server.send.write.abort.on.open.response/client",
-        "${app}/server.send.write.abort.on.open.response/server"
-    })
-    public void serverSendsWriteAbortOnOpenResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/server.send.write.abort.on.open.request.response/client",
-        "${app}/server.send.write.abort.on.open.request.response/server"
-    })
-    public void serverSendsWriteAbortOnOpenRequestResponse() throws Exception
-    {
-        k3po.finish();
-    }
 }

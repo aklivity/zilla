@@ -31,10 +31,17 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-write zilla:reset.ext ${http:resetEx()
+read ${grpc:message()
+           .string(1, "Hello World")
+           .build()}
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "405")
+                            .header("content-type", "text/plain; encoding=utf-8")
                             .header("grpc-status", "13")
                             .build()}
 
-read abort
+write close
