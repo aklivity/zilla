@@ -14,16 +14,20 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
+import java.time.Period;
+
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
+
 
 public class GrpcMethodResolver
 {
     public final CharSequence service;
     public final CharSequence method;
     public final CharSequence contentType;
+    public final long grpcTimeout;
     public final String16FW scheme;
     public final String16FW authority;
     public final GrpcKind request;
@@ -34,6 +38,7 @@ public class GrpcMethodResolver
         CharSequence service,
         CharSequence method,
         CharSequence contentType,
+        long grpcTimeout,
         String16FW scheme,
         String16FW authority,
         Array32FW<GrpcMetadataFW> metadata,
@@ -42,6 +47,7 @@ public class GrpcMethodResolver
     {
         this.service = service;
         this.method = method;
+        this.grpcTimeout = grpcTimeout;
         this.scheme = scheme;
         this.authority = authority;
         this.contentType = contentType;
