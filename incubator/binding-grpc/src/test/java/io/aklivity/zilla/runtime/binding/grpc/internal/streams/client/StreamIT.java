@@ -58,4 +58,37 @@ public class StreamIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/client.stream.rpc/client",
+        "${net}/client.stream.rpc/server",
+    })
+    public void shouldEstablishClientStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/server.stream.rpc/client",
+        "${net}/server.stream.rpc/server",
+    })
+    public void shouldEstablishServerStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/bidirectional.stream.rpc/client",
+        "${net}/bidirectional.stream.rpc/server",
+    })
+    public void shouldEstablishBidirectionalRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
