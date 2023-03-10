@@ -817,14 +817,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 expiringId = NO_CANCEL_ID;
             }
         }
-
-        private void cleanup(
-            long traceId)
-        {
-            doRequestAbortIfNecessary(traceId);
-            doResponseResetIfNecessary(traceId);
-        }
-
     }
 
     private final class GrpcStream
