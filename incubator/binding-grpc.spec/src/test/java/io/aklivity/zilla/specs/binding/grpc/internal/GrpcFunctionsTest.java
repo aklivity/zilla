@@ -19,14 +19,20 @@ import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcTyp
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+
+import javax.el.ELContext;
+import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
+import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
@@ -37,6 +43,17 @@ public class GrpcFunctionsTest
         new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
     private final OctetsFW.Builder valueBuilder =
         new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
+
+    @Test
+    public void shouldResolveFunction() throws Exception
+    {
+        final ELContext ctx = new ExpressionContext();
+        final FunctionMapper mapper = ctx.getFunctionMapper();
+        final Method function = mapper.resolveFunction("grpc", "matchBeginEx");
+
+        assertNotNull(function);
+        assertSame(GrpcFunctions.class, function.getDeclaringClass());
+    }
 
     @Test
     public void shouldGenerateBeginExtension()

@@ -25,7 +25,6 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":authority", "localhost:8080")
                              .header(":path", "/example.EchoService/EchoClientStream")
                              .header("content-type", "application/grpc")
-                             .header("te", "trailers")
                              .header("custom", "test")
                              .build()}
 
@@ -51,8 +50,6 @@ write ${grpc:message()
             .string(1, "Hello World")
             .build()}
 write flush
-
-read closed
 
 write zilla:end.ext ${http:endEx()
                           .typeId(zilla:id("http"))

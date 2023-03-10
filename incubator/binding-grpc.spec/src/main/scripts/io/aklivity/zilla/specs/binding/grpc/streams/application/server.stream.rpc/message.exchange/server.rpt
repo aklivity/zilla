@@ -45,5 +45,3 @@ write ${grpc:protobuf()
             .string(1, "Hello World2")
             .build()}
 write flush
-
-write close

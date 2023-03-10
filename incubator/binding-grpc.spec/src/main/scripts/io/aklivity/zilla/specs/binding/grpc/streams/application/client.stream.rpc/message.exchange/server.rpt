@@ -43,6 +43,4 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
-read closed
-
 write close
