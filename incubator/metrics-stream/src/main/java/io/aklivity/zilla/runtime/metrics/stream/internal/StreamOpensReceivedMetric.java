@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class StreamOpensReceivedMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", StreamMetrics.NAME, "opens.received");
+    private static final String NAME = String.format("%s.%s", StreamMetricGroup.NAME, "opens.received");
 
     @Override
     public String name()

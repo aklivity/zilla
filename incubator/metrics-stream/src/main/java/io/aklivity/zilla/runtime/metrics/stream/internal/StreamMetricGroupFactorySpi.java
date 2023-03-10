@@ -15,21 +15,21 @@
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
 
 public class StreamMetricGroupFactorySpi implements MetricGroupFactorySpi
 {
     @Override
     public String type()
     {
-        return StreamMetrics.NAME;
+        return StreamMetricGroup.NAME;
     }
 
     @Override
-    public Metrics create(
+    public MetricGroup create(
         Configuration config)
     {
-        return new StreamMetrics(config);
+        return new StreamMetricGroup(config);
     }
 }

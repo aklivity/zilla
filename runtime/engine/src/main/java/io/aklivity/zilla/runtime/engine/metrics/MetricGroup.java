@@ -2,7 +2,7 @@ package io.aklivity.zilla.runtime.engine.metrics;
 
 import java.net.URL;
 
-public interface Metrics
+public interface MetricGroup
 {
     String name();
 

@@ -24,7 +24,7 @@ public final class MetricGroupFactory
         return factorySpis.keySet();
     }
 
-    public Metrics create(
+    public MetricGroup create(
         String type,
         Configuration config)
     {

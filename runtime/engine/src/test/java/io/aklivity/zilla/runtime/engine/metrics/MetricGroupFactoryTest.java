@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetrics;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetricGroup;
 
 public final class MetricGroupFactoryTest
 {
@@ -30,8 +30,8 @@ public final class MetricGroupFactoryTest
     {
         Configuration config = new Configuration();
         MetricGroupFactory factory = MetricGroupFactory.instantiate();
-        Metrics metrics = factory.create("test", config);
+        MetricGroup metricGroup = factory.create("test", config);
 
-        assertThat(metrics, instanceOf(TestMetrics.class));
+        assertThat(metricGroup, instanceOf(TestMetricGroup.class));
     }
 }

@@ -25,18 +25,18 @@ import org.mockito.Mockito;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
-public class HttpMetricsTest
+public class HttpMetricGroupTest
 {
     @Test
     public void shouldResolveHttpRequestSize()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new HttpMetrics(config);
+        MetricGroup metricGroup = new HttpMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("http.request.size");
 
         assertThat(metric, instanceOf(HttpRequestSizeMetric.class));
@@ -50,9 +50,9 @@ public class HttpMetricsTest
     public void shouldResolveHttpResponseSize()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new HttpMetrics(config);
+        MetricGroup metricGroup = new HttpMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("http.response.size");
 
         assertThat(metric, instanceOf(HttpResponseSizeMetric.class));

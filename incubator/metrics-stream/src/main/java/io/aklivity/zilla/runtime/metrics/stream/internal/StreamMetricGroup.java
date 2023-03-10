@@ -12,20 +12,20 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.metrics.http.internal;
+package io.aklivity.zilla.runtime.metrics.stream.internal;
 
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
-public class HttpMetrics implements Metrics
+public class StreamMetricGroup implements MetricGroup
 {
-    public static final String NAME = "http";
+    public static final String NAME = "stream";
 
-    public HttpMetrics(
+    public StreamMetricGroup(
         Configuration config)
     {
     }
@@ -40,12 +40,12 @@ public class HttpMetrics implements Metrics
     public MetricsContext supply(
         CollectorContext context)
     {
-        return new HttpMetricsContext();
+        return new StreamMetricsContext();
     }
 
     @Override
     public URL type()
     {
-        return getClass().getResource("schema/http.schema.patch.json");
+        return getClass().getResource("schema/stream.schema.patch.json");
     }
 }

@@ -8,17 +8,17 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetrics;
+import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetricGroup;
 
-public class MetricsTest
+public class MetricGroupTest
 {
     @Test
     public void shouldResolveCounter()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new TestMetrics(config);
+        MetricGroup metricGroup = new TestMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("test.counter");
 
         assertThat(metric, instanceOf(TestCounterMetric.class));
@@ -29,9 +29,9 @@ public class MetricsTest
     public void shouldResolveGauge()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new TestMetrics(config);
+        MetricGroup metricGroup = new TestMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("test.gauge");
 
         assertThat(metric, instanceOf(TestGaugeMetric.class));
@@ -42,9 +42,9 @@ public class MetricsTest
     public void shouldResolveHistogram()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new TestMetrics(config);
+        MetricGroup metricGroup = new TestMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("test.histogram");
 
         assertThat(metric, instanceOf(TestHistogramMetric.class));

@@ -15,21 +15,21 @@
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
 
 public class HttpMetricGroupFactorySpi implements MetricGroupFactorySpi
 {
     @Override
     public String type()
     {
-        return HttpMetrics.NAME;
+        return HttpMetricGroup.NAME;
     }
 
     @Override
-    public Metrics create(
+    public MetricGroup create(
         Configuration config)
     {
-        return new HttpMetrics(config);
+        return new HttpMetricGroup(config);
     }
 }

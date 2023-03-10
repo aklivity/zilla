@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class HttpResponseSizeMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", HttpMetrics.NAME, "response.size");
+    private static final String NAME = String.format("%s.%s", HttpMetricGroup.NAME, "response.size");
 
     @Override
     public String name()

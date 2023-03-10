@@ -24,18 +24,18 @@ import org.mockito.Mockito;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
-public class StreamMetricsTest
+public class StreamMetricGroupTest
 {
     @Test
     public void shouldResolveStreamOpensReceived()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.opens.received");
 
         assertThat(metric, instanceOf(StreamOpensReceivedMetric.class));
@@ -50,9 +50,9 @@ public class StreamMetricsTest
     public void shouldResolveStreamOpensSent()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.opens.sent");
 
         assertThat(metric, instanceOf(StreamOpensSentMetric.class));
@@ -67,9 +67,9 @@ public class StreamMetricsTest
     public void shouldResolveStreamDataReceived()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.data.received");
 
         assertThat(metric, instanceOf(StreamDataReceivedMetric.class));
@@ -84,9 +84,9 @@ public class StreamMetricsTest
     public void shouldResolveStreamDataSent()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.data.sent");
 
         assertThat(metric, instanceOf(StreamDataSentMetric.class));
@@ -101,9 +101,9 @@ public class StreamMetricsTest
     public void shouldResolveStreamErrorsReceived()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.errors.received");
 
         assertThat(metric, instanceOf(StreamErrorsReceivedMetric.class));
@@ -118,9 +118,9 @@ public class StreamMetricsTest
     public void shouldResolveStreamErrorsSent()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.errors.sent");
 
         assertThat(metric, instanceOf(StreamErrorsSentMetric.class));
@@ -135,9 +135,9 @@ public class StreamMetricsTest
     public void shouldResolveStreamClosesReceived()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.closes.received");
 
         assertThat(metric, instanceOf(StreamClosesReceivedMetric.class));
@@ -152,9 +152,9 @@ public class StreamMetricsTest
     public void shouldResolveStreamClosesSent()
     {
         Configuration config = new Configuration();
-        Metrics metrics = new StreamMetrics(config);
+        MetricGroup metricGroup = new StreamMetricGroup(config);
         CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metrics.supply(collector);
+        MetricsContext metricsContext = metricGroup.supply(collector);
         Metric metric = metricsContext.resolve("stream.closes.sent");
 
         assertThat(metric, instanceOf(StreamClosesSentMetric.class));

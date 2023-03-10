@@ -19,14 +19,14 @@ import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
-public final class TestMetrics implements Metrics
+public final class TestMetricGroup implements MetricGroup
 {
     public static final String NAME = "test";
 
-    public TestMetrics(
+    public TestMetricGroup(
         Configuration config)
     {
     }

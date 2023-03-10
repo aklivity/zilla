@@ -21,8 +21,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
 
 public final class StreamMetricGroupFactoryTest
 {
@@ -31,9 +31,9 @@ public final class StreamMetricGroupFactoryTest
     {
         Configuration config = new Configuration();
         MetricGroupFactory factory = MetricGroupFactory.instantiate();
-        Metrics metrics = factory.create("stream", config);
+        MetricGroup metricGroup = factory.create("stream", config);
 
-        assertThat(metrics, instanceOf(StreamMetrics.class));
-        assertThat(metrics.name(), equalTo("stream"));
+        assertThat(metricGroup, instanceOf(StreamMetricGroup.class));
+        assertThat(metricGroup.name(), equalTo("stream"));
     }
 }

@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class StreamClosesSentMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", StreamMetrics.NAME, "closes.sent");
+    private static final String NAME = String.format("%s.%s", StreamMetricGroup.NAME, "closes.sent");
 
     @Override
     public String name()

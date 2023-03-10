@@ -19,7 +19,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class StreamErrorsSentMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", StreamMetrics.NAME, "errors.sent");
+    private static final String NAME = String.format("%s.%s", StreamMetricGroup.NAME, "errors.sent");
 
     @Override
     public String name()

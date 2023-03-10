@@ -21,6 +21,6 @@ public interface MetricGroupFactorySpi
 {
     String type();
 
-    Metrics create(
+    MetricGroup create(
         Configuration config);
 }

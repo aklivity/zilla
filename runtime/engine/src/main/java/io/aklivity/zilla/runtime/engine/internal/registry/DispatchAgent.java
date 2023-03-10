@@ -115,8 +115,8 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
 import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -208,7 +208,7 @@ public class DispatchAgent implements EngineContext, Agent
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
         Collection<Guard> guards,
-        Collection<Metrics> metrics,
+        Collection<MetricGroup> metrics,
         Collection<Vault> vaults,
         int index)
     {
@@ -333,10 +333,10 @@ public class DispatchAgent implements EngineContext, Agent
 
         // TODO: Ati ?????
         Map<String, MetricsContext> metricGroupsByType = new LinkedHashMap<>();
-        for (Metrics metrics0 : metrics)
+        for (MetricGroup metricGroup0 : metrics)
         {
-            String type = metrics0.name();
-            metricGroupsByType.put(type, metrics0.supply(null)); // TODO: Ati - we need a CollectorContext here
+            String type = metricGroup0.name();
+            metricGroupsByType.put(type, metricGroup0.supply(null)); // TODO: Ati - we need a CollectorContext here
         }
 
         /*Map<String, Metric> metricsByName = new LinkedHashMap<>();

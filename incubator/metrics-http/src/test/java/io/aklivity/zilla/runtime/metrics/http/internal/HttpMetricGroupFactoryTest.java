@@ -21,8 +21,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
-import io.aklivity.zilla.runtime.engine.metrics.Metrics;
 
 public final class HttpMetricGroupFactoryTest
 {
@@ -31,9 +31,9 @@ public final class HttpMetricGroupFactoryTest
     {
         Configuration config = new Configuration();
         MetricGroupFactory factory = MetricGroupFactory.instantiate();
-        Metrics metrics = factory.create("http", config);
+        MetricGroup metricGroup = factory.create("http", config);
 
-        assertThat(metrics, instanceOf(HttpMetrics.class));
-        assertThat(metrics.name(), equalTo("http"));
+        assertThat(metricGroup, instanceOf(HttpMetricGroup.class));
+        assertThat(metricGroup.name(), equalTo("http"));
     }
 }

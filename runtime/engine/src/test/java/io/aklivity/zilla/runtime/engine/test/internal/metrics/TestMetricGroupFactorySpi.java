@@ -23,13 +23,13 @@ public final class TestMetricGroupFactorySpi implements MetricGroupFactorySpi
     @Override
     public String type()
     {
-        return TestMetrics.NAME;
+        return TestMetricGroup.NAME;
     }
 
     @Override
-    public TestMetrics create(
+    public TestMetricGroup create(
         Configuration config)
     {
-        return new TestMetrics(config);
+        return new TestMetricGroup(config);
     }
 }
