@@ -25,55 +25,16 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class StreamIT
+public class RejectedRpcIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network/rejected.rpc");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-    @Test
-    @Specification({
-        "${net}/unary.rpc/client",
-        "${net}/unary.rpc/server",
-    })
-    public void shouldEstablishUnaryRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/client.stream.rpc/client",
-        "${net}/client.stream.rpc/server",
-    })
-    public void shouldEstablishClientStreamRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/server.stream.rpc/client",
-        "${net}/server.stream.rpc/server",
-    })
-    public void shouldEstablishServerStreamRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/bidirectional.stream.rpc/client",
-        "${net}/bidirectional.stream.rpc/server",
-    })
-    public void shouldEstablishBidirectionalRpc() throws Exception
-    {
-        k3po.finish();
-    }
 
     @Test
     @Specification({

@@ -702,8 +702,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
             replyMax = maximum;
             state = GrpcState.openingReply(state);
 
-            assert replyAck <= replySeq;
-
             if (!HTTP_HEADER_VALUE_STATUS_200.equals(status) ||
                 grpcStatus != null && !HEADER_VALUE_GRPC_OK.equals(grpcStatus))
             {

@@ -105,7 +105,7 @@ public final class GrpcBindingConfig
 
         final Matcher matcher = METHOD_PATTERN.matcher(path);
 
-        if (matcher.find())
+        if (matcher.matches())
         {
             final CharSequence serviceName = serviceNameHeader != null ? serviceNameHeader : matcher.group(SERVICE_NAME);
             final String methodName = matcher.group(METHOD);
