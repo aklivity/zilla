@@ -467,7 +467,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             this.initialMax = initialMax;
 
             doWindow(application, routeId, initialId, initialSeq, this.initialAck, this.initialMax,
-                traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING);
+                traceId, authorization, budgetId, padding);
         }
 
         private void doAppReset(
@@ -572,7 +572,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             encodeProgress += payloadSize;
 
             doData(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
-                budgetId, reserved, flags, encodeBuffer, encodeOffset, encodeProgress - encodeOffset, EMPTY_OCTETS);
+                budgetId, flags, reserved, encodeBuffer, encodeOffset, encodeProgress - encodeOffset, EMPTY_OCTETS);
 
             initialSeq += reserved;
 
@@ -851,7 +851,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             assert initialAck <= initialMax;
 
-            delegate.doAppWindow(traceId, authorization, budgetId, padding, initialAck, initialMax);
+            delegate.doAppWindow(traceId, authorization, budgetId, padding + GRPC_MESSAGE_PADDING,
+                initialAck, initialMax);
         }
 
         private void cleanupNet(
