@@ -14,8 +14,9 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
 public class StreamOpensReceivedMetric implements Metric
 {
@@ -40,16 +41,10 @@ public class StreamOpensReceivedMetric implements Metric
     }
 
     @Override
-    public MetricHandler supplyReceived(
-        long bindingId)
+    public MetricContext supply(
+        EngineContext context)
     {
-        return new StreamMetricHandler(NAME, MetricHandler.Event.RECEIVED, bindingId);
-    }
-
-    @Override
-    public MetricHandler supplySent(
-        long bindingId)
-    {
-        return new StreamMetricHandler(NAME, MetricHandler.Event.SENT, bindingId);
+        // TODO: Ati
+        return null;
     }
 }

@@ -1,5 +1,7 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
+
 public interface Metric
 {
     enum Kind
@@ -21,9 +23,6 @@ public interface Metric
 
     Unit unit();
 
-    MetricHandler supplyReceived(
-        long bindingId);
-
-    MetricHandler supplySent(
-        long bindingId);
+    MetricContext supply(
+        EngineContext context);
 }

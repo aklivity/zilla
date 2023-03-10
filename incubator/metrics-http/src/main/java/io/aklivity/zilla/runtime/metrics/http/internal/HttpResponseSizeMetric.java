@@ -14,8 +14,9 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
 public class HttpResponseSizeMetric implements Metric
 {
@@ -40,16 +41,10 @@ public class HttpResponseSizeMetric implements Metric
     }
 
     @Override
-    public MetricHandler supplyReceived(
-            long bindingId)
+    public MetricContext supply(
+        EngineContext context)
     {
-        return null;
-    }
-
-    @Override
-    public MetricHandler supplySent(
-            long bindingId)
-    {
+        // TODO: Ati
         return null;
     }
 }

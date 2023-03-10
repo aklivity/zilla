@@ -1,5 +1,7 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import io.aklivity.zilla.runtime.engine.EngineContext;
+
 public class TestGaugeMetric implements Metric
 {
     private static final String NAME = "test.gauge";
@@ -22,16 +24,10 @@ public class TestGaugeMetric implements Metric
     }
 
     @Override
-    public MetricHandler supplyReceived(
-        long bindingId)
+    public MetricContext supply(
+        EngineContext context)
     {
-        return new TestMetricHandler(NAME, MetricHandler.Event.RECEIVED, bindingId);
-    }
-
-    @Override
-    public MetricHandler supplySent(
-        long bindingId)
-    {
-        return new TestMetricHandler(NAME, MetricHandler.Event.SENT, bindingId);
+        // TODO: Ati
+        return null;
     }
 }

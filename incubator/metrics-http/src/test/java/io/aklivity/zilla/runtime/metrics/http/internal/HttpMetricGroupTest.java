@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.metrics.http.internal;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
@@ -38,7 +37,6 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.request.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
-        assertThat(metric.supplyReceived(0L), nullValue());
     }
 
     @Test
@@ -52,6 +50,5 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.response.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
-        assertThat(metric.supplyReceived(0L), nullValue());
     }
 }
