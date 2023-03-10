@@ -19,10 +19,13 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class StreamMetricGroupTest
 {
@@ -37,6 +40,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.opens.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 
     @Test
@@ -50,6 +54,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.opens.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 
     @Test
@@ -63,6 +68,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.data.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 
     @Test
@@ -76,6 +82,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.data.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 
     @Test
@@ -89,6 +96,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.errors.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 
     @Test
@@ -102,6 +110,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.errors.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 
     @Test
@@ -115,6 +124,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.closes.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 
     @Test
@@ -128,5 +138,6 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.closes.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.supply(Mockito.mock(EngineContext.class)).supply(l -> {}), instanceOf(MetricHandler.class));
     }
 }

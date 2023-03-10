@@ -29,6 +29,6 @@ public class TestCounterMetric implements Metric
         EngineContext context)
     {
         // TODO: Ati
-        return null;
+        return recorder -> (msgTypeId, buffer, index, length) -> {};
     }
 }

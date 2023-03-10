@@ -1,26 +1,26 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static java.util.Objects.requireNonNull;
+
 import org.agrona.DirectBuffer;
 
 public interface MetricHandler
 {
-    enum Event
-    {
-        RECEIVED,
-        SENT
-    }
-
     void onEvent(
-        int msgTypeId, DirectBuffer buffer, int index, int length);
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length);
 
     default MetricHandler andThen(
-        MetricHandler next
+        MetricHandler after
     )
     {
+        requireNonNull(after);
         return (int msgTypeId, DirectBuffer buffer, int index, int length) ->
         {
             onEvent(msgTypeId, buffer, index, length);
-            next.onEvent(msgTypeId, buffer, index, length);
+            after.onEvent(msgTypeId, buffer, index, length);
         };
     }
 }

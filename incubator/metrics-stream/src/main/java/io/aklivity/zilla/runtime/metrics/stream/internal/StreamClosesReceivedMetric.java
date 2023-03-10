@@ -45,6 +45,10 @@ public class StreamClosesReceivedMetric implements Metric
         EngineContext context)
     {
         // TODO: Ati
-        return null;
+        return recorder -> (msgTypeId, buffer, index, length) ->
+        {
+            System.out.format("%s %d %d %d %d\n", NAME, context.index(), msgTypeId, index, length);
+            recorder.accept(3L);
+        };
     }
 }

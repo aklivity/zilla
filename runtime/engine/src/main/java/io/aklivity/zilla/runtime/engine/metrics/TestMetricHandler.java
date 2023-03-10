@@ -20,16 +20,13 @@ import org.agrona.DirectBuffer;
 public final class TestMetricHandler implements MetricHandler
 {
     private final String name;
-    private final Event event;
     private final long bindingId;
 
     public TestMetricHandler(
         String name,
-        Event event,
         long bindingId)
     {
         this.name = name;
-        this.event = event;
         this.bindingId = bindingId;
     }
 

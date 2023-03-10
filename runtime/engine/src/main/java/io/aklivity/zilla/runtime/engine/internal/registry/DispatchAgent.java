@@ -115,6 +115,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
@@ -338,31 +339,26 @@ public class DispatchAgent implements EngineContext, Agent
             metricGroupsByType.put(type, metricGroup);
         }
 
+        // TODO: Ati
+        if (metricGroupsByType.get("stream") != null)
+        {
+            Metric streamDataReceivedMetric = metricGroupsByType.get("stream").resolve("stream.data.received");
+            Metric streamDataSentMetric = metricGroupsByType.get("stream").resolve("stream.data.sent");
+            LongConsumer dummyConsumer = System.out::println;
+            this.supplyMetric = bindingId ->
+                    streamDataReceivedMetric.supply(this).supply(dummyConsumer)
+                            .andThen(streamDataSentMetric.supply(this).supply(dummyConsumer));
+        }
+        else
+        {
+            this.supplyMetric = bindingId -> (MetricHandler) (msgTypeId, buffer, index1, length) -> {};
+        }
+
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricGroupsByType::get,
                 labels::supplyLabelId, supplyLoadEntry::apply, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
-
-        // TODO: Ati
-        this.supplyMetric = bindingId -> new MetricHandler()
-        {
-            @Override
-            public void onEvent(int msgTypeId, DirectBuffer buffer, int index, int length)
-            {
-                System.out.format("%d %d %d %d\n", bindingId, msgTypeId, index, length);
-            }
-        };
-
-        //if (metricsByType.get("stream") != null)
-        //{
-        //String[] metricNames = {"stream.opens.received", "stream.opens.sent"};
-        //this.supplyMetric = bindingId -> buildMetricHandlerChain(this.configuration, metricNames, metricsByType, bindingId);
-        //}
-        //else
-        //{
-        //this.supplyMetric = bindingId -> metricsByType.get("test").resolve("test.counter").supplyReceived(bindingId);
-        //}
     }
 
     /*public MetricHandler buildMetricHandlerChain(
