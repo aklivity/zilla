@@ -46,8 +46,10 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
@@ -110,6 +112,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
     private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final GrpcResetExFW resetExRO = new GrpcResetExFW();
+    private final GrpcAbortExFW abortExRO = new GrpcAbortExFW();
     private final GrpcMessageFW grpcMessageRO = new GrpcMessageFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpEndExFW.Builder httpEndExRW = new HttpEndExFW.Builder();
@@ -147,18 +151,20 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             public void doNetAbort(
                 GrpcServer server,
                 long traceId,
-                long authorization)
+                long authorization,
+                String16FW status)
             {
-                server.doGrpcNetStatus(traceId, authorization, HEADER_VALUE_GRPC_ABORTED);
+                server.doGrpcNetStatus(traceId, authorization, status);
             }
 
             @Override
             public void doNetReset(
                 GrpcServer server,
                 long traceId,
-                long authorization)
+                long authorization,
+                String16FW status)
             {
-                server.doGrpcNetStatus(traceId, authorization, HEADER_VALUE_GRPC_ABORTED);
+                server.doGrpcNetStatus(traceId, authorization, status);
             }
         },
         GRPC_WEB_PROTO
@@ -176,18 +182,20 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             public void doNetAbort(
                 GrpcServer server,
                 long traceId,
-                long authorization)
+                long authorization,
+                String16FW status)
             {
-                server.doGrpcWebNetStatus(traceId, authorization, HEADER_VALUE_GRPC_ABORTED);
+                server.doGrpcWebNetStatus(traceId, authorization, status);
             }
 
             @Override
             public void doNetReset(
                 GrpcServer server,
                 long traceId,
-                long authorization)
+                long authorization,
+                String16FW status)
             {
-                server.doGrpcWebNetStatus(traceId, authorization, HEADER_VALUE_GRPC_ABORTED);
+                server.doGrpcWebNetStatus(traceId, authorization, status);
             }
         };
 
@@ -199,12 +207,14 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         public abstract void doNetAbort(
             GrpcServer server,
             long traceId,
-            long authorization);
+            long authorization,
+            String16FW status);
 
         public abstract void doNetReset(
             GrpcServer server,
             long traceId,
-            long authorization);
+            long authorization,
+            String16FW status);
     }
 
     public GrpcServerFactory(
@@ -276,7 +286,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             if (contentType == null)
             {
                 doHttpResponse(network, traceId, authorization, affinity, routeId, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_415, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+                    HEADER_VALUE_STATUS_415, HEADER_VALUE_GRPC_ABORTED);
             }
             else if (method != null)
             {
@@ -647,28 +657,30 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         private void doNetAbort(
             long traceId,
-            long authorization)
+            long authorization,
+            String16FW status)
         {
             if (!GrpcState.replyClosed(state))
             {
                 state = GrpcState.closingReply(state);
 
-                contentType.doNetAbort(this, traceId, authorization);
+                contentType.doNetAbort(this, traceId, authorization, status);
             }
         }
 
         private void doNetReset(
             long traceId,
-            long authorization)
+            long authorization,
+            String16FW status)
         {
             if (GrpcState.initialOpening(state))
             {
                 doHttpResponse(network, traceId, authorization, affinity, routeId, initialId, initialSeq, initialAck,
-                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED);
+                    HEADER_VALUE_STATUS_200, status);
             }
             else
             {
-                contentType.doNetReset(this, traceId, authorization);
+                contentType.doNetReset(this, traceId, authorization, status);
             }
 
             state = GrpcState.closingReply(state);
@@ -888,6 +900,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long authorization = reset.authorization();
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
+            final OctetsFW extension = reset.extension();
+            final GrpcResetExFW resetEx = extension.get(resetExRO::tryWrap);
+
+            final String16FW status = resetEx != null ? resetEx.status() : HEADER_VALUE_GRPC_INTERNAL_ERROR;
 
             assert acknowledge <= sequence;
             assert acknowledge >= grpcInitialAck;
@@ -896,7 +912,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             assert grpcInitialAck <= grpcInitialSeq;
 
-            delegate.doNetReset(traceId, authorization);
+            delegate.doNetReset(traceId, authorization, status);
         }
 
         private void onAppWindow(
@@ -1017,6 +1033,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long acknowledge = abort.acknowledge();
             final long traceId = abort.traceId();
             final long authorization = abort.authorization();
+            final OctetsFW extension = abort.extension();
+            final GrpcAbortExFW abortEx = extension.get(abortExRO::tryWrap);
+
+            final String16FW status = abortEx != null ? abortEx.status() : HEADER_VALUE_GRPC_ABORTED;
 
             assert acknowledge <= sequence;
             assert sequence >= grpcReplySeq;
@@ -1026,7 +1046,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             assert grpcReplyAck <= grpcReplySeq;
 
-            delegate.doNetAbort(traceId, authorization);
+            delegate.doNetAbort(traceId, authorization, status);
         }
 
 
