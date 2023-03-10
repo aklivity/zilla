@@ -14,26 +14,22 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import org.junit.Test;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
 import io.aklivity.zilla.runtime.engine.metrics.Metrics;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsFactory;
 
-public final class StreamMetricsFactoryTest
+public class StreamMetricGroupFactorySpi implements MetricGroupFactorySpi
 {
-    @Test
-    public void shouldLoadAndCreate()
+    @Override
+    public String type()
     {
-        Configuration config = new Configuration();
-        MetricsFactory factory = MetricsFactory.instantiate();
-        Metrics metrics = factory.create("stream", config);
+        return StreamMetrics.NAME;
+    }
 
-        assertThat(metrics, instanceOf(StreamMetrics.class));
-        assertThat(metrics.name(), equalTo("stream"));
+    @Override
+    public Metrics create(
+        Configuration config)
+    {
+        return new StreamMetrics(config);
     }
 }

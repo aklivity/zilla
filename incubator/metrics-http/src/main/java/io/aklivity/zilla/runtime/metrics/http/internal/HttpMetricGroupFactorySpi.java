@@ -14,26 +14,22 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import org.junit.Test;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
 import io.aklivity.zilla.runtime.engine.metrics.Metrics;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsFactory;
 
-public final class HttpMetricsFactoryTest
+public class HttpMetricGroupFactorySpi implements MetricGroupFactorySpi
 {
-    @Test
-    public void shouldLoadAndCreate()
+    @Override
+    public String type()
     {
-        Configuration config = new Configuration();
-        MetricsFactory factory = MetricsFactory.instantiate();
-        Metrics metrics = factory.create("http", config);
+        return HttpMetrics.NAME;
+    }
 
-        assertThat(metrics, instanceOf(HttpMetrics.class));
-        assertThat(metrics.name(), equalTo("http"));
+    @Override
+    public Metrics create(
+        Configuration config)
+    {
+        return new HttpMetrics(config);
     }
 }

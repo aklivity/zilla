@@ -13,14 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics;
+package io.aklivity.zilla.runtime.engine.test.internal.metrics;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
 
-public interface MetricsFactorySpi
+public final class TestMetricGroupFactorySpi implements MetricGroupFactorySpi
 {
-    String type();
+    @Override
+    public String type()
+    {
+        return TestMetrics.NAME;
+    }
 
-    Metrics create(
-        Configuration config);
+    @Override
+    public TestMetrics create(
+        Configuration config)
+    {
+        return new TestMetrics(config);
+    }
 }

@@ -15,23 +15,12 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import org.junit.Test;
-
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetrics;
 
-public final class MetricsFactoryTest
+public interface MetricGroupFactorySpi
 {
-    @Test
-    public void shouldLoadAndCreate()
-    {
-        Configuration config = new Configuration();
-        MetricsFactory factory = MetricsFactory.instantiate();
-        Metrics metrics = factory.create("test", config);
+    String type();
 
-        assertThat(metrics, instanceOf(TestMetrics.class));
-    }
+    Metrics create(
+        Configuration config);
 }

@@ -44,7 +44,7 @@ public class ConfigurationRegistry
             Function<String, BindingContext> bindingsByType,
             Function<String, GuardContext> guardsByType,
             Function<String, VaultContext> vaultsByType,
-            Function<String, MetricsContext> metricsByType,
+            Function<String, MetricsContext> metricGroupsByType,
             ToIntFunction<String> supplyLabelId,
             LongConsumer supplyLoadEntry,
             LongConsumer detachBinding)
@@ -52,7 +52,7 @@ public class ConfigurationRegistry
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
-        this.metricsByType = metricsByType;
+        this.metricsByType = metricGroupsByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
         this.namespacesById = new Int2ObjectHashMap<>();

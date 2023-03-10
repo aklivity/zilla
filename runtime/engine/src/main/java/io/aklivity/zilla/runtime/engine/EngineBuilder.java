@@ -27,8 +27,8 @@ import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
 import io.aklivity.zilla.runtime.engine.metrics.Metrics;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsFactory;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultFactory;
 
@@ -87,10 +87,10 @@ public class EngineBuilder
         }
 
         final Set<Metrics> metricsSet = new LinkedHashSet<>();
-        final MetricsFactory metricsFactory = MetricsFactory.instantiate();
-        for (String name : metricsFactory.names())
+        final MetricGroupFactory metricGroupFactory = MetricGroupFactory.instantiate();
+        for (String name : metricGroupFactory.names())
         {
-            Metrics metrics = metricsFactory.create(name, config);
+            Metrics metrics = metricGroupFactory.create(name, config);
             metricsSet.add(metrics);
         }
 

@@ -12,24 +12,28 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.metrics.stream.internal;
+package io.aklivity.zilla.runtime.metrics.http.internal;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
 import io.aklivity.zilla.runtime.engine.metrics.Metrics;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsFactorySpi;
 
-public class StreamMetricsFactorySpi implements MetricsFactorySpi
+public final class HttpMetricGroupFactoryTest
 {
-    @Override
-    public String type()
+    @Test
+    public void shouldLoadAndCreate()
     {
-        return StreamMetrics.NAME;
-    }
+        Configuration config = new Configuration();
+        MetricGroupFactory factory = MetricGroupFactory.instantiate();
+        Metrics metrics = factory.create("http", config);
 
-    @Override
-    public Metrics create(
-        Configuration config)
-    {
-        return new StreamMetrics(config);
+        assertThat(metrics, instanceOf(HttpMetrics.class));
+        assertThat(metrics.name(), equalTo("http"));
     }
 }

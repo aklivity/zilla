@@ -16,6 +16,6 @@ module io.aklivity.zilla.runtime.metrics.http
 {
     requires io.aklivity.zilla.runtime.engine;
 
-    provides io.aklivity.zilla.runtime.engine.metrics.MetricsFactorySpi
-        with io.aklivity.zilla.runtime.metrics.http.internal.HttpMetricsFactorySpi;
+    provides io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi
+        with io.aklivity.zilla.runtime.metrics.http.internal.HttpMetricGroupFactorySpi;
 }

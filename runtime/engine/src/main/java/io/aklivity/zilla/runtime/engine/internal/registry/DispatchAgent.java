@@ -332,11 +332,11 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         // TODO: Ati ?????
-        Map<String, MetricsContext> metricsByType = new LinkedHashMap<>();
+        Map<String, MetricsContext> metricGroupsByType = new LinkedHashMap<>();
         for (Metrics metrics0 : metrics)
         {
             String type = metrics0.name();
-            metricsByType.put(type, metrics0.supply(null)); // TODO: Ati - we need a CollectorContext here
+            metricGroupsByType.put(type, metrics0.supply(null)); // TODO: Ati - we need a CollectorContext here
         }
 
         /*Map<String, Metric> metricsByName = new LinkedHashMap<>();
@@ -349,7 +349,7 @@ public class DispatchAgent implements EngineContext, Agent
 
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByType::get,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, metricGroupsByType::get,
                 labels::supplyLabelId, supplyLoadEntry::apply, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();

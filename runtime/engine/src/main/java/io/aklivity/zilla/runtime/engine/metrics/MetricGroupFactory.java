@@ -10,13 +10,13 @@ import java.util.ServiceLoader;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public final class MetricsFactory
+public final class MetricGroupFactory
 {
-    private final Map<String, MetricsFactorySpi> factorySpis;
+    private final Map<String, MetricGroupFactorySpi> factorySpis;
 
-    public static MetricsFactory instantiate()
+    public static MetricGroupFactory instantiate()
     {
-        return instantiate(load(MetricsFactorySpi.class));
+        return instantiate(load(MetricGroupFactorySpi.class));
     }
 
     public Iterable<String> names()
@@ -30,22 +30,22 @@ public final class MetricsFactory
     {
         requireNonNull(type, "type");
 
-        MetricsFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized metrics type: " + type);
+        MetricGroupFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized metrics type: " + type);
 
         return factorySpi.create(config);
     }
 
-    private static MetricsFactory instantiate(
-        ServiceLoader<MetricsFactorySpi> factories)
+    private static MetricGroupFactory instantiate(
+        ServiceLoader<MetricGroupFactorySpi> factories)
     {
-        Map<String, MetricsFactorySpi> factorySpisByName = new HashMap<>();
+        Map<String, MetricGroupFactorySpi> factorySpisByName = new HashMap<>();
         factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.type(), factorySpi));
 
-        return new MetricsFactory(unmodifiableMap(factorySpisByName));
+        return new MetricGroupFactory(unmodifiableMap(factorySpisByName));
     }
 
-    private MetricsFactory(
-        Map<String, MetricsFactorySpi> factorySpis)
+    private MetricGroupFactory(
+        Map<String, MetricGroupFactorySpi> factorySpis)
     {
         this.factorySpis = factorySpis;
     }
