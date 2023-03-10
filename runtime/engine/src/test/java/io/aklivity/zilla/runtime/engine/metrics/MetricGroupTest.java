@@ -5,7 +5,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetricGroup;
@@ -17,9 +16,7 @@ public class MetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new TestMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("test.counter");
+        Metric metric = metricGroup.resolve("test.counter");
 
         assertThat(metric, instanceOf(TestCounterMetric.class));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
@@ -30,9 +27,7 @@ public class MetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new TestMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("test.gauge");
+        Metric metric = metricGroup.resolve("test.gauge");
 
         assertThat(metric, instanceOf(TestGaugeMetric.class));
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
@@ -43,9 +38,7 @@ public class MetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new TestMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("test.histogram");
+        Metric metric = metricGroup.resolve("test.histogram");
 
         assertThat(metric, instanceOf(TestHistogramMetric.class));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));

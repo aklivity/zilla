@@ -4,23 +4,20 @@ import static java.util.Objects.requireNonNull;
 
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
 public class MetricRegistry
 {
     private final MetricConfig config;
-    private final MetricsContext context;
 
     private MetricHandler attached;
 
     MetricRegistry(
-        MetricConfig vault,
-        MetricsContext context)
+            MetricConfig config)
     {
-        this.config = requireNonNull(vault);
-        this.context = requireNonNull(context);
+        this.config = requireNonNull(config);
     }
 
+    // TODO: Ati
     /*public void attach()
     {
         attached = context.attach(config);

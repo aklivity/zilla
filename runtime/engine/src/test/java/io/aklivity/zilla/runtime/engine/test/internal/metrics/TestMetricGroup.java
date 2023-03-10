@@ -16,14 +16,24 @@
 package io.aklivity.zilla.runtime.engine.test.internal.metrics;
 
 import java.net.URL;
+import java.util.Map;
+import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
+import io.aklivity.zilla.runtime.engine.metrics.TestCounterMetric;
+import io.aklivity.zilla.runtime.engine.metrics.TestGaugeMetric;
+import io.aklivity.zilla.runtime.engine.metrics.TestHistogramMetric;
 
 public final class TestMetricGroup implements MetricGroup
 {
+    private final Map<String, Supplier<Metric>> testMetrics = Map.of(
+        "test.counter", TestCounterMetric::new,
+        "test.gauge", TestGaugeMetric::new,
+        "test.histogram", TestHistogramMetric::new
+    );
+
     public static final String NAME = "test";
 
     public TestMetricGroup(
@@ -44,9 +54,9 @@ public final class TestMetricGroup implements MetricGroup
     }
 
     @Override
-    public MetricsContext supply(
-        CollectorContext context)
+    public Metric resolve(
+        String name)
     {
-        return new TestMetricsContext(context);
+        return testMetrics.getOrDefault(name, () -> null).get();
     }
 }

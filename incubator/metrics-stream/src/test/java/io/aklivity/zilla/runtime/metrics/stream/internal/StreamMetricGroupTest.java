@@ -19,13 +19,10 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
 public class StreamMetricGroupTest
 {
@@ -34,9 +31,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.opens.received");
+        Metric metric = metricGroup.resolve("stream.opens.received");
 
         assertThat(metric, instanceOf(StreamOpensReceivedMetric.class));
         assertThat(metric.name(), equalTo("stream.opens.received"));
@@ -51,9 +46,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.opens.sent");
+        Metric metric = metricGroup.resolve("stream.opens.sent");
 
         assertThat(metric, instanceOf(StreamOpensSentMetric.class));
         assertThat(metric.name(), equalTo("stream.opens.sent"));
@@ -68,9 +61,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.data.received");
+        Metric metric = metricGroup.resolve("stream.data.received");
 
         assertThat(metric, instanceOf(StreamDataReceivedMetric.class));
         assertThat(metric.name(), equalTo("stream.data.received"));
@@ -85,9 +76,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.data.sent");
+        Metric metric = metricGroup.resolve("stream.data.sent");
 
         assertThat(metric, instanceOf(StreamDataSentMetric.class));
         assertThat(metric.name(), equalTo("stream.data.sent"));
@@ -102,9 +91,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.errors.received");
+        Metric metric = metricGroup.resolve("stream.errors.received");
 
         assertThat(metric, instanceOf(StreamErrorsReceivedMetric.class));
         assertThat(metric.name(), equalTo("stream.errors.received"));
@@ -119,9 +106,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.errors.sent");
+        Metric metric = metricGroup.resolve("stream.errors.sent");
 
         assertThat(metric, instanceOf(StreamErrorsSentMetric.class));
         assertThat(metric.name(), equalTo("stream.errors.sent"));
@@ -136,9 +121,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.closes.received");
+        Metric metric = metricGroup.resolve("stream.closes.received");
 
         assertThat(metric, instanceOf(StreamClosesReceivedMetric.class));
         assertThat(metric.name(), equalTo("stream.closes.received"));
@@ -153,9 +136,7 @@ public class StreamMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("stream.closes.sent");
+        Metric metric = metricGroup.resolve("stream.closes.sent");
 
         assertThat(metric, instanceOf(StreamClosesSentMetric.class));
         assertThat(metric.name(), equalTo("stream.closes.sent"));

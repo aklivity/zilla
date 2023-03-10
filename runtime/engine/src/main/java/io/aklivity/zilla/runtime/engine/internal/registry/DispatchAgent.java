@@ -117,7 +117,6 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
@@ -332,21 +331,12 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         // TODO: Ati ?????
-        Map<String, MetricsContext> metricGroupsByType = new LinkedHashMap<>();
-        for (MetricGroup metricGroup0 : metrics)
+        Map<String, MetricGroup> metricGroupsByType = new LinkedHashMap<>();
+        for (MetricGroup metricGroup : metrics)
         {
-            String type = metricGroup0.name();
-            metricGroupsByType.put(type, metricGroup0.supply(null)); // TODO: Ati - we need a CollectorContext here
+            String type = metricGroup.name();
+            metricGroupsByType.put(type, metricGroup);
         }
-
-        /*Map<String, Metric> metricsByName = new LinkedHashMap<>();
-        for (Metrics metrics0 : metrics)
-        {
-            MetricsContext context = metrics0.supply(null);
-            context.names().forEach(name -> metricsByName.put(name, context.resolve(name)));
-        }*/
-
-
 
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricGroupsByType::get,
@@ -354,6 +344,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
 
+        // TODO: Ati
         this.supplyMetric = bindingId -> new MetricHandler()
         {
             @Override
@@ -362,7 +353,8 @@ public class DispatchAgent implements EngineContext, Agent
                 System.out.format("%d %d %d %d\n", bindingId, msgTypeId, index, length);
             }
         };
-        //if (metricsByType.get("stream") != null) // TODO: Ati
+
+        //if (metricsByType.get("stream") != null)
         //{
         //String[] metricNames = {"stream.opens.received", "stream.opens.sent"};
         //this.supplyMetric = bindingId -> buildMetricHandlerChain(this.configuration, metricNames, metricsByType, bindingId);
@@ -391,11 +383,10 @@ public class DispatchAgent implements EngineContext, Agent
         MetricHandler handler = null;
         for (long metricId : metricIds)
         {
-            // TODO: Ati // get metric by metricId and do stuff here
         }
         for (String metricName : metricNames)
         {
-            MetricsContext context = metricsByType.get("stream"); // TODO: Ati
+            MetricsContext context = metricsByType.get("stream");
             handler = handler == null
                     ? context.resolve(metricName).supplyReceived(bindingId)
                     : handler.andThen(context.resolve(metricName).supplyReceived(bindingId));

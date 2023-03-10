@@ -20,13 +20,10 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
 public class HttpMetricGroupTest
 {
@@ -35,9 +32,7 @@ public class HttpMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("http.request.size");
+        Metric metric = metricGroup.resolve("http.request.size");
 
         assertThat(metric, instanceOf(HttpRequestSizeMetric.class));
         assertThat(metric.name(), equalTo("http.request.size"));
@@ -51,9 +46,7 @@ public class HttpMetricGroupTest
     {
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        CollectorContext collector = Mockito.mock(CollectorContext.class);
-        MetricsContext metricsContext = metricGroup.supply(collector);
-        Metric metric = metricsContext.resolve("http.response.size");
+        Metric metric = metricGroup.resolve("http.response.size");
 
         assertThat(metric, instanceOf(HttpResponseSizeMetric.class));
         assertThat(metric.name(), equalTo("http.response.size"));

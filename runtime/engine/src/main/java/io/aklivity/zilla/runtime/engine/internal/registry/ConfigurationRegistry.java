@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
@@ -33,7 +33,7 @@ public class ConfigurationRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
-    private final Function<String, MetricsContext> metricsByType;
+    private final Function<String, MetricGroup> metricsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
 
@@ -44,7 +44,7 @@ public class ConfigurationRegistry
             Function<String, BindingContext> bindingsByType,
             Function<String, GuardContext> guardsByType,
             Function<String, VaultContext> vaultsByType,
-            Function<String, MetricsContext> metricGroupsByType,
+            Function<String, MetricGroup> metricGroupsByType,
             ToIntFunction<String> supplyLabelId,
             LongConsumer supplyLoadEntry,
             LongConsumer detachBinding)

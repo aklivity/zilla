@@ -29,7 +29,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -38,7 +38,7 @@ public class NamespaceRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
-    private final Function<String, MetricsContext> metricsByType;
+    private final Function<String, MetricGroup> metricsByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
@@ -53,7 +53,7 @@ public class NamespaceRegistry
         Function<String, BindingContext> bindingsByType,
         Function<String, GuardContext> guardsByType,
         Function<String, VaultContext> vaultsByType,
-        Function<String, MetricsContext> metricsByType,
+        Function<String, MetricGroup> metricsByType,
         ToIntFunction<String> supplyLabelId,
         LongConsumer supplyLoadEntry,
         LongConsumer detachBinding)
@@ -175,14 +175,14 @@ public class NamespaceRegistry
     private void attachMetric(
         MetricConfig config)
     {
-        MetricsContext context = metricsByType.apply(config.group);
-        assert context != null : "Missing metrics type: " + config.group;
+        // TODO: Ati
+        //MetricsContext context = metricsByType.apply(config.group);
+        //assert context != null : "Missing metrics type: " + config.group;
 
         int metricsId = supplyLabelId.applyAsInt(config.group);
         //MetricRegistry registry = metricsById.putIfAbsent(metricsId, id -> new MetricRegistry(config.type, context));
         //MetricRegistry registry = metricsById.putIfAbsent(metricsId, id -> new MetricRegistry(config, context));
         //registry.attach(config);
-        // TODO: Ati
     }
 
     private void detachMetric(

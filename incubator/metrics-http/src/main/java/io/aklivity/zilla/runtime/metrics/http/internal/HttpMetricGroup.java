@@ -15,14 +15,20 @@
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
 import java.net.URL;
+import java.util.Map;
+import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
 public class HttpMetricGroup implements MetricGroup
 {
+    private final Map<String, Supplier<Metric>> httpMetrics = Map.of(
+        "http.request.size", HttpRequestSizeMetric::new,
+        "http.response.size", HttpResponseSizeMetric::new
+    );
+
     public static final String NAME = "http";
 
     public HttpMetricGroup(
@@ -37,15 +43,14 @@ public class HttpMetricGroup implements MetricGroup
     }
 
     @Override
-    public MetricsContext supply(
-        CollectorContext context)
-    {
-        return new HttpMetricsContext();
-    }
-
-    @Override
     public URL type()
     {
         return getClass().getResource("schema/http.schema.patch.json");
+    }
+
+    @Override
+    public Metric resolve(String name)
+    {
+        return httpMetrics.getOrDefault(name, () -> null).get();
     }
 }

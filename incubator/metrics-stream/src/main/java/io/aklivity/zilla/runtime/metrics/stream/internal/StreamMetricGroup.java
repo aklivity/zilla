@@ -15,14 +15,26 @@
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
 import java.net.URL;
+import java.util.Map;
+import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.metrics.CollectorContext;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricsContext;
 
 public class StreamMetricGroup implements MetricGroup
 {
+    private final Map<String, Supplier<Metric>> streamMetrics = Map.of(
+        "stream.opens.received", StreamOpensReceivedMetric::new,
+        "stream.opens.sent", StreamOpensSentMetric::new,
+        "stream.data.received", StreamDataReceivedMetric::new,
+        "stream.data.sent", StreamDataSentMetric::new,
+        "stream.errors.received", StreamErrorsReceivedMetric::new,
+        "stream.errors.sent", StreamErrorsSentMetric::new,
+        "stream.closes.received", StreamClosesReceivedMetric::new,
+        "stream.closes.sent", StreamClosesSentMetric::new
+    );
+
     public static final String NAME = "stream";
 
     public StreamMetricGroup(
@@ -37,15 +49,15 @@ public class StreamMetricGroup implements MetricGroup
     }
 
     @Override
-    public MetricsContext supply(
-        CollectorContext context)
-    {
-        return new StreamMetricsContext();
-    }
-
-    @Override
     public URL type()
     {
         return getClass().getResource("schema/stream.schema.patch.json");
+    }
+
+    @Override
+    public Metric resolve(
+        String name)
+    {
+        return streamMetrics.getOrDefault(name, () -> null).get();
     }
 }

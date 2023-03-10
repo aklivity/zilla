@@ -6,8 +6,8 @@ public interface MetricGroup
 {
     String name();
 
-    MetricsContext supply(
-        CollectorContext context);
-
     URL type();
+
+    Metric resolve(
+        String name);
 }
