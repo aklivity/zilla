@@ -33,6 +33,7 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcKind;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public final class GrpcFunctions
@@ -67,6 +68,13 @@ public final class GrpcFunctions
     {
         return new GrpcBeginExMatcherBuilder();
     }
+
+    @Function
+    public static GrpcResetExBuilder resetEx()
+    {
+        return new GrpcResetExBuilder();
+    }
+
 
     public static final class GrpcBeginExBuilder
     {
@@ -311,6 +319,39 @@ public final class GrpcFunctions
             GrpcBeginExFW beginEx)
         {
             return typeId == beginEx.typeId();
+        }
+    }
+
+    public static final class GrpcResetExBuilder
+    {
+        private final GrpcResetExFW.Builder resetExRW;
+
+        private GrpcResetExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.resetExRW = new GrpcResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public GrpcResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public GrpcResetExBuilder status(
+            String status)
+        {
+            resetExRW.status(status);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final GrpcResetExFW resetEx = resetExRW.build();
+            final byte[] array = new byte[resetEx.sizeof()];
+            resetEx.buffer().getBytes(resetEx.offset(), array);
+            return array;
         }
     }
 

@@ -59,5 +59,15 @@ public class UnaryRpcIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/server.rst/client",
+        "${app}/server.rst/server"
+    })
+    public void shouldRejectServerResetUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
 
 }

@@ -320,6 +320,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         String16FW grpcStatus)
     {
         HttpResetExFW resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(httpTypeId)
                 .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
                 .headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus))
                     .build();
