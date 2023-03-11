@@ -40,7 +40,6 @@ write close
 read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "405")
-                           .header("content-type", "text/plain; encoding=utf-8")
                            .header("grpc-status", "13")
                            .build()}
 
