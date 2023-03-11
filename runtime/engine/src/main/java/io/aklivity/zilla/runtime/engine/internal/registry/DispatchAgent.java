@@ -116,6 +116,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
@@ -130,6 +131,8 @@ public class DispatchAgent implements EngineContext, Agent
     private static final int SHIFT_SIZE = 56;
 
     private static final int SIGNAL_TASK_QUEUED = 1;
+
+    private static final MetricHandler NO_OP_METRIC_RECORDER = (msgTypeId, buffer, index, length) -> {};
 
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
@@ -148,7 +151,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final LabelManager labels;
     private final String agentName;
     private final LongFunction<LoadEntry> supplyLoadEntry;
-    private final LongFunction<MetricHandler> supplyMetric;
+    private final LongFunction<MetricHandler> supplyMetricRecorder;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -208,7 +211,7 @@ public class DispatchAgent implements EngineContext, Agent
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
         Collection<Guard> guards,
-        Collection<MetricGroup> metrics,
+        Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         int index)
     {
@@ -256,6 +259,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
 
         this.supplyLoadEntry = new LoadManager(loadLayout.buffer())::entry;
+        this.supplyMetricRecorder = this::resolveMetricRecorder;
 
         final CountersManager countersManager =
                 new CountersManager(metricsLayout.labelsBuffer(), metricsLayout.valuesBuffer());
@@ -331,64 +335,22 @@ public class DispatchAgent implements EngineContext, Agent
             vaultsByType.put(type, vault.supply(this));
         }
 
-        // TODO: Ati ?????
-        Map<String, MetricGroup> metricGroupsByType = new LinkedHashMap<>();
-        for (MetricGroup metricGroup : metrics)
+        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
         {
-            String type = metricGroup.name();
-            metricGroupsByType.put(type, metricGroup);
-        }
-
-        // TODO: Ati
-        if (metricGroupsByType.get("stream") != null)
-        {
-            Metric streamDataReceivedMetric = metricGroupsByType.get("stream").resolve("stream.data.received");
-            Metric streamDataSentMetric = metricGroupsByType.get("stream").resolve("stream.data.sent");
-            LongConsumer dummyConsumer = System.out::println;
-            this.supplyMetric = bindingId ->
-                    streamDataReceivedMetric.supply(this).supply(dummyConsumer)
-                            .andThen(streamDataSentMetric.supply(this).supply(dummyConsumer));
-        }
-        else
-        {
-            this.supplyMetric = bindingId -> (MetricHandler) (msgTypeId, buffer, index1, length) -> {};
+            for (String metricName : metricGroup.metricNames())
+            {
+                Metric metric = metricGroup.resolve(metricName);
+                metricsByName.put(metricName, metric.supply(this));
+            }
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, metricGroupsByType::get,
+                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
                 labels::supplyLabelId, supplyLoadEntry::apply, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
-
-    /*public MetricHandler buildMetricHandlerChain(
-        ConfigurationRegistry configuration,
-        String[] metricNames,
-        Map<String, MetricsContext> metricsByType,
-        long bindingId
-    )
-    {
-        BindingRegistry binding = configuration.resolveBinding(bindingId); // ?????
-        if (binding == null)
-        {
-            return null;
-        }
-
-        long[] metricIds = binding.getMetricIds();
-
-        MetricHandler handler = null;
-        for (long metricId : metricIds)
-        {
-        }
-        for (String metricName : metricNames)
-        {
-            MetricsContext context = metricsByType.get("stream");
-            handler = handler == null
-                    ? context.resolve(metricName).supplyReceived(bindingId)
-                    : handler.andThen(context.resolve(metricName).supplyReceived(bindingId));
-        }
-        return handler;
-    }*/
 
     public static int indexOfId(
         long indexedId)
@@ -610,8 +572,6 @@ public class DispatchAgent implements EngineContext, Agent
         VaultRegistry vault = configuration.resolveVault(vaultId);
         return vault != null ? vault.handler() : null;
     }
-
-    // TODO: Ati - supplyMetric
 
     @Override
     public URL resolvePath(
@@ -1070,9 +1030,7 @@ public class DispatchAgent implements EngineContext, Agent
             final MessageConsumer handler = dispatcher.get(instanceId);
             if (handler != null)
             {
-                supplyMetric.apply(routeId).onEvent(msgTypeId, buffer, index, length);
-                //supplyMetricRecorder.apply(bindingId).onEvenet(...)
-                // long -> MetricHandler
+                supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
@@ -1080,9 +1038,6 @@ public class DispatchAgent implements EngineContext, Agent
                     break;
                 case DataFW.TYPE_ID:
                     int bytesRead = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
-                    //supplyMetrics.apply(routeId).onReceived(...)
-                    //              -> MetricHandler
-                    //supplyMetric.apply(routeId).onEvent(msgTypeId, buffer, index, length);
                     supplyLoadEntry.apply(routeId).initialBytesRead(bytesRead);
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
@@ -1546,6 +1501,14 @@ public class DispatchAgent implements EngineContext, Agent
         int index)
     {
         return targetsByIndex.computeIfAbsent(index, newTarget);
+    }
+
+    // Each binding has a list of metrics configured and the BindingRegistry has the chained up MetricHandler that takes
+    // care of recording all the configured metrics. This function returns the MetricHandler that belongs to the given binding.
+    private MetricHandler resolveMetricRecorder(long bindingId)
+    {
+        MetricHandler recorder = configuration.resolveBinding(bindingId).metricRecorder();
+        return recorder != null ? recorder : NO_OP_METRIC_RECORDER;
     }
 
     private Target newTarget(

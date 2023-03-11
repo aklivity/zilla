@@ -211,7 +211,7 @@ public class ConfigurationManager
                 vault.id = namespace.resolveId.applyAsLong(vault.name);
             }
 
-            if (namespace.telemetry != null)
+            if (namespace.telemetry != null && namespace.telemetry.metrics != null)
             {
                 for (MetricConfig metric : namespace.telemetry.metrics)
                 {
@@ -261,10 +261,12 @@ public class ConfigurationManager
                     }
                 }
 
-                // collect the id's of the metrics configured for the current binding to an array
+                // collect the id's of the metrics configured for the current binding to a long array
                 binding.metricIds = binding.telemetryRef != null && binding.telemetryRef.metricRefs != null
                         ? binding.telemetryRef.metricRefs.stream()
-                            .map(metricRef -> namespace0.resolveId.applyAsLong(metricRef.name)).mapToLong(l -> l).toArray()
+                            .map(metricRef -> namespace0.resolveId.applyAsLong(metricRef.name))
+                            .mapToLong(Long::longValue)
+                            .toArray()
                         : new long[]{};
 
                 long affinity = tuning.affinity(binding.id);

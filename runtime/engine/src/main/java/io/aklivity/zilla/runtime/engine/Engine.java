@@ -87,7 +87,7 @@ public final class Engine implements AutoCloseable
         EngineConfiguration config,
         Collection<Binding> bindings,
         Collection<Guard> guards,
-        Collection<MetricGroup> metrics,
+        Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities)
@@ -139,7 +139,7 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, guards, metrics, vaults, coreIndex);
+                        bindings, guards, metricGroups, vaults, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -154,7 +154,7 @@ public final class Engine implements AutoCloseable
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
-        schemaTypes.addAll(metrics.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
 
         final Map<String, Guard> guardsByType = guards.stream()

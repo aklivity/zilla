@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
 import java.net.URL;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -59,5 +60,11 @@ public class StreamMetricGroup implements MetricGroup
         String name)
     {
         return streamMetrics.getOrDefault(name, () -> null).get();
+    }
+
+    @Override
+    public Collection<String> metricNames()
+    {
+        return streamMetrics.keySet();
     }
 }

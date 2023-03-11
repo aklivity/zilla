@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
 import java.net.URL;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -52,5 +53,11 @@ public class HttpMetricGroup implements MetricGroup
     public Metric resolve(String name)
     {
         return httpMetrics.getOrDefault(name, () -> null).get();
+    }
+
+    @Override
+    public Collection<String> metricNames()
+    {
+        return httpMetrics.keySet();
     }
 }

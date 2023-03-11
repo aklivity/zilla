@@ -18,20 +18,25 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 final class BindingRegistry
 {
     private final BindingConfig binding;
     private final BindingContext context;
+    // all the MetricHandler's that the current binding needs, should be chained up with andThen's and stored here
+    private final MetricHandler metricHandler;
 
     private BindingHandler attached;
 
     BindingRegistry(
         BindingConfig binding,
-        BindingContext context)
+        BindingContext context,
+        MetricHandler metricHandler)
     {
         this.binding = binding;
         this.context = context;
+        this.metricHandler = metricHandler;
     }
 
     public void attach()
@@ -50,11 +55,8 @@ final class BindingRegistry
         return attached;
     }
 
-    // TODO: Ati public MetricHandler metricRecorder() -- that should the one MetricHandler that was chained
-
-    // TODO: Ati -- remove this
-    /*public long[] getMetricIds()
+    MetricHandler metricRecorder()
     {
-        return binding.metricIds;
-    }*/
+        return metricHandler;
+    }
 }

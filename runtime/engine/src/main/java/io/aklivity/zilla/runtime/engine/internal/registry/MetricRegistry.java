@@ -2,32 +2,32 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static java.util.Objects.requireNonNull;
 
-import io.aklivity.zilla.runtime.engine.config.MetricConfig;
+import java.util.function.LongConsumer;
+
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class MetricRegistry
 {
-    private final MetricConfig config;
+    private final MetricContext context;
 
     private MetricHandler attached;
 
     MetricRegistry(
-            MetricConfig config)
+        MetricContext context)
     {
-        this.config = requireNonNull(config);
+        this.context = requireNonNull(context);
     }
 
-    // TODO: Ati
-    /*public void attach()
+    public void attach(LongConsumer metricRecorder)
     {
-        attached = context.attach(config);
+        attached = context.supply(metricRecorder);
     }
 
     public void detach()
     {
-        context.detach(config);
         attached = null;
-    }*/
+    }
 
     public MetricHandler handler()
     {
