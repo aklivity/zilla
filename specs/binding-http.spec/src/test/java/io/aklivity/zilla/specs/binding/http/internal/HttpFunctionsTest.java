@@ -52,6 +52,7 @@ import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpFlushExFW;
+import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpResetExFW;
 
 public class HttpFunctionsTest
 {
@@ -445,6 +446,24 @@ public class HttpFunctionsTest
             assertEquals("value", onlyHeader.value().asString());
         });
         assertTrue(endEx.trailers().sizeof() > 0);
+    }
+
+    @Test
+    public void shouldGenerateResetExtension()
+    {
+        byte[] build = HttpFunctions.resetEx()
+            .typeId(0x01)
+            .header("name", "value")
+            .build();
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        HttpResetExFW resetEx = new HttpResetExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, resetEx.typeId());
+        resetEx.headers().forEach(onlyHeader ->
+        {
+            assertEquals("name", onlyHeader.name().asString());
+            assertEquals("value", onlyHeader.value().asString());
+        });
+        assertTrue(resetEx.headers().sizeof() > 0);
     }
 
     @Test

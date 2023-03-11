@@ -54,6 +54,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpEndExFW;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.WindowFW;
@@ -113,19 +114,21 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
     private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
+    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
     private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
-    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final GrpcResetExFW resetExRO = new GrpcResetExFW();
     private final GrpcAbortExFW abortExRO = new GrpcAbortExFW();
     private final GrpcMessageFW grpcMessageRO = new GrpcMessageFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpEndExFW.Builder httpEndExRW = new HttpEndExFW.Builder();
+    private final HttpResetExFW.Builder httpResetExRW = new HttpResetExFW.Builder();
     private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
     private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcMessageFW.Builder grpcMessageRW = new GrpcMessageFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
+    private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer metadataBuffer;
     private final BufferPool bufferPool;
     private final Signaler signaler;
@@ -226,6 +229,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         EngineContext context)
     {
         this.writeBuffer = context.writeBuffer();
+        this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.bufferPool = context.bufferPool();
         this.signaler = context.signaler();
@@ -265,19 +269,18 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         final long routeId = begin.routeId();
         final long traceId = begin.traceId();
         final long authorization = begin.authorization();
-        final long affinity = begin.affinity();
         final long initialId = begin.streamId();
         final long sequence = begin.sequence();
         final long acknowledge = begin.acknowledge();
         final OctetsFW extension = begin.extension();
         final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
-        MessageConsumer newStream = null;
+        MessageConsumer newStream = (t, b, i, l) -> {};
 
         if (!isGrpcRequestMethod(httpBeginEx))
         {
-            newStream = rejectRequest(network, routeId, traceId, authorization, affinity,
-                initialId, sequence, acknowledge, HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+            rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR);
         }
         else
         {
@@ -288,13 +291,13 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             if (method == null)
             {
-                newStream = rejectRequest(network, routeId, traceId, authorization, affinity,
-                    initialId, sequence, acknowledge, HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
+                rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
             }
             else if (contentType == null)
             {
-                newStream = rejectRequest(network, routeId, traceId, authorization, affinity,
-                    initialId, sequence, acknowledge, HEADER_VALUE_STATUS_415, HEADER_VALUE_GRPC_ABORTED);
+                rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                    HEADER_VALUE_STATUS_415, HEADER_VALUE_GRPC_ABORTED);
             }
             else
             {
@@ -305,31 +308,23 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         return newStream;
     }
 
-    private MessageConsumer rejectRequest(
+    private void rejectRequest(
         MessageConsumer network,
         long routeId,
         long traceId,
         long authorization,
-        long affinity,
         long initialId,
         long sequence,
         long acknowledge,
         String16FW httpStatus,
         String16FW grpcStatus)
     {
-        doHttpResponse(network, traceId, authorization, affinity, routeId, initialId, sequence, acknowledge,
-            writeBuffer.capacity(), httpStatus, grpcStatus);
+        HttpResetExFW resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
+                .headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus))
+                    .build();
 
-        MessageConsumer messageDrain = (t, b, i, l) ->
-        {
-            if (t == DataFW.TYPE_ID)
-            {
-                final DataFW data = dataRO.wrap(b, i, i + l);
-                doWindow(network, data.routeId(), data.streamId(), data.sequence(), data.sequence(), data.maximum(),
-                    data.traceId(), data.authorization(), data.budgetId(), 0, 0);
-            }
-        };
-        return messageDrain;
+        doReset(network, routeId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx);
     }
 
     private MessageConsumer  newInitialGrpcStream(
@@ -372,8 +367,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         }
         else
         {
-            newStream = rejectRequest(network, routeId, traceId, authorization, affinity,
-                initialId, sequence, acknowledge, HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
+            rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
+            newStream = (t, b, i, l) -> {};
         }
 
         return newStream;
@@ -731,8 +727,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             if (GrpcState.initialOpening(state))
             {
-                doHttpResponse(network, traceId, authorization, affinity, routeId, initialId, initialSeq, initialAck,
-                    writeBuffer.capacity(), HEADER_VALUE_STATUS_200, status);
+                rejectRequest(network, routeId, traceId, authorization,  initialId, initialSeq, initialAck,
+                    HEADER_VALUE_STATUS_200, status);
             }
             else
             {
