@@ -13,15 +13,13 @@
 # specific language governing permissions and limitations under the License.
 #
 
-property httpMethod ${http:randomMethodNot("POST")}
-
 connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${http:beginEx()
                             .typeId(zilla:id("http"))
-                            .header(":method", httpMethod)
+                            .header(":method", "POST")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
                             .header(":path", "/example.EchoService/EchoUnary")
@@ -29,16 +27,12 @@ write zilla:begin.ext ${http:beginEx()
                             .header("te", "trailers")
                             .header("custom", "test")
                             .build()}
-
 connected
 
-write close
-
-read zilla:begin.ext ${http:matchBeginEx()
+read zilla:reset.ext ${http:resetEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "405")
-                           .header("grpc-status", "13")
+                           .header(":status", "200")
+                           .header("grpc-status", "10")
                            .build()}
 
-
-read closed
+write aborted
