@@ -13,6 +13,8 @@
 # specific language governing permissions and limitations under the License.
 #
 
+property httpMethod ${http:randomMethodNot("POST")}
+
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "half-duplex"
@@ -20,10 +22,10 @@ accepted
 
 read zilla:begin.ext ${http:matchBeginEx()
                              .typeId(zilla:id("http"))
-                             .header(":method", "POST")
+                             .header(":method", httpMethod)
                              .header(":scheme", "http")
                              .header(":authority", "localhost:8080")
-                             .header(":path", "/example.EchoService/EchoStream")
+                             .header(":path", "/example.EchoService/EchoUnary")
                              .header("content-type", "application/grpc")
                              .header("te", "trailers")
                              .header("custom", "test")
@@ -32,27 +34,15 @@ read zilla:begin.ext ${http:matchBeginEx()
 connected
 
 read ${grpc:message()
-           .string(1, "Hello World1")
+           .string(1, "Hello World")
            .build()}
 
-read ${grpc:message()
-           .string(1, "Hello World2")
-           .build()}
+read closed
 
 write zilla:begin.ext ${http:beginEx()
-                              .typeId(zilla:id("http"))
-                              .header(":status", "200")
-                              .header("content-type", "application/grpc")
-                              .header("grpc-encoding", "identity")
-                              .build()}
-write flush
+                            .typeId(zilla:id("http"))
+                            .header(":status", "405")
+                            .header("grpc-status", "13")
+                            .build()}
 
-write ${grpc:message()
-            .string(1, "Hello World1")
-            .build()}
-write flush
-
-write ${grpc:message()
-            .string(1, "Hello World2")
-            .build()}
-write flush
+write close

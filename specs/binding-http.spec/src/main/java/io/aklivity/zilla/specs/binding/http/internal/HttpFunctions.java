@@ -73,6 +73,10 @@ public final class HttpFunctions
     {
         return new HttpEndExBuilder();
     }
+    public static HttpResetExBuilder resetEx()
+    {
+        return new HttpResetExBuilder();
+    }
 
     @Function
     public static HttpResetExBuilder resetEx()
