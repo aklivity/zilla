@@ -45,4 +45,14 @@ public class UnaryRpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/server.rst/client",
+        "${net}/server.rst/server"
+    })
+    public void shouldRejectServerResetUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
 }
