@@ -19,13 +19,9 @@ import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcT
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.Period;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -183,10 +179,10 @@ public final class GrpcBindingConfig
         public CharSequence path;
         public CharSequence contentType;
         public CharSequence serviceName;
-        public Long grpcTimeout;
+        private CharSequence grpcTimeoutText;
+        public long grpcTimeout;
         public String16FW scheme;
         public String16FW authority;
-        private CharSequence grpcTimeoutText;
 
 
         HttpGrpcHeaderHelper(
@@ -200,7 +196,7 @@ public final class GrpcBindingConfig
         {
             serviceName = null;
             path = null;
-            grpcTimeout = null;
+            grpcTimeoutText = null;
             scheme = null;
             authority = null;
             contentType = null;
@@ -230,7 +226,7 @@ public final class GrpcBindingConfig
                 scheme != null &&
                 authority != null &&
                 contentType != null &&
-                grpcTimeout != null;
+                grpcTimeoutText != null;
         }
 
         private void visitServiceName(

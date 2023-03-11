@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.internal.streams.client;
+package io.aklivity.zilla.runtime.binding.grpc.internal.streams.server;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -28,11 +28,13 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class StreamIT
+public class BidirectionalStreamRpcIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/grpc/streams/application");
+        .addScriptRoot("net",
+            "io/aklivity/zilla/specs/binding/grpc/streams/network/bidirectional.stream.rpc")
+        .addScriptRoot("app",
+            "io/aklivity/zilla/specs/binding/grpc/streams/application/bidirectional.stream.rpc");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -42,53 +44,20 @@ public class StreamIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(4096)
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/config")
-        .external("net0")
+        .external("app0")
         .clean();
 
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("server.when.json")
     @Specification({
-        "${app}/unary.rpc/client",
-        "${net}/unary.rpc/server" })
-    public void shouldEstablishUnaryRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.json")
-    @Specification({
-        "${app}/client.stream.rpc/client",
-        "${net}/client.stream.rpc/server",
-    })
-    public void shouldEstablishClientStreamRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.json")
-    @Specification({
-        "${app}/server.stream.rpc/client",
-        "${net}/server.stream.rpc/server",
-    })
-    public void shouldEstablishServerStreamRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.json")
-    @Specification({
-        "${app}/bidirectional.stream.rpc/client",
-        "${net}/bidirectional.stream.rpc/server",
+        "${net}/message.exchange/client",
+        "${app}/message.exchange/server"
     })
     public void shouldEstablishBidirectionalRpc() throws Exception
     {
         k3po.finish();
     }
-
 }

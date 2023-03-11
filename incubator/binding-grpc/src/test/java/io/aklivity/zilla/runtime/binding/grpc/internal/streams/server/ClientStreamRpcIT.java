@@ -28,11 +28,11 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class StreamIT
+public class ClientStreamRpcIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/grpc/streams/application");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network/client.stream.rpc")
+        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/grpc/streams/application/client.stream.rpc");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -51,45 +51,11 @@ public class StreamIT
     @Test
     @Configuration("server.when.json")
     @Specification({
-        "${net}/unary.rpc/client",
-        "${app}/unary.rpc/server"
-    })
-    public void shouldEstablishUnaryRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.json")
-    @Specification({
-        "${net}/client.stream.rpc/client",
-        "${app}/client.stream.rpc/server"
+        "${net}/message.exchange/client",
+        "${app}/message.exchange/server"
     })
     public void shouldEstablishClientStreamRpc() throws Exception
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("server.when.json")
-    @Specification({
-        "${net}/server.stream.rpc/client",
-        "${app}/server.stream.rpc/server"
-    })
-    public void shouldEstablishServerStreamRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.json")
-    @Specification({
-        "${net}/bidirectional.stream.rpc/client",
-        "${app}/bidirectional.stream.rpc/server",
-    })
-    public void shouldEstablishBidirectionalRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
 }
