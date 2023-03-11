@@ -28,11 +28,13 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class StreamIT
+public class BidirectionalStreamRpcIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/grpc/streams/network")
-        .addScriptRoot("app", "io/aklivity/zilla/specs/binding/grpc/streams/application");
+        .addScriptRoot("net",
+            "io/aklivity/zilla/specs/binding/grpc/streams/network/bidirectional.stream.rpc")
+        .addScriptRoot("app",
+            "io/aklivity/zilla/specs/binding/grpc/streams/application/bidirectional.stream.rpc");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -51,44 +53,11 @@ public class StreamIT
     @Test
     @Configuration("client.when.json")
     @Specification({
-        "${app}/unary.rpc/client",
-        "${net}/unary.rpc/server" })
-    public void shouldEstablishUnaryRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.json")
-    @Specification({
-        "${app}/client.stream.rpc/client",
-        "${net}/client.stream.rpc/server",
+        "${app}/message.exchange/client",
+        "${net}/message.exchange/server"
     })
-    public void shouldEstablishClientStreamRpc() throws Exception
+    public void shouldEstablishBidirectionalStreamRpc() throws Exception
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("client.when.json")
-    @Specification({
-        "${app}/server.stream.rpc/client",
-        "${net}/server.stream.rpc/server",
-    })
-    public void shouldEstablishServerStreamRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("client.when.json")
-    @Specification({
-        "${app}/bidirectional.stream.rpc/client",
-        "${net}/bidirectional.stream.rpc/server",
-    })
-    public void shouldEstablishBidirectionalRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
 }

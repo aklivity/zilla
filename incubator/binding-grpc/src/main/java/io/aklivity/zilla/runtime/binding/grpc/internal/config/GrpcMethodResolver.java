@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-import java.time.Period;
-
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;

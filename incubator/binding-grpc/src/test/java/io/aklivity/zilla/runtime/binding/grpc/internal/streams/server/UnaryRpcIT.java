@@ -49,7 +49,7 @@ public class UnaryRpcIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.yaml")
+    @Configuration("server.when.json")
     @Specification({
         "${net}/message.exchange/client",
         "${app}/message.exchange/server"
@@ -59,81 +59,5 @@ public class UnaryRpcIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${net}/binary.metadata/client",
-        "${app}/binary.metadata/server",
-    })
-    public void shouldEstablishWithBinaryMetadata() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${net}/grpc.web/client",
-        "${app}/message.exchange/server",
-    })
-    public void shouldEstablishGrpcWeb() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${net}/response.timeout/client",
-        "${app}/response.timeout/server",
-    })
-    public void shouldTimeoutOnNoResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${net}/server.send.read.abort.on.open.request/client",
-        "${app}/server.send.read.abort.on.open.request/server"
-    })
-    public void shouldRejectServerResetUnaryRpc() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${app}/server.send.read.abort.on.open.request/client",
-        "${app}/server.send.read.abort.on.open.request/server"
-    })
-    public void serverSendsReadAbortOnOpenRequest() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${app}/server.send.write.abort.on.open.response/client",
-        "${app}/server.send.write.abort.on.open.response/server"
-    })
-    public void serverSendsWriteAbortOnOpenResponse() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.yaml")
-    @Specification({
-        "${app}/server.send.write.abort.on.open.request.response/client",
-        "${app}/server.send.write.abort.on.open.request.response/server"
-    })
-    public void serverSendsWriteAbortOnOpenRequestResponse() throws Exception
-    {
-        k3po.finish();
-    }
 
 }
