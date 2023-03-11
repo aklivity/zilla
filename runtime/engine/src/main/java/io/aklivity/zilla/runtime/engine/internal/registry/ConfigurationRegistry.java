@@ -36,6 +36,7 @@ public class ConfigurationRegistry
     private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
+    private final LongConsumer metricRecorder;
 
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
@@ -47,6 +48,7 @@ public class ConfigurationRegistry
             Function<String, MetricContext> metricsByName,
             ToIntFunction<String> supplyLabelId,
             LongConsumer supplyLoadEntry,
+            LongConsumer metricRecorder,
             LongConsumer detachBinding)
     {
         this.bindingsByType = bindingsByType;
@@ -55,6 +57,7 @@ public class ConfigurationRegistry
         this.metricsByName = metricsByName;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
+        this.metricRecorder = metricRecorder;
         this.namespacesById = new Int2ObjectHashMap<>();
         this.detachBinding = detachBinding;
     }
@@ -118,7 +121,7 @@ public class ConfigurationRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, supplyLabelId,
-                    supplyLoadEntry, detachBinding);
+                    supplyLoadEntry, metricRecorder, detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

@@ -211,8 +211,9 @@ public class DispatchAgent implements EngineContext, Agent
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
         Collection<Guard> guards,
-        Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
+        Collection<MetricGroup> metricGroups,
+        LongConsumer metricRecorder,
         int index)
     {
         this.localIndex = index;
@@ -347,7 +348,7 @@ public class DispatchAgent implements EngineContext, Agent
 
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
-                labels::supplyLabelId, supplyLoadEntry::apply, this::detachStreams);
+                labels::supplyLabelId, supplyLoadEntry::apply, metricRecorder, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }

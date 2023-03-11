@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
+import java.util.function.LongConsumer;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -134,12 +135,13 @@ public final class Engine implements AutoCloseable
         }
         this.tuning = tuning;
 
+        LongConsumer metricRecorder = System.out::println; // TODO: Ati
         Collection<DispatchAgent> dispatchers = new LinkedHashSet<>();
         for (int coreIndex = 0; coreIndex < workerCount; coreIndex++)
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, guards, metricGroups, vaults, coreIndex);
+                        bindings, guards, vaults, metricGroups, metricRecorder, coreIndex);
             dispatchers.add(agent);
         }
 
