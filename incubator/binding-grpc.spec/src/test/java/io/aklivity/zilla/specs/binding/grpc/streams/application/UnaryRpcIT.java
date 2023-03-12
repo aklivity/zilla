@@ -47,10 +47,30 @@ public class UnaryRpcIT
 
     @Test
     @Specification({
-        "${app}/server.rst/client",
-        "${app}/server.rst/server"
+        "${app}/server.send.read.abort.on.open.request/client",
+        "${app}/server.send.read.abort.on.open.request/server"
     })
-    public void shouldRejectServerResetUnaryRpc() throws Exception
+    public void serverSendsReadAbortOnOpenRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.send.write.abort.on.open.response/client",
+        "${app}/server.send.write.abort.on.open.response/server"
+    })
+    public void serverSendsWriteAbortOnOpenResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/server.send.write.abort.on.open.request.response/client",
+        "${app}/server.send.write.abort.on.open.request.response/server"
+    })
+    public void serverSendsWriteAbortOnOpenRequestResponse() throws Exception
     {
         k3po.finish();
     }
