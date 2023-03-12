@@ -31,6 +31,7 @@ import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
@@ -73,6 +74,12 @@ public final class GrpcFunctions
     public static GrpcResetExBuilder resetEx()
     {
         return new GrpcResetExBuilder();
+    }
+
+    @Function
+    public static GrpcAbortExBuilder abortEx()
+    {
+        return new GrpcAbortExBuilder();
     }
 
 
@@ -319,6 +326,39 @@ public final class GrpcFunctions
             GrpcBeginExFW beginEx)
         {
             return typeId == beginEx.typeId();
+        }
+    }
+
+    public static final class GrpcAbortExBuilder
+    {
+        private final GrpcAbortExFW.Builder abortExRW;
+
+        private GrpcAbortExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.abortExRW = new GrpcAbortExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public GrpcAbortExBuilder typeId(
+            int typeId)
+        {
+            abortExRW.typeId(typeId);
+            return this;
+        }
+
+        public GrpcAbortExBuilder status(
+            String status)
+        {
+            abortExRW.status(status);
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final GrpcAbortExFW abortEx = abortExRW.build();
+            final byte[] array = new byte[abortEx.sizeof()];
+            abortEx.buffer().getBytes(abortEx.offset(), array);
+            return array;
         }
     }
 

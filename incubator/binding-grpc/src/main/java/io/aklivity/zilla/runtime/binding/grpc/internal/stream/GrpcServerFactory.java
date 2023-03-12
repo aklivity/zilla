@@ -171,7 +171,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 long authorization,
                 String16FW status)
             {
-                server.doGrpcNetStatus(traceId, authorization, status);
+                server.doGrpcNetReset(traceId, authorization, status);
             }
         },
         GRPC_WEB_PROTO
@@ -279,7 +279,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         if (!isGrpcRequestMethod(httpBeginEx))
         {
-            rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+            rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                 HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR);
         }
         else
@@ -291,12 +291,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             if (method == null)
             {
-                rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
             }
             else if (contentType == null)
             {
-                rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_415, HEADER_VALUE_GRPC_ABORTED);
             }
             else
@@ -308,7 +308,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         return newStream;
     }
 
-    private void rejectRequest(
+    private void rejectClient(
         MessageConsumer network,
         long routeId,
         long traceId,
@@ -368,7 +368,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         }
         else
         {
-            rejectRequest(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+            rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                 HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
             newStream = (t, b, i, l) -> {};
         }
@@ -714,8 +714,8 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             if (!GrpcState.replyClosed(state))
             {
                 state = GrpcState.closingReply(state);
-
                 contentType.doNetAbort(this, traceId, authorization, status);
+
                 cleanupExpiringIfNecessary();
             }
         }
@@ -726,19 +726,10 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             String16FW status)
         {
 
-            if (GrpcState.initialOpening(state))
-            {
-                rejectRequest(network, routeId, traceId, authorization,  initialId, initialSeq, initialAck,
-                    HEADER_VALUE_STATUS_200, status);
-            }
-            else
-            {
-                contentType.doNetReset(this, traceId, authorization, status);
-            }
-            state = GrpcState.closingReply(state);
+            state = GrpcState.closingInitial(state);
+            contentType.doNetReset(this, traceId, authorization, status);
 
             cleanupExpiringIfNecessary();
-
         }
 
         private void doNetWindow(
@@ -753,6 +744,20 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             doWindow(network, routeId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding, capabilities);
+        }
+
+        private void doGrpcNetReset(
+            long traceId,
+            long authorization,
+            String16FW status)
+        {
+            if (!GrpcState.initialClosed(state))
+            {
+                rejectClient(network, routeId, traceId, authorization,  initialId, initialSeq, initialAck,
+                    HEADER_VALUE_STATUS_200, status);
+
+                state = GrpcState.closeInitial(state);
+            }
         }
 
         private void doGrpcNetStatus(

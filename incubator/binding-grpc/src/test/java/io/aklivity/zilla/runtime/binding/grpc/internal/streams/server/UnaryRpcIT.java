@@ -62,7 +62,7 @@ public class UnaryRpcIT
     @Test
     @Configuration("server.when.json")
     @Specification({
-        "${net}/server.rst/client",
+        "${net}/server.send.read.abort.on.open.request/client",
         "${app}/server.rst/server"
     })
     public void shouldRejectServerResetUnaryRpc() throws Exception

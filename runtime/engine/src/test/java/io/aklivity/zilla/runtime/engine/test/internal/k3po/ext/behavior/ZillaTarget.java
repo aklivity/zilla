@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.budgetMask;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.NullChannelBuffer.NULL_BUFFER;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.ABORT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.BEGIN;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
@@ -511,6 +512,10 @@ final class ZillaTarget implements AutoCloseable
         final long authorization = channel.targetAuth();
         final int maximum = channel.targetMax();
 
+        final ChannelBuffer abortExt = channel.writeExtBuffer(ABORT, true);
+        final int writableExtBytes = abortExt.readableBytes();
+        final byte[] abortExtCopy = writeExtCopy(abortExt);
+
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .routeId(routeId)
                 .streamId(streamId)
@@ -520,9 +525,13 @@ final class ZillaTarget implements AutoCloseable
                 .timestamp(supplyTimestamp.getAsLong())
                 .traceId(supplyTraceId.getAsLong())
                 .authorization(authorization)
+                .extension(p -> p.set(abortExtCopy))
                 .build();
 
         streamsBuffer.write(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
+
+        abortExt.skipBytes(writableExtBytes);
+        abortExt.discardReadBytes();
 
         unregisterThrottle.accept(streamId);
 

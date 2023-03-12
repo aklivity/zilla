@@ -29,9 +29,10 @@ write zilla:begin.ext ${grpc:beginEx()
                               .build()}
 connected
 
-read zilla:reset.ext ${grpc:resetEx()
-                            .typeId(zilla:id("http"))
+read zilla:abort.ext ${grpc:abortEx()
+                            .typeId(zilla:id("grpc"))
                             .status("10")
                             .build()}
-write aborted
+read aborted
+write abort
 

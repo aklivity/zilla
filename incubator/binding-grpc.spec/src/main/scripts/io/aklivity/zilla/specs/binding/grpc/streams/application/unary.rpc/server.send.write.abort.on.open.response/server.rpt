@@ -30,8 +30,15 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .build()}
 connected
 
-write zilla:reset.ext ${grpc:resetEx()
-                            .typeId(zilla:id("http"))
+read ${grpc:protobuf()
+            .string(1, "Hello World")
+            .build()}
+read closed
+
+write zilla:abort.ext ${grpc:abortEx()
+                            .typeId(zilla:id("grpc"))
                             .status("10")
                             .build()}
-read abort
+write flush
+
+write abort

@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.NullChannelBuffer.NULL_BUFFER;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.ABORT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.BEGIN;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
@@ -351,6 +352,21 @@ public final class ZillaStreamFactory
                 sender.doReset(channel, traceId);
             }
             unregisterStream.accept(streamId);
+
+            final OctetsFW abortExt = abort.extension();
+
+            int abortExtBytes = abortExt.sizeof();
+            if (abortExtBytes != 0)
+            {
+                final DirectBuffer buffer = abortExt.buffer();
+                final int offset = abortExt.offset();
+
+                // TODO: avoid allocation
+                final byte[] abortExtCopy = new byte[abortExtBytes];
+                buffer.getBytes(offset, abortExtCopy);
+
+                channel.readExtBuffer(ABORT, false).writeBytes(abortExtCopy);
+            }
 
             if (channel.setReadAborted())
             {
