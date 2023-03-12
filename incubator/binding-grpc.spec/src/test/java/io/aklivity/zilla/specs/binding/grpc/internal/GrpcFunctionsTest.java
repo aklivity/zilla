@@ -35,6 +35,7 @@ import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
 
@@ -131,6 +132,20 @@ public class GrpcFunctionsTest
         assertEquals(0x01, resetEx.typeId());
 
         assertEquals("10", resetEx.status().asString());
+    }
+
+    @Test
+    public void shouldGenerateAbortExtension()
+    {
+        byte[] build = GrpcFunctions.abortEx()
+            .typeId(0x01)
+            .status("10")
+            .build();
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        GrpcAbortExFW abortEx = new GrpcAbortExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, abortEx.typeId());
+
+        assertEquals("10", abortEx.status().asString());
     }
 
     @Test
