@@ -132,8 +132,6 @@ public class DispatchAgent implements EngineContext, Agent
 
     private static final int SIGNAL_TASK_QUEUED = 1;
 
-    private static final MetricHandler NO_OP_METRIC_RECORDER = (msgTypeId, buffer, index, length) -> {};
-
     private final FrameFW frameRO = new FrameFW();
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -213,7 +211,6 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<MetricGroup> metricGroups,
-        LongConsumer metricRecorder,
         int index)
     {
         this.localIndex = index;
@@ -260,7 +257,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
 
         this.supplyLoadEntry = new LoadManager(loadLayout.buffer())::entry;
-        this.supplyMetricRecorder = this::resolveMetricRecorder;
+        this.supplyMetricRecorder = this::supplyMetricRecorder;
 
         final CountersManager countersManager =
                 new CountersManager(metricsLayout.labelsBuffer(), metricsLayout.valuesBuffer());
@@ -346,6 +343,7 @@ public class DispatchAgent implements EngineContext, Agent
             }
         }
 
+        LongConsumer metricRecorder = System.out::println; // TODO: Ati
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
                 labels::supplyLabelId, supplyLoadEntry::apply, metricRecorder, this::detachStreams);
@@ -1506,10 +1504,11 @@ public class DispatchAgent implements EngineContext, Agent
 
     // Each binding has a list of metrics configured and the BindingRegistry has the chained up MetricHandler that takes
     // care of recording all the configured metrics. This function returns the MetricHandler that belongs to the given binding.
-    private MetricHandler resolveMetricRecorder(long bindingId)
+    private MetricHandler supplyMetricRecorder(
+        long bindingId)
     {
-        MetricHandler recorder = configuration.resolveBinding(bindingId).metricRecorder();
-        return recorder != null ? recorder : NO_OP_METRIC_RECORDER;
+        BindingRegistry binding = configuration.resolveBinding(bindingId);
+        return binding != null ? binding.metricRecorder() : MetricHandler.NO_OP;
     }
 
     private Target newTarget(

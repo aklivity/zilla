@@ -11,26 +11,15 @@ public class MetricRegistry
 {
     private final MetricContext context;
 
-    private MetricHandler attached;
-
     MetricRegistry(
         MetricContext context)
     {
         this.context = requireNonNull(context);
     }
 
-    public void attach(LongConsumer metricRecorder)
+    public MetricHandler supplyHandler(
+        LongConsumer recorder)
     {
-        attached = context.supply(metricRecorder);
-    }
-
-    public void detach()
-    {
-        attached = null;
-    }
-
-    public MetricHandler handler()
-    {
-        return attached;
+        return context.supply(recorder);
     }
 }

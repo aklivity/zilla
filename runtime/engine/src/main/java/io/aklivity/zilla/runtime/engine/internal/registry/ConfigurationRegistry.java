@@ -104,6 +104,16 @@ public class ConfigurationRegistry
         return namespace != null ? namespace.findVault(localId) : null;
     }
 
+    public MetricRegistry resolveMetric(
+        long metricId)
+    {
+        int namespaceId = NamespacedId.namespaceId(metricId);
+        int localId = NamespacedId.localId(metricId);
+
+        NamespaceRegistry namespace = findNamespace(namespaceId);
+        return namespace != null ? namespace.findMetric(localId) : null;
+    }
+
     public void detachAll()
     {
         namespacesById.values().forEach(n -> n.detach());
@@ -121,7 +131,7 @@ public class ConfigurationRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, supplyLabelId,
-                    supplyLoadEntry, metricRecorder, detachBinding);
+                    this::resolveMetric, supplyLoadEntry, metricRecorder, detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

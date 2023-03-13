@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.util.function.Function;
 import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
 
 import org.agrona.collections.Int2ObjectHashMap;
@@ -41,6 +42,7 @@ public class NamespaceRegistry
     private final Function<String, VaultContext> vaultsByType;
     private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
+    private final LongFunction<MetricRegistry> supplyMetric;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
     private final Int2ObjectHashMap<BindingRegistry> bindingsById;
@@ -57,6 +59,7 @@ public class NamespaceRegistry
         Function<String, VaultContext> vaultsByType,
         Function<String, MetricContext> metricsByName,
         ToIntFunction<String> supplyLabelId,
+        LongFunction<MetricRegistry> supplyMetric,
         LongConsumer supplyLoadEntry,
         LongConsumer metricRecorder,
         LongConsumer detachBinding)
@@ -67,6 +70,7 @@ public class NamespaceRegistry
         this.vaultsByType = vaultsByType;
         this.metricsByName = metricsByName;
         this.supplyLabelId = supplyLabelId;
+        this.supplyMetric = supplyMetric;
         this.supplyLoadEntry = supplyLoadEntry;
         this.metricRecorder = metricRecorder;
         this.detachBinding = detachBinding;
@@ -110,17 +114,11 @@ public class NamespaceRegistry
         BindingContext context = bindingsByType.apply(config.type);
         assert context != null : "Missing binding type: " + config.type;
 
-        MetricHandler handler = null;
+        MetricHandler handler = MetricHandler.NO_OP;
         for (long metricId : config.metricIds)
         {
-            int localMetricId = (int) metricId; // discard the namespaceId and extract the local metricId
-            MetricRegistry metric = findMetric(localMetricId);
-            if (metric != null)
-            {
-                handler = handler == null
-                        ? metric.handler()
-                        : handler.andThen(metric.handler());
-            }
+            MetricRegistry metric = supplyMetric.apply(metricId);
+            handler = handler.andThen(metric.supplyHandler(metricRecorder));
         }
         BindingRegistry registry = new BindingRegistry(config, context, handler);
 
@@ -195,7 +193,6 @@ public class NamespaceRegistry
         MetricContext context = metricsByName.apply(config.name);
         MetricRegistry registry = new MetricRegistry(context);
         metricsById.put(metricId, registry);
-        registry.attach(metricRecorder);
     }
 
 
@@ -203,11 +200,7 @@ public class NamespaceRegistry
         MetricConfig config)
     {
         int metricId = supplyLabelId.applyAsInt(config.name);
-        MetricRegistry registry = metricsById.remove(metricId);
-        if (registry != null)
-        {
-            registry.detach();
-        }
+        metricsById.remove(metricId);
     }
 
     BindingRegistry findBinding(

@@ -27,7 +27,6 @@ public class TestHistogramMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        // TODO: Ati
-        return recorder -> (msgTypeId, buffer, index, length) -> {};
+        return recorder -> MetricHandler.NO_OP;
     }
 }

@@ -267,7 +267,7 @@ public class ConfigurationManager
                             .map(metricRef -> namespace0.resolveId.applyAsLong(metricRef.name))
                             .mapToLong(Long::longValue)
                             .toArray()
-                        : new long[]{};
+                        : new long[0];
 
                 long affinity = tuning.affinity(binding.id);
 
