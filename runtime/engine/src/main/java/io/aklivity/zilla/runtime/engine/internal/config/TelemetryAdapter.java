@@ -1,9 +1,14 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
@@ -28,17 +33,20 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
     public JsonObject adaptToJson(
         TelemetryConfig telemetry)
     {
-        /*JsonObjectBuilder item = Json.createObjectBuilder();
+        JsonObjectBuilder item = Json.createObjectBuilder();
 
-        JsonObject attributes = attribute.adaptToJson(telemetry.attributes.toArray(AttributeConfig[]::new));
+        JsonObjectBuilder attributes = Json.createObjectBuilder();
+        for (AttributeConfig a : telemetry.attributes)
+        {
+            Map.Entry<String, JsonValue> entry = attribute.adaptToJson(a);
+            attributes.add(entry.getKey(), entry.getValue());
+        }
         item.add(ATTRIBUTES_NAME, attributes);
 
-        JsonArray metrics = metric.adaptToJson(telemetry.metrics.toArray(MetricConfig[]::new));
-        item.add(METRICS_NAME, metrics);
-
-        return item.build();*/
-        // TODO: Ati - handle the array thing here
-        return null;
+        JsonArrayBuilder metricRefs = Json.createArrayBuilder();
+        telemetry.metrics.stream().forEach(m -> metricRefs.add(metric.adaptToJson(m)));
+        item.add(METRICS_NAME, metricRefs);
+        return item.build();
     }
 
     @Override

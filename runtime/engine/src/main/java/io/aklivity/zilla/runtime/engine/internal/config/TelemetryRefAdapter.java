@@ -3,7 +3,10 @@ package io.aklivity.zilla.runtime.engine.internal.config;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -26,12 +29,11 @@ public class TelemetryRefAdapter implements JsonbAdapter<TelemetryRefConfig, Jso
     public JsonObject adaptToJson(
         TelemetryRefConfig telemetryRef)
     {
-        /*JsonObjectBuilder item = Json.createObjectBuilder();
-        JsonArray metricRefs = metricRef.adaptToJson(telemetryRef.metricRefs.toArray(MetricRefConfig[]::new));
+        JsonObjectBuilder item = Json.createObjectBuilder();
+        JsonArrayBuilder metricRefs = Json.createArrayBuilder();
+        telemetryRef.metricRefs.stream().forEach(m -> metricRefs.add(metricRef.adaptToJson(m)));
         item.add(METRICS_NAME, metricRefs);
-        return item.build();*/
-        // TODO: Ati
-        return null;
+        return item.build();
     }
 
     @Override
