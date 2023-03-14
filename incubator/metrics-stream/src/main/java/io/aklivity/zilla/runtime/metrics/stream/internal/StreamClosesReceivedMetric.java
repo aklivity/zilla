@@ -14,9 +14,16 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
+import java.util.function.LongConsumer;
+
+import org.agrona.DirectBuffer;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
+import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
+import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.FrameFW;
 
 public class StreamClosesReceivedMetric implements Metric
 {
@@ -42,13 +49,45 @@ public class StreamClosesReceivedMetric implements Metric
 
     @Override
     public MetricContext supply(
-        EngineContext context)
+            EngineContext context)
     {
-        // TODO: Ati
-        return recorder -> (msgTypeId, buffer, index, length) ->
+        return new StreamClosesReceivedMetricContext();
+    }
+
+    private final class StreamClosesReceivedMetricContext implements MetricContext
+    {
+        private final FrameFW frameRO = new FrameFW();
+
+        @Override
+        public MetricHandler supply(
+            LongConsumer recorder)
         {
-            System.out.format("%s %d %d %d %d\n", NAME, context.index(), msgTypeId, index, length);
-            recorder.accept(3L);
-        };
+            return (t, b, i, l) -> handle(recorder, t, b, i, l);
+        }
+
+        private void handle(
+            LongConsumer recorder,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            if (msgTypeId == EndFW.TYPE_ID) // closing frame
+            {
+                System.out.format("%s %d %d %d\n", NAME, msgTypeId, index, length);
+                FrameFW frame = frameRO.wrap(buffer, index, index + length);
+                long streamId = frame.streamId();
+                if (isInitial(streamId)) // received stream
+                {
+                    recorder.accept(1L);
+                }
+            }
+        }
+    }
+
+    private static boolean isInitial(
+        long streamId)
+    {
+        return (streamId & 0x0000_0000_0000_0001L) != 0L;
     }
 }
