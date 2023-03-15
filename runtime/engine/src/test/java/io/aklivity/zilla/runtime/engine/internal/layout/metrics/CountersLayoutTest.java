@@ -1,7 +1,7 @@
 package io.aklivity.zilla.runtime.engine.internal.layout.metrics;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;

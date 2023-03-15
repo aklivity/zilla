@@ -350,12 +350,9 @@ public class DispatchAgent implements EngineContext, Agent
             }
         }
 
-        LongConsumer metricRecorder = System.out::println; // TODO: Ati
-        //LongLongFunction supplyMetricRecorder = countersLayout::supplyWriter;
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
-                labels::supplyLabelId, supplyLoadEntry::apply, metricRecorder, this::detachStreams);
-        // TODO: Ati replace metricRecorder with supplyRecorder^^^^
+                labels::supplyLabelId, supplyLoadEntry::apply, countersLayout::supplyWriter, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }

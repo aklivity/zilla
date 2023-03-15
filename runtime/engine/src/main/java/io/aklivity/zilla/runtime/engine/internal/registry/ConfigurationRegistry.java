@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
@@ -36,7 +37,7 @@ public class ConfigurationRegistry
     private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
-    private final LongConsumer metricRecorder;
+    private final LongLongFunction<LongConsumer> supplyMetricRecorder;
 
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
@@ -48,7 +49,7 @@ public class ConfigurationRegistry
             Function<String, MetricContext> metricsByName,
             ToIntFunction<String> supplyLabelId,
             LongConsumer supplyLoadEntry,
-            LongConsumer metricRecorder,
+            LongLongFunction<LongConsumer> supplyMetricRecorder,
             LongConsumer detachBinding)
     {
         this.bindingsByType = bindingsByType;
@@ -57,7 +58,7 @@ public class ConfigurationRegistry
         this.metricsByName = metricsByName;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
-        this.metricRecorder = metricRecorder;
+        this.supplyMetricRecorder = supplyMetricRecorder;
         this.namespacesById = new Int2ObjectHashMap<>();
         this.detachBinding = detachBinding;
     }
@@ -131,7 +132,7 @@ public class ConfigurationRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, supplyLabelId,
-                    this::resolveMetric, supplyLoadEntry, metricRecorder, detachBinding);
+                    this::resolveMetric, supplyLoadEntry, supplyMetricRecorder, detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

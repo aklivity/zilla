@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -49,7 +50,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
-    private final LongConsumer metricRecorder;
+    private final LongLongFunction<LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
 
     public NamespaceRegistry(
@@ -61,7 +62,7 @@ public class NamespaceRegistry
         ToIntFunction<String> supplyLabelId,
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer supplyLoadEntry,
-        LongConsumer metricRecorder,
+        LongLongFunction<LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding)
     {
         this.namespace = namespace;
@@ -72,7 +73,7 @@ public class NamespaceRegistry
         this.supplyLabelId = supplyLabelId;
         this.supplyMetric = supplyMetric;
         this.supplyLoadEntry = supplyLoadEntry;
-        this.metricRecorder = metricRecorder;
+        this.supplyMetricRecorder = supplyMetricRecorder;
         this.detachBinding = detachBinding;
         this.namespaceId = supplyLabelId.applyAsInt(namespace.name);
         this.bindingsById = new Int2ObjectHashMap<>();
@@ -118,10 +119,8 @@ public class NamespaceRegistry
         for (long metricId : config.metricIds)
         {
             MetricRegistry metric = supplyMetric.apply(metricId);
-            // TODO: Ati
-            // LongConsumer recorder = supplyRecorder.apply(config.id, metricId);
-            //handler = handler.andThen(metric.supplyHandler(recorder));
-            handler = handler.andThen(metric.supplyHandler(metricRecorder));
+            LongConsumer metricRecorder = supplyMetricRecorder.apply(config.id, metricId);
+            handler = handler.andThen(metric.supplyHandler(metricRecorder)); // chain the MetricHandler's for this binding
         }
         BindingRegistry registry = new BindingRegistry(config, context, handler);
 
