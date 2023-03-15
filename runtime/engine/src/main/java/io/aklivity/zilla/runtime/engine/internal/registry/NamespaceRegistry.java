@@ -118,6 +118,9 @@ public class NamespaceRegistry
         for (long metricId : config.metricIds)
         {
             MetricRegistry metric = supplyMetric.apply(metricId);
+            // TODO: Ati
+            // LongConsumer recorder = supplyRecorder.apply(config.id, metricId);
+            //handler = handler.andThen(metric.supplyHandler(recorder));
             handler = handler.andThen(metric.supplyHandler(metricRecorder));
         }
         BindingRegistry registry = new BindingRegistry(config, context, handler);

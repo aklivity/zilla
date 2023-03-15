@@ -99,6 +99,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.LoadLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadManager;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
@@ -120,6 +121,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -236,6 +238,11 @@ public class DispatchAgent implements EngineContext, Agent
                 .valuesBufferCapacity(config.counterValuesBufferCapacity())
                 .build();
 
+        final CountersLayout countersLayout = new CountersLayout.Builder()
+                .path(config.directory().resolve(String.format("counters%d", index))) // TODO: Ati - metrics dir
+                .capacity(config.counterValuesBufferCapacity()) // TODO: Ati - config param
+                .build();
+
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
                 .streamsCapacity(config.streamsBufferCapacity())
@@ -344,9 +351,11 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         LongConsumer metricRecorder = System.out::println; // TODO: Ati
+        //LongLongFunction supplyMetricRecorder = countersLayout::supplyWriter;
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
                 labels::supplyLabelId, supplyLoadEntry::apply, metricRecorder, this::detachStreams);
+        // TODO: Ati replace metricRecorder with supplyRecorder^^^^
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
