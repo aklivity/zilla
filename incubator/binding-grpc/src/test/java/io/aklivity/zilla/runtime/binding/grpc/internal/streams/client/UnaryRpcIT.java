@@ -59,5 +59,60 @@ public class UnaryRpcIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("client.when.binary.metadata.json")
+    @Specification({
+        "${app}/binary.metadata/client",
+        "${net}/binary.metadata/server",
+    })
+    public void shouldEstablishWithBinaryMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/server.send.read.abort.on.open.request/client",
+        "${net}/server.send.read.abort.on.open.request/server"
+    })
+    public void shouldRejectServerResetUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/server.send.read.abort.on.open.request/client",
+        "${net}/server.send.read.abort.on.open.request/server"
+    })
+    public void serverSendsReadAbortOnOpenRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/server.send.write.abort.on.open.response/client",
+        "${net}/server.send.write.abort.on.open.response/server"
+    })
+    public void serverSendsWriteAbortOnOpenResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.json")
+    @Specification({
+        "${app}/server.send.write.abort.on.open.request.response/client",
+        "${net}/server.send.write.abort.on.open.request.response/server"
+    })
+    public void serverSendsWriteAbortOnOpenRequestResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
 
 }
