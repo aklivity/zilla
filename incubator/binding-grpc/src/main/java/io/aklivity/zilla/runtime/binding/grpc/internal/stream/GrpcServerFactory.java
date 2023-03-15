@@ -299,7 +299,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 doRejectNet(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_415, null);
             }
-            if (method.te == null || !HEADER_VALUE_TRAILERS.equals(method.te))
+            else if (method.te == null || !HEADER_VALUE_TRAILERS.equals(method.te))
             {
                 doRejectNet(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED);

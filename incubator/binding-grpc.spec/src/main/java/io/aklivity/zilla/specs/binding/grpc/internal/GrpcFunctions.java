@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
-import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType.TEXT;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.LinkedHashMap;
@@ -35,6 +33,7 @@ import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public final class GrpcFunctions
@@ -150,7 +149,15 @@ public final class GrpcFunctions
             String name,
             String value)
         {
-            beginExRW.metadataItem(b -> b.type(t -> t.set(TEXT))
+            return metadata("TEXT", name, value);
+        }
+
+        public GrpcBeginExBuilder metadata(
+            String type,
+            String name,
+            String value)
+        {
+            beginExRW.metadataItem(b -> b.type(t -> t.set(GrpcType.valueOf(type)))
                 .nameLen(name.length())
                 .name(nameBuilder.set(name.getBytes()).build())
                 .valueLen(value.length())
@@ -177,7 +184,7 @@ public final class GrpcFunctions
         private final OctetsFW.Builder valueBuilder =
             new OctetsFW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
 
-        private final Map<OctetsFW, Predicate<OctetsFW>> metadata = new LinkedHashMap<>();
+        private final Map<OctetsFW, MetadataValue> metadata = new LinkedHashMap<>();
 
         private int typeId;
         private String scheme;
@@ -240,7 +247,16 @@ public final class GrpcFunctions
             String name,
             String value)
         {
-            metadata.put(nameBuilder.set(name.getBytes()).build(), valueBuilder.set(value.getBytes()).build()::equals);
+            return metadata("TEXT", name, value);
+        }
+
+        public GrpcBeginExMatcherBuilder metadata(
+            String type,
+            String name,
+            String value)
+        {
+            metadata.put(nameBuilder.set(name.getBytes()).build(),
+                new MetadataValue(GrpcType.valueOf(type), valueBuilder.set(value.getBytes()).build()::equals));
             return this;
         }
 
@@ -282,7 +298,7 @@ public final class GrpcFunctions
         {
             MutableBoolean match = new MutableBoolean(true);
             metadata.forEach((k, v) -> match.value &= beginEx.metadata().anyMatch(h ->
-                k.equals(h.name()) && v.test(h.value())));
+                 h.type().get() == v.type && k.equals(h.name()) && v.value.test(h.value())));
             return match.value;
         }
 
@@ -326,6 +342,21 @@ public final class GrpcFunctions
             GrpcBeginExFW beginEx)
         {
             return typeId == beginEx.typeId();
+        }
+
+        private class MetadataValue
+        {
+            private GrpcType type;
+            private Predicate<OctetsFW> value;
+
+            MetadataValue(
+                GrpcType type,
+                Predicate<OctetsFW> value)
+            {
+
+                this.type = type;
+                this.value = value;
+            }
         }
     }
 
