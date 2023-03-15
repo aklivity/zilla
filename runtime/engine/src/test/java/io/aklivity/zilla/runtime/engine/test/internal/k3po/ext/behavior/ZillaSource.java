@@ -37,7 +37,7 @@ import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor.Bu
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.ZillaExtConfiguration;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.StreamsLayout;
-import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 
 public final class ZillaSource implements AutoCloseable
 {

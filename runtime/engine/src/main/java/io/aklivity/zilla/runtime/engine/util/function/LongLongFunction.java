@@ -20,4 +20,3 @@ public interface LongLongFunction<R>
 {
     R apply(long value1, long value2);
 }
-// TODO: Ati - refactor: move from io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function ???

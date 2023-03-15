@@ -46,7 +46,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.Data
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 
 public final class ZillaStreamFactory
 {
