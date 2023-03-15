@@ -28,6 +28,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.grpc.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String8FW;
@@ -66,6 +67,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String8FW HTTP_HEADER_PATH = new String8FW(":path");
     private static final String8FW HTTP_HEADER_CONTENT_TYPE = new String8FW("content-type");
     private static final String8FW HTTP_HEADER_TE = new String8FW("te");
+    private static final String8FW HTTP_HEADER_GRPC_STATUS = new String8FW("grpc-status");
 
     private static final String16FW HTTP_HEADER_VALUE_METHOD_POST = new String16FW("POST");
     private static final String16FW HTTP_HEADER_VALUE_STATUS_200 = new String16FW("200");
@@ -75,7 +77,11 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_INTERNAL_ERROR = new String16FW("13");
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
-    private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new UnsafeBuffer(0L, 4), 0, 4);
+    private static final Array32FW<HttpHeaderFW> TRAILERS_EMPTY =
+        new Array32FW.Builder<>(new HttpHeaderFW.Builder(), new HttpHeaderFW())
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .build();
+    private static final OctetsFW DASH_BIN_OCTETS = new OctetsFW().wrap(new String16FW("-bind").value(), 0, 4);
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -97,6 +103,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
     private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpEndExFW endExRO = new HttpEndExFW();
     private final GrpcMessageFW grpcMessageRO = new GrpcMessageFW();
     private final HttpBeginExFW.Builder httpBeginExRW = new HttpBeginExFW.Builder();
     private final HttpEndExFW.Builder httpEndExRW = new HttpEndExFW.Builder();
@@ -161,30 +168,33 @@ public class GrpcClientFactory implements GrpcStreamFactory
         final OctetsFW extension = begin.extension();
         final GrpcBeginExFW grpcBeginEx = extension.get(grpcBeginExRO::tryWrap);
 
-        final long routeId = begin.routeId();
-        final long initialId = begin.streamId();
-        final long authorization = begin.authorization();
-        final String service = grpcBeginEx.service().asString();
-        final String method = grpcBeginEx.method().asString();
-        Array32FW<GrpcMetadataFW> metadata = grpcBeginEx.metadata();
-
         MessageConsumer newStream = null;
 
-        final GrpcBindingConfig binding = bindings.get(routeId);
-        final GrpcRouteConfig resolved = binding != null ?
-            binding.resolve(authorization, service, method, metadata) : null;
-
-        if (resolved != null)
+        if (grpcBeginEx != null)
         {
-            newStream = new GrpcClient(
-                application,
-                routeId,
-                initialId,
-                resolved.id,
-                service,
-                method,
-                grpcBeginEx.request(),
-                grpcBeginEx.response())::onAppMessage;
+            final long routeId = begin.routeId();
+            final long initialId = begin.streamId();
+            final long authorization = begin.authorization();
+            final String service = grpcBeginEx.service().asString();
+            final String method = grpcBeginEx.method().asString();
+            Array32FW<GrpcMetadataFW> metadata = grpcBeginEx.metadata();
+
+            final GrpcBindingConfig binding = bindings.get(routeId);
+            final GrpcRouteConfig resolved = binding != null ?
+                binding.resolve(authorization, service, method, metadata) : null;
+
+            if (resolved != null)
+            {
+                newStream = new GrpcClient(
+                    application,
+                    routeId,
+                    initialId,
+                    resolved.id,
+                    service,
+                    method,
+                    grpcBeginEx.request(),
+                    grpcBeginEx.response())::onAppMessage;
+            }
         }
 
         return newStream;
@@ -440,6 +450,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                 state = GrpcState.closeReply(state);
 
                 GrpcAbortExFW abortEx = grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(grpcTypeId)
                     .status(HEADER_VALUE_GRPC_ABORTED)
                     .build();
 
@@ -790,7 +801,20 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             state = GrpcState.closeReply(state);
 
-            delegate.doAppEnd(traceId, authorization);
+            final HttpEndExFW endEx = end.extension().get(endExRO::tryWrap);
+            final Array32FW<HttpHeaderFW> trailers = endEx != null ? endEx.trailers() : TRAILERS_EMPTY;
+            final HttpHeaderFW grpcStatus = trailers.matchFirst(t -> t.name().equals(HTTP_HEADER_GRPC_STATUS));
+
+            if (grpcStatus != null && HEADER_VALUE_GRPC_OK.equals(grpcStatus.value()))
+            {
+                delegate.doAppEnd(traceId, authorization);
+            }
+            else
+            {
+                delegate.doAppAbort(traceId, authorization);
+            }
+
+
         }
 
         private void onNetAbort(
@@ -822,7 +846,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
             state = GrpcState.closeInitial(state);
 
             GrpcResetExFW resetEx = grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .status(HEADER_VALUE_GRPC_INTERNAL_ERROR)
+                .typeId(grpcTypeId)
+                .status(HEADER_VALUE_GRPC_ABORTED)
                 .build();
 
             delegate.doAppReset(traceId, authorization, resetEx);
