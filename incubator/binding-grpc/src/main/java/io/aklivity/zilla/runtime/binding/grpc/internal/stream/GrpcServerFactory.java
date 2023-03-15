@@ -299,7 +299,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_415, null);
             }
-            if (method.te == null || HEADER_VALUE_TRAILERS.equals(method.te))
+            if (method.te == null || !HEADER_VALUE_TRAILERS.equals(method.te))
             {
                 rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED);
@@ -496,7 +496,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             final long grpcTimeout = method.grpcTimeout;
             if (grpcTimeout > 0L)
             {
-                expiringId = signaler.signalAt(now().toEpochMilli() + grpcTimeout, routeId, initialId, EXPIRING_SIGNAL, 0);
+                expiringId = signaler.signalAt(now().toEpochMilli() + grpcTimeout, routeId, replyId, EXPIRING_SIGNAL, 0);
             }
         }
 

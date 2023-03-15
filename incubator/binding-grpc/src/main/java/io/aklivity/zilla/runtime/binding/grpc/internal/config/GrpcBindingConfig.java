@@ -144,7 +144,7 @@ public final class GrpcBindingConfig
         private static final String8FW HEADER_NAME_AUTHORITY = new String8FW(":authority");
         private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
         private static final String8FW HEADER_NAME_TE = new String8FW("te");
-        private static final String8FW HEADER_NAME_GRPC_TIMEOUT = new String8FW("grpc_timeout");
+        private static final String8FW HEADER_NAME_GRPC_TIMEOUT = new String8FW("grpc-timeout");
 
 
         private final Array32FW.Builder<GrpcMetadataFW.Builder, GrpcMetadataFW> grpcMetadataRW =

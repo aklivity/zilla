@@ -84,6 +84,17 @@ public class UnaryRpcIT
     @Test
     @Configuration("server.when.json")
     @Specification({
+        "${net}/response.timeout/client",
+        "${app}/response.timeout/server",
+    })
+    public void shouldTimeoutOnNoResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
         "${net}/server.send.read.abort.on.open.request/client",
         "${app}/server.send.read.abort.on.open.request/server"
     })
