@@ -222,6 +222,11 @@ public class EngineConfiguration extends Configuration
         return ENGINE_ROUTES_BUFFER_CAPACITY.get(this);
     }
 
+    public int counterBufferCapacity()
+    {
+        return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);
+    }
+
     public int counterValuesBufferCapacity()
     {
         return ENGINE_COUNTERS_BUFFER_CAPACITY.getAsInt(this);

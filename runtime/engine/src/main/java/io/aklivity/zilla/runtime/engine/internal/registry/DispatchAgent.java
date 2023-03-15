@@ -238,8 +238,8 @@ public class DispatchAgent implements EngineContext, Agent
                 .build();
 
         final CountersLayout countersLayout = new CountersLayout.Builder()
-                .path(config.directory().resolve(String.format("counters%d", index))) // TODO: Ati - metrics dir
-                .capacity(config.counterValuesBufferCapacity()) // TODO: Ati - config param
+                .path(config.directory().resolve(String.format("metrics/counters%d", index)))
+                .capacity(config.counterBufferCapacity())
                 .build();
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
