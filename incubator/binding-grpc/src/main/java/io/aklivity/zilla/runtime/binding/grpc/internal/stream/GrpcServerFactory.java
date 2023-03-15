@@ -279,7 +279,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
         if (!isGrpcRequestMethod(httpBeginEx))
         {
-            rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+            doRejectNet(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                 HEADER_VALUE_STATUS_405, HEADER_VALUE_GRPC_INTERNAL_ERROR);
         }
         else
@@ -291,17 +291,17 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             if (method == null)
             {
-                rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                doRejectNet(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
             }
             else if (contentType == null)
             {
-                rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                doRejectNet(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_415, null);
             }
             if (method.te == null || !HEADER_VALUE_TRAILERS.equals(method.te))
             {
-                rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                doRejectNet(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                     HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED);
             }
             else
@@ -311,29 +311,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         }
 
         return newStream;
-    }
-
-    private void rejectClient(
-        MessageConsumer network,
-        long routeId,
-        long traceId,
-        long authorization,
-        long initialId,
-        long sequence,
-        long acknowledge,
-        String16FW httpStatus,
-        String16FW grpcStatus)
-    {
-        doWindow(network, routeId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
-        HttpResetExFW.Builder resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(httpTypeId)
-                .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus));
-        if (grpcStatus != null)
-        {
-            resetEx.headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus));
-        }
-
-        doReset(network, routeId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx.build());
     }
 
     private MessageConsumer  newInitialGrpcStream(
@@ -376,7 +353,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         }
         else
         {
-            rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+            doRejectNet(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
                 HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_UNIMPLEMENTED);
             newStream = (t, b, i, l) -> {};
         }
@@ -527,21 +504,27 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             if (messageDeferred == 0)
             {
-                final GrpcMessageFW grpcMessage = grpcMessageRO.wrap(buffer, offset, limit);
-                final int messageLength = grpcMessage.length();
-                final int payloadSize = size - GRPC_MESSAGE_PADDING;
-                messageDeferred = messageLength - payloadSize;
+                final GrpcMessageFW grpcMessage = grpcMessageRO.tryWrap(buffer, offset, limit);
+                if (grpcMessage != null)
+                {
+                    final int messageLength = grpcMessage.length();
+                    final int payloadSize = size - GRPC_MESSAGE_PADDING;
+                    messageDeferred = messageLength - payloadSize;
 
-                Flyweight dataEx = messageDeferred > 0 ?
-                    grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
-                        .typeId(grpcTypeId)
-                        .deferred(messageDeferred)
-                        .build() : EMPTY_OCTETS;
+                    Flyweight dataEx = messageDeferred > 0 ?
+                        grpcDataExRW.wrap(writeBuffer, DataFW.FIELD_OFFSET_PAYLOAD, writeBuffer.capacity())
+                            .typeId(grpcTypeId)
+                            .deferred(messageDeferred)
+                            .build() : EMPTY_OCTETS;
 
-
-                flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
-                delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
-                    buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
+                    flags = messageDeferred > 0 ? flags & ~DATA_FLAG_INIT : flags;
+                    delegate.doAppData(traceId, authorization, budgetId, reserved, flags,
+                        buffer, offset + GRPC_MESSAGE_PADDING, payloadSize, dataEx);
+                }
+                else
+                {
+                    doNetReset(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
+                }
             }
             else
             {
@@ -761,7 +744,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             if (!GrpcState.initialClosed(state))
             {
-                rejectClient(network, routeId, traceId, authorization,  initialId, initialSeq, initialAck,
+                doRejectNet(network, routeId, traceId, authorization,  initialId, initialSeq, initialAck,
                     HEADER_VALUE_STATUS_200, status);
 
                 state = GrpcState.closeInitial(state);
@@ -1349,6 +1332,28 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
+    private void doRejectNet(
+        MessageConsumer network,
+        long routeId,
+        long traceId,
+        long authorization,
+        long initialId,
+        long sequence,
+        long acknowledge,
+        String16FW httpStatus,
+        String16FW grpcStatus)
+    {
+        doWindow(network, routeId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
+        HttpResetExFW.Builder resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+            .typeId(httpTypeId)
+            .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus));
+        if (grpcStatus != null)
+        {
+            resetEx.headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus));
+        }
+
+        doReset(network, routeId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx.build());
+    }
 
     private Flyweight.Builder.Visitor visitHttpBeginEx(
         Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> headers)
