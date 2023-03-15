@@ -72,9 +72,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int EXPIRING_SIGNAL = 1;
     private static final String HTTP_TYPE_NAME = "http";
-    private static final String APPLICATION_GRPC = "application/grpc";
-    private static final String APPLICATION_GRPC_PROTO = "application/grpc+proto";
-    private static final String APPLICATION_GRPC_WEB_PROTO = "application/grpc-web+proto";
     private static final byte HYPHEN_BYTE = '-';
     private static final byte COMMA_BYTE = ',';
     private static final byte SPACE_BYTE = ' ';
@@ -87,6 +84,9 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     private static final String8FW HEADER_NAME_METHOD = new String8FW(":method");
     private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
     private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC = new String16FW("application/grpc");
+    private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC_PROTO = new String16FW("application/grpc+proto");
+    private static final String16FW HEADER_VALUE_CONTENT_TYPE_GRPC_WEB_PROTO = new String16FW("application/grpc-web+proto");
+    private static final String16FW HEADER_VALUE_TRAILERS = new String16FW("trailers");
     private static final String16FW HEADER_VALUE_GRPC_ENCODING = new String16FW("identity");
     private static final String16FW HEADER_VALUE_METHOD_POST = new String16FW("POST");
     private static final String16FW HEADER_VALUE_STATUS_200 = new String16FW("200");
@@ -297,7 +297,12 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             else if (contentType == null)
             {
                 rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
-                    HEADER_VALUE_STATUS_415, HEADER_VALUE_GRPC_ABORTED);
+                    HEADER_VALUE_STATUS_415, null);
+            }
+            if (method.te == null || HEADER_VALUE_TRAILERS.equals(method.te))
+            {
+                rejectClient(network, routeId, traceId, authorization, initialId, sequence, acknowledge,
+                    HEADER_VALUE_STATUS_200, HEADER_VALUE_GRPC_ABORTED);
             }
             else
             {
@@ -319,13 +324,16 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         String16FW httpStatus,
         String16FW grpcStatus)
     {
-        HttpResetExFW resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
+        doWindow(network, routeId, initialId, sequence, acknowledge, 0, traceId, 0L, 0, 0, 0);
+        HttpResetExFW.Builder resetEx = httpResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(httpTypeId)
-                .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus))
-                .headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus))
-                    .build();
+                .headersItem(h -> h.name(HEADER_NAME_STATUS).value(httpStatus));
+        if (grpcStatus != null)
+        {
+            resetEx.headersItem(h -> h.name(HEADER_NAME_GRPC_STATUS).value(grpcStatus));
+        }
 
-        doReset(network, routeId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx);
+        doReset(network, routeId, initialId, sequence, acknowledge, 0, traceId, authorization, resetEx.build());
     }
 
     private MessageConsumer  newInitialGrpcStream(
@@ -668,7 +676,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
 
             doBegin(network, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                 affinity, hs -> hs.item(h -> h.name(HEADER_NAME_STATUS).value(HEADER_VALUE_STATUS_200))
-                    .item(h -> h.name(HEADER_NAME_CONTENT_TYPE).value(HEADER_VALUE_CONTENT_TYPE_GRPC))
+                    .item(h -> h.name(HEADER_NAME_CONTENT_TYPE).value(method.contentType))
                     .item(h -> h.name(HEADER_NAME_GRPC_ENCODING).value(HEADER_VALUE_GRPC_ENCODING)));
 
             state = GrpcState.openingReply(state);
@@ -789,21 +797,21 @@ public final class GrpcServerFactory implements GrpcStreamFactory
                 final MutableDirectBuffer encodeBuffer = writeBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
                 final int encodeLimit = encodeBuffer.capacity();
-                int encodeProgress = encodeOffset;
+                int encodeProgress = encodeOffset + GRPC_MESSAGE_PADDING;
 
-                GrpcMessageFW grpcMessage = grpcMessageRW.wrap(encodeBuffer, encodeOffset, encodeLimit)
-                    .flag(1)
-                    .build();
-                encodeProgress = grpcMessage.limit();
                 encodeProgress = doEncodeHeader(encodeBuffer, encodeProgress,
                     HEADER_NAME_GRPC_STATUS.value(), status.value(), false);
 
-                final int length = encodeProgress - encodeOffset;
-                final int reserved = length + replyPadding;
+                final int headersLength = encodeProgress - encodeOffset - GRPC_MESSAGE_PADDING;
+                grpcMessageRW.wrap(encodeBuffer, encodeOffset, encodeLimit)
+                    .flag(128)
+                    .length(headersLength).build();
+                final int messageSize = headersLength + GRPC_MESSAGE_PADDING;
+                final int reserved = messageSize + replyPadding;
                 if (replyWindow() >= reserved)
                 {
                     doNetData(traceId, authorization, 0, reserved, DATA_FLAG_INIT | DATA_FLAG_FIN,
-                        encodeBuffer, encodeOffset, length);
+                        encodeBuffer, encodeOffset, messageSize);
 
                     doEnd(network, routeId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, EMPTY_OCTETS);
@@ -1427,15 +1435,16 @@ public final class GrpcServerFactory implements GrpcStreamFactory
     }
 
     private static ContentType asContentType(
-        CharSequence value)
+        String16FW value)
     {
         ContentType type = null;
 
-        if (APPLICATION_GRPC.contentEquals(value) || APPLICATION_GRPC_PROTO.contentEquals(value))
+        if (HEADER_VALUE_CONTENT_TYPE_GRPC.value().compareTo(value.value()) == 0 ||
+            HEADER_VALUE_CONTENT_TYPE_GRPC_PROTO.value().compareTo(value.value()) == 0)
         {
             type = GRPC;
         }
-        else if (APPLICATION_GRPC_WEB_PROTO.contentEquals(value))
+        else if (HEADER_VALUE_CONTENT_TYPE_GRPC_WEB_PROTO.value().compareTo(value.value()) == 0)
         {
             type = GRPC_WEB_PROTO;
         }

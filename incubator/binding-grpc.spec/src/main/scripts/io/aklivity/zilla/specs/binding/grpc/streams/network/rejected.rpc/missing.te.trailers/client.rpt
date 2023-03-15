@@ -22,8 +22,9 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":method", "POST")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
-                            .header(":path", "/example.EchoService/Unrecognized")
+                            .header(":path", "/example.EchoService/EchoUnary")
                             .header("content-type", "application/grpc")
+                            .header("custom", "test")
                             .build()}
 
 connected
@@ -31,7 +32,7 @@ connected
 read zilla:reset.ext ${http:resetEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
-                           .header("grpc-status", "12")
+                           .header("grpc-status", "10")
                            .build()}
 
 write aborted

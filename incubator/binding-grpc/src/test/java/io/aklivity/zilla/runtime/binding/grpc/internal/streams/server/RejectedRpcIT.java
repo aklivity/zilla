@@ -67,5 +67,24 @@ public class RejectedRpcIT
         k3po.finish();
     }
 
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/unsupported.content.type/client"
+    })
+    public void shouldRejectUnsupportedContentType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/missing.te.trailers/client",
+    })
+    public void shouldRejectMissingTeTrailer() throws Exception
+    {
+        k3po.finish();
+    }
 
 }

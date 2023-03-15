@@ -23,15 +23,35 @@ read zilla:begin.ext ${http:matchBeginEx()
                              .header(":method", "POST")
                              .header(":scheme", "http")
                              .header(":authority", "localhost:8080")
-                             .header(":path", "/example.EchoService/Unrecognized")
+                             .header(":path", "/example.EchoService/EchoUnary")
                              .header("content-type", "application/grpc")
+                             .header("te", "trailers")
+                             .header("custom-bin", "dGVzdA==")
                              .build()}
 
 connected
 
-write zilla:reset.ext ${http:resetEx()
-                            .typeId(zilla:id("http"))
-                            .header(":status", "200")
-                            .header("grpc-status", "12")
-                            .build()}
-read abort
+read ${grpc:message()
+           .string(1, "Hello World")
+           .build()}
+
+read closed
+
+write zilla:begin.ext ${http:beginEx()
+                              .typeId(zilla:id("http"))
+                              .header(":status", "200")
+                              .header("content-type", "application/grpc")
+                              .header("grpc-encoding", "identity")
+                              .build()}
+write flush
+
+write ${grpc:message()
+            .string(1, "Hello World")
+            .build()}
+write flush
+
+write zilla:end.ext ${http:endEx()
+                          .typeId(zilla:id("http"))
+                          .trailer("grpc-status", "0")
+                          .build()}
+write close

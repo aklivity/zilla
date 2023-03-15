@@ -22,16 +22,35 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":method", "POST")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
-                            .header(":path", "/example.EchoService/Unrecognized")
-                            .header("content-type", "application/grpc")
+                            .header(":path", "/example.EchoService/EchoUnary")
+                            .header("content-type", "application/grpc-web+proto")
+                            .header("te", "trailers")
+                            .header("custom", "test")
                             .build()}
 
 connected
 
-read zilla:reset.ext ${http:resetEx()
+write ${grpc:message()
+            .string(1, "Hello World")
+            .build()}
+write flush
+
+write close
+
+read zilla:begin.ext ${http:matchBeginEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "200")
-                           .header("grpc-status", "12")
+                           .header("content-type", "application/grpc-web+proto")
+                           .header("grpc-encoding", "identity")
                            .build()}
 
-write aborted
+read ${grpc:message()
+           .string(1, "Hello World")
+           .build()}
+
+
+read [0x80]                 # Glag setting 128
+     [0x00 0x00 0x00 0x10]  # Message size
+     [0x47 0x72 0x70 0x63 0x2d 0x53 0x74 0x61 0x74 0x75 0x73 0x3a 0x20 0x30 0x0d 0x0a] # grpc-status: 0
+
+read closed

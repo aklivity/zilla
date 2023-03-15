@@ -22,16 +22,17 @@ write zilla:begin.ext ${http:beginEx()
                             .header(":method", "POST")
                             .header(":scheme", "http")
                             .header(":authority", "localhost:8080")
-                            .header(":path", "/example.EchoService/Unrecognized")
-                            .header("content-type", "application/grpc")
+                            .header(":path", "/example.EchoService/EchoUnary")
+                            .header("content-type", "application/text")
+                            .header("te", "trailers")
+                            .header("custom", "test")
                             .build()}
 
 connected
 
 read zilla:reset.ext ${http:resetEx()
                            .typeId(zilla:id("http"))
-                           .header(":status", "200")
-                           .header("grpc-status", "12")
+                           .header(":status", "415")
                            .build()}
 
 write aborted

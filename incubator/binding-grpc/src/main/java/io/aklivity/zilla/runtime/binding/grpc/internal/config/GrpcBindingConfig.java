@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcT
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -119,10 +120,11 @@ public final class GrpcBindingConfig
                 methodResolver = new GrpcMethodResolver(
                     serviceName,
                     methodName,
-                    helper.contentType,
                     helper.grpcTimeout,
+                    helper.contentType,
                     helper.scheme,
                     helper.authority,
+                    helper.te,
                     helper.metadataHeaders,
                     method.request,
                     method.response
@@ -141,6 +143,7 @@ public final class GrpcBindingConfig
         private static final String8FW HEADER_NAME_SCHEME = new String8FW(":scheme");
         private static final String8FW HEADER_NAME_AUTHORITY = new String8FW(":authority");
         private static final String8FW HEADER_NAME_CONTENT_TYPE = new String8FW("content-type");
+        private static final String8FW HEADER_NAME_TE = new String8FW("te");
         private static final String8FW HEADER_NAME_GRPC_TIMEOUT = new String8FW("grpc_timeout");
 
 
@@ -165,24 +168,27 @@ public final class GrpcBindingConfig
             visitors.put(HEADER_NAME_GRPC_TIMEOUT, this::visitGrpcTimeout);
             visitors.put(HEADER_NAME_SCHEME, this::visitScheme);
             visitors.put(HEADER_NAME_AUTHORITY, this::visitAuthority);
+            visitors.put(HEADER_NAME_TE, this::visitTe);
             visitors.put(HEADER_NAME_CONTENT_TYPE, this::visitContentType);
             this.visitors = visitors;
         }
         private final AsciiSequenceView pathRO = new AsciiSequenceView();
-        private final AsciiSequenceView contentTypeRO = new AsciiSequenceView();
         private final AsciiSequenceView serviceNameRO = new AsciiSequenceView();
         private final AsciiSequenceView grpcTimeoutRO = new AsciiSequenceView();
+        private final String16FW contentTypeRO = new String16FW();
         private final String16FW schemeRO = new String16FW();
         private final String16FW authorityRO = new String16FW();
+        private final String16FW teRO = new String16FW();
 
         public Array32FW<GrpcMetadataFW> metadataHeaders;
         public CharSequence path;
-        public CharSequence contentType;
         public CharSequence serviceName;
         private CharSequence grpcTimeoutText;
         public long grpcTimeout;
+        public String16FW contentType;
         public String16FW scheme;
         public String16FW authority;
+        public String16FW te;
 
 
         HttpGrpcHeaderHelper(
@@ -199,6 +205,7 @@ public final class GrpcBindingConfig
             grpcTimeoutText = null;
             scheme = null;
             authority = null;
+            te = null;
             contentType = null;
             metadataHeaders = null;
             grpcMetadataRW.wrap(metadataBuffer, 0, metadataBuffer.capacity());
@@ -225,6 +232,7 @@ public final class GrpcBindingConfig
                 path != null &&
                 scheme != null &&
                 authority != null &&
+                te != null &&
                 contentType != null &&
                 grpcTimeoutText != null;
         }
@@ -269,13 +277,16 @@ public final class GrpcBindingConfig
             authority = authorityRO.wrap(value.buffer(), value.offset(), value.limit());
         }
 
+        private void visitTe(
+            String16FW value)
+        {
+            te = teRO.wrap(value.buffer(), value.offset(), value.limit());
+        }
+
         private void visitContentType(
             String16FW value)
         {
-            final DirectBuffer buffer = value.buffer();
-            final int offset = value.offset() + value.fieldSizeLength();
-            final int length = value.sizeof() - value.fieldSizeLength();
-            contentType = contentTypeRO.wrap(buffer, offset, length);
+            contentType = contentTypeRO.wrap(value.buffer(), value.offset(), value.limit());
         }
 
         private void visitHeader(
@@ -292,8 +303,8 @@ public final class GrpcBindingConfig
 
             if (notHttpHeader && !GRPC_PREFIX.equals(HEADER_GRPC_PREFIX))
             {
-                final GrpcType type = BIN_SUFFIX.equals(HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
-                final int metadataNameLength = type == BASE64 ? name.sizeof() - BIN_SUFFIX.length : name.length();
+                final GrpcType type = Arrays.equals(BIN_SUFFIX, HEADER_BIN_SUFFIX) ? BASE64 : TEXT;
+                final int metadataNameLength = type == BASE64 ? name.length() - BIN_SUFFIX.length : name.length();
 
                 grpcMetadataRW.item(m -> m.type(t -> t.set(type))
                     .nameLen(metadataNameLength)

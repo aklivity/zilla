@@ -53,8 +53,8 @@ public final class GrpcConditionMatcher
                 final GrpcMetadataFW metadata = metadataHeaders.matchFirst(h -> name.compareTo(h.name().value()) == 0);
 
                 final GrpcMetadataValue value = entry.getValue();
-                final DirectBuffer matcher = metadata.type().get() == BASE64 ? value.base64Value.value() :
-                    value.textValue.value();
+                final DirectBuffer matcher = metadata != null && metadata.type().get() == BASE64 ?
+                    value.base64Value.value() : value.textValue.value();
 
                 match = metadata != null ? matcher.compareTo(metadata.value().value()) == 0 : match;
             }

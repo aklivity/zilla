@@ -30,18 +30,10 @@ write zilla:begin.ext ${http:beginEx()
 
 connected
 
-write ${grpc:message()
-            .string(1, "Hello World")
-            .build()}
-write flush
-
-write close
-
-read zilla:begin.ext ${http:matchBeginEx()
+read zilla:reset.ext ${http:resetEx()
                            .typeId(zilla:id("http"))
                            .header(":status", "405")
                            .header("grpc-status", "13")
                            .build()}
 
-
-read closed
+write aborted

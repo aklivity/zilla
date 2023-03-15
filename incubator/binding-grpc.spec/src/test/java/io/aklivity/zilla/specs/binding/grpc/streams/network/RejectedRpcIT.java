@@ -55,4 +55,24 @@ public class RejectedRpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/unsupported.content.type/client",
+        "${net}/unsupported.content.type/server",
+    })
+    public void shouldRejectInvalidContentType() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/missing.te.trailers/client",
+        "${net}/missing.te.trailers/server",
+    })
+    public void shouldRejectMissingTeTrailer() throws Exception
+    {
+        k3po.finish();
+    }
 }
