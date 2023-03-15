@@ -68,6 +68,16 @@ public class UnaryRpcIT
 
     @Test
     @Specification({
+        "${net}/response.timeout/client",
+        "${net}/response.timeout/server",
+    })
+    public void shouldTimeoutOnNoResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/server.send.read.abort.on.open.request/client",
         "${net}/server.send.read.abort.on.open.request/server"
     })
