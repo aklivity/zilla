@@ -23,11 +23,6 @@ import java.util.function.Consumer;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
-import io.aklivity.zilla.runtime.command.log.internal.types.String8FW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcAbortExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcBeginExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcDataExFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcResetExFW;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -73,6 +68,10 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcAbortExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpFlushExFW;
@@ -230,14 +229,6 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
             flushHandlers.put(labels.lookupLabelId("http"), this::onHttpFlushEx);
             endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
-        }
-
-        if (hasExtensionType.test("grpc"))
-        {
-            beginHandlers.put(labels.lookupLabelId("grpc"), this::onHttpBeginEx);
-            dataHandlers.put(labels.lookupLabelId("grpc"), this::onHttpFlushEx);
-            resetHandlers.put(labels.lookupLabelId("grpc"), this::onHttpEndEx);
-            abortHandlers.put(labels.lookupLabelId("grpc"), this::onHttpEndEx);
         }
 
         if (hasExtensionType.test("sse"))
@@ -777,23 +768,6 @@ public final class LoggableStream implements AutoCloseable
         httpEndEx.trailers()
                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                          format("%s: %s", h.name().asString(), h.value().asString())));
-    }
-
-    private void onGrpcBeginEx(
-        final BeginFW begin)
-    {
-        final int offset = begin.offset() - HEADER_LENGTH;
-        final long timestamp = begin.timestamp();
-        final OctetsFW extension = begin.extension();
-
-        final GrpcBeginExFW grpcBeginEx = grpcBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        out.printf(verboseFormat, index, offset, timestamp,
-            format("type: %s", grpcBeginEx));
-        out.printf(verboseFormat, index, offset, timestamp,
-            format("id: %s", grpcBeginEx.id().asString()));
-        grpcBeginEx.metadata()
-            .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                format("%s: %s", h.name().toString(), h.value())));
     }
 
     private void onSseDataEx(
