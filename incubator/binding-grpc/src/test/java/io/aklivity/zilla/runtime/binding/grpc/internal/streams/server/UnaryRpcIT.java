@@ -62,6 +62,28 @@ public class UnaryRpcIT
     @Test
     @Configuration("server.when.json")
     @Specification({
+        "${net}/binary.metadata/client",
+        "${app}/binary.metadata/server",
+    })
+    public void shouldEstablishWithBinaryMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
+        "${net}/grpc.web/client",
+        "${app}/message.exchange/server",
+    })
+    public void shouldEstablishGrpcWeb() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.json")
+    @Specification({
         "${net}/server.send.read.abort.on.open.request/client",
         "${app}/server.send.read.abort.on.open.request/server"
     })

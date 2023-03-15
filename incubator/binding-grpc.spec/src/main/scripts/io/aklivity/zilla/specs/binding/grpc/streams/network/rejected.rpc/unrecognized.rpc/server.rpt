@@ -29,17 +29,9 @@ read zilla:begin.ext ${http:matchBeginEx()
 
 connected
 
-read ${grpc:message()
-           .string(1, "Hello World")
-           .build()}
-
-read closed
-
-write zilla:begin.ext ${http:beginEx()
+write zilla:reset.ext ${http:resetEx()
                             .typeId(zilla:id("http"))
                             .header(":status", "200")
                             .header("grpc-status", "12")
                             .build()}
-write flush
-
-write close
+read abort

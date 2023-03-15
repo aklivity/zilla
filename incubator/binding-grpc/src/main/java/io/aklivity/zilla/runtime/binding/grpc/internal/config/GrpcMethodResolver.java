@@ -24,10 +24,11 @@ public class GrpcMethodResolver
 {
     public final CharSequence service;
     public final CharSequence method;
-    public final CharSequence contentType;
     public final long grpcTimeout;
+    public final String16FW contentType;
     public final String16FW scheme;
     public final String16FW authority;
+    public final String16FW te;
     public final GrpcKind request;
     public final GrpcKind response;
     public final Array32FW<GrpcMetadataFW> metadata;
@@ -35,10 +36,11 @@ public class GrpcMethodResolver
     public GrpcMethodResolver(
         CharSequence service,
         CharSequence method,
-        CharSequence contentType,
         long grpcTimeout,
+        String16FW contentType,
         String16FW scheme,
         String16FW authority,
+        String16FW te,
         Array32FW<GrpcMetadataFW> metadata,
         GrpcKind request,
         GrpcKind response)
@@ -49,6 +51,7 @@ public class GrpcMethodResolver
         this.scheme = scheme;
         this.authority = authority;
         this.contentType = contentType;
+        this.te = te;
         this.metadata = metadata;
         this.request = request;
         this.response = response;

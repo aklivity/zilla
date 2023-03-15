@@ -25,7 +25,7 @@ write zilla:begin.ext ${grpc:beginEx()
                               .method("EchoUnary")
                               .request("UNARY")
                               .response("UNARY")
-                              .metadata("BASE64", "custom", "dGVzdA==")
+                              .metadata("custom", "dGVzdA==")
                               .build()}
 connected
 

@@ -1,0 +1,64 @@
+{
+  "name": "test",
+  "bindings":
+  {
+    "net0":
+    {
+      "type" : "grpc",
+      "kind": "server",
+      "options":
+      {
+        "services": [ "protobuf/echo.proto" ]
+      },
+      "routes":
+      [
+        {
+          "exit": "app0",
+          "when":
+          [
+            {
+              "method": "example.EchoService/EchoUnary",
+              "metadata":
+              {
+                "custom":
+                {
+                  "base64": "dGVzdA=="
+                }
+              }
+            },
+            {
+              "method": "example.EchoService/EchoClientStream",
+              "metadata":
+              {
+                "custom":
+                {
+                  "base64": "dGVzdA=="
+                }
+              }
+            },
+            {
+              "method": "example.EchoService/EchoServerStream",
+              "metadata":
+              {
+                "custom":
+                {
+                  "base64": "dGVzdA=="
+                }
+              }
+            },
+            {
+              "method": "example.EchoService/EchoStream",
+              "metadata":
+              {
+                "custom":
+                {
+                  "base64": "dGVzdA=="
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
