@@ -2,6 +2,7 @@ package io.aklivity.zilla.runtime.engine.internal.layout.metrics;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
@@ -40,7 +41,7 @@ public class CountersLayoutTest
         writer1.accept(1L);
         writer2.accept(100L);
         writer3.accept(77L);
-        assertThat(reader1.getAsLong(), equalTo(2L));
+        assertThat(reader1.getAsLong(), equalTo(2L)); // 1 + 1
         assertThat(reader2.getAsLong(), equalTo(100L));
         assertThat(reader3.getAsLong(), equalTo(77L));
         writer2.accept(10L);
@@ -48,8 +49,30 @@ public class CountersLayoutTest
         writer2.accept(20L);
         writer3.accept(1L);
         writer3.accept(1L);
-        assertThat(reader2.getAsLong(), equalTo(130L));
-        assertThat(reader3.getAsLong(), equalTo(80L));
+        assertThat(reader2.getAsLong(), equalTo(130L)); // 100 + 10 + 20
+        assertThat(reader3.getAsLong(), equalTo(80L)); // 77 + 1 + 1 + 1
+
+        countersLayout.close();
+        assertTrue(Files.exists(path));
+        Files.delete(path);
+    }
+
+    @Test
+    public void shouldThrowExceptionIfBufferIsTooSmall() throws Exception
+    {
+        String fileName = "target/zilla-itests/counters1";
+        Path path = Paths.get(fileName);
+        CountersLayout countersLayout = new CountersLayout.Builder()
+                .path(path)
+                .capacity(71) // we'd need 72 bytes here for the 3 records
+                .build();
+
+        countersLayout.supplyWriter(11L, 42L);
+        countersLayout.supplyWriter(22L, 77L);
+        assertThrows(IndexOutOfBoundsException.class, () ->
+        {
+            countersLayout.supplyWriter(33L, 88L);
+        });
 
         countersLayout.close();
         assertTrue(Files.exists(path));
