@@ -52,6 +52,8 @@ write ${grpc:message()
             .build()}
 write flush
 
+read closed
+
 write zilla:end.ext ${http:endEx()
                           .typeId(zilla:id("http"))
                           .trailer("grpc-status", "0")
