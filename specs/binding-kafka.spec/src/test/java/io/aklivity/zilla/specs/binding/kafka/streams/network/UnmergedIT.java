@@ -71,6 +71,15 @@ public class UnmergedIT
 
     @Test
     @Specification({
+        "${net}/unmerged.fetch.filter.sync/client",
+        "${net}/unmerged.fetch.filter.sync/server"})
+    public void shouldFetchUnmergedPartitionLatest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/unmerged.fetch.message.values.read.committed/client",
         "${net}/unmerged.fetch.message.values.read.committed/server"})
     public void shouldFetchUnmergedMessageValuesReadCommitted() throws Exception

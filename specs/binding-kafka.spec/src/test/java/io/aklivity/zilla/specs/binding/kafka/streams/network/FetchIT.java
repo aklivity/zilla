@@ -276,6 +276,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${net}/filter.sync/client",
+        "${net}/filter.sync/server"})
+    public void shouldReceiveSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/isolation.read.committed/client",
         "${net}/isolation.read.committed/server"})
     public void shouldReceiveIsolationReadCommitted() throws Exception
