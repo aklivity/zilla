@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
 import static org.agrona.IoUtil.mapExistingFile;
+import static org.agrona.IoUtil.unmap;
 
 import java.io.File;
 import java.nio.MappedByteBuffer;
@@ -41,6 +42,11 @@ public final class CountersLayout implements Iterable<long[]>
         AtomicBuffer buffer)
     {
         this.buffer = buffer;
+    }
+
+    public void close()
+    {
+        unmap(buffer.byteBuffer());
     }
 
     public CountersIterator iterator()

@@ -31,4 +31,9 @@ public class CountersReader
     {
         return StreamSupport.stream(layout.spliterator(), false).toArray(long[][]::new);
     }
+
+    public void close()
+    {
+        layout.close();
+    }
 }

@@ -91,6 +91,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
                         calculateColumnWidths(record);
                     }
                 }
+                reader.close();
             }
             printMetrics();
         }

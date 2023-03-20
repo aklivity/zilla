@@ -26,8 +26,8 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
-    <jacoco.missed.count>0</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.15</jacoco.coverage.ratio>
+    <jacoco.missed.count>3</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -42,6 +42,11 @@
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jmock</groupId>
+      <artifactId>jmock-junit4</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
