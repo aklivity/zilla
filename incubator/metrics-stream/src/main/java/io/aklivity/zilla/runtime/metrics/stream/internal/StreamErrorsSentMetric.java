@@ -75,7 +75,6 @@ public class StreamErrorsSentMetric implements Metric
         {
             if (msgTypeId == AbortFW.TYPE_ID || msgTypeId == ResetFW.TYPE_ID) // error frame
             {
-                System.out.format("%s %d %d %d\n", NAME, msgTypeId, index, length);
                 FrameFW frame = frameRO.wrap(buffer, index, index + length);
                 long streamId = frame.streamId();
                 if (!isInitial(streamId)) // sent stream

@@ -74,7 +74,6 @@ public class StreamOpensReceivedMetric implements Metric
         {
             if (msgTypeId == BeginFW.TYPE_ID) // opening frame
             {
-                System.out.format("%s %d %d %d\n", NAME, msgTypeId, index, length);
                 FrameFW frame = frameRO.wrap(buffer, index, index + length);
                 long streamId = frame.streamId();
                 if (isInitial(streamId)) // received stream

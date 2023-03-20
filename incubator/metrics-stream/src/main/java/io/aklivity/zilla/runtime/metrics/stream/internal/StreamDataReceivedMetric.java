@@ -73,7 +73,6 @@ public class StreamDataReceivedMetric implements Metric
         {
             if (msgTypeId == DataFW.TYPE_ID) // data frame
             {
-                System.out.format("%s %d %d %d\n", NAME, msgTypeId, index, length);
                 DataFW data = dataRO.wrap(buffer, index, index + length);
                 long streamId = data.streamId();
                 if (isInitial(streamId)) // received stream

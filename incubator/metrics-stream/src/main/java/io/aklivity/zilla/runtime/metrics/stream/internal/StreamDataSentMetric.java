@@ -73,7 +73,6 @@ public class StreamDataSentMetric implements Metric
         {
             if (msgTypeId == DataFW.TYPE_ID) // data frame
             {
-                System.out.format("%s %d %d %d\n", NAME, msgTypeId, index, length); // TODO: Ati (10x)
                 DataFW data = dataRO.wrap(buffer, index, index + length);
                 long streamId = data.streamId();
                 if (!isInitial(streamId)) // sent stream
