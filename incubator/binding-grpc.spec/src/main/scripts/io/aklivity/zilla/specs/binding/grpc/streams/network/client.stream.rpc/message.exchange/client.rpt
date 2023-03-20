@@ -51,6 +51,7 @@ read ${grpc:message()
            .string(1, "Hello World")
            .build()}
 
+write close
 
 read zilla:end.ext ${http:endEx()
                          .typeId(zilla:id("http"))
