@@ -38,15 +38,15 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .partition(-1, -1)
                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                .header("service", "example.EchoService")
-                               .header("method", "EchoUnary")
+                               .header("method", "EchoStreamStream")
                                .header("custom", "test"),
                                .header("zilla:identity", "test")
                                .build()
                            .build()}
-
 read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
+
 
 read closed
 write close
@@ -76,15 +76,32 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(1, 1)
                                 .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                 .header("service", "example.EchoService")
-                                .header("method", "EchoUnary")
+                                .header("method", "EchoStreamStream")
                                 .header("custom", "test"),
                                 .header("zilla:identity", "test")
                                 .build()
                             .build()}
 write ${grpc:protobuf()
-            .string(1, "Hello World")
+            .string(1, "Hello World1")
             .build()}
 write flush
 
-read closed
-write close
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .timestamp(kafka:timestamp())
+                                .partition(0, 2, 2)
+                                .progress(0, 3)
+                                .progress(1, 1)
+                                .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
+                                .header("service", "example.EchoService")
+                                .header("method", "EchoStreamStream")
+                                .header("custom", "test"),
+                                .header("zilla:identity", "test")
+                                .build()
+                            .build()}
+write ${grpc:protobuf()
+            .string(1, "Hello World2")
+            .build()}
+write flush
+

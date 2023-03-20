@@ -32,7 +32,7 @@ connected
 write zilla:data.ext ${kafka:matchDataEx()
                                  .typeId(zilla:id("kafka"))
                                  .merged()
-                                     .deferred(20)
+                                     .deferred(0)
                                      .partition(-1, -1)
                                      .key("92d0bf92-63e0-4cfc-ae73-71dee92d1544")
                                      .header("service", "example.EchoService")
@@ -46,6 +46,7 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
+write notify SENT_ASYNC_REQUEST
 write close
 read closed
 
@@ -86,5 +87,5 @@ read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 
-read closed
 write close
+read closed
