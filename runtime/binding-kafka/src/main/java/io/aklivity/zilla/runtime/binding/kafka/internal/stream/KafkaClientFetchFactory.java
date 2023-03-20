@@ -122,7 +122,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final FlushFW flushRO = new FlushFW();
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
     private final SignalFW signalRO = new SignalFW();
@@ -1826,16 +1825,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             client.doNetworkAbortIfNecessary(traceId);
         }
 
-        private void onApplicationFlush(
-                FlushFW flush)
-        {
-            final long traceId = flush.traceId();
-
-            state = KafkaState.closedInitial(state);
-
-            client.doNetworkAbortIfNecessary(traceId);
-        }
-
         private void onApplicationWindow(
             WindowFW window)
         {
@@ -1925,21 +1914,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                                                      .isolation(i -> i.set(isolation)))
                                                         .build()
                                                         .sizeof()));
-
-            /*if (partitionOffset == latestOffset && recordsCount == 0 )
-            {
-                final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(kafkaTypeId)
-                        .fetch(f -> f
-                                .partition(p -> p
-                                        .partitionId(partitionId)
-                                        .partitionOffset(partitionOffset)
-                                        .stableOffset(stableOffset)
-                                        .latestOffset(latestOffset)))
-                        .build();
-
-                doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
-            }*/
         }
 
         private void doApplicationData(
