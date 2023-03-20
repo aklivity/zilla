@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public final class Target implements AutoCloseable
 {
@@ -63,6 +64,7 @@ public final class Target implements AutoCloseable
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final MessageConsumer writeHandler;
     private final LongFunction<LoadEntry> supplyLoadEntry;
+    private final LongFunction<MetricHandler> supplyMetricRecorder;
 
     private MessagePredicate streamsBuffer;
 
@@ -75,7 +77,8 @@ public final class Target implements AutoCloseable
         Int2ObjectHashMap<MessageConsumer>[] streams,
         Long2ObjectHashMap<LongHashSet> streamSets,
         Int2ObjectHashMap<MessageConsumer>[] throttles,
-        LongFunction<LoadEntry> supplyLoadEntry)
+        LongFunction<LoadEntry> supplyLoadEntry,
+        LongFunction<MetricHandler> supplyMetricRecorder)
     {
         this.timestamps = config.timestamps();
         this.localIndex = index;
@@ -93,6 +96,7 @@ public final class Target implements AutoCloseable
 
         this.writeBuffer = writeBuffer;
         this.supplyLoadEntry = supplyLoadEntry;
+        this.supplyMetricRecorder = supplyMetricRecorder;
         this.correlations = correlations;
         this.streams = streams;
         this.streamSets = streamSets;
@@ -226,6 +230,7 @@ public final class Target implements AutoCloseable
         }
         else
         {
+            supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case WindowFW.TYPE_ID:
@@ -268,6 +273,7 @@ public final class Target implements AutoCloseable
 
         if ((msgTypeId & 0x4000_0000) == 0)
         {
+            supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:

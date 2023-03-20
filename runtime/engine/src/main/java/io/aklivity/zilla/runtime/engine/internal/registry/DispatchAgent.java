@@ -1357,6 +1357,7 @@ public class DispatchAgent implements EngineContext, Agent
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
                 throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
+                supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
                 supplyLoadEntry.apply(routeId).initialOpened(1L);
 
                 streamSets.computeIfAbsent(routeId, k -> new LongHashSet())
@@ -1519,7 +1520,8 @@ public class DispatchAgent implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry,
+                supplyMetricRecorder);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(
