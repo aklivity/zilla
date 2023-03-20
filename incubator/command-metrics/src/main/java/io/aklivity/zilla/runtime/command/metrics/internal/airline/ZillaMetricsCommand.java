@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongPredicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -66,8 +67,8 @@ public final class ZillaMetricsCommand extends ZillaCommand
     @Override
     public void run()
     {
-        //String name = args != null && args.size() >= 1 ? args.get(0) : null;
-        //LongPredicate filter = filterBy(namespace, name); // TODO: Ati - filtering
+        String binding = args != null && args.size() >= 1 ? args.get(0) : null;
+        LongPredicate filter = filterBy(namespace, binding);
 
         try (Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1))
         {
@@ -76,8 +77,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
             {
                 for (long[] record : reader.records())
                 {
-                    // TODO: Ati - filtering
-                    addRecordToMetrics(record);
+                    addRecordToMetrics(record, filter);
                 }
             }
             printMetrics();
@@ -86,6 +86,23 @@ public final class ZillaMetricsCommand extends ZillaCommand
         {
             LangUtil.rethrowUnchecked(ex);
         }
+    }
+
+    private LongPredicate filterBy(
+        String namespace,
+        String binding)
+    {
+        int namespaceId = namespace != null ? Math.max(labels.lookupLabelId(namespace), 0) : 0;
+        int bindingId = binding != null ? Math.max(labels.lookupLabelId(binding), 0) : 0;
+
+        long namespacedId =
+                (long) namespaceId << Integer.SIZE |
+                        (long) bindingId << 0;
+
+        long mask =
+                (namespace != null ? 0xffff_ffff_0000_0000L : 0x0000_0000_0000_0000L) |
+                        (binding != null ? 0x0000_0000_ffff_ffffL : 0x0000_0000_0000_0000L);
+        return id -> (id & mask) == namespacedId;
     }
 
     private List<CountersReader> readers(
@@ -118,22 +135,26 @@ public final class ZillaMetricsCommand extends ZillaCommand
     }
 
     private void addRecordToMetrics(
-        long[] record)
+        long[] record,
+        LongPredicate filter)
     {
-        int namespaceId = namespaceId(record[0]);
-        int bindingId = localId(record[0]);
-        int metricId = localId(record[1]);
-        long value = record[2];
+        if (filter.test(record[0])) // filters by namespace and binding
+        {
+            int namespaceId = namespaceId(record[0]);
+            int bindingId = localId(record[0]);
+            int metricId = localId(record[1]);
+            long value = record[2];
 
-        metrics.putIfAbsent(namespaceId, new Int2ObjectHashMap<>());
-        Map<Integer, Map<Integer, Long>> metricsByNamespace = metrics.get(namespaceId);
+            metrics.putIfAbsent(namespaceId, new Int2ObjectHashMap<>());
+            Map<Integer, Map<Integer, Long>> metricsByNamespace = metrics.get(namespaceId);
 
-        metricsByNamespace.putIfAbsent(bindingId, new Int2ObjectHashMap<>());
-        Map<Integer, Long> metricsByBinding = metricsByNamespace.get(bindingId);
+            metricsByNamespace.putIfAbsent(bindingId, new Int2ObjectHashMap<>());
+            Map<Integer, Long> metricsByBinding = metricsByNamespace.get(bindingId);
 
-        Long previousCount = metricsByBinding.getOrDefault(metricId, 0L);
-        Long currentCount = previousCount + value; // this works only for counters
-        metricsByBinding.put(metricId, currentCount);
+            Long previousCount = metricsByBinding.getOrDefault(metricId, 0L);
+            Long currentCount = previousCount + value; // this works only for counters
+            metricsByBinding.put(metricId, currentCount);
+        }
     }
 
     private static int namespaceId(

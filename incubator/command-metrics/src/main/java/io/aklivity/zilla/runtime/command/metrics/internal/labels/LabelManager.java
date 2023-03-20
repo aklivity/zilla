@@ -35,6 +35,8 @@ import org.agrona.LangUtil;
 
 public final class LabelManager
 {
+    private static final Integer NO_LABEL_ID = Integer.valueOf(-1);
+
     private final List<String> labels;
     private final Map<String, Integer> labelIds;
     private final Path labelsPath;
@@ -51,14 +53,7 @@ public final class LabelManager
         this.sizeInBytes = -1L;
     }
 
-    /*public synchronized int supplyLabelId(
-        String label)
-    {
-        checkSnapshot();
-        return labelIds.computeIfAbsent(label, this::nextLabelId);
-    }*/
-
-    public synchronized String lookupLabel(
+    public String lookupLabel(
         int labelId)
     {
         if (labelId < 1 || labelId > labels.size())
@@ -69,26 +64,17 @@ public final class LabelManager
         return labels.get(labelId - 1);
     }
 
-    /*private int nextLabelId(
-        String nextLabel)
+    public int lookupLabelId(
+        String label)
     {
-        try (FileChannel channel = FileChannel.open(labelsPath, APPEND))
+        int labelId = labelIds.getOrDefault(label, NO_LABEL_ID);
+        if (labelId == NO_LABEL_ID)
         {
-            try (BufferedWriter out = new BufferedWriter(newWriter(channel, UTF_8.name())))
-            {
-                out.write(nextLabel);
-                out.write('\n');
-            }
+            checkSnapshot();
+            labelId = labelIds.getOrDefault(label, NO_LABEL_ID);
         }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        labels.add(nextLabel);
-
-        return labels.size();
-    }*/
+        return labelId;
+    }
 
     private void checkSnapshot()
     {
