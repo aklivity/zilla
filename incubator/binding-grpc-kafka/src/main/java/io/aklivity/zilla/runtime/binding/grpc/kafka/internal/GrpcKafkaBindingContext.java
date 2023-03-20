@@ -19,6 +19,7 @@ import static java.util.Collections.singletonMap;
 
 import java.util.Map;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaProxyFactory;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
@@ -34,7 +35,7 @@ final class GrpcKafkaBindingContext implements BindingContext
         GrpcKafkaConfiguration config,
         EngineContext context)
     {
-        this.factories = singletonMap(PROXY, new HttpKafkaProxyFactory(config, context));
+        this.factories = singletonMap(PROXY, new GrpcKafkaProxyFactory(config, context));
     }
 
     @Override

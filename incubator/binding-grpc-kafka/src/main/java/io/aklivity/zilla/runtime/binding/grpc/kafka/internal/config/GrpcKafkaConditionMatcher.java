@@ -68,12 +68,12 @@ public final class GrpcKafkaConditionMatcher
     private boolean matchService(
         OctetsFW service)
     {
-        return this.service == null || this.service.value().compareTo(service.value()) == 0;
+        return this.service.value().compareTo(service.value()) == 0;
     }
 
     private boolean matchMethod(
         OctetsFW method)
     {
-        return this.method == null || this.method.value().compareTo(method.value()) == 0;
+        return this.method.value().compareTo(method.value()) == 0;
     }
 }
