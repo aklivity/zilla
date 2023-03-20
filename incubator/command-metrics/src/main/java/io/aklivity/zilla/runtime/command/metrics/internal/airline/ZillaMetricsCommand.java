@@ -46,6 +46,10 @@ public final class ZillaMetricsCommand extends ZillaCommand
     private static final Path METRICS_DIRECTORY = Paths.get(".zilla", "engine", "metrics");
     private static final Path LABELS_DIRECTORY = Paths.get(".zilla", "engine");
     private static final Pattern COUNTERS_PATTERN = Pattern.compile("counters(\\d+)");
+    private static final String NAMESPACE_HEADER = "namespace";
+    private static final String BINDING_HEADER = "binding";
+    private static final String METRIC_HEADER = "metric";
+    private static final String VALUE_HEADER = "value";
 
     @Option(name = { "--namespace" })
     public String namespace;
@@ -56,6 +60,11 @@ public final class ZillaMetricsCommand extends ZillaCommand
     private final Map<Path, CountersReader> readersByPath;
     private final LabelManager labels;
     private final Map<Integer, Map<Integer, Map<Integer, Long>>> metrics; // namespace -> binding -> metric -> value
+
+    private int namespaceWidth = NAMESPACE_HEADER.length();
+    private int bindingWidth = BINDING_HEADER.length();
+    private int metricWidth = METRIC_HEADER.length();
+    private int valueWidth = VALUE_HEADER.length();
 
     public ZillaMetricsCommand()
     {
@@ -68,16 +77,19 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        LongPredicate filter = filterBy(namespace, binding);
+        LongPredicate filterByNamespaceAndBinding = filterBy(namespace, binding);
 
         try (Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1))
         {
-            System.out.println("namespace\tbinding\tmetric\tvalue"); // TODO: Ati - formatting
             for (CountersReader reader : readers(files))
             {
                 for (long[] record : reader.records())
                 {
-                    addRecordToMetrics(record, filter);
+                    if (filterByNamespaceAndBinding.test(record[0]))
+                    {
+                        addRecordToMetrics(record);
+                        calculateColumnWidths(record);
+                    }
                 }
             }
             printMetrics();
@@ -135,26 +147,40 @@ public final class ZillaMetricsCommand extends ZillaCommand
     }
 
     private void addRecordToMetrics(
-        long[] record,
-        LongPredicate filter)
+        long[] record)
     {
-        if (filter.test(record[0])) // filters by namespace and binding
-        {
-            int namespaceId = namespaceId(record[0]);
-            int bindingId = localId(record[0]);
-            int metricId = localId(record[1]);
-            long value = record[2];
+        int namespaceId = namespaceId(record[0]);
+        int bindingId = localId(record[0]);
+        int metricId = localId(record[1]);
+        long value = record[2];
 
-            metrics.putIfAbsent(namespaceId, new Int2ObjectHashMap<>());
-            Map<Integer, Map<Integer, Long>> metricsByNamespace = metrics.get(namespaceId);
+        metrics.putIfAbsent(namespaceId, new Int2ObjectHashMap<>());
+        Map<Integer, Map<Integer, Long>> metricsByNamespace = metrics.get(namespaceId);
 
-            metricsByNamespace.putIfAbsent(bindingId, new Int2ObjectHashMap<>());
-            Map<Integer, Long> metricsByBinding = metricsByNamespace.get(bindingId);
+        metricsByNamespace.putIfAbsent(bindingId, new Int2ObjectHashMap<>());
+        Map<Integer, Long> metricsByBinding = metricsByNamespace.get(bindingId);
 
-            Long previousCount = metricsByBinding.getOrDefault(metricId, 0L);
-            Long currentCount = previousCount + value; // this works only for counters
-            metricsByBinding.put(metricId, currentCount);
-        }
+        Long previousCount = metricsByBinding.getOrDefault(metricId, 0L);
+        Long currentCount = previousCount + value; // this works only for counters
+        metricsByBinding.put(metricId, currentCount);
+    }
+
+    private void calculateColumnWidths(long[] record)
+    {
+        int namespaceId = namespaceId(record[0]);
+        int bindingId = localId(record[0]);
+        int metricId = localId(record[1]);
+        long value = record[2];
+
+        String namespace = labels.lookupLabel(namespaceId);
+        String binding = labels.lookupLabel(bindingId);
+        String metric = labels.lookupLabel(metricId);
+        String valueAsString = String.valueOf(value);
+
+        namespaceWidth = Math.max(namespaceWidth, namespace.length());
+        bindingWidth = Math.max(bindingWidth, binding.length());
+        metricWidth = Math.max(metricWidth, metric.length());
+        valueWidth = Math.max(valueWidth, valueAsString.length());
     }
 
     private static int namespaceId(
@@ -171,6 +197,11 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
     private void printMetrics()
     {
+        String headerFormat = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
+                valueWidth + "s\n";
+        String dataFormat = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
+                valueWidth + "d\n";
+        System.out.format(headerFormat, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
         for (Integer namespaceId : metrics.keySet())
         {
             for (Integer bindingId : metrics.get(namespaceId).keySet())
@@ -181,7 +212,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
                     String binding = labels.lookupLabel(bindingId);
                     String metric = labels.lookupLabel(metricId);
                     Long value = metrics.get(namespaceId).get(bindingId).get(metricId);
-                    System.out.format("%s\t%s\t%s\t%d\n", namespace, binding, metric, value);
+                    System.out.format(dataFormat, namespace, binding, metric, value);
                 }
             }
         }
