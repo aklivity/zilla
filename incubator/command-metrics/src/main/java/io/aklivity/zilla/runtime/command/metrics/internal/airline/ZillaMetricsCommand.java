@@ -165,7 +165,8 @@ public final class ZillaMetricsCommand extends ZillaCommand
         metricsByBinding.put(metricId, currentCount);
     }
 
-    private void calculateColumnWidths(long[] record)
+    private void calculateColumnWidths(
+        long[] record)
     {
         int namespaceId = namespaceId(record[0]);
         int bindingId = localId(record[0]);
