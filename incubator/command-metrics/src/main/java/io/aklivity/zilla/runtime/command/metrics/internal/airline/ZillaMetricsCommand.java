@@ -87,7 +87,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 {
                     if (filterByNamespaceAndBinding.test(record[0]))
                     {
-                        addRecordToMetrics(record);
+                        collectMetric(record);
                         calculateColumnWidths(record);
                     }
                 }
@@ -146,7 +146,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return new CountersReader(layout);
     }
 
-    private void addRecordToMetrics(
+    private void collectMetric(
         long[] record)
     {
         int namespaceId = namespaceId(record[0]);
