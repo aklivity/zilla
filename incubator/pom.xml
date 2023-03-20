@@ -24,6 +24,7 @@
 
     <module>binding-amqp</module>
     <module>binding-grpc</module>
+    <module>binding-grpc-kafka</module>
     <module>binding-mqtt</module>
 
     <module>command-load</module>
