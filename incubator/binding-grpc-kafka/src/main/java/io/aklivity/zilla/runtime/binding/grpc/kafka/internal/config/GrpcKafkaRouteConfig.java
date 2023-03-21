@@ -14,22 +14,30 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.LongFunction;
+import java.util.function.LongPredicate;
+import java.util.regex.MatchResult;
+import java.util.stream.Collectors;
+
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
-import java.util.List;
-import java.util.function.LongPredicate;
-
-import static java.util.stream.Collectors.toList;
 
 public final class GrpcKafkaRouteConfig extends OptionsConfig
 {
     public final long id;
 
     private final List<GrpcKafkaConditionMatcher> when;
+    public final GrpcKafkaWithResolver with;
     private final LongPredicate authorized;
 
     public GrpcKafkaRouteConfig(
@@ -40,6 +48,22 @@ public final class GrpcKafkaRouteConfig extends OptionsConfig
             .map(GrpcKafkaConditionConfig.class::cast)
             .map(GrpcKafkaConditionMatcher::new)
             .collect(toList());
+
+        final Map<String, LongFunction<String>> identifiers = route.guarded.stream()
+            .collect(Collectors.toMap(g -> g.name, g -> g.identity));
+
+        final LongFunction<String> defaultIdentifier = a -> null;
+        final LongObjectBiFunction<MatchResult, String> identityReplacer = (a, r) ->
+        {
+            final LongFunction<String> identifier = identifiers.getOrDefault(r.group(1), defaultIdentifier);
+            final String identity = identifier.apply(a);
+            return identity != null ? identity : "";
+        };
+
+        this.with = Optional.of(route.with)
+            .map(GrpcKafkaWithConfig.class::cast)
+            .map(c -> new GrpcKafkaWithResolver(identityReplacer, c))
+            .get();
         this.authorized = route.authorized;
     }
 

@@ -21,7 +21,6 @@ import java.util.Map;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
@@ -41,8 +40,8 @@ public final class GrpcKafkaConditionMatcher
     }
 
     public boolean matches(
-        OctetsFW service,
-        OctetsFW method,
+        String16FW service,
+        String16FW method,
         Array32FW<GrpcMetadataFW> metadataHeaders)
     {
         boolean match = true;
@@ -66,14 +65,14 @@ public final class GrpcKafkaConditionMatcher
     }
 
     private boolean matchService(
-        OctetsFW service)
+        String16FW service)
     {
-        return this.service.value().compareTo(service.value()) == 0;
+        return service != null && this.service.value().compareTo(service.value()) == 0;
     }
 
     private boolean matchMethod(
-        OctetsFW method)
+        String16FW method)
     {
-        return this.method.value().compareTo(method.value()) == 0;
+        return method != null && this.method.value().compareTo(method.value()) == 0;
     }
 }
