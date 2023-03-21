@@ -56,8 +56,7 @@ public class MqttFunctionsTest
                 .typeId(0)
                 .capabilities("SUBSCRIBE_ONLY")
                 .clientId("client")
-                .topic("sensor/one")
-                .subscriptionId(1)
+                .filter("sensor/one", 0)
                 .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -65,8 +64,10 @@ public class MqttFunctionsTest
 
         assertEquals("SUBSCRIBE_ONLY", mqttBeginEx.capabilities().toString());
         assertEquals("client", mqttBeginEx.clientId().asString());
-        assertEquals("sensor/one", mqttBeginEx.topic().asString());
-        assertEquals(1, mqttBeginEx.subscriptionId());
+        assertNotNull(mqttBeginEx.filters()
+            .matchFirst(f ->
+                "sensor/one".equals(f.topic().asString()) &&
+                    0 == f.subscriptionId()));
     }
 
     @Test
@@ -76,9 +77,7 @@ public class MqttFunctionsTest
                                           .typeId(0)
                                           .capabilities("SUBSCRIBE_ONLY")
                                           .clientId("client")
-                                          .topic("sensor/one")
-                                          .flags("SEND_RETAINED")
-                                          .subscriptionId(1)
+                                          .filter("sensor/one", 1, "SEND_RETAINED")
                                           .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -86,9 +85,12 @@ public class MqttFunctionsTest
 
         assertEquals("SUBSCRIBE_ONLY", mqttBeginEx.capabilities().toString());
         assertEquals("client", mqttBeginEx.clientId().asString());
-        assertEquals("sensor/one", mqttBeginEx.topic().asString());
-        assertEquals(0b01, mqttBeginEx.flags());
-        assertEquals(1, mqttBeginEx.subscriptionId());
+
+        assertNotNull(mqttBeginEx.filters()
+            .matchFirst(f ->
+                "sensor/one".equals(f.topic().asString()) &&
+                    1 == f.subscriptionId() &&
+                    0b1000 == f.flags()));
     }
 
     @Test
@@ -98,8 +100,7 @@ public class MqttFunctionsTest
                 .typeId(0)
                 .capabilities("PUBLISH_ONLY")
                 .clientId("client")
-                .topic("sensor/one")
-                .subscriptionId(1)
+                .filter("sensor/one", 1)
                 .userProperty("name", "value")
                 .build();
 
@@ -108,12 +109,14 @@ public class MqttFunctionsTest
 
         assertEquals("PUBLISH_ONLY", mqttBeginEx.capabilities().toString());
         assertEquals("client", mqttBeginEx.clientId().asString());
-        assertEquals("sensor/one", mqttBeginEx.topic().asString());
-        assertEquals(1, mqttBeginEx.subscriptionId());
+        assertNotNull(mqttBeginEx.filters()
+            .matchFirst(f ->
+                "sensor/one".equals(f.topic().asString()) &&
+                    1 == f.subscriptionId()));
         assertNotNull(mqttBeginEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -123,8 +126,7 @@ public class MqttFunctionsTest
                 .typeId(0)
                 .capabilities("PUBLISH_ONLY")
                 .clientId("client")
-                .topic("sensor/one")
-                .subscriptionId(1)
+                .filter("sensor/one", 1)
                 .userProperty("name", null)
                 .build();
 
@@ -133,12 +135,14 @@ public class MqttFunctionsTest
 
         assertEquals("PUBLISH_ONLY", mqttBeginEx.capabilities().toString());
         assertEquals("client", mqttBeginEx.clientId().asString());
-        assertEquals("sensor/one", mqttBeginEx.topic().asString());
-        assertEquals(1, mqttBeginEx.subscriptionId());
+        assertNotNull(mqttBeginEx.filters()
+            .matchFirst(f ->
+                "sensor/one".equals(f.topic().asString()) &&
+                    1 == f.subscriptionId()));
         assertNotNull(mqttBeginEx.properties()
                                  .matchFirst(h ->
                                                  "name".equals(h.key().asString()) &&
-                                                     Objects.isNull(h.value())) != null);
+                                                     Objects.isNull(h.value().asString())));
     }
 
     @Test
@@ -168,7 +172,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -176,15 +180,19 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.flushEx()
                 .typeId(0)
-                .flags("SEND_RETAINED")
                 .capabilities("SUBSCRIBE_ONLY")
+                .filter("sensor/one", 1, "SEND_RETAINED")
                 .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttFlushEx.typeId());
-        assertEquals(0b01, mqttFlushEx.flags());
+        assertNotNull(mqttFlushEx.filters()
+            .matchFirst(f ->
+                "sensor/one".equals(f.topic().asString()) &&
+                    1 == f.subscriptionId() &&
+                    0b1000 == f.flags()));
         assertEquals("SUBSCRIBE_ONLY", mqttFlushEx.capabilities().toString());
     }
 
@@ -205,7 +213,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -222,7 +230,7 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttDataEx.typeId());
         assertEquals("sensor/one", mqttDataEx.topic().asString());
-        assertEquals(0b01, mqttDataEx.flags());
+        assertEquals(0b1000, mqttDataEx.flags());
     }
 
     @Test
@@ -240,7 +248,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -261,11 +269,11 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name1".equals(h.key().asString()) &&
-                                                    "value1".equals(h.value().asString())) != null);
+                                                    "value1".equals(h.value().asString())));
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name2".equals(h.key().asString()) &&
-                                                    "value2".equals(h.value().asString())) != null);
+                                                    "value2".equals(h.value().asString())));
     }
 
     @Test
@@ -294,7 +302,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -323,7 +331,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -350,7 +358,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -380,7 +388,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())) != null);
+                                                    "value".equals(h.value().asString())));
     }
 
     @Test
@@ -410,7 +418,7 @@ public class MqttFunctionsTest
         assertNotNull(mqttDataEx.properties()
                                 .matchFirst(h ->
                                                 "name".equals(h.key().asString()) &&
-                                                    Objects.isNull(h.value())) != null);
+                                                    Objects.isNull(h.value().asString())));
     }
 
     @Test

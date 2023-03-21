@@ -17,21 +17,20 @@ scope mqtt
 {
     enum MqttSubscribeFlags (uint8)
     {
-        SEND_RETAINED(0),
-        RETAIN_AS_PUBLISHED(1),
-        NO_LOCAL(2)
+        QOS0(0),
+        QOS1(1),
+        QOS2(2),
+        SEND_RETAINED(3),
+        RETAIN_AS_PUBLISHED(4),
+        NO_LOCAL(5)
     }
 
     enum MqttPublishFlags (uint8)
     {
-        RETAIN(0)
-    }
-
-    enum MqttCapabilities (uint8)
-    {
-        PUBLISH_ONLY(1),
-        SUBSCRIBE_ONLY(2),
-        PUBLISH_AND_SUBSCRIBE(3)
+        QOS0(0),
+        QOS1(1),
+        QOS2(2),
+        RETAIN(3)
     }
 
     enum MqttPayloadFormat
@@ -52,17 +51,40 @@ scope mqtt
         string16 value;
     }
 
+    struct MqttTopicFilter
+    {
+        string16 pattern;
+        varuint32 subscriptionId = 0;
+        uint8 flags = 0;
+    }
+
     scope stream
     {
-        struct MqttBeginEx extends core::stream::Extension
+
+        union MqttBeginEx switch (uint8) extends core::stream::Extension
         {
-            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
+            case 1: mqtt::stream::MqttSubscribeBeginEx subscribe;
+            case 0: kafka::stream::MqttProduceBeginEx produce;
+        }
+
+        struct MqttSubscribeBeginEx extends core::stream::Extension
+        {
+            string16 clientId;
+            MqttTopicFilter[] filters;
+            MqttUserProperty[] properties;
+        }
+
+        struct MqttProduceBeginEx extends core::stream::Extension
+        {
             string16 clientId;
             string16 topic;
             uint8 flags = 0;
-            varuint32 subscriptionId = 0;
             MqttUserProperty[] properties;
         }
+
+        //TODO: split MqttBeginEx to MqttProduceBeginEx and MqttSubscribeBeginEx, MqttSessionBeginEx - bidirectional (like kafka with union)
+        //and adapt the tests. Remove MqttCapabilities
+        //TODO: check if we need to split the others as well
 
         struct MqttDataEx extends core::stream::Extension
         {
@@ -84,8 +106,7 @@ scope mqtt
 
         struct MqttFlushEx extends core::stream::Extension
         {
-            uint8 flags = 0;
-            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
+            MqttTopicFilter[] filters;
         }
     }
 }

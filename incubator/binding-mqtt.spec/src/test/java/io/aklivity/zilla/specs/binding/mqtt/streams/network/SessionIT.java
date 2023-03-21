@@ -102,6 +102,15 @@ public class SessionIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/session.exists.expires.clean.start/client",
+        "${net}/session.exists.expires.clean.start/server"})
+    public void shouldRemoveSessionWhenExpiresAndCleanStartSecondConnection() throws Exception
+    {
+        k3po.finish();
+    }
+
     //TODO: use session.will.message.abrupt.disconnect.session.expires/server on the app side when adding the actual test
     @Test
     @Specification({
