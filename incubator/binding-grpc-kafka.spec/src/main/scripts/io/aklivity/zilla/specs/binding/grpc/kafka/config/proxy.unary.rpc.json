@@ -13,7 +13,7 @@
   },
   "bindings":
   {
-    "grpc-kafka0":
+    "grpc0":
     {
       "type" : "grpc-kafka",
       "kind": "proxy",
@@ -40,6 +40,7 @@
           {
             "topic": "items",
             "acks": "leader_only",
+            "key": "test",
             "reply-to": "items-replies",
             "filters":
             [

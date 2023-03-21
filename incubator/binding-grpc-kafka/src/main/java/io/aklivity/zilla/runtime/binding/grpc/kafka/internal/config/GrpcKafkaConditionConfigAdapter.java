@@ -83,7 +83,7 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
         JsonObject object)
     {
         String service = object.containsKey(SERVICE_NAME)
-            ? object.getString(METHOD_NAME)
+            ? object.getString(SERVICE_NAME)
             : null;
         String method = object.containsKey(METHOD_NAME)
             ? object.getString(METHOD_NAME)

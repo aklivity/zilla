@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/grpc0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
