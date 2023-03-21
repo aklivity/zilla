@@ -24,9 +24,12 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaBinding;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.engine.config.WithConfig;
+import io.aklivity.zilla.runtime.engine.config.WithConfigAdapterSpi;
 
-public final class GrpcKafkaWithConfigAdapter implements JsonbAdapter<GrpcKafkaWithConfig, JsonObject>
+public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, JsonbAdapter<WithConfig, JsonObject>
 {
     private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
 
@@ -39,28 +42,36 @@ public final class GrpcKafkaWithConfigAdapter implements JsonbAdapter<GrpcKafkaW
     private static final String FILTERS_HEADERS_NAME = "headers";
 
     @Override
-    public JsonObject adaptToJson(
-        GrpcKafkaWithConfig with)
+    public String type()
     {
+        return GrpcKafkaBinding.NAME;
+    }
+
+    @Override
+    public JsonObject adaptToJson(
+        WithConfig with)
+    {
+        GrpcKafkaWithConfig grpcKafkaWith = (GrpcKafkaWithConfig) with;
+
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        object.add(TOPIC_NAME, with.topic);
+        object.add(TOPIC_NAME, grpcKafkaWith.topic);
 
-        if (with.acks != ACKS_DEFAULT)
+        if (grpcKafkaWith.acks != ACKS_DEFAULT)
         {
-            object.add(ACKS_NAME, with.acks.name().toLowerCase());
+            object.add(ACKS_NAME, grpcKafkaWith.acks.name().toLowerCase());
         }
 
-        if (with.key.isPresent())
+        if (grpcKafkaWith.key.isPresent())
         {
-            object.add(KEY_NAME, with.key.get());
+            object.add(KEY_NAME, grpcKafkaWith.key.get());
         }
 
-        if (with.filters.isPresent())
+        if (grpcKafkaWith.filters.isPresent())
         {
             JsonArrayBuilder newFilters = Json.createArrayBuilder();
 
-            for (GrpcKafkaWithFetchFilterConfig filter : with.filters.get())
+            for (GrpcKafkaWithFetchFilterConfig filter : grpcKafkaWith.filters.get())
             {
                 JsonObjectBuilder newFilter = Json.createObjectBuilder();
 
@@ -91,7 +102,7 @@ public final class GrpcKafkaWithConfigAdapter implements JsonbAdapter<GrpcKafkaW
     }
 
     @Override
-    public GrpcKafkaWithConfig adaptFromJson(
+    public WithConfig adaptFromJson(
         JsonObject object)
     {
         String newTopic = object.getString(TOPIC_NAME);

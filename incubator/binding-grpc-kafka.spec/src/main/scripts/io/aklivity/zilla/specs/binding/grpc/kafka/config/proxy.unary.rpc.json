@@ -1,0 +1,58 @@
+{
+  "name": "test",
+  "guards":
+  {
+    "test0":
+    {
+      "type": "test",
+      "options":
+      {
+        "roles": [ "write:items" ]
+      }
+    }
+  },
+  "bindings":
+  {
+    "grpc-kafka0":
+    {
+      "type" : "grpc-kafka",
+      "kind": "proxy",
+      "routes":
+      [
+        {
+          "guarded":
+          {
+            "test0": [ "write:items" ]
+          },
+          "exit": "kafka0",
+          "when":
+          [
+            {
+              "service": "example.EchoService",
+              "method": "EchoUnary",
+              "metadata":
+              {
+                "custom": "test"
+              }
+            }
+          ],
+          "with":
+          {
+            "topic": "items",
+            "acks": "leader_only",
+            "reply-to": "items-replies",
+            "filters":
+            [
+              {
+                "headers":
+                {
+                  "zilla:identity": "${guarded['test0'].identity}"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

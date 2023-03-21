@@ -1037,7 +1037,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             correlater.doKafkaAbort(traceId, authorization);
         }
 
-        protected void onGrpcFlush(
+        private void onGrpcFlush(
             FlushFW flush)
         {
             final long sequence = flush.sequence();
