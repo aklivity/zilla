@@ -44,3 +44,6 @@ bindings:
         guarded:
             test0:
                 - read
+        telemetry:
+            metrics:
+                - test.*

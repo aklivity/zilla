@@ -227,7 +227,7 @@
                     "type": "object",
                     "properties": {
                         "metrics": {
-                            "$ref": "#/$defs/telemetry/metrics"
+                            "type": "array"
                         }
                     }
                 },
