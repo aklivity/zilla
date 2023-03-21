@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaDataExFW;
@@ -82,10 +83,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
+    private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
 
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
 
+    private final GrpcDataExFW.Builder grpcDataExRW = new GrpcDataExFW.Builder();
     private final GrpcBeginExFW.Builder grpcBeginExRW = new GrpcBeginExFW.Builder();
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
@@ -311,47 +314,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            if (!GrpcKafkaState.initialOpened(state))
-            {
-                assert payload == null || payload.sizeof() == 0;
-                assert (flags & 0x02) != 0;
-
-                if (extension.sizeof() > 0)
-                {
-                    // TODO: use buffer slot instead
-                    final UnsafeBuffer buf = new UnsafeBuffer(new byte[extension.sizeof()]);
-                    buf.putBytes(0, extension.buffer(), extension.offset(), extension.sizeof());
-                    deferredDataEx = buf;
-                    deferredPayload = payload;
-                    deferredDataExFlags = flags;
-                }
-            }
-            else
-            {
-                if (!GrpcKafkaState.initialClosed(delegate.state) & payload != null)
-                {
-                    flags &= ~0x01;
-                }
-
-                if (deferredDataEx != null)
-                {
-                    flags &= ~0x02;
-                    deferredDataEx = null;
-                }
-
-                flushKafkaData(traceId, authorization, budgetId, reserved, flags, payload, extension);
-            }
-        }
-
-        private void flushKafkaData(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved,
-            int flags,
-            OctetsFW payload,
-            Flyweight extension)
-        {
             doData(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
@@ -521,17 +483,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert acknowledge <= sequence;
             assert acknowledge >= delegate.initialAck;
             assert maximum >= delegate.initialMax;
-
-            if (initialMax == 0 &&
-                maximum > 0 &&
-                deferredDataEx != null)
-            {
-                final Flyweight kafkaDataEx = deferredDataEx != null
-                        ? kafkaDataExRO.wrap(deferredDataEx, 0, deferredDataEx.capacity())
-                        : emptyRO;
-
-                flushKafkaData(traceId, authorization, budgetId, 0, deferredDataExFlags, deferredPayload, kafkaDataEx);
-            }
 
             initialAck = acknowledge;
             initialMax = maximum;
@@ -927,7 +878,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     {
         private final KafkaProduceProxy producer;
         private final KafkaCorrelateProxy correlater;
-        private int producedFlags;
 
         private GrpcUnaryProxy(
             MessageConsumer grpc,
@@ -988,8 +938,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             final long affinity = begin.affinity();
-            final OctetsFW extension = begin.extension();
-            final GrpcBeginExFW grpcBeginEx = extension.get(grpcBeginExRO::tryWrap);
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -1002,23 +950,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             producer.doKafkaBegin(traceId, authorization, affinity);
-
-            Flyweight kafkaDataEx = emptyRO;
-            if (grpcBeginEx != null)
-            {
-                kafkaDataEx = kafkaDataExRW
-                        .wrap(extBuffer, 0, extBuffer.capacity())
-                        .typeId(kafkaTypeId)
-                        .merged(m -> m
-                            .deferred(0)
-                            .timestamp(now().toEpochMilli())
-                            .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                            .key(producer.resolved::key))
-                        .build();
-
-                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
-                this.producedFlags |= DATA_FLAG_INIT;
-            }
         }
 
         private void onGrpcData(
@@ -1032,6 +963,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final int reserved = data.reserved();
             final int flags = data.flags();
             final OctetsFW payload = data.payload();
+            final OctetsFW extension = data.extension();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
@@ -1042,7 +974,28 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             producer.resolved.updateHash(payload.value());
 
-            producer.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyRO);
+            Flyweight kafkaDataEx = emptyRO;
+            if ((flags & DATA_FLAG_INIT) != 0x00)
+            {
+                GrpcDataExFW dataEx = null;
+                if (extension.sizeof() > 0)
+                {
+                    dataEx = extension.get(grpcDataExRO::tryWrap);
+                }
+
+                final int deferred = dataEx != null ? dataEx.deferred() : 0;
+                kafkaDataEx = kafkaDataExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .merged(m -> m
+                        .deferred(deferred)
+                        .timestamp(now().toEpochMilli())
+                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                        .key(producer.resolved::key))
+                    .build();
+            }
+
+            producer.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
         }
 
         private void onGrpcEnd(
@@ -1064,8 +1017,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             producer.resolved.digestHash();
 
             correlater.doKafkaBegin(traceId, authorization, 0L);
-
-            producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, emptyRO);
 
             producer.doKafkaEndDeferred(traceId, authorization);
         }
