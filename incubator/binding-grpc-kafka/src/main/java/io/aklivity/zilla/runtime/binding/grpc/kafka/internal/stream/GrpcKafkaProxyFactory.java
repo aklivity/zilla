@@ -275,10 +275,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private int replyPad;
         private int replyCap;
 
-        private DirectBuffer deferredDataEx;
-        private int deferredDataExFlags;
-        private OctetsFW deferredPayload;
-
         private KafkaProduceProxy(
             long routeId,
             GrpcProxy delegate,
