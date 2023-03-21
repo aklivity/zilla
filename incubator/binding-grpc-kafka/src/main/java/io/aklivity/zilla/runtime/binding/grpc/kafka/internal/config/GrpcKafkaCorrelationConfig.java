@@ -14,16 +14,54 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import java.util.List;
 
+import org.agrona.concurrent.UnsafeBuffer;
+
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
 public final class GrpcKafkaCorrelationConfig
 {
+    private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
+        new KafkaOffsetFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+            .partitionId(-1)
+            .partitionOffset(0L)
+            .stableOffset(KafkaOffsetType.HISTORICAL.value())
+            .latestOffset(KafkaOffsetType.HISTORICAL.value())
+            .build();
+
+    private static final KafkaOffsetFW KAFKA_OFFSET_LIVE =
+        new KafkaOffsetFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+            .partitionId(-1)
+            .partitionOffset(0L)
+            .stableOffset(KafkaOffsetType.LIVE.value())
+            .latestOffset(KafkaOffsetType.LIVE.value())
+            .build();
+
     public final String16FW replyTo;
 
+    public List<GrpcKafkaWithFetchFilterResult> filters;
+
     public GrpcKafkaCorrelationConfig(
-        String16FW replyTo)
+        String16FW replyTo,
+        List<GrpcKafkaWithFetchFilterResult> filters)
     {
         this.replyTo = replyTo;
+        this.filters = filters;
+    }
+
+    public void filters(
+        Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
+    {
+        if (filters != null)
+        {
+            filters.forEach(f -> builder.item(f::filter));
+        }
     }
 }

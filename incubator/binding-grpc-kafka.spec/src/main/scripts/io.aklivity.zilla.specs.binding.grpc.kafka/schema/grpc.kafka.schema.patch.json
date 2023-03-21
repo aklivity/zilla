@@ -87,15 +87,6 @@
                                         "title": "Key",
                                         "type": "string"
                                     },
-                                    "overrides":
-                                    {
-                                        "title": "Headers",
-                                        "type": "object",
-                                        "additionalProperties" :
-                                        {
-                                            "type": "string"
-                                        }
-                                    },
                                     "reply-to":
                                     {
                                         "title": "Reply-To",
@@ -128,12 +119,7 @@
                                         }
                                     }
                                 },
-                                "additionalProperties": false,
-                                "required":
-                                [
-                                    "topic",
-                                    "reply-to"
-                                ]
+                                "additionalProperties": false
                             }
                         }
                     }

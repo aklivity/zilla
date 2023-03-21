@@ -14,19 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
-import static org.agrona.BitUtil.toHex;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
-
 public class GrpcKafkaWithProduceHash
 {
-    private final String16FW correlationId;
     private final byte[] hashBytesRW;
     private final MessageDigest md5;
 
@@ -51,12 +46,6 @@ public class GrpcKafkaWithProduceHash
         digest = md5.digest();
     }
 
-    public String16FW correlationId()
-    {
-        return digest != null && correlationId != null
-            ? new String16FW(String.format("%s-%s", correlationId.asString(), toHex(digest)))
-            : correlationId;
-    }
 
     private MessageDigest initMD5()
     {

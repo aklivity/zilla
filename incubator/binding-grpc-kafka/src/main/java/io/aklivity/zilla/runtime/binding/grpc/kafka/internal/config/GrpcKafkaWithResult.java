@@ -22,43 +22,45 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckModeFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
-public class GrpcKafkaWithProduceResult
+
+public class GrpcKafkaWithResult
 {
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
-            new KafkaOffsetFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
-                .partitionId(-1)
-                .partitionOffset(KafkaOffsetType.HISTORICAL.value())
-                .build();
+        new KafkaOffsetFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
+            .partitionId(-1)
+            .partitionOffset(KafkaOffsetType.HISTORICAL.value())
+            .build();
 
-    private final GrpcKafkaCorrelationConfig correlation;
-    private final GrpcKafkaWithProduceHash hash;
+    private GrpcKafkaCorrelationConfig correlation;
     private final String16FW topic;
-    private final KafkaAckMode acks;
-    private final Supplier<DirectBuffer> keyRef;
-    private final String16FW replyTo;
+    private KafkaAckMode acks;
+    private Supplier<DirectBuffer> keyRef;
+    private GrpcKafkaWithProduceHash hash;
 
-    GrpcKafkaWithProduceResult(
-        GrpcKafkaCorrelationConfig correlation,
+
+    GrpcKafkaWithResult(
         String16FW topic,
         KafkaAckMode acks,
         Supplier<DirectBuffer> keyRef,
-        String16FW replyTo,
-        GrpcKafkaWithProduceHash hash)
+        GrpcKafkaWithProduceHash hash,
+        GrpcKafkaCorrelationConfig correlation)
     {
         this.correlation = correlation;
         this.topic = topic;
         this.acks = acks;
         this.keyRef = keyRef;
-        this.replyTo = replyTo;
         this.hash = hash;
+    }
+
+    public String16FW topic()
+    {
+        return topic;
     }
 
     public void updateHash(
@@ -72,21 +74,12 @@ public class GrpcKafkaWithProduceResult
         hash.digestHash();
     }
 
-    public String16FW topic()
-    {
-        return topic;
-    }
-
     public void partitions(
         Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
     {
         builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
     }
 
-    public String16FW replyTo()
-    {
-        return replyTo;
-    }
 
     public void acks(
         KafkaAckModeFW.Builder builder)
@@ -108,38 +101,8 @@ public class GrpcKafkaWithProduceResult
         }
     }
 
-    private void replyTo(
-        KafkaHeaderFW.Builder builder)
+    public GrpcKafkaCorrelationConfig correlation()
     {
-        builder
-            .nameLen(correlation.replyTo.length())
-            .name(correlation.replyTo.value(), 0, correlation.replyTo.length())
-            .valueLen(replyTo.length())
-            .value(replyTo.value(), 0, replyTo.length());
-
-        hash.updateHash(correlation.replyTo.value());
-        hash.updateHash(replyTo.value());
-    }
-
-    public boolean reply()
-    {
-        return replyTo != null;
-    }
-
-    public void filters(
-        Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
-    {
-        final String16FW correlationId = hash.correlationId();
-
-        if (correlationId != null)
-        {
-            builder.item(i -> i
-                .conditionsItem(c -> c
-                    .header(h -> h
-                        .nameLen(correlation.correlationId.length())
-                        .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
-                        .valueLen(correlationId.length())
-                        .value(correlationId.value(), 0, correlationId.length()))));
-        }
+        return correlation;
     }
 }
