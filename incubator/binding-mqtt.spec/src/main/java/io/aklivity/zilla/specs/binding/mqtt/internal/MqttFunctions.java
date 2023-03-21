@@ -17,6 +17,8 @@ package io.aklivity.zilla.specs.binding.mqtt.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Arrays;
+
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.kaazing.k3po.lang.el.Function;
@@ -39,8 +41,8 @@ public final class MqttFunctions
     {
         final MqttPayloadFormat mqttPayloadFormat = MqttPayloadFormat.valueOf(format);
         final MqttPayloadFormatFW formatFW = new MqttPayloadFormatFW.Builder().wrap(new UnsafeBuffer(new byte[1]), 0, 1)
-                                                                              .set(mqttPayloadFormat)
-                                                                              .build();
+            .set(mqttPayloadFormat)
+            .build();
         final byte[] array = new byte[formatFW.sizeof()];
         formatFW.buffer().getBytes(formatFW.offset(), array);
 
@@ -95,22 +97,15 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttBeginExBuilder topic(
-            String topic)
-        {
-            beginExRW.topic(topic);
-            return this;
-        }
-
-        public MqttBeginExBuilder flags(
+        public MqttBeginExBuilder filter(
+            String topic,
+            int id,
             String... flags)
         {
-            int subscribeFlags = 0;
-            for (int i = 0; i < flags.length; i++)
-            {
-                subscribeFlags |= 1 << MqttSubscribeFlags.valueOf(flags[i]).ordinal();
-            }
-            beginExRW.flags(subscribeFlags);
+            int flagsLocal = Arrays.stream(flags)
+                .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            beginExRW.filtersItem(f -> f.topic(topic).subscriptionId(id).flags(flagsLocal));
             return this;
         }
 
@@ -121,13 +116,6 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttBeginExBuilder subscriptionId(
-            int id)
-        {
-            beginExRW.subscriptionId(id);
-            return this;
-        }
-
         public MqttBeginExBuilder userProperty(
             String name,
             String value)
@@ -135,12 +123,12 @@ public final class MqttFunctions
             if (value == null)
             {
                 beginExRW.propertiesItem(p -> p.key(name)
-                                               .value((String) null));
+                    .value((String) null));
             }
             else
             {
                 beginExRW.propertiesItem(p -> p.key(name)
-                                               .value(value));
+                    .value(value));
             }
             return this;
         }
@@ -237,7 +225,7 @@ public final class MqttFunctions
             String value)
         {
             dataExRW.propertiesItem(p -> p.key(name)
-                                          .value(value));
+                .value(value));
             return this;
         }
 
@@ -267,15 +255,15 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttFlushExBuilder flags(
+        public MqttFlushExBuilder filter(
+            String topic,
+            int id,
             String... flags)
         {
-            int subscribeFlags = 0;
-            for (int i = 0; i < flags.length; i++)
-            {
-                subscribeFlags |= 1 << MqttSubscribeFlags.valueOf(flags[i]).ordinal();
-            }
-            flushExRW.flags(subscribeFlags);
+            int flagsLocal = Arrays.stream(flags)
+                .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            flushExRW.filtersItem(f -> f.topic(topic).subscriptionId(id).flags(flagsLocal));
             return this;
         }
 
