@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.json");
+        JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -44,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClient()
     {
-        JsonObject config = schema.validate("client.json");
+        JsonObject config = schema.validate("client.yaml");
 
         assertThat(config, not(nullValue()));
     }
