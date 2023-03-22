@@ -16,7 +16,7 @@
 ---
 name: test
 bindings:
-  app0:
-    type: grpc
-    kind: client
-    exit: net0
+app0:
+type: grpc
+kind: client
+exit: net0

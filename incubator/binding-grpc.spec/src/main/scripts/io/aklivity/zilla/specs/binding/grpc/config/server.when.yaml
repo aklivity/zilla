@@ -25,6 +25,15 @@ bindings:
     routes:
       - exit: app0
         when:
-          - method: example.EchoService/*
+          - method: example.EchoService/EchoUnary
+            metadata:
+              custom: test
+          - method: example.EchoService/EchoClientStream
+            metadata:
+              custom: test
+          - method: example.EchoService/EchoServerStream
+            metadata:
+              custom: test
+          - method: example.EchoService/EchoStream
             metadata:
               custom: test

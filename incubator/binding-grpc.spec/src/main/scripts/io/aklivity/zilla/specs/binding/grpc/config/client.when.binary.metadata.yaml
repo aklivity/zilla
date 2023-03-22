@@ -25,6 +25,15 @@ bindings:
     routes:
       - exit: net0
         when:
-          - method: example.EchoService/*
+          - method: example.EchoService/EchoUnary
+            metadata:
+              base64: dGVzdA==
+          - method: example.EchoService/EchoClientStream
+            metadata:
+              base64: dGVzdA==
+          - method: example.EchoService/EchoServerStream
+            metadata:
+              base64: dGVzdA==
+          - method: example.EchoService/EchoStream
             metadata:
               base64: dGVzdA==
