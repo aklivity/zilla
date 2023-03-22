@@ -18,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -86,8 +87,8 @@ public class GrpcOptionsConfigAdapterTest
         assertEquals("protobuf/echo.proto", protobuf.location);
         assertEquals("example.EchoService", service.service);
         assertEquals("EchoUnary", method.method);
-        assertTrue(GrpcKind.UNARY == method.request);
-        assertTrue(GrpcKind.UNARY == method.response);
+        assertSame(GrpcKind.UNARY, method.request);
+        assertSame(GrpcKind.UNARY, method.response);
     }
 
     @Test
