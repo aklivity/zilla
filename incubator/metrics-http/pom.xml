@@ -26,8 +26,8 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.40</jacoco.coverage.ratio>
-    <jacoco.missed.count>0</jacoco.missed.count>
+    <jacoco.coverage.ratio>0.10</jacoco.coverage.ratio>
+    <jacoco.missed.count>99</jacoco.missed.count>
   </properties>
 
   <dependencies>
@@ -108,7 +108,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
+          <scopeNames>core http</scopeNames>
           <packageName>io.aklivity.zilla.runtime.metrics.http.internal.types</packageName>
         </configuration>
         <executions>

@@ -47,8 +47,8 @@ public class HttpResponseSizeMetric implements Metric
         // TODO: Ati
         return recorder -> (msgTypeId, buffer, index, length) ->
         {
-            System.out.format("%s %d %d %d %d\n", NAME, context.index(), msgTypeId, index, length);
-            recorder.accept(2L);
+            //System.out.format("%s %d %d %d %d\n", NAME, context.index(), msgTypeId, index, length);
+            //recorder.accept(2L);
         };
     }
 }

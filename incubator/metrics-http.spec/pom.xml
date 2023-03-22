@@ -42,6 +42,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-http.spec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -78,7 +83,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
+          <scopeNames>core http</scopeNames>
           <packageName>io.aklivity.zilla.specs.metrics.http.internal.types</packageName>
         </configuration>
         <executions>
