@@ -76,6 +76,30 @@ public final class GrpcKafkaWithResolver
 
         GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(hashBytesRW);
 
+        List<GrpcKafkaWithProduceOverrideResult> overrides = null;
+        if (with.overrides.isPresent())
+        {
+            overrides = new ArrayList<>();
+
+            for (GrpcKafkaWithProduceOverrideConfig override : with.overrides.get())
+            {
+                String name0 = override.name;
+                DirectBuffer name = new String16FW(name0).value();
+
+                String value0 = override.value;
+                Matcher valueMatcher = identityMatcher.reset(value0);
+                if (identityMatcher.matches())
+                {
+                    value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                }
+
+                String value = value0;
+                Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
+
+                overrides.add(new GrpcKafkaWithProduceOverrideResult(name, valueRef, hash::updateHash));
+            }
+        }
+
         String16FW replyTo = new String16FW(with.replyTo);
 
         List<GrpcKafkaWithFetchFilterResult> filters = null;
@@ -126,6 +150,6 @@ public final class GrpcKafkaWithResolver
         }
         GrpcKafkaCorrelationConfig grpcKafkaCorrelationConfig = new GrpcKafkaCorrelationConfig(replyTo, filters);
 
-        return new GrpcKafkaWithResult(topic, acks, keyRef, hash, grpcKafkaCorrelationConfig);
+        return new GrpcKafkaWithResult(topic, acks, keyRef, overrides, hash, grpcKafkaCorrelationConfig);
     }
 }

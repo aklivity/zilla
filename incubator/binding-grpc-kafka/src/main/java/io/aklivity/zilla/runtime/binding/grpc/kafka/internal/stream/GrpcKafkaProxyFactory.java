@@ -987,7 +987,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                         .deferred(deferred)
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                        .key(producer.resolved::key))
+                        .key(producer.resolved::key)
+                        .headers(producer.resolved::headers))
                     .build();
             }
 
@@ -1130,7 +1131,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization, OctetsFW extension)
         {
-            // nop
+            if (!GrpcKafkaState.replyOpening(state))
+            {
+                doGrpcBegin(traceId, authorization, 0L, emptyRO);
+            }
         }
 
         @Override
@@ -1151,23 +1155,12 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             }
             else
             {
-                if ((flags & 0x02) != 0x00) // INIT
-                {
-                    Flyweight grpcBeginEx = emptyRO;
-
-                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
-                    final KafkaDataExFW kafkaDataEx =
-                            dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-
-                    doGrpcBegin(traceId, authorization, 0L, grpcBeginEx);
-                }
-
                 if (GrpcKafkaState.replyOpening(state) && payload != null)
                 {
                     doGrpcData(traceId, authorization, budgetId, reserved, flags, payload);
                 }
 
-                if ((flags & 0x01) != 0x00) // FIN
+                if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
                     correlater.doKafkaEnd(traceId, authorization);
                     state = GrpcKafkaState.closingReply(state);
@@ -1182,11 +1175,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         {
             if (GrpcKafkaState.replyClosed(correlater.state))
             {
-                if (!GrpcKafkaState.replyOpening(state))
-                {
-                    doGrpcBegin(traceId, authorization, 0L, emptyRO);
-                }
-
                 if (GrpcKafkaState.initialClosed(state))
                 {
                     producer.doKafkaEnd(traceId, authorization);

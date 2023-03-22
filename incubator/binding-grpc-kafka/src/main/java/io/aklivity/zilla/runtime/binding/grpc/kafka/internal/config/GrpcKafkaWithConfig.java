@@ -26,6 +26,7 @@ public final class GrpcKafkaWithConfig extends WithConfig
     public final String topic;
     public final KafkaAckMode acks;
     public final Optional<String> key;
+    public final Optional<List<GrpcKafkaWithProduceOverrideConfig>> overrides;
     public final String replyTo;
     public final Optional<List<GrpcKafkaWithFetchFilterConfig>> filters;
 
@@ -34,11 +35,13 @@ public final class GrpcKafkaWithConfig extends WithConfig
         String topic,
         KafkaAckMode acks,
         String key,
+        List<GrpcKafkaWithProduceOverrideConfig> overrides,
         String replyTo,
         List<GrpcKafkaWithFetchFilterConfig> filters)
     {
         this.topic = topic;
         this.acks = acks;
+        this.overrides = Optional.ofNullable(overrides);
         this.key = Optional.ofNullable(key);
         this.replyTo = replyTo;
         this.filters = Optional.ofNullable(filters);

@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
@@ -22,14 +23,16 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckModeFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
-
 public class GrpcKafkaWithResult
 {
+
+
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
             .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
@@ -37,6 +40,7 @@ public class GrpcKafkaWithResult
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();
 
+    private List<GrpcKafkaWithProduceOverrideResult> overrides;
     private GrpcKafkaCorrelationConfig correlation;
     private final String16FW topic;
     private KafkaAckMode acks;
@@ -48,9 +52,11 @@ public class GrpcKafkaWithResult
         String16FW topic,
         KafkaAckMode acks,
         Supplier<DirectBuffer> keyRef,
+        List<GrpcKafkaWithProduceOverrideResult> overrides,
         GrpcKafkaWithProduceHash hash,
         GrpcKafkaCorrelationConfig correlation)
     {
+        this.overrides = overrides;
         this.correlation = correlation;
         this.topic = topic;
         this.acks = acks;
@@ -98,6 +104,16 @@ public class GrpcKafkaWithResult
                 .value(key, 0, key.capacity());
 
             hash.updateHash(key);
+        }
+    }
+
+    public void headers(
+        Array32FW.Builder<KafkaHeaderFW.Builder,
+            KafkaHeaderFW> builder)
+    {
+        if (overrides != null)
+        {
+            overrides.forEach(o -> builder.item(o::header));
         }
     }
 

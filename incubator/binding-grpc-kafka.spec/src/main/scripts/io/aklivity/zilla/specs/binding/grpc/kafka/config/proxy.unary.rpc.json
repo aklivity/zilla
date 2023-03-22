@@ -41,6 +41,10 @@
             "topic": "items",
             "acks": "leader_only",
             "key": "test",
+            "overrides":
+            {
+              "zilla:identity": "${guarded['test0'].identity}"
+            },
             "reply-to": "items-replies",
             "filters":
             [

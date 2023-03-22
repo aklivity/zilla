@@ -36,6 +36,7 @@ public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, J
     private static final String TOPIC_NAME = "topic";
     private static final String ACKS_NAME = "acks";
     private static final String KEY_NAME = "key";
+    private static final String OVERRIDES_NAME = "overrides";
     private static final String REPLY_TO_NAME = "reply-to";
     private static final String FILTERS_NAME = "filters";
     private static final String FILTERS_KEY_NAME = "key";
@@ -115,6 +116,20 @@ public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, J
             ? object.getString(KEY_NAME)
             : null;
 
+        List<GrpcKafkaWithProduceOverrideConfig> newOverrides = null;
+        if (object.containsKey(OVERRIDES_NAME))
+        {
+            JsonObject overrides = object.getJsonObject(OVERRIDES_NAME);
+            newOverrides = new ArrayList<>();
+
+            for (String name : overrides.keySet())
+            {
+                String value = overrides.getString(name);
+
+                newOverrides.add(new GrpcKafkaWithProduceOverrideConfig(name, value));
+            }
+        }
+
         String newReplyTo = object.getString(REPLY_TO_NAME);
 
         List<GrpcKafkaWithFetchFilterConfig> newFilters = null;
@@ -150,6 +165,6 @@ public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, J
             }
         }
 
-        return new GrpcKafkaWithConfig(newTopic, newProduceAcks, newProduceKey, newReplyTo, newFilters);
+        return new GrpcKafkaWithConfig(newTopic, newProduceAcks, newProduceKey, newOverrides, newReplyTo, newFilters);
     }
 }
