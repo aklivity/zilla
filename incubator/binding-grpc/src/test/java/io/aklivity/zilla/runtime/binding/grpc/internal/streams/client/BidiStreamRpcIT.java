@@ -51,7 +51,7 @@ public class BidiStreamRpcIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.yaml")
+    @Configuration("client.when.json")
     @Specification({
         "${app}/message.exchange/client",
         "${net}/message.exchange/server"
