@@ -20,8 +20,8 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public abstract class WatcherTask implements Callable<Void>, Closeable
 {
     private final MessageDigest md5;
-
     protected final ScheduledExecutorService executor;
+
     protected final BiFunction<URL, String, NamespaceConfig> changeListener;
 
     protected WatcherTask(
@@ -33,6 +33,9 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
     }
 
     public abstract Future<Void> submit();
+
+    public abstract String readURL(
+        String configURL);
 
     public abstract CompletableFuture<NamespaceConfig> watch(
         URL configURL);

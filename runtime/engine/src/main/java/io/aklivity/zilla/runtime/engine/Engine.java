@@ -15,21 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine;
 
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -45,7 +35,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
@@ -172,8 +161,7 @@ public final class Engine implements AutoCloseable
         String protocol = rootConfigURL.getProtocol();
         if ("file".equals(protocol) || "jar".equals(protocol))
         {
-            Function<String, String> watcherReadURL = l -> readURL(rootConfigURL, l);
-            this.watcherTask = new FileWatcherTask(watcherReadURL, this::reconfigure);
+            this.watcherTask = new FileWatcherTask(this::reconfigure);
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
@@ -184,8 +172,9 @@ public final class Engine implements AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, dispatchers, logger, context, config, extensions, this::readURL);
+        this.configurationManager = new ConfigurationManager(rootConfigURL, schemaTypes, guardsByType::get,
+            labels::supplyLabelId, maxWorkers, tuning, dispatchers, logger, context, config, extensions,
+            watcherTask::readURL, watcherTask::watch);
 
         this.namespaces = new HashMap<>();
 
@@ -279,7 +268,7 @@ public final class Engine implements AutoCloseable
         URL configURL,
         String configText)
     {
-        NamespaceConfig newNamespace = configurationManager.parse(configURL, configText);
+        NamespaceConfig newNamespace = configurationManager.parse(configText);
         if (newNamespace != null)
         {
             NamespaceConfig oldNamespace = namespaces.get(configURL);
@@ -293,49 +282,6 @@ public final class Engine implements AutoCloseable
     public static EngineBuilder builder()
     {
         return new EngineBuilder();
-    }
-
-    private String readURL(
-        URL configURL,
-        String location)
-    {
-        String output = null;
-        try
-        {
-            final URL fileURL = new URL(configURL, location);
-            if ("http".equals(fileURL.getProtocol()) || "https".equals(fileURL.getProtocol()))
-            {
-                HttpClient client = HttpClient.newBuilder()
-                    .version(HTTP_2)
-                    .followRedirects(NORMAL)
-                    .build();
-
-                HttpRequest request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(fileURL.toURI())
-                    .build();
-
-                HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
-
-                output = response.body();
-            }
-            else
-            {
-
-                URLConnection connection = fileURL.openConnection();
-                try (InputStream input = connection.getInputStream())
-                {
-                    output = new String(input.readAllBytes(), UTF_8);
-                }
-            }
-        }
-        catch (IOException | URISyntaxException | InterruptedException ex)
-        {
-            output = "";
-        }
-        return output;
     }
 
     private Thread newTaskThread(

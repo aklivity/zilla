@@ -72,13 +72,39 @@ public class HttpWatcherTask extends WatcherTask
     public CompletableFuture<NamespaceConfig> watch(
         URL configURL)
     {
-        URI configURI = toURI(configURL);
+        URI configURI = toURI(configURL.toString());
         NamespaceConfig config = sendSync(configURI);
         if (config == null)
         {
             return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
         }
         return CompletableFuture.completedFuture(config);
+    }
+
+    @Override
+    public String readURL(
+        String configURL)
+    {
+        String output = "";
+        HttpClient client = HttpClient.newBuilder()
+            .version(HTTP_2)
+            .followRedirects(NORMAL)
+            .build();
+        HttpRequest request = HttpRequest.newBuilder()
+            .GET()
+            .uri(toURI(configURL))
+            .build();
+
+        try
+        {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            output = response.body();
+        }
+        catch (Exception ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return output;
     }
 
     @Override
@@ -213,12 +239,12 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     private URI toURI(
-        URL configURL)
+        String configLocation)
     {
         URI configURI = null;
         try
         {
-            configURI = configURL.toURI();
+            configURI = new URI(configLocation);
         }
         catch (URISyntaxException ex)
         {
