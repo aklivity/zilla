@@ -19,8 +19,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 
-
-public class GrpcMethodResolver
+public class GrpcMethodResult
 {
     public final CharSequence service;
     public final CharSequence method;
@@ -33,7 +32,7 @@ public class GrpcMethodResolver
     public final GrpcKind response;
     public final Array32FW<GrpcMetadataFW> metadata;
 
-    public GrpcMethodResolver(
+    public GrpcMethodResult(
         CharSequence service,
         CharSequence method,
         long grpcTimeout,

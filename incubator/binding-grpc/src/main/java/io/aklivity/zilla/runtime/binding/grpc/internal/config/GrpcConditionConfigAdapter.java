@@ -94,19 +94,28 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
             metadata.forEach((k, v) ->
             {
                 final String8FW key = new String8FW(k);
-                final JsonObject value = getJsonObject(v);
-
                 String textValue = null;
                 String base64Value = null;
+                JsonValue.ValueType valueType = v.getValueType();
 
-                if (value != null && value.containsKey(BASE64_NAME))
+                switch (valueType)
                 {
-                    base64Value = value.getString(BASE64_NAME);
-                }
-                else
-                {
-                    textValue = JsonString.class.cast(v).getString();
+                case OBJECT:
+                    if (v.asJsonObject().containsKey(BASE64_NAME))
+                    {
+                        base64Value = v.asJsonObject().getString(BASE64_NAME);
+                    }
+                    else
+                    {
+                        throw new IllegalArgumentException("Unexpected metadata type: " + v.asJsonObject());
+                    }
+                    break;
+                case STRING:
+                    textValue = ((JsonString) v).getString();
                     base64Value = encoder64.encodeToString(textValue.getBytes());
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unexpected type: " + valueType);
                 }
 
                 GrpcMetadataValue metadataValue =  new GrpcMetadataValue(new String16FW(textValue),
@@ -117,19 +126,4 @@ public final class GrpcConditionConfigAdapter implements ConditionConfigAdapterS
 
         return new GrpcConditionConfig(method, newMetadata);
     }
-
-    private static JsonObject getJsonObject(
-        JsonValue v)
-    {
-        JsonObject value = null;
-        try
-        {
-            value = JsonObject.class.cast(v);
-        }
-        catch (ClassCastException ex)
-        {
-        }
-        return value;
-    }
-
 }

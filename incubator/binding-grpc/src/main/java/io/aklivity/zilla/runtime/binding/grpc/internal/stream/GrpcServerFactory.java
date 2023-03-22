@@ -34,7 +34,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcBinding;
 import io.aklivity.zilla.runtime.binding.grpc.internal.GrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcBindingConfig;
-import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcMethodResolver;
+import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcMethodResult;
 import io.aklivity.zilla.runtime.binding.grpc.internal.config.GrpcRouteConfig;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Flyweight;
@@ -286,7 +286,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         {
             final GrpcBindingConfig binding = bindings.get(routeId);
 
-            final GrpcMethodResolver method = binding != null ? binding.resolveMethod(httpBeginEx) : null;
+            final GrpcMethodResult method = binding != null ? binding.resolveMethod(httpBeginEx) : null;
             final ContentType contentType = method != null ? asContentType(method.contentType) : null;
 
             if (method == null)
@@ -317,7 +317,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         final BeginFW begin,
         final MessageConsumer network,
         final ContentType contentType,
-        final GrpcMethodResolver method)
+        final GrpcMethodResult method)
     {
         final long routeId = begin.routeId();
         final long initialId = begin.streamId();
@@ -366,7 +366,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         private final MessageConsumer network;
         private final GrpcStream delegate;
         private final ContentType contentType;
-        private final GrpcMethodResolver method;
+        private final GrpcMethodResult method;
         private final long routeId;
         private final long initialId;
         private final long replyId;
@@ -391,7 +391,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             long affinity,
             long resolveId,
             ContentType contentType,
-            GrpcMethodResolver method)
+            GrpcMethodResult method)
         {
             this.network = network;
             this.routeId = routeId;
@@ -1398,7 +1398,7 @@ public final class GrpcServerFactory implements GrpcStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        GrpcMethodResolver method)
+        GrpcMethodResult method)
     {
         final GrpcBeginExFW grpcBegin = grpcBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
             .typeId(grpcTypeId)

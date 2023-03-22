@@ -28,7 +28,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class BidirectionalStreamRpcIT
+public class BidiStreamRpcIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net",

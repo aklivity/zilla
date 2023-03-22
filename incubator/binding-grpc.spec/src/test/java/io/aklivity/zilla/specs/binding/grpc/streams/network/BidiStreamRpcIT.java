@@ -26,7 +26,7 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
 
-public class BidirectionalStreamRpcIT
+public class BidiStreamRpcIT
 {
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net",
@@ -42,7 +42,7 @@ public class BidirectionalStreamRpcIT
         "${net}/message.exchange/client",
         "${net}/message.exchange/server",
     })
-    public void shouldEstablishBidirectionalRpc() throws Exception
+    public void shouldEstablishBidiStreamRpc() throws Exception
     {
         k3po.finish();
     }

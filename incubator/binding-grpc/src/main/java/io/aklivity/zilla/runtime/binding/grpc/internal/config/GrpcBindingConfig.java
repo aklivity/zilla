@@ -90,7 +90,7 @@ public final class GrpcBindingConfig
             .orElse(null);
     }
 
-    public GrpcMethodResolver resolveMethod(
+    public GrpcMethodResult resolveMethod(
         HttpBeginExFW beginEx)
     {
         helper.visit(beginEx);
@@ -98,7 +98,7 @@ public final class GrpcBindingConfig
         final CharSequence path = helper.path;
         final CharSequence serviceNameHeader = helper.serviceName;
 
-        GrpcMethodResolver methodResolver = null;
+        GrpcMethodResult methodResolver = null;
 
         final Matcher matcher = METHOD_PATTERN.matcher(path);
 
@@ -117,7 +117,7 @@ public final class GrpcBindingConfig
 
             if (method != null)
             {
-                methodResolver = new GrpcMethodResolver(
+                methodResolver = new GrpcMethodResult(
                     serviceName,
                     methodName,
                     helper.grpcTimeout,

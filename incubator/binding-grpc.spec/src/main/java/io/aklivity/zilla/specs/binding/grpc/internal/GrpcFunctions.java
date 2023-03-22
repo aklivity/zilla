@@ -81,7 +81,6 @@ public final class GrpcFunctions
         return new GrpcAbortExBuilder();
     }
 
-
     public static final class GrpcBeginExBuilder
     {
         private final GrpcBeginExFW.Builder beginExRW;

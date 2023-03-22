@@ -12,7 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.specs.binding.grpc.streams.application;
+package io.aklivity.zilla.runtime.binding.grpc.internal.streams.client;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -25,23 +25,38 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class BidirectionalStreamRpcIT
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+
+public class BidiStreamRpcIT
 {
     private final K3poRule k3po = new K3poRule()
+        .addScriptRoot("net",
+            "io/aklivity/zilla/specs/binding/grpc/streams/network/bidirectional.stream.rpc")
         .addScriptRoot("app",
             "io/aklivity/zilla/specs/binding/grpc/streams/application/bidirectional.stream.rpc");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
+    private final EngineRule engine = new EngineRule()
+        .directory("target/zilla-itests")
+        .commandBufferCapacity(1024)
+        .responseBufferCapacity(1024)
+        .counterValuesBufferCapacity(4096)
+        .configurationRoot("io/aklivity/zilla/specs/binding/grpc/config")
+        .external("net0")
+        .clean();
+
     @Rule
-    public final TestRule chain = outerRule(k3po).around(timeout);
+    public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
+    @Configuration("client.when.json")
     @Specification({
         "${app}/message.exchange/client",
-        "${app}/message.exchange/server",
+        "${net}/message.exchange/server"
     })
-    public void shouldEstablishBidirectionalRpc() throws Exception
+    public void shouldEstablishBidiStreamRpc() throws Exception
     {
         k3po.finish();
     }
