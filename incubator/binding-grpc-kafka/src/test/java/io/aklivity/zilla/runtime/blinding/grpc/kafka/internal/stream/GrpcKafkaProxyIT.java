@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.blinding.grpc.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -42,6 +43,7 @@ public class GrpcKafkaProxyIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
+        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/kafka/config")
         .external("kafka0")
@@ -56,6 +58,16 @@ public class GrpcKafkaProxyIT
         "${grpc}/unary.rpc/message.exchange/client",
         "${kafka}/unary.rpc/message.exchange/server"})
     public void shouldExchangeMessageWithUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.client.stream.rpc.json")
+    @Specification({
+        "${grpc}/client.stream.rpc/message.exchange/client",
+        "${kafka}/client.stream.rpc/message.exchange/server"})
+    public void shouldExchangeMessageWithClientRpc() throws Exception
     {
         k3po.finish();
     }

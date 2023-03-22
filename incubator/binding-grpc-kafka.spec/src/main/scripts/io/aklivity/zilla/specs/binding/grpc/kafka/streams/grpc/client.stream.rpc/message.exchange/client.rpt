@@ -39,11 +39,10 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
+write close
 
 read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
-
-write close
 
 read closed
