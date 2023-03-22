@@ -53,7 +53,7 @@ public class GrpcKafkaProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.unary.rpc.json")
+    @Configuration("proxy.rpc.json")
     @Specification({
         "${grpc}/unary.rpc/message.exchange/client",
         "${kafka}/unary.rpc/message.exchange/server"})
@@ -63,11 +63,31 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.client.stream.rpc.json")
+    @Configuration("proxy.rpc.json")
     @Specification({
         "${grpc}/client.stream.rpc/message.exchange/client",
         "${kafka}/client.stream.rpc/message.exchange/server"})
-    public void shouldExchangeMessageWithClientRpc() throws Exception
+    public void shouldExchangeMessageWithClientStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.rpc.json")
+    @Specification({
+        "${grpc}/server.stream.rpc/message.exchange/client",
+        "${kafka}/server.stream.rpc/message.exchange/server"})
+    public void shouldExchangeMessageWithServerStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.rpc.json")
+    @Specification({
+        "${grpc}/bidi.stream.rpc/message.exchange/client",
+        "${kafka}/bidi.stream.rpc/message.exchange/server"})
+    public void shouldExchangeMessageWithBidiStreamRpc() throws Exception
     {
         k3po.finish();
     }

@@ -29,7 +29,31 @@
           [
             {
               "service": "example.EchoService",
+              "method": "EchoUnary",
+              "metadata":
+              {
+                "custom": "test"
+              }
+            },
+            {
+              "service": "example.EchoService",
               "method": "EchoClientStream",
+              "metadata":
+              {
+                "custom": "test"
+              }
+            },
+            {
+              "service": "example.EchoService",
+              "method": "EchoServerStream",
+              "metadata":
+              {
+                "custom": "test"
+              }
+            },
+            {
+              "service": "example.EchoService",
+              "method": "EchoStream",
               "metadata":
               {
                 "custom": "test"
