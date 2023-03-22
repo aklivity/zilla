@@ -172,8 +172,8 @@ public final class Engine implements AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, dispatchers, logger, context, config, extensions, watcherTask::readURL, watcherTask::watch);
+        this.configurationManager = new ConfigurationManager(rootConfigURL, schemaTypes, guardsByType::get,
+            labels::supplyLabelId, maxWorkers, tuning, dispatchers, logger, context, config, extensions);
 
         this.namespaces = new HashMap<>();
 
