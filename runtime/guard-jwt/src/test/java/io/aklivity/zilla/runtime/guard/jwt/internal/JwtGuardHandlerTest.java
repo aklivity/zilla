@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.net.URL;
 import java.security.KeyPair;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,7 +40,7 @@ import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 public class JwtGuardHandlerTest
 {
-    private static final Function<URL, String> READ_KEYS_URL = url -> "{}";
+    private static final Function<String, String> READ_KEYS_URL = url -> "{}";
 
     @Test
     public void shouldAuthorize() throws Exception
@@ -49,6 +48,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
 
