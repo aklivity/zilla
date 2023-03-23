@@ -60,6 +60,12 @@ public class StreamErrorsReceivedMetric implements Metric
         private final FrameFW frameRO = new FrameFW();
 
         @Override
+        public Metric metric()
+        {
+            return StreamErrorsReceivedMetric.this;
+        }
+
+        @Override
         public MetricHandler supply(
             LongConsumer recorder)
         {

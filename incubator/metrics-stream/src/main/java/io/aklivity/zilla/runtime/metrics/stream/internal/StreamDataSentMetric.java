@@ -58,6 +58,12 @@ public class StreamDataSentMetric implements Metric
         private final DataFW dataRO = new DataFW();
 
         @Override
+        public Metric metric()
+        {
+            return StreamDataSentMetric.this;
+        }
+
+        @Override
         public MetricHandler supply(
             LongConsumer recorder)
         {

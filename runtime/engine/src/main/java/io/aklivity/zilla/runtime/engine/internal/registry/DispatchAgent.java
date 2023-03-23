@@ -25,6 +25,9 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIn
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -63,6 +66,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
+import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
@@ -100,6 +104,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.LoadLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadManager;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
@@ -121,6 +126,7 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -155,6 +161,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
     private final LoadLayout loadLayout;
+    private final Object2ObjectHashMap<Metric.Kind, LongLongFunction<LongConsumer>> metricWriterSuppliers;
     private final MetricsLayout metricsLayout;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
@@ -241,6 +248,16 @@ public class DispatchAgent implements EngineContext, Agent
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .build();
+
+        final HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
+                .capacity(config.counterBufferCapacity())
+                .build();
+
+        metricWriterSuppliers = new Object2ObjectHashMap<>();
+        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
+        metricWriterSuppliers.put(GAUGE, (b, m) -> v -> {}); // no op for now
+        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
@@ -351,7 +368,7 @@ public class DispatchAgent implements EngineContext, Agent
 
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
-                labels::supplyLabelId, supplyLoadEntry::apply, countersLayout::supplyWriter, this::detachStreams);
+                labels::supplyLabelId, supplyLoadEntry::apply, this::supplyMetricWriter, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
@@ -1506,6 +1523,14 @@ public class DispatchAgent implements EngineContext, Agent
         int index)
     {
         return targetsByIndex.computeIfAbsent(index, newTarget);
+    }
+
+    private LongConsumer supplyMetricWriter(
+        Metric.Kind kind,
+        long bindingId,
+        long metricId)
+    {
+        return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
     }
 
     // Each binding has a list of metrics configured and the BindingRegistry has the chained up MetricHandler that takes

@@ -14,9 +14,12 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
+import java.util.function.LongConsumer;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
+import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class HttpResponseSizeMetric implements Metric
 {
@@ -44,11 +47,24 @@ public class HttpResponseSizeMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        // TODO: Ati
-        return recorder -> (msgTypeId, buffer, index, length) ->
+        return new HttpResponseSizeMetricContext();
+    }
+
+    private final class HttpResponseSizeMetricContext implements MetricContext
+    {
+        @Override
+        public Metric metric()
         {
-            //System.out.format("%s %d %d %d %d\n", NAME, context.index(), msgTypeId, index, length);
-            //recorder.accept(2L);
-        };
+            return HttpResponseSizeMetric.this;
+        }
+
+        @Override
+        public MetricHandler supply(
+            LongConsumer recorder)
+        {
+            // TODO: Ati
+            return (msgTypeId, buffer, index, length) -> {};
+        }
+
     }
 }

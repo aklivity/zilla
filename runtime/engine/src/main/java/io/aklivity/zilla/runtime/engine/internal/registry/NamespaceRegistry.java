@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
-import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.KindLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -50,7 +50,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
-    private final LongLongFunction<LongConsumer> supplyMetricRecorder;
+    private final KindLongLongFunction<LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
 
     public NamespaceRegistry(
@@ -62,7 +62,7 @@ public class NamespaceRegistry
         ToIntFunction<String> supplyLabelId,
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer supplyLoadEntry,
-        LongLongFunction<LongConsumer> supplyMetricRecorder,
+        KindLongLongFunction<LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding)
     {
         this.namespace = namespace;
@@ -119,7 +119,7 @@ public class NamespaceRegistry
         for (long metricId : config.metricIds)
         {
             MetricRegistry metric = supplyMetric.apply(metricId);
-            LongConsumer metricRecorder = supplyMetricRecorder.apply(config.id, metricId);
+            LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
             handler = handler.andThen(metric.supplyHandler(metricRecorder)); // chain the MetricHandler's for this binding
         }
         BindingRegistry registry = new BindingRegistry(config, context, handler);

@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.LongConsumer;
 
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
@@ -21,5 +22,10 @@ public class MetricRegistry
         LongConsumer recorder)
     {
         return context.supply(recorder);
+    }
+
+    public Metric.Kind kind()
+    {
+        return context.metric().kind();
     }
 }

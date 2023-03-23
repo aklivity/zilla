@@ -72,8 +72,14 @@ public class HttpRequestSizeMetric implements Metric
         private final EndFW endRO = new EndFW();
 
         @Override
+        public Metric metric()
+        {
+            return HttpRequestSizeMetric.this;
+        }
+
+        @Override
         public MetricHandler supply(
-                LongConsumer recorder)
+            LongConsumer recorder)
         {
             return (t, b, i, l) -> handle(recorder, t, b, i, l);
         }

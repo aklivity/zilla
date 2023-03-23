@@ -4,6 +4,11 @@ import java.util.function.LongConsumer;
 
 public interface MetricContext
 {
+    default Metric metric()
+    {
+        return new TestCounterMetric();
+    }
+
     MetricHandler supply(
         LongConsumer recorder);
 }

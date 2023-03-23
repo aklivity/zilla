@@ -59,6 +59,12 @@ public class StreamClosesSentMetric implements Metric
         private final FrameFW frameRO = new FrameFW();
 
         @Override
+        public Metric metric()
+        {
+            return StreamClosesSentMetric.this;
+        }
+
+        @Override
         public MetricHandler supply(
             LongConsumer recorder)
         {
