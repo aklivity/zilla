@@ -48,6 +48,7 @@ public class JwtGuardHandlerTest
         Duration challenge = ofSeconds(3L);
         JwtOptionsConfig options =
                 new JwtOptionsConfig("test issuer", "testAudience", singletonList(RFC7515_RS256_CONFIG), challenge);
+        JwtGuardHandler guard = new JwtGuardHandler(options, new MutableLong(1L)::getAndIncrement, READ_KEYS_URL);
 
         Instant now = Instant.now();
 
