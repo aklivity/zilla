@@ -231,6 +231,14 @@ public final class LoggableStream implements AutoCloseable
             endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
         }
 
+        if (hasExtensionType.test("grpc"))
+        {
+            beginHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcBeginEx);
+            dataHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcDataEx);
+            abortHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcAbortEx);
+            resetHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcResetEx);
+        }
+
         if (hasExtensionType.test("sse"))
         {
             dataHandlers.put(labels.lookupLabelId("sse"), this::onSseDataEx);
@@ -768,6 +776,67 @@ public final class LoggableStream implements AutoCloseable
         httpEndEx.trailers()
                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                          format("%s: %s", h.name().asString(), h.value().asString())));
+    }
+
+    private void onGrpcBeginEx(
+        final BeginFW begin)
+    {
+        final int offset = begin.offset() - HEADER_LENGTH;
+        final long timestamp = begin.timestamp();
+        final OctetsFW extension = begin.extension();
+
+        final GrpcBeginExFW grpcBeginEx = grpcBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("scheme: %s", grpcBeginEx.scheme().asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("authority: %s", grpcBeginEx.authority().asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("service: %s", grpcBeginEx.service().asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("method: %s", grpcBeginEx.method().asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("request: %s", grpcBeginEx.request().get()));
+        out.printf(verboseFormat, index, offset, timestamp, format("response: %s", grpcBeginEx.response().get()));
+
+        grpcBeginEx.metadata().forEach(m ->
+        {
+            OctetsFW metadataName = m.name();
+            OctetsFW metadataValue = m.value();
+            final String formattedMetadataName = metadataName.buffer().getStringWithoutLengthUtf8(
+                metadataName.offset(), metadataName.sizeof());
+            final String formattedMetadataValue = metadataValue.buffer().getStringWithoutLengthUtf8(
+                metadataValue.offset(), metadataValue.sizeof());
+            out.printf(verboseFormat, index, offset, timestamp,
+                format("%s: %s", formattedMetadataName, formattedMetadataValue));
+        });
+    }
+
+    private void onGrpcDataEx(
+        final DataFW data)
+    {
+        final int offset = data.offset() - HEADER_LENGTH;
+        final long timestamp = data.timestamp();
+        final OctetsFW extension = data.extension();
+
+        final GrpcDataExFW grpcDataEx = grpcDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", grpcDataEx.deferred()));
+    }
+
+    private void onGrpcAbortEx(
+        final AbortFW abort)
+    {
+        final int offset = abort.offset() - HEADER_LENGTH;
+        final long timestamp = abort.timestamp();
+        final OctetsFW extension = abort.extension();
+
+        final GrpcAbortExFW grpcAbortEx = grpcAbortExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("status: %s", grpcAbortEx.status().asString()));
+    }
+
+    private void onGrpcResetEx(
+        final ResetFW reset)
+    {
+        final int offset = reset.offset() - HEADER_LENGTH;
+        final long timestamp = reset.timestamp();
+        final OctetsFW extension = reset.extension();
+
+        final GrpcResetExFW grpcResetEx = grpcResetExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("status: %s", grpcResetEx.status().asString()));
     }
 
     private void onSseDataEx(
