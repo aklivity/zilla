@@ -17,12 +17,13 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
 
+import java.net.URL;
 import java.util.function.Function;
 
 public class GuardConfig
 {
     public transient long id;
-    public transient Function<String, String> readURL;
+    public transient Function<URL, String> readURL;
 
     public final String name;
     public final String type;

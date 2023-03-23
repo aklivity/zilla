@@ -49,7 +49,7 @@ public class UnaryRpcIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/message.exchange/client",
         "${net}/message.exchange/server"
@@ -60,7 +60,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("client.when.binary.metadata.json")
+    @Configuration("client.when.binary.metadata.yaml")
     @Specification({
         "${app}/binary.metadata/client",
         "${net}/binary.metadata/server",
@@ -71,7 +71,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/server.send.read.abort.on.open.request/client",
         "${net}/server.send.read.abort.on.open.request/server"
@@ -82,7 +82,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/server.send.read.abort.on.open.request/client",
         "${net}/server.send.read.abort.on.open.request/server"
@@ -93,7 +93,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/server.send.write.abort.on.open.response/client",
         "${net}/server.send.write.abort.on.open.response/server"
@@ -104,7 +104,7 @@ public class UnaryRpcIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/server.send.write.abort.on.open.request.response/client",
         "${net}/server.send.write.abort.on.open.request.response/server"

@@ -49,7 +49,7 @@ public class ServerStreamRpcIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/message.exchange/client",
         "${app}/message.exchange/server"

@@ -72,31 +72,41 @@ public class HttpWatcherTask extends WatcherTask
     public CompletableFuture<NamespaceConfig> watch(
         URL configURL)
     {
-        URI configURI = toURI(configURL.toString());
-        NamespaceConfig config = sendSync(configURI);
-        if (config == null)
+        NamespaceConfig config = null;
+        try
         {
-            return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
+            URI configURI = configURL.toURI();
+            config = sendSync(configURI);
+            if (config == null)
+            {
+                return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
+            }
         }
+        catch (URISyntaxException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+
         return CompletableFuture.completedFuture(config);
     }
 
     @Override
     public String readURL(
-        String configURL)
+        URL configURL)
     {
         String output = "";
-        HttpClient client = HttpClient.newBuilder()
-            .version(HTTP_2)
-            .followRedirects(NORMAL)
-            .build();
-        HttpRequest request = HttpRequest.newBuilder()
-            .GET()
-            .uri(toURI(configURL))
-            .build();
 
         try
         {
+            HttpClient client = HttpClient.newBuilder()
+                .version(HTTP_2)
+                .followRedirects(NORMAL)
+                .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                .GET()
+                .uri(configURL.toURI())
+                .build();
+
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             output = response.body();
         }
@@ -236,20 +246,5 @@ public class HttpWatcherTask extends WatcherTask
         {
             executor.schedule(() -> configQueue.add(configURI), pollIntervalSeconds, TimeUnit.SECONDS);
         }
-    }
-
-    private URI toURI(
-        String configLocation)
-    {
-        URI configURI = null;
-        try
-        {
-            configURI = new URI(configLocation);
-        }
-        catch (URISyntaxException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return configURI;
     }
 }

@@ -48,7 +48,7 @@ public class RejectedRpcIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/method.not.post/client"
     })
@@ -58,7 +58,7 @@ public class RejectedRpcIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/unrecognized.rpc/client"
     })
@@ -68,7 +68,7 @@ public class RejectedRpcIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/unsupported.content.type/client"
     })
@@ -78,7 +78,7 @@ public class RejectedRpcIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/missing.te.trailers/client",
     })
