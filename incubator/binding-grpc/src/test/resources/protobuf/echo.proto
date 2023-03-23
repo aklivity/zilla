@@ -23,12 +23,6 @@ option java_outer_classname = "EchoProto";
 service EchoService
 {
   rpc EchoUnary(EchoMessage) returns (EchoMessage);
-
-  rpc EchoClientStream(stream EchoMessage) returns (EchoMessage);
-
-  rpc EchoServerStream( EchoMessage) returns (stream EchoMessage);
-
-  rpc EchoStream(stream EchoMessage) returns (stream EchoMessage);
 }
 
 message EchoMessage
