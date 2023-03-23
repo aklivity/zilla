@@ -17,7 +17,8 @@ package io.aklivity.zilla.runtime.metrics.http.internal;
 import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Long2LongHashMap;
+import org.agrona.collections.Long2LongCounterMap;
+import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
@@ -27,10 +28,13 @@ import io.aklivity.zilla.runtime.metrics.http.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.String8FW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.ResetFW;
 
 public class HttpRequestSizeMetric implements Metric
 {
@@ -63,9 +67,9 @@ public class HttpRequestSizeMetric implements Metric
 
     private final class HttpRequestSizeMetricContext implements MetricContext
     {
-        private static final long ALREADY_PROCESSED_STREAM = -1L;
-
-        private final Long2LongHashMap requestSize = new Long2LongHashMap(0L);
+        private final Long2LongCounterMap requestSize = new Long2LongCounterMap(0L);
+        private final Long2ObjectHashMap<HttpMetricConsumer> handlers = new Long2ObjectHashMap();
+        private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
         private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
         private final DataFW dataRO = new DataFW();
@@ -91,50 +95,40 @@ public class HttpRequestSizeMetric implements Metric
             int index,
             int length)
         {
-            long streamId;
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long streamId = frame.streamId();
+            if (isInitial(streamId)) // it's a received stream
+            {
+                handleInitial(recorder, streamId, msgTypeId, buffer, index, length);
+            }
+        }
+
+        private void handleInitial(
+            LongConsumer recorder,
+            long streamId,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                streamId = begin.streamId();
-                if (!isInitial(streamId)) // not a received stream
-                {
-                    break;
-                }
                 final HttpHeaderFW contentLength = getContentLength(begin);
                 if (isContentLengthValid(contentLength))
                 {
-                    recorder.accept(getContentLengthValue(contentLength));
-                    requestSize.put(streamId, ALREADY_PROCESSED_STREAM);
-                }
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                streamId = data.streamId();
-                if (!isInitial(streamId)) // not a received stream
-                {
-                    break;
-                }
-                if (requestSize.get(streamId) != ALREADY_PROCESSED_STREAM)
-                {
-                    requestSize.put(streamId, requestSize.get(streamId) + data.length());
-                }
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                streamId = end.streamId();
-                if (!isInitial(streamId)) // not a received stream
-                {
-                    break;
-                }
-                if (requestSize.get(streamId) == ALREADY_PROCESSED_STREAM)
-                {
-                    requestSize.remove(streamId);
+                    requestSize.put(streamId, getContentLengthValue(contentLength));
+                    handlers.put(streamId, this::handleFixedLength);
                 }
                 else
                 {
-                    recorder.accept(requestSize.get(streamId));
+                    handlers.put(streamId, this::handleDynamicLength);
                 }
+                break;
+            default:
+                HttpMetricConsumer handler = handlers.getOrDefault(streamId, HttpMetricConsumer.NOOP);
+                handler.accept(recorder, streamId, msgTypeId, buffer, index, length);
                 break;
             }
         }
@@ -150,13 +144,70 @@ public class HttpRequestSizeMetric implements Metric
 
         private boolean isContentLengthValid(HttpHeaderFW contentLength)
         {
-            return contentLength != null && contentLength.value() != null && contentLength.value().asString() != null;
+            return contentLength != null && contentLength.value() != null && contentLength.value().length() != -1;
         }
 
         private long getContentLengthValue(HttpHeaderFW contentLength)
         {
-            return Long.parseLong(contentLength.value().asString());
+            DirectBuffer buffer = contentLength.value().value();
+            return buffer.parseLongAscii(0, buffer.capacity());
         }
+
+        private void handleDynamicLength(
+            LongConsumer recorder,
+            long streamId,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                requestSize.getAndAdd(streamId, data.length());
+                break;
+            case EndFW.TYPE_ID:
+                recorder.accept(requestSize.remove(streamId));
+                handlers.remove(streamId);
+                break;
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                requestSize.remove(streamId);
+                handlers.remove(streamId);
+                break;
+            }
+        }
+
+        private void handleFixedLength(
+            LongConsumer recorder,
+            long streamId,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case EndFW.TYPE_ID:
+                recorder.accept(requestSize.remove(streamId));
+                handlers.remove(streamId);
+                break;
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                requestSize.remove(streamId);
+                handlers.remove(streamId);
+                break;
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface HttpMetricConsumer
+    {
+        HttpMetricConsumer NOOP = (r, s, m, b, i, l) -> {};
+
+        void accept(LongConsumer recorder, long streamId, int msgTypeId, DirectBuffer buffer, int index, int length);
     }
 
     private static boolean isInitial(
