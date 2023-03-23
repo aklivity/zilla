@@ -63,6 +63,8 @@ public class HttpRequestSizeMetric implements Metric
 
     private final class HttpRequestSizeMetricContext implements MetricContext
     {
+        private static final long ALREADY_PROCESSED_STREAM = -1L;
+
         private final Long2LongHashMap requestSize = new Long2LongHashMap(0L);
         private final BeginFW beginRO = new BeginFW();
         private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
@@ -84,7 +86,6 @@ public class HttpRequestSizeMetric implements Metric
             int length)
         {
             long streamId;
-            //System.out.format("%s msg=%d idx=%d len=%d\n", NAME, msgTypeId, index, length);
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
@@ -94,20 +95,11 @@ public class HttpRequestSizeMetric implements Metric
                 {
                     break;
                 }
-                final OctetsFW extension = begin.extension();
-                final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
-                final Array32FW<HttpHeaderFW> headers = httpBeginEx.headers();
-                final String8FW httpContentLength = new String8FW("content-length");
-                final HttpHeaderFW contentLength = headers.matchFirst(h -> httpContentLength.equals(h.name()));
-                if (contentLength != null && contentLength.value() != null && contentLength.value().asString() != null)
+                final HttpHeaderFW contentLength = getContentLength(begin);
+                if (isContentLengthValid(contentLength))
                 {
-                    recorder.accept(Long.parseLong(contentLength.value().asString()));
-                    requestSize.put(streamId, -1L);
-                    System.out.println("BEGIN streamId=" + streamId + " RECORDED=" + contentLength.value()); // TODO: Ati
-                }
-                else
-                {
-                    System.out.println("BEGIN streamId=" + streamId + " noop"); // TODO: Ati
+                    recorder.accept(getContentLengthValue(contentLength));
+                    requestSize.put(streamId, ALREADY_PROCESSED_STREAM);
                 }
                 break;
             case DataFW.TYPE_ID:
@@ -117,15 +109,10 @@ public class HttpRequestSizeMetric implements Metric
                 {
                     break;
                 }
-                System.out.println("DATA streamId=" + streamId + " noop"); // TODO: Ati
-                if (requestSize.get(streamId) == -1L)
+                if (requestSize.get(streamId) != ALREADY_PROCESSED_STREAM)
                 {
-                    System.out.println("DATA streamId=" + streamId + " noop"); // TODO: Ati
-                    break;
+                    requestSize.put(streamId, requestSize.get(streamId) + data.length());
                 }
-                System.out.println("DATA streamId=" + streamId + " len=" + data.length() +
-                        " acc=" + requestSize.get(streamId) + " new=" + requestSize.get(streamId) + data.length()); // TODO: Ati
-                requestSize.put(streamId, requestSize.get(streamId) + data.length());
                 break;
             case EndFW.TYPE_ID:
                 final EndFW end = endRO.wrap(buffer, index, index + length);
@@ -134,18 +121,35 @@ public class HttpRequestSizeMetric implements Metric
                 {
                     break;
                 }
-                if (requestSize.get(streamId) == -1L)
+                if (requestSize.get(streamId) == ALREADY_PROCESSED_STREAM)
                 {
                     requestSize.remove(streamId);
-                    System.out.println("END streamId=" + streamId + " noop"); // TODO: Ati
                 }
                 else
                 {
                     recorder.accept(requestSize.get(streamId));
-                    System.out.println("END streamId=" + streamId + " RECORDED=" + requestSize.get(streamId)); // TODO: Ati
                 }
                 break;
             }
+        }
+
+        private HttpHeaderFW getContentLength(BeginFW begin)
+        {
+            final OctetsFW extension = begin.extension();
+            final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
+            final Array32FW<HttpHeaderFW> headers = httpBeginEx.headers();
+            final String8FW httpContentLength = new String8FW("content-length");
+            return headers.matchFirst(h -> httpContentLength.equals(h.name()));
+        }
+
+        private boolean isContentLengthValid(HttpHeaderFW contentLength)
+        {
+            return contentLength != null && contentLength.value() != null && contentLength.value().asString() != null;
+        }
+
+        private long getContentLengthValue(HttpHeaderFW contentLength)
+        {
+            return Long.parseLong(contentLength.value().asString());
         }
     }
 
