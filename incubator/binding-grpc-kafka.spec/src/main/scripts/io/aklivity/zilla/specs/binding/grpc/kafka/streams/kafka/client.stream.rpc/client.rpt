@@ -29,7 +29,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-write zilla:data.ext ${kafka:matchDataEx()
+write zilla:data.ext ${kafka:dataEx()
                                  .typeId(zilla:id("kafka"))
                                  .merged()
                                      .deferred(0)
@@ -42,7 +42,7 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
-write zilla:data.ext ${kafka:matchDataEx()
+write zilla:data.ext ${kafka:dataEx()
                                  .typeId(zilla:id("kafka"))
                                  .merged()
                                      .deferred(0)

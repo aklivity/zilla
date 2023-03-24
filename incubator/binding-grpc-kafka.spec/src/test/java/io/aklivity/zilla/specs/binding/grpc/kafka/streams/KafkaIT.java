@@ -25,10 +25,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class GrpcIT
+public class KafkaIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("grpc", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/grpc");
+        .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/kafka");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -37,8 +37,8 @@ public class GrpcIT
 
     @Test
     @Specification({
-        "${grpc}/bidi.stream.rpc/client",
-        "${grpc}/bidi.stream.rpc/server"})
+        "${kafka}/bidi.stream.rpc/client",
+        "${kafka}/bidi.stream.rpc/server"})
     public void shouldExchangeMessageInBidiSteam() throws Exception
     {
         k3po.finish();
@@ -46,8 +46,8 @@ public class GrpcIT
 
     @Test
     @Specification({
-        "${grpc}/client.stream.rpc/client",
-        "${grpc}/client.stream.rpc/server"})
+        "${kafka}/client.stream.rpc/client",
+        "${kafka}/client.stream.rpc/server"})
     public void shouldExchangeMessageInClientSteam() throws Exception
     {
         k3po.finish();
@@ -55,8 +55,8 @@ public class GrpcIT
 
     @Test
     @Specification({
-        "${grpc}/server.stream.rpc/client",
-        "${grpc}/server.stream.rpc/server"})
+        "${kafka}/server.stream.rpc/client",
+        "${kafka}/server.stream.rpc/server"})
     public void shouldExchangeMessageInServerSteam() throws Exception
     {
         k3po.finish();
@@ -64,8 +64,8 @@ public class GrpcIT
 
     @Test
     @Specification({
-        "${grpc}/unary.rpc/client",
-        "${grpc}/unary.rpc/server"})
+        "${kafka}/unary.rpc/client",
+        "${kafka}/unary.rpc/server"})
     public void shouldExchangeMessageInUnary() throws Exception
     {
         k3po.finish();
