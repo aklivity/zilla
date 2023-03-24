@@ -15,16 +15,16 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.HISTOGRAM;
 
 import java.util.stream.StreamSupport;
 
-public class CountersReader implements Reader
+public class HistogramsReader implements Reader
 {
-    private final CountersLayout layout;
+    private final HistogramsLayout layout;
 
-    public CountersReader(
-        CountersLayout layout)
+    public HistogramsReader(
+            HistogramsLayout layout)
     {
         this.layout = layout;
     }
@@ -32,7 +32,7 @@ public class CountersReader implements Reader
     @Override
     public Kind kind()
     {
-        return COUNTER;
+        return HISTOGRAM;
     }
 
     @Override

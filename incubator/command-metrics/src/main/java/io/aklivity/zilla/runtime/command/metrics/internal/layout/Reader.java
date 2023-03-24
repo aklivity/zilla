@@ -15,35 +15,29 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.COUNTER;
+import java.util.Map;
 
-import java.util.stream.StreamSupport;
-
-public class CountersReader implements Reader
+public interface Reader
 {
-    private final CountersLayout layout;
+    int BINDING_ID_INDEX = 0;
+    int METRIC_ID_INDEX = 1;
+    int VALUES_INDEX = 2;
+    int HISTOGRAM_BUCKETS = 63;
+    Map<Kind, Integer> NUMBER_OF_VALUES = Map.of(
+            Kind.COUNTER, 1,
+            Kind.GAUGE, 1,
+            Kind.HISTOGRAM, HISTOGRAM_BUCKETS);
 
-    public CountersReader(
-        CountersLayout layout)
+    enum Kind
     {
-        this.layout = layout;
+        COUNTER,
+        GAUGE,
+        HISTOGRAM
     }
 
-    @Override
-    public Kind kind()
-    {
-        return COUNTER;
-    }
+    Kind kind();
 
-    @Override
-    public long[][] records()
-    {
-        return StreamSupport.stream(layout.spliterator(), false).toArray(long[][]::new);
-    }
+    long[][] records();
 
-    @Override
-    public void close()
-    {
-        layout.close();
-    }
+    void close();
 }

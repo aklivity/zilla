@@ -15,13 +15,19 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.BINDING_ID_INDEX;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.METRIC_ID_INDEX;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.NUMBER_OF_VALUES;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.VALUES_INDEX;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.HISTOGRAM;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedHashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongPredicate;
@@ -39,6 +45,10 @@ import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader;
+import io.aklivity.zilla.runtime.command.metrics.internal.utils.LongArrayFunction;
 
 @Command(name = "metrics", description = "Show engine metrics")
 public final class ZillaMetricsCommand extends ZillaCommand
@@ -46,6 +56,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
     private static final Path METRICS_DIRECTORY = Paths.get(".zilla", "engine", "metrics");
     private static final Path LABELS_DIRECTORY = Paths.get(".zilla", "engine");
     private static final Pattern COUNTERS_PATTERN = Pattern.compile("counters(\\d+)");
+    private static final Pattern HISTOGRAMS_PATTERN = Pattern.compile("histograms(\\d+)");
     private static final String NAMESPACE_HEADER = "namespace";
     private static final String BINDING_HEADER = "binding";
     private static final String METRIC_HEADER = "metric";
@@ -57,9 +68,11 @@ public final class ZillaMetricsCommand extends ZillaCommand
     @Arguments(title = {"name"})
     public List<String> args;
 
-    private final Map<Path, CountersReader> readersByPath;
     private final LabelManager labels;
-    private final Map<Integer, Map<Integer, Map<Integer, Long>>> metrics; // namespace -> binding -> metric -> value
+    private final Map<Integer, Map<Integer, Map<Integer, long[]>>> metrics; // namespace -> binding -> metric -> values
+    private final Map<Integer, Reader.Kind> metricTypes;
+    private final Map<Reader.Kind, LongArrayFunction<String>> toStringConverters =
+            Map.of(COUNTER, this::counterToStringConverter, HISTOGRAM, this::histogramToStringConverter);
 
     private int namespaceWidth = NAMESPACE_HEADER.length();
     private int bindingWidth = BINDING_HEADER.length();
@@ -68,9 +81,9 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
     public ZillaMetricsCommand()
     {
-        this.readersByPath = new LinkedHashMap<>();
         this.labels = new LabelManager(LABELS_DIRECTORY);
         this.metrics = new Int2ObjectHashMap<>();
+        this.metricTypes = new Int2ObjectHashMap<>();
     }
 
     @Override
@@ -81,14 +94,14 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
         try (Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1))
         {
-            for (CountersReader reader : readers(files))
+            for (Reader reader : readers(files))
             {
                 for (long[] record : reader.records())
                 {
                     if (filterByNamespaceAndBinding.test(record[0]))
                     {
-                        collectMetric(record);
-                        calculateColumnWidths(record);
+                        collectMetricValue(record, reader.kind());
+                        calculateColumnWidths(record, reader.kind());
                     }
                 }
                 reader.close();
@@ -118,12 +131,24 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return id -> (id & mask) == namespacedId;
     }
 
-    private List<CountersReader> readers(
+    private List<Reader> readers(
         Stream<Path> files)
     {
-        return files.filter(this::isCountersFile)
-                .map(this::supplyCounterReaders)
-                .collect(toList());
+        return files.flatMap(path ->
+        {
+            if (isCountersFile(path))
+            {
+                return Stream.of(newCountersReader(path));
+            }
+            else if (isHistogramsFile(path))
+            {
+                return Stream.of(newHistogramsReader(path));
+            }
+            else
+            {
+                return Stream.of();
+            }
+        }).collect(toList());
     }
 
     private boolean isCountersFile(
@@ -134,55 +159,73 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 Files.isRegularFile(path);
     }
 
-    private CountersReader supplyCounterReaders(
+    private boolean isHistogramsFile(
         Path path)
     {
-        return readersByPath.computeIfAbsent(path, this::newCountersReader);
+        return path.getNameCount() - METRICS_DIRECTORY.getNameCount() == 1 &&
+                HISTOGRAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
+                Files.isRegularFile(path);
     }
 
-    private CountersReader newCountersReader(
-        Path loadPath)
+    private Reader newCountersReader(
+        Path path)
     {
-        CountersLayout layout = new CountersLayout.Builder().path(loadPath).build();
+        CountersLayout layout = new CountersLayout.Builder().path(path).build();
         return new CountersReader(layout);
     }
 
-    private void collectMetric(
-        long[] record)
+    private Reader newHistogramsReader(
+        Path path)
     {
-        int namespaceId = namespaceId(record[0]);
-        int bindingId = localId(record[0]);
-        int metricId = localId(record[1]);
-        long value = record[2];
+        HistogramsLayout layout = new HistogramsLayout.Builder().path(path).build();
+        return new HistogramsReader(layout);
+    }
+
+    private void collectMetricValue(
+        long[] record,
+        Reader.Kind kind)
+    {
+        int numberOfValues = NUMBER_OF_VALUES.get(kind);
+        int namespaceId = namespaceId(record[BINDING_ID_INDEX]);
+        int bindingId = localId(record[BINDING_ID_INDEX]);
+        int metricId = localId(record[METRIC_ID_INDEX]);
+        long[] values = Arrays.copyOfRange(record, VALUES_INDEX, VALUES_INDEX + numberOfValues);
+
+        metricTypes.putIfAbsent(metricId, kind);
 
         metrics.putIfAbsent(namespaceId, new Int2ObjectHashMap<>());
-        Map<Integer, Map<Integer, Long>> metricsByNamespace = metrics.get(namespaceId);
+        Map<Integer, Map<Integer, long[]>> metricsByNamespace = metrics.get(namespaceId);
 
         metricsByNamespace.putIfAbsent(bindingId, new Int2ObjectHashMap<>());
-        Map<Integer, Long> metricsByBinding = metricsByNamespace.get(bindingId);
+        Map<Integer, long[]> metricsByBinding = metricsByNamespace.get(bindingId);
 
-        Long previousCount = metricsByBinding.getOrDefault(metricId, 0L);
-        Long currentCount = previousCount + value; // this works only for counters
-        metricsByBinding.put(metricId, currentCount);
+        long[] count = metricsByBinding.getOrDefault(metricId, new long[numberOfValues]);
+        for (int i = 0; i < numberOfValues; i++)
+        {
+            // adding values across cores works for counters and histograms
+            count[i] += values[i];
+        }
+        metricsByBinding.put(metricId, count);
     }
 
     private void calculateColumnWidths(
-        long[] record)
+        long[] record,
+        Reader.Kind kind)
     {
-        int namespaceId = namespaceId(record[0]);
-        int bindingId = localId(record[0]);
-        int metricId = localId(record[1]);
-        long value = record[2];
+        int namespaceId = namespaceId(record[BINDING_ID_INDEX]);
+        int bindingId = localId(record[BINDING_ID_INDEX]);
+        int metricId = localId(record[METRIC_ID_INDEX]);
 
         String namespace = labels.lookupLabel(namespaceId);
         String binding = labels.lookupLabel(bindingId);
         String metric = labels.lookupLabel(metricId);
-        String valueAsString = String.valueOf(value);
+        long[] values = Arrays.copyOfRange(record, VALUES_INDEX, VALUES_INDEX + NUMBER_OF_VALUES.get(kind));
+        String valuesAsString = toStringConverters.get(kind).apply(values);
 
         namespaceWidth = Math.max(namespaceWidth, namespace.length());
         bindingWidth = Math.max(bindingWidth, binding.length());
         metricWidth = Math.max(metricWidth, metric.length());
-        valueWidth = Math.max(valueWidth, valueAsString.length());
+        valueWidth = Math.max(valueWidth, valuesAsString.length());
     }
 
     private static int namespaceId(
@@ -197,13 +240,21 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return (int) (packedId >> 0) & 0xffff_ffff;
     }
 
+    private String counterToStringConverter(long... value)
+    {
+        return String.valueOf(value[0]);
+    }
+
+    private String histogramToStringConverter(long[] values)
+    {
+        return Arrays.toString(values);
+    }
+
     private void printMetrics()
     {
-        String headerFormat = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
+        String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
                 valueWidth + "s\n";
-        String dataFormat = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
-                valueWidth + "d\n";
-        System.out.format(headerFormat, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
+        System.out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
         for (Integer namespaceId : metrics.keySet())
         {
             for (Integer bindingId : metrics.get(namespaceId).keySet())
@@ -213,8 +264,9 @@ public final class ZillaMetricsCommand extends ZillaCommand
                     String namespace = labels.lookupLabel(namespaceId);
                     String binding = labels.lookupLabel(bindingId);
                     String metric = labels.lookupLabel(metricId);
-                    Long value = metrics.get(namespaceId).get(bindingId).get(metricId);
-                    System.out.format(dataFormat, namespace, binding, metric, value);
+                    long[] value = metrics.get(namespaceId).get(bindingId).get(metricId);
+                    String valueAsString = toStringConverters.get(metricTypes.get(metricId)).apply(value);
+                    System.out.format(format, namespace, binding, metric, valueAsString);
                 }
             }
         }
