@@ -23,8 +23,6 @@ import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -44,7 +42,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
-import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 
 public class GrpcOptionsConfigAdapterTest
 {
@@ -61,12 +58,11 @@ public class GrpcOptionsConfigAdapterTest
     @Before
     public void initJson() throws IOException
     {
-        URL protoFileURL = GrpcFunctions.class.getResource("../config/protobuf/echo.proto");
-        URLConnection connection = protoFileURL.openConnection();
         String content = null;
-        try (InputStream input = connection.getInputStream())
+        try (InputStream resource = GrpcOptionsConfigAdapterTest.class
+            .getResourceAsStream("../../../../../specs/binding/grpc/config/protobuf/echo.proto"))
         {
-            content = new String(input.readAllBytes(), UTF_8);
+            content = new String(resource.readAllBytes(), UTF_8);
         }
         Mockito.doReturn(content).when(context).readURL("protobuf/echo.proto");
         adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
@@ -87,7 +83,7 @@ public class GrpcOptionsConfigAdapterTest
         GrpcOptionsConfig options = jsonb.fromJson(text, GrpcOptionsConfig.class);
         GrpcProtobufConfig protobuf = options.protobufs.stream().findFirst().get();
         GrpcServiceConfig service = protobuf.services.stream().findFirst().get();
-        GrpcMethodConfig method = service.methods.stream().findFirst().get();
+        GrpcMethodConfig method = service.methods.stream().filter(m -> "EchoUnary".equals(m.method)).findFirst().get();
 
         assertThat(options, not(nullValue()));
         assertEquals("protobuf/echo.proto", protobuf.location);
