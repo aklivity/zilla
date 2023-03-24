@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -21,11 +22,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 
+import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -58,9 +63,13 @@ public class GrpcOptionsConfigAdapterTest
     @Before
     public void initJson() throws IOException
     {
-        Path resources = Path.of("src/test/resources/protobuf");
-        Path file = resources.resolve("echo.proto");
-        String content = Files.readString(file);
+        URL protoFileURL = GrpcFunctions.class.getResource("../config/protobuf/echo.proto");
+        URLConnection connection = protoFileURL.openConnection();
+        String content = null;
+        try (InputStream input = connection.getInputStream())
+        {
+            content = new String(input.readAllBytes(), UTF_8);
+        }
         Mockito.doReturn(content).when(context).readURL("protobuf/echo.proto");
         adapter = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         adapter.adaptType("grpc");
