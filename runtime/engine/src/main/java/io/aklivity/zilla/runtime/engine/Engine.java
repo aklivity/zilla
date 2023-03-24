@@ -16,20 +16,19 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
-import static java.util.concurrent.ForkJoinPool.commonPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,14 +47,18 @@ import org.agrona.concurrent.AgentRunner;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.internal.Info;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.Tuning;
-import io.aklivity.zilla.runtime.engine.internal.registry.ConfigureTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
+import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
@@ -63,7 +66,6 @@ public final class Engine implements AutoCloseable
 {
     private final Collection<Binding> bindings;
     private final ExecutorService tasks;
-    private final Callable<Void> configure;
     private final Collection<AgentRunner> runners;
     private final ToLongFunction<String> counter;
     private final Tuning tuning;
@@ -74,8 +76,11 @@ public final class Engine implements AutoCloseable
     private final ThreadFactory factory;
 
     private final ToIntFunction<String> supplyLabelId;
-
-    private Future<Void> configureRef;
+    private final ConfigurationManager configurationManager;
+    private final WatcherTask watcherTask;
+    private final Map<URL, NamespaceConfig> namespaces;
+    private final URL rootConfigURL;
+    private Future<Void> watcherTaskRef;
 
     Engine(
         EngineConfiguration config,
@@ -136,7 +141,7 @@ public final class Engine implements AutoCloseable
             dispatchers.add(agent);
         }
 
-        final Consumer<String> logger = config.verbose() ? System.out::print : m -> {};
+        final Consumer<String> logger = config.verbose() ? System.out::println : m -> {};
 
         final List<EngineExtSpi> extensions = ServiceLoader.load(EngineExtSpi.class).stream()
                 .map(Provider::get)
@@ -152,9 +157,25 @@ public final class Engine implements AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
-        final Callable<Void> configure =
-                new ConfigureTask(config.configURL(), schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers, tuning,
-                        dispatchers, errorHandler, logger, context, config, extensions);
+        this.rootConfigURL = config.configURL();
+        String protocol = rootConfigURL.getProtocol();
+        if ("file".equals(protocol) || "jar".equals(protocol))
+        {
+            this.watcherTask = new FileWatcherTask(this::reconfigure);
+        }
+        else if ("http".equals(protocol) || "https".equals(protocol))
+        {
+            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds());
+        }
+        else
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
+            tuning, dispatchers, logger, context, config, extensions, watcherTask::readURL, watcherTask::watch);
+
+        this.namespaces = new HashMap<>();
 
         List<AgentRunner> runners = new ArrayList<>(dispatchers.size());
         dispatchers.forEach(d -> runners.add(d.runner()));
@@ -166,7 +187,6 @@ public final class Engine implements AutoCloseable
 
         this.bindings = bindings;
         this.tasks = tasks;
-        this.configure = configure;
         this.extensions = extensions;
         this.context = context;
         this.runners = runners;
@@ -196,16 +216,14 @@ public final class Engine implements AutoCloseable
         return counter.applyAsLong(name);
     }
 
-    public Future<Void> start()
+    public void start() throws Exception
     {
         for (AgentRunner runner : runners)
         {
             AgentRunner.startOnThread(runner, Thread::new);
         }
-
-        this.configureRef = commonPool().submit(configure);
-
-        return configureRef;
+        watcherTaskRef = watcherTask.submit();
+        watcherTask.watch(rootConfigURL).get();
     }
 
     @Override
@@ -213,7 +231,8 @@ public final class Engine implements AutoCloseable
     {
         final List<Throwable> errors = new ArrayList<>();
 
-        configureRef.cancel(true);
+        watcherTask.close();
+        watcherTaskRef.get();
 
         for (AgentRunner runner : runners)
         {
@@ -234,7 +253,7 @@ public final class Engine implements AutoCloseable
 
         tuning.close();
 
-        extensions.forEach(e -> e.onClosed(context));
+        extensions.forEach(e -> e.onUnregistered(context));
 
         if (!errors.isEmpty())
         {
@@ -242,6 +261,21 @@ public final class Engine implements AutoCloseable
             errors.stream().filter(x -> x != t).forEach(x -> t.addSuppressed(x));
             rethrowUnchecked(t);
         }
+    }
+
+    private NamespaceConfig reconfigure(
+        URL configURL,
+        String configText)
+    {
+        NamespaceConfig newNamespace = configurationManager.parse(configText);
+        if (newNamespace != null)
+        {
+            NamespaceConfig oldNamespace = namespaces.get(configURL);
+            configurationManager.unregister(oldNamespace);
+            configurationManager.register(newNamespace);
+            namespaces.put(configURL, newNamespace);
+        }
+        return newNamespace;
     }
 
     public static EngineBuilder builder()

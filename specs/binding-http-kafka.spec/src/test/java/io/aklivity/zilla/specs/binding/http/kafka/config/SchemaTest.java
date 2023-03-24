@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyDeleteItem()
     {
-        JsonObject config = schema.validate("proxy.delete.item.json");
+        JsonObject config = schema.validate("proxy.delete.item.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -44,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyDeleteItemNoReply()
     {
-        JsonObject config = schema.validate("proxy.delete.item.no.reply.json");
+        JsonObject config = schema.validate("proxy.delete.item.no.reply.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -52,7 +52,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyDeleteItemAsync()
     {
-        JsonObject config = schema.validate("proxy.delete.item.async.json");
+        JsonObject config = schema.validate("proxy.delete.item.async.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -60,7 +60,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyGetItem()
     {
-        JsonObject config = schema.validate("proxy.get.item.json");
+        JsonObject config = schema.validate("proxy.get.item.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -68,7 +68,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyGetItemChild()
     {
-        JsonObject config = schema.validate("proxy.get.item.child.json");
+        JsonObject config = schema.validate("proxy.get.item.child.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -76,7 +76,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyGetItems()
     {
-        JsonObject config = schema.validate("proxy.get.items.json");
+        JsonObject config = schema.validate("proxy.get.items.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -84,7 +84,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPatchItem()
     {
-        JsonObject config = schema.validate("proxy.patch.item.json");
+        JsonObject config = schema.validate("proxy.patch.item.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -92,7 +92,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPatchItemAsync()
     {
-        JsonObject config = schema.validate("proxy.patch.item.async.json");
+        JsonObject config = schema.validate("proxy.patch.item.async.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -100,7 +100,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPostItemCommand()
     {
-        JsonObject config = schema.validate("proxy.post.item.command.json");
+        JsonObject config = schema.validate("proxy.post.item.command.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -108,7 +108,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPostItemCommandAsync()
     {
-        JsonObject config = schema.validate("proxy.post.item.command.async.json");
+        JsonObject config = schema.validate("proxy.post.item.command.async.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -116,7 +116,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPostItems()
     {
-        JsonObject config = schema.validate("proxy.post.items.json");
+        JsonObject config = schema.validate("proxy.post.items.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -124,7 +124,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPostItemsAsync()
     {
-        JsonObject config = schema.validate("proxy.post.items.async.json");
+        JsonObject config = schema.validate("proxy.post.items.async.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -132,7 +132,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPutItem()
     {
-        JsonObject config = schema.validate("proxy.put.item.json");
+        JsonObject config = schema.validate("proxy.put.item.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -140,7 +140,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPutItemNoReply()
     {
-        JsonObject config = schema.validate("proxy.put.item.no.reply.json");
+        JsonObject config = schema.validate("proxy.put.item.no.reply.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -148,7 +148,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyPutItemAsync()
     {
-        JsonObject config = schema.validate("proxy.put.item.async.json");
+        JsonObject config = schema.validate("proxy.put.item.async.yaml");
 
         assertThat(config, not(nullValue()));
     }

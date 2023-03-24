@@ -32,6 +32,7 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .path("index.html")
                                  .type("text/html")
                                  .payloadSize(77)
+                                 .tag("f2c912a30f38a124c3249f8e802e0d90")
                                  .build()}
 
 read "<html>\n"

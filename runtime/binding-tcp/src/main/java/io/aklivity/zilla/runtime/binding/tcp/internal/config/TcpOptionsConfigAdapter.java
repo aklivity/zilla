@@ -141,6 +141,10 @@ public final class TcpOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 int portRangeHigh = Integer.parseInt(port.substring(dashAt + 1));
                 IntStream.range(portRangeLow, portRangeHigh + 1).forEach(ports::add);
             }
+            else
+            {
+                ports.add(Integer.parseInt(port));
+            }
             break;
         }
         case NUMBER:

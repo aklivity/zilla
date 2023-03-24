@@ -32,6 +32,7 @@ import static org.junit.runners.model.MultipleFailureException.assertEmpty;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,6 +62,7 @@ public final class EngineRule implements TestRule
     // needed by test annotations
     public static final String ENGINE_BUFFER_POOL_CAPACITY_NAME = "zilla.engine.buffer.pool.capacity";
     public static final String ENGINE_BUFFER_SLOT_CAPACITY_NAME = "zilla.engine.buffer.slot.capacity";
+    public static final String ENGINE_CONFIG_URL_NAME = "zilla.engine.config.url";
 
     private static final long EXTERNAL_AFFINITY_MASK = 1L << (Long.SIZE - 1);
     private static final Pattern DATA_FILENAME_PATTERN = Pattern.compile("data\\d+");
@@ -205,15 +207,20 @@ public final class EngineRule implements TestRule
         try
         {
             Configure[] configures = testClass
-                       .getDeclaredMethod(testMethod)
-                       .getAnnotationsByType(Configure.class);
+                        .getDeclaredMethod(testMethod)
+                        .getAnnotationsByType(Configure.class);
             Arrays.stream(configures).forEach(
                 p -> properties.setProperty(p.name(), p.value()));
 
             Configuration config = description.getAnnotation(Configuration.class);
             if (config != null)
             {
-                if (configurationRoot != null)
+                URI configURI = URI.create(config.value());
+                if (configURI.getScheme() != null)
+                {
+                    configure(ENGINE_CONFIG_URL, configURI.toURL());
+                }
+                else if (configurationRoot != null)
                 {
                     String resourceName = String.format("%s/%s", configurationRoot, config.value());
                     URL configURL = testClass.getClassLoader().getResource(resourceName);
@@ -249,12 +256,12 @@ public final class EngineRule implements TestRule
                     baseThread.interrupt();
                 };
                 engine = builder.config(config)
-                                 .errorHandler(errorHandler)
-                                 .build();
+                                .errorHandler(errorHandler)
+                                .build();
 
                 try
                 {
-                    engine.start().get();
+                    engine.start();
 
                     base.evaluate();
                 }

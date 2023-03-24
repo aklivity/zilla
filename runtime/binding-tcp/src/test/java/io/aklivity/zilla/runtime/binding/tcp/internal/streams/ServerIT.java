@@ -67,7 +67,7 @@ public class ServerIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.and.server.sent.data.multiple.frames/server",
         "${net}/client.and.server.sent.data.multiple.frames/client"
@@ -78,7 +78,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.and.server.sent.data.with.padding/server",
         "${net}/client.and.server.sent.data.with.padding/client"
@@ -89,7 +89,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.close/server",
         "${net}/client.close/client"
@@ -100,7 +100,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.sent.data/server",
         "${net}/client.sent.data/client"
@@ -111,7 +111,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.sent.data/server",
         "${net}/client.sent.data/client"
@@ -123,7 +123,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.sent.data.multiple.frames/server",
         "${net}/client.sent.data.multiple.frames/client"
@@ -134,7 +134,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.sent.data.multiple.streams/server",
         "${net}/client.sent.data.multiple.streams/client"
@@ -145,7 +145,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.sent.data.then.end/server"
         // No support for "write close" in k3po tcp
@@ -165,7 +165,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/client.sent.end.then.received.data/server"
         // No support for "write close" in k3po tcp
@@ -190,7 +190,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/concurrent.connections/server",
         "${net}/concurrent.connections/client"
@@ -201,7 +201,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/connection.established/server",
         "${net}/connection.established/client"
@@ -213,7 +213,7 @@ public class ServerIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/connection.established/server",
         "${net}/connection.established/client"
@@ -226,7 +226,7 @@ public class ServerIT
 
     @Ignore("GitHub Actions")
     @Test
-    @Configuration("server.ipv6.json")
+    @Configuration("server.ipv6.yaml")
     @Specification({
         "${app}/connection.established.ipv6/server",
         "${net}/connection.established/client"
@@ -238,7 +238,7 @@ public class ServerIT
     }
 
     @Test(expected = IOException.class)
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/connection.failed/server"
     })
@@ -263,7 +263,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/server.close/server",
         "${net}/server.close/client"
@@ -274,7 +274,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/server.sent.data/server",
         "${net}/server.sent.data/client"
@@ -285,7 +285,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/server.sent.data/server"
     })
@@ -303,7 +303,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/server.sent.data.multiple.frames/server",
         "${net}/server.sent.data.multiple.frames/client"
@@ -314,7 +314,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/server.sent.data.multiple.streams/server",
         "${net}/server.sent.data.multiple.streams/client"
@@ -325,7 +325,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/server.sent.data.then.end/server"
         // No support for "read closed" in k3po tcp
@@ -354,7 +354,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/server.sent.end.then.received.data/server"
         // No support for "read closed" in k3po tcp
@@ -380,7 +380,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${app}/max.connections/server"
     })

@@ -53,7 +53,7 @@ public class StartingIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.h2c.with.tls.and.alpn.h2/client" })
     public void shouldRejectUpgradeViaCleartextWithTlsAndAlpnH2() throws Exception
@@ -62,7 +62,7 @@ public class StartingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.h2c.with.tls.and.alpn.http1.1/client",
         "${app}/upgrade.https/server" })
@@ -72,7 +72,7 @@ public class StartingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.h2c.with.tls.and.no.alpn/client",
         "${app}/upgrade.https/server" })
@@ -83,7 +83,7 @@ public class StartingIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.h2c.with.no.tls/client",
         "${app}/upgrade.http/server" })
@@ -93,7 +93,7 @@ public class StartingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.pri.with.no.tls/client",
         "${app}/upgrade.http/server" })
@@ -103,7 +103,7 @@ public class StartingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.pri.with.tls.and.no.alpn/client" })
     public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndNoAlpn() throws Exception
@@ -112,7 +112,7 @@ public class StartingIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/upgrade.pri.with.tls.and.alpn.http1.1/client" })
     public void shouldNotUpgradeViaPriorKnowledgeWithTlsAndAlpnHttp11() throws Exception

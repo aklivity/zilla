@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateVault()
     {
-        JsonObject config = schema.validate("vault.json");
+        JsonObject config = schema.validate("vault.yaml");
 
         assertThat(config, not(nullValue()));
     }

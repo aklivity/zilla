@@ -51,7 +51,7 @@ public class DataIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/empty/request",
         "${app}/empty/server" })
@@ -61,7 +61,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/non.empty/request",
         "${app}/non.empty/server" })
@@ -71,7 +71,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/multiple/request",
         "${app}/multiple/server" })
@@ -81,7 +81,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/multi.line/request",
         "${app}/multi.line/server" })
@@ -91,7 +91,7 @@ public class DataIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/fragmented.10k/request",
         "${app}/fragmented.10k/server" })
@@ -102,7 +102,7 @@ public class DataIT
 
     @Ignore("TODO: multi-line")
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/fragmented.100k/request",
         "${app}/fragmented.100k/server" })
