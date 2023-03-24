@@ -28,11 +28,30 @@ read zilla:begin.ext ${kafka:beginEx()
                               .merged()
                                   .capabilities("FETCH_ONLY")
                                   .topic("test")
-                                  .partition(0, 2)
-                                  .partition(1, 2)
+                                  .partition(0, 0)
+                                  .partition(1, 0)
                                   .build()
                               .build()}
 
 connected
 
-write advise zilla:flush
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("test")
+                                   .partition(0, 0, 2)
+                                   .partition(1, 0, 2)
+                                   .build()
+                               .build()}
+write flush
+
+write advise zilla:flush ${kafka:flushEx()
+                                  .typeId(zilla:id("kafka"))
+                                  .merged()
+                                      .progress(0, 2, 2, 2)
+                                      .progress(1, 2, 2, 2)
+                                      .build()
+                                  .build()}
+
+

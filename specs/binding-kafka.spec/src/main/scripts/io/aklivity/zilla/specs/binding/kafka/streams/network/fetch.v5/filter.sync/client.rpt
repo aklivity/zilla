@@ -94,7 +94,7 @@ write 65                                # size
       4s "test"
       1
       0                                 # partition
-      2L                                # offset
+      0L                                # offset
       -1L
       ${partitionBytesMax}
 
@@ -111,7 +111,97 @@ read 121
      -1L                                # no log start offset
      -1                                 # no aborted transaction count
      61                                 # record set size
-     2L                                 # first offset
+     0L                                 # first offset
+     49                                 # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     0                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     0                                  # records
+
+write 65                                # size
+      1s                                # fetch
+      5s                                # v5
+      ${newRequestId}
+      -1s
+      -1
+      ${fetchWaitMax}
+      1
+      ${fetchBytesMax}
+      [0x00]
+      1
+      4s "test"
+      1
+      0                                 # partition
+      1L                                # offset
+      -1L
+      ${partitionBytesMax}
+
+read 121
+     ${newRequestId}
+     [0..4]
+     1
+     4s "test"
+     1                                  # partitions
+     0                                  # partition
+     0s                                 # no error
+     4L                                 # high water mark
+     3L                                 # last stable offset
+     -1L                                # no log start offset
+     -1                                 # no aborted transaction count
+     61                                 # record set size
+     1L                                 # first offset
+     49                                 # length
+     0x00
+     [0x02]
+     0x4e8723aa
+     0s
+     1                                  # last offset delta
+     (long:timestamp)                   # first timestamp
+     ${timestamp}                       # last timestamp
+     -1L
+     -1s
+     -1
+     0                                  # records
+
+write 65                                # size
+      1s                                # fetch
+      5s                                # v5
+      ${newRequestId}
+      -1s
+      -1
+      ${fetchWaitMax}
+      1
+      ${fetchBytesMax}
+      [0x00]
+      1
+      4s "test"
+      1
+      0                                 # partition
+      3L                                # offset
+      -1L
+      ${partitionBytesMax}
+
+read 121
+     ${newRequestId}
+     [0..4]
+     1
+     4s "test"
+     1                                  # partitions
+     0                                  # partition
+     0s                                 # no error
+     4L                                 # high water mark
+     3L                                 # last stable offset
+     -1L                                # no log start offset
+     -1                                 # no aborted transaction count
+     61                                 # record set size
+     3L                                 # first offset
      49                                 # length
      0x00
      [0x02]

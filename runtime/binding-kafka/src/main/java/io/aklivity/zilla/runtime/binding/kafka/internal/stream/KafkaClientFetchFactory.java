@@ -1071,7 +1071,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         client.replyId, client.topic, client.partitionId, client.decodableRecordSetBytes);
                 }
 
-                client.triggerFlushIfRequired(traceId, client.nextOffset);
 
                 client.decodableRecordBatchBytes -= recordBatchProgress;
                 assert client.decodableRecordBatchBytes >= 0;
@@ -1914,6 +1913,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                                                      .isolation(i -> i.set(isolation)))
                                                         .build()
                                                         .sizeof()));
+            client.initialLatestOffset = latestOffset;
+            client.initialStableOffset = stableOffset;
         }
 
         private void doApplicationData(
@@ -2068,6 +2069,10 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private long nextOffset;
             private long stableOffset;
             private long latestOffset;
+            private long initialLatestOffset;
+            private long initialStableOffset;
+            private boolean dataFrameSent = false;
+            private int fetchRequestCount = 0;
 
             private int state;
             private long authorization;
@@ -2976,7 +2981,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                             }
                         })
                         .build();
-
+                client.dataFrameSent = true;
                 final int flags = aborted ? FLAG_INIT | FLAG_FIN | FLAG_SKIP : FLAG_INIT | FLAG_FIN;
                 doApplicationData(traceId, authorization, flags, reserved, value, kafkaDataEx);
             }
@@ -3066,6 +3071,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 if (topicPartitions.get(partitionId) == leaderId)
                 {
+                    fetchRequestCount++;
+                    if (fetchRequestCount == 2)
+                        client.triggerFlushIfRequired(traceId);
                     signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
@@ -3107,20 +3115,19 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             }
 
             public void triggerFlushIfRequired(
-                    long traceId,
-                    long partitionOffset)
+                    long traceId)
             {
-
-                if (partitionOffset == latestOffset && decodableRecords == 0 )
+                if (decodeRecordBatchLastOffset == initialLatestOffset &&
+                        decodableRecords == 0 && !dataFrameSent)
                 {
                     final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)
                             .fetch(f -> f
                                     .partition(p -> p
                                             .partitionId(partitionId)
-                                            .partitionOffset(partitionOffset)
-                                            .stableOffset(stableOffset)
-                                            .latestOffset(latestOffset)))
+                                            .partitionOffset(decodeRecordBatchLastOffset)
+                                            .stableOffset(initialStableOffset)
+                                            .latestOffset(initialLatestOffset)))
                             .build();
 
                     doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
