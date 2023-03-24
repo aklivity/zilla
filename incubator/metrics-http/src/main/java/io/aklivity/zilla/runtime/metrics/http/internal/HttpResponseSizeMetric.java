@@ -14,12 +14,28 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.getContentLength;
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.getContentLengthValue;
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.isContentLengthValid;
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.isInitial;
+
 import java.util.function.LongConsumer;
+
+import org.agrona.DirectBuffer;
+import org.agrona.collections.Long2LongCounterMap;
+import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.HttpHeaderFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.DataFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.ResetFW;
 
 public class HttpResponseSizeMetric implements Metric
 {
@@ -52,6 +68,12 @@ public class HttpResponseSizeMetric implements Metric
 
     private final class HttpResponseSizeMetricContext implements MetricContext
     {
+        private final Long2LongCounterMap responseSize = new Long2LongCounterMap(0L);
+        private final Long2ObjectHashMap<HttpMetricConsumer> handlers = new Long2ObjectHashMap<>();
+        private final FrameFW frameRO = new FrameFW();
+        private final BeginFW beginRO = new BeginFW();
+        private final DataFW dataRO = new DataFW();
+
         @Override
         public Metric.Kind kind()
         {
@@ -62,9 +84,100 @@ public class HttpResponseSizeMetric implements Metric
         public MetricHandler supply(
             LongConsumer recorder)
         {
-            // TODO: Ati
-            return (msgTypeId, buffer, index, length) -> {};
+            return (t, b, i, l) -> handle(recorder, t, b, i, l);
         }
 
+        private void handle(
+            LongConsumer recorder,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long streamId = frame.streamId();
+            if (!isInitial(streamId)) // it's a sent stream
+            {
+                handleInitial(recorder, streamId, msgTypeId, buffer, index, length);
+            }
+        }
+
+        private void handleInitial(
+            LongConsumer recorder,
+            long streamId,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                final HttpHeaderFW contentLength = getContentLength(begin);
+                if (isContentLengthValid(contentLength))
+                {
+                    responseSize.put(streamId, getContentLengthValue(contentLength));
+                    handlers.put(streamId, this::handleFixedLength);
+                }
+                else
+                {
+                    handlers.put(streamId, this::handleDynamicLength);
+                }
+                break;
+            default:
+                HttpMetricConsumer handler = handlers.getOrDefault(streamId, HttpMetricConsumer.NOOP);
+                handler.accept(recorder, streamId, msgTypeId, buffer, index, length);
+                break;
+            }
+        }
+
+        private void handleFixedLength(
+            LongConsumer recorder,
+            long streamId,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case EndFW.TYPE_ID:
+                recorder.accept(responseSize.remove(streamId));
+                handlers.remove(streamId);
+                break;
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                responseSize.remove(streamId);
+                handlers.remove(streamId);
+                break;
+            }
+        }
+
+        private void handleDynamicLength(
+            LongConsumer recorder,
+            long streamId,
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                responseSize.getAndAdd(streamId, data.length());
+                break;
+            case EndFW.TYPE_ID:
+                recorder.accept(responseSize.remove(streamId));
+                handlers.remove(streamId);
+                break;
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                responseSize.remove(streamId);
+                handlers.remove(streamId);
+                break;
+            }
+        }
     }
 }
