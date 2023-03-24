@@ -16,22 +16,12 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
-import static java.net.http.HttpClient.Redirect.NORMAL;
-import static java.net.http.HttpClient.Version.HTTP_2;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
-import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -81,7 +71,6 @@ import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 public class ConfigurationManager implements ConfigAdapterContext
 {
     protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
-    private final URL configURL;
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
     private final ToIntFunction<String> supplyId;
@@ -92,10 +81,11 @@ public class ConfigurationManager implements ConfigAdapterContext
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
+    private final Function<String, String> readURL;
+    private final Consumer<URL> handleConfigURL;
     private final ExpressionResolver expressions;
 
     public ConfigurationManager(
-        URL configURL,
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
         ToIntFunction<String> supplyId,
@@ -105,9 +95,10 @@ public class ConfigurationManager implements ConfigAdapterContext
         Consumer<String> logger,
         EngineExtContext context,
         EngineConfiguration config,
-        List<EngineExtSpi> extensions)
+        List<EngineExtSpi> extensions,
+        Function<String, String> readURL,
+        Consumer<URL> handleConfigURL)
     {
-        this.configURL = configURL;
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
         this.supplyId = supplyId;
@@ -118,6 +109,8 @@ public class ConfigurationManager implements ConfigAdapterContext
         this.context = context;
         this.config = config;
         this.extensions = extensions;
+        this.readURL = readURL;
+        this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
 
@@ -202,7 +195,7 @@ public class ConfigurationManager implements ConfigAdapterContext
 
             namespace.id = supplyId.applyAsInt(namespace.name);
 
-            namespace.readURL = this::readURL;
+            namespace.readURL = readURL;
 
             // TODO: consider qualified name "namespace::name"
             final NamespaceConfig namespace0 = namespace;
@@ -211,7 +204,7 @@ public class ConfigurationManager implements ConfigAdapterContext
             for (GuardConfig guard : namespace.guards)
             {
                 guard.id = namespace.resolveId.applyAsLong(guard.name);
-                guard.readURL = this::readURL;
+                guard.readURL = readURL;
             }
 
             for (VaultConfig vault : namespace.vaults)
@@ -314,45 +307,8 @@ public class ConfigurationManager implements ConfigAdapterContext
     }
 
     @Override
-    public String readURL(
-        String location)
+    public String readURL(String location)
     {
-        String output = null;
-        try
-        {
-            final URL fileURL = new URL(configURL, location);
-            if ("http".equals(fileURL.getProtocol()) || "https".equals(fileURL.getProtocol()))
-            {
-                HttpClient client = HttpClient.newBuilder()
-                    .version(HTTP_2)
-                    .followRedirects(NORMAL)
-                    .build();
-
-                HttpRequest request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(fileURL.toURI())
-                    .build();
-
-                HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
-
-                output = response.body();
-            }
-            else
-            {
-
-                URLConnection connection = fileURL.openConnection();
-                try (InputStream input = connection.getInputStream())
-                {
-                    output = new String(input.readAllBytes(), UTF_8);
-                }
-            }
-        }
-        catch (IOException | URISyntaxException | InterruptedException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return output;
+        return readURL.apply(location);
     }
 }

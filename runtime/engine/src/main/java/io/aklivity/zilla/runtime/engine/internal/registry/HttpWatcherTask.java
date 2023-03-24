@@ -35,10 +35,11 @@ public class HttpWatcherTask extends WatcherTask
     private final int pollSeconds;
 
     public HttpWatcherTask(
+        URL rootConfigURL,
         BiFunction<URL, String, NamespaceConfig> changeListener,
         int pollSeconds)
     {
-        super(changeListener);
+        super(rootConfigURL, changeListener);
         this.etags = new ConcurrentHashMap<>();
         this.configHashes = new ConcurrentHashMap<>();
         this.futures = new ConcurrentHashMap<>();
@@ -79,32 +80,6 @@ public class HttpWatcherTask extends WatcherTask
             return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
         }
         return CompletableFuture.completedFuture(config);
-    }
-
-    @Override
-    public String readURL(
-        URL configURL)
-    {
-        String output = "";
-        HttpClient client = HttpClient.newBuilder()
-            .version(HTTP_2)
-            .followRedirects(NORMAL)
-            .build();
-        HttpRequest request = HttpRequest.newBuilder()
-            .GET()
-            .uri(toURI(configURL))
-            .build();
-
-        try
-        {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            output = response.body();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return output;
     }
 
     @Override

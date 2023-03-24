@@ -72,11 +72,9 @@ public final class GrpcConditionMatcher
     private static Matcher asMatcher(
         String wildcard)
     {
-        return Pattern.compile(wildcard
-                .replace(".", "\\.")
-                .replace("$", "\\$")
-                .replace("+", "[^/]*")
-                .replace("#", ".*"))
+        return Pattern.compile(wildcard.replace(".", "\\.")
+                    .replace("*", ".*")
+                    .replaceAll("\\{([a-zA-Z_]+)\\}", "(?<$1>.+)"))
             .matcher("");
     }
 }

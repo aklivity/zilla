@@ -25,15 +25,6 @@ bindings:
     routes:
       - exit: net0
         when:
-          - method: example.EchoService/EchoUnary
-            metadata:
-              custom: test
-          - method: example.EchoService/EchoClientStream
-            metadata:
-              custom: test
-          - method: example.EchoService/EchoServerStream
-            metadata:
-              custom: test
-          - method: example.EchoService/EchoStream
+          - method: example.EchoService/*
             metadata:
               custom: test

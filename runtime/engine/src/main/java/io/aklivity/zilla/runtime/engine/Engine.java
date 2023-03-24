@@ -161,19 +161,19 @@ public final class Engine implements AutoCloseable
         String protocol = rootConfigURL.getProtocol();
         if ("file".equals(protocol) || "jar".equals(protocol))
         {
-            this.watcherTask = new FileWatcherTask(this::reconfigure);
+            this.watcherTask = new FileWatcherTask(rootConfigURL, this::reconfigure);
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
-            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds());
+            this.watcherTask = new HttpWatcherTask(rootConfigURL, this::reconfigure, config.configPollIntervalSeconds());
         }
         else
         {
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(rootConfigURL, schemaTypes, guardsByType::get,
-            labels::supplyLabelId, maxWorkers, tuning, dispatchers, logger, context, config, extensions);
+        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
+            tuning, dispatchers, logger, context, config, extensions, watcherTask::readURL, watcherTask::watch);
 
         this.namespaces = new HashMap<>();
 
