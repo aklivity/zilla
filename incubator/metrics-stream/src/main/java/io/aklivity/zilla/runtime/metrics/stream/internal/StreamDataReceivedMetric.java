@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
+import static io.aklivity.zilla.runtime.metrics.stream.internal.StreamUtils.isInitial;
+
 import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
@@ -87,11 +89,5 @@ public class StreamDataReceivedMetric implements Metric
                 }
             }
         }
-    }
-
-    private static boolean isInitial(
-        long streamId)
-    {
-        return (streamId & 0x0000_0000_0000_0001L) != 0L;
     }
 }
