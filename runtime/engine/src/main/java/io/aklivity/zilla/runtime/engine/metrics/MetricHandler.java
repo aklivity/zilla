@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.agrona.DirectBuffer;
 
+@FunctionalInterface
 public interface MetricHandler
 {
     MetricHandler NO_OP = new MetricHandler()

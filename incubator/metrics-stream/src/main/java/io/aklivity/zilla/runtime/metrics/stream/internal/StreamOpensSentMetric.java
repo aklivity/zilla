@@ -59,9 +59,9 @@ public class StreamOpensSentMetric implements Metric
         private final FrameFW frameRO = new FrameFW();
 
         @Override
-        public Metric metric()
+        public Metric.Kind kind()
         {
-            return StreamOpensSentMetric.this;
+            return StreamOpensSentMetric.this.kind();
         }
 
         @Override

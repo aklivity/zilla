@@ -15,10 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.util.function;
 
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
-
 @FunctionalInterface
-public interface KindLongLongFunction<R>
+public interface ObjectLongLongFunction<T, R>
 {
-    R apply(Metric.Kind kind, long value1, long value2);
+    R apply(T object, long value1, long value2);
 }

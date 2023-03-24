@@ -30,9 +30,10 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
-import io.aklivity.zilla.runtime.engine.util.function.KindLongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class NamespaceRegistry
@@ -50,7 +51,7 @@ public class NamespaceRegistry
     private final Int2ObjectHashMap<GuardRegistry> guardsById;
     private final Int2ObjectHashMap<VaultRegistry> vaultsById;
     private final Int2ObjectHashMap<MetricRegistry> metricsById;
-    private final KindLongLongFunction<LongConsumer> supplyMetricRecorder;
+    private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
     private final LongConsumer detachBinding;
 
     public NamespaceRegistry(
@@ -62,7 +63,7 @@ public class NamespaceRegistry
         ToIntFunction<String> supplyLabelId,
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer supplyLoadEntry,
-        KindLongLongFunction<LongConsumer> supplyMetricRecorder,
+        ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
         LongConsumer detachBinding)
     {
         this.namespace = namespace;

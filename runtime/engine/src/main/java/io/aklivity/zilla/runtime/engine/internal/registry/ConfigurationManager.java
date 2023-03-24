@@ -305,12 +305,10 @@ public class ConfigurationManager
             {
                 if (pattern.matcher(metric.name).matches())
                 {
-                    System.out.println(metric.name); // TODO: Ati
                     metricIds.add(namespace.resolveId.applyAsLong(metric.name));
                 }
             }
         }
-        System.out.println("---"); // TODO: Ati
         return metricIds.stream().mapToLong(Long::longValue).toArray();
     }
 

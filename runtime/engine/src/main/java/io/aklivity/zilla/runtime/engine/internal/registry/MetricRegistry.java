@@ -26,6 +26,6 @@ public class MetricRegistry
 
     public Metric.Kind kind()
     {
-        return context.metric().kind();
+        return context.kind();
     }
 }

@@ -25,8 +25,9 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.engine.util.function.KindLongLongFunction;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
@@ -37,7 +38,7 @@ public class ConfigurationRegistry
     private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
-    private final KindLongLongFunction<LongConsumer> supplyMetricRecorder;
+    private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
 
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
@@ -49,7 +50,7 @@ public class ConfigurationRegistry
             Function<String, MetricContext> metricsByName,
             ToIntFunction<String> supplyLabelId,
             LongConsumer supplyLoadEntry,
-            KindLongLongFunction<LongConsumer> supplyMetricRecorder,
+            ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
             LongConsumer detachBinding)
     {
         this.bindingsByType = bindingsByType;

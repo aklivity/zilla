@@ -60,9 +60,9 @@ public class StreamErrorsReceivedMetric implements Metric
         private final FrameFW frameRO = new FrameFW();
 
         @Override
-        public Metric metric()
+        public Metric.Kind kind()
         {
-            return StreamErrorsReceivedMetric.this;
+            return StreamErrorsReceivedMetric.this.kind();
         }
 
         @Override

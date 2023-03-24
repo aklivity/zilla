@@ -76,9 +76,9 @@ public class HttpRequestSizeMetric implements Metric
         private final EndFW endRO = new EndFW();
 
         @Override
-        public Metric metric()
+        public Metric.Kind kind()
         {
-            return HttpRequestSizeMetric.this;
+            return HttpRequestSizeMetric.this.kind();
         }
 
         @Override

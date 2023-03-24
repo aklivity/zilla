@@ -53,9 +53,9 @@ public class HttpResponseSizeMetric implements Metric
     private final class HttpResponseSizeMetricContext implements MetricContext
     {
         @Override
-        public Metric metric()
+        public Metric.Kind kind()
         {
-            return HttpResponseSizeMetric.this;
+            return HttpResponseSizeMetric.this.kind();
         }
 
         @Override

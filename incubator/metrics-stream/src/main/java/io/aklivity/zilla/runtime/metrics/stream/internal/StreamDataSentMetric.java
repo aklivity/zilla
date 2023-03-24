@@ -58,9 +58,9 @@ public class StreamDataSentMetric implements Metric
         private final DataFW dataRO = new DataFW();
 
         @Override
-        public Metric metric()
+        public Metric.Kind kind()
         {
-            return StreamDataSentMetric.this;
+            return StreamDataSentMetric.this.kind();
         }
 
         @Override
