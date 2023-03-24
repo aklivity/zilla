@@ -25,12 +25,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 
-import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -47,6 +44,7 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
+import io.aklivity.zilla.specs.binding.grpc.internal.GrpcFunctions;
 
 public class GrpcOptionsConfigAdapterTest
 {
