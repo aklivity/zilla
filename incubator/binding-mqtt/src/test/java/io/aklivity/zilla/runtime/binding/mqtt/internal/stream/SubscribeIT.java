@@ -339,22 +339,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    //TODO: can this be deleted? I think in the current form, this scenario is not valid
-    // If the first connection is rejected, the will topic won't be populated, hence the publish on app side cannot happen
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/subscribe.to.will.topic/client",
-        "${app}/subscribe.to.will.topic/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeToWillTopic() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Ignore("GitHub Actions")
     @Test
     @Configuration("server.yaml")

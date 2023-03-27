@@ -20,25 +20,38 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("SUBSCRIBE_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .flags("NO_LOCAL", "SEND_RETAINED")
-                              .subscriptionId(1)
+                              .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "NO_LOCAL", "SEND_RETAINED")
+                                .build()
                               .build()}
 
 connected
 
-write advise zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .flags("NO_LOCAL", "SEND_RETAINED")
-                                 .capabilities("PUBLISH_AND_SUBSCRIBE")
-                                 .build()}
+write notify SUBSCRIBED
+
+
+connect await SUBSCRIBED
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connected
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
-                             .expiryInterval(15)
-                             .format("TEXT")
+                             .publish()
+                                .topic("sensor/one")
+                                .expiryInterval(15)
+                                .format("TEXT")
+                                .build()
                              .build()}
 write "message"

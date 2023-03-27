@@ -37,6 +37,15 @@ public class SessionIT
     public final TestRule chain = outerRule(k3po).around(timeout);
 
 
+    @Test
+    @Specification({
+        "${net}/session.connect.with.session.expiry/client",
+        "${net}/session.connect.with.session.expiry/server"})
+    public void shouldConnectWithSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.1.2-5], [MQTT-3.1.2-23]
     @Test
     @Specification({
@@ -145,6 +154,24 @@ public class SessionIT
         "${net}/session.unsubscribe.after.subscribe/client",
         "${net}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.subscribe.to.will.topic/client",
+        "${net}/session.subscribe.to.will.topic/server"})
+    public void shouldSubscribeToWillTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.subscribe.via.session.state/client",
+        "${net}/session.subscribe.via.session.state/server"})
+    public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
     {
         k3po.finish();
     }

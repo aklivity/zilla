@@ -155,6 +155,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.one.message.user.properties.unaltered/client",
+        "${app}/subscribe.one.message.user.properties.unaltered/server"})
+    public void shouldSubscribeOneMessageWithUserPropertiesUnaltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.publish.no.local/client",
         "${app}/subscribe.publish.no.local/server"})
     public void shouldSubscribeThenPublishNoLocal() throws Exception
@@ -221,15 +230,6 @@ public class SubscribeIT
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
     public void shouldPublishMessageAndSubscribeCorrelatedMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/subscribe.to.will.topic/client",
-        "${app}/subscribe.to.will.topic/server"})
-    public void shouldFailSubscribeToWillTopic() throws Exception
     {
         k3po.finish();
     }

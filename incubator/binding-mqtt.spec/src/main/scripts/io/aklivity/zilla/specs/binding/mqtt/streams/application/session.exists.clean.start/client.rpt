@@ -20,28 +20,29 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("client")
-                             .topic("$SYS/sessions/client/#")
-                             .subscriptionId(0)
+                             .session()
+                                .clientId("client")
+                                .pattern("$SYS/sessions/client/#")
+                                .build()
                              .build()}
 
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client")
+                            .session()
+                                .topic("$SYS/sessions/client")
+                                .build()
                             .build()}
 
 
 write '{"expiresAt":10}'
 
-write notify SESSION_READY
-
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client")
-                            .format("TEXT")
+                            .session()
+                                .topic("$SYS/sessions/client")
+                                .build()
                             .build()}
 
 write zilla:data.empty
@@ -49,6 +50,7 @@ write zilla:data.empty
 write close
 read closed
 
+write notify SESSION_READY
 
 connect await SESSION_READY
         "zilla://streams/app0"
@@ -58,10 +60,10 @@ connect await SESSION_READY
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("client")
-                             .topic("$SYS/sessions/client/#")
-                             .subscriptionId(0)
+                             .session()
+                                .clientId("client")
+                                .pattern("$SYS/sessions/client/#")
+                                .build()
                              .build()}
 
 connected

@@ -20,17 +20,19 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("client")
-                              .topic("$SYS/sessions/client/#")
-                              .subscriptionId(0)
+                              .session()
+                                .clientId("client")
+                                .pattern("$SYS/sessions/client/#")
+                                .build()
                               .build()}
 
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("$SYS/sessions/client")
+                             .session()
+                                .topic("$SYS/sessions/client")
+                                .build()
                              .build()}
 
 write '{"expiresAt":1}'
@@ -38,8 +40,9 @@ write flush
 
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client")
-                            .format("TEXT")
+                            .session()
+                                .topic("$SYS/sessions/client")
+                                .build()
                             .build()}
 
 write zilla:data.empty

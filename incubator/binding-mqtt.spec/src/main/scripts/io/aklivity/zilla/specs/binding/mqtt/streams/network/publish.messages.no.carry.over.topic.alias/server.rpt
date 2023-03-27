@@ -71,7 +71,7 @@ read  [0x30 0x0e]                    # PUBLISH
       [0x00 0x00]                    # topic name
       [0x03]                         # properties
       [0x23 0x00 0x01]               # topic alias = 1
-      "message2"                     # payload
+      "message3"                     # payload
 
 write [0xe0 0x02]                    # disconnect header
       [0x82]                         # disconnect = protocol error

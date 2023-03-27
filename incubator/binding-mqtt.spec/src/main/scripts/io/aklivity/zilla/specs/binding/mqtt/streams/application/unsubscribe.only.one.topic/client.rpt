@@ -14,23 +14,22 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
+connect "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"      
 
-accepted
-
-read zilla:begin.ext ${mqtt:beginEx()
+write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("one")
-                             .topic("$SYS/sessions/one/#")
-                             .subscriptionId(0)
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .filter("sensor/two", 1, "SEND_RETAINED")
+                                .build()
                              .build()}
+
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/one")
-                            .build()}
-read '{"expiresAt":'/(?<expiresAt>\d+)/'}'
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .filter("sensor/one", 1, "SEND_RETAINED")
+                                 .build()}

@@ -18,20 +18,20 @@ connect "zilla://streams/app0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .session()
+                                .clientId("one")
+                                .pattern("$SYS/sessions/one/#")
+                                .build()
+                              .build()}
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
-                             .expiryInterval(15)
-                             .contentType("message")
-                             .format("TEXT")
-                             .responseTopic("sensor/one")
-                             .correlation("info")
+                             .session()
+                                .topic("$SYS/sessions/one")
+                                .build()
                              .build()}
-
-write "update"
-
-write [0x7C 0x00]             # disconnect = normal
-
-write close
+write '{"expiresAt":123456789}'
+write flush

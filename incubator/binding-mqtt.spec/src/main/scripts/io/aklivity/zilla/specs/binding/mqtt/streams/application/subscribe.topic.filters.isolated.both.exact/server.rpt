@@ -22,24 +22,17 @@ accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("SUBSCRIBE_ONLY")
-                             .clientId("client")
-                             .topic("sensor/one")
-                             .flags("SEND_RETAINED")
-                             .subscriptionId(1)
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .build()
                              .build()}
 
 connected
 
-accepted
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .filter("sensor/one", 1, "SEND_RETAINED")
+                                 .filter("sensor/two", 2, "SEND_RETAINED")
+                                 .build()}
 
-read zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .capabilities("SUBSCRIBE_ONLY")
-                             .clientId("client")
-                             .topic("sensor/two")
-                             .flags("SEND_RETAINED")
-                             .subscriptionId(2)
-                             .build()}
-
-connected

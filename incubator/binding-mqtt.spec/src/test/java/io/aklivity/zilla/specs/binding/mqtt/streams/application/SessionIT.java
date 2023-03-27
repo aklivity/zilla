@@ -36,6 +36,16 @@ public class SessionIT
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
+
+    @Test
+    @Specification({
+        "${app}/session.connect.with.session.expiry/client",
+        "${app}/session.connect.with.session.expiry/server"})
+    public void shouldConnectWithSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${app}/session.will.message.abrupt.disconnect.session.expires/client",
@@ -114,6 +124,35 @@ public class SessionIT
         "${app}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.to.will.topic/client",
+        "${app}/session.subscribe.to.will.topic/server"})
+    public void shouldSubscribeToWillTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.subscribe.via.session.state/client",
+        "${app}/session.subscribe.via.session.state/server"})
+    public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    //TODO: use session.subscribe at actual test
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.via.session.state/client",
+        "${app}/session.unsubscribe.via.session.state/server"})
+    public void shouldUnsubscribeViaSessionState() throws Exception
     {
         k3po.finish();
     }

@@ -20,10 +20,10 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("client")
-                             .topic("$SYS/sessions/client/#")
-                             .subscriptionId(0)
+                             .session()
+                                .clientId("client")
+                                .pattern("$SYS/sessions/client/#")
+                                .build()
                              .build()}
 
 connected
@@ -31,7 +31,9 @@ connected
 
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client/subscriptions")
+                            .session()
+                                .topic("$SYS/sessions/client/subscriptions")
+                                .build()
                             .build()}
 
 write '{'
@@ -60,7 +62,9 @@ write notify SESSION_READY
 
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client/subscriptions")
+                            .session()
+                                .topic("$SYS/sessions/client/subscriptions")
+                                .build()
                             .build()}
 
 write '{'
@@ -82,11 +86,10 @@ connect await SESSION_READY
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("SUBSCRIBE_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .flags("SEND_RETAINED")
-                              .subscriptionId(1)
+                              .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .build()
                               .build()}
 
 connected
