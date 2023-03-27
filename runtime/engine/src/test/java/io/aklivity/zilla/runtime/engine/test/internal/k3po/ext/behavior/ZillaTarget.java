@@ -24,6 +24,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.END;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.FLUSH;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.RESET;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaTransmission.HALF_DUPLEX;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
 import static java.util.Arrays.asList;
@@ -935,7 +936,7 @@ final class ZillaTarget implements AutoCloseable
             this.handshakeFuture = handshakeFuture;
 
             boolean isChildChannel = channel.getParent() != null;
-            boolean isHalfDuplex = channel.getConfig().getTransmission() == ZillaTransmission.HALF_DUPLEX;
+            boolean isHalfDuplex = channel.getConfig().getTransmission() == HALF_DUPLEX;
 
             this.resetHandler = isChildChannel && isHalfDuplex ? this::onReset : this::onResetBeforeHandshake;
             handshakeFuture.addListener(this::onHandshakeCompleted);
