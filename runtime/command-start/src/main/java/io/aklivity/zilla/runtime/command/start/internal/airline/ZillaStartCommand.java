@@ -31,6 +31,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
+
+import org.agrona.ErrorHandler;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -47,32 +50,32 @@ public final class ZillaStartCommand extends ZillaCommand
     private final CountDownLatch stop = new CountDownLatch(1);
     private final CountDownLatch stopped = new CountDownLatch(1);
 
-    @Option(name = { "-c", "--config" },
-            description = "Configuration location",
-            hidden = true)
+    @Option(name = {"-c", "--config"},
+        description = "Configuration location",
+        hidden = true)
     public URI configURI;
 
-    @Option(name = { "-v", "--verbose" },
-            description = "Show verbose output")
+    @Option(name = {"-v", "--verbose"},
+        description = "Show verbose output")
     public boolean verbose;
 
-    @Option(name = { "-w", "--workers" },
-            description = "Worker count")
+    @Option(name = {"-w", "--workers"},
+        description = "Worker count")
     public int workers = -1;
 
-    @Option(name = { "-P", "--property" },
-            description = "Property name=value",
-            hidden = true)
+    @Option(name = {"-P", "--property"},
+        description = "Property name=value",
+        hidden = true)
     public List<String> properties;
 
-    @Option(name = { "-p", "--properties" },
-            description = "Path to properties",
-            hidden = true)
+    @Option(name = {"-p", "--properties"},
+        description = "Path to properties",
+        hidden = true)
     public String propertiesPath;
 
     @Option(name = "-e",
-            description = "Show exception traces",
-            hidden = true)
+        description = "Show exception traces",
+        hidden = true)
     public boolean exceptions;
 
     @Override
@@ -141,9 +144,19 @@ public final class ZillaStartCommand extends ZillaCommand
             }
         }
 
+        final Consumer<Throwable> report = exceptions
+            ? e -> e.printStackTrace(System.err)
+            : e -> System.err.println(e.getMessage());
+
+        final ErrorHandler onError = ex ->
+        {
+            report.accept(ex);
+            stop.countDown();
+        };
+
         try (Engine engine = Engine.builder()
             .config(config)
-            .errorHandler(this::onError)
+            .errorHandler(onError)
             .build())
         {
             engine.start();
@@ -163,20 +176,6 @@ public final class ZillaStartCommand extends ZillaCommand
             System.out.println("error");
             rethrowUnchecked(ex);
         }
-    }
-
-    private void onError(
-        Throwable error)
-    {
-        if (exceptions)
-        {
-            error.printStackTrace(System.err);
-        }
-        else
-        {
-            System.err.println(error.getMessage());
-        }
-        stop.countDown();
     }
 
     private void onShutdown()
