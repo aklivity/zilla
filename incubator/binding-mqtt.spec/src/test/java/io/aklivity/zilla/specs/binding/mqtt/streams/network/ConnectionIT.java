@@ -221,9 +221,9 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/connect.retain.unavailable/client",
-        "${net}/connect.retain.unavailable/server"})
-    public void shouldConnectWithRetainUnavailable() throws Exception
+        "${net}/connect.retain.not.supported/client",
+        "${net}/connect.retain.not.supported/server"})
+    public void shouldConnectWithRetainNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -231,9 +231,9 @@ public class ConnectionIT
     // [MQTT-3.2.2-13]
     @Test
     @Specification({
-        "${net}/connect.reject.will.retain.retain.unavailable/client",
-        "${net}/connect.reject.will.retain.retain.unavailable/server"})
-    public void shouldRejectConnectWithWillRetainRetainUnavailable() throws Exception
+        "${net}/connect.reject.will.retain.retain.not.supported/client",
+        "${net}/connect.reject.will.retain.retain.not.supported/server"})
+    public void shouldRejectConnectWithWillRetainRetainNotSupported() throws Exception
     {
         k3po.finish();
     }
