@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -133,6 +134,7 @@ public class FileSystemServerIT
         k3po.finish();
     }
 
+    @Ignore("Github Actions")
     @Test
     @Configuration("server_symlinks.yaml")
     @Specification({
@@ -160,6 +162,7 @@ public class FileSystemServerIT
         k3po.finish();
     }
 
+    @Ignore("Github Actions")
     @Test
     @Configuration("server_symlinks.yaml")
     @Specification({
