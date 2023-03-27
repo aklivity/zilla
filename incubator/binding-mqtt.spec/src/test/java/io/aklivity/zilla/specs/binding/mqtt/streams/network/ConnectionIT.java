@@ -363,15 +363,6 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/connect.with.session.expiry/client",
-        "${net}/connect.with.session.expiry/server"})
-    public void shouldConnectWithSessionExpiry() throws Exception
-    {
-        k3po.finish();
-    }
-
     // [MQTT-3.1.2-24]
     @Test
     @Specification({

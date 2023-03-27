@@ -44,15 +44,3 @@ read   [0x31 0x4a]                                 # PUBLISH
        [0x00 0x04] "row1"                          # user property key
        [0x00 0x01] "2"                             # user property value
        "{\"id\":\"1\",\"unit\":\"CELSIUS\",\"value\":\"189\"}" # payload
-
-read   [0x82 0x12]                   # SUBSCRIBE
-       [0xff 0xf6]                   # packet id = 66526
-       [0x02]                        # properties
-       [0x0b 0x01]                   # subscription id = 1
-       [0x00 0x0a] "/control/1"      # topic filter
-       [0x00]                        # options = at-most-once, send retained
-
-write  [0x90 0x04]                   # SUBACK
-       [0xff 0xf6]                   # packet id = 66526
-       [0x00]                        # properties = none
-       [0x00]                        # reason code

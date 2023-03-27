@@ -22,25 +22,33 @@ accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("SUBSCRIBE_ONLY")
-                             .clientId("client")
-                             .topic("sensor/one")
-                             .flags("NO_LOCAL", "SEND_RETAINED")
-                             .subscriptionId(1)
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "NO_LOCAL", "SEND_RETAINED")
+                                .build()
                              .build()}
 
 connected
 
-read advised zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .flags("NO_LOCAL", "SEND_RETAINED")
-                                 .capabilities("PUBLISH_AND_SUBSCRIBE")
-                                 .build()}
+
+accepted
+
+read zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
+                             .build()}
+
+connected
 
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("sensor/one")
-                            .expiryInterval(15)
-                            .format("TEXT")
+                            .publish()
+                                .topic("sensor/one")
+                                .expiryInterval(15)
+                                .format("TEXT")
+                                .build()
                             .build()}
 read "message"

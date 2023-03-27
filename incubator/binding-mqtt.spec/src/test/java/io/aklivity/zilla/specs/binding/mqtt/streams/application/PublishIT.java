@@ -65,15 +65,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.one.message.then.disconnect/client",
-        "${app}/publish.one.message.then.disconnect/server"})
-    public void shouldPublishOneMessageThenDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
     public void shouldPublishWithUserProperty() throws Exception

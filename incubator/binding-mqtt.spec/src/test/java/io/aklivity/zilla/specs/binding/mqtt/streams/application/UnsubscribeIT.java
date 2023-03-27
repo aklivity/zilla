@@ -54,4 +54,13 @@ public class UnsubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${app}/unsubscribe.only.one.topic/client",
+        "${app}/unsubscribe.only.one.topic/server"})
+    public void shouldUnsubscribeFromOneTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

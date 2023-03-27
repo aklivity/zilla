@@ -20,16 +20,19 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .clientId("client")
-                             .topic("$SYS/sessions/client/#")
-                             .subscriptionId(0)
+                             .session()
+                                .clientId("client")
+                                .pattern("$SYS/sessions/client/#")
+                                .build()
                              .build()}
 
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client/subscriptions")
+                            .session()
+                                .topic("$SYS/sessions/client/subscriptions")
+                                .build()
                             .build()}
 
 
@@ -68,11 +71,10 @@ connect await SESSION_READY
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("SUBSCRIBE_ONLY")
-                             .clientId("client")
-                             .topic("sensor/one")
-                             .flags("SEND_RETAINED")
-                             .subscriptionId(1)
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .build()
                              .build()}
 connected
 
@@ -89,17 +91,19 @@ connect await ABORTED
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .clientId("client")
-                             .topic("$SYS/sessions/client/#")
-                             .subscriptionId(0)
+                             .session()
+                                .clientId("client")
+                                .pattern("$SYS/sessions/client/#")
+                                .build()
                              .build()}
 
 connected
 
 read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .contentType("message")
-                             .format("TEXT")
+                             .session()
+                                .topic("$SYS/sessions/client/subscriptions")
+                                .build()
                              .build()}
 
 read '{'
@@ -121,20 +125,23 @@ connect await SESSION_READY2
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("SUBSCRIBE_ONLY")
-                             .clientId("client")
-                             .topic("sensor/one")
-                             .flags("SEND_RETAINED")
-                             .subscriptionId(1)
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .build()
                              .build()}
 connected
 
 read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .flags("RETAIN")
-                             .expiryInterval(15)
-                             .contentType("message")
-                             .format("TEXT")
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .flags("RETAIN")
+                                 .subscriptionId(1)
+                                 .expiryInterval(15)
+                                 .contentType("message")
+                                 .format("TEXT")
+                                 .build()
                              .build()}
 
 read "message"

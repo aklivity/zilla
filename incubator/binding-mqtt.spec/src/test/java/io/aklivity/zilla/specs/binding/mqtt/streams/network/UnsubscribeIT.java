@@ -74,6 +74,15 @@ public class UnsubscribeIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${net}/unsubscribe.only.one.topic/client",
+        "${net}/unsubscribe.only.one.topic/server"})
+    public void shouldUnsubscribeFromOneTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
     // [MQTT-3.10.1-1]
     @Test
     @Specification({

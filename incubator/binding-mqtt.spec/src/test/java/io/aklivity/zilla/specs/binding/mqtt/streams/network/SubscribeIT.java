@@ -47,6 +47,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.one.message.user.properties.unaltered/client",
+        "${net}/subscribe.one.message.user.properties.unaltered/server"})
+    public void shouldSubscribeOneMessageWithUserPropertiesUnaltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.receive.message.wildcard/client",
         "${net}/subscribe.receive.message.wildcard/server"})
     public void shouldSubscribeOneMessageWithPatternTopic() throws Exception

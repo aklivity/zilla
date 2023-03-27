@@ -47,7 +47,10 @@ write [0x30 0x0e]                    # PUBLISH
       [0x23 0x00 0x01]               # topic alias = 1
       "message2"                     # payload
 
-connect "zilla://streams/net0"
+write notify PUBLISHED
+
+connect await PUBLISHED
+    "zilla://streams/net0"
    option zilla:window 8192
    option zilla:transmission "duplex"
 
@@ -72,7 +75,7 @@ write [0x30 0x0e]                    # PUBLISH
       [0x00 0x00]                    # topic name
       [0x03]                         # properties
       [0x23 0x00 0x01]               # topic alias = 1
-      "message2"                     # payload
+      "message3"                     # payload
 
 read  [0xe0 0x02]                    # disconnect header
       [0x82]                         # disconnect = protocol error

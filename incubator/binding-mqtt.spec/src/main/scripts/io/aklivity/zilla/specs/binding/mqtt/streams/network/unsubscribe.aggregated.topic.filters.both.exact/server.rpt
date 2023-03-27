@@ -50,7 +50,7 @@ write  [0x90 0x05]                   # SUBACK
        [0x00 0x00]                   # reason codes
 
 
-read   [0xa2 0x0f]                   # UNSUBSCRIBE
+read   [0xa2 0x19]                   # UNSUBSCRIBE
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
        [0x00 0x0a] "sensor/one"      # topic filter

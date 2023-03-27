@@ -24,20 +24,22 @@ accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("client")
-                              .topic("/control/1")
-                              .subscriptionId(0)
+                              .publish()
+                                .clientId("client")
+                                .topic("control/1")
+                                .build()
                               .build()}
 
 connected
 
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("/control/1")
-                            .expiryInterval(15)
-                            .contentType("message")
-                            .format("TEXT")
+                            .publish()
+                                .topic("/control/1")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .build()
                             .build()}
 read "message"
 

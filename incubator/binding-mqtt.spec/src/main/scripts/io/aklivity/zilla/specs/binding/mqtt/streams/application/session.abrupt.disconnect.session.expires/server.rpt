@@ -22,10 +22,10 @@ accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("client")
-                             .topic("$SYS/sessions/client/#")
-                             .subscriptionId(0)
+                             .session()
+                                .clientId("client")
+                                .pattern("$SYS/sessions/client/#")
+                                .build()
                              .build()}
 
 connected
@@ -34,15 +34,18 @@ write flush
 
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client")
+                            .session()
+                                .topic("$SYS/sessions/client")
+                                .build()
                             .build()}
 
 read '{"expiresAt":'/(?<expiresAt>\d+)/'}'
 
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/client")
-                            .format("TEXT")
+                            .session()
+                                .topic("$SYS/sessions/client")
+                                .build()
                             .build()}
 
 read zilla:data.empty

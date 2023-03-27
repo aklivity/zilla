@@ -20,63 +20,54 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .subscriptionId(0)
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
                               .build()}
 
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
-                             .expiryInterval(15)
-                             .contentType("message")
-                             .format("TEXT")
-                             .responseTopic("sensor/one")
-                             .correlation("info")
+                             .publish()
+                                .topic("sensor/one")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
+                                .build()
                              .build()}
 
 write "message1"
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
-                             .expiryInterval(15)
-                             .contentType("message")
-                             .format("TEXT")
-                             .responseTopic("sensor/one")
-                             .correlation("info")
+                             .publish()
+                                .topic("sensor/one")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
+                                .build()
                              .build()}
 
 write "message2"
 
 write flush
-write close
-
-connect "zilla://streams/app0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .subscriptionId(0)
-                              .build()}
-
-connected
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
-                             .expiryInterval(15)
-                             .contentType("message")
-                             .format("TEXT")
-                             .responseTopic("sensor/one")
-                             .correlation("info")
+                             .publish()
+                                .topic("sensor/one")
+                                .expiryInterval(15)
+                                .contentType("message")
+                                .format("TEXT")
+                                .responseTopic("sensor/one")
+                                .correlation("info")
+                                .build()
                              .build()}
 
 write "message3"

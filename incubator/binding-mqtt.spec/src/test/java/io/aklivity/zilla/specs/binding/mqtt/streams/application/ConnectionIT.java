@@ -47,15 +47,6 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${app}/connect.with.session.expiry/client",
-        "${app}/connect.with.session.expiry/server"})
-    public void shouldConnectWithSessionExpiry() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/connect.max.packet.size.server.ignores.exceeding.publish.packet/client",
         "${app}/connect.max.packet.size.server.ignores.exceeding.publish.packet/server"})
     public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception

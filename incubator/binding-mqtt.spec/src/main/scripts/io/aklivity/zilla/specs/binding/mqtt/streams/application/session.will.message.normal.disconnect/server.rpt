@@ -22,25 +22,28 @@ accepted
 
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .capabilities("PUBLISH_ONLY")
-                             .clientId("one")
-                             .topic("$SYS/sessions/one/#")
-                             .subscriptionId(0)
+                             .session()
+                                .clientId("one")
+                                .pattern("$SYS/sessions/one/#")
+                                .build()
                              .build()}
 
 connected
 
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/one")
+                            .session()
+                                .topic("$SYS/sessions/one")
+                                .build()
                             .build()}
 
 read '{"expiresAt":'/(?<expiresAt>\d+)/'}'
 
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/one/will")
-                            .format("TEXT")
+                            .session()
+                                .topic("$SYS/sessions/one/will")
+                                .build()
                             .build()}
 
 read "client one session expired"
@@ -48,8 +51,9 @@ write flush
 
 read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
-                            .topic("$SYS/sessions/one")
-                            .format("TEXT")
+                            .session()
+                                .topic("$SYS/sessions/one")
+                                .build()
                             .build()}
 
 read zilla:data.empty

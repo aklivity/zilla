@@ -20,16 +20,27 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("one")
-                              .topic("$SYS/sessions/one/#")
-                              .subscriptionId(0)
+                              .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .build()
                               .build()}
+
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("$SYS/sessions/one")
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .flags("RETAIN")
+                                 .subscriptionId(1)
+                                 .expiryInterval(15)
+                                 .contentType("message")
+                                 .format("TEXT")
+                                 .userProperty("row1", "1")
+                                 .userProperty("row1", "2")
+                                 .build()
                              .build()}
-write '{"expiresAt":123456789}'
-write flush
+
+
+read "message"

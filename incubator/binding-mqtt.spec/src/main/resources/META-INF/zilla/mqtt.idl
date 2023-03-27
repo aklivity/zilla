@@ -22,7 +22,8 @@ scope mqtt
         QOS2(2),
         SEND_RETAINED(3),
         RETAIN_AS_PUBLISHED(4),
-        NO_LOCAL(5)
+        NO_LOCAL(5),
+        RETAIN(6)
     }
 
     enum MqttPublishFlags (uint8)
@@ -60,33 +61,66 @@ scope mqtt
 
     scope stream
     {
+        enum MqttApi (uint8)
+        {
+            SESSION (2),
+            SUBSCRIBE (1),
+            PUBLISH (0)
+        }
 
         union MqttBeginEx switch (uint8) extends core::stream::Extension
         {
+            case 2: mqtt::stream::MqttSessionBeginEx session;
             case 1: mqtt::stream::MqttSubscribeBeginEx subscribe;
-            case 0: kafka::stream::MqttProduceBeginEx produce;
+            case 0: mqtt::stream::MqttPublishBeginEx publish;
         }
 
-        struct MqttSubscribeBeginEx extends core::stream::Extension
+        struct MqttSessionBeginEx
+        {
+            string16 clientId;
+            string16 pattern; // TODO: do we need this at all? It's always $SYS/sessions/<clientId>/#
+        }
+
+        struct MqttSubscribeBeginEx
         {
             string16 clientId;
             MqttTopicFilter[] filters;
-            MqttUserProperty[] properties;
         }
 
-        struct MqttProduceBeginEx extends core::stream::Extension
+        struct MqttPublishBeginEx
         {
             string16 clientId;
             string16 topic;
+        }
+
+        union MqttDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 2: mqtt::stream::MqttSessionDataEx session;
+            case 1: mqtt::stream::MqttSubscribeDataEx subscribe;
+            case 0: mqtt::stream::MqttPublishDataEx publish;
+        }
+
+        struct MqttSessionDataEx
+        {
+            string16 topic = null;
             uint8 flags = 0;
+        }
+
+        struct MqttSubscribeDataEx
+        {
+            int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
+            string16 topic = null;
+            uint8 flags = 0;
+            varuint32[] subscriptionIds;
+            int32 expiryInterval = -1;
+            string16 contentType = null;
+            MqttPayloadFormat format = BINARY;
+            string16 responseTopic = null;
+            MqttBinary correlation;
             MqttUserProperty[] properties;
         }
 
-        //TODO: split MqttBeginEx to MqttProduceBeginEx and MqttSubscribeBeginEx, MqttSessionBeginEx - bidirectional (like kafka with union)
-        //and adapt the tests. Remove MqttCapabilities
-        //TODO: check if we need to split the others as well
-
-        struct MqttDataEx extends core::stream::Extension
+        struct MqttPublishDataEx
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
             string16 topic = null;
@@ -99,6 +133,7 @@ scope mqtt
             MqttUserProperty[] properties;
         }
 
+        //TODO: do we need this?
         struct MqttAbortEx extends core::stream::Extension
         {
             uint8 reason;
