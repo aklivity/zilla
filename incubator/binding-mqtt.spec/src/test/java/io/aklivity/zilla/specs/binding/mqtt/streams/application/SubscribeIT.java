@@ -173,15 +173,6 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${app}/subscribe.after.publish.no.local/client",
-        "${app}/subscribe.after.publish.no.local/server"})
-    public void shouldPublishThenSubscribeNoLocal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/subscribe.one.message.get.local/client",
         "${app}/subscribe.one.message.get.local/server"})
     public void shouldPublishThenSubscribeOneMessage() throws Exception

@@ -79,9 +79,9 @@ public class PublishIT
     // [MQTT-3.2.2-9], [MQTT-3.2.2-12]
     @Test
     @Specification({
-        "${net}/publish.reject.qos1.unavailable/client",
-        "${net}/publish.reject.qos1.unavailable/server"})
-    public void shouldRejectQos1Unavailable() throws Exception
+        "${net}/publish.reject.qos1.not.supported/client",
+        "${net}/publish.reject.qos1.not.supported/server"})
+    public void shouldRejectQos1NotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -89,9 +89,9 @@ public class PublishIT
     // [MQTT-3.2.2-9], [MQTT-3.2.2-12]
     @Test
     @Specification({
-        "${net}/publish.reject.qos2.unavailable/client",
-        "${net}/publish.reject.qos2.unavailable/server"})
-    public void shouldRejectQos2Unavailable() throws Exception
+        "${net}/publish.reject.qos2.not.supported/client",
+        "${net}/publish.reject.qos2.not.supported/server"})
+    public void shouldRejectQos2NotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -148,9 +148,9 @@ public class PublishIT
     // [MQTT-3.2.2-14]
     @Test
     @Specification({
-        "${net}/publish.reject.retain.unavailable/client",
-        "${net}/publish.reject.retain.unavailable/server"})
-    public void shouldRejectRetainedPublishRetainUnavailable() throws Exception
+        "${net}/publish.reject.retain.not.supported/client",
+        "${net}/publish.reject.retain.not.supported/server"})
+    public void shouldRejectRetainedPublishRetainNotSupported() throws Exception
     {
         k3po.finish();
     }

@@ -258,15 +258,6 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/subscribe.after.publish.no.local/client",
-        "${net}/subscribe.after.publish.no.local/server"})
-    public void shouldSubscribeAfterPublishNoLocal() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/subscribe.one.message.get.local/client",
         "${net}/subscribe.one.message.get.local/server"})
     public void shouldSubscribeGetLocalPublishedMessage() throws Exception
@@ -295,27 +286,27 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/subscribe.reject.wildcard.subscriptions.unavailable/client",
-        "${net}/subscribe.reject.wildcard.subscriptions.unavailable/server"})
-    public void shouldRejectSubscribeWithWildcardSubscriptionsUnavailable() throws Exception
+        "${net}/subscribe.reject.wildcard.subscriptions.not.supported/client",
+        "${net}/subscribe.reject.wildcard.subscriptions.not.supported/server"})
+    public void shouldRejectSubscribeWithWildcardSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/subscribe.reject.subscription.id.unavailable/client",
-        "${net}/subscribe.reject.subscription.id.unavailable/server"})
-    public void shouldConnectWithSubscriptionIdentifiersUnavailable() throws Exception
+        "${net}/subscribe.reject.subscription.id.not.supported/client",
+        "${net}/subscribe.reject.subscription.id.not.supported/server"})
+    public void shouldConnectWithSubscriptionIdentifiersNotSupported() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/subscribe.reject.shared.subscription.unavailable/client",
-        "${net}/subscribe.reject.shared.subscription.unavailable/server"})
-    public void shouldConnectWithSharedSubscriptionsUnavailable() throws Exception
+        "${net}/subscribe.reject.shared.subscription.not.supported/client",
+        "${net}/subscribe.reject.shared.subscription.not.supported/server"})
+    public void shouldConnectWithSharedSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();
     }

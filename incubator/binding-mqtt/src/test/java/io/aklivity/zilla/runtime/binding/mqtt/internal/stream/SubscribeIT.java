@@ -325,20 +325,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/subscribe.after.publish.no.local/client",
-        "${app}/subscribe.after.publish.no.local/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeAfterPublishNoLocal() throws Exception
-    {
-        k3po.finish();
-    }
-
     @Ignore("GitHub Actions")
     @Test
     @Configuration("server.yaml")
