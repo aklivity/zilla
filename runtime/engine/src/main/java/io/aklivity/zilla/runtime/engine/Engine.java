@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
@@ -171,7 +172,8 @@ public final class Engine implements AutoCloseable
         String protocol = rootConfigURL.getProtocol();
         if ("file".equals(protocol) || "jar".equals(protocol))
         {
-            this.watcherTask = new FileWatcherTask(this::reconfigure);
+            Function<String, String> watcherReadURL = l -> readURL(rootConfigURL, l);
+            this.watcherTask = new FileWatcherTask(watcherReadURL, this::reconfigure);
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {

@@ -34,9 +34,6 @@ public abstract class WatcherTask implements Callable<Void>, Closeable
 
     public abstract Future<Void> submit();
 
-    public abstract String readURL(
-        URL configURL);
-
     public abstract CompletableFuture<NamespaceConfig> watch(
         URL configURL);
 
