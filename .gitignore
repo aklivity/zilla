@@ -28,4 +28,4 @@ node_modules/
 *.epub
 *.mobi
 *.pdf
-.zshrc
+*.zshrc

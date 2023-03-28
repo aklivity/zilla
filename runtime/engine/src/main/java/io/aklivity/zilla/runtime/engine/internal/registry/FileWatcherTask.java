@@ -27,11 +27,10 @@ import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
@@ -39,7 +38,6 @@ import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 public class FileWatcherTask extends WatcherTask
 {
     private final Map<WatchKey, WatchedConfig> watchedConfigs;
-    private final MessageDigest md5;
     private final WatchService watchService;
 
     public FileWatcherTask(
@@ -47,22 +45,25 @@ public class FileWatcherTask extends WatcherTask
     {
         super(changeListener);
         this.watchedConfigs = new IdentityHashMap<>();
-        MessageDigest md5 = null;
         WatchService watchService = null;
 
         try
         {
-            md5 = MessageDigest.getInstance("MD5");
             watchService = FileSystems.getDefault().newWatchService();
         }
-        catch (NoSuchAlgorithmException | IOException ex)
+        catch (IOException ex)
         {
             rethrowUnchecked(ex);
         }
 
-        this.md5 = md5;
         this.watchService = watchService;
 
+    }
+
+    @Override
+    public Future<Void> submit()
+    {
+        return executor.submit(this);
     }
 
     @Override
@@ -142,11 +143,5 @@ public class FileWatcherTask extends WatcherTask
             return "";
         }
         return configText;
-    }
-
-    private byte[] computeHash(
-        String configText)
-    {
-        return md5.digest(configText.getBytes(UTF_8));
     }
 }

@@ -29,6 +29,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.CloseHelper.quietClose;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -58,7 +59,6 @@ import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
 import org.agrona.DirectBuffer;
 import org.agrona.ErrorHandler;
-import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -188,7 +188,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
-
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -565,7 +564,7 @@ public class DispatchAgent implements EngineContext, Agent
         }
         catch (MalformedURLException ex)
         {
-            LangUtil.rethrowUnchecked(ex);
+            rethrowUnchecked(ex);
         }
         return resolved;
     }
@@ -624,7 +623,6 @@ public class DispatchAgent implements EngineContext, Agent
                 break;
             }
         }
-
         configuration.detachAll();
 
         poller.onClose();
