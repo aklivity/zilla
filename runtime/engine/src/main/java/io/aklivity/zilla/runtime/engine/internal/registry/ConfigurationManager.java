@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -68,7 +69,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.json.UniquePropertyKey
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 
 
-public class ConfigurationManager implements ConfigAdapterContext
+public class ConfigurationManager
 {
     protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
     private final Collection<URL> schemaTypes;
@@ -81,8 +82,7 @@ public class ConfigurationManager implements ConfigAdapterContext
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
-    private final Function<String, String> readURL;
-    private final Consumer<URL> handleConfigURL;
+    private final BiFunction<URL, String, String> readURL;
     private final ExpressionResolver expressions;
 
     public ConfigurationManager(
@@ -96,8 +96,7 @@ public class ConfigurationManager implements ConfigAdapterContext
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
-        Function<String, String> readURL,
-        Consumer<URL> handleConfigURL)
+        BiFunction<URL, String, String> readURL)
     {
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
@@ -110,11 +109,11 @@ public class ConfigurationManager implements ConfigAdapterContext
         this.config = config;
         this.extensions = extensions;
         this.readURL = readURL;
-        this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
 
     public NamespaceConfig parse(
+        URL configURL,
         String configText)
     {
         NamespaceConfig namespace = null;
@@ -179,8 +178,10 @@ public class ConfigurationManager implements ConfigAdapterContext
                 break parse;
             }
 
+            final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
+
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter(this));
+                .withAdapters(new NamespaceAdapter(new NamespaceConfigAdapterContext(namespaceReadURL)));
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)
                 .withConfig(config)
@@ -194,8 +195,7 @@ public class ConfigurationManager implements ConfigAdapterContext
             }
 
             namespace.id = supplyId.applyAsInt(namespace.name);
-
-            namespace.readURL = readURL;
+            namespace.readURL = namespaceReadURL;
 
             // TODO: consider qualified name "namespace::name"
             final NamespaceConfig namespace0 = namespace;
@@ -204,7 +204,7 @@ public class ConfigurationManager implements ConfigAdapterContext
             for (GuardConfig guard : namespace.guards)
             {
                 guard.id = namespace.resolveId.applyAsLong(guard.name);
-                guard.readURL = readURL;
+                guard.readURL = namespaceReadURL;
             }
 
             for (VaultConfig vault : namespace.vaults)
@@ -306,9 +306,21 @@ public class ConfigurationManager implements ConfigAdapterContext
         logger.accept("Configuration parsing error: " + message);
     }
 
-    @Override
-    public String readURL(String location)
+    public final class NamespaceConfigAdapterContext implements ConfigAdapterContext
     {
-        return readURL.apply(location);
+        private final Function<String, String> readURL;
+
+        NamespaceConfigAdapterContext(
+            Function<String, String> readURL)
+        {
+            this.readURL = readURL;
+        }
+
+        @Override
+        public String readURL(
+            String location)
+        {
+            return readURL.apply(location);
+        }
     }
 }

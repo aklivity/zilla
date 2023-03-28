@@ -16,10 +16,13 @@
 
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.WatchKey;
@@ -38,10 +41,9 @@ public class FileWatcherTask extends WatcherTask
     private final WatchService watchService;
 
     public FileWatcherTask(
-        URL rootConfigURL,
         BiFunction<URL, String, NamespaceConfig> changeListener)
     {
-        super(rootConfigURL, changeListener);
+        super(changeListener);
         this.watchedConfigs = new IdentityHashMap<>();
         WatchService watchService = null;
 
@@ -82,7 +84,7 @@ public class FileWatcherTask extends WatcherTask
                     watchedConfig.unregister();
                     watchedConfig.register();
                     watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-                    String newConfigText = readURL(watchedConfig.getURL().toString());
+                    String newConfigText = readURL(watchedConfig.getURL());
                     byte[] newConfigHash = computeHash(newConfigText);
                     if (watchedConfig.isReconfigureNeeded(newConfigHash))
                     {
@@ -107,7 +109,7 @@ public class FileWatcherTask extends WatcherTask
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
         watchedConfig.register();
         watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-        String configText = readURL(configURL.toString());
+        String configText = readURL(configURL);
         watchedConfig.setConfigHash(computeHash(configText));
         NamespaceConfig config = changeListener.apply(configURL, configText);
         if (config == null)
@@ -121,5 +123,25 @@ public class FileWatcherTask extends WatcherTask
     public void close() throws IOException
     {
         watchService.close();
+    }
+
+    @Override
+    public String readURL(
+        URL configURL)
+    {
+        String configText;
+        try
+        {
+            URLConnection connection = configURL.openConnection();
+            try (InputStream input = connection.getInputStream())
+            {
+                configText = new String(input.readAllBytes(), UTF_8);
+            }
+        }
+        catch (IOException ex)
+        {
+            return "";
+        }
+        return configText;
     }
 }
