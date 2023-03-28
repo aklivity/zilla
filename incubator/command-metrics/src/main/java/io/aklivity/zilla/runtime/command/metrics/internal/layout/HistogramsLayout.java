@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.HISTOGRAM_BUCKETS;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.HISTOGRAM_BUCKETS;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
 

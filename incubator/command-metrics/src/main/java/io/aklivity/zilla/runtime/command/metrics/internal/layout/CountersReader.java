@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.COUNTER;
 
 import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
-public class CountersReader implements Reader
+public class CountersReader implements FileReader
 {
     private final CountersLayout layout;
 

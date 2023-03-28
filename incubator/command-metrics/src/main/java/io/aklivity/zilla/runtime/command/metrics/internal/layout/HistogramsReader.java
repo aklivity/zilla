@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
 
 import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
-public class HistogramsReader implements Reader
+public class HistogramsReader implements FileReader
 {
     private final HistogramsLayout layout;
 

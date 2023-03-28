@@ -18,7 +18,7 @@ package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 import java.util.Map;
 import java.util.function.LongSupplier;
 
-public interface Reader
+public interface FileReader
 {
     int BINDING_ID_INDEX = 0;
     int METRIC_ID_INDEX = 1;

@@ -15,12 +15,12 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.BINDING_ID_INDEX;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.METRIC_ID_INDEX;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.NUMBER_OF_VALUES;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.VALUES_INDEX;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.BINDING_ID_INDEX;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.METRIC_ID_INDEX;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.NUMBER_OF_VALUES;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.VALUES_INDEX;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -46,9 +46,9 @@ import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.LongArrayFunction;
 
 @Command(name = "metrics", description = "Show engine metrics")
@@ -71,8 +71,8 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
     private final LabelManager labels;
     private final Map<Integer, Map<Integer, Map<Integer, long[]>>> metrics; // namespace -> binding -> metric -> values
-    private final Map<Integer, Reader.Kind> metricTypes;
-    private final Map<Reader.Kind, LongArrayFunction<String>> toStringConverters =
+    private final Map<Integer, FileReader.Kind> metricTypes;
+    private final Map<FileReader.Kind, LongArrayFunction<String>> toStringConverters =
             Map.of(COUNTER, this::counterToStringConverter, HISTOGRAM, this::histogramToStringConverter);
 
     private int namespaceWidth = NAMESPACE_HEADER.length();
@@ -95,17 +95,17 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
         try (Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1))
         {
-            for (Reader reader : readers(files))
+            for (FileReader fileReader : readers(files))
             {
-                for (LongSupplier[] recordReader : reader.recordReaders())
+                for (LongSupplier[] recordReader : fileReader.recordReaders())
                 {
                     if (filterByNamespaceAndBinding.test(recordReader[0].getAsLong()))
                     {
-                        collectMetricValue(recordReader, reader.kind());
-                        calculateColumnWidths(recordReader, reader.kind());
+                        collectMetricValue(recordReader, fileReader.kind());
+                        calculateColumnWidths(recordReader, fileReader.kind());
                     }
                 }
-                reader.close();
+                fileReader.close();
             }
             printMetrics();
         }
@@ -132,7 +132,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return id -> (id & mask) == namespacedId;
     }
 
-    private List<Reader> readers(
+    private List<FileReader> readers(
         Stream<Path> files)
     {
         return files.flatMap(path ->
@@ -168,14 +168,14 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 Files.isRegularFile(path);
     }
 
-    private Reader newCountersReader(
+    private FileReader newCountersReader(
         Path path)
     {
         CountersLayout layout = new CountersLayout.Builder().path(path).build();
         return new CountersReader(layout);
     }
 
-    private Reader newHistogramsReader(
+    private FileReader newHistogramsReader(
         Path path)
     {
         HistogramsLayout layout = new HistogramsLayout.Builder().path(path).build();
@@ -184,7 +184,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
     private void collectMetricValue(
         LongSupplier[] recordReader,
-        Reader.Kind kind)
+        FileReader.Kind kind)
     {
         int numberOfValues = NUMBER_OF_VALUES.get(kind);
         int namespaceId = namespaceId(recordReader[BINDING_ID_INDEX].getAsLong());
@@ -210,7 +210,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
     private void calculateColumnWidths(
         LongSupplier[] recordReader,
-        Reader.Kind kind)
+        FileReader.Kind kind)
     {
         int namespaceId = namespaceId(recordReader[BINDING_ID_INDEX].getAsLong());
         int bindingId = localId(recordReader[BINDING_ID_INDEX].getAsLong());
