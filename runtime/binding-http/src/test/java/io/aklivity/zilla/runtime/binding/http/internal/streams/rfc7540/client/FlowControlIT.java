@@ -55,7 +55,7 @@ public class FlowControlIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/stream.flow/client",
         "${net}/client.stream.flow/server" })
@@ -66,7 +66,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.rst.stream.last.frame/client",
         "${net}/client.rst.stream.last.frame/server"
@@ -77,7 +77,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.sent.100k.message/client",
         "${net}/client.sent.100k.message/server" })

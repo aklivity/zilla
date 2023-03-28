@@ -33,7 +33,7 @@ write zilla:begin.ext ${filesystem:beginEx()
                                   .path("index.html")
                                   .type("text/html")
                                   .payloadSize(77)
-                                  .modifiedTime(1643869342000)
+                                  .tag("c7183509522eb56e5cf927a3b2e8c15a")
                                   .build()}
 write flush
 

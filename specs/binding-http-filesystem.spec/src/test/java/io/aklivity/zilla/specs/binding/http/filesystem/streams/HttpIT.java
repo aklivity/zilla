@@ -44,6 +44,25 @@ public class HttpIT
         k3po.finish();
     }
 
+
+    @Test
+    @Specification({
+        "${http}/client.read.file.map.modified/client",
+        "${http}/client.read.file.map.modified/server"})
+    public void shouldReceiveClientReadFileMapModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${http}/client.read.file.map.not.modified/client",
+        "${http}/client.read.file.map.not.modified/server"})
+    public void shouldReceiveClientReadFileMapNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Specification({
         "${http}/client.read.file.with.query/client",

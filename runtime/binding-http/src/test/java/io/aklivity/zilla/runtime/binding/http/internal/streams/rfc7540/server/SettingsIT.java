@@ -52,7 +52,7 @@ public class SettingsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/max.concurrent.streams/client" })
     @Configure(name = HTTP_CONCURRENT_STREAMS_NAME, value = "250")
@@ -62,7 +62,7 @@ public class SettingsIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/max.header.list.size/client" })
     @Configure(name = HTTP_MAX_HEADER_LIST_SIZE_NAME, value = "4096")

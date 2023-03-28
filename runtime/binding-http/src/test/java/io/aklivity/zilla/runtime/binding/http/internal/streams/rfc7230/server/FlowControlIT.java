@@ -52,7 +52,7 @@ public class FlowControlIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/multiple.requests.pipelined.fragmented/client",
         "${app}/connection.management/multiple.requests.serialized/server" })
@@ -63,7 +63,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.management/multiple.requests.pipelined/client",
         "${app}/connection.management/multiple.requests.serialized/server" })
@@ -75,7 +75,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/request.fragmented/client",
         "${app}/message.format/request.with.headers/server" })
@@ -85,7 +85,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/message.format/request.with.content.length/client",
         "${app}/message.format/request.with.content.length/server" })
@@ -96,7 +96,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/request.fragmented.with.content.length/client",
         "${app}/message.format/request.with.content.length/server" })
@@ -106,7 +106,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/request.fragmented.with.content.length/client",
         "${app}/message.format/request.with.content.length/server"})
@@ -117,7 +117,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/request.with.content.length.and.transport.close/client",
         "${app}/message.format/request.with.content.length/server" })
@@ -127,7 +127,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection.management/upgrade.request.and.response.with.data/client",
         "${app}/connection.management/upgrade.request.and.response.with.data/server"})
@@ -139,7 +139,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/architecture/request.and.response/client",
         "${app}/architecture/request.and.response/server"})
@@ -150,7 +150,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/response.headers.with.padding/client",
         "${app}/flow.control/response.headers.with.padding/server"})
@@ -160,7 +160,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/message.format/response.with.content.length/client",
         "${app}/message.format/response.with.content.length/server"})
@@ -171,7 +171,7 @@ public class FlowControlIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/flow.control/response.with.padding/client",
         "${app}/flow.control/response.with.padding/server"})

@@ -52,7 +52,7 @@ public class ClientMetaIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.unreachable/client" })
     public void shouldRejectWhenTopicUnreachable() throws Exception
@@ -61,7 +61,7 @@ public class ClientMetaIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.invalid/client",
         "${net}/topic.invalid/server"})
@@ -71,7 +71,7 @@ public class ClientMetaIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.partition.info.incomplete/client",
         "${net}/topic.partition.info.incomplete/server" })
@@ -81,7 +81,7 @@ public class ClientMetaIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.partition.info/client",
         "${net}/topic.partition.info/server"})
@@ -91,7 +91,7 @@ public class ClientMetaIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.unknown/client",
         "${net}/topic.unknown/server" })
@@ -101,7 +101,7 @@ public class ClientMetaIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.partition.info.changed/client",
         "${net}/topic.partition.info.changed/server"})

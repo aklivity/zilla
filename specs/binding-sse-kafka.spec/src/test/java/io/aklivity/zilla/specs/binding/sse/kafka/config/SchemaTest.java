@@ -30,12 +30,13 @@ public class SchemaTest
     @Rule
     public final ConfigSchemaRule schema = new ConfigSchemaRule()
         .schemaPatch("io/aklivity/zilla/specs/binding/sse/kafka/schema/sse.kafka.schema.patch.json")
+        .schemaPatch("io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json")
         .configurationRoot("io/aklivity/zilla/specs/binding/sse/kafka/config");
 
     @Test
     public void shouldValidateProxyWithTopic()
     {
-        JsonObject config = schema.validate("proxy.with.topic.json");
+        JsonObject config = schema.validate("proxy.with.topic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -43,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicDynamic()
     {
-        JsonObject config = schema.validate("proxy.with.topic.dynamic.json");
+        JsonObject config = schema.validate("proxy.with.topic.dynamic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -51,7 +52,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicAndFilters()
     {
-        JsonObject config = schema.validate("proxy.with.topic.and.filters.json");
+        JsonObject config = schema.validate("proxy.with.topic.and.filters.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -59,7 +60,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicAndFiltersDynamic()
     {
-        JsonObject config = schema.validate("proxy.with.topic.and.filters.dynamic.json");
+        JsonObject config = schema.validate("proxy.with.topic.and.filters.dynamic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -67,7 +68,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicAndEventId()
     {
-        JsonObject config = schema.validate("proxy.with.topic.and.event.id.json");
+        JsonObject config = schema.validate("proxy.with.topic.and.event.id.yaml");
 
         assertThat(config, not(nullValue()));
     }

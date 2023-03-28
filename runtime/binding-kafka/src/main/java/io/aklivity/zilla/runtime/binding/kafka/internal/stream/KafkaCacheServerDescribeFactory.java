@@ -21,9 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -694,7 +694,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
                 final ArrayFW<KafkaConfigFW> changedConfigs = kafkaDescribeDataEx.configs();
                 if (configValues == null)
                 {
-                    configValues = new TreeMap<>();
+                    configValues = new LinkedHashMap<>();
                 }
 
                 configValues.clear();

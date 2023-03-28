@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.engine;
 
 import static java.util.Objects.requireNonNull;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -35,8 +34,6 @@ public class EngineBuilder
 {
     private Configuration config;
     private ErrorHandler errorHandler;
-
-    private URL configURL;
     private Collection<EngineAffinity> affinities;
 
     EngineBuilder()
@@ -48,13 +45,6 @@ public class EngineBuilder
         Configuration config)
     {
         this.config = requireNonNull(config);
-        return this;
-    }
-
-    public EngineBuilder configURL(
-        URL configURL)
-    {
-        this.configURL = configURL;
         return this;
     }
 
@@ -104,6 +94,6 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, guards, vaults, errorHandler, configURL, affinities);
+        return new Engine(config, bindings, guards, vaults, errorHandler, affinities);
     }
 }

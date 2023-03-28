@@ -64,7 +64,7 @@ public class AmqpServerIT
 
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/header.exchange/handshake.client" })
     public void shouldExchangeHeader() throws Exception
@@ -73,7 +73,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/sasl.exchange/client" })
     public void shouldExchangeSasl() throws Exception
@@ -82,7 +82,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/protocol.header.unmatched/client" })
     public void shouldCloseStreamWhenHeaderUnmatched() throws Exception
@@ -91,7 +91,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/open.exchange/client" })
     public void shouldExchangeOpen() throws Exception
@@ -100,7 +100,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/close.exchange/client" })
     public void shouldExchangeClose() throws Exception
@@ -109,7 +109,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/close.exchange.server.abandoned/client" })
     @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
@@ -119,7 +119,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/begin.exchange/client" })
     public void shouldExchangeBegin() throws Exception
@@ -128,7 +128,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/begin.then.close/client" })
     public void shouldExchangeBeginThenClose() throws Exception
@@ -137,7 +137,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/end.exchange/client" })
     public void shouldExchangeEnd() throws Exception
@@ -146,7 +146,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/attach.as.receiver.only/client",
         "${app}/connect.as.receiver.only/server" })
@@ -157,7 +157,7 @@ public class AmqpServerIT
 
     @Ignore
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/attach.as.receiver.then.sender/client",
         "${app}/connect.as.receiver.then.sender/server" })
@@ -167,7 +167,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/attach.as.sender.only/client",
         "${app}/connect.as.sender.only/server" })
@@ -178,7 +178,7 @@ public class AmqpServerIT
 
     @Ignore
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/attach.as.sender.then.receiver/client",
         "${app}/connect.as.sender.then.receiver/server" })
@@ -188,7 +188,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/detach.exchange/client",
         "${app}/disconnect/server" })
@@ -198,7 +198,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/attach.as.receiver.when.source.does.not.exist/client",
         "${app}/connect.and.reset/server" })
@@ -208,7 +208,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/attach.as.sender.when.target.does.not.exist/client",
         "${app}/connect.and.reset/server" })
@@ -219,7 +219,7 @@ public class AmqpServerIT
 
     @Ignore
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.at.least.once/client",
         "${app}/send.to.client.at.least.once/server" })
@@ -229,7 +229,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.array8/client",
         "${app}/send.to.client.with.array8/server" })
@@ -239,7 +239,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.array32/client",
         "${app}/send.to.client.with.array32/server" })
@@ -249,7 +249,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.boolean/client",
         "${app}/send.to.client.with.boolean/server" })
@@ -259,7 +259,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.byte/client",
         "${app}/send.to.client.with.byte/server" })
@@ -269,7 +269,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.char/client",
         "${app}/send.to.client.with.char/server" })
@@ -279,7 +279,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.false/client",
         "${app}/send.to.client.with.false/server" })
@@ -289,7 +289,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.int/client",
         "${app}/send.to.client.with.int/server" })
@@ -299,7 +299,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.list0/client",
         "${app}/send.to.client.with.list0/server" })
@@ -309,7 +309,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.list8/client",
         "${app}/send.to.client.with.list8/server" })
@@ -319,7 +319,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.list32/client",
         "${app}/send.to.client.with.list32/server" })
@@ -329,7 +329,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.long/client",
         "${app}/send.to.client.with.long/server" })
@@ -339,7 +339,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.map8/client",
         "${app}/send.to.client.with.map8/server" })
@@ -349,7 +349,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.map32/client",
         "${app}/send.to.client.with.map32/server" })
@@ -359,7 +359,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.multiple.data/client",
         "${app}/send.to.client.with.multiple.data/server" })
@@ -369,7 +369,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.multiple.sequence/client",
         "${app}/send.to.client.with.multiple.sequence/server" })
@@ -379,7 +379,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.null/client",
         "${app}/send.to.client.with.null/server" })
@@ -389,7 +389,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.short/client",
         "${app}/send.to.client.with.short/server" })
@@ -399,7 +399,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.single.data/client",
         "${app}/send.to.client.with.single.data/server" })
@@ -409,7 +409,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.single.sequence/client",
         "${app}/send.to.client.with.single.sequence/server" })
@@ -419,7 +419,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.smallint/client",
         "${app}/send.to.client.with.smallint/server" })
@@ -429,7 +429,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.smalllong/client",
         "${app}/send.to.client.with.smalllong/server" })
@@ -439,7 +439,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.smalluint/client",
         "${app}/send.to.client.with.smalluint/server" })
@@ -449,7 +449,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.smallulong/client",
         "${app}/send.to.client.with.smallulong/server" })
@@ -459,7 +459,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.str8utf8/client",
         "${app}/send.to.client.with.str8utf8/server" })
@@ -469,7 +469,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.str32utf8/client",
         "${app}/send.to.client.with.str32utf8/server" })
@@ -479,7 +479,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.sym8/client",
         "${app}/send.to.client.with.sym8/server" })
@@ -489,7 +489,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.sym32/client",
         "${app}/send.to.client.with.sym32/server" })
@@ -499,7 +499,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.timestamp/client",
         "${app}/send.to.client.with.timestamp/server" })
@@ -509,7 +509,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.true/client",
         "${app}/send.to.client.with.true/server" })
@@ -519,7 +519,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.ubyte/client",
         "${app}/send.to.client.with.ubyte/server" })
@@ -529,7 +529,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.uint/client",
         "${app}/send.to.client.with.uint/server" })
@@ -539,7 +539,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.uint0/client",
         "${app}/send.to.client.with.uint0/server" })
@@ -549,7 +549,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.ulong/client",
         "${app}/send.to.client.with.ulong/server" })
@@ -559,7 +559,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.ulong0/client",
         "${app}/send.to.client.with.ulong0/server" })
@@ -569,7 +569,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.ushort/client",
         "${app}/send.to.client.with.ushort/server" })
@@ -579,7 +579,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.vbin8/client",
         "${app}/send.to.client.with.vbin8/server" })
@@ -589,7 +589,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.vbin32/client",
         "${app}/send.to.client.with.vbin32/server" })
@@ -599,7 +599,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.array8/client",
         "${app}/send.to.server.with.array8/server" })
@@ -610,7 +610,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.array32/client",
         "${app}/send.to.server.with.array32/server" })
@@ -621,7 +621,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.boolean/client",
         "${app}/send.to.server.with.boolean/server" })
@@ -632,7 +632,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.byte/client",
         "${app}/send.to.server.with.byte/server" })
@@ -643,7 +643,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.char/client",
         "${app}/send.to.server.with.char/server" })
@@ -654,7 +654,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.false/client",
         "${app}/send.to.server.with.false/server" })
@@ -665,7 +665,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.int/client",
         "${app}/send.to.server.with.int/server" })
@@ -676,7 +676,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.list0/client",
         "${app}/send.to.server.with.list0/server" })
@@ -687,7 +687,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.list8/client",
         "${app}/send.to.server.with.list8/server" })
@@ -698,7 +698,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.list32/client",
         "${app}/send.to.server.with.list32/server" })
@@ -709,7 +709,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.long/client",
         "${app}/send.to.server.with.long/server" })
@@ -720,7 +720,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.map8/client",
         "${app}/send.to.server.with.map8/server" })
@@ -731,7 +731,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.map32/client",
         "${app}/send.to.server.with.map32/server" })
@@ -742,7 +742,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.multiple.data/client",
         "${app}/send.to.server.with.multiple.data/server" })
@@ -753,7 +753,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.multiple.sequence/client",
         "${app}/send.to.server.with.multiple.sequence/server" })
@@ -764,7 +764,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.null/client",
         "${app}/send.to.server.with.null/server" })
@@ -775,7 +775,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.properties/client",
         "${app}/send.to.server.with.properties/server" })
@@ -786,7 +786,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.short/client",
         "${app}/send.to.server.with.short/server" })
@@ -797,7 +797,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.single.data/client",
         "${app}/send.to.server.with.single.data/server" })
@@ -808,7 +808,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.single.sequence/client",
         "${app}/send.to.server.with.single.sequence/server" })
@@ -819,7 +819,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.smallint/client",
         "${app}/send.to.server.with.smallint/server" })
@@ -830,7 +830,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.smalllong/client",
         "${app}/send.to.server.with.smalllong/server" })
@@ -841,7 +841,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.smalluint/client",
         "${app}/send.to.server.with.smalluint/server" })
@@ -852,7 +852,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.smallulong/client",
         "${app}/send.to.server.with.smallulong/server" })
@@ -863,7 +863,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.str8utf8/client",
         "${app}/send.to.server.with.str8utf8/server" })
@@ -874,7 +874,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.str32utf8/client",
         "${app}/send.to.server.with.str32utf8/server" })
@@ -885,7 +885,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.sym8/client",
         "${app}/send.to.server.with.sym8/server" })
@@ -896,7 +896,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.sym32/client",
         "${app}/send.to.server.with.sym32/server" })
@@ -907,7 +907,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.timestamp/client",
         "${app}/send.to.server.with.timestamp/server" })
@@ -918,7 +918,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.true/client",
         "${app}/send.to.server.with.true/server" })
@@ -929,7 +929,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.ubyte/client",
         "${app}/send.to.server.with.ubyte/server" })
@@ -940,7 +940,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.uint/client",
         "${app}/send.to.server.with.uint/server" })
@@ -951,7 +951,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.uint0/client",
         "${app}/send.to.server.with.uint0/server" })
@@ -962,7 +962,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.ulong/client",
         "${app}/send.to.server.with.ulong/server" })
@@ -973,7 +973,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.ulong0/client",
         "${app}/send.to.server.with.ulong0/server" })
@@ -984,7 +984,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.ushort/client",
         "${app}/send.to.server.with.ushort/server" })
@@ -995,7 +995,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.vbin8/client",
         "${app}/send.to.server.with.vbin8/server" })
@@ -1006,7 +1006,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.vbin32/client",
         "${app}/send.to.server.with.vbin32/server" })
@@ -1018,7 +1018,7 @@ public class AmqpServerIT
 
     @Ignore
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.at.least.once/client",
         "${app}/send.to.server.at.least.once/server" })
@@ -1028,7 +1028,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.headers/client",
         "${app}/send.to.server.with.headers/server" })
@@ -1039,7 +1039,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.delivery.annotations/client",
         "${app}/send.to.server.with.delivery.annotations/server" })
@@ -1050,7 +1050,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.annotations/client",
         "${app}/send.to.server.with.annotations/server" })
@@ -1061,7 +1061,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.footer/client",
         "${app}/send.to.server.with.footer/server" })
@@ -1072,7 +1072,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.when.max.frame.size.exceeded/client",
         "${app}/send.to.server.when.max.frame.size.exceeded/server" })
@@ -1083,7 +1083,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.when.fragmented/client",
         "${app}/send.to.server.when.fragmented/server" })
@@ -1094,7 +1094,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.when.links.interleaved/client",
         "${app}/send.to.server.when.links.interleaved/server" })
@@ -1105,7 +1105,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.when.links.interleaved.and.fragmented/client",
         "${app}/send.to.server.when.links.interleaved.and.fragmented/server" })
@@ -1116,7 +1116,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/transfer.to.server.when.sessions.interleaved/client",
         "${app}/send.to.server.when.sessions.interleaved/server" })
@@ -1127,7 +1127,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/transfer.to.server.when.sessions.interleaved.and.fragmented/client",
         "${app}/send.to.server.when.sessions.interleaved.and.fragmented/server" })
@@ -1138,7 +1138,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/incoming.window.exceeded/client",
         "${app}/incoming.window.exceeded/server" })
@@ -1149,7 +1149,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/send.to.client.multiple.sessions/client",
         "${app}/send.to.client.through.multiple.sessions/server" })
@@ -1159,7 +1159,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.annotations/client",
         "${app}/send.to.client.with.annotations/server" })
@@ -1169,7 +1169,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.properties/client",
         "${app}/send.to.client.with.properties/server" })
@@ -1179,7 +1179,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.max.frame.size.exceeded/client",
         "${app}/send.to.client.when.max.frame.size.exceeded/server" })
@@ -1189,7 +1189,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.fragmented/client",
         "${app}/send.to.client.when.fragmented/server" })
@@ -1199,7 +1199,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.links.interleaved/client",
         "${app}/send.to.client.when.links.interleaved/server" })
@@ -1209,7 +1209,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.links.interleaved.and.max.frame.size.exceeded/client",
         "${app}/send.to.client.when.links.interleaved.and.max.frame.size.exceeded/server" })
@@ -1219,7 +1219,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.links.interleaved.and.fragmented/client",
         "${app}/send.to.client.when.links.interleaved.and.fragmented/server" })
@@ -1229,7 +1229,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/transfer.to.client.when.sessions.interleaved/client",
         "${app}/send.to.client.when.sessions.interleaved/server" })
@@ -1239,7 +1239,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/transfer.to.client.when.sessions.interleaved.and.max.frame.size.exceeded/client",
         "${app}/send.to.client.when.sessions.interleaved.and.max.frame.size.exceeded/server" })
@@ -1250,7 +1250,7 @@ public class AmqpServerIT
 
     @Ignore("requires k3po parallel reads")
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/transfer.to.client.when.sessions.interleaved.and.fragmented/client",
         "${app}/send.to.client.when.sessions.interleaved.and.fragmented/server" })
@@ -1260,7 +1260,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/link.credit.exceeded/client",
         "${app}/link.credit.exceeded/server" })
@@ -1271,7 +1271,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/max.frame.size.exceeded.with.multiple.sessions.and.links/client",
         "${app}/max.frame.size.exceeded.with.multiple.sessions.and.links/server" })
@@ -1282,7 +1282,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/server.idle.timeout.expires/client" })
     @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
@@ -1292,7 +1292,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/server.idle.timeout.does.not.expire/client" })
     @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
@@ -1302,7 +1302,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/client.idle.timeout.does.not.expire/client" })
     public void shouldPreventTimeoutSentByClient() throws Exception
@@ -1311,7 +1311,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/incoming.window.reduced/client",
         "${app}/incoming.window.reduced/server" })
@@ -1321,7 +1321,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/open.exchange.pipelined/client" })
     public void shouldExchangeOpenPipelined() throws Exception
@@ -1330,7 +1330,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/sasl.exchange.then.open.exchange.pipelined/client" })
     public void shouldExchangeOpenPipelinedAfterSasl() throws Exception
@@ -1339,7 +1339,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/close.exchange.simultaneous/client" })
     @Configure(name = AMQP_IDLE_TIMEOUT_NAME, value = "1000")
@@ -1349,7 +1349,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/end.exchange.simultaneous/client",
         "${app}/incoming.window.exceeded/server" })
@@ -1360,7 +1360,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/discard.after.end/client",
         "${app}/incoming.window.exceeded/server" })
@@ -1371,7 +1371,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session/reject.errant.link/client",
         "${app}/link.credit.exceeded/server" })
@@ -1382,7 +1382,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.when.first.fragment.aborted/client",
         "${app}/send.to.server.when.first.fragment.aborted/server" })
@@ -1393,7 +1393,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/open.with.outgoing.locales.negotiated.default/client" })
     public void shouldSendOpenWithOutgoingLocalesNegotiatedDefault() throws Exception
@@ -1402,7 +1402,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/open.with.outgoing.locales.negotiated.non.default/client" })
     @Configure(name = AMQP_INCOMING_LOCALES_NAME, value = "jp")
@@ -1412,7 +1412,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/attach.as.receiver.then.detach.with.error.then.flow/client",
         "${app}/connect.and.reset/server" })
@@ -1422,7 +1422,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/handle.max.exceeded/client" })
     @Configure(name = AMQP_HANDLE_MAX_NAME, value = "10")
@@ -1432,7 +1432,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/reject.attach.when.handle.in.use/client",
         "${app}/connect.as.receiver.then.abort/server" })
@@ -1442,7 +1442,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.max.message.size.exceeded/client",
         "${app}/send.to.client.with.vbin32/server" })
@@ -1452,7 +1452,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.max.message.size.exceeded/client",
         "${app}/connect.as.sender.then.abort/server" })
@@ -1464,7 +1464,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.then.flow.with.echo.on.link/client",
         "${app}/send.to.server.then.flow.with.echo/server" })
@@ -1475,7 +1475,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.then.flow.with.echo.on.session/client",
         "${app}/send.to.server.then.flow.with.echo/server" })
@@ -1486,7 +1486,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/reject.flow.with.inconsistent.fields/client",
         "${app}/connect.as.receiver.then.abort/server" })
@@ -1496,7 +1496,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/flow.without.handle/client",
         "${app}/send.to.client.with.str8utf8/server" })
@@ -1506,7 +1506,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/flow.with.unattached.handle/client",
         "${app}/connect.as.receiver.then.abort/server" })
@@ -1516,7 +1516,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.large.delivery.count/client",
         "${app}/send.to.server.with.large.delivery.count/server" })
@@ -1527,7 +1527,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/reject.transfer.with.more.inconsistent.fields/client",
         "${app}/abort.after.sending.first.fragment/server" })
@@ -1538,7 +1538,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.when.middle.fragment.aborted/client",
         "${app}/send.to.server.when.middle.fragment.aborted/server" })
@@ -1549,7 +1549,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.large.next.incoming.id/client",
         "${app}/send.to.server.with.str8utf8/server" })
@@ -1560,7 +1560,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.when.last.fragment.aborted/client",
         "${app}/send.to.server.when.last.fragment.aborted/server" })
@@ -1571,7 +1571,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.invalid.delivery.id/client",
         "${app}/send.to.server.with.invalid.delivery.id/server" })
@@ -1582,7 +1582,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.first.fragment.aborted/client",
         "${app}/send.to.client.when.first.fragment.aborted/server" })
@@ -1592,7 +1592,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connection/reject.incorrect.fields.key.type/client" })
     public void shouldRejectIncorrectFieldsKeyType() throws Exception
@@ -1601,7 +1601,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.middle.fragment.aborted/client",
         "${app}/send.to.client.when.middle.fragment.aborted/server" })
@@ -1611,7 +1611,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.with.application.properties/client",
         "${app}/send.to.client.with.application.properties/server" })
@@ -1621,7 +1621,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.client.when.last.fragment.aborted/client",
         "${app}/send.to.client.when.last.fragment.aborted/server" })
@@ -1631,7 +1631,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/transfer.to.server.with.application.properties/client",
         "${app}/send.to.server.with.application.properties/server" })
@@ -1642,7 +1642,7 @@ public class AmqpServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/link/reject.durable.message.when.durable.not.supported/client",
         "${app}/connect.as.sender.then.abort/server" })

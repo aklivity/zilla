@@ -17,12 +17,16 @@ package io.aklivity.zilla.runtime.binding.http.kafka.internal.config;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.LongFunction;
 import java.util.function.LongPredicate;
+import java.util.regex.MatchResult;
+import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
 
 public final class HttpKafkaRouteConfig extends OptionsConfig
 {
@@ -37,16 +41,28 @@ public final class HttpKafkaRouteConfig extends OptionsConfig
         RouteConfig route)
     {
         this.id = route.id;
+
+        final Map<String, LongFunction<String>> identifiers = route.guarded.stream()
+                .collect(Collectors.toMap(g -> g.name, g -> g.identity));
+
+        final LongFunction<String> defaultIdentifier = a -> null;
+        final LongObjectBiFunction<MatchResult, String> identityReplacer = (a, r) ->
+        {
+            final LongFunction<String> identifier = identifiers.getOrDefault(r.group(1), defaultIdentifier);
+            final String identity = identifier.apply(a);
+            return identity != null ? identity : "";
+        };
+
         this.with = Optional.of(route.with)
             .map(HttpKafkaWithConfig.class::cast)
-            .map(c -> new HttpKafkaWithResolver(options, c))
+            .map(c -> new HttpKafkaWithResolver(options, identityReplacer, c))
             .get();
-        Consumer<HttpKafkaConditionMatcher> observer = with::onConditionMatched;
         this.when = route.when.stream()
                 .map(HttpKafkaConditionConfig.class::cast)
                 .map(HttpKafkaConditionMatcher::new)
-                .peek(m -> m.observe(observer))
+                .peek(m -> m.observe(with::onConditionMatched))
                 .collect(toList());
+
         this.authorized = route.authorized;
     }
 

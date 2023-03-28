@@ -18,26 +18,34 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.aklivity.zilla.runtime.binding.filesystem.internal.stream.FileSystemServerFactory;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.stream.FileSystemStreamFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class FileSystemBindingContext implements BindingContext
 {
     private final Map<KindConfig, FileSystemStreamFactory> factories;
+    private final Signaler signaler;
+    private FileSystemWatcher watcher;
+    private ExecutorService executor;
+    private int bindings = 0;
 
     FileSystemBindingContext(
         FileSystemConfiguration config,
         EngineContext context)
     {
         Map<KindConfig, FileSystemStreamFactory> factories = new EnumMap<>(KindConfig.class);
-        factories.put(SERVER, new FileSystemServerFactory(config, context));
         this.factories = factories;
+        this.signaler = context.signaler();
+        factories.put(SERVER, new FileSystemServerFactory(config, context, this::supplyWatcher));
     }
 
     @Override
@@ -48,9 +56,14 @@ final class FileSystemBindingContext implements BindingContext
 
         if (factory != null)
         {
+            if (bindings++ == 0)
+            {
+                this.watcher = new FileSystemWatcher(signaler);
+                this.executor = Executors.newFixedThreadPool(1);
+                executor.submit(watcher);
+            }
             factory.attach(binding);
         }
-
         return factory;
     }
 
@@ -64,11 +77,21 @@ final class FileSystemBindingContext implements BindingContext
         {
             factory.detach(binding.id);
         }
+
+        if (--bindings == 0)
+        {
+            executor.shutdownNow();
+        }
     }
 
     @Override
     public String toString()
     {
         return String.format("%s %s", getClass().getSimpleName(), factories);
+    }
+
+    private FileSystemWatcher supplyWatcher()
+    {
+        return watcher;
     }
 }

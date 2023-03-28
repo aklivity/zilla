@@ -50,7 +50,7 @@ public class HandshakeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/connection.succeeded/client",
         "${net}/connection.succeeded/response" })
@@ -60,7 +60,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/connection.closed/client",
         "${net}/connection.closed/response" })
@@ -70,7 +70,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/connection.closed.deferred/client",
         "${net}/connection.closed.deferred/response" })
@@ -80,7 +80,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("client.when.json")
+    @Configuration("client.when.yaml")
     @Specification({
         "${app}/last.event.id/client",
         "${net}/request.header.last.event.id/response"})

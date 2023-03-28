@@ -49,7 +49,7 @@ public class IdIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/reject.header.length.exceeding.255/request" })
     public void shouldRejectHeaderLengthExceeding255() throws Exception
@@ -58,7 +58,7 @@ public class IdIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/reject.query.param.length.exceeding.255/request" })
     public void shouldRejectQueryParamLengthExceeding255() throws Exception

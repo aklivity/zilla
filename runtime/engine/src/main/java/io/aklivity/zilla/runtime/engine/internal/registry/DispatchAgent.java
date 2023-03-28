@@ -29,6 +29,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.agrona.CloseHelper.quietClose;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -58,10 +59,10 @@ import org.agrona.DeadlineTimerWheel;
 import org.agrona.DeadlineTimerWheel.TimerHandler;
 import org.agrona.DirectBuffer;
 import org.agrona.ErrorHandler;
-import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
@@ -153,6 +154,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final BufferPoolLayout bufferPoolLayout;
     private final RingBuffer streamsBuffer;
     private final MutableDirectBuffer writeBuffer;
+    private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final Int2ObjectHashMap<MessageConsumer> writersByIndex;
@@ -186,7 +188,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
-
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -197,7 +198,6 @@ public class DispatchAgent implements EngineContext, Agent
 
     public DispatchAgent(
         EngineConfiguration config,
-        URL configURL,
         ExecutorService executor,
         LabelManager labels,
         ErrorHandler errorHandler,
@@ -209,7 +209,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         this.localIndex = index;
         this.config = config;
-        this.configURL = configURL;
+        this.configURL = config.configURL();
         this.labels = labels;
         this.affinityMask = affinityMask;
 
@@ -262,6 +262,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.expireLimit = config.maximumExpirationsPerPoll();
         this.streamsBuffer = streamsLayout.streamsBuffer();
         this.writeBuffer = new UnsafeBuffer(new byte[config.bufferSlotCapacity() + 1024]);
+        this.streamSets = new Long2ObjectHashMap<>();
         this.streams = initDispatcher();
         this.throttles = initDispatcher();
         this.readHandler = this::handleRead;
@@ -324,10 +325,9 @@ public class DispatchAgent implements EngineContext, Agent
             String type = vault.name();
             vaultsByType.put(type, vault.supply(this));
         }
-
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get,
-                labels::supplyLabelId, supplyLoadEntry::apply);
+                labels::supplyLabelId, supplyLoadEntry::apply, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
@@ -432,6 +432,26 @@ public class DispatchAgent implements EngineContext, Agent
         long streamId)
     {
         throttles[throttleIndex(streamId)].remove(instanceId(streamId));
+    }
+
+    @Override
+    public void detachStreams(
+        long bindingId)
+    {
+        LongHashSet streamIdSet = streamSets.remove(bindingId);
+        if (streamIdSet != null)
+        {
+            streamIdSet.forEach(streamId ->
+                {
+                    MessageConsumer handler = streams[streamIndex(streamId)].remove(instanceId(streamId));
+                    if (handler != null)
+                    {
+                        doSyntheticAbort(streamId, handler);
+                        doSyntheticReset(streamId, supplyWriter(streamIndex(streamId)));
+                    }
+                }
+            );
+        }
     }
 
     @Override
@@ -544,7 +564,7 @@ public class DispatchAgent implements EngineContext, Agent
         }
         catch (MalformedURLException ex)
         {
-            LangUtil.rethrowUnchecked(ex);
+            rethrowUnchecked(ex);
         }
         return resolved;
     }
@@ -603,7 +623,6 @@ public class DispatchAgent implements EngineContext, Agent
                 break;
             }
         }
-
         configuration.detachAll();
 
         poller.onClose();
@@ -1314,6 +1333,9 @@ public class DispatchAgent implements EngineContext, Agent
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
                 throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
                 supplyLoadEntry.apply(routeId).initialOpened(1L);
+
+                streamSets.computeIfAbsent(routeId, k -> new LongHashSet())
+                    .add(initialId);
             }
         }
 
@@ -1373,6 +1395,23 @@ public class DispatchAgent implements EngineContext, Agent
 
         final MessageConsumer replyTo = supplyReplyTo(streamId);
         replyTo.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
+    }
+
+    private void doSyntheticReset(
+        long streamId,
+        MessageConsumer throttle)
+    {
+        final long syntheticRouteId = 0L;
+
+        final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+            .routeId(syntheticRouteId)
+            .streamId(streamId)
+            .sequence(Long.MAX_VALUE)
+            .acknowledge(0L)
+            .maximum(0)
+            .build();
+
+        throttle.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     private void doSyntheticAbort(
@@ -1446,7 +1485,7 @@ public class DispatchAgent implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, throttles, supplyLoadEntry);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(

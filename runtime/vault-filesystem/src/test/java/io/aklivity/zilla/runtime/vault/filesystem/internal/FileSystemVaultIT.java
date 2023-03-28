@@ -45,7 +45,7 @@ public class FileSystemVaultIT
     public final TestRule chain = outerRule(engine).around(timeout);
 
     @Test
-    @Configuration("vault.json")
+    @Configuration("vault.yaml")
     public void shouldInitialize() throws Exception
     {
         System.out.println("done!");

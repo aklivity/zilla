@@ -198,7 +198,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
             case FETCH:
             {
-                final HttpKafkaWithFetchResult resolved = route.with.resolveFetch(httpBeginEx);
+                final HttpKafkaWithFetchResult resolved = route.with.resolveFetch(authorization, httpBeginEx);
 
                 if (resolved.merge())
                 {
@@ -212,7 +212,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             }
             case PRODUCE:
             {
-                final HttpKafkaWithProduceResult resolved = route.with.resolveProduce(httpBeginEx);
+                final HttpKafkaWithProduceResult resolved = route.with.resolveProduce(authorization, httpBeginEx);
 
                 if (resolved.reply())
                 {
@@ -2435,6 +2435,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         private int replyCap;
 
         private DirectBuffer deferredDataEx;
+        private int deferredDataExFlags;
         private OctetsFW deferredPayload;
 
         private KafkaProduceProxy(
@@ -2484,6 +2485,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     buf.putBytes(0, extension.buffer(), extension.offset(), extension.sizeof());
                     deferredDataEx = buf;
                     deferredPayload = payload;
+                    deferredDataExFlags = flags;
                 }
             }
             else
@@ -2690,7 +2692,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                         ? kafkaDataExRO.wrap(deferredDataEx, 0, deferredDataEx.capacity())
                         : emptyRO;
 
-                flushKafkaData(traceId, authorization, budgetId, 0, 0x02, deferredPayload, kafkaDataEx);
+                flushKafkaData(traceId, authorization, budgetId, 0, deferredDataExFlags, deferredPayload, kafkaDataEx);
             }
 
             initialAck = acknowledge;

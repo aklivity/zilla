@@ -55,7 +55,7 @@ public class MessageFormatIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/server.continuation.frames/client",
         "${net}/server.continuation.frames/server" })
@@ -67,7 +67,7 @@ public class MessageFormatIT
 
     @Ignore("Implement dynamic header list")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/dynamic.table.requests/client",
         "${net}/dynamic.table.requests/server" })
@@ -78,7 +78,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.max.frame.size/client",
         "${net}/client.max.frame.size/server" })
@@ -89,7 +89,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.max.frame.size.error/server" })
@@ -100,7 +100,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.ping.frame.size.error/server" })
@@ -111,7 +111,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.connection.window.frame.size.error/server" })
@@ -122,7 +122,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.window.frame.size.error/server" })
@@ -133,7 +133,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.error.frame.with.request.payload/client",
         "${net}/client.rst.stream.frame.size.error/server" })
@@ -144,7 +144,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/client.error.frame.with.request.payload/client",
         "${net}/client.priority.frame.size.error/server" })
@@ -156,7 +156,7 @@ public class MessageFormatIT
 
     @Ignore("Implement Connection header")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connection.headers/client",
         "${net}/connection.headers/server" })
@@ -168,7 +168,7 @@ public class MessageFormatIT
 
     @Ignore("Implement push promise")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/stream.id.order/client",
         "${net}/stream.id.order/server" })
@@ -179,7 +179,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/client.invalid.hpack.index/server" })

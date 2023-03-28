@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.filesystem.internal.stream;
 import static io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemSymbolicLinksConfig.IGNORE;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_INDEX;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+import static java.time.Instant.now;
+import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,10 +27,14 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -37,22 +43,25 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemBinding;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemConfiguration;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.FileSystemWatcher;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemBindingConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.config.FileSystemOptionsConfig;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.FileSystemCapabilities;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.filesystem.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.FileSystemBeginExFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.filesystem.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
+import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 public final class FileSystemServerFactory implements FileSystemStreamFactory
@@ -64,12 +73,15 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private static final int READ_PAYLOAD_MASK = 1 << FileSystemCapabilities.READ_PAYLOAD.ordinal();
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+    private static final int TIMEOUT_EXPIRED_SIGNAL_ID = 0;
+    public static final int FILE_CHANGED_SIGNAL_ID = 1;
 
     private final BeginFW beginRO = new BeginFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
+    private final SignalFW signalRO = new SignalFW();
 
     private final FileSystemBeginExFW beginExRO = new FileSystemBeginExFW();
 
@@ -84,19 +96,26 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final OctetsFW payloadRO = new OctetsFW();
 
     private final Long2ObjectHashMap<FileSystemBindingConfig> bindings;
+    private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer readBuffer;
     private final LongFunction<BudgetDebitor> supplyDebitor;
     private final LongUnaryOperator supplyReplyId;
     private final int fileSystemTypeId;
-
     private final URI serverRoot;
+    private final MessageDigest md5;
+    private final Signaler signaler;
+    private final Supplier<FileSystemWatcher> supplyWatcher;
+
+    private FileSystemWatcher fileSystemWatcher;
 
     public FileSystemServerFactory(
         FileSystemConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        Supplier<FileSystemWatcher> supplyWatcher)
     {
+        this.bufferPool = context.bufferPool();
         this.serverRoot = config.serverRoot();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -104,8 +123,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         this.supplyDebitor = context::supplyDebitor;
         this.supplyReplyId = context::supplyReplyId;
         this.fileSystemTypeId = context.supplyTypeId(FileSystemBinding.NAME);
-
         this.bindings = new Long2ObjectHashMap<>();
+        this.signaler = context.signaler();
+        this.md5 = initMessageDigest("MD5");
+        this.supplyWatcher = supplyWatcher;
     }
 
     @Override
@@ -114,6 +135,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     {
         FileSystemBindingConfig fsBinding = new FileSystemBindingConfig(binding);
         bindings.put(binding.id, fsBinding);
+        fileSystemWatcher = supplyWatcher.get();
     }
 
     @Override
@@ -154,15 +176,15 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final String resolvedPath = resolvedRoot.resolve(relativePath).getPath();
 
             final Path path = fileSystem.getPath(resolvedPath);
-
+            final String tag = beginEx.tag().asString();
             try
             {
-                String type = probeContentTypeOrDefault(path);
-                BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class, symlinks);
-                BasicFileAttributes attributes = view.readAttributes();
-                InputStream input = canReadPayload(capabilities) ? Files.newInputStream(path, symlinks) : null;
-
-                return new FileSystemServer(app, routeId, initialId, attributes, type, input)::onAppMessage;
+                if (Files.exists(Paths.get(resolvedPath), symlinks))
+                {
+                    String type = probeContentTypeOrDefault(path);
+                    newStream = new FileSystemServer(app, routeId, initialId, type, symlinks,
+                        relativePath, resolvedPath, capabilities, tag)::onAppMessage;
+                }
             }
             catch (IOException ex)
             {
@@ -171,6 +193,21 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         }
 
         return newStream;
+    }
+
+    private static MessageDigest initMessageDigest(
+        String algorithm)
+    {
+        MessageDigest messageDigest = null;
+        try
+        {
+            messageDigest = MessageDigest.getInstance(algorithm);
+        }
+        catch (NoSuchAlgorithmException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return messageDigest;
     }
 
     private String probeContentTypeOrDefault(
@@ -186,11 +223,14 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         private final long routeId;
         private final long initialId;
         private final long replyId;
-
-        private final BasicFileAttributes attributes;
         private final String type;
-        private final InputStream input;
-
+        private final String relativePath;
+        private final Path resolvedPath;
+        private final int capabilities;
+        private final String tag;
+        private final LinkOption[] symlinks;
+        private FileSystemWatcher.WatchedFile watchedFile;
+        private BasicFileAttributes attributes;
         private long initialSeq;
         private long initialAck;
         private int initialMax;
@@ -212,17 +252,23 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             MessageConsumer app,
             long routeId,
             long initialId,
-            BasicFileAttributes attributes,
             String type,
-            InputStream input)
+            LinkOption[] symlinks,
+            String relativePath,
+            String resolvedPath,
+            int capabilities,
+            String tag)
         {
             this.app = app;
             this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.attributes = attributes;
             this.type = type;
-            this.input = input;
+            this.symlinks = symlinks;
+            this.relativePath = relativePath;
+            this.resolvedPath = Paths.get(resolvedPath);
+            this.capabilities = capabilities;
+            this.tag = tag;
         }
 
         private void onAppMessage(
@@ -253,6 +299,10 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onAppSignal(signal);
+                break;
             default:
                 break;
             }
@@ -280,25 +330,84 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             state = FileSystemState.openingInitial(state);
 
             doAppWindow(traceId);
+            String currentTag = calculateTag();
+            if (tag == null || tag.isEmpty() || !tag.equals(currentTag))
+            {
+                doAppBegin(traceId, currentTag);
+                flushAppData(traceId);
+            }
+            else
+            {
+                long timeoutAt = now().toEpochMilli() + beginEx.timeout();
+                long timeoutId = signaler.signalAt(timeoutAt, routeId, replyId, TIMEOUT_EXPIRED_SIGNAL_ID, 0);
+                watchedFile = new FileSystemWatcher.WatchedFile(
+                    resolvedPath, symlinks, this::calculateTag, tag, timeoutId, routeId, replyId);
+                fileSystemWatcher.watch(watchedFile);
+            }
+        }
 
-            final int capabilities = beginEx.capabilities();
-            final String16FW path = beginEx.path();
-            final long size = attributes.size();
-            final long modifiedTime = attributes.lastModifiedTime().toMillis();
+        private BasicFileAttributes getAttributes()
+        {
+            BasicFileAttributes attributes = null;
+            try
+            {
+                BasicFileAttributeView view = Files.getFileAttributeView(resolvedPath, BasicFileAttributeView.class, symlinks);
+                attributes = view.readAttributes();
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return attributes;
+        }
 
-            Flyweight newBeginEx = beginExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(fileSystemTypeId)
-                .capabilities(capabilities)
-                .path(path)
-                .type(type)
-                .payloadSize(size)
-                .modifiedTime(modifiedTime)
-                .build();
+        private String calculateTag()
+        {
+            String newTag = null;
+            try
+            {
+                InputStream input = getInputStream();
+                if (input != null)
+                {
+                    final byte[] readArray = readBuffer.byteArray();
+                    int bytesRead = input.read(readArray, 0, readArray.length);
+                    byte[] content = new byte[bytesRead];
+                    readBuffer.getBytes(0, content, 0, bytesRead);
+                    newTag = calculateHash(content);
+                }
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return newTag;
+        }
 
-            doAppBegin(traceId, newBeginEx);
+        private InputStream getInputStream()
+        {
+            InputStream input = null;
+            try
+            {
+                input = canReadPayload(capabilities) ? Files.newInputStream(resolvedPath, symlinks) : null;
+            }
+            catch (IOException ex)
+            {
+                // reject
+            }
+            return input;
+        }
 
-            flushAppData(traceId);
+        private String calculateHash(
+            byte[] content)
+        {
+
+            byte[] hash = md5.digest(content);
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b: hash)
+            {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
         }
 
         private void onAppEnd(
@@ -357,15 +466,17 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
             assert replyAck <= replySeq;
 
-            state = FileSystemState.openReply(state);
-
-            if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+            if (FileSystemState.replyOpening(state) && !FileSystemState.replyOpened(state))
             {
-                replyDeb = supplyDebitor.apply(budgetId);
-                replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
-            }
+                state = FileSystemState.openReply(state);
 
-            flushAppData(traceId);
+                if (replyBud != 0L && replyDebIndex == NO_DEBITOR_INDEX)
+                {
+                    replyDeb = supplyDebitor.apply(budgetId);
+                    replyDebIndex = replyDeb.acquire(budgetId, replyId, this::flushAppData);
+                }
+                flushAppData(traceId);
+            }
         }
 
         private void onAppReset(
@@ -387,12 +498,53 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             doAppReset(traceId);
         }
 
+        private void onAppSignal(
+            SignalFW signal)
+        {
+            long traceId = signal.traceId();
+            switch (signal.signalId())
+            {
+            case FILE_CHANGED_SIGNAL_ID:
+                flushAppData(traceId);
+                break;
+            case TIMEOUT_EXPIRED_SIGNAL_ID:
+                doAppBegin(traceId, tag, 0);
+                doAppEnd(traceId);
+                break;
+            default:
+                break;
+            }
+            fileSystemWatcher.unregister(watchedFile);
+        }
+
         private void doAppBegin(
             long traceId,
-            Flyweight extension)
+            String tag)
+        {
+            doAppBegin(traceId, tag, capabilities);
+        }
+
+        private void doAppBegin(
+            long traceId,
+            String tag,
+            int capabilities)
         {
             state = FileSystemState.openingReply(state);
-
+            attributes = getAttributes();
+            long size = 0L;
+            if (attributes != null)
+            {
+                size = attributes.size();
+            }
+            Flyweight extension = beginExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(fileSystemTypeId)
+                .capabilities(capabilities)
+                .path(relativePath)
+                .type(type)
+                .payloadSize(size)
+                .tag(tag)
+                .build();
             doBegin(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
         }
 
@@ -457,40 +609,47 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         {
             final int replyNoAck = (int)(replySeq - replyAck);
             final int replyWin = replyMax - replyNoAck - replyPad;
-
+            if (!FileSystemState.replyOpening(state))
+            {
+                String newTag = calculateTag();
+                doAppBegin(traceId, newTag);
+            }
             if (replyWin > 0)
             {
+                InputStream input = getInputStream();
                 boolean replyClosable = input == null;
-
                 if (input != null)
                 {
                     try
                     {
-                        int length = Math.min(replyWin, input.available());
-                        int reserved = length + replyPad;
+                        int reserved = Math.min(replyWin, input.available() + replyPad);
+                        int length = Math.max(reserved - replyPad, 0);
 
                         if (length > 0 && replyDebIndex != NO_DEBITOR_INDEX && replyDeb != null)
                         {
-                            final int minimum = reserved; // TODO: fragmentation
-                            reserved = replyDeb.claim(0L, replyDebIndex, replyId, minimum, reserved, 0);
+                            final int minimum = Math.min(bufferPool.slotCapacity(), reserved); // TODO: fragmentation
+                            reserved = replyDeb.claim(traceId, replyDebIndex, replyId, minimum, reserved, 0);
                             length = Math.max(reserved - replyPad, 0);
                         }
 
-                        final byte[] readArray = readBuffer.byteArray();
-                        int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
-
-                        if (bytesRead != -1)
+                        if (length > 0)
                         {
-                            OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
+                            final byte[] readArray = readBuffer.byteArray();
+                            int bytesRead = input.read(readArray, 0, Math.min(readArray.length, length));
+                            if (bytesRead != -1)
+                            {
+                                OctetsFW payload = payloadRO.wrap(readBuffer, 0, bytesRead);
 
-                            doAppData(traceId, reserved, payload);
+                                doAppData(traceId, reserved, payload);
 
-                            replyBytes += bytesRead;
-                            replyClosable = replyBytes == attributes.size();
+                                replyBytes += bytesRead;
+                                replyClosable = replyBytes == attributes.size();
+                            }
                         }
-                        else
+                        if (replyClosable)
                         {
                             input.close();
+                            doAppEnd(traceId);
                         }
                     }
                     catch (IOException ex)
@@ -498,11 +657,11 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                         doAppAbort(traceId);
                     }
                 }
-
-                if (replyClosable)
+                else
                 {
                     doAppEnd(traceId);
                 }
+
             }
         }
     }

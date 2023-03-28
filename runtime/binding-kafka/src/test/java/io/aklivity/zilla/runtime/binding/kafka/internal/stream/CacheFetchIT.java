@@ -79,7 +79,62 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/followed.message.with.message/client",
+        "${app}/follow.message.with.message/server"})
+    public void shouldFollowMessageWithMessage() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/compacted.message.with.message/client",
+        "${app}/compact.message.with.message/server"})
+    public void shouldCompactMessageWithMessage() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/compacted.message.with.tombstone/client",
+        "${app}/compact.message.with.tombstone/server"})
+    public void shouldCompactMessageWithTombstone() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/compacted.tombstone.with.message/client",
+        "${app}/compact.tombstone.with.message/server"})
+    public void shouldCompactTombstoneWithMessage() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/compacted.tombstone.with.tombstone/client",
+        "${app}/compact.tombstone.with.tombstone/server"})
+    public void shouldCompactTombstoneWithTombstone() throws Exception
+    {
+        partition.append(1L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/topic.missing/client"})
     public void shouldRejectWhenTopicMissing() throws Exception
@@ -88,7 +143,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.when.topic.json")
+    @Configuration("cache.when.topic.yaml")
     @Specification({
         "${app}/topic.not.routed/client"})
     public void shouldRejectWhenTopicNotRouted() throws Exception
@@ -97,7 +152,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/partition.unknown/client",
         "${app}/partition.unknown/server"})
@@ -108,7 +163,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/partition.not.leader/client",
         "${app}/partition.not.leader/server"})
@@ -119,7 +174,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/partition.offset/client",
         "${app}/partition.offset/server"})
@@ -131,7 +186,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/partition.offset.earliest/client",
         "${app}/partition.offset.earliest/server"})
@@ -143,7 +198,7 @@ public class CacheFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/partition.offset.latest/client",
         "${app}/partition.offset.latest/server"})
@@ -154,7 +209,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key/client",
         "${app}/message.key/server"})
@@ -166,7 +221,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.null/client",
         "${app}/message.key.null/server"})
@@ -178,7 +233,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.with.value.null/client",
         "${app}/message.key.with.value.null/server"})
@@ -190,7 +245,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.with.value.distinct/client",
         "${app}/message.key.with.value.distinct/server"})
@@ -202,7 +257,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.with.header/client",
         "${app}/message.key.with.header/server"})
@@ -214,7 +269,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.distinct/client",
         "${app}/message.key.distinct/server"})
@@ -226,7 +281,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value/client",
         "${app}/message.value/server"})
@@ -238,7 +293,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.empty/client",
         "${app}/message.value.empty/server"})
@@ -250,7 +305,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.null/client",
         "${app}/message.value.null/server"})
@@ -263,7 +318,7 @@ public class CacheFetchIT
 
     @Ignore("requires FIN dataEx from script")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.10k/client",
         "${app}/message.value.10k/server"})
@@ -276,7 +331,7 @@ public class CacheFetchIT
 
     @Ignore("requires FIN dataEx from script")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.100k/client",
         "${app}/message.value.100k/server"})
@@ -289,7 +344,7 @@ public class CacheFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.gzip/client",
         "${app}/message.value.gzip/server"})
@@ -301,7 +356,7 @@ public class CacheFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.snappy/client",
         "${app}/message.value.snappy/server"})
@@ -313,7 +368,7 @@ public class CacheFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.lz4/client",
         "${app}/message.value.lz4/server"})
@@ -324,7 +379,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.distinct/client",
         "${app}/message.value.distinct/server"})
@@ -336,7 +391,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.header/client",
         "${app}/message.header/server"})
@@ -348,7 +403,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.header.null/client",
         "${app}/message.header.null/server"})
@@ -360,7 +415,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.headers.distinct/client",
         "${app}/message.headers.distinct/server"})
@@ -372,7 +427,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.headers.repeated/client",
         "${app}/message.headers.repeated/server"})
@@ -384,7 +439,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.none/client",
         "${app}/filter.none/server"})
@@ -399,7 +454,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.key/client",
         "${app}/filter.none/server"})
@@ -414,7 +469,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.key.and.header/client",
         "${app}/filter.none/server"})
@@ -428,7 +483,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.key.or.header/client",
         "${app}/filter.none/server"})
@@ -443,7 +498,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.header/client",
         "${app}/filter.none/server"})
@@ -458,7 +513,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.header.and.header/client",
         "${app}/filter.none/server"})
@@ -473,7 +528,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.header.or.header/client",
         "${app}/filter.none/server"})
@@ -488,7 +543,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.key.and.header.or.header/client",
         "${app}/filter.none/server"})
@@ -503,7 +558,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.key.or.header.and.header/client",
         "${app}/filter.none/server"})
@@ -518,7 +573,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.options.delta.type.json")
+    @Configuration("cache.options.delta.type.yaml")
     @Specification({
         "${app}/filter.none.json.patch/client",
         "${app}/filter.none.json/server"})
@@ -530,7 +585,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.options.delta.type.json")
+    @Configuration("cache.options.delta.type.yaml")
     @Specification({
         "${app}/filter.header.json.patch/client",
         "${app}/filter.none.json/server"})
@@ -542,7 +597,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.options.delta.type.json")
+    @Configuration("cache.options.delta.type.yaml")
     @Specification({
         "${app}/filter.key.and.header.json.patch/client",
         "${app}/filter.none.json/server"})
@@ -554,7 +609,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.not.key/client",
         "${app}/filter.none/server"})
@@ -569,7 +624,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.not.header/client",
         "${app}/filter.none/server"})
@@ -584,7 +639,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.key.and.not.header/client",
         "${app}/filter.none/server"})
@@ -599,7 +654,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.headers.one/client",
         "${app}/filter.none/server"})
@@ -614,7 +669,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.headers.one.empty/client",
         "${app}/filter.none/server"})
@@ -629,7 +684,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.headers.many/client",
         "${app}/filter.none/server"})
@@ -644,7 +699,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.headers.many.empty/client",
         "${app}/filter.none/server"})
@@ -659,7 +714,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.headers.skip.one/client",
         "${app}/filter.none/server"})
@@ -674,7 +729,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.headers.skip.two/client",
         "${app}/filter.none/server"})
@@ -689,7 +744,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/filter.headers.skip.many/client",
         "${app}/filter.none/server"})
@@ -704,7 +759,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/isolation.read.committed.aborted/client",
         "${app}/isolation.read.uncommitted.aborted/server"})
@@ -716,7 +771,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/isolation.read.committed.aborting/client",
         "${app}/isolation.read.uncommitted.aborting/server"})
@@ -728,7 +783,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/isolation.read.committed.committing/client",
         "${app}/isolation.read.uncommitted.committing/server"})
@@ -742,7 +797,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/isolation.read.uncommitted.aborted/client",
         "${app}/isolation.read.uncommitted.aborted/server"})
@@ -754,7 +809,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/isolation.read.uncommitted.aborting/client",
         "${app}/isolation.read.uncommitted.aborting/server"})
@@ -766,7 +821,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/isolation.read.uncommitted.committing/client",
         "${app}/isolation.read.uncommitted.committing/server"})
@@ -781,7 +836,7 @@ public class CacheFetchIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/partition.leader.distinct/client",
         "${app}/partition.leader.distinct/server"})

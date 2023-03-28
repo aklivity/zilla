@@ -48,7 +48,7 @@ public class ServerIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${streams}/connection.established/client"})
     public void shouldEstablishConnection() throws Exception
@@ -57,7 +57,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${streams}/client.sent.data/client"})
     public void shouldEchoClientSentData() throws Exception
@@ -66,7 +66,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${streams}/client.sent.flush/client"})
     public void shouldEchoClientSentFlush() throws Exception
@@ -75,7 +75,7 @@ public class ServerIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${streams}/client.sent.challenge/client"})
     public void shouldEchoClientSentChallenge() throws Exception

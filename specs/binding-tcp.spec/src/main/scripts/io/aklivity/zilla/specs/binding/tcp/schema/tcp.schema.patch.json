@@ -33,7 +33,8 @@
                                     "type": "integer"
                                 },
                                 {
-                                    "type": "string"
+                                    "type": "string",
+                                    "pattern": "^\\d+(-\\d+)?$"
                                 },
                                 {
                                     "type": "array",
@@ -45,7 +46,8 @@
                                                 "type": "integer"
                                             },
                                             {
-                                                "type": "string"
+                                                "type": "string",
+                                                "pattern": "^\\d+(-\\d+)?$"
                                             }
                                         ]
                                     }
