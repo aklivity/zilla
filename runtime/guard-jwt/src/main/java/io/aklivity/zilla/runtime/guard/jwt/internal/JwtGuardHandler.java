@@ -16,9 +16,6 @@ package io.aklivity.zilla.runtime.guard.jwt.internal;
 
 import static org.agrona.LangUtil.rethrowUnchecked;
 
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -35,7 +32,6 @@ import java.util.function.LongSupplier;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
-import jakarta.json.bind.JsonbException;
 
 import org.agrona.collections.Long2ObjectHashMap;
 import org.jose4j.jwk.JsonWebKey;
@@ -67,7 +63,7 @@ public class JwtGuardHandler implements GuardHandler
     public JwtGuardHandler(
         JwtOptionsConfig options,
         LongSupplier supplyAuthorizedId,
-        Function<URL, String> readURL)
+        Function<String, String> readURL)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
@@ -76,22 +72,15 @@ public class JwtGuardHandler implements GuardHandler
         List<JwtKeyConfig> keysConfig = options.keys;
         if ((keysConfig == null || keysConfig.isEmpty()) && options.keysURL.isPresent())
         {
-            try
-            {
-                JsonbConfig config = new JsonbConfig()
-                        .withAdapters(new JwtKeySetConfigAdapter());
-                Jsonb jsonb = JsonbBuilder.newBuilder()
-                        .withConfig(config)
-                        .build();
+            JsonbConfig config = new JsonbConfig()
+                    .withAdapters(new JwtKeySetConfigAdapter());
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                    .withConfig(config)
+                    .build();
 
-                String keysText = readURL.apply(URI.create(options.keysURL.get()).toURL());
-                JwtKeySetConfig jwks = jsonb.fromJson(keysText, JwtKeySetConfig.class);
-                keysConfig = jwks.keys;
-            }
-            catch (MalformedURLException | JsonbException ex)
-            {
-                rethrowUnchecked(ex);
-            }
+            String keysText = readURL.apply(options.keysURL.get());
+            JwtKeySetConfig jwks = jsonb.fromJson(keysText, JwtKeySetConfig.class);
+            keysConfig = jwks.keys;
         }
 
         Map<String, JsonWebKey> resolvedKeys = new HashMap<>();

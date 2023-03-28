@@ -82,32 +82,6 @@ public class HttpWatcherTask extends WatcherTask
     }
 
     @Override
-    public String readURL(
-        URL configURL)
-    {
-        String output = "";
-        HttpClient client = HttpClient.newBuilder()
-            .version(HTTP_2)
-            .followRedirects(NORMAL)
-            .build();
-        HttpRequest request = HttpRequest.newBuilder()
-            .GET()
-            .uri(toURI(configURL))
-            .build();
-
-        try
-        {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            output = response.body();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return output;
-    }
-
-    @Override
     public void close()
     {
         futures.values().forEach(future -> future.cancel(true));

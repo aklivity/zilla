@@ -233,6 +233,8 @@
                             <include>com/ibm/icu/**</include>
                             <include>org/bitbucket/b_c/jose4j/**</include>
                             <include>org/slf4j/**</include>
+                            <include>org/antlr/**</include>
+                            <include>org/sonatype/oss/**</include>
                           </includes>
                         </fileSet>
                       </fileSets>
@@ -269,6 +271,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>binding-amqp</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>binding-grpc</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

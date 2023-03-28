@@ -14,5 +14,53 @@
  */
 scope grpc
 {
-	
+    scope stream
+    {
+        enum GrpcKind
+        {
+            UNARY,
+            STREAM
+        }
+
+        enum GrpcType
+        {
+            TEXT,
+            BASE64
+        }
+
+        struct GrpcMetadata
+        {
+            GrpcType type;
+            varint32 nameLen;
+            octets[nameLen] name;
+            varint32 valueLen;
+            octets[valueLen] value = null;
+        }
+
+        struct GrpcBeginEx extends core::stream::Extension
+        {
+            string16 scheme;
+            string16 authority;
+            string16 service;
+            string16 method;
+            GrpcKind request;
+            GrpcKind response;
+            GrpcMetadata[] metadata;
+        }
+
+        struct GrpcDataEx extends core::stream::Extension
+        {
+            int32 deferred = 0;
+        }
+
+        struct GrpcAbortEx extends core::stream::Extension
+        {
+            string16 status;
+        }
+
+        struct GrpcResetEx extends core::stream::Extension
+        {
+            string16 status;
+        }
+    }
 }

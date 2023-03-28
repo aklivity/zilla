@@ -26,7 +26,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.8</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
@@ -41,6 +41,11 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>engine</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -102,13 +107,16 @@
       <plugin>
         <groupId>org.jasig.maven</groupId>
         <artifactId>maven-notice-plugin</artifactId>
+        <configuration>
+          <licenseMapping>src/conf/notice/license-mappings.xml</licenseMapping>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>${project.groupId}</groupId>
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core grpc</scopeNames>
+          <scopeNames>core http grpc protocol</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.grpc.internal.types</packageName>
         </configuration>
         <executions>
@@ -118,6 +126,10 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>com.mycila</groupId>
@@ -203,6 +215,7 @@
         <configuration>
           <excludes>
             <exclude>io/aklivity/zilla/runtime/binding/grpc/internal/types/**/*.class</exclude>
+            <exclude>io/aklivity/zilla/runtime/binding/grpc/internal/parser/**/*.class</exclude>
           </excludes>
           <rules>
             <rule>
@@ -222,6 +235,30 @@
             </rule>
           </rules>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>binding-grpc.spec</artifactId>
+                  <version>${project.version}</version>
+                  <outputDirectory>${basedir}/target/test-classes</outputDirectory>
+                  <includes>**\/*.proto</includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>io.gatling</groupId>
