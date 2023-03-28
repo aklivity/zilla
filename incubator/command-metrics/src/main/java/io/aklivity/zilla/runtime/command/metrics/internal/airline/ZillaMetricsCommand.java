@@ -66,6 +66,9 @@ public final class ZillaMetricsCommand extends ZillaCommand
     @Option(name = { "--namespace" })
     public String namespace;
 
+    @Option(name = { "-i", "--interval" })
+    public Integer interval;
+
     @Arguments(title = {"name"})
     public List<String> args;
 
@@ -93,25 +96,26 @@ public final class ZillaMetricsCommand extends ZillaCommand
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
         LongPredicate filterByNamespaceAndBinding = filterBy(namespace, binding);
 
+        List<FileReader> fileReaders = List.of();
         try (Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1))
         {
-            for (FileReader fileReader : readers(files))
+            fileReaders = fileReaders(files);
+            System.out.println("interval = " + interval);
+            do
             {
-                for (LongSupplier[] recordReader : fileReader.recordReaders())
-                {
-                    if (filterByNamespaceAndBinding.test(recordReader[0].getAsLong()))
-                    {
-                        collectMetricValue(recordReader, fileReader.kind());
-                        calculateColumnWidths(recordReader, fileReader.kind());
-                    }
-                }
-                fileReader.close();
-            }
-            printMetrics();
+                resetMetrics();
+                calculateMetrics(fileReaders, filterByNamespaceAndBinding);
+                printMetrics();
+                Thread.sleep(interval * 1000);
+            } while (interval != null);
         }
-        catch (IOException ex)
+        catch (IOException | InterruptedException ex)
         {
             LangUtil.rethrowUnchecked(ex);
+        }
+        finally
+        {
+            fileReaders.forEach(FileReader::close);
         }
     }
 
@@ -132,7 +136,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return id -> (id & mask) == namespacedId;
     }
 
-    private List<FileReader> readers(
+    private List<FileReader> fileReaders(
         Stream<Path> files)
     {
         return files.flatMap(path ->
@@ -180,6 +184,37 @@ public final class ZillaMetricsCommand extends ZillaCommand
     {
         HistogramsLayout layout = new HistogramsLayout.Builder().path(path).build();
         return new HistogramsReader(layout);
+    }
+
+    private void resetMetrics()
+    {
+        for (Integer namespaceId : metrics.keySet())
+        {
+            for (Integer bindingId : metrics.get(namespaceId).keySet())
+            {
+                for (Integer metricId : metrics.get(namespaceId).get(bindingId).keySet())
+                {
+                    Arrays.fill(metrics.get(namespaceId).get(bindingId).get(metricId), 0L);
+                }
+            }
+        }
+        metricTypes.keySet().forEach(i -> metricTypes.remove(i));
+    }
+
+    private void calculateMetrics(List<FileReader> fileReaders, LongPredicate filter)
+    {
+        for (FileReader fileReader : fileReaders)
+        {
+            FileReader.Kind kind = fileReader.kind();
+            for (LongSupplier[] recordReader : fileReader.recordReaders())
+            {
+                if (filter.test(recordReader[0].getAsLong()))
+                {
+                    collectMetricValue(recordReader, kind);
+                    calculateColumnWidths(recordReader, kind);
+                }
+            }
+        }
     }
 
     private void collectMetricValue(
@@ -270,5 +305,6 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 }
             }
         }
+        System.out.println();
     }
 }

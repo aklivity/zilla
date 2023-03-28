@@ -24,6 +24,8 @@ public class CountersReader implements FileReader
 {
     private final CountersLayout layout;
 
+    private LongSupplier[][] recordReaders;
+
     public CountersReader(
         CountersLayout layout)
     {
@@ -39,7 +41,11 @@ public class CountersReader implements FileReader
     @Override
     public LongSupplier[][] recordReaders()
     {
-        return StreamSupport.stream(layout.spliterator(), false).toArray(LongSupplier[][]::new);
+        if (recordReaders == null)
+        {
+            recordReaders = StreamSupport.stream(layout.spliterator(), false).toArray(LongSupplier[][]::new);
+        }
+        return recordReaders;
     }
 
     @Override

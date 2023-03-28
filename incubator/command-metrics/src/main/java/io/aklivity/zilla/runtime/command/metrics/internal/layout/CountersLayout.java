@@ -78,11 +78,19 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
         @Override
         public LongSupplier[] next()
         {
-            long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
-            long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
-            long value = buffer.getLong(index + VALUE_OFFSET);
+            LongSupplier[] readers = new LongSupplier[]
+            {
+                newLongSupplier(index + BINDING_ID_OFFSET),
+                newLongSupplier(index + METRIC_ID_OFFSET),
+                newLongSupplier(index + VALUE_OFFSET)
+            };
             index += RECORD_SIZE;
-            return new LongSupplier[]{() -> bindingId, () -> metricId, () -> value};
+            return readers;
+        }
+
+        private LongSupplier newLongSupplier(int i)
+        {
+            return () -> buffer.getLong(i);
         }
     }
 

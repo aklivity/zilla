@@ -24,6 +24,8 @@ public class HistogramsReader implements FileReader
 {
     private final HistogramsLayout layout;
 
+    private LongSupplier[][] recordReaders;
+
     public HistogramsReader(
         HistogramsLayout layout)
     {
@@ -39,7 +41,11 @@ public class HistogramsReader implements FileReader
     @Override
     public LongSupplier[][] recordReaders()
     {
-        return StreamSupport.stream(layout.spliterator(), false).toArray(LongSupplier[][]::new);
+        if (recordReaders == null)
+        {
+            recordReaders = StreamSupport.stream(layout.spliterator(), false).toArray(LongSupplier[][]::new);
+        }
+        return recordReaders;
     }
 
     @Override
