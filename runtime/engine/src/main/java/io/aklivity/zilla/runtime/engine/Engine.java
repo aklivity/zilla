@@ -295,7 +295,7 @@ public final class Engine implements AutoCloseable
         return new EngineBuilder();
     }
 
-    public String readURL(
+    private String readURL(
         URL configURL,
         String location)
     {

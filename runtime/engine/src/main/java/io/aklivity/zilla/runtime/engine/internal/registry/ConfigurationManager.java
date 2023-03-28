@@ -204,7 +204,7 @@ public class ConfigurationManager
             for (GuardConfig guard : namespace.guards)
             {
                 guard.id = namespace.resolveId.applyAsLong(guard.name);
-                guard.readURL = namespaceReadURL;
+                guard.readURL = namespace.readURL;
             }
 
             for (VaultConfig vault : namespace.vaults)
@@ -306,7 +306,7 @@ public class ConfigurationManager
         logger.accept("Configuration parsing error: " + message);
     }
 
-    public final class NamespaceConfigAdapterContext implements ConfigAdapterContext
+    private static final class NamespaceConfigAdapterContext implements ConfigAdapterContext
     {
         private final Function<String, String> readURL;
 
