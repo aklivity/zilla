@@ -6,10 +6,12 @@ import static org.agrona.IoUtil.unmap;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
@@ -17,7 +19,6 @@ import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
-import io.aklivity.zilla.runtime.engine.util.function.LongArraySupplier;
 
 public final class HistogramsLayout extends Layout
 {
@@ -29,7 +30,7 @@ public final class HistogramsLayout extends Layout
     private static final int BUCKETS = 63;
     private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
     private static final int RECORD_SIZE = 2 * FIELD_SIZE + ARRAY_SIZE;
-    private static final long[] EMPTY_ARRAY = new long[BUCKETS];
+    private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
 
     private final AtomicBuffer buffer;
 
@@ -58,34 +59,32 @@ public final class HistogramsLayout extends Layout
         };
     }
 
-    // TODO: Ati - supplyReaders -> LongSupplier[]
-    public LongArraySupplier supplyReader(
+    public LongSupplier[] supplyReaders(
         long bindingId,
         long metricId)
     {
+        LongSupplier[] readers;
         int index = findPosition(bindingId, metricId);
-        LongArraySupplier reader;
         if (index == -1) // not found
         {
-            reader = () -> EMPTY_ARRAY;
+            readers = IntStream.range(0, BUCKETS)
+                    .mapToObj(bucket -> ZERO_LONG_SUPPLIER)
+                    .collect(Collectors.toList())
+                    .toArray(LongSupplier[]::new);
         }
         else
         {
-            reader = () ->
-            {
-                // TODO: Ati
-                ByteBuffer values = ByteBuffer.allocate(ARRAY_SIZE);
-                buffer.getBytes(index + VALUES_OFFSET, values, ARRAY_SIZE);
-                values.rewind();
-                values.order(ByteOrder.nativeOrder());
-                long[] array = new long[BUCKETS];
-                values.asLongBuffer().get(array);
-                System.out.format("HistogramLayout read: bnd=%d met=%d val0=%d\n",
-                        bindingId, metricId, array[0]); // TODO: Ati
-                return array;
-            };
+            readers = IntStream.range(0, BUCKETS)
+                    .mapToObj(bucket -> newLongSupplier(index + VALUES_OFFSET + bucket * FIELD_SIZE))
+                    .collect(Collectors.toList())
+                    .toArray(LongSupplier[]::new);
         }
-        return reader;
+        return readers;
+    }
+
+    private LongSupplier newLongSupplier(int i)
+    {
+        return () -> buffer.getLong(i);
     }
 
     private int findPosition(
