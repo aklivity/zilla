@@ -315,6 +315,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/cache.filter.sync/client",
+        "${app}/cache.filter.sync/server"})
+    public void shouldReceiveCacheSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.key/client",
         "${app}/filter.key/server"})
     public void shouldReceiveMessagesWithKeyFilter() throws Exception

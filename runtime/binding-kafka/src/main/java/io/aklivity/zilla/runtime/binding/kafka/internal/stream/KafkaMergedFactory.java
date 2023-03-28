@@ -22,7 +22,10 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffset
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW.Builder.DEFAULT_MINIMUM;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
@@ -981,6 +984,7 @@ public final class KafkaMergedFactory implements BindingHandler
         private final Long2LongHashMap stableOffsetByPartitionId;
         private final Long2LongHashMap nextOffsetsById;
         private final Long2LongHashMap initialLatestOffsetsById;
+        private final Long2LongHashMap initialStableOffsetsById;
         private final long defaultOffset;
         private final KafkaIsolation isolation;
         private final KafkaDeltaType deltaType;
@@ -1042,6 +1046,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.stableOffsetByPartitionId = new Long2LongHashMap(-1);
             this.nextOffsetsById = initialOffsetsById;
             this.initialLatestOffsetsById = new Long2LongHashMap(-3);
+            this.initialStableOffsetsById = new Long2LongHashMap(-3);
             this.defaultOffset = defaultOffset;
             this.isolation = isolation;
             this.deltaType = deltaType;
@@ -1596,20 +1601,22 @@ public final class KafkaMergedFactory implements BindingHandler
             final int partitionId = partition.partitionId();
             final long partitionOffset = partition.partitionOffset();
             final long latestOffset = partition.latestOffset();
+            final long stableOffset = partition.stableOffset();
 
             nextOffsetsById.put(partitionId, partitionOffset);
             initialLatestOffsetsById.put(partitionId, latestOffset);
+            initialStableOffsetsById.put(partitionId, stableOffset);
 
             if (nextOffsetsById.equals(initialLatestOffsetsById))
             {
                 final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
                         .merged(f -> f
-                                .progress(ps -> initialLatestOffsetsById.longForEach((p, o) ->
+                                .progress(ps -> nextOffsetsById.longForEach((p, o) ->
                                         ps.item(i -> i.partitionId((int) p)
-                                                .partitionOffset(nextOffsetsById.get(p))
-                                                .stableOffset(o)
-                                                .latestOffset(o)))))
+                                                .partitionOffset(o)
+                                                .stableOffset(initialStableOffsetsById.get(p))
+                                                .latestOffset(initialLatestOffsetsById.get(p))))))
                         .build();
 
                 doFlush(sender, routeId, replyId, replySeq, replyAck, replyMax,

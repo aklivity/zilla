@@ -2982,6 +2982,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         })
                         .build();
                 client.dataFrameSent = true;
+                client.fetchRequestCount = 0;
                 final int flags = aborted ? FLAG_INIT | FLAG_FIN | FLAG_SKIP : FLAG_INIT | FLAG_FIN;
                 doApplicationData(traceId, authorization, flags, reserved, value, kafkaDataEx);
             }
@@ -3072,8 +3073,11 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 if (topicPartitions.get(partitionId) == leaderId)
                 {
                     fetchRequestCount++;
-                    if (fetchRequestCount == 2)
+                    if (fetchRequestCount == 2 && !dataFrameSent)
+                    {
                         client.triggerFlushIfRequired(traceId);
+                    }
+                    dataFrameSent = false;
                     signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
@@ -3118,7 +3122,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     long traceId)
             {
                 if (decodeRecordBatchLastOffset == initialLatestOffset &&
-                        decodableRecords == 0 && !dataFrameSent)
+                        decodableRecords == 0)
                 {
                     final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                             .typeId(kafkaTypeId)

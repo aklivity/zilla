@@ -14,16 +14,18 @@
 # under the License.
 #
 
-property deltaMillis 0L
-property newTimestamp ${kafka:timestamp() + deltaMillis}
-
-property serverAddress "zilla://streams/app0"
-
-accept ${serverAddress}
+connect "zilla://streams/app0"
     option zilla:window 8192
     option zilla:transmission "half-duplex"
 
-accepted
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("test")
+                                   .build()
+                               .build()}
+
+connected
 
 read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
@@ -32,48 +34,42 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
-connected
+read zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, 177)
+                                 .build()
+                             .build()}
 
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .meta()
-                                   .topic("test")
-                                   .build()
-                               .build()}
-write flush
+read notify ROUTED_BROKER_CLIENT
 
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .partition(0, 177)
-                                  .build()
-                              .build()}
-write flush
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
-                                  .partition(0, 0)
-                                  .build()
-                              .build()}
-
-connected
+connect await ROUTED_BROKER_CLIENT
+        "zilla://streams/app0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
+    option zilla:affinity 0xb1
 
 write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 0, 2, 2)
+                                   .partition(0, 0)
                                    .build()
                                .build()}
-write flush
 
-write advise zilla:flush ${kafka:flushEx()
-                                .typeId(zilla:id("kafka"))
-                                .fetch()
-                                    .partition(0, 2, 2, 2)
-                                    .build()
-                                .build()}
+connected
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .topic("test")
+                                  .partition(0, 0, 1)
+                                  .build()
+                              .build()}
+
+read advised zilla:flush ${kafka:matchFlushEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .partition(0, 2, 2, 2)
+                                   .build()
+                               .build()}

@@ -114,7 +114,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, -2)
+                                   .partition(0, 0)
                                    .build()
                                .build()}
 
@@ -124,11 +124,16 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, 1, 2)
+                                  .partition(0, 0, 2)
                                   .build()
                               .build()}
 
-read advised zilla:flush
+read advised zilla:flush ${kafka:matchFlushEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .partition(0, 2, 2, 2)
+                                 .build()
+                             .build()}
 
 connect await PARTITION_COUNT_2
         "zilla://streams/app1"
@@ -139,7 +144,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(1, -2)
+                                   .partition(1, 0)
                                    .build()
                                .build()}
 
@@ -149,8 +154,13 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(1, 1, 2)
+                                  .partition(1, 0, 2)
                                   .build()
                               .build()}
 
-read advised zilla:flush
+read advised zilla:flush ${kafka:matchFlushEx()
+                            .typeId(zilla:id("kafka"))
+                            .fetch()
+                                .partition(1, 2, 2, 2)
+                                .build()
+                            .build()}

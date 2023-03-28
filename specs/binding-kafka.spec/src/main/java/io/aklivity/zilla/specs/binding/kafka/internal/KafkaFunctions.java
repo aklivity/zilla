@@ -2792,6 +2792,24 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaFetchBeginExMatcherBuilder partition(
+                    int partitionId,
+                    long partitionOffset,
+                    long stableOffset,
+                    long latestOffset)
+            {
+                assert partitionRW == null;
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                partitionRW
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset);
+
+                return this;
+            }
+
             public KafkaFilterBuilder<KafkaFetchBeginExMatcherBuilder> filter()
             {
                 if (filtersRW == null)
