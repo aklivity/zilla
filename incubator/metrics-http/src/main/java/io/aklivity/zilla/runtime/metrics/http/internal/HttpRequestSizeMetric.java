@@ -68,7 +68,8 @@ public class HttpRequestSizeMetric implements Metric
 
     private final class HttpRequestSizeMetricContext implements MetricContext
     {
-        private final Long2LongCounterMap requestSize = new Long2LongCounterMap(0L);
+        private static final long INITIAL_VALUE = 0L;
+        private final Long2LongCounterMap requestSize = new Long2LongCounterMap(INITIAL_VALUE);
         private final Long2ObjectHashMap<HttpMetricConsumer> handlers = new Long2ObjectHashMap<>();
         private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
@@ -117,7 +118,11 @@ public class HttpRequestSizeMetric implements Metric
                 final HttpHeaderFW contentLength = getContentLength(begin);
                 if (isContentLengthValid(contentLength))
                 {
-                    requestSize.put(streamId, getContentLengthValue(contentLength));
+                    long contentLengthValue = getContentLengthValue(contentLength);
+                    if (contentLengthValue != INITIAL_VALUE)
+                    {
+                        requestSize.put(streamId, contentLengthValue);
+                    }
                     handlers.put(streamId, this::handleFixedLength);
                 }
                 else

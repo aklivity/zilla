@@ -160,6 +160,70 @@ public class HttpMetricGroupTest
     }
 
     @Test
+    public void shouldRecordZeroHttpRequestSize()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext mockEngineContext = mock(EngineContext.class);
+        LongConsumer mockRecorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.resolve("http.request.size");
+        MetricContext context = metric.supply(mockEngineContext);
+        MetricHandler handler = context.supply(mockRecorder);
+
+        // begin frame when header Content-Length is empty
+        HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .typeId(0)
+                .headersItem(h -> h.name(":status").value("200"))
+                .headersItem(h -> h.name("content-length").value(""))
+                .build();
+        AtomicBuffer beginBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer1, 0, beginBuffer1.capacity())
+                .routeId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L)
+                .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
+        handler.onEvent(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
+                .routeId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.onEvent(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+
+        // begin frame when header Content-Length is 0
+        HttpBeginExFW httpBeginEx2 = new HttpBeginExFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .typeId(0)
+                .headersItem(h -> h.name(":status").value("200"))
+                .headersItem(h -> h.name("content-length").value("0"))
+                .build();
+        AtomicBuffer beginBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer2, 0, beginBuffer2.capacity())
+                .routeId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L)
+                .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
+        handler.onEvent(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
+                .routeId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+
+        // THEN
+        verify(mockRecorder, times(2)).accept(0L);
+    }
+
+    @Test
     public void shouldNotRecordAbortedHttpRequestSize()
     {
         // GIVEN
@@ -314,6 +378,70 @@ public class HttpMetricGroupTest
 
         // THEN
         verify(mockRecorder, times(1)).accept(77L);
+    }
+
+    @Test
+    public void shouldRecordZeroHttpResponseSize()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext mockEngineContext = mock(EngineContext.class);
+        LongConsumer mockRecorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.resolve("http.response.size");
+        MetricContext context = metric.supply(mockEngineContext);
+        MetricHandler handler = context.supply(mockRecorder);
+
+        // begin frame when header Content-Length is empty
+        HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .typeId(0)
+                .headersItem(h -> h.name(":status").value("200"))
+                .headersItem(h -> h.name("content-length").value(""))
+                .build();
+        AtomicBuffer beginBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer1, 0, beginBuffer1.capacity())
+                .routeId(0L).streamId(2L) // sent
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L)
+                .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
+        handler.onEvent(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
+                .routeId(0L).streamId(2L) // sent
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.onEvent(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+
+        // begin frame when header Content-Length is 0
+        HttpBeginExFW httpBeginEx2 = new HttpBeginExFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+                .typeId(0)
+                .headersItem(h -> h.name(":status").value("200"))
+                .headersItem(h -> h.name("content-length").value("0"))
+                .build();
+        AtomicBuffer beginBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer2, 0, beginBuffer2.capacity())
+                .routeId(0L).streamId(2L) // sent
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L)
+                .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
+        handler.onEvent(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
+
+        // end frame
+        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
+                .routeId(0L).streamId(2L) // sent
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+
+        // THEN
+        verify(mockRecorder, times(2)).accept(0L);
     }
 
     @Test
