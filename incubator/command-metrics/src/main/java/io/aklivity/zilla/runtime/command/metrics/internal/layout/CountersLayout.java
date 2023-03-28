@@ -22,12 +22,13 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.function.LongSupplier;
 
 import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class CountersLayout implements Iterable<long[]>
+public final class CountersLayout implements Iterable<LongSupplier[]>
 {
     // We use the buffer to store structs {long bindingId, long metricId, long value}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
@@ -54,7 +55,7 @@ public final class CountersLayout implements Iterable<long[]>
         return new CountersIterator();
     }
 
-    public final class CountersIterator implements Iterator<long[]>
+    public final class CountersIterator implements Iterator<LongSupplier[]>
     {
         private int index = 0;
 
@@ -75,13 +76,13 @@ public final class CountersLayout implements Iterable<long[]>
         }
 
         @Override
-        public long[] next()
+        public LongSupplier[] next()
         {
             long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
             long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
             long value = buffer.getLong(index + VALUE_OFFSET);
             index += RECORD_SIZE;
-            return new long[]{bindingId, metricId, value};
+            return new LongSupplier[]{() -> bindingId, () -> metricId, () -> value};
         }
     }
 

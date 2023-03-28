@@ -26,6 +26,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.function.LongSupplier;
 
 import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
@@ -61,18 +62,18 @@ public class CountersLayoutTest
         CountersReader reader = new CountersReader(layout);
 
         // WHEN
-        long[][] records = reader.records();
+        LongSupplier[][] recordReaders = reader.recordReaders();
 
         // THEN
-        assertThat(records[0][0], equalTo(9L));
-        assertThat(records[0][1], equalTo(10L));
-        assertThat(records[0][2], equalTo(42L));
-        assertThat(records[1][0], equalTo(9L));
-        assertThat(records[1][1], equalTo(11L));
-        assertThat(records[1][2], equalTo(77L));
-        assertThat(records[2][0], equalTo(9L));
-        assertThat(records[2][1], equalTo(12L));
-        assertThat(records[2][2], equalTo(88L));
+        assertThat(recordReaders[0][0].getAsLong(), equalTo(9L));
+        assertThat(recordReaders[0][1].getAsLong(), equalTo(10L));
+        assertThat(recordReaders[0][2].getAsLong(), equalTo(42L));
+        assertThat(recordReaders[1][0].getAsLong(), equalTo(9L));
+        assertThat(recordReaders[1][1].getAsLong(), equalTo(11L));
+        assertThat(recordReaders[1][2].getAsLong(), equalTo(77L));
+        assertThat(recordReaders[2][0].getAsLong(), equalTo(9L));
+        assertThat(recordReaders[2][1].getAsLong(), equalTo(12L));
+        assertThat(recordReaders[2][2].getAsLong(), equalTo(88L));
         assertTrue(Files.exists(path));
         reader.close();
         Files.delete(path);

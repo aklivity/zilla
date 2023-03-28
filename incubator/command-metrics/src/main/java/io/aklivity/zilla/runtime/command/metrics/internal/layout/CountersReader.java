@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.Kind.COUNTER;
 
+import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 public class CountersReader implements Reader
@@ -36,9 +37,9 @@ public class CountersReader implements Reader
     }
 
     @Override
-    public long[][] records()
+    public LongSupplier[][] recordReaders()
     {
-        return StreamSupport.stream(layout.spliterator(), false).toArray(long[][]::new);
+        return StreamSupport.stream(layout.spliterator(), false).toArray(LongSupplier[][]::new);
     }
 
     @Override

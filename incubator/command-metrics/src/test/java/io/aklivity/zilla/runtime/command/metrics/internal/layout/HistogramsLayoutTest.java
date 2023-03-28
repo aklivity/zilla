@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Reader.HISTOGRAM_BUCKETS;
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.hamcrest.Matchers.equalTo;
@@ -26,6 +27,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.function.LongSupplier;
 
 import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
@@ -38,8 +40,7 @@ public class HistogramsLayoutTest
     private static final int BINDING_ID_OFFSET = 0;
     private static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
     private static final int VALUES_OFFSET = 2 * FIELD_SIZE;
-    private static final int BUCKETS = 10;
-    private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
+    private static final int ARRAY_SIZE = HISTOGRAM_BUCKETS * FIELD_SIZE;
     private static final int RECORD_SIZE = 2 * FIELD_SIZE + ARRAY_SIZE;
 
     @Test
@@ -47,7 +48,7 @@ public class HistogramsLayoutTest
     {
         // GIVEN
         Path path = Paths.get("target/zilla-itests/histograms0");
-        createEmptyFile(path.toFile(), 256);
+        createEmptyFile(path.toFile(), 1024);
         final MappedByteBuffer mappedBuffer = mapExistingFile(path.toFile(), "histograms");
         final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
         atomicBuffer.putLong(0 * RECORD_SIZE + BINDING_ID_OFFSET, 9L);
@@ -79,34 +80,34 @@ public class HistogramsLayoutTest
         HistogramsReader reader = new HistogramsReader(layout);
 
         // WHEN
-        long[][] records = reader.records();
+        LongSupplier[][] recordReaders = reader.recordReaders();
 
         // THEN
-        assertThat(records[0][0], equalTo(9L));
-        assertThat(records[0][1], equalTo(42L));
-        assertThat(records[0][2], equalTo(1L));
-        assertThat(records[0][3], equalTo(2L));
-        assertThat(records[0][4], equalTo(33L));
-        assertThat(records[0][5], equalTo(0L));
-        assertThat(records[0][6], equalTo(42L));
-        assertThat(records[0][7], equalTo(0L));
-        assertThat(records[0][8], equalTo(0L));
-        assertThat(records[0][9], equalTo(77L));
-        assertThat(records[0][10], equalTo(88L));
-        assertThat(records[0][11], equalTo(99L));
+        assertThat(recordReaders[0][0].getAsLong(), equalTo(9L));
+        assertThat(recordReaders[0][1].getAsLong(), equalTo(42L));
+        assertThat(recordReaders[0][2].getAsLong(), equalTo(1L));
+        assertThat(recordReaders[0][3].getAsLong(), equalTo(2L));
+        assertThat(recordReaders[0][4].getAsLong(), equalTo(33L));
+        assertThat(recordReaders[0][5].getAsLong(), equalTo(0L));
+        assertThat(recordReaders[0][6].getAsLong(), equalTo(42L));
+        assertThat(recordReaders[0][7].getAsLong(), equalTo(0L));
+        assertThat(recordReaders[0][8].getAsLong(), equalTo(0L));
+        assertThat(recordReaders[0][9].getAsLong(), equalTo(77L));
+        assertThat(recordReaders[0][10].getAsLong(), equalTo(88L));
+        assertThat(recordReaders[0][11].getAsLong(), equalTo(99L));
 
-        assertThat(records[1][0], equalTo(9L));
-        assertThat(records[1][1], equalTo(11L));
-        assertThat(records[1][2], equalTo(7L));
-        assertThat(records[1][3], equalTo(8L));
-        assertThat(records[1][4], equalTo(0L));
-        assertThat(records[1][5], equalTo(0L));
-        assertThat(records[1][6], equalTo(44L));
-        assertThat(records[1][7], equalTo(0L));
-        assertThat(records[1][8], equalTo(0L));
-        assertThat(records[1][9], equalTo(7L));
-        assertThat(records[1][10], equalTo(8L));
-        assertThat(records[1][11], equalTo(9L));
+        assertThat(recordReaders[1][0].getAsLong(), equalTo(9L));
+        assertThat(recordReaders[1][1].getAsLong(), equalTo(11L));
+        assertThat(recordReaders[1][2].getAsLong(), equalTo(7L));
+        assertThat(recordReaders[1][3].getAsLong(), equalTo(8L));
+        assertThat(recordReaders[1][4].getAsLong(), equalTo(0L));
+        assertThat(recordReaders[1][5].getAsLong(), equalTo(0L));
+        assertThat(recordReaders[1][6].getAsLong(), equalTo(44L));
+        assertThat(recordReaders[1][7].getAsLong(), equalTo(0L));
+        assertThat(recordReaders[1][8].getAsLong(), equalTo(0L));
+        assertThat(recordReaders[1][9].getAsLong(), equalTo(7L));
+        assertThat(recordReaders[1][10].getAsLong(), equalTo(8L));
+        assertThat(recordReaders[1][11].getAsLong(), equalTo(9L));
 
         assertTrue(Files.exists(path));
         reader.close();

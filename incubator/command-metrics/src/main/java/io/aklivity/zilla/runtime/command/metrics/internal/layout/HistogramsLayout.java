@@ -20,17 +20,18 @@ import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
 
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class HistogramsLayout implements Iterable<long[]>
+public final class HistogramsLayout implements Iterable<LongSupplier[]>
 {
     // We use the buffer to store structs {long bindingId, long metricId, long[] values}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
@@ -56,7 +57,7 @@ public final class HistogramsLayout implements Iterable<long[]>
         return new HistogramsIterator();
     }
 
-    public final class HistogramsIterator implements Iterator<long[]>
+    public final class HistogramsIterator implements Iterator<LongSupplier[]>
     {
         private int index = 0;
 
@@ -77,17 +78,19 @@ public final class HistogramsLayout implements Iterable<long[]>
         }
 
         @Override
-        public long[] next()
+        public LongSupplier[] next()
         {
-            // TODO: Ati
-            ByteBuffer values = ByteBuffer.allocate(RECORD_SIZE);
-            buffer.getBytes(index, values, RECORD_SIZE);
-            values.rewind();
-            values.order(ByteOrder.nativeOrder());
-            long[] result = new long[SCALAR_FIELDS + HISTOGRAM_BUCKETS];
-            values.asLongBuffer().get(result);
+            LongSupplier[] readers = IntStream.range(0, SCALAR_FIELDS + HISTOGRAM_BUCKETS)
+                    .mapToObj(offset -> newLongSupplier(index + offset * FIELD_SIZE))
+                    .collect(Collectors.toList())
+                    .toArray(LongSupplier[]::new);
             index += RECORD_SIZE;
-            return result;
+            return readers;
+        }
+
+        private LongSupplier newLongSupplier(int i)
+        {
+            return () -> buffer.getLong(i);
         }
     }
 

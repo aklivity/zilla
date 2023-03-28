@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
 import java.util.Map;
+import java.util.function.LongSupplier;
 
 public interface Reader
 {
@@ -37,7 +38,7 @@ public interface Reader
 
     Kind kind();
 
-    long[][] records();
+    LongSupplier[][] recordReaders();
 
     void close();
 }

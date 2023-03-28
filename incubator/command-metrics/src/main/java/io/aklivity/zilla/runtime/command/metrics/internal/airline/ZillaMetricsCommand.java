@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongPredicate;
+import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -96,12 +97,12 @@ public final class ZillaMetricsCommand extends ZillaCommand
         {
             for (Reader reader : readers(files))
             {
-                for (long[] record : reader.records())
+                for (LongSupplier[] recordReader : reader.recordReaders())
                 {
-                    if (filterByNamespaceAndBinding.test(record[0]))
+                    if (filterByNamespaceAndBinding.test(recordReader[0].getAsLong()))
                     {
-                        collectMetricValue(record, reader.kind());
-                        calculateColumnWidths(record, reader.kind());
+                        collectMetricValue(recordReader, reader.kind());
+                        calculateColumnWidths(recordReader, reader.kind());
                     }
                 }
                 reader.close();
@@ -182,14 +183,13 @@ public final class ZillaMetricsCommand extends ZillaCommand
     }
 
     private void collectMetricValue(
-        long[] record,
+        LongSupplier[] recordReader,
         Reader.Kind kind)
     {
         int numberOfValues = NUMBER_OF_VALUES.get(kind);
-        int namespaceId = namespaceId(record[BINDING_ID_INDEX]);
-        int bindingId = localId(record[BINDING_ID_INDEX]);
-        int metricId = localId(record[METRIC_ID_INDEX]);
-        long[] values = Arrays.copyOfRange(record, VALUES_INDEX, VALUES_INDEX + numberOfValues);
+        int namespaceId = namespaceId(recordReader[BINDING_ID_INDEX].getAsLong());
+        int bindingId = localId(recordReader[BINDING_ID_INDEX].getAsLong());
+        int metricId = localId(recordReader[METRIC_ID_INDEX].getAsLong());
 
         metricTypes.putIfAbsent(metricId, kind);
 
@@ -203,23 +203,23 @@ public final class ZillaMetricsCommand extends ZillaCommand
         for (int i = 0; i < numberOfValues; i++)
         {
             // adding values across cores works for counters and histograms
-            count[i] += values[i];
+            count[i] += recordReader[VALUES_INDEX + i].getAsLong();
         }
         metricsByBinding.put(metricId, count);
     }
 
     private void calculateColumnWidths(
-        long[] record,
+        LongSupplier[] recordReader,
         Reader.Kind kind)
     {
-        int namespaceId = namespaceId(record[BINDING_ID_INDEX]);
-        int bindingId = localId(record[BINDING_ID_INDEX]);
-        int metricId = localId(record[METRIC_ID_INDEX]);
+        int namespaceId = namespaceId(recordReader[BINDING_ID_INDEX].getAsLong());
+        int bindingId = localId(recordReader[BINDING_ID_INDEX].getAsLong());
+        int metricId = localId(recordReader[METRIC_ID_INDEX].getAsLong());
 
         String namespace = labels.lookupLabel(namespaceId);
         String binding = labels.lookupLabel(bindingId);
         String metric = labels.lookupLabel(metricId);
-        long[] values = Arrays.copyOfRange(record, VALUES_INDEX, VALUES_INDEX + NUMBER_OF_VALUES.get(kind));
+        long[] values = new long[]{recordReader[VALUES_INDEX].getAsLong()}; // TODO: Ati
         String valuesAsString = toStringConverters.get(kind).apply(values);
 
         namespaceWidth = Math.max(namespaceWidth, namespace.length());
