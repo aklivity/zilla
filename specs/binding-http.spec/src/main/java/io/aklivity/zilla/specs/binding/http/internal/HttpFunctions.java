@@ -94,7 +94,7 @@ public final class HttpFunctions
         Pattern validVersionPattern = Pattern.compile("HTTP/1\\.(\\d)+");
         Matcher validVersionMatcher = null;
         String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-            "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
+                       "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
         StringBuilder result;
         do
         {
@@ -133,7 +133,7 @@ public final class HttpFunctions
         // random strings from bytes can generate random bad chars like \n \r \f \v etc which are not allowed
         // except under special conditions, and will crash the http pipeline
         String commonHeaderChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-            "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
+                "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
         StringBuilder result = new StringBuilder();
         do
         {
@@ -207,7 +207,7 @@ public final class HttpFunctions
         Random random = ThreadLocalRandom.current();
         byte[] result = new byte[length];
         String alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-            "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
+                          "1234567890!@#$%^&*()_+-=`~[]\\{}|;':\",./<>?";
         for (int i = 0; i < length; i++)
         {
             result[i] = (byte) alphabet.charAt(random.nextInt(alphabet.length()));
@@ -365,7 +365,7 @@ public final class HttpFunctions
         {
             MutableBoolean match = new MutableBoolean(true);
             headers.forEach((k, v) -> match.value &= beginEx.headers().anyMatch(h -> k.equals(h.name().asString()) &&
-                v.test(h.value().asString())));
+                                                                           v.test(h.value().asString())));
             return match.value;
         }
 
@@ -429,7 +429,7 @@ public final class HttpFunctions
         private Long promiseId;
 
         public HttpFlushExMatcherBuilder typeId(
-            int typeId)
+                int typeId)
         {
             this.typeId = typeId;
             return this;
@@ -476,8 +476,8 @@ public final class HttpFunctions
             final HttpFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
 
             if (flushEx != null &&
-                matchTypeId(flushEx) &&
-                matchPromises(flushEx))
+                    matchTypeId(flushEx) &&
+                    matchPromises(flushEx))
             {
                 byteBuf.position(byteBuf.position() + flushEx.sizeof());
                 return flushEx;
@@ -491,7 +491,7 @@ public final class HttpFunctions
         {
             MutableBoolean match = new MutableBoolean(true);
             headers.forEach((k, v) -> match.value &= flushEx.promise().anyMatch(h -> k.equals(h.name().asString()) &&
-                v.test(h.value().asString())));
+                    v.test(h.value().asString())));
             return match.value;
         }
 

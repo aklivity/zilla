@@ -148,15 +148,15 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                    bindings, guards, vaults, coreIndex);
+                        bindings, guards, vaults, coreIndex);
             dispatchers.add(agent);
         }
 
         final Consumer<String> logger = config.verbose() ? System.out::println : m -> {};
 
         final List<EngineExtSpi> extensions = ServiceLoader.load(EngineExtSpi.class).stream()
-            .map(Provider::get)
-            .collect(toList());
+                .map(Provider::get)
+                .collect(toList());
 
         final ContextImpl context = new ContextImpl(config, errorHandler, dispatchers);
 
@@ -209,10 +209,10 @@ public final class Engine implements AutoCloseable
         Class<T> kind)
     {
         return bindings.stream()
-            .filter(kind::isInstance)
-            .map(kind::cast)
-            .findFirst()
-            .orElse(null);
+                .filter(kind::isInstance)
+                .map(kind::cast)
+                .findFirst()
+                .orElse(null);
     }
 
     public EngineStats stats(
@@ -284,17 +284,8 @@ public final class Engine implements AutoCloseable
         {
             NamespaceConfig oldNamespace = namespaces.get(configURL);
             configurationManager.unregister(oldNamespace);
-            try
-            {
-                configurationManager.register(newNamespace);
-                namespaces.put(configURL, newNamespace);
-            }
-            catch (Exception ex)
-            {
-                context.onError(ex);
-                configurationManager.register(oldNamespace);
-                namespaces.put(configURL, oldNamespace);
-            }
+            configurationManager.register(newNamespace);
+            namespaces.put(configURL, newNamespace);
         }
         return newNamespace;
     }
