@@ -272,8 +272,17 @@ public final class Engine implements AutoCloseable
         {
             NamespaceConfig oldNamespace = namespaces.get(configURL);
             configurationManager.unregister(oldNamespace);
-            configurationManager.register(newNamespace);
-            namespaces.put(configURL, newNamespace);
+            try
+            {
+                configurationManager.register(newNamespace);
+                namespaces.put(configURL, newNamespace);
+            }
+            catch (Exception ex)
+            {
+                context.onError(ex);
+                configurationManager.register(oldNamespace);
+                namespaces.put(configURL, oldNamespace);
+            }
         }
         return newNamespace;
     }
