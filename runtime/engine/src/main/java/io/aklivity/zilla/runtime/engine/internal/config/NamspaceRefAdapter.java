@@ -44,22 +44,6 @@ public class NamspaceRefAdapter implements JsonbAdapter<NamespaceRef, JsonObject
         this.context = context;
     }
 
-    private final ConfigAdapterContext context;
-
-    public NamspaceRefAdapter(
-        ConfigAdapterContext context)
-    {
-        this.context = context;
-    }
-
-    private final ConfigAdapterContext context;
-
-    public NamspaceRefAdapter(
-        ConfigAdapterContext context)
-    {
-        this.context = context;
-    }
-
     @Override
     public JsonObject adaptToJson(
         NamespaceRef ref)
@@ -84,11 +68,11 @@ public class NamspaceRefAdapter implements JsonbAdapter<NamespaceRef, JsonObject
     {
         String name = object.getString(NAME_NAME);
         Map<String, String> links = object.containsKey(LINKS_NAME)
-                ? object.getJsonObject(LINKS_NAME)
-                    .entrySet()
-                    .stream()
-                    .collect(toMap(Map.Entry::getKey, e -> asJsonString(e.getValue())))
-                : LINKS_DEFAULT;
+            ? object.getJsonObject(LINKS_NAME)
+            .entrySet()
+            .stream()
+            .collect(toMap(Map.Entry::getKey, e -> asJsonString(e.getValue())))
+            : LINKS_DEFAULT;
 
         return new NamespaceRef(name, links);
     }

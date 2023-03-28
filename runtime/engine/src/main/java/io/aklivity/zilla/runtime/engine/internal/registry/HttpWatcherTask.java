@@ -72,49 +72,13 @@ public class HttpWatcherTask extends WatcherTask
     public CompletableFuture<NamespaceConfig> watch(
         URL configURL)
     {
-        NamespaceConfig config = null;
-        try
+        URI configURI = toURI(configURL);
+        NamespaceConfig config = sendSync(configURI);
+        if (config == null)
         {
-            URI configURI = configURL.toURI();
-            config = sendSync(configURI);
-            if (config == null)
-            {
-                return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
-            }
+            return CompletableFuture.failedFuture(new Exception("Parsing of the initial configuration failed."));
         }
-        catch (URISyntaxException ex)
-        {
-            rethrowUnchecked(ex);
-        }
-
         return CompletableFuture.completedFuture(config);
-    }
-
-    @Override
-    public String readURL(
-        URL configURL)
-    {
-        String output = "";
-
-        try
-        {
-            HttpClient client = HttpClient.newBuilder()
-                .version(HTTP_2)
-                .followRedirects(NORMAL)
-                .build();
-            HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(configURL.toURI())
-                .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            output = response.body();
-        }
-        catch (Exception ex)
-        {
-            rethrowUnchecked(ex);
-        }
-        return output;
     }
 
     @Override
@@ -246,5 +210,20 @@ public class HttpWatcherTask extends WatcherTask
         {
             executor.schedule(() -> configQueue.add(configURI), pollIntervalSeconds, TimeUnit.SECONDS);
         }
+    }
+
+    private URI toURI(
+        URL configURL)
+    {
+        URI configURI = null;
+        try
+        {
+            configURI = configURL.toURI();
+        }
+        catch (URISyntaxException ex)
+        {
+            rethrowUnchecked(ex);
+        }
+        return configURI;
     }
 }
