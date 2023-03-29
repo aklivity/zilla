@@ -16,7 +16,7 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.utils;
 
 @FunctionalInterface
-public interface LongArrayFunction<R>
+public interface IntIntIntFunction<R>
 {
-    R apply(long[] values);
+    R apply(int value1, int value2, int value3);
 }
