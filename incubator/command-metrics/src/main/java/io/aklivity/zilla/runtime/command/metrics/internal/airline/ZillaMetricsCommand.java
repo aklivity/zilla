@@ -69,7 +69,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
             MetricsProcessor metrics = new MetricsProcessor(fileReaders, labels, namespace, binding);
             do
             {
-                metrics.doProcess();
+                metrics.doProcess(System.out);
                 Thread.sleep(interval * 1000);
             } while (interval != null);
         }

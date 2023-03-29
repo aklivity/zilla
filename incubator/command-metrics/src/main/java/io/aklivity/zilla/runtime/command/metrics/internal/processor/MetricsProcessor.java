@@ -23,6 +23,7 @@ import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileRead
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
 
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -76,11 +77,11 @@ public class MetricsProcessor
         this.histogramStats = new Int2ObjectHashMap<>();
     }
 
-    public void doProcess()
+    public void doProcess(PrintStream out)
     {
         reset();
         calculate();
-        print();
+        print(out);
     }
 
     private LongPredicate filterBy(
@@ -263,11 +264,11 @@ public class MetricsProcessor
         return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }
 
-    private void print()
+    private void print(PrintStream out)
     {
         String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
                 valueWidth + "s\n";
-        System.out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
+        out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
         for (Integer namespaceId : metricValues.keySet())
         {
             for (Integer bindingId : metricValues.get(namespaceId).keySet())
@@ -279,10 +280,10 @@ public class MetricsProcessor
                     String metric = labels.lookupLabel(metricId);
                     FileReader.Kind kind = metricTypes.get(metricId);
                     String value = formatters.get(kind).apply(namespaceId, bindingId, metricId);
-                    System.out.format(format, namespace, binding, metric, value);
+                    out.format(format, namespace, binding, metric, value);
                 }
             }
         }
-        System.out.println();
+        out.println();
     }
 }

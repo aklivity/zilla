@@ -33,7 +33,7 @@ import java.util.Map;
 
 import org.agrona.LangUtil;
 
-public final class LabelManager
+public class LabelManager
 {
     private static final Integer NO_LABEL_ID = Integer.valueOf(-1);
 
