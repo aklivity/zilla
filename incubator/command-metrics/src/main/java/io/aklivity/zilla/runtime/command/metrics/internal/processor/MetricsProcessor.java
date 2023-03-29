@@ -34,6 +34,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.utils.AggregatorFunction;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.IntIntIntFunction;
 
 public class MetricsProcessor
@@ -55,8 +56,11 @@ public class MetricsProcessor
     // namespace -> binding -> metric -> stats: [minimum, maximum, count, average]
     private final Map<Integer, Map<Integer, Map<Integer, long[]>>> histogramStats;
     private final Map<FileReader.Kind, IntIntIntFunction<String>> formatters = Map.of(
-            COUNTER, this::counterFormatter,
-            HISTOGRAM, this::histogramFormatter);
+            COUNTER, this::formatCounter,
+            HISTOGRAM, this::formatHistogram);
+    private final Map<FileReader.Kind, AggregatorFunction> aggregators = Map.of(
+            COUNTER, this::aggregateCounter,
+            HISTOGRAM, this::aggregateHistogram);
 
     private int namespaceWidth = NAMESPACE_HEADER.length();
     private int bindingWidth = BINDING_HEADER.length();
@@ -138,13 +142,12 @@ public class MetricsProcessor
                     int namespaceId = namespaceId(recordReader[BINDING_ID_INDEX].getAsLong());
                     int bindingId = localId(recordReader[BINDING_ID_INDEX].getAsLong());
                     int metricId = localId(recordReader[METRIC_ID_INDEX].getAsLong());
-                    int numberOfValues = NUMBER_OF_VALUES.get(kind);
 
                     metricTypes.putIfAbsent(metricId, kind);
-                    collectMetricValue(namespaceId, bindingId, metricId, numberOfValues, recordReader);
+                    collectMetricValue(namespaceId, bindingId, metricId, kind, recordReader);
                     if (kind == HISTOGRAM)
                     {
-                        calculateHistogramStats(namespaceId, bindingId, metricId, numberOfValues, recordReader);
+                        calculateHistogramStats(namespaceId, bindingId, metricId, recordReader);
                     }
                     calculateColumnWidths(namespaceId, bindingId, metricId, kind);
                 }
@@ -168,7 +171,7 @@ public class MetricsProcessor
         int namespaceId,
         int bindingId,
         int metricId,
-        int numberOfValues,
+        FileReader.Kind kind,
         LongSupplier[] recordReader)
     {
         metricValues.putIfAbsent(namespaceId, new Int2ObjectHashMap<>());
@@ -177,27 +180,36 @@ public class MetricsProcessor
         metricsByNamespace.putIfAbsent(bindingId, new Int2ObjectHashMap<>());
         Map<Integer, long[]> metricsByBinding = metricsByNamespace.get(bindingId);
 
-        long[] count = metricsByBinding.getOrDefault(metricId, new long[numberOfValues]);
-        for (int i = 0; i < numberOfValues; i++)
+        long[] accumulator = metricsByBinding.getOrDefault(metricId, new long[NUMBER_OF_VALUES.get(kind)]);
+        metricsByBinding.put(metricId, aggregators.get(kind).apply(accumulator, recordReader));
+    }
+
+    private long[] aggregateCounter(long[] accumulator, LongSupplier[] recordReader)
+    {
+        accumulator[0] += recordReader[VALUES_INDEX + 0].getAsLong();
+        return accumulator;
+    }
+
+    private long[] aggregateHistogram(long[] accumulator, LongSupplier[] recordReader)
+    {
+        for (int i = 0; i < accumulator.length; i++)
         {
-            // adding values across cores works for counters and histograms
-            count[i] += recordReader[VALUES_INDEX + i].getAsLong();
+            accumulator[i] += recordReader[VALUES_INDEX + i].getAsLong();
         }
-        metricsByBinding.put(metricId, count);
+        return accumulator;
     }
 
     private void calculateHistogramStats(
         int namespaceId,
         int bindingId,
         int metricId,
-        int numberOfValues,
         LongSupplier[] recordReader)
     {
         long count = 0L;
         long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
-        for (int bucketIndex = 0; bucketIndex < numberOfValues; bucketIndex++)
+        for (int bucketIndex = 0; bucketIndex < NUMBER_OF_VALUES.get(HISTOGRAM); bucketIndex++)
         {
             long bucketValue = recordReader[VALUES_INDEX + bucketIndex].getAsLong();
             count += bucketValue;
@@ -247,7 +259,7 @@ public class MetricsProcessor
         valueWidth = Math.max(valueWidth, value.length());
     }
 
-    private String counterFormatter(
+    private String formatCounter(
         int namespaceId,
         int bindingId,
         int metricId)
@@ -255,7 +267,7 @@ public class MetricsProcessor
         return String.valueOf(metricValues.get(namespaceId).get(bindingId).get(metricId)[0]);
     }
 
-    private String histogramFormatter(
+    private String formatHistogram(
         int namespaceId,
         int bindingId,
         int metricId)

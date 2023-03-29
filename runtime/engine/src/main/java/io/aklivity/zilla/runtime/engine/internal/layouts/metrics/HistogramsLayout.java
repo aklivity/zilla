@@ -151,7 +151,7 @@ public final class HistogramsLayout extends Layout
         int bucket = 0;
         if (value > 0)
         {
-            bucket = Long.SIZE - Long.numberOfLeadingZeros(value) - 1; // TODO: Ati - ?
+            bucket = Long.SIZE - Long.numberOfLeadingZeros(value) - 1;
         }
         return bucket;
     }
