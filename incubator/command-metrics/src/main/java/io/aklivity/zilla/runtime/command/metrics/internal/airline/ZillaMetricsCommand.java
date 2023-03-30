@@ -35,7 +35,6 @@ import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.processor.MetricsProcessor;
@@ -61,25 +60,28 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        List<FileReader> fileReaders = List.of();
+        List<CountersReader> counterFileReaders = List.of();
+        List<HistogramsReader> histogramFileReaders = List.of();
         try
         {
+            counterFileReaders = counterFileReaders();
+            histogramFileReaders = histogramFileReaders();
             final LabelManager labels = new LabelManager(LABELS_DIRECTORY);
-            MetricsProcessor metrics = new MetricsProcessor(counterFileReaders(), histogramFileReaders(), labels,
-                    namespace, binding);
+            MetricsProcessor metrics = new MetricsProcessor(counterFileReaders, histogramFileReaders, labels, namespace, binding);
             do
             {
                 metrics.print(System.out);
                 Thread.sleep(interval * 1000);
             } while (interval != null);
         }
-        catch (IOException | InterruptedException ex)
+        catch (InterruptedException | IOException ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }
         finally
         {
-            fileReaders.forEach(FileReader::close);
+            counterFileReaders.forEach(CountersReader::close);
+            histogramFileReaders.forEach(HistogramsReader::close);
         }
     }
 
