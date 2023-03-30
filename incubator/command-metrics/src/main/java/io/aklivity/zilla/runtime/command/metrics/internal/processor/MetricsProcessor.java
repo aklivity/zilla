@@ -63,8 +63,11 @@ public class MetricsProcessor
 
     public void print(PrintStream out)
     {
-        collectCounters();
-        collectHistograms();
+        if (metricRecords.isEmpty())
+        {
+            collectCounters();
+            collectHistograms();
+        }
         doPrint(out);
     }
 

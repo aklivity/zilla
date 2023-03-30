@@ -17,15 +17,5 @@ package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
 public interface FileReader
 {
-
-    enum Kind
-    {
-        COUNTER,
-        GAUGE,
-        HISTOGRAM
-    }
-
-    Kind kind();
-
     void close();
 }

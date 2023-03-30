@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -50,6 +51,24 @@ public final class HistogramsLayout implements Iterable<LongSupplier[]>
         AtomicBuffer buffer)
     {
         this.buffer = buffer;
+    }
+
+    public void close()
+    {
+        unmap(buffer.byteBuffer());
+    }
+
+    public LongConsumer supplyWriter(
+        long bindingId,
+        long metricId)
+    {
+        int index = findOrSetPosition(bindingId, metricId);
+        return value ->
+        {
+            System.out.format("HistogramLayout write: bnd=%d met=%d val=%d bck=%d\n",
+                    bindingId, metricId, value, findBucket(value)); // TODO: Ati
+            buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
+        };
     }
 
     public LongSupplier[] supplyReaders(
@@ -137,9 +156,16 @@ public final class HistogramsLayout implements Iterable<LongSupplier[]>
         return i;
     }
 
-    public void close()
+    private int findBucket(
+        long value)
     {
-        unmap(buffer.byteBuffer());
+        assert value >= 0;
+        int bucket = 0;
+        if (value > 0)
+        {
+            bucket = Long.SIZE - Long.numberOfLeadingZeros(value) - 1;
+        }
+        return bucket;
     }
 
     public HistogramsIterator iterator()

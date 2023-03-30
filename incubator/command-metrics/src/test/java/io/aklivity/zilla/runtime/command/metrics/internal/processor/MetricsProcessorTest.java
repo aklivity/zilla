@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.processor;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.COUNTER;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -96,10 +94,10 @@ public class MetricsProcessorTest
         when(mockLabelManager.lookupLabelId("binding1")).thenReturn(11);
         when(mockLabelManager.lookupLabelId("binding2")).thenReturn(12);
         CountersReader mockCountersReader = mock(CountersReader.class);
-        when(mockCountersReader.kind()).thenReturn(COUNTER);
+        //when(mockCountersReader.kind()).thenReturn(COUNTER);
         when(mockCountersReader.recordReaders()).thenReturn(counterRecordReaders);
         HistogramsReader mockHistogramsReader = mock(HistogramsReader.class);
-        when(mockHistogramsReader.kind()).thenReturn(HISTOGRAM);
+        //when(mockHistogramsReader.kind()).thenReturn(HISTOGRAM);
         when(mockHistogramsReader.recordReaders()).thenReturn(histogramRecordReaders);
         MetricsProcessor metrics = new MetricsProcessor(List.of(mockCountersReader), List.of(mockHistogramsReader),
                 mockLabelManager, null, null);

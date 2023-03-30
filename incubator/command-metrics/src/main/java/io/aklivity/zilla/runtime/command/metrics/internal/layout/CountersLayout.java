@@ -22,6 +22,7 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
 import org.agrona.BitUtil;
@@ -43,6 +44,19 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
         AtomicBuffer buffer)
     {
         this.buffer = buffer;
+    }
+
+    public void close()
+    {
+        unmap(buffer.byteBuffer());
+    }
+
+    public LongConsumer supplyWriter(
+        long bindingId,
+        long metricId)
+    {
+        int index = findOrSetPosition(bindingId, metricId);
+        return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
     }
 
     public LongSupplier supplyReader(
@@ -116,12 +130,6 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
             }
         }
         return i;
-    }
-
-
-    public void close()
-    {
-        unmap(buffer.byteBuffer());
     }
 
     public CountersIterator iterator()

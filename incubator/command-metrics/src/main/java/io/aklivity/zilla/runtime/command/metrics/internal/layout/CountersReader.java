@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.COUNTER;
-
 import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
@@ -33,10 +31,10 @@ public class CountersReader /*implements FileReader*/
     }
 
     //@Override
-    public FileReader.Kind kind()
+    /*public FileReader.Kind kind()
     {
         return COUNTER;
-    }
+    }*/
 
     //@Override
     public LongSupplier[][] recordReaders()
