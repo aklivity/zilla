@@ -68,6 +68,18 @@ public final class GrpcKafkaWithConfigAdapter implements WithConfigAdapterSpi, J
             object.add(KEY_NAME, grpcKafkaWith.key.get());
         }
 
+        if (grpcKafkaWith.overrides.isPresent())
+        {
+            JsonObjectBuilder newOverrides = Json.createObjectBuilder();
+
+            for (GrpcKafkaWithProduceOverrideConfig override : grpcKafkaWith.overrides.get())
+            {
+                newOverrides.add(override.name, override.value);
+            }
+
+            object.add(OVERRIDES_NAME, newOverrides);
+        }
+
         if (grpcKafkaWith.filters.isPresent())
         {
             JsonArrayBuilder newFilters = Json.createArrayBuilder();

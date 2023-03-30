@@ -64,6 +64,15 @@ public class GrpcIT
 
     @Test
     @Specification({
+        "${grpc}/client.stream.rpc.rejected/client",
+        "${grpc}/client.stream.rpc.rejected/server"})
+    public void shouldRejectClientStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${grpc}/server.stream.rpc/client",
         "${grpc}/server.stream.rpc/server"})
     public void shouldExchangeMessageInServerSteam() throws Exception

@@ -64,6 +64,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/client.stream.rpc.rejected/client",
+        "${kafka}/client.stream.rpc.rejected/server"})
+    public void shouldRejectClientStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/server.stream.rpc/client",
         "${kafka}/server.stream.rpc/server"})
     public void shouldExchangeMessageInServerStream() throws Exception
