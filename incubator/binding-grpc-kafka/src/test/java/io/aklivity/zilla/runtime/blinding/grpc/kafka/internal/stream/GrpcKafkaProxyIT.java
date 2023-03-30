@@ -63,6 +63,16 @@ public class GrpcKafkaProxyIT
     @Test
     @Configuration("proxy.rpc.yaml")
     @Specification({
+        "${grpc}/unary.rpc.rejected/client",
+        "${kafka}/unary.rpc.rejected/server"})
+    public void shouldRejectUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.rpc.yaml")
+    @Specification({
         "${grpc}/client.stream.rpc/client",
         "${kafka}/client.stream.rpc/server"})
     public void shouldExchangeMessageWithClientStreamRpc() throws Exception
