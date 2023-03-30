@@ -34,9 +34,7 @@ import com.github.rvesse.airline.annotations.Option;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.processor.MetricsProcessor;
 
 @Command(name = "metrics", description = "Show engine metrics")
@@ -60,14 +58,14 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        List<CountersReader> counterFileReaders = List.of();
-        List<HistogramsReader> histogramFileReaders = List.of();
+        List<CountersLayout> countersLayouts = List.of();
+        List<HistogramsLayout> histogramsLayouts = List.of();
         try
         {
-            counterFileReaders = counterFileReaders();
-            histogramFileReaders = histogramFileReaders();
+            countersLayouts = counterLayouts();
+            histogramsLayouts = histogramLayouts();
             final LabelManager labels = new LabelManager(LABELS_DIRECTORY);
-            MetricsProcessor metrics = new MetricsProcessor(counterFileReaders, histogramFileReaders, labels, namespace, binding);
+            MetricsProcessor metrics = new MetricsProcessor(countersLayouts, histogramsLayouts, labels, namespace, binding);
             do
             {
                 metrics.print(System.out);
@@ -80,21 +78,21 @@ public final class ZillaMetricsCommand extends ZillaCommand
         }
         finally
         {
-            counterFileReaders.forEach(CountersReader::close);
-            histogramFileReaders.forEach(HistogramsReader::close);
+            countersLayouts.forEach(CountersLayout::close);
+            histogramsLayouts.forEach(HistogramsLayout::close);
         }
     }
 
-    private List<CountersReader> counterFileReaders() throws IOException
+    private List<CountersLayout> counterLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
-        return files.filter(this::isCountersFile).map(this::newCountersReader).collect(toList());
+        return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
     }
 
-    private List<HistogramsReader> histogramFileReaders() throws IOException
+    private List<HistogramsLayout> histogramLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
-        return files.filter(this::isHistogramsFile).map(this::newHistogramsReader).collect(toList());
+        return files.filter(this::isHistogramsFile).map(this::newHistogramsLayout).collect(toList());
     }
 
     private boolean isCountersFile(
@@ -113,17 +111,15 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 Files.isRegularFile(path);
     }
 
-    private CountersReader newCountersReader(
+    private CountersLayout newCountersLayout(
         Path path)
     {
-        CountersLayout layout = new CountersLayout.Builder().path(path).build();
-        return new CountersReader(layout);
+        return new CountersLayout.Builder().path(path).build();
     }
 
-    private HistogramsReader newHistogramsReader(
+    private HistogramsLayout newHistogramsLayout(
         Path path)
     {
-        HistogramsLayout layout = new HistogramsLayout.Builder().path(path).build();
-        return new HistogramsReader(layout);
+        return new HistogramsLayout.Builder().path(path).build();
     }
 }

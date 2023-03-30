@@ -23,8 +23,8 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.HistogramRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.MetricRecord;
@@ -36,8 +36,8 @@ public class MetricsProcessor
     private static final String METRIC_HEADER = "metric";
     private static final String VALUE_HEADER = "value";
 
-    private final List<CountersReader> counterFileReaders;
-    private final List<HistogramsReader> histogramFileReaders;
+    private final List<CountersLayout> countersLayouts;
+    private final List<HistogramsLayout> histogramsLayouts;
     private final LabelManager labels;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
@@ -48,14 +48,14 @@ public class MetricsProcessor
     private int valueWidth;
 
     public MetricsProcessor(
-        List<CountersReader> counterFileReaders,
-        List<HistogramsReader> histogramFileReaders,
+        List<CountersLayout> countersLayouts,
+        List<HistogramsLayout> histogramsLayouts,
         LabelManager labels,
         String namespaceName,
         String bindingName)
     {
-        this.counterFileReaders = counterFileReaders;
-        this.histogramFileReaders = histogramFileReaders;
+        this.countersLayouts = countersLayouts;
+        this.histogramsLayouts = histogramsLayouts;
         this.labels = labels;
         this.filter = filterBy(namespaceName, bindingName);
         this.metricRecords = new LinkedList<>();
@@ -91,15 +91,14 @@ public class MetricsProcessor
 
     private void collectCounters()
     {
-        long[][] ids = counterFileReaders.get(0).layout().getIds();
+        long[][] ids = countersLayouts.get(0).getIds();
         for (long[] id : ids)
         {
             long packedBindingId = id[0];
             long packedMetricId = id[1];
             if (filter.test(packedBindingId))
             {
-                LongSupplier[] readers = counterFileReaders.stream()
-                        .map(CountersReader::layout)
+                LongSupplier[] readers = countersLayouts.stream()
                         .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
@@ -111,15 +110,14 @@ public class MetricsProcessor
 
     private void collectHistograms()
     {
-        long[][] ids = histogramFileReaders.get(0).layout().getIds();
+        long[][] ids = histogramsLayouts.get(0).getIds();
         for (long[] id : ids)
         {
             long packedBindingId = id[0];
             long packedMetricId = id[1];
             if (filter.test(packedBindingId))
             {
-                LongSupplier[][] readers = histogramFileReaders.stream()
-                        .map(HistogramsReader::layout)
+                LongSupplier[][] readers = histogramsLayouts.stream()
                         .map(layout -> layout.supplyReaders(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[][]::new);

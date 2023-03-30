@@ -203,13 +203,6 @@ public final class HistogramsLayout
             long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
             index += RECORD_SIZE;
             return new long[]{bindingId, metricId};
-
-            /*LongSupplier[] readers = IntStream.range(0, 2 * FIELD_SIZE + HISTOGRAM_BUCKETS)
-                    .mapToObj(offset -> newLongSupplier(index + offset * FIELD_SIZE))
-                    .collect(Collectors.toList())
-                    .toArray(LongSupplier[]::new);
-            index += RECORD_SIZE;
-            return readers;*/
         }
     }
 

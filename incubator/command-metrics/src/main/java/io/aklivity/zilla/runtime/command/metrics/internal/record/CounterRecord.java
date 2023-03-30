@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
-
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.localId;
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.namespaceId;
 
