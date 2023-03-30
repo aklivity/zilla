@@ -149,15 +149,16 @@ public class MetricsProcessor
         LongSupplier[][] longSuppliers = counterFileReaders.get(0).recordReaders();
         for (LongSupplier[] longSupplier : longSuppliers) // iterate over metadata (nsBinding/nsMetric pairs)
         {
-            long namespacedBindingId = longSupplier[0].getAsLong();
-            long namespacedMetricId = longSupplier[1].getAsLong();
-            if (filter.test(namespacedBindingId))
+            long packedBindingId = longSupplier[0].getAsLong();
+            long packedMetricId = longSupplier[1].getAsLong();
+            if (filter.test(packedBindingId))
             {
-                MetricRecord record = new MetricRecord(namespacedBindingId, namespacedMetricId, COUNTER, labels::lookupLabel);
+                List<LongSupplier> readers = new LinkedList<>();
                 for (CountersReader counterFileReader : counterFileReaders)
                 {
-                    record.addReader(counterFileReader.layout().supplyReader(namespacedBindingId, namespacedMetricId));
+                    readers.add(counterFileReader.layout().supplyReader(packedBindingId, packedMetricId));
                 }
+                MetricRecord record = new MetricRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
                 counterRecords.add(record);
                 calculateColumnWidthsNew(record);
             }

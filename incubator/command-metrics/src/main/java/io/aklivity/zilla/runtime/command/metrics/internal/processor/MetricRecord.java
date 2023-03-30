@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.processor;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
@@ -24,8 +23,8 @@ import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
 
 public class MetricRecord
 {
-    private long namespacedBindingId;
-    private long namespacedMetricId;
+    private long packedBindingId;
+    private long packedMetricId;
     private int namespaceId;
     private int bindingId;
     private int metricId;
@@ -34,18 +33,19 @@ public class MetricRecord
     private IntFunction<String> labelResolver;
 
     public MetricRecord(
-        long namespacedBindingId,
-        long namespacedMetricId,
+        long packedBindingId,
+        long packedMetricId,
         FileReader.Kind kind,
+        List<LongSupplier> readers,
         IntFunction<String> labelResolver)
     {
-        this.namespacedBindingId = namespacedBindingId;
-        this.namespacedMetricId = namespacedMetricId;
-        this.namespaceId = namespaceId(namespacedBindingId);
-        this.bindingId = localId(namespacedBindingId);
-        this.metricId = localId(namespacedMetricId);
+        this.packedBindingId = packedBindingId;
+        this.packedMetricId = packedMetricId;
+        this.namespaceId = namespaceId(packedBindingId);
+        this.bindingId = localId(packedBindingId);
+        this.metricId = localId(packedMetricId);
         this.kind = kind;
-        this.readers = new LinkedList<>();
+        this.readers = readers;
         this.labelResolver = labelResolver;
     }
 
