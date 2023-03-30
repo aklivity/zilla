@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
+
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.localId;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.namespaceId;
+
 import java.util.Arrays;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
@@ -66,19 +70,7 @@ public class CounterRecord implements MetricRecord
 
     private long value()
     {
-        long result = Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
-        return result;
+        return Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
     }
 
-    private static int namespaceId(
-        long packedId)
-    {
-        return (int) (packedId >> Integer.SIZE) & 0xffff_ffff;
-    }
-
-    private static int localId(
-        long packedId)
-    {
-        return (int) (packedId >> 0) & 0xffff_ffff;
-    }
 }

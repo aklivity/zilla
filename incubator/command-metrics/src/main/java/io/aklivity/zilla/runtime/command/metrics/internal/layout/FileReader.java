@@ -15,32 +15,8 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.LongSupplier;
-
 public interface FileReader
 {
-    int BINDING_ID_INDEX = 0;
-    int METRIC_ID_INDEX = 1;
-    int VALUES_INDEX = 2;
-    int HISTOGRAM_BUCKETS = 63;
-    Map<Kind, Integer> NUMBER_OF_VALUES = Map.of(
-            Kind.COUNTER, 1,
-            Kind.GAUGE, 1,
-            Kind.HISTOGRAM, HISTOGRAM_BUCKETS);
-    Map<Integer, Long> HISTOGRAM_BUCKET_LIMITS = histogramBucketLimits();
-
-    // exclusive upper limits of each bucket
-    static Map<Integer, Long> histogramBucketLimits()
-    {
-        Map<Integer, Long> limits = new HashMap<>();
-        for (int i = 0; i < 63; i++)
-        {
-            limits.put(i, 1L << (i + 1));
-        }
-        return limits;
-    }
 
     enum Kind
     {
@@ -50,8 +26,6 @@ public interface FileReader
     }
 
     Kind kind();
-
-    LongSupplier[][] recordReaders();
 
     void close();
 }

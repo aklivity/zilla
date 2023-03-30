@@ -15,9 +15,10 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.HISTOGRAM_BUCKET_LIMITS;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.NUMBER_OF_VALUES;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.HISTOGRAM_BUCKETS;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.HISTOGRAM_BUCKET_LIMITS;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.localId;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.namespaceId;
 
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
@@ -68,18 +69,6 @@ public class HistogramRecord implements MetricRecord
         return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }
 
-    private static int namespaceId(
-        long packedId)
-    {
-        return (int) (packedId >> Integer.SIZE) & 0xffff_ffff;
-    }
-
-    private static int localId(
-        long packedId)
-    {
-        return (int) (packedId >> 0) & 0xffff_ffff;
-    }
-
     private long[] stats()
     {
         long count = 0L;
@@ -87,15 +76,15 @@ public class HistogramRecord implements MetricRecord
         int minIndex = -1;
         int maxIndex = -1;
 
-        long[] histogram = new long[NUMBER_OF_VALUES.get(HISTOGRAM)];
-        for (int i = 0; i < NUMBER_OF_VALUES.get(HISTOGRAM); i++)
+        long[] histogram = new long[HISTOGRAM_BUCKETS];
+        for (int i = 0; i < HISTOGRAM_BUCKETS; i++)
         {
             for (LongSupplier[] reader : readers)
             {
                 histogram[i] += reader[i].getAsLong();
             }
         }
-        for (int i = 0; i < NUMBER_OF_VALUES.get(HISTOGRAM); i++)
+        for (int i = 0; i < HISTOGRAM_BUCKETS; i++)
         {
             long bucketValue = histogram[i];
             count += bucketValue;

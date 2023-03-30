@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.HISTOGRAM_BUCKETS;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.HISTOGRAM_BUCKETS;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
 
@@ -34,12 +34,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 public final class HistogramsLayout implements Iterable<LongSupplier[]>
 {
-    // We use the buffer to store structs {long bindingId, long metricId, long[] values}
-    /*private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
-    private static final int SCALAR_FIELDS = 2;
-    private static final int ARRAY_SIZE = HISTOGRAM_BUCKETS * FIELD_SIZE;
-    private static final int RECORD_SIZE = SCALAR_FIELDS * FIELD_SIZE + ARRAY_SIZE;*/
-
     // We use the buffer to store structs {long bindingId, long metricId, long[] values}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     private static final int BINDING_ID_OFFSET = 0;

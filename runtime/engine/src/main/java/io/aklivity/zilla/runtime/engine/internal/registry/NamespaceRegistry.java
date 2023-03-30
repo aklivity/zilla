@@ -114,11 +114,6 @@ public class NamespaceRegistry
         BindingConfig config)
     {
         BindingContext context = bindingsByType.apply(config.type);
-        // TODO: Ati
-        // KindConfig kind = config.kind; SERVER -> ?
-        // entryHandler
-        // exitHandler
-        // ^^ we'd need two different metric chains; Http* metrics should go to the exithandler if this binding is an http/SERVER
         assert context != null : "Missing binding type: " + config.type;
 
         MetricHandler handler = MetricHandler.NO_OP;

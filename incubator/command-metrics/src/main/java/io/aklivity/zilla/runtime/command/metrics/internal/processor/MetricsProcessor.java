@@ -63,7 +63,8 @@ public class MetricsProcessor
 
     public void print(PrintStream out)
     {
-        collect();
+        collectCounters();
+        collectHistograms();
         doPrint(out);
     }
 
@@ -84,7 +85,7 @@ public class MetricsProcessor
         return id -> (id & mask) == namespacedId;
     }
 
-    private void collect()
+    private void collectCounters()
     {
         // TODO: Ati - get metadata
         LongSupplier[][] longSuppliers = counterFileReaders.get(0).recordReaders();
@@ -104,7 +105,10 @@ public class MetricsProcessor
                 calculateColumnWidths(record);
             }
         }
+    }
 
+    private void collectHistograms()
+    {
         // TODO: Ati - get metadata
         LongSupplier[][] longSuppliers2 = histogramFileReaders.get(0).recordReaders();
         for (LongSupplier[] longSupplier : longSuppliers2)
