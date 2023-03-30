@@ -238,6 +238,45 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             this.correlater = new KafkaCorrelateProxy(resolvedId, this, result);
         }
 
+        protected void onGrpcMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onGrpcBegin(begin);
+                break;
+            case DataFW.TYPE_ID:
+                final DataFW data = dataRO.wrap(buffer, index, index + length);
+                onGrpcData(data);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onGrpcEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onGrpcAbort(abort);
+                break;
+            case FlushFW.TYPE_ID:
+                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+                onGrpcFlush(flush);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onGrpcReset(reset);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onGrpcWindow(window);
+                break;
+            }
+        }
+
         protected void onGrpcBegin(
             BeginFW begin)
         {
@@ -279,8 +318,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             initialSeq = sequence;
 
             assert initialAck <= initialSeq;
-
-            producer.result.updateHash(payload.value());
 
             Flyweight kafkaDataEx = emptyRO;
             if ((flags & DATA_FLAG_INIT) != 0x00)
@@ -422,7 +459,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            producer.doKafkaWindow(traceId);
             correlater.doKafkaWindow(traceId);
         }
 
@@ -1260,44 +1296,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             super(grpc, routeId, initialId, resolvedId, resolved);
         }
 
-        private void onGrpcMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onGrpcBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onGrpcData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onGrpcEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onGrpcAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onGrpcFlush(flush);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onGrpcReset(reset);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onGrpcWindow(window);
-                break;
-            }
-        }
+
     }
 
     private final class GrpcClientStreamProxy extends GrpcProxy
@@ -1311,45 +1310,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             GrpcKafkaWithResult result)
         {
             super(grpc, routeId, initialId, resolvedId, result);
-        }
-
-        private void onGrpcMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onGrpcBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onGrpcData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onGrpcEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onGrpcAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onGrpcFlush(flush);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onGrpcReset(reset);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onGrpcWindow(window);
-                break;
-            }
         }
 
         @Override
@@ -1444,45 +1404,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             super(grpc, routeId, initialId, resolvedId, result);
         }
 
-        private void onGrpcMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onGrpcBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onGrpcData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onGrpcEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onGrpcAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onGrpcFlush(flush);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onGrpcReset(reset);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onGrpcWindow(window);
-                break;
-            }
-        }
-
         @Override
         protected void onKafkaData(
             long traceId,
@@ -1521,45 +1442,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             super(grpc, routeId, initialId, resolvedId, result);
         }
 
-        private void onGrpcMessage(
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                onGrpcBegin(begin);
-                break;
-            case DataFW.TYPE_ID:
-                final DataFW data = dataRO.wrap(buffer, index, index + length);
-                onGrpcData(data);
-                break;
-            case EndFW.TYPE_ID:
-                final EndFW end = endRO.wrap(buffer, index, index + length);
-                onGrpcEnd(end);
-                break;
-            case AbortFW.TYPE_ID:
-                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-                onGrpcAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onGrpcFlush(flush);
-                break;
-            case ResetFW.TYPE_ID:
-                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-                onGrpcReset(reset);
-                break;
-            case WindowFW.TYPE_ID:
-                final WindowFW window = windowRO.wrap(buffer, index, index + length);
-                onGrpcWindow(window);
-                break;
-            }
-        }
-
         @Override
         protected void onGrpcBegin(
             BeginFW begin)
@@ -1581,7 +1463,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert initialAck <= initialSeq;
 
             producer.doKafkaBegin(traceId, authorization, affinity);
-            correlater.doKafkaBegin(traceId, authorization, 0L);
+            correlater.doKafkaBegin(traceId, authorization, affinity);
         }
 
         @Override
@@ -1604,8 +1486,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             initialSeq = sequence;
 
             assert initialAck <= initialSeq;
-
-            producer.result.updateHash(payload.value());
 
             Flyweight kafkaDataEx = emptyRO;
             if ((flags & DATA_FLAG_INIT) != 0x00)
