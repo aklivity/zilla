@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.blinding.grpc.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -43,7 +42,6 @@ public class GrpcKafkaProxyIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
-        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configurationRoot("io/aklivity/zilla/specs/binding/grpc/kafka/config")
         .external("kafka0")
@@ -53,40 +51,40 @@ public class GrpcKafkaProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.rpc.json")
+    @Configuration("proxy.rpc.yaml")
     @Specification({
-        "${grpc}/unary.rpc/message.exchange/client",
-        "${kafka}/unary.rpc/message.exchange/server"})
+        "${grpc}/unary.rpc/client",
+        "${kafka}/unary.rpc/server"})
     public void shouldExchangeMessageWithUnaryRpc() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("proxy.rpc.json")
+    @Configuration("proxy.rpc.yaml")
     @Specification({
-        "${grpc}/client.stream.rpc/message.exchange/client",
-        "${kafka}/client.stream.rpc/message.exchange/server"})
+        "${grpc}/client.stream.rpc/client",
+        "${kafka}/client.stream.rpc/server"})
     public void shouldExchangeMessageWithClientStreamRpc() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("proxy.rpc.json")
+    @Configuration("proxy.rpc.yaml")
     @Specification({
-        "${grpc}/server.stream.rpc/message.exchange/client",
-        "${kafka}/server.stream.rpc/message.exchange/server"})
+        "${grpc}/server.stream.rpc/client",
+        "${kafka}/server.stream.rpc/server"})
     public void shouldExchangeMessageWithServerStreamRpc() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("proxy.rpc.json")
+    @Configuration("proxy.rpc.yaml")
     @Specification({
-        "${grpc}/bidi.stream.rpc/message.exchange/client",
-        "${kafka}/bidi.stream.rpc/message.exchange/server"})
+        "${grpc}/bidi.stream.rpc/client",
+        "${kafka}/bidi.stream.rpc/server"})
     public void shouldExchangeMessageWithBidiStreamRpc() throws Exception
     {
         k3po.finish();

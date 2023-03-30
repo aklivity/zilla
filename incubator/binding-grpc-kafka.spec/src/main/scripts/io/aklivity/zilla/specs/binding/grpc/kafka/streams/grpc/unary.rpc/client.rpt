@@ -26,6 +26,7 @@ write zilla:begin.ext ${grpc:beginEx()
                               .request("UNARY")
                               .response("UNARY")
                               .metadata("custom", "test")
+                              .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                               .build()}
 connected
 

@@ -20,8 +20,13 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream
 import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcKind.UNARY;
 import static java.time.Instant.now;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -981,8 +986,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            producer.resolved.updateHash(payload.value());
-
             Flyweight kafkaDataEx = emptyRO;
             if ((flags & DATA_FLAG_INIT) != 0x00)
             {
@@ -1006,11 +1009,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             }
 
             producer.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
-
-            if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
-            {
-                producer.doKafkaEnd(traceId, authorization);
-            }
         }
 
         private void onGrpcEnd(
@@ -1028,8 +1026,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             state = GrpcKafkaState.closeInitial(state);
 
             assert initialAck <= initialSeq;
-
-            producer.resolved.digestHash();
 
             correlater.doKafkaBegin(traceId, authorization, 0L);
 
@@ -1480,8 +1476,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             state = GrpcKafkaState.closeInitial(state);
 
             assert initialAck <= initialSeq;
-
-            producer.resolved.digestHash();
 
             correlater.doKafkaBegin(traceId, authorization, 0L);
 
@@ -1938,8 +1932,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            producer.resolved.digestHash();
-
             correlater.doKafkaBegin(traceId, authorization, 0L);
 
             producer.doKafkaEndDeferred(traceId, authorization);
@@ -2384,8 +2376,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             state = GrpcKafkaState.closeInitial(state);
 
             assert initialAck <= initialSeq;
-
-            producer.resolved.digestHash();
 
             producer.doKafkaEndDeferred(traceId, authorization);
         }

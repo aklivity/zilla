@@ -39,7 +39,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/bidi.stream.rpc/client",
         "${kafka}/bidi.stream.rpc/server"})
-    public void shouldExchangeMessageInBidiSteam() throws Exception
+    public void shouldExchangeMessageInBidiStream() throws Exception
     {
         k3po.finish();
     }
@@ -48,7 +48,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/client.stream.rpc/client",
         "${kafka}/client.stream.rpc/server"})
-    public void shouldExchangeMessageInClientSteam() throws Exception
+    public void shouldExchangeMessageInClientStream() throws Exception
     {
         k3po.finish();
     }
@@ -57,7 +57,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/server.stream.rpc/client",
         "${kafka}/server.stream.rpc/server"})
-    public void shouldExchangeMessageInServerSteam() throws Exception
+    public void shouldExchangeMessageInServerStream() throws Exception
     {
         k3po.finish();
     }

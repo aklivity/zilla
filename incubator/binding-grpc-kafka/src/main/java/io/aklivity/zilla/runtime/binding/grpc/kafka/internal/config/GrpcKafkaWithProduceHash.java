@@ -14,22 +14,36 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import static org.agrona.BitUtil.toHex;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
+
+
 public class GrpcKafkaWithProduceHash
 {
+    private final OctetsFW.Builder octetsRW;
+    private final OctetsFW dashOctets;
+    private final OctetsFW correlationId;
     private final byte[] hashBytesRW;
     private final MessageDigest md5;
 
     private byte[] digest;
 
     GrpcKafkaWithProduceHash(
+        OctetsFW.Builder octetsRW,
+        OctetsFW dashOctets,
+        OctetsFW correlationId,
         byte[] hashBytesRW)
     {
+        this.octetsRW = octetsRW;
+        this.dashOctets = dashOctets;
+        this.correlationId = correlationId;
         this.hashBytesRW = hashBytesRW;
         this.md5 = initMD5();
     }
@@ -46,6 +60,22 @@ public class GrpcKafkaWithProduceHash
         digest = md5.digest();
     }
 
+    public OctetsFW correlationId()
+    {
+        OctetsFW newCorrelationId = null;
+
+        if (digest != null && correlationId != null)
+        {
+            octetsRW.reset();
+            newCorrelationId = octetsRW.put(correlationId).put(dashOctets).put(toHex(digest).getBytes()).build();
+        }
+        else
+        {
+            newCorrelationId = correlationId;
+        }
+
+        return newCorrelationId;
+    }
 
     private MessageDigest initMD5()
     {

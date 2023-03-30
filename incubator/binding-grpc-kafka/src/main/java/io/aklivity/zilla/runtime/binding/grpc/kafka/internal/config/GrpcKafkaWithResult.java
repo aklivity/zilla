@@ -27,12 +27,11 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
 public class GrpcKafkaWithResult
 {
-
-
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
             .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
@@ -115,10 +114,27 @@ public class GrpcKafkaWithResult
         {
             overrides.forEach(o -> builder.item(o::header));
         }
+
+        if (hash != null)
+        {
+            builder.item(this::correlationId);
+        }
     }
 
     public GrpcKafkaCorrelationConfig correlation()
     {
         return correlation;
+    }
+
+    private void correlationId(
+        KafkaHeaderFW.Builder builder)
+    {
+        final OctetsFW correlationId = hash.correlationId();
+
+        builder
+            .nameLen(correlation.correlationId.length())
+            .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
+            .valueLen(correlationId.sizeof())
+            .value(correlationId.value(), 0, correlationId.sizeof());
     }
 }
