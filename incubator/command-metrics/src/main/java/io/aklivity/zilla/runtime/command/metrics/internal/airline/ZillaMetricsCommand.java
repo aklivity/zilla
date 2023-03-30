@@ -64,9 +64,9 @@ public final class ZillaMetricsCommand extends ZillaCommand
         List<FileReader> fileReaders = List.of();
         try
         {
-            fileReaders = fileReaders();
             final LabelManager labels = new LabelManager(LABELS_DIRECTORY);
-            MetricsProcessor metrics = new MetricsProcessor(fileReaders, labels, namespace, binding);
+            MetricsProcessor metrics = new MetricsProcessor(counterFileReaders(), histogramFileReaders(), labels,
+                    namespace, binding);
             do
             {
                 metrics.doProcess(System.out);
@@ -83,20 +83,13 @@ public final class ZillaMetricsCommand extends ZillaCommand
         }
     }
 
-    private List<FileReader> fileReaders() throws IOException
-    {
-        List<FileReader> fileReaders = counterFileReaders();
-        fileReaders.addAll(histogramFileReaders());
-        return fileReaders;
-    }
-
-    private List<FileReader> counterFileReaders() throws IOException
+    private List<CountersReader> counterFileReaders() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
         return files.filter(this::isCountersFile).map(this::newCountersReader).collect(toList());
     }
 
-    private List<FileReader> histogramFileReaders() throws IOException
+    private List<HistogramsReader> histogramFileReaders() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
         return files.filter(this::isHistogramsFile).map(this::newHistogramsReader).collect(toList());
@@ -118,14 +111,14 @@ public final class ZillaMetricsCommand extends ZillaCommand
                 Files.isRegularFile(path);
     }
 
-    private FileReader newCountersReader(
+    private CountersReader newCountersReader(
         Path path)
     {
         CountersLayout layout = new CountersLayout.Builder().path(path).build();
         return new CountersReader(layout);
     }
 
-    private FileReader newHistogramsReader(
+    private HistogramsReader newHistogramsReader(
         Path path)
     {
         HistogramsLayout layout = new HistogramsLayout.Builder().path(path).build();

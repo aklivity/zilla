@@ -45,6 +45,80 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
         this.buffer = buffer;
     }
 
+    public LongSupplier supplyReader(
+            long bindingId,
+            long metricId)
+    {
+        int index = findPosition(bindingId, metricId);
+        LongSupplier reader;
+        if (index == -1) // not found
+        {
+            reader = () -> 0L;
+        }
+        else
+        {
+            reader = () -> buffer.getLong(index + VALUE_OFFSET);
+        }
+        return reader;
+    }
+
+    private int findPosition(
+            long bindingId,
+            long metricId)
+    {
+        // find position or return -1 if not found
+        return findPosition(bindingId, metricId, false);
+    }
+
+    private int findOrSetPosition(
+            long bindingId,
+            long metricId)
+    {
+        // find position or create slot if not found
+        return findPosition(bindingId, metricId, true);
+    }
+
+    private int findPosition(
+            long bindingId,
+            long metricId,
+            boolean create)
+    {
+        int i = 0;
+        boolean done = false;
+        while (!done)
+        {
+            long b = buffer.getLong(i + BINDING_ID_OFFSET);
+            long m = buffer.getLong(i + METRIC_ID_OFFSET);
+            if (b == bindingId && m == metricId)
+            {
+                done = true;
+            }
+            else if (b == 0L && m == 0L)
+            {
+                // we reached and empty slot, which means we did not find the proper record
+                if (create)
+                {
+                    // let's create it
+                    buffer.putLong(i + BINDING_ID_OFFSET, bindingId);
+                    buffer.putLong(i + METRIC_ID_OFFSET, metricId);
+                    buffer.putLong(i + VALUE_OFFSET, 0L); // initial value
+                }
+                else
+                {
+                    // let's return the error code
+                    i = -1;
+                }
+                done = true;
+            }
+            else
+            {
+                i += RECORD_SIZE;
+            }
+        }
+        return i;
+    }
+
+
     public void close()
     {
         unmap(buffer.byteBuffer());

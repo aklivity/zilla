@@ -20,7 +20,7 @@ import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileRead
 import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
-public class HistogramsReader implements FileReader
+public class HistogramsReader /*implements FileReader*/
 {
     private final HistogramsLayout layout;
 
@@ -32,13 +32,13 @@ public class HistogramsReader implements FileReader
         this.layout = layout;
     }
 
-    @Override
-    public Kind kind()
+    //@Override
+    public FileReader.Kind kind()
     {
         return HISTOGRAM;
     }
 
-    @Override
+    //@Override
     public LongSupplier[][] recordReaders()
     {
         if (recordReaders == null)
@@ -48,7 +48,7 @@ public class HistogramsReader implements FileReader
         return recordReaders;
     }
 
-    @Override
+    //@Override
     public void close()
     {
         layout.close();

@@ -30,7 +30,9 @@ import java.util.function.LongSupplier;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
+
 
 public class MetricsProcessorTest
 {
@@ -91,14 +93,14 @@ public class MetricsProcessorTest
         when(mockLabelManager.lookupLabelId("ns2")).thenReturn(2);
         when(mockLabelManager.lookupLabelId("binding1")).thenReturn(11);
         when(mockLabelManager.lookupLabelId("binding2")).thenReturn(12);
-        FileReader mockCountersReader = mock(FileReader.class);
+        CountersReader mockCountersReader = mock(CountersReader.class);
         when(mockCountersReader.kind()).thenReturn(COUNTER);
         when(mockCountersReader.recordReaders()).thenReturn(counterRecordReaders);
-        FileReader mockHistogramsReader = mock(FileReader.class);
+        HistogramsReader mockHistogramsReader = mock(HistogramsReader.class);
         when(mockHistogramsReader.kind()).thenReturn(HISTOGRAM);
         when(mockHistogramsReader.recordReaders()).thenReturn(histogramRecordReaders);
-        List<FileReader> mockFileReaders = List.of(mockCountersReader, mockHistogramsReader);
-        MetricsProcessor metrics = new MetricsProcessor(mockFileReaders, mockLabelManager, null, null);
+        MetricsProcessor metrics = new MetricsProcessor(List.of(mockCountersReader), List.of(mockHistogramsReader),
+                mockLabelManager, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 

@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.LongPredicate;
@@ -35,7 +36,9 @@ import java.util.function.LongSupplier;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.AggregatorFunction;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.IntIntIntFunction;
 
@@ -49,9 +52,12 @@ public class MetricsProcessor
     // minimum, maximum, count, average
     private static final int NUMBER_OF_HISTOGRAM_STATS = 4;
 
-    private final List<FileReader> fileReaders;
+    private final List<CountersReader> counterFileReaders;
+    private final List<HistogramsReader> histogramFileReaders;
     private final LabelManager labels;
     private final LongPredicate filter;
+
+    private final List<MetricRecord> counterRecords;
 
     private final Map<Integer, FileReader.Kind> metricTypes;
     // namespace -> binding -> metric -> values
@@ -71,17 +77,20 @@ public class MetricsProcessor
     private int valueWidth = VALUE_HEADER.length();
 
     public MetricsProcessor(
-        List<FileReader> fileReaders,
+        List<CountersReader> counterFileReaders,
+        List<HistogramsReader> histogramFileReaders,
         LabelManager labels,
         String namespaceName,
         String bindingName)
     {
-        this.fileReaders = fileReaders;
+        this.counterFileReaders = counterFileReaders;
+        this.histogramFileReaders = histogramFileReaders;
         this.labels = labels;
         this.filter = filterBy(namespaceName, bindingName);
         this.metricTypes = new Int2ObjectHashMap<>();
         this.metricValues = new Int2ObjectHashMap<>();
         this.histogramStats = new Int2ObjectHashMap<>();
+        this.counterRecords = new LinkedList<>();
     }
 
     public void doProcess(PrintStream out)
@@ -135,7 +144,57 @@ public class MetricsProcessor
 
     private void calculate()
     {
-        for (FileReader fileReader : fileReaders)
+        // hack: get metadata
+        LongSupplier[][] longSuppliers = counterFileReaders.get(0).recordReaders();
+        for (LongSupplier[] longSupplier : longSuppliers)
+        {
+            long namespacedBindingId = longSupplier[0].getAsLong();
+            long namespacedMetricId = longSupplier[1].getAsLong();
+            MetricRecord record = new MetricRecord(namespacedBindingId, namespacedMetricId, COUNTER);
+            //record.addReader(counterFileReaders.get(0).);
+            counterRecords.add(record);
+        }
+
+
+        /*List<FileReader> fileReaders = new LinkedList<>();
+        fileReaders.addAll(counterFileReaders);
+        fileReaders.addAll(histogramFileReaders);*/
+        for (CountersReader counterFileReader : counterFileReaders)
+        {
+            FileReader.Kind kind = COUNTER; //fileReader.kind();
+            for (LongSupplier[] recordReader : counterFileReader.recordReaders())
+            {
+                if (filter.test(recordReader[0].getAsLong()))
+                {
+                    int namespaceId = namespaceId(recordReader[BINDING_ID_INDEX].getAsLong());
+                    int bindingId = localId(recordReader[BINDING_ID_INDEX].getAsLong());
+                    int metricId = localId(recordReader[METRIC_ID_INDEX].getAsLong());
+
+                    metricTypes.putIfAbsent(metricId, kind);
+                    collectMetricValue(namespaceId, bindingId, metricId, kind, recordReader);
+                    calculateColumnWidths(namespaceId, bindingId, metricId, kind);
+                }
+            }
+        }
+        for (HistogramsReader histogramFileReader : histogramFileReaders)
+        {
+            FileReader.Kind kind = HISTOGRAM; //fileReader.kind();
+            for (LongSupplier[] recordReader : histogramFileReader.recordReaders())
+            {
+                if (filter.test(recordReader[0].getAsLong()))
+                {
+                    int namespaceId = namespaceId(recordReader[BINDING_ID_INDEX].getAsLong());
+                    int bindingId = localId(recordReader[BINDING_ID_INDEX].getAsLong());
+                    int metricId = localId(recordReader[METRIC_ID_INDEX].getAsLong());
+
+                    metricTypes.putIfAbsent(metricId, kind);
+                    collectMetricValue(namespaceId, bindingId, metricId, kind, recordReader);
+                    calculateHistogramStats(namespaceId, bindingId, metricId, recordReader);
+                    calculateColumnWidths(namespaceId, bindingId, metricId, kind);
+                }
+            }
+        }
+        /*for (FileReader fileReader : fileReaders)
         {
             FileReader.Kind kind = fileReader.kind();
             for (LongSupplier[] recordReader : fileReader.recordReaders())
@@ -155,7 +214,7 @@ public class MetricsProcessor
                     calculateColumnWidths(namespaceId, bindingId, metricId, kind);
                 }
             }
-        }
+        }*/
     }
 
     private static int namespaceId(
