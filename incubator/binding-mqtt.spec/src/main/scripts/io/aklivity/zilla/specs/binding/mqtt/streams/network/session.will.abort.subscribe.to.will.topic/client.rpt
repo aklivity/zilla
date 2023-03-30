@@ -26,7 +26,7 @@ write [0x10 0x3f]                                      # CONNECT
       [0x06]                                           # flags = will flag, clean start
       [0x00 0x0a]                                      # keep alive = 10s
       [0x05]                                           # properties
-      [0x11] 1                                         # session expiry interval = 1s
+      [0x11] 1                                         # session expiry interval
       [0x00 0x03] "one"                                # client id
       [0x02]                                           # will properties
       [0x01 0x01]                                      # format = utf-8
@@ -39,3 +39,41 @@ read  [0x20 0x03]                                      # CONNACK
       [0x00]                                           # properties = none
 
 write abort
+
+connect "zilla://streams/net0"
+  option zilla:window 8192
+  option zilla:transmission "duplex"
+
+connected
+
+write [0x10 0x13]                   # CONNECT
+      [0x00 0x04] "MQTT"            # protocol name
+      [0x05]                        # protocol version
+      [0x02]                        # flags = clean start
+      [0x00 0x3c]                   # keep alive = 60s
+      [0x00]                        # properties = none
+      [0x00 0x06] "client"          # client id
+
+read  [0x20 0x03]                   # CONNACK
+      [0x00]                        # flags = none
+      [0x00]                        # reason code
+      [0x00]                        # properties = none
+
+write [0x82 0x11]                   # SUBSCRIBE
+      [0x00 0x01]                   # packet id = 1
+      [0x02]                        # properties
+      [0x0b 0x01]                   # subscription id = 1
+      [0x00 0x09] "wills/one"       # topic filter
+      [0x00]                        # options = at-most-once, send retained
+
+read  [0x90 0x04]                   # SUBACK
+      [0x00 0x01]                   # packet id = 1
+      [0x00]                        # properties = none
+      [0x00]                        # reason code
+
+read  [0x30 0x2a]                   # PUBLISH
+      [0x00 0x09] "wills/one"       # topic name
+      [0x04]                        # properties
+      [0x0b 0x01]                   # subscription id = 1
+      [0x01 0x01]                   # format = utf-8
+      "client one session expired"  # payload

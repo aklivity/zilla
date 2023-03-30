@@ -48,15 +48,6 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.will.message.abrupt.disconnect.session.expires/client",
-        "${app}/session.will.message.abrupt.disconnect.session.expires/server"})
-    public void shouldPublishWillMessageAfterAbruptClientDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/session.abrupt.disconnect.session.expires/client",
         "${app}/session.abrupt.disconnect.session.expires/server"})
     public void shouldExpireSessionAfterAbruptDisconnect() throws Exception
@@ -75,9 +66,27 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.will.message.disconnect.with.will.message/client",
+        "${app}/session.will.message.disconnect.with.will.message/server"})
+    public void shouldSendReasonForEndAfterDisconnectWithWillMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.will.message.no.ping.within.keep.alive/client",
+        "${app}/session.will.message.no.ping.within.keep.alive/server"})
+    public void shouldSendReasonForEndAfterKeepAliveTimeout() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.will.message.normal.disconnect/client",
         "${app}/session.will.message.normal.disconnect/server"})
-    public void shouldNotPublishWillMessageAfterNormalClientDisconnect() throws Exception
+    public void shouldSendReasonForEndAfterNormalClientDisconnect() throws Exception
     {
         k3po.finish();
     }
@@ -103,8 +112,8 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.close.connection.reconnect.non.clean.start/client",
-        "${app}/session.close.connection.reconnect.non.clean.start/server"})
+        "${app}/session.abort.connection.reconnect.non.clean.start/client",
+        "${app}/session.abort.connection.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
     {
         k3po.finish();
@@ -130,8 +139,8 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.subscribe.to.will.topic/client",
-        "${app}/session.subscribe.to.will.topic/server"})
+        "${app}/session.will.abort.subscribe.to.will.topic/client",
+        "${app}/session.will.abort.subscribe.to.will.topic/server"})
     public void shouldSubscribeToWillTopic() throws Exception
     {
         k3po.finish();

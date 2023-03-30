@@ -19,45 +19,24 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
+                             .typeId(zilla:id("mqtt"))
+                             .session()
                                 .clientId("one")
-                                .pattern("$SYS/sessions/one/#")
+                                .willTopic("wills/one")
+                                .willFlags("QOS0")
+                                .willFormat("TEXT")
+                                .willPayload("client one session expired")
                                 .build()
-                              .build()}
+                             .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .topic("$SYS/sessions/one")
-                                .build()
-                             .build()}
+read zilla:data.empty
 
-write '{"expiresAt":10}'
-write flush
-
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .topic("$SYS/sessions/one/will")
-                                .build()
-                             .build()}
-
-write "client one session expired"
-write flush
-
-
-write zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                                .topic("$SYS/sessions/one")
-                                .build()
-                            .build()}
-
-write zilla:data.empty
-write flush
+write zilla:end.ext ${mqtt:endEx()
+                        .typeId(zilla:id("mqtt"))
+                        .reason("DISCONNECT")
+                        .build()}
 
 write close
 read closed

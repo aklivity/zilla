@@ -49,8 +49,8 @@ public class SessionIT
     // [MQTT-3.1.2-5], [MQTT-3.1.2-23]
     @Test
     @Specification({
-        "${net}/session.close.connection.reconnect.non.clean.start/client",
-        "${net}/session.close.connection.reconnect.non.clean.start/server"})
+        "${net}/session.abort.connection.reconnect.non.clean.start/client",
+        "${net}/session.abort.connection.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
     {
         k3po.finish();
@@ -74,16 +74,6 @@ public class SessionIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/session.will.message.abrupt.disconnect.session.expires/client",
-        "${net}/session.will.message.abrupt.disconnect.session.expires/server"})
-    public void shouldConnectWithWillMessageThenAbruptDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    // TODO: use session.will.message.abrupt.disconnect.session.expires as app side
     @Test
     @Specification({
         "${net}/session.will.message.disconnect.with.will.message/client",
@@ -113,19 +103,9 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${net}/session.exists.expires.clean.start/client",
-        "${net}/session.exists.expires.clean.start/server"})
-    public void shouldRemoveSessionWhenExpiresAndCleanStartSecondConnection() throws Exception
-    {
-        k3po.finish();
-    }
-
-    //TODO: use session.will.message.abrupt.disconnect.session.expires/server on the app side when adding the actual test
-    @Test
-    @Specification({
         "${net}/session.will.message.no.ping.within.keep.alive/client",
         "${net}/session.will.message.no.ping.within.keep.alive/server"})
-    public void shouldConnectWithWillMessageThenNoPingWithingKeepAlive() throws Exception
+    public void shouldConnectWithWillMessageThenNoPingWithinKeepAlive() throws Exception
     {
         k3po.finish();
     }
@@ -160,8 +140,8 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${net}/session.subscribe.to.will.topic/client",
-        "${net}/session.subscribe.to.will.topic/server"})
+        "${net}/session.will.abort.subscribe.to.will.topic/client",
+        "${net}/session.will.abort.subscribe.to.will.topic/server"})
     public void shouldSubscribeToWillTopic() throws Exception
     {
         k3po.finish();

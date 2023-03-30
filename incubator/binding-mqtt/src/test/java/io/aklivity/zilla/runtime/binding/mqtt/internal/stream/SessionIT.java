@@ -60,8 +60,8 @@ public class SessionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/session.subscribe.to.will.topic/client",
-        "${app}/session.subscribe.to.will.topic/server"})
+        "${net}/session.will.abort.subscribe.to.will.topic/client",
+        "${app}/session.will.abort.subscribe.to.will.topic/server"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")

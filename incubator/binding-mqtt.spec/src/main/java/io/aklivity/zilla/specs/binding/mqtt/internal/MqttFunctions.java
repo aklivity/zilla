@@ -24,19 +24,20 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttAbortExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.SessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttApi;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttFlushExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeDataExFW;
 
@@ -74,9 +75,15 @@ public final class MqttFunctions
     }
 
     @Function
-    public static MqttAbortExBuilder abortEx()
+    public static MqttEndExBuilder endEx()
     {
-        return new MqttAbortExBuilder();
+        return new MqttEndExBuilder();
+    }
+
+    @Function
+    public static MqttSessionStateBuilder sessionState()
+    {
+        return new MqttSessionStateBuilder();
     }
 
     public static final class MqttBeginExBuilder
@@ -144,10 +151,100 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExBuilder pattern(
-                String pattern)
+            public MqttSessionBeginExBuilder expiry(
+                int expiry)
             {
-                sessionBeginExRW.pattern(pattern);
+                sessionBeginExRW.expiry(expiry);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willTopic(
+                String willTopic)
+            {
+                sessionBeginExRW.willTopic(willTopic);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willDelay(
+                int willDelay)
+            {
+                sessionBeginExRW.willDelay(willDelay);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willFlags(
+                String... willFlags)
+            {
+                int publishFlags = 0;
+                for (int i = 0; i < willFlags.length; i++)
+                {
+                    publishFlags |= 1 << MqttPublishFlags.valueOf(willFlags[i]).ordinal();
+                }
+                sessionBeginExRW.willFlags(publishFlags);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willExpiryInterval(
+                int willMsgExp)
+            {
+                sessionBeginExRW.willExpiryInterval(willMsgExp);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willContentType(
+                String willContentType)
+            {
+                sessionBeginExRW.willContentType(willContentType);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willFormat(
+                String willFormat)
+            {
+                sessionBeginExRW.willFormat(p -> p.set(MqttPayloadFormat.valueOf(willFormat)));
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willResponseTopic(
+                String topic)
+            {
+                sessionBeginExRW.willResponseTopic(topic);
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willCorrelation(
+                String willCorrelation)
+            {
+                sessionBeginExRW.willCorrelation(c -> c.bytes(b -> b.set(willCorrelation.getBytes(UTF_8))));
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willCorrelationBytes(
+                byte[] willCorrelation)
+            {
+                sessionBeginExRW.willCorrelation(c -> c.bytes(b -> b.set(willCorrelation)));
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willUserProperty(
+                String name,
+                String value)
+            {
+                sessionBeginExRW.willUserPropertiesItem(p -> p.key(name).value(value));
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willPayload(
+                String willPayload)
+            {
+                sessionBeginExRW.willPayload(c -> c.bytes(b -> b.set(willPayload.getBytes(UTF_8))));
+                return this;
+            }
+
+            public MqttSessionBeginExBuilder willPayloadBytes(
+                byte[] willPayload)
+            {
+                sessionBeginExRW.willPayload(c -> c.bytes(b -> b.set(willPayload)));
                 return this;
             }
 
@@ -247,13 +344,6 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttDataExBuilder.MqttSessionDataExBuilder session()
-        {
-            dataExRW.kind(MqttApi.SESSION.value());
-
-            return new MqttDataExBuilder.MqttSessionDataExBuilder();
-        }
-
         public MqttDataExBuilder.MqttSubscribeDataExBuilder subscribe()
         {
             dataExRW.kind(MqttApi.SUBSCRIBE.value());
@@ -274,42 +364,6 @@ public final class MqttFunctions
             final byte[] array = new byte[dataEx.sizeof()];
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
-        }
-
-        public final class MqttSessionDataExBuilder
-        {
-            private final MqttSessionDataExFW.Builder sessionDataExRW = new MqttSessionDataExFW.Builder();
-
-            private MqttSessionDataExBuilder()
-            {
-                sessionDataExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
-            }
-
-            public MqttSessionDataExBuilder topic(
-                String topic)
-            {
-                sessionDataExRW.topic(topic);
-                return this;
-            }
-
-            public MqttSessionDataExBuilder flags(
-                String... flags)
-            {
-                int publishFlags = 0;
-                for (int i = 0; i < flags.length; i++)
-                {
-                    publishFlags |= 1 << MqttPublishFlags.valueOf(flags[i]).ordinal();
-                }
-                sessionDataExRW.flags(publishFlags);
-                return this;
-            }
-
-            public MqttDataExBuilder build()
-            {
-                final MqttSessionDataExFW sessionBeginEx = sessionDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, sessionBeginEx.limit());
-                return MqttDataExBuilder.this;
-            }
         }
 
         public final class MqttSubscribeDataExBuilder
@@ -530,35 +584,73 @@ public final class MqttFunctions
         }
     }
 
-    public static final class MqttAbortExBuilder
+    public static final class MqttEndExBuilder
     {
-        private final MqttAbortExFW.Builder abortExRW;
+        private final MqttEndExFW.Builder endExRW;
 
-        private MqttAbortExBuilder()
+        private MqttEndExBuilder()
         {
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            this.abortExRW = new MqttAbortExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            this.endExRW = new MqttEndExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
-        public MqttAbortExBuilder typeId(
+        public MqttEndExBuilder typeId(
             int typeId)
         {
-            abortExRW.typeId(typeId);
+            endExRW.typeId(typeId);
             return this;
         }
 
-        public MqttAbortExBuilder reason(
-            int reason)
+        public MqttEndExBuilder reason(
+            String reason)
         {
-            abortExRW.reason(reason);
+            endExRW.reasonCode(r -> r.set(MqttEndReasonCode.valueOf(reason)));
             return this;
         }
 
         public byte[] build()
         {
-            final MqttAbortExFW abortEx = abortExRW.build();
-            final byte[] array = new byte[abortEx.sizeof()];
-            abortEx.buffer().getBytes(abortEx.offset(), array);
+            final MqttEndExFW endEx = endExRW.build();
+            final byte[] array = new byte[endEx.sizeof()];
+            endEx.buffer().getBytes(endEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class MqttSessionStateBuilder
+    {
+        private final SessionStateFW.Builder sessionStateRW = new SessionStateFW.Builder();
+
+        private MqttSessionStateBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            sessionStateRW.wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public MqttSessionStateBuilder clientId(
+            String clientId)
+        {
+            sessionStateRW.clientId(clientId);
+            return this;
+        }
+
+        public MqttSessionStateBuilder subscription(
+            String pattern,
+            int id,
+            String... flags)
+        {
+            int flagsLocal = Arrays.stream(flags)
+                .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
+                .reduce(0, (a, b) -> a | b);
+            sessionStateRW.subscriptionsItem(f -> f.pattern(pattern).subscriptionId(id).flags(flagsLocal));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final SessionStateFW sessionStateFW = sessionStateRW.build();
+            final byte[] array = new byte[sessionStateFW.sizeof()];
+            sessionStateFW.buffer().getBytes(sessionStateFW.offset(), array);
             return array;
         }
     }

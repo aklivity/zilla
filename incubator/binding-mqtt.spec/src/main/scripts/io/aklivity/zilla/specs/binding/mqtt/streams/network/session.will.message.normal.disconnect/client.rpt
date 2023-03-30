@@ -24,7 +24,7 @@ write [0x10 0x3f]                                      # CONNECT
       [0x00 0x04] "MQTT"                               # protocol name
       [0x05]                                           # protocol version
       [0x06]                                           # flags = will flag, clean start
-      [0x00 0x01]                                      # keep alive = 1s
+      [0x00 0x0a]                                      # keep alive = 10s
       [0x05]                                           # properties
       [0x11] 0                                         # session expiry interval
       [0x00 0x03] "one"                                # client id
