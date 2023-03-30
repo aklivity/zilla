@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.COUNTER;
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
@@ -31,14 +31,14 @@ public class CounterRecord implements MetricRecord
     private int bindingId;
     private int metricId;
     private FileReader.Kind kind;
-    private List<LongSupplier> readers;
+    private LongSupplier[] readers;
     private IntFunction<String> labelResolver;
 
     public CounterRecord(
         long packedBindingId,
         long packedMetricId,
         FileReader.Kind kind,
-        List<LongSupplier> readers,
+        LongSupplier[] readers,
         IntFunction<String> labelResolver)
     {
         this.packedBindingId = packedBindingId;
@@ -83,7 +83,7 @@ public class CounterRecord implements MetricRecord
 
     private long value()
     {
-        Long result = readers.stream().map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
+        long result = Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
         return result;
     }
 

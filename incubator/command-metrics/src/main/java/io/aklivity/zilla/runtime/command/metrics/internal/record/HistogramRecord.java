@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
@@ -32,14 +30,14 @@ public class HistogramRecord implements MetricRecord
     private int bindingId;
     private int metricId;
     private FileReader.Kind kind;
-    private List<LongSupplier[]> readers;
+    private LongSupplier[][] readers;
     private IntFunction<String> labelResolver;
 
     public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
         FileReader.Kind kind,
-        List<LongSupplier[]> readers,
+        LongSupplier[][] readers,
         IntFunction<String> labelResolver)
     {
         this.packedBindingId = packedBindingId;
@@ -80,15 +78,8 @@ public class HistogramRecord implements MetricRecord
     public String stringValue()
     {
         // TODO: Ati
-        return Arrays.toString(new long[]{value()});
-        //return String.valueOf(value());
-    }
-
-    private long value()
-    {
-        // TODO: Ati
-        Long result = readers.stream().map(i -> i[0].getAsLong()).reduce(Long::sum).orElse(0L);
-        return result;
+        long[] stats = stats();
+        return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }
 
     private static int namespaceId(
@@ -101,5 +92,35 @@ public class HistogramRecord implements MetricRecord
         long packedId)
     {
         return (int) (packedId >> 0) & 0xffff_ffff;
+    }
+
+    private long[] stats()
+    {
+        // TODO: Ati
+        long minimum = readers[0][0].getAsLong();
+        return new long[]{minimum, 42L, 77L, 88L};
+        /*long count = 0L;
+        long sum = 0L;
+        int minIndex = -1;
+        int maxIndex = -1;
+        for (int bucketIndex = 0; bucketIndex < NUMBER_OF_VALUES.get(HISTOGRAM); bucketIndex++)
+        {
+            long bucketValue = readers.get(bucketIndex)[0].getAsLong();
+            count += bucketValue;
+            long value = HISTOGRAM_BUCKET_LIMITS.get(bucketIndex) - 1;
+            sum += bucketValue * value;
+            if (bucketValue != 0)
+            {
+                maxIndex = bucketIndex;
+                if (minIndex == -1)
+                {
+                    minIndex = bucketIndex;
+                }
+            }
+        }
+        this.count = count;
+        this.minimum = minIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(minIndex) - 1;
+        this.maximum = maxIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(maxIndex) - 1;
+        this.average = count == 0L ? 0L : sum / count;*/
     }
 }

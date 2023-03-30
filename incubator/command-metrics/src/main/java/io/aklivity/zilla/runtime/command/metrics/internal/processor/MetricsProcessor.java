@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
@@ -159,11 +160,11 @@ public class MetricsProcessor
             long packedMetricId = longSupplier[1].getAsLong();
             if (filter.test(packedBindingId))
             {
-                List<LongSupplier> readers = new LinkedList<>();
-                for (CountersReader counterFileReader : counterFileReaders)
-                {
-                    readers.add(counterFileReader.layout().supplyReader(packedBindingId, packedMetricId));
-                }
+                LongSupplier[] readers = counterFileReaders.stream()
+                        .map(CountersReader::layout)
+                        .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
+                        .collect(Collectors.toList())
+                        .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
                 counterRecords.add(record);
                 calculateColumnWidthsNew(record);
@@ -178,11 +179,11 @@ public class MetricsProcessor
             long packedMetricId = longSupplier[1].getAsLong();
             if (filter.test(packedBindingId))
             {
-                List<LongSupplier[]> readers = new LinkedList<>();
-                for (HistogramsReader histogramsReader : histogramFileReaders)
-                {
-                    readers.add(histogramsReader.layout().supplyReaders(packedBindingId, packedMetricId));
-                }
+                LongSupplier[][] readers = histogramFileReaders.stream()
+                        .map(HistogramsReader::layout)
+                        .map(layout -> layout.supplyReaders(packedBindingId, packedMetricId))
+                        .collect(Collectors.toList())
+                        .toArray(LongSupplier[][]::new);
                 MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
                 histogramRecords.add(record);
                 calculateColumnWidthsNew(record);
