@@ -39,6 +39,9 @@ import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReader;
+import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterRecord;
+import io.aklivity.zilla.runtime.command.metrics.internal.record.HistogramRecord;
+import io.aklivity.zilla.runtime.command.metrics.internal.record.MetricRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.AggregatorFunction;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.IntIntIntFunction;
 
@@ -58,6 +61,7 @@ public class MetricsProcessor
     private final LongPredicate filter;
 
     private final List<MetricRecord> counterRecords;
+    private final List<MetricRecord> histogramRecords;
 
     private final Map<Integer, FileReader.Kind> metricTypes;
     // namespace -> binding -> metric -> values
@@ -91,13 +95,15 @@ public class MetricsProcessor
         this.metricValues = new Int2ObjectHashMap<>();
         this.histogramStats = new Int2ObjectHashMap<>();
         this.counterRecords = new LinkedList<>();
+        this.histogramRecords = new LinkedList<>();
     }
 
     public void doProcess(PrintStream out)
     {
         reset();
-        calculate();
+        calculateNew();
         printNew(out);
+        calculate();
         print(out);
     }
 
@@ -143,7 +149,7 @@ public class MetricsProcessor
         }
     }
 
-    private void calculate()
+    private void calculateNew()
     {
         // hack: get metadata
         LongSupplier[][] longSuppliers = counterFileReaders.get(0).recordReaders();
@@ -158,12 +164,34 @@ public class MetricsProcessor
                 {
                     readers.add(counterFileReader.layout().supplyReader(packedBindingId, packedMetricId));
                 }
-                MetricRecord record = new MetricRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
+                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
                 counterRecords.add(record);
                 calculateColumnWidthsNew(record);
             }
         }
 
+        // hack: get metadata
+        LongSupplier[][] longSuppliers2 = histogramFileReaders.get(0).recordReaders();
+        for (LongSupplier[] longSupplier : longSuppliers2) // iterate over metadata (nsBinding/nsMetric pairs)
+        {
+            long packedBindingId = longSupplier[0].getAsLong();
+            long packedMetricId = longSupplier[1].getAsLong();
+            if (filter.test(packedBindingId))
+            {
+                List<LongSupplier[]> readers = new LinkedList<>();
+                for (HistogramsReader histogramsReader : histogramFileReaders)
+                {
+                    readers.add(histogramsReader.layout().supplyReaders(packedBindingId, packedMetricId));
+                }
+                MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
+                histogramRecords.add(record);
+                calculateColumnWidthsNew(record);
+            }
+        }
+    }
+
+    private void calculate()
+    {
         /*List<FileReader> fileReaders = new LinkedList<>();
         fileReaders.addAll(counterFileReaders);
         fileReaders.addAll(histogramFileReaders);*/
@@ -362,6 +390,10 @@ public class MetricsProcessor
                 valueWidth + "s\n";
         out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
         for (MetricRecord metric : counterRecords)
+        {
+            out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
+        }
+        for (MetricRecord metric : histogramRecords)
         {
             out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
         }

@@ -13,15 +13,18 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.metrics.internal.processor;
+package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
 
-public class MetricRecord
+public class HistogramRecord implements MetricRecord
 {
     private long packedBindingId;
     private long packedMetricId;
@@ -29,14 +32,14 @@ public class MetricRecord
     private int bindingId;
     private int metricId;
     private FileReader.Kind kind;
-    private List<LongSupplier> readers;
+    private List<LongSupplier[]> readers;
     private IntFunction<String> labelResolver;
 
-    public MetricRecord(
+    public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
         FileReader.Kind kind,
-        List<LongSupplier> readers,
+        List<LongSupplier[]> readers,
         IntFunction<String> labelResolver)
     {
         this.packedBindingId = packedBindingId;
@@ -49,51 +52,53 @@ public class MetricRecord
         this.labelResolver = labelResolver;
     }
 
-    public void addReader(
-        LongSupplier reader)
-    {
-        readers.add(reader);
-    }
-
+    @Override
     public String namespaceName()
     {
         return labelResolver.apply(namespaceId);
     }
 
+    @Override
     public String bindingName()
     {
         return labelResolver.apply(bindingId);
     }
 
+    @Override
     public String metricName()
     {
         return labelResolver.apply(metricId);
     }
 
-    public long value()
+    @Override
+    public FileReader.Kind kind()
     {
-        Long result = readers.stream().map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
+        return HISTOGRAM;
+    }
+
+    @Override
+    public String stringValue()
+    {
+        // TODO: Ati
+        return Arrays.toString(new long[]{value()});
+        //return String.valueOf(value());
+    }
+
+    private long value()
+    {
+        // TODO: Ati
+        Long result = readers.stream().map(i -> i[0].getAsLong()).reduce(Long::sum).orElse(0L);
         return result;
     }
 
-    public LongSupplier valueSupplier()
-    {
-        return this::value;
-    }
-
-    public String stringValue()
-    {
-        return String.valueOf(value());
-    }
-
     private static int namespaceId(
-            long packedId)
+        long packedId)
     {
         return (int) (packedId >> Integer.SIZE) & 0xffff_ffff;
     }
 
     private static int localId(
-            long packedId)
+        long packedId)
     {
         return (int) (packedId >> 0) & 0xffff_ffff;
     }
