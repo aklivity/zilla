@@ -23,16 +23,11 @@ accepted
 read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
-                                .clientId("one")
-                                .pattern("$SYS/sessions/one/#")
+                                .clientId("client")
+                                .expiry(1)
                                 .build()
                              .build()}
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                                .topic("$SYS/sessions/one")
-                                .build()
-                            .build()}
-read '{"expiresAt":'/(?<expiresAt>\d+)/'}'
+write zilla:data.empty
+write flush

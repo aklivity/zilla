@@ -19,31 +19,17 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                              .typeId(zilla:id("mqtt"))
-                              .session()
-                                .clientId("client")
-                                .pattern("$SYS/sessions/client/#")
-                                .build()
-                              .build()}
+                               .typeId(zilla:id("mqtt"))
+                               .session()
+                                  .clientId("client")
+                                  .expiry(1)
+                                  .build()
+                               .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .topic("$SYS/sessions/client")
-                                .build()
-                             .build()}
+read zilla:data.empty
 
-write '{"expiresAt":1}'
-write flush
 
-write zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                                .topic("$SYS/sessions/client")
-                                .build()
-                            .build()}
-
-write zilla:data.empty
-write flush
+write abort
+read aborted

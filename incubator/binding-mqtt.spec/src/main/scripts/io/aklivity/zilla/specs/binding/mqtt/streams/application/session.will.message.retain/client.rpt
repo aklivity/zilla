@@ -20,32 +20,15 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                               .session()
-                                  .clientId("one")
-                                  .pattern("$SYS/sessions/one/#")
-                                  .build()
+                              .session()
+                                .clientId("one")
+                                .willTopic("wills/one")
+                                .willFlags("QOS0", "RETAIN")
+                                .willFormat("TEXT")
+                                .willPayload("client one session expired")
+                                .build()
                               .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .topic("$SYS/sessions/one")
-                                .build()
-                             .build()}
-
-write '{"expiresAt":10}'
-write flush
-
-
-write zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                                .topic("$SYS/sessions/one/will")
-                                .flags("RETAIN")
-                                .build()
-                            .build()}
-
-write "client one session expired"
-write flush
+read zilla:data.empty

@@ -22,30 +22,13 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("client")
-                                .pattern("$SYS/sessions/client/#")
+                                .expiry(10)
                                 .build()
                              .build()}
 
 connected
 
-write zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                                .topic("$SYS/sessions/client")
-                                .build()
-                            .build()}
-
-
-write '{"expiresAt":10}'
-
-write zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .session()
-                                .topic("$SYS/sessions/client")
-                                .build()
-                            .build()}
-
-write zilla:data.empty
+read zilla:data.empty
 
 write close
 read closed
@@ -62,8 +45,9 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("client")
-                                .pattern("$SYS/sessions/client/#")
                                 .build()
                              .build()}
 
 connected
+
+read zilla:data.empty

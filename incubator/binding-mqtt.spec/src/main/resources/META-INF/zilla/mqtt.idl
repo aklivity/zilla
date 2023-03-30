@@ -34,6 +34,13 @@ scope mqtt
         RETAIN(3)
     }
 
+    enum MqttEndReasonCode (uint8)
+    {
+        DISCONNECT(0),
+        KEEP_ALIVE_EXPIRY(1),
+        DISCONNECT_WITH_WILL(2)
+    }
+
     enum MqttPayloadFormat
     {
         BINARY,
@@ -59,6 +66,12 @@ scope mqtt
         uint8 flags = 0;
     }
 
+    struct SessionState
+    {
+        string16 clientId;
+        MqttTopicFilter[] subscriptions;
+    }
+
     scope stream
     {
         enum MqttApi (uint8)
@@ -78,7 +91,17 @@ scope mqtt
         struct MqttSessionBeginEx
         {
             string16 clientId;
-            string16 pattern; // TODO: do we need this at all? It's always $SYS/sessions/<clientId>/#
+            int32 expiry = 0;
+            string16 willTopic = null;
+            int32 willDelay = 0;
+            uint8 willFlags = 0;
+            int32 willExpiryInterval = -1;
+            string16 willContentType = null;
+            MqttPayloadFormat willFormat = BINARY;
+            string16 willResponseTopic = null;
+            MqttBinary willCorrelation;
+            MqttUserProperty[] willUserProperties;
+            MqttBinary willPayload;
         }
 
         struct MqttSubscribeBeginEx
@@ -95,16 +118,10 @@ scope mqtt
 
         union MqttDataEx switch (uint8) extends core::stream::Extension
         {
-            case 2: mqtt::stream::MqttSessionDataEx session;
             case 1: mqtt::stream::MqttSubscribeDataEx subscribe;
             case 0: mqtt::stream::MqttPublishDataEx publish;
         }
 
-        struct MqttSessionDataEx
-        {
-            string16 topic = null;
-            uint8 flags = 0;
-        }
 
         struct MqttSubscribeDataEx
         {
@@ -133,10 +150,9 @@ scope mqtt
             MqttUserProperty[] properties;
         }
 
-        //TODO: do we need this?
-        struct MqttAbortEx extends core::stream::Extension
+        struct MqttEndEx extends core::stream::Extension
         {
-            uint8 reason;
+            MqttEndReasonCode reasonCode;
         }
 
         struct MqttFlushEx extends core::stream::Extension
