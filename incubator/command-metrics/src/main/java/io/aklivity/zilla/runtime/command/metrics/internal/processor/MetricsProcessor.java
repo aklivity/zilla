@@ -42,10 +42,10 @@ public class MetricsProcessor
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
 
-    private int namespaceWidth = NAMESPACE_HEADER.length();
-    private int bindingWidth = BINDING_HEADER.length();
-    private int metricWidth = METRIC_HEADER.length();
-    private int valueWidth = VALUE_HEADER.length();
+    private int namespaceWidth;
+    private int bindingWidth;
+    private int metricWidth;
+    private int valueWidth;
 
     public MetricsProcessor(
         List<CountersReader> counterFileReaders,
@@ -68,6 +68,7 @@ public class MetricsProcessor
             collectCounters();
             collectHistograms();
         }
+        calculateColumnWidths();
         doPrint(out);
     }
 
@@ -105,7 +106,6 @@ public class MetricsProcessor
                         .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
                 metricRecords.add(record);
-                calculateColumnWidths(record);
             }
         }
     }
@@ -127,18 +127,24 @@ public class MetricsProcessor
                         .toArray(LongSupplier[][]::new);
                 MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
                 metricRecords.add(record);
-                calculateColumnWidths(record);
             }
         }
     }
 
-    private void calculateColumnWidths(
-        MetricRecord metric)
+    private void calculateColumnWidths()
     {
-        namespaceWidth = Math.max(namespaceWidth, metric.namespaceName().length());
-        bindingWidth = Math.max(bindingWidth, metric.bindingName().length());
-        metricWidth = Math.max(metricWidth, metric.metricName().length());
-        valueWidth = Math.max(valueWidth, metric.stringValue().length());
+        namespaceWidth = NAMESPACE_HEADER.length();
+        bindingWidth = BINDING_HEADER.length();
+        metricWidth = METRIC_HEADER.length();
+        valueWidth = VALUE_HEADER.length();
+
+        for (MetricRecord metric : metricRecords)
+        {
+            namespaceWidth = Math.max(namespaceWidth, metric.namespaceName().length());
+            bindingWidth = Math.max(bindingWidth, metric.bindingName().length());
+            metricWidth = Math.max(metricWidth, metric.metricName().length());
+            valueWidth = Math.max(valueWidth, metric.stringValue().length());
+        }
     }
 
     private void doPrint(
