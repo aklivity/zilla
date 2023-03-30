@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 
@@ -146,15 +147,23 @@ public class MetricsProcessor
     {
         // hack: get metadata
         LongSupplier[][] longSuppliers = counterFileReaders.get(0).recordReaders();
-        for (LongSupplier[] longSupplier : longSuppliers)
+        for (LongSupplier[] longSupplier : longSuppliers) // iterate over metadata
         {
             long namespacedBindingId = longSupplier[0].getAsLong();
             long namespacedMetricId = longSupplier[1].getAsLong();
-            MetricRecord record = new MetricRecord(namespacedBindingId, namespacedMetricId, COUNTER);
-            //record.addReader(counterFileReaders.get(0).);
+            MetricRecord record = new MetricRecord(namespacedBindingId, namespacedMetricId, COUNTER, labels::lookupLabel);
+            for (CountersReader counterFileReader : counterFileReaders)
+            {
+                record.addReader(counterFileReader.layout().supplyReader(namespacedBindingId, namespacedMetricId));
+            }
             counterRecords.add(record);
         }
-
+        System.out.println(counterRecords.get(2).namespaceName());
+        System.out.println(counterRecords.get(2).bindingName());
+        System.out.println(counterRecords.get(2).metricName());
+        System.out.println(counterRecords.get(2).value());
+        System.out.println(counterRecords.get(2).stringValue());
+        System.out.println(counterRecords.get(2).length());
 
         /*List<FileReader> fileReaders = new LinkedList<>();
         fileReaders.addAll(counterFileReaders);
@@ -310,6 +319,7 @@ public class MetricsProcessor
         int metricId,
         FileReader.Kind kind)
     {
+        IntFunction<String> a = labels::lookupLabel;
         String namespace = labels.lookupLabel(namespaceId);
         String binding = labels.lookupLabel(bindingId);
         String metric = labels.lookupLabel(metricId);

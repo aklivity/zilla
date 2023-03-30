@@ -48,6 +48,11 @@ public class CountersReader /*implements FileReader*/
         return recordReaders;
     }
 
+    public CountersLayout layout()
+    {
+        return layout;
+    }
+
     //@Override
     public void close()
     {

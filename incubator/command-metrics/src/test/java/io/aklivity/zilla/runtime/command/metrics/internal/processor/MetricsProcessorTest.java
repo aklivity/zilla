@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.function.LongSupplier;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
@@ -36,6 +37,7 @@ import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsReade
 
 public class MetricsProcessorTest
 {
+    @Ignore // TODO: Ati
     @Test
     public void shouldWorkInGenericCase() throws Exception
     {

@@ -48,6 +48,11 @@ public class HistogramsReader /*implements FileReader*/
         return recordReaders;
     }
 
+    public HistogramsLayout layout()
+    {
+        return layout;
+    }
+
     //@Override
     public void close()
     {
