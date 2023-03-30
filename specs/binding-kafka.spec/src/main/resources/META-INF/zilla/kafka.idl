@@ -63,8 +63,15 @@ scope kafka
         case 3: kafka::KafkaHeaders headers;
     }
 
+    enum KafkaEvaluation (uint8)
+    {
+        LAZY(0),
+        ALWAYS(1)
+    }
+
     struct KafkaFilter
     {
+        KafkaEvaluation evaluate = KafkaEvaluation.LAZY;
         KafkaCondition[] conditions; // ANDed
     }
 
@@ -224,6 +231,7 @@ scope kafka
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
+            uint64 filters; // TODO: convert it to bitmask, and create long from it
         }
 
         struct KafkaMergedFlushEx
