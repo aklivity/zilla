@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.processor;
 
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.BINDING_ID_INDEX;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.HISTOGRAM_BUCKETS;
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.HISTOGRAM_BUCKET_LIMITS;
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.METRIC_ID_INDEX;
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.NUMBER_OF_VALUES;
@@ -163,7 +164,7 @@ public class MetricsProcessor
                         .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
+                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
                 metricRecords.add(record);
                 calculateColumnWidthsNew(record);
             }
@@ -182,7 +183,7 @@ public class MetricsProcessor
                         .map(layout -> layout.supplyReaders(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[][]::new);
-                MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
+                MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
                 metricRecords.add(record);
                 calculateColumnWidthsNew(record);
             }
@@ -306,7 +307,7 @@ public class MetricsProcessor
         long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
-        for (int bucketIndex = 0; bucketIndex < NUMBER_OF_VALUES.get(HISTOGRAM); bucketIndex++)
+        for (int bucketIndex = 0; bucketIndex < HISTOGRAM_BUCKETS; bucketIndex++)
         {
             long bucketValue = recordReader[VALUES_INDEX + bucketIndex].getAsLong();
             count += bucketValue;

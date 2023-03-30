@@ -15,38 +15,27 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.COUNTER;
-
 import java.util.Arrays;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
-
 public class CounterRecord implements MetricRecord
 {
-    private long packedBindingId;
-    private long packedMetricId;
-    private int namespaceId;
-    private int bindingId;
-    private int metricId;
-    private FileReader.Kind kind;
-    private LongSupplier[] readers;
-    private IntFunction<String> labelResolver;
+    private final int namespaceId;
+    private final int bindingId;
+    private final int metricId;
+    private final LongSupplier[] readers;
+    private final IntFunction<String> labelResolver;
 
     public CounterRecord(
         long packedBindingId,
         long packedMetricId,
-        FileReader.Kind kind,
         LongSupplier[] readers,
         IntFunction<String> labelResolver)
     {
-        this.packedBindingId = packedBindingId;
-        this.packedMetricId = packedMetricId;
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
         this.metricId = localId(packedMetricId);
-        this.kind = kind;
         this.readers = readers;
         this.labelResolver = labelResolver;
     }
@@ -67,12 +56,6 @@ public class CounterRecord implements MetricRecord
     public String metricName()
     {
         return labelResolver.apply(metricId);
-    }
-
-    @Override
-    public FileReader.Kind kind()
-    {
-        return COUNTER;
     }
 
     @Override

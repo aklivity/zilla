@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
-
 public interface MetricRecord
 {
     String namespaceName();
@@ -24,8 +22,6 @@ public interface MetricRecord
     String bindingName();
 
     String metricName();
-
-    FileReader.Kind kind();
 
     String stringValue();
 }

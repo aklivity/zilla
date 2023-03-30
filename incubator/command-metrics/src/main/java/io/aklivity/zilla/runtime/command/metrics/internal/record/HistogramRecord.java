@@ -15,37 +15,30 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.HISTOGRAM_BUCKET_LIMITS;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.NUMBER_OF_VALUES;
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
 
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader;
-
 public class HistogramRecord implements MetricRecord
 {
-    private long packedBindingId;
-    private long packedMetricId;
-    private int namespaceId;
-    private int bindingId;
-    private int metricId;
-    private FileReader.Kind kind;
-    private LongSupplier[][] readers;
-    private IntFunction<String> labelResolver;
+    private final int namespaceId;
+    private final int bindingId;
+    private final int metricId;
+    private final LongSupplier[][] readers;
+    private final IntFunction<String> labelResolver;
 
     public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
-        FileReader.Kind kind,
         LongSupplier[][] readers,
         IntFunction<String> labelResolver)
     {
-        this.packedBindingId = packedBindingId;
-        this.packedMetricId = packedMetricId;
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
         this.metricId = localId(packedMetricId);
-        this.kind = kind;
         this.readers = readers;
         this.labelResolver = labelResolver;
     }
@@ -69,15 +62,8 @@ public class HistogramRecord implements MetricRecord
     }
 
     @Override
-    public FileReader.Kind kind()
-    {
-        return HISTOGRAM;
-    }
-
-    @Override
     public String stringValue()
     {
-        // TODO: Ati
         long[] stats = stats();
         return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }
@@ -96,31 +82,39 @@ public class HistogramRecord implements MetricRecord
 
     private long[] stats()
     {
-        // TODO: Ati
-        long minimum = readers[0][0].getAsLong();
-        return new long[]{minimum, 42L, 77L, 88L};
-        /*long count = 0L;
+        long count = 0L;
         long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
-        for (int bucketIndex = 0; bucketIndex < NUMBER_OF_VALUES.get(HISTOGRAM); bucketIndex++)
+
+        long[] histogram = new long[NUMBER_OF_VALUES.get(HISTOGRAM)];
+        for (int i = 0; i < NUMBER_OF_VALUES.get(HISTOGRAM); i++)
         {
-            long bucketValue = readers.get(bucketIndex)[0].getAsLong();
+            for (LongSupplier[] reader : readers)
+            {
+                histogram[i] += reader[i].getAsLong();
+            }
+        }
+        for (int i = 0; i < NUMBER_OF_VALUES.get(HISTOGRAM); i++)
+        {
+            long bucketValue = histogram[i];
             count += bucketValue;
-            long value = HISTOGRAM_BUCKET_LIMITS.get(bucketIndex) - 1;
+            long value = HISTOGRAM_BUCKET_LIMITS.get(i) - 1;
             sum += bucketValue * value;
             if (bucketValue != 0)
             {
-                maxIndex = bucketIndex;
+                maxIndex = i;
                 if (minIndex == -1)
                 {
-                    minIndex = bucketIndex;
+                    minIndex = i;
                 }
             }
         }
-        this.count = count;
-        this.minimum = minIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(minIndex) - 1;
-        this.maximum = maxIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(maxIndex) - 1;
-        this.average = count == 0L ? 0L : sum / count;*/
+
+        long minimum = minIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(minIndex) - 1;
+        long maximum = maxIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(maxIndex) - 1;
+        long average = count == 0L ? 0L : sum / count;
+
+        return new long[]{minimum, maximum, count, average};
     }
 }
