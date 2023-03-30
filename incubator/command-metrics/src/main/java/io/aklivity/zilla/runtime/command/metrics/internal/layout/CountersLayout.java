@@ -32,7 +32,7 @@ import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class CountersLayout
+public final class CountersLayout extends Layout
 {
     // We use the buffer to store structs {long bindingId, long metricId, long value}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;

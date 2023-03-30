@@ -35,7 +35,7 @@ import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class HistogramsLayout
+public final class HistogramsLayout extends Layout
 {
     // We use the buffer to store structs {long bindingId, long metricId, long[] values}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;

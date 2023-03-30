@@ -75,22 +75,18 @@ public class HistogramRecord implements MetricRecord
         long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
-
         long[] histogram = new long[HISTOGRAM_BUCKETS];
+
         for (int i = 0; i < HISTOGRAM_BUCKETS; i++)
         {
             for (LongSupplier[] reader : readers)
             {
                 histogram[i] += reader[i].getAsLong();
             }
-        }
-        for (int i = 0; i < HISTOGRAM_BUCKETS; i++)
-        {
-            long bucketValue = histogram[i];
-            count += bucketValue;
-            long value = HISTOGRAM_BUCKET_LIMITS.get(i) - 1;
-            sum += bucketValue * value;
-            if (bucketValue != 0)
+            long bucketCount = histogram[i];
+            count += bucketCount;
+            sum += bucketCount * getValue(i);
+            if (bucketCount != 0)
             {
                 maxIndex = i;
                 if (minIndex == -1)
@@ -100,10 +96,14 @@ public class HistogramRecord implements MetricRecord
             }
         }
 
-        long minimum = minIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(minIndex) - 1;
-        long maximum = maxIndex == -1 ? 0L : HISTOGRAM_BUCKET_LIMITS.get(maxIndex) - 1;
+        long minimum = minIndex == -1 ? 0L : getValue(minIndex);
+        long maximum = maxIndex == -1 ? 0L : getValue(maxIndex);
         long average = count == 0L ? 0L : sum / count;
-
         return new long[]{minimum, maximum, count, average};
+    }
+
+    private long getValue(int i)
+    {
+        return HISTOGRAM_BUCKET_LIMITS.get(i) - 1;
     }
 }
