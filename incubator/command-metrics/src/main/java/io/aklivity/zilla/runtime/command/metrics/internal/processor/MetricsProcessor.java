@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 
@@ -98,6 +97,7 @@ public class MetricsProcessor
     {
         reset();
         calculate();
+        printNew(out);
         print(out);
     }
 
@@ -147,23 +147,21 @@ public class MetricsProcessor
     {
         // hack: get metadata
         LongSupplier[][] longSuppliers = counterFileReaders.get(0).recordReaders();
-        for (LongSupplier[] longSupplier : longSuppliers) // iterate over metadata
+        for (LongSupplier[] longSupplier : longSuppliers) // iterate over metadata (nsBinding/nsMetric pairs)
         {
             long namespacedBindingId = longSupplier[0].getAsLong();
             long namespacedMetricId = longSupplier[1].getAsLong();
-            MetricRecord record = new MetricRecord(namespacedBindingId, namespacedMetricId, COUNTER, labels::lookupLabel);
-            for (CountersReader counterFileReader : counterFileReaders)
+            if (filter.test(namespacedBindingId))
             {
-                record.addReader(counterFileReader.layout().supplyReader(namespacedBindingId, namespacedMetricId));
+                MetricRecord record = new MetricRecord(namespacedBindingId, namespacedMetricId, COUNTER, labels::lookupLabel);
+                for (CountersReader counterFileReader : counterFileReaders)
+                {
+                    record.addReader(counterFileReader.layout().supplyReader(namespacedBindingId, namespacedMetricId));
+                }
+                counterRecords.add(record);
+                calculateColumnWidthsNew(record);
             }
-            counterRecords.add(record);
         }
-        System.out.println(counterRecords.get(2).namespaceName());
-        System.out.println(counterRecords.get(2).bindingName());
-        System.out.println(counterRecords.get(2).metricName());
-        System.out.println(counterRecords.get(2).value());
-        System.out.println(counterRecords.get(2).stringValue());
-        System.out.println(counterRecords.get(2).length());
 
         /*List<FileReader> fileReaders = new LinkedList<>();
         fileReaders.addAll(counterFileReaders);
@@ -313,13 +311,21 @@ public class MetricsProcessor
         histogramStatsByBinding.put(metricId, stats);
     }
 
+    private void calculateColumnWidthsNew(
+        MetricRecord metric) // TODO: Ati
+    {
+        namespaceWidth = Math.max(namespaceWidth, metric.namespaceName().length());
+        bindingWidth = Math.max(bindingWidth, metric.bindingName().length());
+        metricWidth = Math.max(metricWidth, metric.metricName().length());
+        valueWidth = Math.max(valueWidth, metric.stringValue().length());
+    }
+
     private void calculateColumnWidths(
         int namespaceId,
         int bindingId,
         int metricId,
         FileReader.Kind kind)
     {
-        IntFunction<String> a = labels::lookupLabel;
         String namespace = labels.lookupLabel(namespaceId);
         String binding = labels.lookupLabel(bindingId);
         String metric = labels.lookupLabel(metricId);
@@ -346,6 +352,19 @@ public class MetricsProcessor
     {
         long[] stats = histogramStats.get(namespaceId).get(bindingId).get(metricId);
         return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
+    }
+
+    private void printNew(
+        PrintStream out) // TODO: Ati
+    {
+        String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
+                valueWidth + "s\n";
+        out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
+        for (MetricRecord metric : counterRecords)
+        {
+            out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
+        }
+        out.println();
     }
 
     private void print(PrintStream out)

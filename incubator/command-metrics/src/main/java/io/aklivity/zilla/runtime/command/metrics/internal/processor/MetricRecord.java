@@ -86,11 +86,6 @@ public class MetricRecord
         return String.valueOf(value());
     }
 
-    public int length()
-    {
-        return stringValue().length();
-    }
-
     private static int namespaceId(
             long packedId)
     {
