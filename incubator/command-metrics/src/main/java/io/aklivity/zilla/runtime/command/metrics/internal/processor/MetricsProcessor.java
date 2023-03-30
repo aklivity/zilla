@@ -61,8 +61,7 @@ public class MetricsProcessor
     private final LabelManager labels;
     private final LongPredicate filter;
 
-    private final List<MetricRecord> counterRecords;
-    private final List<MetricRecord> histogramRecords;
+    private final List<MetricRecord> metricRecords;
 
     private final Map<Integer, FileReader.Kind> metricTypes;
     // namespace -> binding -> metric -> values
@@ -95,8 +94,7 @@ public class MetricsProcessor
         this.metricTypes = new Int2ObjectHashMap<>();
         this.metricValues = new Int2ObjectHashMap<>();
         this.histogramStats = new Int2ObjectHashMap<>();
-        this.counterRecords = new LinkedList<>();
-        this.histogramRecords = new LinkedList<>();
+        this.metricRecords = new LinkedList<>();
     }
 
     public void doProcess(PrintStream out)
@@ -166,7 +164,7 @@ public class MetricsProcessor
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
-                counterRecords.add(record);
+                metricRecords.add(record);
                 calculateColumnWidthsNew(record);
             }
         }
@@ -185,7 +183,7 @@ public class MetricsProcessor
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[][]::new);
                 MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, COUNTER, readers, labels::lookupLabel);
-                histogramRecords.add(record);
+                metricRecords.add(record);
                 calculateColumnWidthsNew(record);
             }
         }
@@ -390,11 +388,7 @@ public class MetricsProcessor
         String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
                 valueWidth + "s\n";
         out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
-        for (MetricRecord metric : counterRecords)
-        {
-            out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
-        }
-        for (MetricRecord metric : histogramRecords)
+        for (MetricRecord metric : metricRecords)
         {
             out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
         }
