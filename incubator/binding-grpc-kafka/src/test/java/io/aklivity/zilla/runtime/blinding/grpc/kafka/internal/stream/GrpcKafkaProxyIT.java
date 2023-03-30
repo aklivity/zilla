@@ -93,9 +93,29 @@ public class GrpcKafkaProxyIT
     @Test
     @Configuration("proxy.rpc.yaml")
     @Specification({
+        "${grpc}/server.stream.rpc.rejected/client",
+        "${kafka}/server.stream.rpc.rejected/server"})
+    public void shouldRejectServerStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.rpc.yaml")
+    @Specification({
         "${grpc}/bidi.stream.rpc/client",
         "${kafka}/bidi.stream.rpc/server"})
     public void shouldExchangeMessageWithBidiStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.rpc.yaml")
+    @Specification({
+        "${grpc}/bidi.stream.rpc.rejected/client",
+        "${kafka}/bidi.stream.rpc.rejected/server"})
+    public void shouldRejectBiStreamRpc() throws Exception
     {
         k3po.finish();
     }

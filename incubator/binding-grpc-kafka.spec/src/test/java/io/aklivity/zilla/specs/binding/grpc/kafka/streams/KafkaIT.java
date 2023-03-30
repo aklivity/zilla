@@ -46,6 +46,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/bidi.stream.rpc.rejected/client",
+        "${kafka}/bidi.stream.rpc.rejected/server"})
+    public void shouldRejectBiStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/client.stream.rpc/client",
         "${kafka}/client.stream.rpc/server"})
     public void shouldExchangeMessageInClientStream() throws Exception
@@ -64,9 +73,27 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/server.stream.rpc.rejected/client",
+        "${kafka}/server.stream.rpc.rejected/server"})
+    public void shouldRejectServerStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/unary.rpc/client",
         "${kafka}/unary.rpc/server"})
     public void shouldExchangeMessageInUnary() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/unary.rpc.rejected/client",
+        "${kafka}/unary.rpc.rejected/server"})
+    public void shouldRejectUnaryRpc() throws Exception
     {
         k3po.finish();
     }

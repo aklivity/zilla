@@ -46,6 +46,15 @@ public class GrpcIT
 
     @Test
     @Specification({
+        "${grpc}/bidi.stream.rpc.rejected/client",
+        "${grpc}/bidi.stream.rpc.rejected/server"})
+    public void shouldRejectBiStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${grpc}/client.stream.rpc/client",
         "${grpc}/client.stream.rpc/server"})
     public void shouldExchangeMessageInClientSteam() throws Exception
@@ -64,6 +73,15 @@ public class GrpcIT
 
     @Test
     @Specification({
+        "${grpc}/server.stream.rpc.rejected/client",
+        "${grpc}/server.stream.rpc.rejected/server"})
+    public void shouldRejectServerStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${grpc}/unary.rpc/client",
         "${grpc}/unary.rpc/server"})
     public void shouldExchangeMessageInUnary() throws Exception
@@ -71,4 +89,12 @@ public class GrpcIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${grpc}/unary.rpc.rejected/client",
+        "${grpc}/unary.rpc.rejected/server"})
+    public void shouldRejectUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
 }

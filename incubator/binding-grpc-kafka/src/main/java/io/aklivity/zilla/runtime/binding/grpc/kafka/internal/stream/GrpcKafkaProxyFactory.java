@@ -38,7 +38,6 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.AbortF
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcDataExFW;
@@ -74,13 +73,11 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final FlushFW flushRO = new FlushFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
     private final AbortFW.Builder abortRW = new AbortFW.Builder();
-    private final FlushFW.Builder flushRW = new FlushFW.Builder();
 
     private final WindowFW windowRO = new WindowFW();
     private final ResetFW resetRO = new ResetFW();
@@ -262,10 +259,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onGrpcAbort(abort);
                 break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onGrpcFlush(flush);
-                break;
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onGrpcReset(reset);
@@ -390,26 +383,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             correlater.doKafkaAbort(traceId, authorization);
         }
 
-        protected void onGrpcFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final long budgetId = flush.budgetId();
-            final int reserved = flush.reserved();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-
-            assert replyAck <= replySeq;
-
-            producer.doKafkaFlush(traceId, authorization, budgetId, reserved);
-        }
-
         protected void onGrpcReset(
             ResetFW reset)
         {
@@ -532,15 +505,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             }
         }
 
-        protected void onKafkaFlush(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved)
-        {
-            doGrpcFlush(traceId, authorization, budgetId, reserved);
-        }
-
         protected void onKafkaWindow(
             long authorization,
             long traceId,
@@ -596,14 +560,20 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (!GrpcKafkaState.replyClosed(state))
+            if (GrpcKafkaState.replyOpened(state) && !GrpcKafkaState.replyClosed(state))
             {
                 replySeq = correlater.replySeq;
-                state = GrpcKafkaState.closeReply(state);
+
+                final GrpcAbortExFW grpcAbortEx =
+                    grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(grpcTypeId)
+                        .status(HEADER_VALUE_GRPC_INTERNAL_ERROR)
+                        .build();
 
                 doAbort(grpc, routeId, replyId, replySeq, replyAck, replyMax,
-                    traceId, authorization);
+                    traceId, authorization, grpcAbortEx);
             }
+            state = GrpcKafkaState.closeReply(state);
         }
 
         protected void doGrpcEnd(
@@ -618,18 +588,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 doEnd(grpc, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
             }
-        }
-
-        protected void doGrpcFlush(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved)
-        {
-            replySeq = correlater.replySeq;
-
-            doFlush(grpc, routeId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, reserved);
         }
 
         protected void doGrpcWindow(
@@ -766,20 +724,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeInitial(state);
 
                 doAbort(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization);
+                        traceId, authorization, emptyRO);
             }
-        }
-
-        private void doKafkaFlush(
-            long traceId,
-            long authorization,
-            long budgetId,
-            int reserved)
-        {
-            initialSeq = delegate.initialSeq;
-
-            doFlush(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, budgetId, reserved);
         }
 
         private void onKafkaMessage(
@@ -872,8 +818,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert replyAck <= replySeq;
 
             delegate.onKafkaAbort(traceId, authorization);
-
-            doKafkaAbort(traceId, authorization);
         }
 
         private void onKafkaWindow(
@@ -1038,7 +982,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeInitial(state);
 
                 doAbort(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
-                        traceId, authorization);
+                        traceId, authorization, emptyRO);
             }
         }
 
@@ -1065,10 +1009,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             case AbortFW.TYPE_ID:
                 final AbortFW abort = abortRO.wrap(buffer, index, index + length);
                 onKafkaAbort(abort);
-                break;
-            case FlushFW.TYPE_ID:
-                final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-                onKafkaFlush(flush);
                 break;
             case WindowFW.TYPE_ID:
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
@@ -1157,26 +1097,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert replyAck <= replySeq;
 
             delegate.onKafkaEnd(traceId, authorization);
-        }
-
-        private void onKafkaFlush(
-            FlushFW flush)
-        {
-            final long sequence = flush.sequence();
-            final long acknowledge = flush.acknowledge();
-            final long traceId = flush.traceId();
-            final long authorization = flush.authorization();
-            final long budgetId = flush.budgetId();
-            final int reserved = flush.reserved();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-
-            assert replyAck <= replySeq;
-
-            delegate.onKafkaFlush(traceId, authorization, budgetId, reserved);
         }
 
         private void onKafkaAbort(
@@ -1629,7 +1549,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         long acknowledge,
         int maximum,
         long traceId,
-        long authorization)
+        long authorization,
+        Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
                 .routeId(routeId)
@@ -1639,36 +1560,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 .maximum(maximum)
                 .traceId(traceId)
                 .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
                 .build();
 
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
-    }
-
-    private void doFlush(
-        MessageConsumer receiver,
-        long routeId,
-        long streamId,
-        long sequence,
-        long acknowledge,
-        int maximum,
-        long traceId,
-        long authorization,
-        long budgetId,
-        int reserved)
-    {
-        final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
-                .streamId(streamId)
-                .sequence(sequence)
-                .acknowledge(acknowledge)
-                .maximum(maximum)
-                .traceId(traceId)
-                .authorization(authorization)
-                .budgetId(budgetId)
-                .reserved(reserved)
-                .build();
-
-        receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private MessageConsumer newKafkaProducer(
