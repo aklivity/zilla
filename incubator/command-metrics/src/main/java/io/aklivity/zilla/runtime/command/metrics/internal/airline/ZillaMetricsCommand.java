@@ -62,9 +62,9 @@ public final class ZillaMetricsCommand extends ZillaCommand
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
         List<FileReader> fileReaders = List.of();
-        try (Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1))
+        try
         {
-            fileReaders = fileReaders(files);
+            fileReaders = fileReaders();
             final LabelManager labels = new LabelManager(LABELS_DIRECTORY);
             MetricsProcessor metrics = new MetricsProcessor(fileReaders, labels, namespace, binding);
             do
@@ -83,24 +83,23 @@ public final class ZillaMetricsCommand extends ZillaCommand
         }
     }
 
-    private List<FileReader> fileReaders(
-        Stream<Path> files)
+    private List<FileReader> fileReaders() throws IOException
     {
-        return files.flatMap(path ->
-        {
-            if (isCountersFile(path))
-            {
-                return Stream.of(newCountersReader(path));
-            }
-            else if (isHistogramsFile(path))
-            {
-                return Stream.of(newHistogramsReader(path));
-            }
-            else
-            {
-                return Stream.of();
-            }
-        }).collect(toList());
+        List<FileReader> fileReaders = counterFileReaders();
+        fileReaders.addAll(histogramFileReaders());
+        return fileReaders;
+    }
+
+    private List<FileReader> counterFileReaders() throws IOException
+    {
+        Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
+        return files.filter(this::isCountersFile).map(this::newCountersReader).collect(toList());
+    }
+
+    private List<FileReader> histogramFileReaders() throws IOException
+    {
+        Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
+        return files.filter(this::isHistogramsFile).map(this::newHistogramsReader).collect(toList());
     }
 
     private boolean isCountersFile(

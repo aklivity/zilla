@@ -24,6 +24,8 @@ import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileRead
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.FileReader.Kind.HISTOGRAM;
 
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,7 @@ import io.aklivity.zilla.runtime.command.metrics.internal.utils.IntIntIntFunctio
 
 public class MetricsProcessor
 {
+    private static final Path LABELS_DIRECTORY = Paths.get(".zilla", "engine");
     private static final String NAMESPACE_HEADER = "namespace";
     private static final String BINDING_HEADER = "binding";
     private static final String METRIC_HEADER = "metric";
