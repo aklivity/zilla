@@ -22,14 +22,17 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
+import java.util.stream.StreamSupport;
 
 import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class CountersLayout implements Iterable<LongSupplier[]>
+public final class CountersLayout
 {
     // We use the buffer to store structs {long bindingId, long metricId, long value}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
@@ -60,8 +63,8 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
     }
 
     public LongSupplier supplyReader(
-            long bindingId,
-            long metricId)
+        long bindingId,
+        long metricId)
     {
         int index = findPosition(bindingId, metricId);
         LongSupplier reader;
@@ -76,26 +79,32 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
         return reader;
     }
 
+    public long[][] getIds()
+    {
+        Spliterator<long[]> spliterator = Spliterators.spliteratorUnknownSize(new CountersIterator(), 0);
+        return StreamSupport.stream(spliterator, false).toArray(long[][]::new);
+    }
+
     private int findPosition(
-            long bindingId,
-            long metricId)
+        long bindingId,
+        long metricId)
     {
         // find position or return -1 if not found
         return findPosition(bindingId, metricId, false);
     }
 
     private int findOrSetPosition(
-            long bindingId,
-            long metricId)
+        long bindingId,
+        long metricId)
     {
         // find position or create slot if not found
         return findPosition(bindingId, metricId, true);
     }
 
     private int findPosition(
-            long bindingId,
-            long metricId,
-            boolean create)
+        long bindingId,
+        long metricId,
+        boolean create)
     {
         int i = 0;
         boolean done = false;
@@ -132,12 +141,7 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
         return i;
     }
 
-    public CountersIterator iterator()
-    {
-        return new CountersIterator();
-    }
-
-    public final class CountersIterator implements Iterator<LongSupplier[]>
+    private final class CountersIterator implements Iterator<long[]>
     {
         private int index = 0;
 
@@ -158,27 +162,26 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
         }
 
         @Override
-        public LongSupplier[] next()
+        public long[] next()
         {
-            LongSupplier[] readers = new LongSupplier[]
-            {
-                newLongSupplier(index + BINDING_ID_OFFSET),
-                newLongSupplier(index + METRIC_ID_OFFSET),
-                newLongSupplier(index + VALUE_OFFSET)
-            };
+            long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
+            long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
             index += RECORD_SIZE;
-            return readers;
-        }
-
-        private LongSupplier newLongSupplier(int i)
-        {
-            return () -> buffer.getLong(i);
+            return new long[]{bindingId, metricId};
         }
     }
 
     public static final class Builder
     {
+        private long capacity;
         private Path path;
+
+        public Builder capacity(
+            long capacity)
+        {
+            this.capacity = capacity;
+            return this;
+        }
 
         public Builder path(
             Path path)
@@ -190,6 +193,7 @@ public final class CountersLayout implements Iterable<LongSupplier[]>
         public CountersLayout build()
         {
             final File layoutFile = path.toFile();
+            //CloseHelper.close(createEmptyFile(layoutFile, capacity)); // TODO: Ati
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "counters");
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new CountersLayout(atomicBuffer);

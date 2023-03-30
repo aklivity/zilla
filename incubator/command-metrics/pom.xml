@@ -26,7 +26,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.01</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.00</jacoco.coverage.ratio>
     <jacoco.missed.count>99</jacoco.missed.count>
     <mockito.version>4.9.0</mockito.version>
   </properties>

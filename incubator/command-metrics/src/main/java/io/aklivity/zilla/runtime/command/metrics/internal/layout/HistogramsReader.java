@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
 import java.util.function.LongSupplier;
-import java.util.stream.StreamSupport;
 
 public class HistogramsReader /*implements FileReader*/
 {
@@ -37,14 +36,14 @@ public class HistogramsReader /*implements FileReader*/
     }*/
 
     //@Override
-    public LongSupplier[][] recordReaders()
+    /*public LongSupplier[][] recordReaders()
     {
         if (recordReaders == null)
         {
             recordReaders = StreamSupport.stream(layout.spliterator(), false).toArray(LongSupplier[][]::new);
         }
         return recordReaders;
-    }
+    }*/
 
     public HistogramsLayout layout()
     {

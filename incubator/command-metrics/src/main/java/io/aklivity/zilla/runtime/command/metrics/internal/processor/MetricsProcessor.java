@@ -91,12 +91,11 @@ public class MetricsProcessor
 
     private void collectCounters()
     {
-        // TODO: Ati - get metadata
-        LongSupplier[][] longSuppliers = counterFileReaders.get(0).recordReaders();
-        for (LongSupplier[] longSupplier : longSuppliers)
+        long[][] ids = counterFileReaders.get(0).layout().getIds();
+        for (long[] id : ids)
         {
-            long packedBindingId = longSupplier[0].getAsLong();
-            long packedMetricId = longSupplier[1].getAsLong();
+            long packedBindingId = id[0];
+            long packedMetricId = id[1];
             if (filter.test(packedBindingId))
             {
                 LongSupplier[] readers = counterFileReaders.stream()
@@ -112,12 +111,11 @@ public class MetricsProcessor
 
     private void collectHistograms()
     {
-        // TODO: Ati - get metadata
-        LongSupplier[][] longSuppliers2 = histogramFileReaders.get(0).recordReaders();
-        for (LongSupplier[] longSupplier : longSuppliers2)
+        long[][] ids = histogramFileReaders.get(0).layout().getIds();
+        for (long[] id : ids)
         {
-            long packedBindingId = longSupplier[0].getAsLong();
-            long packedMetricId = longSupplier[1].getAsLong();
+            long packedBindingId = id[0];
+            long packedMetricId = id[1];
             if (filter.test(packedBindingId))
             {
                 LongSupplier[][] readers = histogramFileReaders.stream()

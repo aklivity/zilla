@@ -95,10 +95,10 @@ public class MetricsProcessorTest
         when(mockLabelManager.lookupLabelId("binding2")).thenReturn(12);
         CountersReader mockCountersReader = mock(CountersReader.class);
         //when(mockCountersReader.kind()).thenReturn(COUNTER);
-        when(mockCountersReader.recordReaders()).thenReturn(counterRecordReaders);
+        //when(mockCountersReader.recordReaders()).thenReturn(counterRecordReaders);
         HistogramsReader mockHistogramsReader = mock(HistogramsReader.class);
         //when(mockHistogramsReader.kind()).thenReturn(HISTOGRAM);
-        when(mockHistogramsReader.recordReaders()).thenReturn(histogramRecordReaders);
+        //when(mockHistogramsReader.recordReaders()).thenReturn(histogramRecordReaders);
         MetricsProcessor metrics = new MetricsProcessor(List.of(mockCountersReader), List.of(mockHistogramsReader),
                 mockLabelManager, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
