@@ -56,6 +56,16 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        if (condition.service != null)
+        {
+            object.add(SERVICE_NAME, condition.service);
+        }
+
+        if (condition.method != null)
+        {
+            object.add(METHOD_NAME, condition.method);
+        }
+
         if (condition.metadata != null &&
             !condition.metadata.isEmpty())
         {
@@ -68,11 +78,6 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
             });
 
             object.add(METADATA_NAME, entries);
-        }
-
-        if (condition.method != null)
-        {
-            object.add(METHOD_NAME, condition.method);
         }
 
         return object.build();
