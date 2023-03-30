@@ -107,7 +107,7 @@ public class MetricsProcessorTest
         PrintStream out = new PrintStream(os);
 
         // WHEN
-        metrics.doProcess(out);
+        metrics.print(out);
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));

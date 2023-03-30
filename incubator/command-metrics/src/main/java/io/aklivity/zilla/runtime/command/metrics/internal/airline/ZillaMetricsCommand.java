@@ -69,7 +69,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
                     namespace, binding);
             do
             {
-                metrics.doProcess(System.out);
+                metrics.print(System.out);
                 Thread.sleep(interval * 1000);
             } while (interval != null);
         }
