@@ -14,19 +14,21 @@
 # under the License.
 #
 
-connect "zilla://streams/app0"
+connect "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
 
-write zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt_messages")
                                 .filter()
-                                    .header("filter", "sensor")
-                                    .header("filter", "one")
-                                    .headerNot("clientId", "client")
+                                    .headers("zilla:topic")
+                                        .sequence("sensor")
+                                        .sequence("one")
+                                        .build()
+                                    .headerNot("zilla:local", "client")
                                     .build()
                                 .build()
                             .build()}

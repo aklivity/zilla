@@ -540,10 +540,10 @@ public class KafkaFunctionsTest
             .typeId(0x01)
             .merged()
                 .timestamp(12345678L)
-                .filters(0, 1, 4)
                 .partition(0, 0L)
                 .progress(0, 1L)
                 .key("match")
+                .filters(0, 1, 4)
                 .header("name", "value")
                 .build()
             .build();
@@ -581,7 +581,7 @@ public class KafkaFunctionsTest
                 "name".equals(h.name()
                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
-                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null);
+                        .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
     }
 
     @Test

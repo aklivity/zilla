@@ -14,25 +14,20 @@
 # under the License.
 #
 
-accept "zilla://streams/kafka0"
+accept "zilla://streams/mqtt0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
 accepted
 
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("FETCH_ONLY")
-                                .topic("mqtt_messages")
-                                .filter()
-                                    .headers("zilla:topic")
-                                        .sequence("sensor")
-                                        .sequence("one")
-                                        .build()
-                                    .headerNot("zilla:local", "client")
-                                    .build()
+read zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/+/#", 1, "SEND_RETAINED")
+                                .filter("sensor/+/1", 1, "SEND_RETAINED")
                                 .build()
-                            .build()}
+                             .build()}
 
 connected
+

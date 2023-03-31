@@ -37,7 +37,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-#TODO add filter mask once implemented
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -46,11 +45,11 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(0, 2)
                                 .progress(1, 1)
                                 .key("sensor/one")
-                                .filter(0)
+                                .filters(0)
                                 .header("zilla:topic", "sensor")
                                 .header("zilla:topic", "one")
                                 .header("zilla:local", "client2")
-                                .header("zilla:timeout-ms", "15")
+                                .headerInt("zilla:timeout-ms", 15000)
                                 .header("zilla:content-type", "message")
                                 .header("zilla:format", "TEXT")
                                 .header("zilla:reply-to", "sensor/one")

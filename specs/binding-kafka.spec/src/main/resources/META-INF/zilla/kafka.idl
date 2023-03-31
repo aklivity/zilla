@@ -226,11 +226,11 @@ scope kafka
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
-            uint64 filters = 0; // TODO: convert it to bitmask, and create long from it
             KafkaOffset partition;      // INIT only
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
+            uint64 filters = 0;
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 

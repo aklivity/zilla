@@ -47,4 +47,85 @@ public class MqttIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filter.multi.level.wildcard/client",
+        "${mqtt}/subscribe.topic.filter.multi.level.wildcard/server"})
+    public void shouldSubscribeWithWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filter.single.level.wildcard/client",
+        "${mqtt}/subscribe.topic.filter.single.level.wildcard/server"})
+    public void shouldSubscribeToSingleLevelWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
+        "${mqtt}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
+    public void shouldSubscribeToSingleAndMultiLevelWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filter.two.single.level.wildcard/client",
+        "${mqtt}/subscribe.topic.filter.two.single.level.wildcard/server"})
+    public void shouldSubscribeToTwoSingleLevelWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filters.aggregated.both.exact/client",
+        "${mqtt}/subscribe.topic.filters.aggregated.both.exact/server"})
+    public void shouldSubscribeWithAggregatedTopicFiltersBothExact() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filters.isolated.both.exact/client",
+        "${mqtt}/subscribe.topic.filters.isolated.both.exact/server"})
+    public void shouldSubscribeWithIsolatedTopicFiltersBothExact() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filters.overlapping.wildcards/client",
+        "${mqtt}/subscribe.topic.filters.overlapping.wildcards/server"})
+    public void shouldSubscribeToOverlappingWildcardTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
+        "${mqtt}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
+    public void shouldSubscribeWithAggregatedExactAndWildcardTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
+        "${mqtt}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
+    public void shouldSubscribeWithIsolatedExactAndWildcardTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
 }

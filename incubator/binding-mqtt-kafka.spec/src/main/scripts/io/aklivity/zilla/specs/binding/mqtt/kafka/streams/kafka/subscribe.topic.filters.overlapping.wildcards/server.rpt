@@ -28,11 +28,19 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .filter()
                                     .headers("zilla:topic")
                                         .sequence("sensor")
-                                        .sequence("one")
+                                        .skip()
+                                        .skipMany()
                                         .build()
-                                    .headerNot("zilla:local", "client")
+                                    .build()
+                                .filter()
+                                    .headers("zilla:topic")
+                                        .sequence("sensor")
+                                        .skip()
+                                        .sequence("1")
+                                        .build()
                                     .build()
                                 .build()
                             .build()}
 
 connected
+

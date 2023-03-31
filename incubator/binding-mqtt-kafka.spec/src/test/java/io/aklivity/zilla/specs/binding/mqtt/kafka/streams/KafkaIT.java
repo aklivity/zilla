@@ -38,4 +38,94 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.no.local/client",
+        "${kafka}/subscribe.no.local/server"})
+    public void shouldSubscribeNoLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filter.multi.level.wildcard/client",
+        "${kafka}/subscribe.topic.filter.multi.level.wildcard/server"})
+    public void shouldSubscribeWithWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filter.single.level.wildcard/client",
+        "${kafka}/subscribe.topic.filter.single.level.wildcard/server"})
+    public void shouldSubscribeToSingleLevelWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
+        "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
+    public void shouldSubscribeToSingleAndMultiLevelWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filter.two.single.level.wildcard/client",
+        "${kafka}/subscribe.topic.filter.two.single.level.wildcard/server"})
+    public void shouldSubscribeToTwoSingleLevelWildcardTopicFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filters.aggregated.both.exact/client",
+        "${kafka}/subscribe.topic.filters.aggregated.both.exact/server"})
+    public void shouldSubscribeWithAggregatedTopicFiltersBothExact() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filters.isolated.both.exact/client",
+        "${kafka}/subscribe.topic.filters.isolated.both.exact/server"})
+    public void shouldSubscribeWithIsolatedTopicFiltersBothExact() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filters.overlapping.wildcards/client",
+        "${kafka}/subscribe.topic.filters.overlapping.wildcards/server"})
+    public void shouldSubscribeToOverlappingWildcardTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
+        "${kafka}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
+    public void shouldSubscribeWithAggregatedExactAndWildcardTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
+        "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
+    public void shouldSubscribeWithIsolatedExactAndWildcardTopicFilters() throws Exception
+    {
+        k3po.finish();
+    }
 }

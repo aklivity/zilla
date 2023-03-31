@@ -30,9 +30,27 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
-                                    .headerNot("zilla:local", "client")
                                     .build()
                                 .build()
                             .build()}
 
 connected
+
+read advised zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .merged()
+                                    .capabilities("FETCH_ONLY")
+                                    .filter()
+                                        .headers("zilla:topic")
+                                            .sequence("sensor")
+                                            .sequence("one")
+                                            .build()
+                                        .build()
+                                    .filter()
+                                        .headers("zilla:topic")
+                                            .sequence("device")
+                                            .skipMany()
+                                            .build()
+                                        .build()
+                                    .build()
+                                .build()}
