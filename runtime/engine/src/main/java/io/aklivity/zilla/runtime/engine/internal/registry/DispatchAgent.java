@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
@@ -247,11 +248,13 @@ public class DispatchAgent implements EngineContext, Agent
         final CountersLayout countersLayout = new CountersLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/counters%d", index)))
                 .capacity(config.counterBufferCapacity())
+                .mode(CREATE_READ_WRITE)
                 .build();
 
         final HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
                 .capacity(config.counterBufferCapacity())
+                .mode(CREATE_READ_WRITE)
                 .build();
 
         metricWriterSuppliers = new Object2ObjectHashMap<>();

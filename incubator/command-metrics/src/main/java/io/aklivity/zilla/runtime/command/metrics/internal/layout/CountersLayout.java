@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
+import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
 
@@ -29,6 +30,7 @@ import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 import org.agrona.BitUtil;
+import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -49,6 +51,7 @@ public final class CountersLayout extends Layout
         this.buffer = buffer;
     }
 
+    @Override
     public void close()
     {
         unmap(buffer.byteBuffer());
@@ -171,10 +174,11 @@ public final class CountersLayout extends Layout
         }
     }
 
-    public static final class Builder
+    public static final class Builder extends Layout.Builder<CountersLayout>
     {
         private long capacity;
         private Path path;
+        private Mode mode;
 
         public Builder capacity(
             long capacity)
@@ -190,10 +194,20 @@ public final class CountersLayout extends Layout
             return this;
         }
 
+        public Builder mode(
+            Mode mode)
+        {
+            this.mode = mode;
+            return this;
+        }
+
         public CountersLayout build()
         {
             final File layoutFile = path.toFile();
-            //CloseHelper.close(createEmptyFile(layoutFile, capacity)); // TODO: Ati
+            if (mode == Mode.CREATE_READ_WRITE)
+            {
+                CloseHelper.close(createEmptyFile(layoutFile, capacity));
+            }
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "counters");
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new CountersLayout(atomicBuffer);

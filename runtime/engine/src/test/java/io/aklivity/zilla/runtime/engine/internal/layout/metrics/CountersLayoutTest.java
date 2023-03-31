@@ -1,5 +1,6 @@
 package io.aklivity.zilla.runtime.engine.internal.layout.metrics;
 
+import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
@@ -25,6 +26,7 @@ public class CountersLayoutTest
         CountersLayout countersLayout = new CountersLayout.Builder()
                 .path(path)
                 .capacity(8192)
+                .mode(CREATE_READ_WRITE)
                 .build();
 
         LongConsumer writer1 = countersLayout.supplyWriter(11L, 42L);
@@ -65,6 +67,7 @@ public class CountersLayoutTest
         CountersLayout countersLayout = new CountersLayout.Builder()
                 .path(path)
                 .capacity(71) // we'd need 72 bytes here for the 3 records
+                .mode(CREATE_READ_WRITE)
                 .build();
 
         countersLayout.supplyWriter(11L, 42L);

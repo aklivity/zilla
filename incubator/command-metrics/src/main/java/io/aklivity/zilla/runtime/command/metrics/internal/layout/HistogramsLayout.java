@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
+import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
 
@@ -22,7 +23,9 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.LongConsumer;
@@ -32,17 +35,20 @@ import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import org.agrona.BitUtil;
+import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public final class HistogramsLayout extends Layout
 {
+    public static final int BUCKETS = 63;
+    public static final Map<Integer, Long> BUCKET_LIMITS = generateBucketLimits();
+
     // We use the buffer to store structs {long bindingId, long metricId, long[] values}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     private static final int BINDING_ID_OFFSET = 0;
     private static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
     private static final int VALUES_OFFSET = 2 * FIELD_SIZE;
-    private static final int BUCKETS = 63;
     private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
     private static final int RECORD_SIZE = 2 * FIELD_SIZE + ARRAY_SIZE;
     private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
@@ -55,6 +61,7 @@ public final class HistogramsLayout extends Layout
         this.buffer = buffer;
     }
 
+    @Override
     public void close()
     {
         unmap(buffer.byteBuffer());
@@ -176,6 +183,17 @@ public final class HistogramsLayout extends Layout
         return bucket;
     }
 
+    // exclusive upper limits of each bucket
+    private static Map<Integer, Long> generateBucketLimits()
+    {
+        Map<Integer, Long> limits = new HashMap<>();
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            limits.put(i, 1L << (i + 1));
+        }
+        return limits;
+    }
+
     private final class HistogramsIterator implements Iterator<long[]>
     {
         private int index = 0;
@@ -206,10 +224,11 @@ public final class HistogramsLayout extends Layout
         }
     }
 
-    public static final class Builder
+    public static final class Builder extends Layout.Builder<HistogramsLayout>
     {
         private long capacity;
         private Path path;
+        private Mode mode;
 
         public Builder capacity(
             long capacity)
@@ -224,10 +243,20 @@ public final class HistogramsLayout extends Layout
             return this;
         }
 
+        public Builder mode(
+            Mode mode)
+        {
+            this.mode = mode;
+            return this;
+        }
+
         public HistogramsLayout build()
         {
             final File layoutFile = path.toFile();
-            //CloseHelper.close(createEmptyFile(layoutFile, capacity)); // TODO: ATI
+            if (mode == Mode.CREATE_READ_WRITE)
+            {
+                CloseHelper.close(createEmptyFile(layoutFile, capacity));
+            }
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "histograms");
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new HistogramsLayout(atomicBuffer);

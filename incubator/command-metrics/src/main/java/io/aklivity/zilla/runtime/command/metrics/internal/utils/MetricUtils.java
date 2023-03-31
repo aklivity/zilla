@@ -15,27 +15,10 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.utils;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public final class MetricUtils
 {
-    public static final int HISTOGRAM_BUCKETS = 63;
-    public static final Map<Integer, Long> HISTOGRAM_BUCKET_LIMITS = histogramBucketLimits();
-
     private MetricUtils()
     {
-    }
-
-    // exclusive upper limits of each bucket
-    private static Map<Integer, Long> histogramBucketLimits()
-    {
-        Map<Integer, Long> limits = new HashMap<>();
-        for (int i = 0; i < HISTOGRAM_BUCKETS; i++)
-        {
-            limits.put(i, 1L << (i + 1));
-        }
-        return limits;
     }
 
     public static int namespaceId(

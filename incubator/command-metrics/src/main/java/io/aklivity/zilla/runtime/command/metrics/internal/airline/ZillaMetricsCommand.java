@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Layout.Mode.READ_ONLY;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -114,12 +115,12 @@ public final class ZillaMetricsCommand extends ZillaCommand
     private CountersLayout newCountersLayout(
         Path path)
     {
-        return new CountersLayout.Builder().path(path).build();
+        return new CountersLayout.Builder().path(path).mode(READ_ONLY).build();
     }
 
     private HistogramsLayout newHistogramsLayout(
         Path path)
     {
-        return new HistogramsLayout.Builder().path(path).build();
+        return new HistogramsLayout.Builder().path(path).mode(READ_ONLY).build();
     }
 }

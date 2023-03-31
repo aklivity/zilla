@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.HISTOGRAM_BUCKETS;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.HISTOGRAM_BUCKET_LIMITS;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout.BUCKETS;
+import static io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout.BUCKET_LIMITS;
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.localId;
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.namespaceId;
 
@@ -75,9 +75,9 @@ public class HistogramRecord implements MetricRecord
         long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
-        long[] histogram = new long[HISTOGRAM_BUCKETS];
+        long[] histogram = new long[BUCKETS];
 
-        for (int i = 0; i < HISTOGRAM_BUCKETS; i++)
+        for (int i = 0; i < BUCKETS; i++)
         {
             for (LongSupplier[] reader : readers)
             {
@@ -104,6 +104,6 @@ public class HistogramRecord implements MetricRecord
 
     private long getValue(int i)
     {
-        return HISTOGRAM_BUCKET_LIMITS.get(i) - 1;
+        return BUCKET_LIMITS.get(i) - 1;
     }
 }

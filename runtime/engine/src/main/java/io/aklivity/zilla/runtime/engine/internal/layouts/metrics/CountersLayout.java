@@ -22,8 +22,12 @@ import static org.agrona.IoUtil.unmap;
 import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
+import java.util.stream.StreamSupport;
 
 import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
@@ -78,6 +82,12 @@ public final class CountersLayout extends Layout
             reader = () -> buffer.getLong(index + VALUE_OFFSET);
         }
         return reader;
+    }
+
+    public long[][] getIds()
+    {
+        Spliterator<long[]> spliterator = Spliterators.spliteratorUnknownSize(new CountersIterator(), 0);
+        return StreamSupport.stream(spliterator, false).toArray(long[][]::new);
     }
 
     private int findPosition(
@@ -136,10 +146,41 @@ public final class CountersLayout extends Layout
         return i;
     }
 
+    private final class CountersIterator implements Iterator<long[]>
+    {
+        private int index = 0;
+
+        @Override
+        public boolean hasNext()
+        {
+            return isBufferLeft() && isRecordLeft();
+        }
+
+        private boolean isBufferLeft()
+        {
+            return index < buffer.capacity();
+        }
+
+        private boolean isRecordLeft()
+        {
+            return buffer.getLong(index + BINDING_ID_OFFSET) != 0L;
+        }
+
+        @Override
+        public long[] next()
+        {
+            long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
+            long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
+            index += RECORD_SIZE;
+            return new long[]{bindingId, metricId};
+        }
+    }
+
     public static final class Builder extends Layout.Builder<CountersLayout>
     {
         private long capacity;
         private Path path;
+        private Mode mode;
 
         public Builder capacity(
             long capacity)
@@ -155,11 +196,21 @@ public final class CountersLayout extends Layout
             return this;
         }
 
+        public Builder mode(
+            Mode mode)
+        {
+            this.mode = mode;
+            return this;
+        }
+
         @Override
         public CountersLayout build()
         {
             final File layoutFile = path.toFile();
-            CloseHelper.close(createEmptyFile(layoutFile, capacity));
+            if (mode == Mode.CREATE_READ_WRITE)
+            {
+                CloseHelper.close(createEmptyFile(layoutFile, capacity));
+            }
             final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "counters");
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
             return new CountersLayout(atomicBuffer);
