@@ -171,16 +171,12 @@ public final class HistogramsLayout extends Layout
         return i;
     }
 
+    // exclusive upper limits of each bucket
     private int findBucket(
         long value)
     {
         assert value >= 0;
-        int bucket = 0;
-        if (value > 0)
-        {
-            bucket = Long.SIZE - Long.numberOfLeadingZeros(value) - 1;
-        }
-        return bucket;
+        return Math.max(63 - Long.numberOfLeadingZeros(value), 0);
     }
 
     // exclusive upper limits of each bucket
