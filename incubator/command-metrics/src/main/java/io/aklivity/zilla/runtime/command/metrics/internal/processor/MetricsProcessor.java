@@ -68,8 +68,9 @@ public class MetricsProcessor
             collectCounters();
             collectHistograms();
         }
+        updateRecords();
         calculateColumnWidths();
-        doPrint(out);
+        printRecords(out);
     }
 
     private LongPredicate filterBy(
@@ -135,6 +136,11 @@ public class MetricsProcessor
         }
     }
 
+    private void updateRecords()
+    {
+        metricRecords.forEach(MetricRecord::update);
+    }
+
     private void calculateColumnWidths()
     {
         namespaceWidth = NAMESPACE_HEADER.length();
@@ -151,7 +157,7 @@ public class MetricsProcessor
         }
     }
 
-    private void doPrint(
+    private void printRecords(
         PrintStream out)
     {
         String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +

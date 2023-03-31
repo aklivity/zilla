@@ -24,4 +24,6 @@ public interface MetricRecord
     String metricName();
 
     String stringValue();
+
+    void update();
 }

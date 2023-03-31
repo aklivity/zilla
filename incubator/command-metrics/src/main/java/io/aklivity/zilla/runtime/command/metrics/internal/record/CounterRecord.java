@@ -24,11 +24,15 @@ import java.util.function.LongSupplier;
 
 public class CounterRecord implements MetricRecord
 {
+    private static final int UNINITIALIZED = -1;
+
     private final int namespaceId;
     private final int bindingId;
     private final int metricId;
     private final LongSupplier[] readers;
     private final IntFunction<String> labelResolver;
+
+    private long value = UNINITIALIZED;
 
     public CounterRecord(
         long packedBindingId,
@@ -64,7 +68,17 @@ public class CounterRecord implements MetricRecord
     @Override
     public String stringValue()
     {
-        return String.valueOf(value());
+        if (value == UNINITIALIZED)
+        {
+            update();
+        }
+        return String.valueOf(value);
+    }
+
+    @Override
+    public void update()
+    {
+        value = value();
     }
 
     private long value()

@@ -31,6 +31,8 @@ public class HistogramRecord implements MetricRecord
     private final LongSupplier[][] readers;
     private final IntFunction<String> labelResolver;
 
+    private long[] stats;
+
     public HistogramRecord(
         long packedBindingId,
         long packedMetricId,
@@ -65,8 +67,17 @@ public class HistogramRecord implements MetricRecord
     @Override
     public String stringValue()
     {
-        long[] stats = stats();
+        if (stats == null)
+        {
+            update();
+        }
         return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
+    }
+
+    @Override
+    public void update()
+    {
+        stats = stats();
     }
 
     private long[] stats()
