@@ -3121,7 +3121,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             public void triggerFlushIfRequired(
                     long traceId)
             {
-                if (decodeRecordBatchLastOffset == initialLatestOffset &&
+                if (decodeRecordBatchLastOffset >= initialLatestOffset &&
                         decodableRecords == 0)
                 {
                     final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())

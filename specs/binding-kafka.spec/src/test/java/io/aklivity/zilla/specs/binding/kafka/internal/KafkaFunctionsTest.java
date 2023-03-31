@@ -3769,7 +3769,7 @@ public class KafkaFunctionsTest
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()
                 .merged()
-                .progress(0, 1L)
+                .progress(0, 1L, 1L, 1L)
                 .build()
                 .build();
 
@@ -3779,8 +3779,10 @@ public class KafkaFunctionsTest
                 .typeId(0x01)
                 .merged(f -> f.progressItem(p -> p
                                 .partitionId(0)
-                                .partitionOffset(1L)))
-                .build();
+                                .partitionOffset(1L)
+                                .stableOffset(1L)
+                                .latestOffset(1L)))
+                            .build();
 
         assertNotNull(matcher.match(byteBuf));
     }
