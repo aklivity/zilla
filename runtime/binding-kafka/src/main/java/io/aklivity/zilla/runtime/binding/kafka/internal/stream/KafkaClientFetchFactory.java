@@ -1283,6 +1283,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         assert client.decodableRecordBatchBytes >= 0;
 
                         client.decodableRecords--;
+                        client.fetchRequestCount--;
                         assert client.decodableRecords >= 0;
 
                         client.decoder = decodeFetchRecordLength;

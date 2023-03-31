@@ -1477,11 +1477,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                     .build()
                                     .sizeof()));
 
-            //replySeq += reserved;
+            replySeq += reserved;
 
-            //assert replyAck <= replySeq;
+            assert replyAck <= replySeq;
 
-            //cursor.advance(partitionOffset + 1);
+            cursor.advance(partitionOffset + 1);
         }
 
         private void doClientReplyEnd(
