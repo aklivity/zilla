@@ -61,6 +61,9 @@ write flush
 
 write notify SENT_ASYNC_REQUEST
 
+write close
+read closed
+
 connect await SENT_ASYNC_REQUEST
         "zilla://streams/kafka0"
     option zilla:window 8192
@@ -110,3 +113,5 @@ read ${grpc:protobuf()
            .string(1, "Hello World2")
            .build()}
 
+write close
+read closed

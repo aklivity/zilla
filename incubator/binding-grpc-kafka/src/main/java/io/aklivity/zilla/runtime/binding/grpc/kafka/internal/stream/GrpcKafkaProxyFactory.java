@@ -1431,6 +1431,27 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         }
 
         @Override
+        protected void onGrpcEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= initialSeq;
+
+            initialSeq = sequence;
+            state = GrpcKafkaState.closeInitial(state);
+
+            assert initialAck <= initialSeq;
+
+            producer.doKafkaEndDeferred(traceId, authorization);
+            correlater.doKafkaEnd(traceId, authorization);
+        }
+
+        @Override
         protected void onKafkaData(
             long traceId,
             long authorization,
