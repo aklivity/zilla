@@ -26,6 +26,8 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 public class StreamMetricGroup implements MetricGroup
 {
     private final Map<String, Supplier<Metric>> streamMetrics = Map.of(
+        "stream.active.received", StreamActiveReceivedMetric::new,
+        "stream.active.sent", StreamActiveSentMetric::new,
         "stream.opens.received", StreamOpensReceivedMetric::new,
         "stream.opens.sent", StreamOpensSentMetric::new,
         "stream.data.received", StreamDataReceivedMetric::new,
