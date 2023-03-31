@@ -16,12 +16,15 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.labels;
 
 import static java.nio.channels.Channels.newReader;
+import static java.nio.channels.Channels.newWriter;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -35,8 +38,6 @@ import org.agrona.LangUtil;
 
 public final class LabelManager
 {
-    private static final Integer NO_LABEL_ID = Integer.valueOf(-1);
-
     private final List<String> labels;
     private final Map<String, Integer> labelIds;
     private final Path labelsPath;
@@ -53,7 +54,14 @@ public final class LabelManager
         this.sizeInBytes = -1L;
     }
 
-    public String lookupLabel(
+    public synchronized int supplyLabelId(
+        String label)
+    {
+        checkSnapshot();
+        return labelIds.computeIfAbsent(label, this::nextLabelId);
+    }
+
+    public synchronized String lookupLabel(
         int labelId)
     {
         if (labelId < 1 || labelId > labels.size())
@@ -64,16 +72,25 @@ public final class LabelManager
         return labels.get(labelId - 1);
     }
 
-    public int lookupLabelId(
-        String label)
+    private int nextLabelId(
+        String nextLabel)
     {
-        int labelId = labelIds.getOrDefault(label, NO_LABEL_ID);
-        if (labelId == NO_LABEL_ID)
+        try (FileChannel channel = FileChannel.open(labelsPath, APPEND))
         {
-            checkSnapshot();
-            labelId = labelIds.getOrDefault(label, NO_LABEL_ID);
+            try (BufferedWriter out = new BufferedWriter(newWriter(channel, UTF_8.name())))
+            {
+                out.write(nextLabel);
+                out.write('\n');
+            }
         }
-        return labelId;
+        catch (IOException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        labels.add(nextLabel);
+
+        return labels.size();
     }
 
     private void checkSnapshot()

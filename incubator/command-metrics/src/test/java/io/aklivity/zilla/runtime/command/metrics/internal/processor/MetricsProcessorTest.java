@@ -120,10 +120,10 @@ public class MetricsProcessorTest
         when(mockLabelManager.lookupLabel(21)).thenReturn("counter1");
         when(mockLabelManager.lookupLabel(22)).thenReturn("counter2");
         when(mockLabelManager.lookupLabel(31)).thenReturn("histogram1");
-        when(mockLabelManager.lookupLabelId("ns1")).thenReturn(1);
-        when(mockLabelManager.lookupLabelId("ns2")).thenReturn(2);
-        when(mockLabelManager.lookupLabelId("binding1")).thenReturn(11);
-        when(mockLabelManager.lookupLabelId("binding2")).thenReturn(12);
+        when(mockLabelManager.supplyLabelId("ns1")).thenReturn(1);
+        when(mockLabelManager.supplyLabelId("ns2")).thenReturn(2);
+        when(mockLabelManager.supplyLabelId("binding1")).thenReturn(11);
+        when(mockLabelManager.supplyLabelId("binding2")).thenReturn(12);
 
         CountersLayout mockCountersLayout = mock(CountersLayout.class);
         when(mockCountersLayout.getIds()).thenReturn(counterIds);
@@ -168,8 +168,8 @@ public class MetricsProcessorTest
         when(mockLabelManager.lookupLabel(32)).thenReturn("histogram2");
         when(mockLabelManager.lookupLabel(33)).thenReturn("histogram3");
         when(mockLabelManager.lookupLabel(34)).thenReturn("histogram4");
-        when(mockLabelManager.lookupLabelId("ns1")).thenReturn(1);
-        when(mockLabelManager.lookupLabelId("binding1")).thenReturn(11);
+        when(mockLabelManager.supplyLabelId("ns1")).thenReturn(1);
+        when(mockLabelManager.supplyLabelId("binding1")).thenReturn(11);
 
         HistogramsLayout mockHistogramsLayout = mock(HistogramsLayout.class);
         when(mockHistogramsLayout.getIds()).thenReturn(histogramIds);

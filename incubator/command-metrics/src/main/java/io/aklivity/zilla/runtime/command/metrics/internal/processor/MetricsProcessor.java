@@ -76,8 +76,8 @@ public class MetricsProcessor
         String namespace,
         String binding)
     {
-        int namespaceId = namespace != null ? Math.max(labels.lookupLabelId(namespace), 0) : 0;
-        int bindingId = binding != null ? Math.max(labels.lookupLabelId(binding), 0) : 0;
+        int namespaceId = namespace != null ? Math.max(labels.supplyLabelId(namespace), 0) : 0;
+        int bindingId = binding != null ? Math.max(labels.supplyLabelId(binding), 0) : 0;
 
         long namespacedId =
                 (long) namespaceId << Integer.SIZE |
