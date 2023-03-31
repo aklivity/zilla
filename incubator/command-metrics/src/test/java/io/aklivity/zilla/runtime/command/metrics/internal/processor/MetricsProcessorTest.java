@@ -120,10 +120,6 @@ public class MetricsProcessorTest
         when(mockLabelManager.lookupLabel(21)).thenReturn("counter1");
         when(mockLabelManager.lookupLabel(22)).thenReturn("counter2");
         when(mockLabelManager.lookupLabel(31)).thenReturn("histogram1");
-        when(mockLabelManager.supplyLabelId("ns1")).thenReturn(1);
-        when(mockLabelManager.supplyLabelId("ns2")).thenReturn(2);
-        when(mockLabelManager.supplyLabelId("binding1")).thenReturn(11);
-        when(mockLabelManager.supplyLabelId("binding2")).thenReturn(12);
 
         CountersLayout mockCountersLayout = mock(CountersLayout.class);
         when(mockCountersLayout.getIds()).thenReturn(counterIds);
@@ -146,6 +142,77 @@ public class MetricsProcessorTest
 
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
+    }
+
+    @Test
+    public void shouldWorkWithFilters() throws Exception
+    {
+        // GIVEN
+        long[][] counterIds = new long[][]{
+            {BINDING_ID_1_11, METRIC_ID_1_21},
+            {BINDING_ID_1_11, METRIC_ID_1_22},
+            {BINDING_ID_1_12, METRIC_ID_1_21},
+            {BINDING_ID_2_11, METRIC_ID_2_21}
+        };
+        long[][] histogramIds = new long[][]{
+            {BINDING_ID_1_11, METRIC_ID_1_31}
+        };
+        String expectedOutput1 =
+            "namespace    binding     metric      value\n" +
+            "ns2          binding1    counter1       44\n\n";
+        String expectedOutput2 =
+            "namespace    binding     metric      value\n" +
+            "ns1          binding2    counter1       43\n\n";
+        String expectedOutput3 =
+            "namespace    binding     metric      value\n" +
+            "ns1          binding2    counter1       43\n\n";
+        LabelManager mockLabelManager = mock(LabelManager.class);
+        when(mockLabelManager.lookupLabel(1)).thenReturn("ns1");
+        when(mockLabelManager.lookupLabel(2)).thenReturn("ns2");
+        when(mockLabelManager.lookupLabel(11)).thenReturn("binding1");
+        when(mockLabelManager.lookupLabel(12)).thenReturn("binding2");
+        when(mockLabelManager.lookupLabel(21)).thenReturn("counter1");
+        when(mockLabelManager.lookupLabel(22)).thenReturn("counter2");
+        when(mockLabelManager.lookupLabel(31)).thenReturn("histogram1");
+        when(mockLabelManager.supplyLabelId("ns1")).thenReturn(1);
+        when(mockLabelManager.supplyLabelId("ns2")).thenReturn(2);
+        when(mockLabelManager.supplyLabelId("binding2")).thenReturn(12);
+
+        CountersLayout mockCountersLayout = mock(CountersLayout.class);
+        when(mockCountersLayout.getIds()).thenReturn(counterIds);
+        when(mockCountersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(mockCountersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(mockCountersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(mockCountersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+
+        HistogramsLayout mockHistogramsLayout = mock(HistogramsLayout.class);
+        when(mockHistogramsLayout.getIds()).thenReturn(histogramIds);
+        when(mockHistogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_HISTOGRAM_1);
+
+        MetricsProcessor metrics1 = new MetricsProcessor(List.of(mockCountersLayout), List.of(mockHistogramsLayout),
+                mockLabelManager, "ns2", null);
+        ByteArrayOutputStream os1 = new ByteArrayOutputStream();
+        PrintStream out1 = new PrintStream(os1);
+
+        MetricsProcessor metrics2 = new MetricsProcessor(List.of(mockCountersLayout), List.of(mockHistogramsLayout),
+                mockLabelManager, null, "binding2");
+        ByteArrayOutputStream os2 = new ByteArrayOutputStream();
+        PrintStream out2 = new PrintStream(os2);
+
+        MetricsProcessor metrics3 = new MetricsProcessor(List.of(mockCountersLayout), List.of(mockHistogramsLayout),
+                mockLabelManager, "ns1", "binding2");
+        ByteArrayOutputStream os3 = new ByteArrayOutputStream();
+        PrintStream out3 = new PrintStream(os3);
+
+        // WHEN
+        metrics1.print(out1);
+        metrics2.print(out2);
+        metrics3.print(out3);
+
+        // THEN
+        assertThat(os1.toString("UTF8"), equalTo(expectedOutput1));
+        assertThat(os2.toString("UTF8"), equalTo(expectedOutput2));
+        assertThat(os3.toString("UTF8"), equalTo(expectedOutput3));
     }
 
     @Test
