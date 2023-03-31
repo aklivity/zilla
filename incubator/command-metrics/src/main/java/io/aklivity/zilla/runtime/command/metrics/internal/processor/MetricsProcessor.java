@@ -91,6 +91,10 @@ public class MetricsProcessor
 
     private void collectCounters()
     {
+        if (countersLayouts.isEmpty())
+        {
+            return;
+        }
         long[][] ids = countersLayouts.get(0).getIds();
         for (long[] id : ids)
         {
@@ -110,6 +114,10 @@ public class MetricsProcessor
 
     private void collectHistograms()
     {
+        if (histogramsLayouts.isEmpty())
+        {
+            return;
+        }
         long[][] ids = histogramsLayouts.get(0).getIds();
         for (long[] id : ids)
         {

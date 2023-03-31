@@ -81,4 +81,23 @@ public class CountersLayoutTest
         assertTrue(Files.exists(path));
         Files.delete(path);
     }
+
+    @Test
+    public void shouldGetIds()
+    {
+        String fileName = "target/zilla-itests/counters2";
+        Path path = Paths.get(fileName);
+        CountersLayout countersLayout = new CountersLayout.Builder()
+                .path(path)
+                .capacity(8192)
+                .mode(CREATE_READ_WRITE)
+                .build();
+
+        countersLayout.supplyWriter(11L, 42L);
+        countersLayout.supplyWriter(22L, 77L);
+        countersLayout.supplyWriter(33L, 88L);
+        long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
+
+        assertThat(countersLayout.getIds(), equalTo(expectedIds));
+    }
 }

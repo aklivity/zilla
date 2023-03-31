@@ -1,0 +1,73 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.runtime.command.metrics.internal.record;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+
+import java.util.function.LongSupplier;
+
+import org.junit.Test;
+
+public class CounterRecordTest
+{
+    public static final LongSupplier READER_0 = () -> 0L;
+    public static final LongSupplier READER_42 = () -> 42L;
+    public static final LongSupplier READER_58 = () -> 58L;
+    public static final LongSupplier READER_100 = () -> 100L;
+
+    @Test
+    public void shouldReturnSum()
+    {
+        // GIVEN
+        LongSupplier[] readers = new LongSupplier[]{READER_42, READER_58, READER_100};
+        CounterRecord counter = new CounterRecord(0L, 0L, readers, null);
+
+        // WHEN
+        String stringValue = counter.stringValue();
+
+        // THEN
+        assertThat(stringValue, equalTo("200"));
+    }
+
+    @Test
+    public void shouldReturnZero()
+    {
+        // GIVEN
+        LongSupplier[] readers = new LongSupplier[]{READER_0};
+        CounterRecord counter = new CounterRecord(0L, 0L, readers, null);
+
+        // WHEN
+        String stringValue = counter.stringValue();
+
+        // THEN
+        assertThat(stringValue, equalTo("0"));
+    }
+
+    @Test
+    public void shouldReturnZeroWhenEmpty()
+    {
+        // GIVEN
+        LongSupplier[] readers = new LongSupplier[]{};
+        CounterRecord counter = new CounterRecord(0L, 0L, readers, null);
+
+        // WHEN
+        String stringValue = counter.stringValue();
+
+        // THEN
+        assertThat(stringValue, equalTo("0"));
+    }
+}
