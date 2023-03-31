@@ -63,7 +63,7 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, 0, 1)
+                                  .partition(0, 0, 2)
                                   .build()
                               .build()}
 

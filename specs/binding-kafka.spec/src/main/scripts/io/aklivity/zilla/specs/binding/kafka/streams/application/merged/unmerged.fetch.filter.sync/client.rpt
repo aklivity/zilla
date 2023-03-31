@@ -114,7 +114,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 0)
+                                   .partition(0, -2)
                                    .build()
                                .build()}
 
@@ -144,7 +144,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(1, 0)
+                                   .partition(1, -2)
                                    .build()
                                .build()}
 

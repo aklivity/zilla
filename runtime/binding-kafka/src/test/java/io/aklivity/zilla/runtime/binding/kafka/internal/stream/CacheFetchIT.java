@@ -461,6 +461,7 @@ public class CacheFetchIT
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     public void shouldFetchLatestMessage() throws Exception
     {
+        partition.append(0L);
         k3po.finish();
     }
 

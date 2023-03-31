@@ -14,6 +14,9 @@
 # under the License.
 #
 
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
+
 property serverAddress "zilla://streams/app0"
 
 accept ${serverAddress}
@@ -49,7 +52,7 @@ write flush
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
@@ -63,7 +66,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 0, 1)
+                                   .partition(0, 0, 2)
                                    .build()
                                .build()}
 write flush
@@ -72,5 +75,19 @@ write advise zilla:flush ${kafka:flushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
                                     .partition(0, 2, 2, 2)
+                                    .build()
+                                .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 2, 2, 2)
+                                    .build()
+                                .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 2, 3, 3)
                                     .build()
                                 .build()}
