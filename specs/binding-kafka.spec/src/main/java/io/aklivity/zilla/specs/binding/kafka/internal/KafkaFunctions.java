@@ -39,6 +39,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaDeltaTypeFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaHeadersFW;
@@ -365,6 +366,13 @@ public final class KafkaFunctions
             filterRW.wrap(filterBuffer, 0, filterBuffer.capacity());
         }
 
+        public KafkaFilterBuilder<T> evaluate(
+            String evaluate)
+        {
+            filterRW.evaluate(e -> e.set(KafkaEvaluation.valueOf(evaluate)));
+            return this;
+        }
+
         public KafkaFilterBuilder<T> key(
             String key)
         {
@@ -477,6 +485,7 @@ public final class KafkaFunctions
             KafkaFilterFW filter)
         {
             final Array32FW<KafkaConditionFW> conditions = filter.conditions();
+            builder.evaluate(filter.evaluate());
             builder.conditions(csb -> set(csb, conditions));
         }
 
@@ -1154,6 +1163,19 @@ public final class KafkaFunctions
                 long timestamp)
             {
                 mergedDataExRW.timestamp(timestamp);
+                return this;
+            }
+
+            public KafkaMergedDataExBuilder filters(
+                int... filters)
+            {
+                long filterMask = 0;
+                for (int filter : filters)
+                {
+                    filterMask |= 1L << filter;
+                }
+                mergedDataExRW.filters(filterMask);
+
                 return this;
             }
 
