@@ -14,13 +14,14 @@
  */
 package io.aklivity.zilla.runtime.blinding.grpc.kafka.internal.config;
 
+import static java.util.Collections.singletonMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
+import java.util.Base64;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -31,6 +32,9 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaConditionConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaConditionConfigAdapter;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaMetadataValue;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
 public class GrpcKafkaConditionConfigAdapterTest
 {
@@ -68,11 +72,13 @@ public class GrpcKafkaConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        GrpcKafkaConditionConfig condition = new GrpcKafkaConditionConfig("GET", "/test", Collections.EMPTY_MAP);
+        GrpcKafkaConditionConfig condition = new GrpcKafkaConditionConfig("GET", "/test",
+            singletonMap(new String8FW("custom"), new GrpcKafkaMetadataValue(new String16FW("test"),
+                new String16FW(Base64.getUrlEncoder().encodeToString("test".getBytes())))));
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"service\":\"GET\",\"method\":\"/test\"}"));
+        assertThat(text, equalTo("{\"service\":\"GET\",\"method\":\"/test\",\"metadata\":{\"custom\":\"test\"}}"));
     }
 }

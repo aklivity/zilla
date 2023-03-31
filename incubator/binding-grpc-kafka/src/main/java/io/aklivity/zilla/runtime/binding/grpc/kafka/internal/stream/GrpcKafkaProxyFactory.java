@@ -1253,8 +1253,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            producer.result.updateHash(payload.value());
-
             Flyweight kafkaDataEx = emptyRO;
             if ((flags & DATA_FLAG_INIT) != 0x00)
             {

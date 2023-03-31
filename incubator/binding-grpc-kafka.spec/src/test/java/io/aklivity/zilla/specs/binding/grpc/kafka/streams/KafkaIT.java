@@ -107,4 +107,13 @@ public class KafkaIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${kafka}/unary.rpc.sent.write.abort/client",
+        "${kafka}/unary.rpc.sent.write.abort/server"})
+    public void shouldHandleUnaryRrpSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
 }

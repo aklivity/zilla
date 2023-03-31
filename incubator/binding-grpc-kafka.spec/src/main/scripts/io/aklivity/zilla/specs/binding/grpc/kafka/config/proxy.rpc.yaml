@@ -55,5 +55,6 @@ bindings:
             zilla:identity: "${guarded['test0'].identity}"
           reply-to: items-replies
           filters:
-            - headers:
+            - key: "test"
+              headers:
                 zilla:identity: "${guarded['test0'].identity}"

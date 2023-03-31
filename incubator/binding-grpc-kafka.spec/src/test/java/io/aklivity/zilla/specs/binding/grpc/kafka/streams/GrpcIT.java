@@ -106,4 +106,13 @@ public class GrpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/unary.rpc.sent.write.abort/client",
+        "${grpc}/unary.rpc.sent.write.abort/server"})
+    public void shouldHandleUnaryRrpSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -68,16 +68,6 @@ public class GrpcKafkaWithResult
         return topic;
     }
 
-    public void updateHash(
-        DirectBuffer value)
-    {
-        hash.updateHash(value);
-    }
-
-    public void digestHash()
-    {
-        hash.digestHash();
-    }
 
     public void partitions(
         Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
@@ -101,8 +91,6 @@ public class GrpcKafkaWithResult
             builder
                 .length(key.capacity())
                 .value(key, 0, key.capacity());
-
-            hash.updateHash(key);
         }
     }
 
@@ -115,10 +103,7 @@ public class GrpcKafkaWithResult
             overrides.forEach(o -> builder.item(o::header));
         }
 
-        if (hash != null)
-        {
-            builder.item(this::correlationId);
-        }
+        builder.item(this::correlationId);
     }
 
     public GrpcKafkaCorrelationConfig correlation()
