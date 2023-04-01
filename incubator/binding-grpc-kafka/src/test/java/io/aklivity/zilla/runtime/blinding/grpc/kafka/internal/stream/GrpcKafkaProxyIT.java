@@ -75,7 +75,7 @@ public class GrpcKafkaProxyIT
     @Specification({
         "${grpc}/unary.rpc.sent.write.abort/client",
         "${kafka}/unary.rpc.sent.write.abort/server"})
-    public void shouldNotProduceMessageOnUnaryRrcSentWriteAbort() throws Exception
+    public void shouldNotProduceMessageOnUnaryRpcSentWriteAbort() throws Exception
     {
         k3po.finish();
     }

@@ -116,20 +116,14 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
                     {
                         base64Value = v.asJsonObject().getString(BASE64_NAME);
                     }
-                    else
-                    {
-                        throw new IllegalArgumentException("Unexpected metadata type: " + v.asJsonObject());
-                    }
                     break;
                 case STRING:
                     textValue = ((JsonString) v).getString();
                     base64Value = encoder64.encodeToString(textValue.getBytes());
                     break;
-                default:
-                    throw new IllegalArgumentException("Unexpected type: " + valueType);
                 }
 
-                GrpcKafkaMetadataValue metadataValue =  new GrpcKafkaMetadataValue(new String16FW(textValue),
+                GrpcKafkaMetadataValue metadataValue = new GrpcKafkaMetadataValue(new String16FW(textValue),
                     new String16FW(base64Value));
                 newMetadata.put(key, metadataValue);
             });
