@@ -419,11 +419,11 @@ public final class HttpClientFactory implements HttpStreamFactory
         MessageConsumer application)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long bindingId = begin.routedId();
         final long authorization = begin.authorization();
         final HttpBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
 
-        final HttpBindingConfig binding = bindings.get(routeId);
+        final HttpBindingConfig binding = bindings.get(bindingId);
 
         HttpRouteConfig route = null;
 
@@ -442,7 +442,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             final Map<String8FW, String16FW> overrides =
                 binding.options != null && binding.options.overrides != null ? binding.options.overrides : EMPTY_OVERRIDES;
 
-            final HttpClientPool clientPool = clientPools.computeIfAbsent(resolvedId, HttpClientPool::new);
+            // TODO: store client pools on HttpBindingConfig ?
+            final HttpClientPool clientPool =
+                    clientPools.computeIfAbsent(resolvedId, r -> new HttpClientPool(bindingId, r));
             newStream = clientPool.newStream(begin, application, overrides, binding.versions());
         }
 
@@ -451,7 +453,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -462,7 +465,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         Flyweight extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -483,7 +487,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -494,23 +499,25 @@ public final class HttpClientFactory implements HttpStreamFactory
         Flyweight extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(routeId)
-                                     .streamId(streamId)
-                                     .sequence(sequence)
-                                     .acknowledge(acknowledge)
-                                     .maximum(maximum)
-                                     .traceId(traceId)
-                                     .authorization(authorization)
-                                     .affinity(affinity)
-                                     .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                                     .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -522,7 +529,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -539,7 +547,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -551,24 +560,26 @@ public final class HttpClientFactory implements HttpStreamFactory
         OctetsFW extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(routeId)
-                                     .streamId(streamId)
-                                     .sequence(sequence)
-                                     .acknowledge(acknowledge)
-                                     .maximum(maximum)
-                                     .traceId(traceId)
-                                     .authorization(authorization)
-                                     .budgetId(budgetId)
-                                     .reserved(reserved)
-                                     .extension(extension)
-                                     .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .extension(extension)
+                .build();
 
         receiver.accept(flush.typeId(), flush.buffer(), flush.offset(), flush.sizeof());
     }
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -583,25 +594,27 @@ public final class HttpClientFactory implements HttpStreamFactory
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                  .routeId(routeId)
-                                  .streamId(streamId)
-                                  .sequence(sequence)
-                                  .acknowledge(acknowledge)
-                                  .maximum(maximum)
-                                  .traceId(traceId)
-                                  .authorization(authorization)
-                                  .budgetId(budgetId)
-                                  .reserved(reserved)
-                                  .payload(buffer, index, length)
-                                  .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                                  .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .payload(buffer, index, length)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -611,22 +624,24 @@ public final class HttpClientFactory implements HttpStreamFactory
         Flyweight extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                               .routeId(routeId)
-                               .streamId(streamId)
-                               .sequence(sequence)
-                               .acknowledge(acknowledge)
-                               .maximum(maximum)
-                               .traceId(traceId)
-                               .authorization(authorization)
-                               .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -636,22 +651,24 @@ public final class HttpClientFactory implements HttpStreamFactory
         Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(routeId)
-                                     .streamId(streamId)
-                                     .sequence(sequence)
-                                     .acknowledge(acknowledge)
-                                     .maximum(maximum)
-                                     .traceId(traceId)
-                                     .authorization(authorization)
-                                     .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                                     .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
     }
 
     private void doReset(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -660,21 +677,23 @@ public final class HttpClientFactory implements HttpStreamFactory
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(routeId)
-                                     .streamId(streamId)
-                                     .sequence(sequence)
-                                     .acknowledge(acknowledge)
-                                     .maximum(maximum)
-                                     .traceId(traceId)
-                                     .authorization(authorization)
-                                     .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     private void doWindow(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -685,16 +704,17 @@ public final class HttpClientFactory implements HttpStreamFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                        .routeId(routeId)
-                                        .streamId(streamId)
-                                        .sequence(sequence)
-                                        .acknowledge(acknowledge)
-                                        .maximum(maximum)
-                                        .traceId(traceId)
-                                        .authorization(authorization)
-                                        .budgetId(budgetId)
-                                        .padding(padding)
-                                        .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .padding(padding)
+                .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
@@ -1955,9 +1975,10 @@ public final class HttpClientFactory implements HttpStreamFactory
 
     private final class HttpClientPool
     {
+        private final long bindingId;
+        private final long resolvedId;
         private final Int2ObjectHashMap<HttpExchange> exchanges;
         private final List<HttpClient> clients;
-        private final long resolvedId;
 
         private int httpQueueSlot = NO_SLOT;
         private int httpQueueSlotOffset;
@@ -1965,11 +1986,13 @@ public final class HttpClientFactory implements HttpStreamFactory
         private SortedSet<HttpVersion> versions;
 
         private HttpClientPool(
+            long bindingId,
             long resolvedId)
         {
+            this.bindingId = bindingId;
             this.resolvedId = resolvedId;
             this.clients = new LinkedList<>();
-            this.exchanges = new Int2ObjectHashMap();
+            this.exchanges = new Int2ObjectHashMap<>();
         }
 
         public MessageConsumer newStream(
@@ -1999,7 +2022,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final HttpPromise promise = client.promises.stream().filter(p -> p.matches(beginEx.headers()))
                         .findFirst().orElse(null);
 
-                final long routeId = begin.routeId();
+                final long originId = begin.originId();
+                final long routedId = begin.routedId();
                 final long initialId = begin.streamId();
                 final long authorization = begin.authorization();
 
@@ -2012,7 +2036,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 else
                 {
                     final int nextStreamId = client.nextStreamId();
-                    final HttpExchange exchange = client.newExchange(sender, routeId, initialId, authorization,
+                    final HttpExchange exchange = client.newExchange(sender, originId, routedId, initialId, authorization,
                             overrides, nextStreamId);
                     exchanges.put(nextStreamId, exchange);
                     newStream = exchange::onApplication;
@@ -2035,24 +2059,27 @@ public final class HttpClientFactory implements HttpStreamFactory
             // count all responses
             countResponses.getAsLong();
 
+            final long originId = begin.originId();
+            final long routedId = begin.routedId();
+            final long initialId = begin.streamId();
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final int maximum = begin.maximum();
-            final long routeId = begin.routeId();
-            final long initialId = begin.streamId();
             final long traceId = begin.traceId();
             final long authorization = begin.authorization();
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
-            doWindow(sender, routeId, initialId, 0, 0, 0, traceId, authorization, 0L, 0);
+            doWindow(sender, originId, routedId, initialId, 0, 0, 0, traceId, authorization, 0L, 0);
 
             HttpBeginExFW beginEx = beginExRW.wrap(codecBuffer, 0, codecBuffer.capacity())
                     .typeId(httpTypeId)
                     .headers(headers)
                     .build();
 
-            doBegin(sender, routeId, replyId, sequence, acknowledge, maximum, supplyTraceId.getAsLong(), 0L, 0, beginEx);
-            doEnd(sender, routeId, replyId, sequence, acknowledge, maximum, supplyTraceId.getAsLong(), 0, EMPTY_OCTETS);
+            doBegin(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                    supplyTraceId.getAsLong(), 0L, 0, beginEx);
+            doEnd(sender, originId, routedId, replyId, sequence, acknowledge, maximum,
+                    supplyTraceId.getAsLong(), 0, EMPTY_OCTETS);
 
             // count rejected requests (no connection or no space in the queue)
             countRequestsRejected.getAsLong();
@@ -2177,23 +2204,8 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final class HttpClient
     {
         private final HttpClientPool pool;
-        public int decodedStreamId;
-        public byte decodedFlags;
-        public int continuationStreamId;
-        public int remoteSharedBudget;
-        public int maxClientStreamId = -1;
-        public int decodableDataBytes;
-        private MessageConsumer network;
-        private int decodeSlot;
-        private int decodeSlotOffset;
-        private int decodeSlotReserved;
-        private long decodeSlotBudgetId;
-        private HttpClientDecoder decoder;
-        private Http2ErrorCode decodeError;
-        private int decodableChunkSize;
-        private int decodableContentLength;
-
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long replyId;
         private final long initialId;
         private long budgetId;
@@ -2207,6 +2219,22 @@ public final class HttpClientFactory implements HttpStreamFactory
         private long replySeq;
         private long replyAck;
         private long replyAuth;
+
+        private int decodedStreamId;
+        private byte decodedFlags;
+        private int continuationStreamId;
+        private int remoteSharedBudget;
+        private int maxClientStreamId = -1;
+        private int decodableDataBytes;
+        private MessageConsumer network;
+        private int decodeSlot;
+        private int decodeSlotOffset;
+        private int decodeSlotReserved;
+        private long decodeSlotBudgetId;
+        private HttpClientDecoder decoder;
+        private Http2ErrorCode decodeError;
+        private int decodableChunkSize;
+        private int decodableContentLength;
 
         private final MutableDirectBuffer encodeHeadersBuffer;
         private final MutableDirectBuffer encodeReservedBuffer;
@@ -2245,8 +2273,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             HttpClientPool pool)
         {
             this.pool = pool;
-            this.routeId = pool.resolvedId;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.originId = pool.bindingId;
+            this.routedId = pool.resolvedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.budgetId = 0;
             this.decoder = decodeHttp11EmptyLines;
@@ -2274,13 +2303,14 @@ public final class HttpClientFactory implements HttpStreamFactory
 
         private HttpExchange newExchange(
             MessageConsumer sender,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long authorization,
             Map<String8FW, String16FW> overrides,
             int streamId)
         {
-            return new HttpExchange(this, sender, routeId, initialId, authorization, overrides, streamId);
+            return new HttpExchange(this, sender, originId, routedId, initialId, authorization, overrides, streamId);
         }
 
         private void addNewPromise(
@@ -2537,7 +2567,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             {
                 state = HttpState.openingInitial(state);
 
-                network = newStream(this::onNetwork, routeId, initialId, initialSeq, initialAck,
+                network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck,
                     initialMax, traceId, authorization, affinity, EMPTY_OCTETS);
             }
         }
@@ -2548,7 +2578,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(network, routeId, initialId, initialSeq, initialAck,
+            doFlush(network, originId, routedId, initialId, initialSeq, initialAck,
                 initialMax, traceId, replyAuth, budgetId, reserved, extension);
         }
 
@@ -2607,8 +2637,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 assert reserved >= required;
 
-                doData(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, budgetId,
-                       required, buffer, offset, length, EMPTY_OCTETS);
+                doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, budgetId, required, buffer, offset, length, EMPTY_OCTETS);
 
                 initialSeq += required;
 
@@ -2652,7 +2682,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 cleanupBudgetCreditorIfNecessary();
                 cleanupEncodeSlotIfNecessary();
 
-                doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, EMPTY_OCTETS);
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, EMPTY_OCTETS);
             }
 
             if (HttpState.closed(state))
@@ -2672,7 +2703,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 cleanupBudgetCreditorIfNecessary();
                 cleanupEncodeSlotIfNecessary();
 
-                doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, EMPTY_OCTETS);
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, EMPTY_OCTETS);
 
                 if (HttpState.closed(state))
                 {
@@ -2690,7 +2722,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 state = HttpState.closeReply(state);
                 cleanupDecodeSlotIfNecessary();
                 bindings.remove(replyId);
-                doReset(network, routeId, replyId, replySeq, replyAck, initialMax, traceId, authorization);
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, initialMax,
+                        traceId, authorization);
 
                 if (HttpState.closed(state))
                 {
@@ -2714,7 +2747,8 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 state = HttpState.openReply(state);
 
-                doWindow(network, routeId, replyId,  replySeq, replyAck, decodeMax, traceId, replyAuth, budgetId, padding);
+                doWindow(network, originId, routedId, replyId,  replySeq, replyAck, decodeMax,
+                        traceId, replyAuth, budgetId, padding);
             }
         }
 
@@ -3418,7 +3452,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final MessageConsumer sender = supplySender.apply(promiseId);
 
                 final HttpExchange promisedExchange =
-                       new HttpExchange(this, sender, exchange.routeId, promiseId, exchange.sessionId,
+                       new HttpExchange(this, sender, exchange.originId, exchange.routedId, promiseId, exchange.sessionId,
                                EMPTY_OVERRIDES, promisedStreamId);
                 pool.exchanges.put(promisedStreamId, promisedExchange);
 
@@ -4063,7 +4097,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     final int encodeReserved = encodeLength + initialPad;
 
-                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax, encodeHeadersSlotTraceId,
+                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, encodeHeadersSlotTraceId,
                             authorization, budgetId, encodeReserved, encodeHeadersBuffer, 0, encodeLength, EMPTY_OCTETS);
 
                     initialSeq += encodeReserved;
@@ -4119,8 +4153,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                     assert encodeSlot != NO_SLOT;
                     final MutableDirectBuffer encodeBuffer = bufferPool.buffer(encodeSlot);
 
-                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization, budgetId,
-                            encodeReserved, encodeBuffer, 0, encodeLength, EMPTY_OCTETS);
+                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                            traceId, authorization, budgetId, encodeReserved, encodeBuffer, 0, encodeLength, EMPTY_OCTETS);
 
                     initialSeq += encodeReserved;
 
@@ -4199,7 +4233,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     final int encodeReserved = encodeLength + initialPad;
 
-                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax, encodeReservedSlotTraceId,
+                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, encodeReservedSlotTraceId,
                             authorization, budgetId, encodeReserved, encodeReservedBuffer, 0, encodeLength, EMPTY_OCTETS);
 
                     initialSeq += encodeReserved;
@@ -4339,7 +4373,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private final HttpClient client;
         private final Map<String8FW, String16FW> overrides;
         private final int streamId;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long requestId;
         private final long responseId;
         private final long sessionId;
@@ -4374,7 +4409,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         private HttpExchange(
             HttpClient client,
             MessageConsumer application,
-            long routeId,
+            long originId,
+            long routedId,
             long requestId,
             long authorization,
             Map<String8FW, String16FW> overrides,
@@ -4382,7 +4418,8 @@ public final class HttpClientFactory implements HttpStreamFactory
         {
             this.client = client;
             this.application = application;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.requestId = requestId;
             this.sessionId = authorization;
             this.responseId = supplyReplyId.applyAsLong(requestId);
@@ -4627,7 +4664,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (!HttpState.initialClosed(state))
             {
                 state = HttpState.closeInitial(state);
-                doReset(application, routeId, requestId, requestSeq, requestAck, client.initialMax, traceId, authorization);
+                doReset(application, originId, routedId, requestId, requestSeq, requestAck,
+                        client.initialMax, traceId, authorization);
 
                 if (HttpState.closed(state))
                 {
@@ -4655,7 +4693,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
                 state = HttpState.openInitial(state);
 
-                doWindow(application, routeId, requestId, requestSeq, requestAck, requestMax,
+                doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
                         traceId, requestAuth, client.budgetId, client.initialPad);
             }
         }
@@ -4670,7 +4708,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             state = HttpState.openingReply(state);
 
-            doBegin(application, routeId, responseId, responseSeq, responseAck, requestMax,
+            doBegin(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                     traceId, authorization, 0, extension);
         }
 
@@ -4695,7 +4733,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (length > 0)
             {
-                doData(application, routeId, responseId, responseSeq, responseAck, requestMax,
+                doData(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                         traceId, authorization, responseBud,
                         reserved, buffer, offset, length, extension);
 
@@ -4713,8 +4751,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             long authorization,
             Consumer<OctetsFW.Builder> extension)
         {
-            doFlush(application, routeId, responseId, responseSeq, responseAck, requestMax, traceId, authorization,
-                    responseBud, 0, extension);
+            doFlush(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+                    traceId, authorization, responseBud, 0, extension);
         }
 
         private void doResponseEnd(
@@ -4730,7 +4768,8 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
 
                 state = HttpState.closeReply(state);
-                doEnd(application, routeId, responseId, responseSeq, responseAck, requestMax, traceId, authorization, extension);
+                doEnd(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+                        traceId, authorization, extension);
 
                 if (HttpState.closed(state))
                 {
@@ -4749,7 +4788,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 if (HttpState.replyOpening(state))
                 {
                     state = HttpState.closeReply(state);
-                    doAbort(application, routeId, responseId, responseSeq, responseAck, requestMax,
+                    doAbort(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
                             traceId, authorization, extension);
 
                     // count abandoned responses
@@ -4884,7 +4923,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                     requestMax = newRequestWin + (int)(requestSeq - requestAck);
                     assert requestMax >= 0;
 
-                    doWindow(application, routeId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
+                    doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax, traceId, sessionId,
                             client.budgetId, requestPad);
                 }
             }
@@ -4973,7 +5012,6 @@ public final class HttpClientFactory implements HttpStreamFactory
     private final class Http2HeadersEncoder
     {
         private HpackContext context;
-
 
         void encodePromise(
             HpackContext encodeContext,

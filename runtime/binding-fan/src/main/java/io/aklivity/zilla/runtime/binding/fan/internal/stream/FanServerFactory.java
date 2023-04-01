@@ -78,7 +78,7 @@ public final class FanServerFactory implements FanStreamFactory
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
 
-    private final Long2ObjectHashMap<FanServerGroup> groupsByRouteId;
+    private final Long2ObjectHashMap<FanServerGroup> groupsByBindingId;
 
     public FanServerFactory(
         FanConfiguration config,
@@ -93,7 +93,7 @@ public final class FanServerFactory implements FanStreamFactory
         this.supplyTraceId = context::supplyTraceId;
         this.supplyBudgetId = context::supplyBudgetId;
         this.bindings = new Long2ObjectHashMap<>();
-        this.groupsByRouteId = new Long2ObjectHashMap<>();
+        this.groupsByBindingId = new Long2ObjectHashMap<>();
     }
 
     @Override
@@ -119,8 +119,9 @@ public final class FanServerFactory implements FanStreamFactory
         MessageConsumer replyTo)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
-        final BindingConfig binding = bindings.get(routeId);
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
+        final BindingConfig binding = bindings.get(routedId);
 
         MessageConsumer newStream = null;
 
@@ -130,18 +131,19 @@ public final class FanServerFactory implements FanStreamFactory
             long authorization = begin.authorization();
             final long replyId = supplyReplyId.applyAsLong(initialId);
 
-            final RouteConfig exit = binding.routes.stream()
+            final RouteConfig route = binding.routes.stream()
                     .filter(r -> r.authorized.test(authorization))
                     .findFirst()
                     .orElse(null);
 
-            if (exit != null)
+            if (route != null)
             {
-                final FanServerGroup group = supplyFanServerGroup(exit.id);
+                final FanServerGroup group = supplyFanServerGroup(routedId, route.id);
 
                 newStream = new FanServer(
                         group,
-                        routeId,
+                        originId,
+                        routedId,
                         initialId,
                         replyId,
                         replyTo)::onMemberMessage;
@@ -152,14 +154,16 @@ public final class FanServerFactory implements FanStreamFactory
     }
 
     private FanServerGroup supplyFanServerGroup(
-        long routeId)
+        long originId,
+        long routedId)
     {
-        return groupsByRouteId.computeIfAbsent(routeId, FanServerGroup::new);
+        return groupsByBindingId.computeIfAbsent(routedId, r -> new FanServerGroup(originId, routedId));
     }
 
     private final class FanServerGroup
     {
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final MessageConsumer receiver;
@@ -179,15 +183,17 @@ public final class FanServerFactory implements FanStreamFactory
         private int state;
 
         FanServerGroup(
-            long routeId)
+            long originId,
+            long routedId)
         {
-            this.routeId = routeId;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.members = new CopyOnWriteArrayList<>();
 
             long traceId = supplyTraceId.getAsLong();
-            this.receiver = newStream(this::onGroupMessage, routeId,
+            this.receiver = newStream(this::onGroupMessage, originId, routedId,
                     initialId, initialSeq, initialAck, initialMax, traceId, 0L, 0L, e -> {});
             this.state = FanState.openingInitial(state);
         }
@@ -282,7 +288,7 @@ public final class FanServerFactory implements FanStreamFactory
             for (int i = 0; i < members.size(); i++)
             {
                 final FanServer member = members.get(i);
-                doEnd(member.receiver, member.routeId, member.replyId,
+                doEnd(member.receiver, member.originId, member.routedId, member.replyId,
                         member.replySeq, member.replyAck, member.replyMax);
             }
 
@@ -297,7 +303,7 @@ public final class FanServerFactory implements FanStreamFactory
             for (int i = 0; i < members.size(); i++)
             {
                 final FanServer member = members.get(i);
-                doAbort(member.receiver, member.routeId, member.replyId,
+                doAbort(member.receiver, member.originId, member.routedId, member.replyId,
                         member.replySeq, member.replyAck, member.replyMax);
             }
 
@@ -313,7 +319,7 @@ public final class FanServerFactory implements FanStreamFactory
             for (int i = 0; i < members.size(); i++)
             {
                 final FanServer member = members.get(i);
-                doFlush(member.receiver, member.routeId, member.replyId,
+                doFlush(member.receiver, member.originId, member.routedId, member.replyId,
                         member.replySeq, member.replyAck, member.replyMax,
                         budgetId, reserved);
             }
@@ -327,7 +333,7 @@ public final class FanServerFactory implements FanStreamFactory
             for (int i = 0; i < members.size(); i++)
             {
                 final FanServer member = members.get(i);
-                doReset(member.receiver, member.routeId, member.initialId,
+                doReset(member.receiver, member.originId, member.routedId, member.initialId,
                         member.initialSeq, member.initialAck, member.initialMax);
             }
 
@@ -387,7 +393,7 @@ public final class FanServerFactory implements FanStreamFactory
         @Override
         public String toString()
         {
-            return String.format("[%s] routeId=%016x", getClass().getSimpleName(), routeId);
+            return String.format("[%s] routeId=%016x", getClass().getSimpleName(), routedId);
         }
 
         private void doGroupData(
@@ -398,7 +404,7 @@ public final class FanServerFactory implements FanStreamFactory
             OctetsFW payload,
             OctetsFW extension)
         {
-            doData(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, flags, budgetId, reserved, payload, extension);
 
             initialSeq += reserved;
@@ -411,7 +417,7 @@ public final class FanServerFactory implements FanStreamFactory
             {
                 state = FanState.closedInitial(state);
 
-                doEnd(receiver, routeId, initialId, replySeq, replyAck, replyMax);
+                doEnd(receiver, originId, routedId, initialId, replySeq, replyAck, replyMax);
 
                 cleanupInitial();
             }
@@ -423,7 +429,7 @@ public final class FanServerFactory implements FanStreamFactory
             {
                 state = FanState.closedInitial(state);
 
-                doAbort(receiver, routeId, initialId, replySeq, replyAck, replyMax);
+                doAbort(receiver, originId, routedId, initialId, replySeq, replyAck, replyMax);
 
                 cleanupInitial();
             }
@@ -434,7 +440,7 @@ public final class FanServerFactory implements FanStreamFactory
             long budgetId,
             int reserved)
         {
-            doFlush(receiver, routeId, initialId, initialSeq, initialAck, initialMax, budgetId, reserved);
+            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax, budgetId, reserved);
         }
 
         private void doGroupReset()
@@ -443,7 +449,7 @@ public final class FanServerFactory implements FanStreamFactory
             {
                 state = FanState.closedReply(state);
 
-                doReset(receiver, routeId, initialId, initialSeq, initialAck, initialMax);
+                doReset(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax);
 
                 cleanupInitial();
             }
@@ -474,7 +480,7 @@ public final class FanServerFactory implements FanStreamFactory
 
                 state = FanState.openedReply(state);
 
-                doWindow(receiver, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, paddingMin);
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, paddingMin);
             }
         }
 
@@ -503,7 +509,8 @@ public final class FanServerFactory implements FanStreamFactory
     private final class FanServer
     {
         private final FanServerGroup group;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final MessageConsumer receiver;
@@ -524,13 +531,15 @@ public final class FanServerFactory implements FanStreamFactory
 
         private FanServer(
             FanServerGroup group,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long replyId,
             MessageConsumer receiver)
         {
             this.group = group;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = replyId;
             this.receiver = receiver;
@@ -698,7 +707,7 @@ public final class FanServerFactory implements FanStreamFactory
             {
                 state = FanState.closedInitial(state);
 
-                doReset(receiver, routeId, initialId, initialSeq, initialAck, initialMax);
+                doReset(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax);
             }
         }
 
@@ -718,7 +727,8 @@ public final class FanServerFactory implements FanStreamFactory
 
                 state = FanState.openedInitial(state);
 
-                doWindow(receiver, routeId, initialId, initialSeq, initialAck, initialMax, traceId, budgetId, paddingMin);
+                doWindow(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, budgetId, paddingMin);
             }
         }
 
@@ -730,7 +740,7 @@ public final class FanServerFactory implements FanStreamFactory
             {
                 state = FanState.openingReply(state);
 
-                doBegin(receiver, routeId, replyId, replySeq, replyAck, replyMax, traceId, affinity);
+                doBegin(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, affinity);
             }
         }
 
@@ -750,7 +760,7 @@ public final class FanServerFactory implements FanStreamFactory
             // TODO: cache + replay
             if (reserved != 0L)
             {
-                doData(receiver, routeId, replyId, replySeq, replyAck, replyMax, traceId, flags,
+                doData(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, flags,
                         replyBud, reserved, payload, extension);
 
                 replySeq += reserved;
@@ -764,7 +774,7 @@ public final class FanServerFactory implements FanStreamFactory
             {
                 state = FanState.closedReply(state);
 
-                doEnd(receiver, routeId, replyId, replySeq, replyAck, replyMax);
+                doEnd(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax);
             }
         }
 
@@ -774,7 +784,7 @@ public final class FanServerFactory implements FanStreamFactory
             {
                 state = FanState.closedReply(state);
 
-                doAbort(receiver, routeId, replyId, replySeq, replyAck, replyMax);
+                doAbort(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax);
             }
         }
 
@@ -791,7 +801,8 @@ public final class FanServerFactory implements FanStreamFactory
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -802,7 +813,8 @@ public final class FanServerFactory implements FanStreamFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -823,7 +835,8 @@ public final class FanServerFactory implements FanStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -832,7 +845,8 @@ public final class FanServerFactory implements FanStreamFactory
         long affinity)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -846,7 +860,8 @@ public final class FanServerFactory implements FanStreamFactory
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -859,7 +874,8 @@ public final class FanServerFactory implements FanStreamFactory
         OctetsFW extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -877,14 +893,16 @@ public final class FanServerFactory implements FanStreamFactory
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
         int maximum)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -897,7 +915,8 @@ public final class FanServerFactory implements FanStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -906,7 +925,8 @@ public final class FanServerFactory implements FanStreamFactory
         int reserved)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -921,14 +941,16 @@ public final class FanServerFactory implements FanStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
         int maximum)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -941,7 +963,8 @@ public final class FanServerFactory implements FanStreamFactory
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -951,7 +974,8 @@ public final class FanServerFactory implements FanStreamFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -966,20 +990,22 @@ public final class FanServerFactory implements FanStreamFactory
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
         int maximum)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(supplyTraceId.getAsLong())
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(supplyTraceId.getAsLong())
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }

@@ -61,7 +61,7 @@ public final class TcpServerRouter
     public void attach(
         TcpBindingConfig binding)
     {
-        bindings.put(binding.routeId, binding);
+        bindings.put(binding.bindingId, binding);
 
         register(binding);
     }
@@ -130,7 +130,7 @@ public final class TcpServerRouter
     private void register(
         TcpBindingConfig binding)
     {
-        TcpServerBindingConfig server = lookupServer.apply(binding.routeId);
+        TcpServerBindingConfig server = lookupServer.apply(binding.bindingId);
         ServerSocketChannel[] channels = server.bind(binding.options);
 
         PollerKey[] acceptKeys = new PollerKey[channels.length];
@@ -158,7 +158,7 @@ public final class TcpServerRouter
             }
         }
 
-        TcpServerBindingConfig server = lookupServer.apply(binding.routeId);
+        TcpServerBindingConfig server = lookupServer.apply(binding.bindingId);
         server.unbind();
     }
 }

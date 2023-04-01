@@ -130,7 +130,8 @@ public class FileSystemWatcher implements Callable<Void>
         private final Supplier<String> hashSupplier;
         private final String originalHash;
         private final long timeoutId;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long replyId;
 
         public WatchedFile(
@@ -139,7 +140,8 @@ public class FileSystemWatcher implements Callable<Void>
             Supplier<String> hashSupplier,
             String hash,
             long timeoutId,
-            long routeId,
+            long originId,
+            long routedId,
             long replyId)
         {
             this.keys = new HashSet<>();
@@ -148,7 +150,8 @@ public class FileSystemWatcher implements Callable<Void>
             this.hashSupplier = hashSupplier;
             this.originalHash = hash;
             this.timeoutId = timeoutId;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.replyId = replyId;
         }
         public String calculateHash()
@@ -170,7 +173,7 @@ public class FileSystemWatcher implements Callable<Void>
         public void signalChange(
             Signaler signaler)
         {
-            signaler.signalNow(routeId, replyId, FILE_CHANGED_SIGNAL_ID, 0);
+            signaler.signalNow(originId, routedId, replyId, FILE_CHANGED_SIGNAL_ID, 0);
         }
 
         private void register(

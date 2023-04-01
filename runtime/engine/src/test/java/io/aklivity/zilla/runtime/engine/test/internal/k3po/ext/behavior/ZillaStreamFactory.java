@@ -32,6 +32,7 @@ import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireInputA
 import static org.kaazing.k3po.driver.internal.netty.channel.Channels.fireInputShutdown;
 
 import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
@@ -46,7 +47,6 @@ import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.Data
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.EndFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongLongFunction;
 
 public final class ZillaStreamFactory
 {
@@ -57,11 +57,11 @@ public final class ZillaStreamFactory
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
 
-    private final LongLongFunction<ZillaTarget> supplySender;
+    private final LongFunction<ZillaTarget> supplySender;
     private final LongConsumer unregisterStream;
 
     public ZillaStreamFactory(
-        LongLongFunction<ZillaTarget> supplySender,
+        LongFunction<ZillaTarget> supplySender,
         LongConsumer unregisterStream)
     {
         this.supplySender = supplySender;
@@ -72,9 +72,8 @@ public final class ZillaStreamFactory
             ZillaChannel channel,
             long traceId)
     {
-        final long routeId = channel.routeId();
         final long streamId = channel.sourceId();
-        final ZillaTarget sender = supplySender.apply(routeId, streamId);
+        final ZillaTarget sender = supplySender.apply(streamId);
 
         sender.doAbortInput(channel, traceId);
         unregisterStream.accept(streamId);
@@ -84,9 +83,8 @@ public final class ZillaStreamFactory
         ZillaChannel channel,
         long traceId)
     {
-        final long routeId = channel.routeId();
         final long streamId = channel.sourceId();
-        final ZillaTarget sender = supplySender.apply(routeId, streamId);
+        final ZillaTarget sender = supplySender.apply(streamId);
 
         sender.doReset(channel, traceId);
         unregisterStream.accept(streamId);
@@ -98,14 +96,15 @@ public final class ZillaStreamFactory
     {
         final ChannelBuffer challengeExt = channel.readExtBuffer(CHALLENGE, true);
 
-        final long routeId = channel.routeId();
+        final long originId = channel.originId();
+        final long routedId = channel.routedId();
         final long streamId = channel.sourceId();
         final long sequence = channel.sourceSeq();
         final long acknowledge = channel.sourceAck();
         final int maximum = channel.sourceMax();
 
-        final ZillaTarget sender = supplySender.apply(routeId, streamId);
-        sender.doChallenge(routeId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
+        final ZillaTarget sender = supplySender.apply(streamId);
+        sender.doChallenge(originId, routedId, streamId, sequence, acknowledge, traceId, maximum, challengeExt);
     }
 
     public MessageHandler newStream(
@@ -140,8 +139,8 @@ public final class ZillaStreamFactory
             int length)
         {
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-            final long routeId = frame.routeId();
-            verifyRouteId(routeId);
+            final long routedId = frame.routedId();
+            verifyRoutedId(routedId);
 
             switch (msgTypeId)
             {
@@ -399,12 +398,12 @@ public final class ZillaStreamFactory
             fireInputAdvised(channel, ADVISORY_FLUSH);
         }
 
-        private void verifyRouteId(
-            final long routeId)
+        private void verifyRoutedId(
+            final long routedId)
         {
-            if (routeId != channel.routeId())
+            if (routedId != channel.routedId())
             {
-                throw new IllegalStateException(String.format("routeId: expected %x actual %x", channel.routeId(), routeId));
+                throw new IllegalStateException(String.format("routedId: expected %x actual %x", channel.routedId(), routedId));
             }
         }
 

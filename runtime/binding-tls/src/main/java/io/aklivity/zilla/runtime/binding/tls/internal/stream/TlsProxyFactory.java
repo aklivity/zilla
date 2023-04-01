@@ -151,11 +151,12 @@ public final class TlsProxyFactory implements TlsStreamFactory
         MessageConsumer net)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
 
-        TlsBindingConfig binding = bindings.get(routeId);
+        TlsBindingConfig binding = bindings.get(routedId);
 
         MessageConsumer newStream = null;
 
@@ -163,7 +164,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         {
             newStream = new TlsProxy(
                 net,
-                routeId,
+                originId,
+                routedId,
                 initialId,
                 authorization)::onNetMessage;
         }
@@ -173,7 +175,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -184,7 +187,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -205,7 +209,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -216,7 +221,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -232,7 +238,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -247,7 +254,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -265,7 +273,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -275,7 +284,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -290,7 +300,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -300,7 +311,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -315,7 +327,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -327,7 +340,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         OctetsFW extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -344,7 +358,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private void doWindow(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -355,7 +370,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -371,7 +387,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
     private void doReset(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -380,7 +397,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -571,7 +589,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
     final class TlsProxy
     {
         private final MessageConsumer net;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long authorization;
         private final long replyId;
@@ -606,12 +625,14 @@ public final class TlsProxyFactory implements TlsStreamFactory
 
         private TlsProxy(
             MessageConsumer net,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long authorization)
         {
             this.net = net;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
 
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
@@ -710,10 +731,10 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 assert handshakeTimeoutFutureId == NO_CANCEL_ID;
                 handshakeTimeoutFutureId = signaler.signalAt(
                     currentTimeMillis() + handshakeTimeoutMillis,
-                    routeId,
+                    originId,
+                    routedId,
                     replyId,
-                    HANDSHAKE_TIMEOUT_SIGNAL,
-                    0);
+                    HANDSHAKE_TIMEOUT_SIGNAL, 0);
             }
         }
 
@@ -952,7 +973,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         private void doNetBegin(
             long traceId)
         {
-            doBegin(net, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+            doBegin(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                     affinity, EMPTY_EXTENSION);
             state = TlsState.openingReply(state);
         }
@@ -984,7 +1005,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         {
             if (!TlsState.replyClosed(state))
             {
-                doEnd(net, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
+                doEnd(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
                 state = TlsState.closeReply(state);
             }
 
@@ -996,7 +1017,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
         {
             if (!TlsState.replyClosed(state))
             {
-                doAbort(net, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
+                doAbort(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_EXTENSION);
                 state = TlsState.closeReply(state);
             }
 
@@ -1009,7 +1030,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             int reserved,
             OctetsFW extension)
         {
-            doFlush(net, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(net, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved, extension);
         }
 
@@ -1019,7 +1040,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             if (!TlsState.initialClosed(state))
             {
                 final int initialMax = stream.isPresent() ? decodeMax : handshakeMax;
-                doReset(net, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                doReset(net, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
                 state = TlsState.closeInitial(state);
             }
 
@@ -1034,7 +1055,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
             int padding,
             int maximum)
         {
-            doWindow(net, routeId, initialId, initialSeq, initialAck, maximum, traceId, authorization, budgetId, padding);
+            doWindow(net, originId, routedId, initialId, initialSeq, initialAck, maximum,
+                    traceId, authorization, budgetId, padding);
         }
 
         private void flushNetWindow(
@@ -1071,7 +1093,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 final int reserved = length + replyPad;
 
-                doData(net, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
+                doData(net, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization,
                        budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 replySeq += reserved;
@@ -1197,12 +1219,12 @@ public final class TlsProxyFactory implements TlsStreamFactory
             String tlsProtocol,
             long traceId)
         {
-            final TlsBindingConfig binding = bindings.get(routeId);
+            final TlsBindingConfig binding = bindings.get(routedId);
             final TlsRouteConfig route = binding != null ? binding.resolve(authorization, tlsHostname, tlsProtocol) : null;
 
             if (route != null)
             {
-                final TlsStream stream = new TlsStream(route.id);
+                final TlsStream stream = new TlsStream(binding.id, route.id);
 
                 stream.doAppBegin(traceId, tlsHostname, tlsProtocol);
             }
@@ -1261,7 +1283,8 @@ public final class TlsProxyFactory implements TlsStreamFactory
         final class TlsStream
         {
             private MessageConsumer app;
-            private final long routeId;
+            private final long originId;
+            private final long routedId;
             private final long initialId;
             private final long replyId;
 
@@ -1276,10 +1299,12 @@ public final class TlsProxyFactory implements TlsStreamFactory
             private int state;
 
             private TlsStream(
-                long routeId)
+                long originId,
+                long routedId)
             {
-                this.routeId = routeId;
-                this.initialId = supplyInitialId.applyAsLong(routeId);
+                this.originId = originId;
+                this.routedId = routedId;
+                this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
             }
 
@@ -1514,7 +1539,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 stream = Optional.of(this);
                 state = TlsState.openingInitial(state);
 
-                app = newStream(this::onAppMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+                app = newStream(this::onAppMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity,
                     ex -> ex.set((b, o, l) -> beginExRW.wrap(b, o, l)
                                                           .typeId(proxyTypeId)
@@ -1581,7 +1606,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 assert reserved >= length + initialPad : String.format("%d >= %d", reserved, length + initialPad);
 
-                doData(app, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+                doData(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                         budgetId, reserved, buffer, offset, length, EMPTY_EXTENSION);
 
                 initialSeq += reserved;
@@ -1593,7 +1618,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
             {
                 state = TlsState.closeInitial(state);
                 stream = nullIfClosed(state, stream);
-                doEnd(app, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
             }
 
@@ -1604,7 +1629,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 {
                     state = TlsState.closeInitial(state);
                     stream = nullIfClosed(state, stream);
-                    doAbort(app, routeId, initialId, initialSeq, initialAck, initialMax,
+                    doAbort(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
                 }
             }
@@ -1615,7 +1640,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 int reserved,
                 OctetsFW extension)
             {
-                doFlush(app, routeId, initialId, initialSeq, initialAck, initialMax,
+                doFlush(app, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, reserved, extension);
             }
 
@@ -1627,7 +1652,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                     state = TlsState.closeReply(state);
                     stream = nullIfClosed(state, stream);
 
-                    doReset(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
+                    doReset(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization);
                 }
             }
 
@@ -1637,7 +1662,7 @@ public final class TlsProxyFactory implements TlsStreamFactory
                 state = TlsState.openReply(state);
 
                 final int replyPad = TlsProxy.this.replyPad;
-                doWindow(app, routeId, replyId, replySeq, replyAck, replyMax, traceId,
+                doWindow(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId,
                          authorization, replyBudgetId, replyPad);
             }
 

@@ -36,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
 import io.aklivity.zilla.runtime.command.dump.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.command.dump.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.specs.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.specs.engine.internal.types.stream.WindowFW;
 
@@ -51,8 +52,7 @@ public class ZillaDumpCommandTest
     @BeforeAll
     public static void generateStreamsBuffer()
     {
-        final io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout
-            streamsLayout = new io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout.Builder()
+        StreamsLayout streamsLayout = new StreamsLayout.Builder()
             .path(Paths.get(baseDir, "engine").resolve("data0"))
             .streamsCapacity(8 * 1024)
             .readonly(false)
@@ -63,7 +63,8 @@ public class ZillaDumpCommandTest
         MutableDirectBuffer frameBuffer = new UnsafeBuffer(new byte[1024 * 8]);
 
         BeginFW begin = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(0)
+            .originId(0)
+            .routedId(0)
             .streamId(0)
             .sequence(0)
             .acknowledge(0)
@@ -74,7 +75,8 @@ public class ZillaDumpCommandTest
         streams.write(BeginFW.TYPE_ID, begin.buffer(), 0, begin.sizeof());
 
         BeginFW begin2 = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(1)
+            .originId(0)
+            .routedId(1)
             .streamId(1)
             .sequence(1)
             .acknowledge(0)
@@ -85,7 +87,8 @@ public class ZillaDumpCommandTest
         streams.write(BeginFW.TYPE_ID, begin2.buffer(), 0, begin2.sizeof());
 
         BeginFW filteredBegin = new BeginFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(4294967298L)
+            .originId(0)
+            .routedId(4294967298L)
             .streamId(4)
             .sequence(4)
             .acknowledge(0)
@@ -96,7 +99,8 @@ public class ZillaDumpCommandTest
         streams.write(BeginFW.TYPE_ID, filteredBegin.buffer(), 0, filteredBegin.sizeof());
 
         WindowFW window1 = new WindowFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(0)
+            .originId(0)
+            .routedId(0)
             .streamId(0)
             .sequence(0)
             .acknowledge(0)
@@ -108,7 +112,8 @@ public class ZillaDumpCommandTest
         streams.write(WindowFW.TYPE_ID, window1.buffer(), 0, window1.sizeof());
 
         WindowFW window2 = new WindowFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(1)
+            .originId(0)
+            .routedId(1)
             .streamId(1)
             .sequence(1)
             .acknowledge(0)
@@ -131,7 +136,8 @@ public class ZillaDumpCommandTest
         byte[] payloadBytes = payload.getBytes(StandardCharsets.UTF_8);
 
         DataFW data1 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(0)
+            .originId(0)
+            .routedId(0)
             .streamId(0)
             .sequence(0)
             .acknowledge(0)
@@ -144,7 +150,8 @@ public class ZillaDumpCommandTest
         streams.write(DataFW.TYPE_ID, data1.buffer(), 0, data1.sizeof());
 
         DataFW data2 = new DataFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(1)
+            .originId(0)
+            .routedId(1)
             .streamId(1)
             .sequence(1)
             .acknowledge(0)
@@ -158,7 +165,8 @@ public class ZillaDumpCommandTest
 
 
         EndFW end1 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(0)
+            .originId(0)
+            .routedId(0)
             .streamId(0)
             .sequence(0)
             .acknowledge(0)
@@ -168,7 +176,8 @@ public class ZillaDumpCommandTest
         streams.write(EndFW.TYPE_ID, end1.buffer(), 0, end1.sizeof());
 
         EndFW end2 = new EndFW.Builder().wrap(frameBuffer, 0, frameBuffer.capacity())
-            .routeId(1)
+            .originId(0)
+            .routedId(1)
             .streamId(1)
             .sequence(1)
             .acknowledge(0)

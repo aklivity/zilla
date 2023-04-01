@@ -59,7 +59,7 @@ public final class TcpClientRouter
     public void attach(
         TcpBindingConfig binding)
     {
-        bindings.put(binding.routeId, binding);
+        bindings.put(binding.bindingId, binding);
     }
 
     public TcpBindingConfig lookup(

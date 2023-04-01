@@ -159,7 +159,8 @@ public final class WsServerFactory implements WsStreamFactory
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
         final long traceId = begin.traceId();
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
@@ -189,17 +190,17 @@ public final class WsServerFactory implements WsStreamFactory
         if (upgrade == null)
         {
             final long newReplyId = supplyReplyId.applyAsLong(initialId);
-            doHttpBegin(sender, routeId, newReplyId, 0L, 0L, 0, traceId, authorization, affinity,
+            doHttpBegin(sender, originId, routedId, newReplyId, 0L, 0L, 0, traceId, authorization, affinity,
                 hs -> hs.item(h -> h.name(":status").value("400"))
                         .item(h -> h.name("connection").value("close")));
-            doHttpEnd(sender, routeId, newReplyId, traceId);
+            doHttpEnd(sender, originId, routedId, newReplyId, traceId);
             newStream = (t, b, o, l) -> {};
         }
         else if (key != null &&
                 WEBSOCKET_UPGRADE.equalsIgnoreCase(upgrade) &&
                 WEBSOCKET_VERSION_13.equals(version))
         {
-            WsBindingConfig binding = bindings.get(routeId);
+            WsBindingConfig binding = bindings.get(routedId);
 
             if (binding != null)
             {
@@ -222,7 +223,8 @@ public final class WsServerFactory implements WsStreamFactory
                 {
                     newStream = new WsServer(
                         sender,
-                        routeId,
+                        originId,
+                        routedId,
                         initialId,
                         route.id,
                         key,
@@ -240,7 +242,8 @@ public final class WsServerFactory implements WsStreamFactory
     private final class WsServer
     {
         private final MessageConsumer receiver;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final String key;
@@ -277,7 +280,8 @@ public final class WsServerFactory implements WsStreamFactory
 
         private WsServer(
             MessageConsumer receiver,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             String key,
@@ -287,7 +291,8 @@ public final class WsServerFactory implements WsStreamFactory
             String path)
         {
             this.receiver = receiver;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.key = key;
@@ -300,7 +305,7 @@ public final class WsServerFactory implements WsStreamFactory
             this.status = new UnsafeBuffer(new byte[2]);
 
             this.decodeState = this::decodeHeader;
-            this.stream = new WsStream(resolvedId);
+            this.stream = new WsStream(routedId, resolvedId);
         }
 
         private void doNetBegin(
@@ -314,7 +319,7 @@ public final class WsServerFactory implements WsStreamFactory
             final Encoder encoder = Base64.getEncoder();
             final String handshakeHash = new String(encoder.encode(digest), US_ASCII);
 
-            doHttpBegin(receiver, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization, affinity,
+            doHttpBegin(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, affinity,
                     setHttpHeaders(handshakeHash, protocol));
         }
 
@@ -338,7 +343,8 @@ public final class WsServerFactory implements WsStreamFactory
             assert reserved >= wsHeaderSize + payloadSize + replyPad;
 
             DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .routeId(routeId)
+                    .originId(originId)
+                    .routedId(routedId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
@@ -361,7 +367,8 @@ public final class WsServerFactory implements WsStreamFactory
             long traceId)
         {
             final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .routeId(routeId)
+                    .originId(originId)
+                    .routedId(routedId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
@@ -376,7 +383,8 @@ public final class WsServerFactory implements WsStreamFactory
             long traceId)
         {
             final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .routeId(routeId)
+                    .originId(originId)
+                    .routedId(routedId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
@@ -393,7 +401,8 @@ public final class WsServerFactory implements WsStreamFactory
             int reserved)
         {
             final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .routeId(routeId)
+                    .originId(originId)
+                    .routedId(routedId)
                     .streamId(replyId)
                     .sequence(replySeq)
                     .acknowledge(replyAck)
@@ -411,7 +420,8 @@ public final class WsServerFactory implements WsStreamFactory
             long authorization)
         {
             final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .routeId(routeId)
+                    .originId(originId)
+                    .routedId(routedId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
@@ -429,7 +439,8 @@ public final class WsServerFactory implements WsStreamFactory
             OctetsFW extension)
         {
             final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                    .routeId(routeId)
+                    .originId(originId)
+                    .routedId(routedId)
                     .streamId(initialId)
                     .sequence(initialSeq)
                     .acknowledge(initialAck)
@@ -457,7 +468,8 @@ public final class WsServerFactory implements WsStreamFactory
                 assert initialAck <= initialSeq;
 
                 final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
@@ -919,7 +931,8 @@ public final class WsServerFactory implements WsStreamFactory
         private final class WsStream
         {
             private MessageConsumer application;
-            private final long routeId;
+            private final long originId;
+            private final long routedId;
             private final long initialId;
             private final long replyId;
 
@@ -934,9 +947,11 @@ public final class WsServerFactory implements WsStreamFactory
             private int replyMax;
 
             private WsStream(
+                long originId,
                 long routeId)
             {
-                this.routeId = routeId;
+                this.originId = originId;
+                this.routedId = routeId;
                 this.initialId = supplyInitialId.applyAsLong(routeId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
             }
@@ -951,7 +966,8 @@ public final class WsServerFactory implements WsStreamFactory
                 String path)
             {
                 final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
@@ -979,7 +995,8 @@ public final class WsServerFactory implements WsStreamFactory
 
                 final int capacity = payload.sizeof();
                 final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
@@ -1004,7 +1021,8 @@ public final class WsServerFactory implements WsStreamFactory
                 short code)
             {
                 final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
@@ -1024,7 +1042,8 @@ public final class WsServerFactory implements WsStreamFactory
             {
                 // TODO: WsAbortEx
                 final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
@@ -1043,7 +1062,8 @@ public final class WsServerFactory implements WsStreamFactory
                 int reserved)
             {
                 final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(initialId)
                         .sequence(initialSeq)
                         .acknowledge(initialAck)
@@ -1062,7 +1082,8 @@ public final class WsServerFactory implements WsStreamFactory
                 long authorization)
             {
                 final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(replyId)
                         .sequence(replySeq)
                         .acknowledge(replyAck)
@@ -1080,7 +1101,8 @@ public final class WsServerFactory implements WsStreamFactory
                 OctetsFW extension)
             {
                 final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(routeId)
+                        .originId(originId)
+                        .routedId(routedId)
                         .streamId(replyId)
                         .sequence(replySeq)
                         .acknowledge(replyAck)
@@ -1110,7 +1132,8 @@ public final class WsServerFactory implements WsStreamFactory
                     int replyPad = paddingMin + MAXIMUM_HEADER_SIZE;
 
                     final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                            .routeId(routeId)
+                            .originId(originId)
+                            .routedId(routedId)
                             .streamId(replyId)
                             .sequence(replySeq)
                             .acknowledge(replyAck)
@@ -1339,7 +1362,8 @@ public final class WsServerFactory implements WsStreamFactory
 
     private void doHttpBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1350,7 +1374,8 @@ public final class WsServerFactory implements WsStreamFactory
         Consumer<Array32FW.Builder<HttpHeaderFW.Builder, HttpHeaderFW>> mutator)
     {
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1377,12 +1402,14 @@ public final class WsServerFactory implements WsStreamFactory
 
     private void doHttpEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long traceId)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .traceId(traceId)
                 .build();
