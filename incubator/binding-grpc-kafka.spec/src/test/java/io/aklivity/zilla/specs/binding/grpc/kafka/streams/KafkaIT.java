@@ -46,9 +46,9 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/bidi.stream.rpc.rejected/client",
-        "${kafka}/bidi.stream.rpc.rejected/server"})
-    public void shouldRejectBiStreamRpc() throws Exception
+        "${kafka}/bidi.stream.rpc.write.abort/client",
+        "${kafka}/bidi.stream.rpc.write.abort/server"})
+    public void shouldNotProduceBidiStreamMessageOnWriteAbort() throws Exception
     {
         k3po.finish();
     }
@@ -64,9 +64,9 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/client.stream.rpc.rejected/client",
-        "${kafka}/client.stream.rpc.rejected/server"})
-    public void shouldRejectClientStreamRpc() throws Exception
+        "${kafka}/client.stream.rpc.write.abort/client",
+        "${kafka}/client.stream.rpc.write.abort/server"})
+    public void shouldNotProduceClientStreamMessageOnWriteAbort() throws Exception
     {
         k3po.finish();
     }
@@ -82,9 +82,9 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/server.stream.rpc.rejected/client",
-        "${kafka}/server.stream.rpc.rejected/server"})
-    public void shouldRejectServerStreamRpc() throws Exception
+        "${kafka}/server.stream.rpc.read.aborted/client",
+        "${kafka}/server.stream.rpc.read.aborted/server"})
+    public void shouldNotReceiveServerStreamMessageOnReadAborted() throws Exception
     {
         k3po.finish();
     }
@@ -111,7 +111,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/unary.rpc.sent.write.abort/client",
         "${kafka}/unary.rpc.sent.write.abort/server"})
-    public void shouldHandleUnaryRrpSentWriteAbort() throws Exception
+    public void shouldNotProduceMessageOnUnaryRrcSentWriteAbort() throws Exception
     {
         k3po.finish();
     }

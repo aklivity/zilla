@@ -20,7 +20,7 @@ guards:
     type: test
     options:
       roles:
-        - write:items
+        - service:echo
 bindings:
   grpc0:
     type: grpc-kafka
@@ -28,32 +28,19 @@ bindings:
     routes:
       - guarded:
           test0:
-            - write:items
+            - service:echo
         exit: kafka0
         when:
           - service: example.EchoService
-            method: EchoUnary
-            metadata:
-              custom: test
-          - service: example.EchoService
-            method: EchoClientStream
-            metadata:
-              custom: test
-          - service: example.EchoService
-            method: EchoServerStream
-            metadata:
-              custom: test
-          - service: example.EchoService
-            method: EchoStream
             metadata:
               custom: test
         with:
-          topic: items
+          topic: requests
           acks: leader_only
           key: test
           overrides:
             zilla:identity: "${guarded['test0'].identity}"
-          reply-to: items-replies
+          reply-to: responses
           filters:
             - key: "test"
               headers:

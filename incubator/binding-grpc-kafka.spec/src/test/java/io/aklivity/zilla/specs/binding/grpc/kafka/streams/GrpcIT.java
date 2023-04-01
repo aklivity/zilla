@@ -39,16 +39,16 @@ public class GrpcIT
     @Specification({
         "${grpc}/bidi.stream.rpc/client",
         "${grpc}/bidi.stream.rpc/server"})
-    public void shouldExchangeMessageInBidiSteam() throws Exception
+    public void shouldExchangeMessageInBidiStream() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${grpc}/bidi.stream.rpc.rejected/client",
-        "${grpc}/bidi.stream.rpc.rejected/server"})
-    public void shouldRejectBiStreamRpc() throws Exception
+        "${grpc}/bidi.stream.rpc.write.abort/client",
+        "${grpc}/bidi.stream.rpc.write.abort/server"})
+    public void shouldNotProduceBidiStreamMessageOnWriteAbort() throws Exception
     {
         k3po.finish();
     }
@@ -57,16 +57,16 @@ public class GrpcIT
     @Specification({
         "${grpc}/client.stream.rpc/client",
         "${grpc}/client.stream.rpc/server"})
-    public void shouldExchangeMessageInClientSteam() throws Exception
+    public void shouldExchangeMessageInClientStream() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${grpc}/client.stream.rpc.rejected/client",
-        "${grpc}/client.stream.rpc.rejected/server"})
-    public void shouldRejectClientStreamRpc() throws Exception
+        "${grpc}/client.stream.rpc.write.abort/client",
+        "${grpc}/client.stream.rpc.write.abort/server"})
+    public void shouldNotProduceClientStreamMessageOnWriteAbort() throws Exception
     {
         k3po.finish();
     }
@@ -75,16 +75,16 @@ public class GrpcIT
     @Specification({
         "${grpc}/server.stream.rpc/client",
         "${grpc}/server.stream.rpc/server"})
-    public void shouldExchangeMessageInServerSteam() throws Exception
+    public void shouldExchangeMessageInServerStream() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${grpc}/server.stream.rpc.rejected/client",
-        "${grpc}/server.stream.rpc.rejected/server"})
-    public void shouldRejectServerStreamRpc() throws Exception
+        "${grpc}/server.stream.rpc.read.aborted/client",
+        "${grpc}/server.stream.rpc.read.aborted/server"})
+    public void shouldNotReceiveServerStreamMessageOnReadAborted() throws Exception
     {
         k3po.finish();
     }
@@ -111,7 +111,7 @@ public class GrpcIT
     @Specification({
         "${grpc}/unary.rpc.sent.write.abort/client",
         "${grpc}/unary.rpc.sent.write.abort/server"})
-    public void shouldHandleUnaryRrpSentWriteAbort() throws Exception
+    public void shouldNotProduceMessageOnUnaryRrcSentWriteAbort() throws Exception
     {
         k3po.finish();
     }

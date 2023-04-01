@@ -21,7 +21,7 @@ write zilla:begin.ext ${kafka:beginEx()
                              .typeId(zilla:id("kafka"))
                              .merged()
                                  .capabilities("PRODUCE_ONLY")
-                                 .topic("items")
+                                 .topic("requests")
                                  .partition(-1, -2)
                                  .ackMode("LEADER_ONLY")
                                  .build()
@@ -40,14 +40,13 @@ write zilla:data.ext ${kafka:dataEx()
                                      .build()
                                  .build()}
 write ${grpc:protobuf()
-            .string(1, "Hello World")
+            .string(1, "Hello World1")
             .build()}
 write flush
 
+write abort
 
-write close
 write notify SENT_ASYNC_REQUEST
-read closed
 
 connect await SENT_ASYNC_REQUEST
         "zilla://streams/kafka0"
@@ -58,18 +57,33 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .merged()
                                    .capabilities("FETCH_ONLY")
-                                   .topic("items-replies")
+                                   .topic("responses")
                                    .partition(-1, -2)
                                    .filter()
                                      .key("test")
                                      .header("zilla:identity", "test")
                                      .build()
-                                    .filter()
-                                     .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                                     .build()
+                                   .filter()
+                                    .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                    .build()
                                    .build()
                                .build()}
 
 connected
 
+read zilla:data.ext ${kafka:matchDataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("test")
+                                .build()
+                            .build()}
+read ${grpc:protobuf()
+           .string(1, "Hello World1")
+           .build()}
+
 read aborted
+write abort
+

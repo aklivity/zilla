@@ -963,7 +963,7 @@ public final class LoggableStream implements AutoCloseable
             final OctetsFW headerName = header.name();
             final String formattedHeaderName = headerName.buffer().getStringWithoutLengthUtf8(
                 headerName.offset(), headerName.sizeof());
-            formatted = String.format("header[%s=%s]", formattedHeaderName, asString(header.value()));
+            formatted = String.format("header[%s=[%d]]", formattedHeaderName, header.valueLen());
             break;
         case KafkaConditionFW.KIND_NOT:
             final KafkaNotFW not = condition.not();

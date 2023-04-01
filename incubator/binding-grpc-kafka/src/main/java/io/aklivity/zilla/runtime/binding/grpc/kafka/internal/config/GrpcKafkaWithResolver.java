@@ -61,20 +61,20 @@ public final class GrpcKafkaWithResolver
 
     public GrpcKafkaWithResult resolve(
         long authorization,
-        GrpcBeginExFW grpcBeginEx)
+        GrpcBeginExFW beginEx)
     {
         String16FW topic = new String16FW(with.topic);
         KafkaAckMode acks = with.acks;
 
-        final GrpcMetadataFW grpcIdempotencyKey = grpcBeginEx.metadata().matchFirst(m ->
+        final GrpcMetadataFW idempotencyKey = beginEx.metadata().matchFirst(m ->
             GRPC_METADATA_NAME_IDEMPOTENCY_KEY.value().compareTo(m.name().value()) == 0);
 
         OctetsFW correlationId = null;
-        if (grpcIdempotencyKey != null)
+        if (idempotencyKey != null)
         {
             correlationId = new OctetsFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[grpcIdempotencyKey.valueLen()]), 0, grpcIdempotencyKey.valueLen())
-                .set(grpcIdempotencyKey.value())
+                .wrap(new UnsafeBuffer(new byte[idempotencyKey.valueLen()]), 0, idempotencyKey.valueLen())
+                .set(idempotencyKey.value())
                 .build();
         }
         else
@@ -88,9 +88,9 @@ public final class GrpcKafkaWithResolver
 
         GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
         hash.digestHash();
-        hash.updateHash(grpcBeginEx.service().value());
-        hash.updateHash(grpcBeginEx.method().value());
-        hash.updateHash(grpcBeginEx.metadata().items());
+        hash.updateHash(beginEx.service().value());
+        hash.updateHash(beginEx.method().value());
+        hash.updateHash(beginEx.metadata().items());
 
         Supplier<DirectBuffer> keyRef = () -> null;
         if (with.key.isPresent())

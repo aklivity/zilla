@@ -111,7 +111,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final int grpcTypeId;
     private final int kafkaTypeId;
 
-
     private final Long2ObjectHashMap<GrpcKafkaBindingConfig> bindings;
 
     public GrpcKafkaProxyFactory(

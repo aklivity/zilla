@@ -34,8 +34,8 @@ public final class GrpcKafkaConditionMatcher
     public GrpcKafkaConditionMatcher(
         GrpcKafkaConditionConfig condition)
     {
-        this.service = new String16FW(condition.service);
-        this.method = new String16FW(condition.method);
+        this.service = condition.service != null ? new String16FW(condition.service) : null;
+        this.method = condition.method != null ? new String16FW(condition.method) : null;
         this.metadataMatch = condition.metadata;
     }
 
@@ -67,12 +67,12 @@ public final class GrpcKafkaConditionMatcher
     private boolean matchService(
         String16FW service)
     {
-        return service != null && this.service.value().compareTo(service.value()) == 0;
+        return this.service == null || this.service.value().compareTo(service.value()) == 0;
     }
 
     private boolean matchMethod(
         String16FW method)
     {
-        return method != null && this.method.value().compareTo(method.value()) == 0;
+        return this.method == null || this.method.value().compareTo(method.value()) == 0;
     }
 }

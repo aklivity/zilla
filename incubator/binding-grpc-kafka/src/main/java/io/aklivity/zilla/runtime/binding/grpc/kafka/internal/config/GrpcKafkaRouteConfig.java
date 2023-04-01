@@ -76,9 +76,9 @@ public final class GrpcKafkaRouteConfig extends OptionsConfig
     boolean matches(
         String16FW service,
         String16FW method,
-        Array32FW<GrpcMetadataFW> metadataHeaders)
+        Array32FW<GrpcMetadataFW> metadata)
     {
         return when.isEmpty() || service != null && method != null &&
-            when.stream().anyMatch(m -> m.matches(service, method, metadataHeaders));
+            when.stream().anyMatch(m -> m.matches(service, method, metadata));
     }
 }
