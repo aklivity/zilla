@@ -204,21 +204,23 @@ public class SseClientFactory implements SseStreamFactory
         final OctetsFW extension = begin.extension();
         final SseBeginExFW sseBeginEx = extension.get(sseBeginExRO::tryWrap);
 
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final String16FW path = sseBeginEx.path();
 
         MessageConsumer newStream = null;
 
-        final SseBindingConfig binding = bindings.get(routeId);
+        final SseBindingConfig binding = bindings.get(routedId);
         final SseRouteConfig resolved = binding != null ?  binding.resolve(authorization, path.asString()) : null;
 
         if (resolved != null)
         {
             newStream = new SseClient(
                 application,
-                routeId,
+                originId,
+                routedId,
                 initialId,
                 resolved.id)::onAppMessage;
 
@@ -230,7 +232,8 @@ public class SseClientFactory implements SseStreamFactory
     private final class SseClient
     {
         private final MessageConsumer application;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final HttpClient delegate;
@@ -248,15 +251,17 @@ public class SseClientFactory implements SseStreamFactory
 
         private SseClient(
             MessageConsumer application,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId)
         {
             this.application = application;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.delegate = new HttpClient(resolvedId, this);
+            this.delegate = new HttpClient(routedId, resolvedId, this);
         }
 
         private void onAppMessage(
@@ -392,7 +397,7 @@ public class SseClientFactory implements SseStreamFactory
                 replyMax = delegate.replyMax;
                 state = SseState.openingReply(state);
 
-                doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
+                doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, affinity);
             }
         }
@@ -408,7 +413,7 @@ public class SseClientFactory implements SseStreamFactory
             final int length = payload != null ? payload.sizeof() : 0;
             final int reserved = length + replyPad;
 
-            doData(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             replySeq += reserved;
@@ -424,7 +429,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = SseState.closedReply(state);
 
-                doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -435,7 +440,7 @@ public class SseClientFactory implements SseStreamFactory
             long budgetId,
             int reserved)
         {
-            doFlush(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -447,7 +452,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = SseState.closedReply(state);
 
-                doEnd(application, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -460,7 +465,7 @@ public class SseClientFactory implements SseStreamFactory
         {
             state = SseState.openedInitial(state);
 
-            doWindow(application, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding);
         }
 
@@ -472,7 +477,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = SseState.closedInitial(state);
 
-                doReset(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -492,7 +497,8 @@ public class SseClientFactory implements SseStreamFactory
         private final SseClient delegate;
 
         private MessageConsumer network;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
 
@@ -523,11 +529,13 @@ public class SseClientFactory implements SseStreamFactory
         private OctetsFW decodedData;
 
         private HttpClient(
-            long routeId,
+            long originId,
+            long routedId,
             SseClient delegate)
         {
-            this.routeId = routeId;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.delegate = delegate;
             this.decoder = decodeBom;
@@ -547,7 +555,7 @@ public class SseClientFactory implements SseStreamFactory
             initialMax = delegate.initialMax;
             state = SseState.openingInitial(state);
 
-            network = newHttpStream(this::onNetMessage, routeId, initialId,
+            network = newHttpStream(this::onNetMessage, originId, routedId, initialId,
                     initialSeq, initialAck, initialMax, traceId, authorization, affinity,
                     scheme, authority, path, lastId);
         }
@@ -560,7 +568,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = SseState.closedInitial(state);
 
-                doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -573,7 +581,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = SseState.closedInitial(state);
 
-                doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -586,7 +594,7 @@ public class SseClientFactory implements SseStreamFactory
         {
             state = SseState.openedReply(state);
 
-            doWindow(network, routeId, replyId, replySeq, replyAck, replyMax,
+            doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, padding);
         }
 
@@ -598,7 +606,7 @@ public class SseClientFactory implements SseStreamFactory
             {
                 state = SseState.closedReply(state);
 
-                doReset(network, routeId, replyId, replySeq, replyAck, replyMax,
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
 
@@ -1033,7 +1041,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private MessageConsumer newHttpStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1077,7 +1086,8 @@ public class SseClientFactory implements SseStreamFactory
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1098,7 +1108,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1108,7 +1119,8 @@ public class SseClientFactory implements SseStreamFactory
         long affinity)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1123,7 +1135,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1137,7 +1150,8 @@ public class SseClientFactory implements SseStreamFactory
         Flyweight extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1156,7 +1170,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private void doEnd(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1165,7 +1180,8 @@ public class SseClientFactory implements SseStreamFactory
         long authorization)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1179,7 +1195,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private void doAbort(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1188,7 +1205,8 @@ public class SseClientFactory implements SseStreamFactory
         long authorization)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1202,7 +1220,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1213,7 +1232,8 @@ public class SseClientFactory implements SseStreamFactory
         int reserved)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1229,7 +1249,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1240,7 +1261,8 @@ public class SseClientFactory implements SseStreamFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1256,7 +1278,8 @@ public class SseClientFactory implements SseStreamFactory
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1265,7 +1288,8 @@ public class SseClientFactory implements SseStreamFactory
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)

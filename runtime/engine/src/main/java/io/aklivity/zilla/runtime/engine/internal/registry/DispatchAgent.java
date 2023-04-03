@@ -190,7 +190,7 @@ public class DispatchAgent implements EngineContext, Agent
 
     private final Map<String, AtomicCounter> countersByName;
 
-    private final Long2ObjectHashMap<Affinity> affinityByRouteId;
+    private final Long2ObjectHashMap<Affinity> affinityByBindingId;
 
     private final DeadlineTimerWheel timerWheel;
     private final Long2ObjectHashMap<Runnable> tasksByTimerId;
@@ -303,7 +303,7 @@ public class DispatchAgent implements EngineContext, Agent
         this.supplyWriter = this::supplyWriter;
         this.newTarget = this::newTarget;
         this.resolveAffinity = this::resolveAffinity;
-        this.affinityByRouteId = new Long2ObjectHashMap<>();
+        this.affinityByBindingId = new Long2ObjectHashMap<>();
         this.targetsByIndex = new Int2ObjectHashMap<>();
         this.writersByIndex = new Int2ObjectHashMap<>();
 
@@ -396,16 +396,16 @@ public class DispatchAgent implements EngineContext, Agent
 
     @Override
     public String supplyNamespace(
-        long routeId)
+        long bindingId)
     {
-        return labels.lookupLabel(NamespacedId.namespaceId(routeId));
+        return labels.lookupLabel(NamespacedId.namespaceId(bindingId));
     }
 
     @Override
     public String supplyLocalName(
-        long routeId)
+        long bindingId)
     {
-        return labels.lookupLabel(NamespacedId.localId(routeId));
+        return labels.lookupLabel(NamespacedId.localId(bindingId));
     }
 
     @Override
@@ -417,9 +417,9 @@ public class DispatchAgent implements EngineContext, Agent
 
     @Override
     public long supplyInitialId(
-        long routeId)
+        long bindingId)
     {
-        final int remoteIndex = resolveRemoteIndex(routeId);
+        final int remoteIndex = resolveRemoteIndex(bindingId);
 
         initialId += 2L;
         initialId &= mask;
@@ -566,7 +566,7 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     @Override
-    public long supplyRouteId(
+    public long supplyBindingId(
         NamespaceConfig namespace,
         BindingConfig binding)
     {
@@ -783,7 +783,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask attachTask = configuration.attach(namespace);
         taskQueue.offer(attachTask);
-        signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED, 0);
+        signaler.signalNow(0L, 0L, 0L, SIGNAL_TASK_QUEUED, 0);
         return attachTask.future();
     }
 
@@ -792,7 +792,7 @@ public class DispatchAgent implements EngineContext, Agent
     {
         NamespaceTask detachTask = configuration.detach(namespace);
         taskQueue.offer(detachTask);
-        signaler.signalNow(0L, 0L, SIGNAL_TASK_QUEUED, 0);
+        signaler.signalNow(0L, 0L, 0L, SIGNAL_TASK_QUEUED, 0);
         return detachTask.future();
     }
 
@@ -952,7 +952,8 @@ public class DispatchAgent implements EngineContext, Agent
 
                 final MessageConsumer writer = supplyWriter(watcherIndex);
                 final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                        .routeId(0L)
+                        .originId(0L)
+                        .routedId(0L)
                         .streamId(0L)
                         .sequence(0L)
                         .acknowledge(0L)
@@ -981,15 +982,16 @@ public class DispatchAgent implements EngineContext, Agent
         final int targetIndex = ownerIndex(budgetId);
         final MessageConsumer writer = supplyWriter(targetIndex);
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                        .routeId(0L)
-                                        .streamId(0L)
-                                        .sequence(0L)
-                                        .acknowledge(0L)
-                                        .maximum(reserved)
-                                        .traceId(traceId)
-                                        .budgetId(budgetId)
-                                        .padding(0)
-                                        .build();
+            .originId(0L)
+            .routedId(0L)
+            .streamId(0L)
+            .sequence(0L)
+            .acknowledge(0L)
+            .maximum(reserved)
+            .traceId(traceId)
+            .budgetId(budgetId)
+            .padding(0)
+            .build();
         writer.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }
 
@@ -1013,8 +1015,9 @@ public class DispatchAgent implements EngineContext, Agent
         int length)
     {
         final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+        final long originId = frame.originId();
+        final long routedId = frame.routedId();
         final long streamId = frame.streamId();
-        final long routeId = frame.routeId();
         final long sequence = frame.sequence();
         final long acknowledge = frame.acknowledge();
         final int maximum = frame.maximum();
@@ -1027,24 +1030,24 @@ public class DispatchAgent implements EngineContext, Agent
         }
         else if (isInitial(streamId))
         {
-            handleReadInitial(routeId, streamId, sequence, acknowledge, maximum, msgTypeId, buffer, index, length);
+            handleReadInitial(originId, routedId, streamId, sequence, acknowledge, maximum, msgTypeId, buffer, index, length);
         }
         else
         {
-            handleReadReply(routeId, streamId, sequence, acknowledge, maximum, msgTypeId, buffer, index, length);
+            handleReadReply(originId, routedId, streamId, sequence, acknowledge, maximum, msgTypeId, buffer, index, length);
         }
     }
 
     private void handleReadInitial(
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
         int maximum,
         int msgTypeId,
         MutableDirectBuffer buffer,
-        int index,
-        int length)
+        int index, int length)
     {
         final int instanceId = instanceId(streamId);
 
@@ -1062,16 +1065,16 @@ public class DispatchAgent implements EngineContext, Agent
                     break;
                 case DataFW.TYPE_ID:
                     int bytesRead = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
-                    supplyLoadEntry.apply(routeId).initialBytesRead(bytesRead);
+                    supplyLoadEntry.apply(routedId).initialBytesRead(bytesRead);
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case EndFW.TYPE_ID:
-                    supplyLoadEntry.apply(routeId).initialClosed(1L);
+                    supplyLoadEntry.apply(routedId).initialClosed(1L);
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     break;
                 case AbortFW.TYPE_ID:
-                    supplyLoadEntry.apply(routeId).initialClosed(1L).initialErrored(1L);
+                    supplyLoadEntry.apply(routedId).initialClosed(1L).initialErrored(1L);
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     break;
@@ -1079,7 +1082,7 @@ public class DispatchAgent implements EngineContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 default:
-                    doReset(routeId, streamId, sequence, acknowledge, maximum);
+                    doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
                     break;
                 }
             }
@@ -1153,13 +1156,14 @@ public class DispatchAgent implements EngineContext, Agent
             else
             {
                 final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+                final long originId = frame.originId();
+                final long routedId = frame.routedId();
                 final long streamId = frame.streamId();
-                final long routeId = frame.routeId();
                 final long sequence = frame.sequence();
                 final long acknowledge = frame.acknowledge();
                 final int maximum = frame.maximum();
 
-                doReset(routeId, streamId, sequence, acknowledge, maximum);
+                doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
             }
             break;
         case DataFW.TYPE_ID:
@@ -1210,15 +1214,15 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     private void handleReadReply(
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
         int maximum,
         int msgTypeId,
         MutableDirectBuffer buffer,
-        int index,
-        int length)
+        int index, int length)
     {
         final int instanceId = instanceId(streamId);
 
@@ -1248,7 +1252,7 @@ public class DispatchAgent implements EngineContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 default:
-                    doReset(routeId, streamId, sequence, acknowledge, maximum);
+                    doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
                     break;
                 }
             }
@@ -1269,7 +1273,7 @@ public class DispatchAgent implements EngineContext, Agent
                     throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case ResetFW.TYPE_ID:
-                    supplyLoadEntry.apply(routeId).replyClosed(1L).replyErrored(1L);
+                    supplyLoadEntry.apply(routedId).replyClosed(1L).replyErrored(1L);
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     break;
@@ -1315,7 +1319,8 @@ public class DispatchAgent implements EngineContext, Agent
         if (msgTypeId == BeginFW.TYPE_ID)
         {
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-            final long routeId = frame.routeId();
+            final long originId = frame.originId();
+            final long routedId = frame.routedId();
             final long streamId = frame.streamId();
             final long sequence = frame.sequence();
             final long acknowledge = frame.acknowledge();
@@ -1327,7 +1332,7 @@ public class DispatchAgent implements EngineContext, Agent
             }
             else
             {
-                doReset(routeId, streamId, sequence, acknowledge, maximum);
+                doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
             }
         }
         else if (msgTypeId == DataFW.TYPE_ID)
@@ -1337,11 +1342,13 @@ public class DispatchAgent implements EngineContext, Agent
         else if (msgTypeId == FlushFW.TYPE_ID)
         {
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
-            final long routeId = frame.routeId();
+            final long originId = frame.originId();
+            final long routedId = frame.routedId();
             final long streamId = frame.streamId();
             final long sequence = frame.sequence();
             final long acknowledge = frame.acknowledge();
             final int maximum = frame.maximum();
+
             final MessageConsumer newHandler = handleFlushReply(msgTypeId, buffer, index, length);
             if (newHandler != null)
             {
@@ -1349,7 +1356,7 @@ public class DispatchAgent implements EngineContext, Agent
             }
             else
             {
-                doReset(routeId, streamId, sequence, acknowledge, maximum);
+                doReset(originId, routedId, streamId, sequence, acknowledge, maximum);
             }
         }
     }
@@ -1361,12 +1368,12 @@ public class DispatchAgent implements EngineContext, Agent
         int length)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
 
         MessageConsumer newStream = null;
 
-        BindingRegistry binding = configuration.resolveBinding(routeId);
+        BindingRegistry binding = configuration.resolveBinding(routedId);
         final BindingHandler streamFactory = binding != null ? binding.streamFactory() : null;
         if (streamFactory != null)
         {
@@ -1377,10 +1384,9 @@ public class DispatchAgent implements EngineContext, Agent
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
                 throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
-                supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
-                supplyLoadEntry.apply(routeId).initialOpened(1L);
+                supplyMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
 
-                streamSets.computeIfAbsent(routeId, k -> new LongHashSet())
+                streamSets.computeIfAbsent(routedId, k -> new LongHashSet())
                     .add(initialId);
             }
         }
@@ -1425,14 +1431,15 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     private void doReset(
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
-        final long acknowledge,
-        final int maximum)
+        final long acknowledge, final int maximum)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1447,10 +1454,11 @@ public class DispatchAgent implements EngineContext, Agent
         long streamId,
         MessageConsumer throttle)
     {
-        final long syntheticRouteId = 0L;
+        final long syntheticId = 0L;
 
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(syntheticRouteId)
+            .originId(syntheticId)
+            .routedId(syntheticId)
             .streamId(streamId)
             .sequence(Long.MAX_VALUE)
             .acknowledge(0L)
@@ -1464,15 +1472,16 @@ public class DispatchAgent implements EngineContext, Agent
         long streamId,
         MessageConsumer stream)
     {
-        final long syntheticAbortRouteId = 0L;
+        final long syntheticId = 0L;
 
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(syntheticAbortRouteId)
-                                     .streamId(streamId)
-                                     .sequence(Long.MAX_VALUE)
-                                     .acknowledge(0L)
-                                     .maximum(0)
-                                     .build();
+            .originId(syntheticId)
+            .routedId(syntheticId)
+            .streamId(streamId)
+            .sequence(Long.MAX_VALUE)
+            .acknowledge(0L)
+            .maximum(0)
+            .build();
 
         stream.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
     }
@@ -1564,9 +1573,9 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     private int resolveRemoteIndex(
-        long routeId)
+        long bindingId)
     {
-        final Affinity affinity = supplyAffinity(routeId);
+        final Affinity affinity = supplyAffinity(bindingId);
         final BitSet mask = affinity.mask;
         final int remoteIndex = affinity.nextIndex;
 
@@ -1586,22 +1595,22 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     private Affinity supplyAffinity(
-        long routeId)
+        long bindingId)
     {
-        return affinityByRouteId.computeIfAbsent(routeId, resolveAffinity);
+        return affinityByBindingId.computeIfAbsent(bindingId, resolveAffinity);
     }
 
     public Affinity resolveAffinity(
-        long routeId)
+        long bindingId)
     {
-        long mask = affinityMask.applyAsLong(routeId);
+        long mask = affinityMask.applyAsLong(bindingId);
 
         if (Long.bitCount(mask) == 0)
         {
-            int namespaceId = NamespacedId.namespaceId(routeId);
-            int bindingId = NamespacedId.localId(routeId);
+            int namespaceId = NamespacedId.namespaceId(bindingId);
+            int localId = NamespacedId.localId(bindingId);
             String namespace = labels.lookupLabel(namespaceId);
-            String binding = labels.lookupLabel(bindingId);
+            String binding = labels.lookupLabel(localId);
             throw new IllegalStateException(String.format("affinity mask must specify at least one bit: %s.%s %d",
                     namespace, binding, mask));
         }
@@ -1671,13 +1680,13 @@ public class DispatchAgent implements EngineContext, Agent
         @Override
         public long signalAt(
             long timeMillis,
-            long routeId,
+            long originId,
+            long routedId,
             long streamId,
-            int signalId,
-            int contextId)
+            int signalId, int contextId)
         {
             final long timerId = timerWheel.scheduleTimer(timeMillis);
-            final Runnable task = () -> signal(routeId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
+            final Runnable task = () -> signal(originId, routedId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
             final Runnable oldTask = tasksByTimerId.put(timerId, task);
             assert oldTask == null;
             assert timerId >= 0L;
@@ -1687,7 +1696,8 @@ public class DispatchAgent implements EngineContext, Agent
         @Override
         public long signalTask(
             Runnable task,
-            long routeId,
+            long originId,
+            long routedId,
             long streamId,
             int signalId,
             int contextId)
@@ -1701,7 +1711,7 @@ public class DispatchAgent implements EngineContext, Agent
                 assert newFutureId != NO_CANCEL_ID;
 
                 final Future<?> newFuture = executorService.submit(
-                    () -> invokeAndSignal(task, routeId, streamId, 0L, 0L, newFutureId, signalId, contextId));
+                    () -> invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, newFutureId, signalId, contextId));
                 final Future<?> oldFuture = futuresById.put(newFutureId, newFuture);
                 assert oldFuture == null;
                 cancelId = newFutureId;
@@ -1709,7 +1719,7 @@ public class DispatchAgent implements EngineContext, Agent
             else
             {
                 cancelId = NO_CANCEL_ID;
-                invokeAndSignal(task, routeId, streamId, 0L, 0L, cancelId, signalId, contextId);
+                invokeAndSignal(task, originId, routedId, streamId, 0L, 0L, cancelId, signalId, contextId);
             }
 
             assert cancelId < 0L;
@@ -1719,12 +1729,13 @@ public class DispatchAgent implements EngineContext, Agent
 
         @Override
         public void signalNow(
-            long routeId,
+            long originId,
+            long routedId,
             long streamId,
             int signalId,
             int contextId)
         {
-            signal(routeId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
+            signal(originId, routedId, streamId, 0L, 0L, NO_CANCEL_ID, signalId, contextId);
         }
 
         @Override
@@ -1751,7 +1762,8 @@ public class DispatchAgent implements EngineContext, Agent
 
         private void invokeAndSignal(
             Runnable task,
-            long routeId,
+            long originId,
+            long routedId,
             long streamId,
             long sequence,
             long acknowledge,
@@ -1765,12 +1777,13 @@ public class DispatchAgent implements EngineContext, Agent
             }
             finally
             {
-                signal(routeId, streamId, sequence, acknowledge, cancelId, signalId, contextId);
+                signal(originId, routedId, streamId, sequence, acknowledge, cancelId, signalId, contextId);
             }
         }
 
         private void signal(
-            long routeId,
+            long originId,
+            long routedId,
             long streamId,
             long sequence,
             long acknowledge,
@@ -1782,7 +1795,8 @@ public class DispatchAgent implements EngineContext, Agent
 
             final SignalFW signal = signalRW.get()
                                             .rewrap()
-                                            .routeId(routeId)
+                                            .originId(originId)
+                                            .routedId(routedId)
                                             .streamId(streamId)
                                             .sequence(sequence)
                                             .acknowledge(acknowledge)
