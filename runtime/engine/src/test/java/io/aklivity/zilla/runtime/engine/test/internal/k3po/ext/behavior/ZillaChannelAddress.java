@@ -97,7 +97,7 @@ public final class ZillaChannelAddress extends ChannelAddress
         URI location,
         ChannelAddress transport)
     {
-        return new ZillaChannelAddress(location, transport, true, authorization, namespace, binding);
+        return new ZillaChannelAddress(location, transport, true, authorization, "ephemeral", binding);
     }
 
     private static String bindingName(

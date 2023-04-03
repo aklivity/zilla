@@ -126,9 +126,9 @@ public final class Engine implements AutoCloseable
         for (EngineAffinity affinity : affinities)
         {
             int namespaceId = labels.supplyLabelId(affinity.namespace);
-            int bindingId = labels.supplyLabelId(affinity.binding);
-            long routeId = NamespacedId.id(namespaceId, bindingId);
-            tuning.affinity(routeId, affinity.mask);
+            int localId = labels.supplyLabelId(affinity.binding);
+            long bindingId = NamespacedId.id(namespaceId, localId);
+            tuning.affinity(bindingId, affinity.mask);
         }
         this.tuning = tuning;
 

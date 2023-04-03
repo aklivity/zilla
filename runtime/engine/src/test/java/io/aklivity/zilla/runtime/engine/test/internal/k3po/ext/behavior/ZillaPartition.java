@@ -59,27 +59,27 @@ final class ZillaPartition implements AutoCloseable
     private final int scopeIndex;
     private final StreamsLayout layout;
     private final RingBuffer streamsBuffer;
-    private final LongLongFunction<ZillaServerChannel> lookupRoute;
+    private final LongLongFunction<ZillaServerChannel> lookupServer;
     private final LongFunction<MessageHandler> lookupStream;
     private final LongFunction<MessageHandler> lookupThrottle;
     private final MessageHandler streamHandler;
     private final LongObjectBiConsumer<MessageHandler> registerStream;
     private final ZillaStreamFactory streamFactory;
     private final LongFunction<ZillaCorrelation> correlateEstablished;
-    private final LongLongFunction<ZillaTarget> supplySender;
+    private final LongFunction<ZillaTarget> supplySender;
     private final IntFunction<ZillaTarget> supplyTarget;
 
     ZillaPartition(
         Path streamsPath,
         int scopeIndex,
         StreamsLayout layout,
-        LongLongFunction<ZillaServerChannel> lookupRoute,
+        LongLongFunction<ZillaServerChannel> lookupServer,
         LongFunction<MessageHandler> lookupStream,
         LongObjectBiConsumer<MessageHandler> registerStream,
         LongFunction<MessageHandler> lookupThrottle,
         ZillaStreamFactory streamFactory,
         LongFunction<ZillaCorrelation> correlateEstablished,
-        LongLongFunction<ZillaTarget> supplySender,
+        LongFunction<ZillaTarget> supplySender,
         IntFunction<ZillaTarget> supplyTarget)
     {
         this.streamsPath = streamsPath;
@@ -87,7 +87,7 @@ final class ZillaPartition implements AutoCloseable
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
 
-        this.lookupRoute = lookupRoute;
+        this.lookupServer = lookupServer;
         this.lookupStream = lookupStream;
         this.lookupThrottle = lookupThrottle;
         this.registerStream = registerStream;
@@ -206,7 +206,8 @@ final class ZillaPartition implements AutoCloseable
     private void handleBegin(
         BeginFW begin)
     {
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long streamId = begin.streamId();
         final long sequence = begin.sequence();
         final long acknowledge = begin.acknowledge();
@@ -216,14 +217,15 @@ final class ZillaPartition implements AutoCloseable
 
         if ((streamId & 0x0000_0000_0000_0001L) != 0L)
         {
-            final ZillaServerChannel serverChannel = lookupRoute.apply(routeId, authorization);
-            if (serverChannel != null)
+            final ZillaServerChannel server = lookupServer.apply(routedId, authorization);
+            if (server != null)
             {
-                handleBeginInitial(begin, serverChannel);
+                handleBeginInitial(begin, server);
             }
             else
             {
-                supplySender.apply(routeId, streamId).doReset(routeId, streamId, sequence, acknowledge, traceId, maximum);
+                final ZillaTarget sender = supplySender.apply(streamId);
+                sender.doReset(originId, routedId, streamId, sequence, acknowledge, traceId, maximum);
             }
         }
         else
@@ -234,9 +236,10 @@ final class ZillaPartition implements AutoCloseable
 
     private void handleBeginInitial(
         final BeginFW begin,
-        final ZillaServerChannel serverChannel)
+        final ZillaServerChannel server)
     {
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long sequence = begin.sequence();
         final long acknowledge = begin.acknowledge();
@@ -244,8 +247,8 @@ final class ZillaPartition implements AutoCloseable
         final int maximum = begin.maximum();
         final long replyId = initialId & 0xffff_ffff_ffff_fffeL;
 
-        final ZillaChildChannel childChannel = doAccept(serverChannel, routeId, initialId, replyId);
-        final ZillaTarget sender = supplySender.apply(routeId, initialId);
+        final ZillaChildChannel childChannel = doAccept(server, originId, routedId, initialId, replyId);
+        final ZillaTarget sender = supplySender.apply(initialId);
         final ChannelPipeline pipeline = childChannel.getPipeline();
 
         if (pipeline.get(RejectedHandler.class) != null)
@@ -268,7 +271,7 @@ final class ZillaPartition implements AutoCloseable
 
             fireChannelBound(childChannel, childChannel.getLocalAddress());
 
-            sender.doReset(routeId, initialId, sequence, acknowledge, traceId, maximum);
+            sender.doReset(originId, routedId, initialId, sequence, acknowledge, traceId, maximum);
 
             childChannel.setReadClosed();
         }
@@ -316,14 +319,15 @@ final class ZillaPartition implements AutoCloseable
     private void handleBeginReply(
         final BeginFW begin)
     {
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long replyId = begin.streamId();
         final long sequence = begin.sequence();
         final long acknowledge = begin.acknowledge();
         final long traceId = begin.traceId();
         final int maximum = begin.maximum();
         final ZillaCorrelation correlation = correlateEstablished.apply(replyId);
-        final ZillaTarget sender = supplySender.apply(routeId, replyId);
+        final ZillaTarget sender = supplySender.apply(replyId);
 
         if (correlation != null)
         {
@@ -337,7 +341,7 @@ final class ZillaPartition implements AutoCloseable
         }
         else
         {
-            sender.doReset(routeId, replyId, sequence, acknowledge, traceId, maximum);
+            sender.doReset(originId, routedId, replyId, sequence, acknowledge, traceId, maximum);
         }
     }
 
@@ -355,14 +359,15 @@ final class ZillaPartition implements AutoCloseable
     private void handleFlushReply(
         final FlushFW flush)
     {
-        final long routeId = flush.routeId();
+        final long originId = flush.originId();
+        final long routedId = flush.routedId();
         final long replyId = flush.streamId();
         final long sequence = flush.sequence();
         final long acknowledge = flush.acknowledge();
         final long traceId = flush.traceId();
         final int maximum = flush.maximum();
         final ZillaCorrelation correlation = correlateEstablished.apply(replyId);
-        final ZillaTarget sender = supplySender.apply(routeId, replyId);
+        final ZillaTarget sender = supplySender.apply(replyId);
 
         if (correlation != null)
         {
@@ -376,30 +381,31 @@ final class ZillaPartition implements AutoCloseable
         }
         else
         {
-            sender.doReset(routeId, replyId, sequence, acknowledge, traceId, maximum);
+            sender.doReset(originId, routedId, replyId, sequence, acknowledge, traceId, maximum);
         }
     }
 
     private ZillaChildChannel doAccept(
-        ZillaServerChannel serverChannel,
-        long routeId,
+        ZillaServerChannel server,
+        long originId,
+        long routedId,
         long initialId,
         long replyId)
     {
         try
         {
-            ZillaServerChannelConfig serverConfig = serverChannel.getConfig();
+            ZillaServerChannelConfig serverConfig = server.getConfig();
             ChannelPipelineFactory pipelineFactory = serverConfig.getPipelineFactory();
             ChannelPipeline pipeline = pipelineFactory.getPipeline();
 
-            final ZillaChannelAddress serverAddress = serverChannel.getLocalAddress();
+            final ZillaChannelAddress serverAddress = server.getLocalAddress();
             ZillaChannelAddress remoteAddress = serverAddress.newEphemeralAddress();
 
             // fire child serverChannel opened
-            ChannelFactory channelFactory = serverChannel.getFactory();
+            ChannelFactory channelFactory = server.getFactory();
             ZillaChildChannelSink childSink = new ZillaChildChannelSink();
             ZillaChildChannel childChannel =
-                    new ZillaChildChannel(serverChannel, channelFactory, pipeline, childSink, initialId, replyId);
+                    new ZillaChildChannel(server, channelFactory, pipeline, childSink, initialId, replyId);
 
             ZillaChannelConfig childConfig = childChannel.getConfig();
             childConfig.setBufferFactory(serverConfig.getBufferFactory());
@@ -416,7 +422,8 @@ final class ZillaPartition implements AutoCloseable
                 childChannel.setWriteClosed();
             }
 
-            childChannel.routeId(routeId);
+            childChannel.originId(originId);
+            childChannel.routedId(routedId);
             childChannel.setLocalAddress(serverAddress);
             childChannel.setRemoteAddress(remoteAddress);
 
@@ -425,7 +432,7 @@ final class ZillaPartition implements AutoCloseable
             {
                 final long creditorId = budgetId | budgetMask(scopeIndex);
 
-                DefaultBudgetCreditor creditor = serverChannel.engine.supplyCreditor(childChannel);
+                DefaultBudgetCreditor creditor = server.engine.supplyCreditor(childChannel);
                 childChannel.setCreditor(creditor, creditorId);
 
                 final int sharedWindow = childConfig.getSharedWindow();

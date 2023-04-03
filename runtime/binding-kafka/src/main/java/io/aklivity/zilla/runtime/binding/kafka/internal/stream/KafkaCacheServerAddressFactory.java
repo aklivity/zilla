@@ -86,7 +86,7 @@ public class KafkaCacheServerAddressFactory
         if (bootstrap != null)
         {
             List<KafkaAddressStream> bootstraps = bootstrap.stream()
-                .map(t -> new KafkaAddressStream(bindingId, 0, t))
+                .map(t -> new KafkaAddressStream(bindingId, bindingId, 0, t))
                 .collect(toList());
 
             streams.put(bindingId, bootstraps);
@@ -109,7 +109,8 @@ public class KafkaCacheServerAddressFactory
     private final class KafkaAddressStream
     {
         private MessageConsumer receiver;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long authorization;
         private final long initialId;
         private final long replyId;
@@ -126,13 +127,15 @@ public class KafkaCacheServerAddressFactory
         private int replyMax;
 
         private KafkaAddressStream(
-            long routeId,
+            long originId,
+            long routedId,
             long authorization,
             String topic)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.authorization = authorization;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.topic = topic;
         }
@@ -143,7 +146,7 @@ public class KafkaCacheServerAddressFactory
 
             state = KafkaState.openingInitial(state);
 
-            receiver = newStream(this::onKafkaReply, routeId, initialId, initialSeq, initialAck, initialMax,
+            receiver = newStream(this::onKafkaReply, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -158,7 +161,7 @@ public class KafkaCacheServerAddressFactory
 
             state = KafkaState.closedInitial(state);
 
-            doEnd(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -195,7 +198,7 @@ public class KafkaCacheServerAddressFactory
         private void doKafkaReplyReset(
             long traceId)
         {
-            doReset(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
         }
 
@@ -203,14 +206,15 @@ public class KafkaCacheServerAddressFactory
             long traceId,
             int padding)
         {
-            doWindow(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, 0L, padding);
         }
     }
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -221,7 +225,8 @@ public class KafkaCacheServerAddressFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -242,7 +247,8 @@ public class KafkaCacheServerAddressFactory
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -252,22 +258,24 @@ public class KafkaCacheServerAddressFactory
         Consumer<OctetsFW.Builder> extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                               .routeId(routeId)
-                               .streamId(streamId)
-                               .sequence(sequence)
-                               .acknowledge(acknowledge)
-                               .maximum(maximum)
-                               .traceId(traceId)
-                               .authorization(authorization)
-                               .extension(extension)
-                               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -276,21 +284,23 @@ public class KafkaCacheServerAddressFactory
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -301,7 +311,8 @@ public class KafkaCacheServerAddressFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)

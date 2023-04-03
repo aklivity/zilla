@@ -59,13 +59,13 @@ public final class TcpClientRouter
     public void attach(
         TcpBindingConfig binding)
     {
-        bindings.put(binding.routeId, binding);
+        bindings.put(binding.id, binding);
     }
 
     public TcpBindingConfig lookup(
-        long routeId)
+        long bindingId)
     {
-        return bindings.get(routeId);
+        return bindings.get(bindingId);
     }
 
     public InetSocketAddress resolve(
@@ -144,9 +144,9 @@ public final class TcpClientRouter
     }
 
     public void detach(
-        long routeId)
+        long bindingId)
     {
-        bindings.remove(routeId);
+        bindings.remove(bindingId);
     }
 
     @Override

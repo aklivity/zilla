@@ -111,7 +111,8 @@ public abstract class KafkaClientSaslHandshaker
     public abstract class KafkaSaslClient
     {
         protected final KafkaSaslConfig sasl;
-        protected final long routeId;
+        protected final long originId;
+        protected final long routedId;
         protected final long initialId;
         protected final long replyId;
 
@@ -131,11 +132,13 @@ public abstract class KafkaClientSaslHandshaker
 
         protected KafkaSaslClient(
             KafkaSaslConfig sasl,
-            long routeId)
+            long originId,
+            long routedId)
         {
             this.sasl = sasl;
-            this.routeId = routeId;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 

@@ -35,16 +35,16 @@ public final class EchoRouter
     }
 
     public BindingConfig resolve(
-        long routeId,
+        long bindingId,
         long authorization)
     {
-        return bindings.get(routeId);
+        return bindings.get(bindingId);
     }
 
     public void detach(
-        long routeId)
+        long bindingId)
     {
-        bindings.remove(routeId);
+        bindings.remove(bindingId);
     }
 
     @Override
