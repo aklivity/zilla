@@ -1386,7 +1386,7 @@ public class DispatchAgent implements EngineContext, Agent
     }
 
     private void doReset(
-        long originId,
+        final long originId,
         final long routedId,
         final long streamId,
         final long sequence,

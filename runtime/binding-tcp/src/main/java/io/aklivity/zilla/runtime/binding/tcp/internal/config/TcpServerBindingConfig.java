@@ -31,16 +31,16 @@ import org.agrona.LangUtil;
 
 public final class TcpServerBindingConfig
 {
-    public final long routeId;
+    public final long bindingId;
 
     private final Lock lock = new ReentrantLock();
     private final AtomicInteger binds;
     private volatile ServerSocketChannel[] channels;
 
     public TcpServerBindingConfig(
-        long routeId)
+        long bindingId)
     {
-        this.routeId = routeId;
+        this.bindingId = bindingId;
         this.binds = new AtomicInteger();
     }
 

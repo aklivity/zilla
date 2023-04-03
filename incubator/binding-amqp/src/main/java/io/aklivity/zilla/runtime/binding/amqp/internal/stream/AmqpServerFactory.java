@@ -547,12 +547,12 @@ public final class AmqpServerFactory implements AmqpStreamFactory
     }
 
     private AmqpRouteConfig resolveRoute(
-        long routeId,
+        long routedId,
         long authorization,
         StringFW address,
         AmqpCapabilities capabilities)
     {
-        final AmqpBindingConfig binding = bindings.get(routeId);
+        final AmqpBindingConfig binding = bindings.get(routedId);
         return binding.resolve(authorization, address.asString(), capabilities);
     }
 

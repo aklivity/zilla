@@ -948,11 +948,11 @@ public final class WsServerFactory implements WsStreamFactory
 
             private WsStream(
                 long originId,
-                long routeId)
+                long routedId)
             {
                 this.originId = originId;
-                this.routedId = routeId;
-                this.initialId = supplyInitialId.applyAsLong(routeId);
+                this.routedId = routedId;
+                this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
             }
 

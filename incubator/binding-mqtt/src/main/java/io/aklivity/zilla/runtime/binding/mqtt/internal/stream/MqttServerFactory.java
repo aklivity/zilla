@@ -3454,14 +3454,14 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             MqttSessionStream(
                 long originId,
-                long routeId,
+                long routedId,
                 int packetId,
                 boolean willFlagSet,
                 String topicFilter)
             {
                 this.originId = originId;
-                this.routedId = routeId;
-                this.initialId = supplyInitialId.applyAsLong(routeId);
+                this.routedId = routedId;
+                this.initialId = supplyInitialId.applyAsLong(routedId);
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.packetId = packetId;
                 this.willFlagSet = willFlagSet;

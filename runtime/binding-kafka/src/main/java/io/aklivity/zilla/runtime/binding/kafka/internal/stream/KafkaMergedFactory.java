@@ -2165,9 +2165,9 @@ public final class KafkaMergedFactory implements BindingHandler
         private int replyMax;
 
         private KafkaUnmergedMetaStream(
-            KafkaMergedStream mergedFetch)
+            KafkaMergedStream merged)
         {
-            this.merged = mergedFetch;
+            this.merged = merged;
         }
 
         private void doMetaInitialBeginIfNecessary(
@@ -2426,11 +2426,11 @@ public final class KafkaMergedFactory implements BindingHandler
         private KafkaUnmergedFetchStream(
             int partitionId,
             int leaderId,
-            KafkaMergedStream mergedFetch)
+            KafkaMergedStream merged)
         {
             this.partitionId = partitionId;
             this.leaderId = leaderId;
-            this.merged = mergedFetch;
+            this.merged = merged;
         }
 
         private void doFetchInitialBeginIfNecessary(

@@ -505,7 +505,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private void encodeIpv6Header(
         MutableDirectBuffer buffer,
-        long routeId,
+        long bindingId,
         long sourceId,
         long targetId,
         int payloadLength)
@@ -514,9 +514,9 @@ public final class ZillaDumpCommand extends ZillaCommand
             .prefix(PSEUDO_IPV6_PREFIX)
             .payload_length((short) payloadLength)
             .next_header_and_hop_limit(PSEUDO_NEXT_HEADER_AND_HOP_LIMIT)
-            .src_addr_part1(routeId)
+            .src_addr_part1(bindingId)
             .src_addr_part2(sourceId)
-            .dst_addr_part1(routeId)
+            .dst_addr_part1(bindingId)
             .dst_addr_part2(targetId)
             .build();
     }

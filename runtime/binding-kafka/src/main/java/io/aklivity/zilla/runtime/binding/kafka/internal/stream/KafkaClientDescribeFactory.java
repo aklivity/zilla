@@ -917,12 +917,12 @@ public final class KafkaClientDescribeFactory extends KafkaClientSaslHandshaker 
 
             KafkaDescribeClient(
                 long originId,
-                long routeId,
+                long routedId,
                 String topic,
                 List<String> configs,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, originId, routeId);
+                super(sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.configs = new LinkedHashMap<>(configs.size());
                 configs.forEach(c -> this.configs.put(c, null));

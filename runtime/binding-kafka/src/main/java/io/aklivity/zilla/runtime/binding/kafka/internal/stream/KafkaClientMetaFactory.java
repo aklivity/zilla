@@ -1147,11 +1147,11 @@ public final class KafkaClientMetaFactory extends KafkaClientSaslHandshaker impl
 
             KafkaMetaClient(
                 long originId,
-                long routeId,
+                long routedId,
                 String topic,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, originId, routeId);
+                super(sasl, originId, routedId);
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
                 this.newBrokers = new Long2ObjectHashMap<>();

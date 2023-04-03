@@ -2674,17 +2674,17 @@ public final class HttpServerFactory implements HttpStreamFactory
 
             private HttpExchange(
                 long originId,
-                long routeId,
+                long routedId,
                 long sessionId,
                 HttpPolicyConfig policy,
                 String origin)
             {
                 this.originId = originId;
-                this.routedId = routeId;
+                this.routedId = routedId;
                 this.sessionId = sessionId;
                 this.policy = policy;
                 this.origin = origin;
-                this.requestId = supplyInitialId.applyAsLong(routeId);
+                this.requestId = supplyInitialId.applyAsLong(routedId);
                 this.responseId = supplyReplyId.applyAsLong(requestId);
                 this.requestState = HttpExchangeState.PENDING;
                 this.responseState = HttpExchangeState.PENDING;
@@ -2692,7 +2692,7 @@ public final class HttpServerFactory implements HttpStreamFactory
                 this.responsePad = PADDING_CHUNKED;
                 this.responseRemaining = Integer.MAX_VALUE - encodeMax;
 
-                this.expiringId = expireIfNecessary(guard, sessionId, originId, routeId, replyId, 0);
+                this.expiringId = expireIfNecessary(guard, sessionId, originId, routedId, replyId, 0);
             }
 
             private void doRequestBegin(

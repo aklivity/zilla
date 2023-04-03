@@ -2138,7 +2138,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             KafkaFetchClient(
                 long originId,
-                long routeId,
+                long routedId,
                 String topic,
                 int partitionId,
                 long initialOffset,
@@ -2146,7 +2146,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 KafkaIsolation isolation,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, originId, routeId);
+                super(sasl, originId, routedId);
                 this.stream = KafkaFetchStream.this;
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
