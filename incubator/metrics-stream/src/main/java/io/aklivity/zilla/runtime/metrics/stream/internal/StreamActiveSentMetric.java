@@ -19,13 +19,17 @@ import static io.aklivity.zilla.runtime.metrics.stream.internal.StreamUtils.isIn
 import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
+import org.agrona.collections.Long2LongCounterMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
+import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.ResetFW;
 
 public class StreamActiveSentMetric implements Metric
 {
@@ -58,6 +62,9 @@ public class StreamActiveSentMetric implements Metric
 
     private final class StreamActiveSentMetricContext implements MetricContext
     {
+        private static final long INITIAL_VALUE = 0L;
+
+        private final Long2LongCounterMap activeStreams = new Long2LongCounterMap(INITIAL_VALUE);
         private final FrameFW frameRO = new FrameFW();
 
         @Override
@@ -80,15 +87,32 @@ public class StreamActiveSentMetric implements Metric
             int index,
             int length)
         {
-            // TODO: Ati - impl
-            if (msgTypeId == BeginFW.TYPE_ID) // opening frame
+            FrameFW frame = frameRO.wrap(buffer, index, index + length);
+            final long streamId = frame.streamId();
+            if (!isInitial(streamId)) // sent stream
             {
-                FrameFW frame = frameRO.wrap(buffer, index, index + length);
-                long streamId = frame.streamId();
-                if (!isInitial(streamId)) // sent stream
+                handleFrame(streamId, msgTypeId);
+                recorder.accept(activeStreams.size());
+            }
+        }
+
+        private void handleFrame(
+            long streamId,
+            int msgTypeId)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                activeStreams.getAndIncrement(streamId);
+                break;
+            case EndFW.TYPE_ID:
+            case AbortFW.TYPE_ID:
+            case ResetFW.TYPE_ID:
+                if (activeStreams.getAndDecrement(streamId) == INITIAL_VALUE)
                 {
-                    recorder.accept(1L);
+                    activeStreams.remove(streamId);
                 }
+                break;
             }
         }
     }
