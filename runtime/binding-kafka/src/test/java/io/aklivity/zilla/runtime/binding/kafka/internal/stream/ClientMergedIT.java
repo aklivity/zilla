@@ -368,7 +368,7 @@ public class ClientMergedIT
     @Specification({
         "${app}/merged.fetch.filter.sync/client",
         "${net}/unmerged.fetch.filter.sync/server"})
-    public void shouldFetchMergedMessageLatest() throws Exception
+    public void shouldFetchMergedLatestMessages() throws Exception
     {
         k3po.finish();
     }

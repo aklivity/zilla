@@ -185,13 +185,12 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
         "${app}/merged.fetch.filter.sync/client",
         "${app}/unmerged.fetch.filter.sync/server"})
-    public void shouldFetchMergedMessagesLatest() throws Exception
+    public void shouldFetchMergedLatestMessages() throws Exception
     {
         k3po.finish();
     }

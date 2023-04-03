@@ -505,7 +505,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private long partitionOffset;
         private long stableOffset;
         private long latestOffset;
-        private boolean dataFrameReceived = false;
 
         private KafkaCacheClientFetchFanout(
             long routeId,
@@ -864,9 +863,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final KafkaDeltaType deltaType;
         private final KafkaOffsetType maximumOffset;
         private final LongSupplier isolatedOffset;
-        private final LongSupplier targetOffset;
+        private final LongSupplier initialGroupIsolatedOffset;
 
         private int state;
+        private int flushOrDataFramesSent = 0;
 
         private long replyDebitorIndex = NO_DEBITOR_INDEX;
         private BudgetDebitor replyDebitor;
@@ -915,7 +915,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.deltaType = deltaType;
             this.isolation = isolation;
             this.isolatedOffset = isolation == READ_COMMITTED ? () -> group.stableOffset : () -> group.latestOffset;
-            this.targetOffset = isolation == READ_COMMITTED ? () -> initialGroupStableOffset : () -> initialGroupLatestOffset;
+            this.initialGroupIsolatedOffset = isolation ==
+                    READ_COMMITTED ? () -> initialGroupStableOffset : () -> initialGroupLatestOffset;
         }
 
         private void onClientMessage(
@@ -1056,7 +1057,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.initialGroupPartitionOffset = group.partitionOffset;
             this.initialGroupLatestOffset = group.latestOffset;
             this.initialGroupStableOffset = group.stableOffset;
-            group.dataFrameReceived = false;
 
             if (initialOffset == OFFSET_LIVE)
             {
@@ -1108,11 +1108,10 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 final KafkaCacheEntryFW nextEntry = cursor.next(entryRO);
 
                 if (nextEntry == null &&
-                        group.partitionOffset >= targetOffset.getAsLong() &&
-                        !group.dataFrameReceived &&
-                        cursor.offset == 0)
+                        group.partitionOffset >= initialGroupIsolatedOffset.getAsLong() &&
+                        flushOrDataFramesSent == 0)
                 {
-                    doClientFlush(traceId, group.partitionOffset);
+                    doClientReplyFlush(traceId, group.partitionOffset);
                     break;
                 }
 
@@ -1178,7 +1177,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         {
             assert nextEntry != null;
 
-            group.dataFrameReceived = true;
+            flushOrDataFramesSent++;
             final long partitionOffset = nextEntry.offset$();
             final long timestamp = nextEntry.timestamp();
             final long ownerId = nextEntry.ownerId();
@@ -1419,7 +1418,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             KafkaCacheEntryFW nextEntry)
         {
             assert (nextEntry.flags() & CACHE_ENTRY_FLAGS_CONTROL) != 0;
-
+            flushOrDataFramesSent++;
             final int reserved = 0;
             final int partitionId = group.partition.id();
             final long partitionOffset = nextEntry.offset$();
@@ -1455,7 +1454,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             cursor.advance(partitionOffset + 1);
         }
 
-        private void doClientFlush(
+        private void doClientReplyFlush(
                 long traceId,
                 long partitionOffset)
         {

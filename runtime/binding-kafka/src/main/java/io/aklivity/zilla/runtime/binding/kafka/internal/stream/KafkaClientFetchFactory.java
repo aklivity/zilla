@@ -1071,7 +1071,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         client.replyId, client.topic, client.partitionId, client.decodableRecordSetBytes);
                 }
 
-
                 client.decodableRecordBatchBytes -= recordBatchProgress;
                 assert client.decodableRecordBatchBytes >= 0;
 
@@ -1283,7 +1282,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         assert client.decodableRecordBatchBytes >= 0;
 
                         client.decodableRecords--;
-                        client.fetchRequestCount--;
                         assert client.decodableRecords >= 0;
 
                         client.decoder = decodeFetchRecordLength;
@@ -1699,6 +1697,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private final KafkaFetchClient client;
 
         private int state;
+        private int flushOrDataFramesSent = 0;
 
         private long initialSeq;
         private long initialAck;
@@ -1926,6 +1925,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             OctetsFW payload,
             Flyweight extension)
         {
+            flushOrDataFramesSent++;
             doData(application, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, replyDebitorId, reserved, payload, extension);
 
@@ -1940,8 +1940,37 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             int reserved,
             Flyweight extension)
         {
+            flushOrDataFramesSent++;
             doFlush(application, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, reserved, extension);
+
+            replySeq += reserved;
+
+            assert replyAck <= replySeq;
+        }
+
+        private void doApplicationFlushIfNecessary(
+            long traceId,
+            long authorization,
+            int reserved)
+        {
+            if (client.decodeRecordBatchLastOffset >= client.initialLatestOffset &&
+                    client.decodableRecords == 0 &&
+                    flushOrDataFramesSent == 0)
+            {
+                final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .fetch(f -> f
+                                .partition(p -> p
+                                        .partitionId(client.partitionId)
+                                        .partitionOffset(client.decodeRecordBatchLastOffset)
+                                        .stableOffset(client.initialStableOffset)
+                                        .latestOffset(client.initialLatestOffset)))
+                        .build();
+
+                doFlush(application, routeId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, reserved, kafkaFlushEx);
+            }
 
             replySeq += reserved;
 
@@ -2072,8 +2101,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private long latestOffset;
             private long initialLatestOffset;
             private long initialStableOffset;
-            private boolean dataFrameSent = false;
-            private int fetchRequestCount = 0;
 
             private int state;
             private long authorization;
@@ -2982,8 +3009,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                             }
                         })
                         .build();
-                client.dataFrameSent = true;
-                client.fetchRequestCount = 0;
                 final int flags = aborted ? FLAG_INIT | FLAG_FIN | FLAG_SKIP : FLAG_INIT | FLAG_FIN;
                 doApplicationData(traceId, authorization, flags, reserved, value, kafkaDataEx);
             }
@@ -3073,12 +3098,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 if (topicPartitions.get(partitionId) == leaderId)
                 {
-                    fetchRequestCount++;
-                    if (fetchRequestCount == 2 && !dataFrameSent)
-                    {
-                        client.triggerFlushIfRequired(traceId);
-                    }
-                    dataFrameSent = false;
+                    doApplicationFlushIfNecessary(traceId, authorization, 0);
                     signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
@@ -3116,26 +3136,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                     encodeSlot = NO_SLOT;
                     encodeSlotOffset = 0;
                     encodeSlotTraceId = 0;
-                }
-            }
-
-            public void triggerFlushIfRequired(
-                    long traceId)
-            {
-                if (decodeRecordBatchLastOffset >= initialLatestOffset &&
-                        decodableRecords == 0)
-                {
-                    final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                            .typeId(kafkaTypeId)
-                            .fetch(f -> f
-                                    .partition(p -> p
-                                            .partitionId(partitionId)
-                                            .partitionOffset(decodeRecordBatchLastOffset)
-                                            .stableOffset(initialStableOffset)
-                                            .latestOffset(initialLatestOffset)))
-                            .build();
-
-                    doApplicationFlush(traceId, authorization, 0, kafkaFlushEx);
                 }
             }
         }
