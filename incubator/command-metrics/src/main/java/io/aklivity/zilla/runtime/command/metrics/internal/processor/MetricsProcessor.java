@@ -37,6 +37,7 @@ public class MetricsProcessor
     private static final String VALUE_HEADER = "value";
 
     private final List<CountersLayout> countersLayouts;
+    private final List<CountersLayout> gaugesLayouts;
     private final List<HistogramsLayout> histogramsLayouts;
     private final LabelManager labels;
     private final LongPredicate filter;
@@ -49,12 +50,14 @@ public class MetricsProcessor
 
     public MetricsProcessor(
         List<CountersLayout> countersLayouts,
+        List<CountersLayout> gaugesLayouts,
         List<HistogramsLayout> histogramsLayouts,
         LabelManager labels,
         String namespaceName,
         String bindingName)
     {
         this.countersLayouts = countersLayouts;
+        this.gaugesLayouts = gaugesLayouts;
         this.histogramsLayouts = histogramsLayouts;
         this.labels = labels;
         this.filter = filterBy(namespaceName, bindingName);
@@ -66,6 +69,7 @@ public class MetricsProcessor
         if (metricRecords.isEmpty())
         {
             collectCounters();
+            collectGauges();
             collectHistograms();
         }
         updateRecords();
@@ -108,14 +112,40 @@ public class MetricsProcessor
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers,
-                        labels::lookupLabel, this::counterFormatter);
+                        labels::lookupLabel, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
         }
     }
-    private String counterFormatter(long value)
+
+    private String counterGaugeFormatter(
+        long value)
     {
         return String.valueOf(value);
+    }
+
+    private void collectGauges()
+    {
+        if (gaugesLayouts.isEmpty())
+        {
+            return;
+        }
+        long[][] ids = gaugesLayouts.get(0).getIds();
+        for (long[] id : ids)
+        {
+            long packedBindingId = id[0];
+            long packedMetricId = id[1];
+            if (filter.test(packedBindingId))
+            {
+                LongSupplier[] readers = gaugesLayouts.stream()
+                        .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
+                        .collect(Collectors.toList())
+                        .toArray(LongSupplier[]::new);
+                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers,
+                        labels::lookupLabel, this::counterGaugeFormatter);
+                metricRecords.add(record);
+            }
+        }
     }
 
     private void collectHistograms()
@@ -142,7 +172,8 @@ public class MetricsProcessor
         }
     }
 
-    private String histogramFormatter(long[] stats)
+    private String histogramFormatter(
+        long[] stats)
     {
         return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }

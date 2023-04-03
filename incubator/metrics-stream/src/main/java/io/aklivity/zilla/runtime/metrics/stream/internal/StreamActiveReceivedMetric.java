@@ -40,8 +40,7 @@ public class StreamActiveReceivedMetric implements Metric
     @Override
     public Kind kind()
     {
-        // TODO: Ati
-        return Kind.COUNTER;
+        return Kind.GAUGE;
     }
 
     @Override

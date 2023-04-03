@@ -254,6 +254,12 @@ public class DispatchAgent implements EngineContext, Agent
                 .mode(CREATE_READ_WRITE)
                 .build();
 
+        final CountersLayout gaugesLayout = new CountersLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
+                .capacity(config.counterBufferCapacity())
+                .mode(CREATE_READ_WRITE)
+                .build();
+
         final HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
                 .capacity(config.counterBufferCapacity())
@@ -262,7 +268,7 @@ public class DispatchAgent implements EngineContext, Agent
 
         metricWriterSuppliers = new Object2ObjectHashMap<>();
         metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
-        metricWriterSuppliers.put(GAUGE, (b, m) -> v -> {}); // no op for now
+        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
         metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
 
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
