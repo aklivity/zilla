@@ -39,7 +39,7 @@ public final class ProxyRouter
     public void attach(
         ProxyBindingConfig binding)
     {
-        bindings.put(binding.routeId, binding);
+        bindings.put(binding.id, binding);
     }
 
     public void detach(
@@ -49,8 +49,8 @@ public final class ProxyRouter
     }
 
     public ProxyBindingConfig lookup(
-        long routeId)
+        long bindingId)
     {
-        return bindings.get(routeId);
+        return bindings.get(bindingId);
     }
 }

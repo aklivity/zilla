@@ -58,7 +58,7 @@ import io.aklivity.zilla.runtime.engine.Engine;
 public class TcpServerBM
 {
     private final Engine engine;
-    //private long routeId;
+    //private long routedId;
 
     {
         Properties properties = new Properties();
@@ -78,13 +78,13 @@ public class TcpServerBM
     public void reinit() throws Exception
     {
         engine.start();
-        //routeId = controller.route(RouteKind.SERVER, "127.0.0.1:8080", "tcp#0").get();
+        //routedId = controller.route(RouteKind.SERVER, "127.0.0.1:8080", "tcp#0").get();
     }
 
     @TearDown(Level.Trial)
     public void reset() throws Exception
     {
-        //controller.unroute(routeId).get();
+        //controller.unroute(routedId).get();
         engine.close();
     }
 

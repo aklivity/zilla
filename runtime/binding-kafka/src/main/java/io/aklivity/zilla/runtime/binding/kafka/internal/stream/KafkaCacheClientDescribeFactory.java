@@ -113,7 +113,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         MessageConsumer sender)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
@@ -131,7 +132,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
         MessageConsumer newStream = null;
 
-        final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+        final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
         if (resolved != null)
@@ -145,7 +146,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
                 final List<String> configNames = new ArrayList<>();
                 kafkaDescribeBeginEx.configs().forEach(c -> configNames.add(c.asString()));
                 final KafkaCacheClientDescribeFanout newFanout =
-                        new KafkaCacheClientDescribeFanout(resolvedId, authorization, topicName, configNames);
+                        new KafkaCacheClientDescribeFanout(routedId, resolvedId, authorization, topicName, configNames);
 
                 cacheRoute.clientDescribeFanoutsByTopic.put(topicKey, newFanout);
                 fanout = newFanout;
@@ -156,7 +157,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
                 newStream = new KafkaCacheClientDescribeStream(
                         fanout,
                         sender,
-                        routeId,
+                        originId,
+                        routedId,
                         initialId,
                         affinity,
                         authorization)::onDescribeMessage;
@@ -168,7 +170,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -179,7 +182,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -200,7 +204,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -211,7 +216,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -227,7 +233,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
     private void doDataNull(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -239,7 +246,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -256,7 +264,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -266,22 +275,24 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                               .routeId(routeId)
-                               .streamId(streamId)
-                               .sequence(sequence)
-                               .acknowledge(acknowledge)
-                               .maximum(maximum)
-                               .traceId(traceId)
-                               .authorization(authorization)
-                               .extension(extension)
-                               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -291,7 +302,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -306,7 +318,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -317,7 +330,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -333,7 +347,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -342,21 +357,23 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     final class KafkaCacheClientDescribeFanout
     {
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long authorization;
         private final String topic;
         private final List<String> configNames;
@@ -378,12 +395,14 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         private int replyMax;
 
         private KafkaCacheClientDescribeFanout(
-            long routeId,
+            long originId,
+            long routedId,
             long authorization,
             String topic,
             List<String> configNames)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.authorization = authorization;
             this.topic = topic;
             this.configNames = configNames;
@@ -458,10 +477,11 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         {
             assert state == 0;
 
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.receiver = newStream(this::onDescribeFanoutMessage, routeId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, 0L,
+            this.receiver = newStream(this::onDescribeFanoutMessage,
+                originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
                         .describe(d -> d.topic(topic).configs(cs -> configNames.forEach(c -> cs.item(i -> i.set(c, UTF_8)))))
@@ -482,7 +502,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         private void doDescribeFanoutInitialEnd(
             long traceId)
         {
-            doEnd(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
             state = KafkaState.closedInitial(state);
@@ -633,7 +653,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         private void doDescribeFanoutReplyReset(
             long traceId)
         {
-            doReset(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
 
             state = KafkaState.closedReply(state);
@@ -653,7 +673,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
                 replyMax = minReplyMax;
 
-                doWindow(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0L, 0);
 
                 state = KafkaState.openedReply(state);
@@ -665,7 +685,8 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
     {
         private final KafkaCacheClientDescribeFanout group;
         private final MessageConsumer sender;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final long affinity;
@@ -687,14 +708,16 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         KafkaCacheClientDescribeStream(
             KafkaCacheClientDescribeFanout group,
             MessageConsumer sender,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long affinity,
             long authorization)
         {
             this.group = group;
             this.sender = sender;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
@@ -784,7 +807,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         {
             state = KafkaState.closedInitial(state);
 
-            doReset(sender, routeId, initialId, initialSeq, initialAck, initialMax,
+            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
         }
 
@@ -806,7 +829,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
 
                 state = KafkaState.openedInitial(state);
 
-                doWindow(sender, routeId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
             }
         }
@@ -825,7 +848,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         {
             state = KafkaState.openingReply(state);
 
-            doBegin(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -851,7 +874,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
         {
             final int reserved = replyPad;
 
-            doDataNull(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doDataNull(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
@@ -872,7 +895,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
             long traceId)
         {
             state = KafkaState.closedReply(state);
-            doEnd(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -891,7 +914,7 @@ public final class KafkaCacheClientDescribeFactory implements BindingHandler
             long traceId)
         {
             state = KafkaState.closedReply(state);
-            doAbort(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 

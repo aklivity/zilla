@@ -30,7 +30,7 @@ public final class TcpBindingConfig
 {
     private static final List<TcpRouteConfig> DEFAULT_CLIENT_ROUTES = initDefaultClientRoutes();
 
-    public final long routeId;
+    public final long id;
     public final String entry;
     public final KindConfig kind;
     public final TcpOptionsConfig options;
@@ -41,7 +41,7 @@ public final class TcpBindingConfig
     public TcpBindingConfig(
         BindingConfig binding)
     {
-        this.routeId = binding.id;
+        this.id = binding.id;
         this.entry = binding.entry;
         this.kind = binding.kind;
         this.options = TcpOptionsConfig.class.cast(binding.options);

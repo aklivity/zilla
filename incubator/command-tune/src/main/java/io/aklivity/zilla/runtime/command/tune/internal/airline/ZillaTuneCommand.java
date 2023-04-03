@@ -90,11 +90,11 @@ public final class ZillaTuneCommand extends ZillaCommand
                     int namespaceId = labels.lookupLabelId(namespace);
                     int bindingId = labels.lookupLabelId(binding);
 
-                    long routeId =
+                    long routedId =
                         (long) namespaceId << Integer.SIZE |
                         (long) bindingId << 0;
 
-                    filter = id -> id == routeId;
+                    filter = id -> id == routedId;
 
                     if (value != null)
                     {
@@ -110,19 +110,19 @@ public final class ZillaTuneCommand extends ZillaCommand
 
                     while (byteBuf.remaining() >= Long.BYTES + Long.BYTES)
                     {
-                        long routeId = byteBuf.getLong();
+                        long bindingId = byteBuf.getLong();
                         long mask = byteBuf.getLong();
 
-                        if (filter.test(routeId))
+                        if (filter.test(bindingId))
                         {
                             updater.accept(byteBuf);
                             mask = byteBuf.getLong(byteBuf.position() - Long.BYTES);
 
-                            int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-                            int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+                            int namespaceId = (int)(bindingId >> 32) & 0xffff_ffff;
+                            int localId = (int)(bindingId >> 0) & 0xffff_ffff;
 
                             String namespace = labels.lookupLabel(namespaceId);
-                            String binding = labels.lookupLabel(bindingId);
+                            String binding = labels.lookupLabel(localId);
 
                             String format = String.format("%%%ds", workers);
                             String maskBits = new StringBuilder()
