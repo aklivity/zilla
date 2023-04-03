@@ -160,6 +160,9 @@ public final class Engine implements AutoCloseable
         final Map<String, Guard> guardsByType = guards.stream()
             .collect(Collectors.toMap(g -> g.name(), g -> g));
 
+        final Map<String, Binding> bindingsByType = bindings.stream()
+            .collect(Collectors.toMap(b -> b.name(), b -> b));
+
         this.rootConfigURL = config.configURL();
         String protocol = rootConfigURL.getProtocol();
         if ("file".equals(protocol) || "jar".equals(protocol))
@@ -175,8 +178,9 @@ public final class Engine implements AutoCloseable
             throw new UnsupportedOperationException();
         }
 
-        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, labels::supplyLabelId, maxWorkers,
-            tuning, dispatchers, logger, context, config, extensions, watcherTask::readURL, watcherTask::watch);
+        this.configurationManager = new ConfigurationManager(schemaTypes, guardsByType::get, bindingsByType::get,
+            labels::supplyLabelId, maxWorkers, tuning, dispatchers, logger, context, config, extensions,
+            watcherTask::readURL, watcherTask::watch);
 
         this.namespaces = new HashMap<>();
 

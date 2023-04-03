@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
+import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
@@ -35,9 +35,9 @@ import org.agrona.collections.LongHashSet;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
+import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
-import io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ChallengeFW;

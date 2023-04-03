@@ -15,14 +15,21 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
+import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
+
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
 
 public final class TcpBinding implements Binding
 {
@@ -57,6 +64,22 @@ public final class TcpBinding implements Binding
         EngineContext context)
     {
         return new TcpBindingContext(config, context, this::supplyServer);
+    }
+
+    @Override
+    public BiFunction<KindConfig, String, MetricHandlerKind> metricsPolicy()
+    {
+        return (kind, metricGroup) ->
+        {
+            if ("stream".equalsIgnoreCase(metricGroup))
+            {
+                return kind == SERVER ? ORIGIN : ROUTED;
+            }
+            else
+            {
+                return null;
+            }
+        };
     }
 
     private TcpServerBindingConfig supplyServer(
