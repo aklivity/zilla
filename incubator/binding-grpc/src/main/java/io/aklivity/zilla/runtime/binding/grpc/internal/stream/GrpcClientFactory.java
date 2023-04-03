@@ -172,14 +172,15 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         if (grpcBeginEx != null)
         {
-            final long routeId = begin.routeId();
+            final long originId = begin.originId();
+            final long routedId = begin.routedId();
             final long initialId = begin.streamId();
             final long authorization = begin.authorization();
             final String service = grpcBeginEx.service().asString();
             final String method = grpcBeginEx.method().asString();
             Array32FW<GrpcMetadataFW> metadata = grpcBeginEx.metadata();
 
-            final GrpcBindingConfig binding = bindings.get(routeId);
+            final GrpcBindingConfig binding = bindings.get(routedId);
             final GrpcRouteConfig resolved = binding != null ?
                 binding.resolve(authorization, service, method, metadata) : null;
 
@@ -187,7 +188,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 newStream = new GrpcClient(
                     application,
-                    routeId,
+                    originId,
+                    routedId,
                     initialId,
                     resolved.id,
                     service,
@@ -203,15 +205,16 @@ public class GrpcClientFactory implements GrpcStreamFactory
     private final class GrpcClient
     {
         private final MessageConsumer application;
-        private String service;
-        private String method;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+
+        private final String service;
+        private final String method;
         private final GrpcKindFW request;
         private final GrpcKindFW response;
         private final HttpClient delegate;
-
-        private final long routeId;
-        private final long initialId;
-        private final long replyId;
 
         private long initialSeq;
         private long initialAck;
@@ -226,7 +229,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private GrpcClient(
             MessageConsumer application,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             String service,
@@ -235,10 +239,11 @@ public class GrpcClientFactory implements GrpcStreamFactory
             GrpcKindFW response)
         {
             this.application = application;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.delegate = new HttpClient(resolvedId, this);
+            this.delegate = new HttpClient(routedId, resolvedId, this);
             this.service = service;
             this.method = method;
             this.request = request;
@@ -418,7 +423,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
         {
             state = GrpcState.openingReply(state);
 
-            doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, affinity);
         }
 
@@ -433,7 +438,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             int length,
             Flyweight extension)
         {
-            doData(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                 traceId, authorization, budgetId, flags, reserved, buffer, offset, length, extension);
 
             replySeq += reserved;
@@ -454,7 +459,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                     .status(HEADER_VALUE_GRPC_ABORTED)
                     .build();
 
-                doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, abortEx);
             }
         }
@@ -467,7 +472,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 state = GrpcState.closeReply(state);
 
-                doEnd(application, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
             }
         }
@@ -485,7 +490,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             this.initialAck = initialAck;
             this.initialMax = initialMax;
 
-            doWindow(application, routeId, initialId, initialSeq, this.initialAck, this.initialMax,
+            doWindow(application, originId, routedId, initialId, initialSeq, this.initialAck, this.initialMax,
                 traceId, authorization, budgetId, padding);
         }
 
@@ -498,7 +503,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 state = GrpcState.closeInitial(state);
 
-                doReset(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
             }
         }
@@ -509,7 +514,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         private final GrpcClient delegate;
 
         private MessageConsumer network;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
 
@@ -525,11 +531,13 @@ public class GrpcClientFactory implements GrpcStreamFactory
         private int messageDeferred;
 
         private HttpClient(
-            long routeId,
+            long originId,
+            long routedId,
             GrpcClient delegate)
         {
-            this.routeId = routeId;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.delegate = delegate;
         }
@@ -548,7 +556,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             initialMax = delegate.initialMax;
             state = GrpcState.openingInitial(state);
 
-            network = newHttpStream(this::onNetMessage, routeId, initialId,
+            network = newHttpStream(this::onNetMessage, originId, routedId, initialId,
                 initialSeq, initialAck, initialMax, traceId, authorization, affinity, path,
                 scheme, authority, metadata);
         }
@@ -582,7 +590,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
             encodeProgress += payloadSize;
 
-            doData(network, routeId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
+            doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization,
                 budgetId, flags, reserved, encodeBuffer, encodeOffset, encodeProgress - encodeOffset, EMPTY_OCTETS);
 
             initialSeq += reserved;
@@ -598,7 +606,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 state = GrpcState.closeInitial(state);
 
-                doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
             }
         }
@@ -611,7 +619,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 state = GrpcState.closeInitial(state);
 
-                doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -629,7 +637,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
             state = GrpcState.openReply(state);
 
-            doWindow(network, routeId, replyId, replySeq, this.replyAck, this.replyMax,
+            doWindow(network, originId, routedId, replyId, replySeq, this.replyAck, this.replyMax,
                 traceId, authorization, budgetId, padding);
 
             assert this.replyAck <= this.replySeq;
@@ -643,7 +651,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             {
                 state = GrpcState.closeReply(state);
 
-                doReset(network, routeId, replyId, replySeq, replyAck, replyMax,
+                doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_OCTETS);
             }
         }
@@ -882,7 +890,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private MessageConsumer newHttpStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -942,7 +951,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
             }).build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
+            .originId(originId)
+            .routedId(routedId)
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
@@ -963,7 +973,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -973,7 +984,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         long affinity)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
+            .originId(originId)
+            .routedId(routedId)
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
@@ -988,7 +1000,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1004,7 +1017,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         Flyweight extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
+            .originId(originId)
+            .routedId(routedId)
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
@@ -1023,7 +1037,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private void doEnd(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1032,7 +1047,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         long authorization)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
+            .originId(originId)
+            .routedId(routedId)
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
@@ -1046,7 +1062,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private void doAbort(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1056,7 +1073,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
+            .originId(originId)
+            .routedId(routedId)
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
@@ -1071,7 +1089,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1082,7 +1101,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
+            .originId(originId)
+            .routedId(routedId)
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
@@ -1098,7 +1118,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1108,7 +1129,8 @@ public class GrpcClientFactory implements GrpcStreamFactory
         Flyweight extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-            .routeId(routeId)
+            .originId(originId)
+            .routedId(routedId)
             .streamId(streamId)
             .sequence(sequence)
             .acknowledge(acknowledge)
