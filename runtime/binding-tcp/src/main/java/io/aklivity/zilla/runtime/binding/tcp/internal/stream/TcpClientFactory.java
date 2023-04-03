@@ -126,7 +126,8 @@ public class TcpClientFactory implements TcpStreamFactory
         MessageConsumer application)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long authorization = begin.authorization();
         final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
         final ProxyBeginExFW beginEx = extension != null && extension.typeId() == proxyTypeId
@@ -135,7 +136,7 @@ public class TcpClientFactory implements TcpStreamFactory
 
         InetSocketAddress route = null;
 
-        TcpBindingConfig binding = router.lookup(routeId);
+        TcpBindingConfig binding = router.lookup(routedId);
         if (binding != null)
         {
             route = router.resolve(binding, authorization, beginEx);
@@ -148,7 +149,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final long initialId = begin.streamId();
             final SocketChannel channel = newSocketChannel();
 
-            final TcpClient client = new TcpClient(application, routeId, initialId, channel);
+            final TcpClient client = new TcpClient(application, originId, routedId, initialId, channel);
             client.doNetConnect(route, binding.options);
             newStream = client::onAppMessage;
         }
@@ -198,7 +199,8 @@ public class TcpClientFactory implements TcpStreamFactory
     private final class TcpClient
     {
         private final MessageConsumer app;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final SocketChannel net;
@@ -221,12 +223,14 @@ public class TcpClientFactory implements TcpStreamFactory
 
         private TcpClient(
             MessageConsumer app,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             SocketChannel net)
         {
             this.app = app;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.net = net;
@@ -683,7 +687,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final InetSocketAddress localAddress = (InetSocketAddress) net.getLocalAddress();
             final InetSocketAddress remoteAddress = (InetSocketAddress) net.getRemoteAddress();
 
-            doBegin(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, localAddress, remoteAddress);
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, localAddress, remoteAddress);
             state = TcpState.openingReply(state);
         }
 
@@ -695,7 +699,7 @@ public class TcpClientFactory implements TcpStreamFactory
             final long traceId = supplyTraceId.getAsLong();
             final int reserved = length + replyPad;
 
-            doData(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, replyBudgetId,
+            doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, replyBudgetId,
                     reserved, buffer, offset, length);
 
             replySeq += reserved;
@@ -709,14 +713,14 @@ public class TcpClientFactory implements TcpStreamFactory
         private void doAppEnd(
             long traceId)
         {
-            doEnd(app, routeId, replyId, replySeq, replyAck, replyMax, traceId);
+            doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
             state = TcpState.closeReply(state);
         }
 
         private void doAppWindow(
             long traceId)
         {
-            doWindow(app, routeId, initialId, initialSeq, initialAck, initialMax, traceId, 0, 0);
+            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, 0, 0);
         }
 
         private void doAppReset(
@@ -724,7 +728,7 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             if (TcpState.initialOpening(state) && !TcpState.initialClosing(state))
             {
-                doReset(app, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
                 state = TcpState.closeInitial(state);
             }
         }
@@ -734,7 +738,7 @@ public class TcpClientFactory implements TcpStreamFactory
         {
             if (TcpState.replyOpened(state) && !TcpState.replyClosed(state))
             {
-                doAbort(app, routeId, replyId, replySeq, replyAck, replyMax, traceId);
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
                 state = TcpState.closeReply(state);
             }
         }
@@ -753,7 +757,8 @@ public class TcpClientFactory implements TcpStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -763,7 +768,8 @@ public class TcpClientFactory implements TcpStreamFactory
         InetSocketAddress remoteAddress)
     {
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -778,7 +784,8 @@ public class TcpClientFactory implements TcpStreamFactory
 
     private void doData(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -791,7 +798,8 @@ public class TcpClientFactory implements TcpStreamFactory
         int length)
     {
         DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -807,7 +815,8 @@ public class TcpClientFactory implements TcpStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -815,20 +824,22 @@ public class TcpClientFactory implements TcpStreamFactory
         long traceId)
     {
         EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -836,20 +847,22 @@ public class TcpClientFactory implements TcpStreamFactory
         long traceId)
     {
         AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                 .routeId(routeId)
-                 .streamId(streamId)
-                 .sequence(sequence)
-                 .acknowledge(acknowledge)
-                 .maximum(maximum)
-                 .traceId(traceId)
-                 .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .build();
 
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
     }
 
     private void doReset(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -857,20 +870,22 @@ public class TcpClientFactory implements TcpStreamFactory
         long traceId)
     {
         ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                 .routeId(routeId)
-                 .streamId(streamId)
-                 .sequence(sequence)
-                 .acknowledge(acknowledge)
-                 .maximum(maximum)
-                 .traceId(traceId)
-                 .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -880,7 +895,8 @@ public class TcpClientFactory implements TcpStreamFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)

@@ -67,6 +67,66 @@ public class FileSystemIT
 
     @Test
     @Specification({
+        "${app}/read.file.payload.modified/client",
+        "${app}/read.file.payload.modified/server"
+    })
+    public void shouldReadFilePayloadModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.file.payload.modified.multi.client/client",
+        "${app}/read.file.payload.modified.multi.client/server"
+    })
+    public void shouldReadFilePayloadModifiedMultiClient() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.file.payload.etag.not.matched/client",
+        "${app}/read.file.payload.etag.not.matched/server"
+    })
+    public void shouldReadFilePayloadEtagNotMatched() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/read.file.payload.modified.follow.symlinks/client",
+        "${app}/read.file.payload.modified.follow.symlinks/server"
+    })
+    public void shouldReadFilePayloadModifiedFollowSymlinks() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.read.begin.not.modified/client",
+        "${app}/client.read.begin.not.modified/server"
+    })
+    public void shouldReadBeginNotModified() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/client.read.file.not.found/client",
+        "${app}/client.read.file.not.found/server"
+    })
+    public void shouldAbortFileNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/read.file.payload.extension/client",
         "${app}/read.file.payload.extension/server",
     })

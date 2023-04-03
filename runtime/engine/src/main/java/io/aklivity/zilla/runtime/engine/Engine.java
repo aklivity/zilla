@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.engine;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
-import static java.util.concurrent.ForkJoinPool.commonPool;
 import static java.util.stream.Collectors.toList;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
@@ -32,7 +31,7 @@ import java.util.ServiceLoader;
 import java.util.ServiceLoader.Provider;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -58,6 +57,7 @@ import io.aklivity.zilla.runtime.engine.internal.Tuning;
 import io.aklivity.zilla.runtime.engine.internal.registry.ConfigurationManager;
 import io.aklivity.zilla.runtime.engine.internal.registry.DispatchAgent;
 import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
+import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -80,7 +80,7 @@ public final class Engine implements AutoCloseable
     private final WatcherTask watcherTask;
     private final Map<URL, NamespaceConfig> namespaces;
     private final URL rootConfigURL;
-    private ForkJoinTask<Void> watcherTaskRef;
+    private Future<Void> watcherTaskRef;
 
     Engine(
         EngineConfiguration config,
@@ -126,9 +126,9 @@ public final class Engine implements AutoCloseable
         for (EngineAffinity affinity : affinities)
         {
             int namespaceId = labels.supplyLabelId(affinity.namespace);
-            int bindingId = labels.supplyLabelId(affinity.binding);
-            long routeId = NamespacedId.id(namespaceId, bindingId);
-            tuning.affinity(routeId, affinity.mask);
+            int localId = labels.supplyLabelId(affinity.binding);
+            long bindingId = NamespacedId.id(namespaceId, localId);
+            tuning.affinity(bindingId, affinity.mask);
         }
         this.tuning = tuning;
 
@@ -165,7 +165,7 @@ public final class Engine implements AutoCloseable
         }
         else if ("http".equals(protocol) || "https".equals(protocol))
         {
-            throw new UnsupportedOperationException();
+            this.watcherTask = new HttpWatcherTask(this::reconfigure, config.configPollIntervalSeconds());
         }
         else
         {
@@ -222,7 +222,7 @@ public final class Engine implements AutoCloseable
         {
             AgentRunner.startOnThread(runner, Thread::new);
         }
-        watcherTaskRef = commonPool().submit(watcherTask);
+        watcherTaskRef = watcherTask.submit();
         watcherTask.watch(rootConfigURL).get();
     }
 
@@ -272,8 +272,17 @@ public final class Engine implements AutoCloseable
         {
             NamespaceConfig oldNamespace = namespaces.get(configURL);
             configurationManager.unregister(oldNamespace);
-            configurationManager.register(newNamespace);
-            namespaces.put(configURL, newNamespace);
+            try
+            {
+                configurationManager.register(newNamespace);
+                namespaces.put(configURL, newNamespace);
+            }
+            catch (Exception ex)
+            {
+                context.onError(ex);
+                configurationManager.register(oldNamespace);
+                namespaces.put(configURL, oldNamespace);
+            }
         }
         return newNamespace;
     }

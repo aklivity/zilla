@@ -20,13 +20,19 @@ public class HttpFileSystemWithResult
 {
     private final String16FW path;
     private final int capabilities;
+    private final String16FW tag;
+    private final long timeout;
 
     HttpFileSystemWithResult(
         String16FW path,
-        int capabilities)
+        int capabilities,
+        String16FW tag,
+        long timeout)
     {
         this.path = path;
         this.capabilities = capabilities;
+        this.tag = tag;
+        this.timeout = timeout;
     }
 
     public String16FW path()
@@ -38,4 +44,15 @@ public class HttpFileSystemWithResult
     {
         return capabilities;
     }
+
+    public String16FW tag()
+    {
+        return tag;
+    }
+
+    public long timeout()
+    {
+        return timeout;
+    }
+
 }

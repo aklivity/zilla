@@ -99,7 +99,7 @@ Hello, world
 ```
 
 ### Connect your Kafka and Create REST and SSE API Endpoints
-Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, and `SASL/PLAIN`.
+Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, `SASL/PLAIN`, and `SASL/SCRAM`.
 
 Follow the [docs][zilla-get-started] that show you how to modify your `zilla.yaml` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
 <br>

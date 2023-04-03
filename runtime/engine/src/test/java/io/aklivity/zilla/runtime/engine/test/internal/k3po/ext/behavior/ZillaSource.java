@@ -37,7 +37,6 @@ import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor.Bu
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.ZillaExtConfiguration;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.layout.StreamsLayout;
-import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function.LongLongFunction;
 
 public final class ZillaSource implements AutoCloseable
 {
@@ -45,7 +44,7 @@ public final class ZillaSource implements AutoCloseable
     private final ZillaStreamFactory streamFactory;
     private final LongSupplier supplyTraceId;
     private final ZillaPartition partition;
-    private final Long2ObjectHashMap<Long2ObjectHashMap<ZillaServerChannel>> routesByIdAndAuth;
+    private final Long2ObjectHashMap<Long2ObjectHashMap<ZillaServerChannel>> serversByIdAndAuth;
     private final DefaultBudgetCreditor creditor;
 
     public ZillaSource(
@@ -53,7 +52,7 @@ public final class ZillaSource implements AutoCloseable
         int scopeIndex,
         LongSupplier supplyTraceId,
         LongFunction<ZillaCorrelation> correlateEstablished,
-        LongLongFunction<ZillaTarget> supplySender,
+        LongFunction<ZillaTarget> supplySender,
         IntFunction<ZillaTarget> supplyTarget,
         BudgetFlusher flushWatchers,
         Long2ObjectHashMap<MessageHandler> streamsById,
@@ -61,7 +60,7 @@ public final class ZillaSource implements AutoCloseable
     {
         this.streamsPath = config.directory().resolve(String.format("data%d", scopeIndex));
         this.streamFactory = new ZillaStreamFactory(supplySender, streamsById::remove);
-        this.routesByIdAndAuth = new Long2ObjectHashMap<>();
+        this.serversByIdAndAuth = new Long2ObjectHashMap<>();
 
         BudgetsLayout budgets = new BudgetsLayout.Builder()
                 .path(config.directory().resolve(String.format("budgets%d", scopeIndex)))
@@ -76,7 +75,7 @@ public final class ZillaSource implements AutoCloseable
                 .build();
 
         this.supplyTraceId = supplyTraceId;
-        this.partition = new ZillaPartition(streamsPath, scopeIndex, streams, this::lookupRoute,
+        this.partition = new ZillaPartition(streamsPath, scopeIndex, streams, this::lookupServer,
                 streamsById::get, streamsById::put, throttlesById::get,
                 streamFactory, correlateEstablished, supplySender, supplyTarget);
         this.creditor = new DefaultBudgetCreditor(scopeIndex, budgets, flushWatchers);
@@ -88,23 +87,23 @@ public final class ZillaSource implements AutoCloseable
         return String.format("%s [%s]", getClass().getSimpleName(), streamsPath);
     }
 
-    public void doRoute(
-        long routeId,
+    public void doBind(
+        long bindingId,
         long authorization,
-        ZillaServerChannel serverChannel)
+        ZillaServerChannel server)
     {
-        routesByAuth(routeId).put(authorization, serverChannel);
+        serversByAuth(bindingId).put(authorization, server);
     }
 
-    public void doUnroute(
-        long routeId,
+    public void doUnbind(
+        long bindingId,
         long authorization,
-        ZillaServerChannel serverChannel)
+        ZillaServerChannel server)
     {
-        Long2ObjectHashMap<ZillaServerChannel> channels = routesByIdAndAuth.get(routeId);
+        Long2ObjectHashMap<ZillaServerChannel> channels = serversByIdAndAuth.get(bindingId);
         if (channels != null && channels.remove(authorization) != null && channels.isEmpty())
         {
-            routesByIdAndAuth.remove(routeId);
+            serversByIdAndAuth.remove(bindingId);
         }
     }
 
@@ -208,22 +207,22 @@ public final class ZillaSource implements AutoCloseable
         return creditor;
     }
 
-    private ZillaServerChannel lookupRoute(
-        long routeId,
+    private ZillaServerChannel lookupServer(
+        long bindingId,
         long authorization)
     {
-        Long2ObjectHashMap<ZillaServerChannel> routesByAuth = routesByAuth(routeId);
-        return routesByAuth.get(authorization);
+        Long2ObjectHashMap<ZillaServerChannel> serversByAuth = serversByAuth(bindingId);
+        return serversByAuth.get(authorization);
     }
 
-    private Long2ObjectHashMap<ZillaServerChannel> routesByAuth(
-        long routeId)
+    private Long2ObjectHashMap<ZillaServerChannel> serversByAuth(
+        long bindingId)
     {
-        return routesByIdAndAuth.computeIfAbsent(routeId, this::newRoutesByAuth);
+        return serversByIdAndAuth.computeIfAbsent(bindingId, this::newServersByAuth);
     }
 
-    private Long2ObjectHashMap<ZillaServerChannel> newRoutesByAuth(
-        long routeId)
+    private Long2ObjectHashMap<ZillaServerChannel> newServersByAuth(
+        long bindingId)
     {
         return new Long2ObjectHashMap<ZillaServerChannel>();
     }

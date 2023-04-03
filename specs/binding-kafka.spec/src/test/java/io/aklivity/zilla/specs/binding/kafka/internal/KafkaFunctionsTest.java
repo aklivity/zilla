@@ -29,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 import static org.kaazing.k3po.lang.internal.el.ExpressionFactoryUtils.newExpressionFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Objects;
 
 import javax.el.ELContext;
@@ -477,7 +478,7 @@ public class KafkaFunctionsTest
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
-                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null);
+                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
     }
 
     @Test
@@ -524,7 +525,7 @@ public class KafkaFunctionsTest
                 .matchFirst(h ->
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
-                        h.value().get((b, o, m) -> b.getByte(o)) == (byte) 1) != null);
+                        h.value().get((b, o, m) -> b.getByte(o)) == (byte) 1));
     }
 
     @Test
@@ -571,7 +572,7 @@ public class KafkaFunctionsTest
                 .matchFirst(h ->
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
-                    h.value().get((b, o, m) -> b.getShort(o)) == (short) 1) != null);
+                    h.value().get((b, o, m) -> b.getShort(o, ByteOrder.BIG_ENDIAN)) == (short) 1));
     }
 
     @Test
@@ -618,7 +619,7 @@ public class KafkaFunctionsTest
                 .matchFirst(h ->
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
-                    h.value().get((b, o, m) -> b.getInt(o)) == 1) != null);
+                    h.value().get((b, o, m) -> b.getInt(o, ByteOrder.BIG_ENDIAN)) == 1));
     }
 
     @Test
@@ -665,7 +666,7 @@ public class KafkaFunctionsTest
                 .matchFirst(h ->
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
-                    h.value().get((b, o, m) -> b.getLong(o)) == 1L) != null);
+                    h.value().get((b, o, m) -> b.getLong(o, ByteOrder.BIG_ENDIAN)) == 1L));
     }
 
     @Test
@@ -715,7 +716,7 @@ public class KafkaFunctionsTest
                                                   "name".equals(h.name()
                                                                  .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                                                       "value".equals(h.value()
-                                                             .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null);
+                                                             .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
     }
 
     @Test
@@ -1814,7 +1815,7 @@ public class KafkaFunctionsTest
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
-                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null);
+                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
 
         final KafkaDeltaFW delta = fetchDataEx.delta();
         assertEquals(KafkaDeltaType.JSON_PATCH, delta.type().get());
@@ -1861,7 +1862,7 @@ public class KafkaFunctionsTest
                                      "name".equals(h.name()
                                                     .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                                          "value".equals(h.value()
-                                                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null);
+                                                         .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
     }
 
     @Test
@@ -2998,7 +2999,7 @@ public class KafkaFunctionsTest
                     "name".equals(h.name()
                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o))) &&
                     "value".equals(h.value()
-                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))) != null);
+                                    .get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)))));
     }
 
     @Test
