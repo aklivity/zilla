@@ -293,7 +293,10 @@ public class ConfigurationManager
         return namespace;
     }
 
-    private long[] resolveMetricIds(MetricHandlerKind kind, NamespaceConfig namespace, BindingConfig binding)
+    private long[] resolveMetricIds(
+        MetricHandlerKind kind,
+        NamespaceConfig namespace,
+        BindingConfig binding)
     {
         if (binding.telemetryRef == null || binding.telemetryRef.metricRefs == null)
         {
@@ -318,7 +321,8 @@ public class ConfigurationManager
         return metricIds.stream().mapToLong(Long::longValue).toArray();
     }
 
-    private MetricHandlerKind getMetricKind(BindingConfig binding)
+    private MetricHandlerKind getMetricKind(
+        BindingConfig binding)
     {
         // TODO: Ati !!!
         if (("tcp".equalsIgnoreCase(binding.type) || "http".equalsIgnoreCase(binding.type)) &&

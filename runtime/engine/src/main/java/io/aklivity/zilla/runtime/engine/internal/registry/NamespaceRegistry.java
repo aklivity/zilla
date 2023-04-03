@@ -126,7 +126,9 @@ public class NamespaceRegistry
         supplyLoadEntry.accept(config.id);
     }
 
-    private MetricHandler getChainedMetricHandler(long bindingId, long[] metricIds)
+    private MetricHandler getChainedMetricHandler(
+        long bindingId,
+        long[] metricIds)
     {
         MetricHandler handler = MetricHandler.NO_OP;
         if (metricIds != null)
