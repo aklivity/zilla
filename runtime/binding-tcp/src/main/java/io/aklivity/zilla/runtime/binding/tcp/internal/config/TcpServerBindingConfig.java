@@ -31,7 +31,7 @@ import org.agrona.LangUtil;
 
 public final class TcpServerBindingConfig
 {
-    public final long bindingId;
+    public final long id;
 
     private final Lock lock = new ReentrantLock();
     private final AtomicInteger binds;
@@ -40,7 +40,7 @@ public final class TcpServerBindingConfig
     public TcpServerBindingConfig(
         long bindingId)
     {
-        this.bindingId = bindingId;
+        this.id = bindingId;
         this.binds = new AtomicInteger();
     }
 
