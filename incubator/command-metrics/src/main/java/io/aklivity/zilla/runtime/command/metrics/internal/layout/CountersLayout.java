@@ -42,6 +42,7 @@ public final class CountersLayout extends Layout
     private static final int BINDING_ID_OFFSET = 0;
     private static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
     private static final int VALUE_OFFSET = 2 * FIELD_SIZE;
+    private static final int NOT_FOUND = -1;
 
     private final AtomicBuffer buffer;
 
@@ -119,20 +120,15 @@ public final class CountersLayout extends Layout
             {
                 done = true;
             }
-            else if (b == 0L && m == 0L)
+            else if (isEmptySlot(b, m))
             {
-                // we reached and empty slot, which means we did not find the proper record
                 if (create)
                 {
-                    // let's create it
-                    buffer.putLong(i + BINDING_ID_OFFSET, bindingId);
-                    buffer.putLong(i + METRIC_ID_OFFSET, metricId);
-                    buffer.putLong(i + VALUE_OFFSET, 0L); // initial value
+                    createRecord(bindingId, metricId, i);
                 }
                 else
                 {
-                    // let's return the error code
-                    i = -1;
+                    i = NOT_FOUND;
                 }
                 done = true;
             }
@@ -142,6 +138,23 @@ public final class CountersLayout extends Layout
             }
         }
         return i;
+    }
+
+    private boolean isEmptySlot(
+        long bindingId,
+        long metricId)
+    {
+        return bindingId == 0L && metricId == 0L;
+    }
+
+    private void createRecord(
+        long bindingId,
+        long metricId,
+        int index)
+    {
+        buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
+        buffer.putLong(index + METRIC_ID_OFFSET, metricId);
+        buffer.putLong(index + VALUE_OFFSET, 0L); // initial value
     }
 
     private final class CountersIterator implements Iterator<long[]>

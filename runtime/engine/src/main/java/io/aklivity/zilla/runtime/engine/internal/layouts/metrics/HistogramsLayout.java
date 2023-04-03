@@ -54,6 +54,7 @@ public final class HistogramsLayout extends Layout
     private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
     private static final int RECORD_SIZE = 2 * FIELD_SIZE + ARRAY_SIZE;
     private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
+    private static final int NOT_FOUND = -1;
 
     private final AtomicBuffer buffer;
 
@@ -111,6 +112,13 @@ public final class HistogramsLayout extends Layout
         return StreamSupport.stream(spliterator, false).toArray(long[][]::new);
     }
 
+    private int findBucket(
+        long value)
+    {
+        assert value >= 0;
+        return Math.max(63 - Long.numberOfLeadingZeros(value), 0);
+    }
+
     private LongSupplier newLongSupplier(int i)
     {
         return () -> buffer.getLong(i);
@@ -147,21 +155,15 @@ public final class HistogramsLayout extends Layout
             {
                 done = true;
             }
-            else if (b == 0L && m == 0L)
+            else if (isEmptySlot(b, m))
             {
-                // we reached and empty slot, which means we did not find the proper record
                 if (create)
                 {
-                    // let's create it
-                    buffer.putLong(i + BINDING_ID_OFFSET, bindingId);
-                    buffer.putLong(i + METRIC_ID_OFFSET, metricId);
-                    ByteBuffer initialValues = ByteBuffer.allocate(ARRAY_SIZE); // all zeroes
-                    buffer.putBytes(i + VALUES_OFFSET, initialValues.array());
+                    createRecord(bindingId, metricId, i);
                 }
                 else
                 {
-                    // let's return the error code
-                    i = -1;
+                    i = NOT_FOUND;
                 }
                 done = true;
             }
@@ -173,12 +175,22 @@ public final class HistogramsLayout extends Layout
         return i;
     }
 
-    // exclusive upper limits of each bucket
-    private int findBucket(
-        long value)
+    private boolean isEmptySlot(
+        long bindingId,
+        long metricId)
     {
-        assert value >= 0;
-        return Math.max(63 - Long.numberOfLeadingZeros(value), 0);
+        return bindingId == 0L && metricId == 0L;
+    }
+
+    private void createRecord(
+        long bindingId,
+        long metricId,
+        int index)
+    {
+        buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
+        buffer.putLong(index + METRIC_ID_OFFSET, metricId);
+        ByteBuffer initialValues = ByteBuffer.allocate(ARRAY_SIZE); // all zeroes
+        buffer.putBytes(index + VALUES_OFFSET, initialValues.array());
     }
 
     // exclusive upper limits of each bucket
