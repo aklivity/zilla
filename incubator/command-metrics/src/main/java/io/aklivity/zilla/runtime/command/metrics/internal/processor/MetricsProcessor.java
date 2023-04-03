@@ -107,10 +107,15 @@ public class MetricsProcessor
                         .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
+                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers,
+                        labels::lookupLabel, this::counterFormatter);
                 metricRecords.add(record);
             }
         }
+    }
+    private String counterFormatter(long value)
+    {
+        return String.valueOf(value);
     }
 
     private void collectHistograms()
@@ -130,10 +135,16 @@ public class MetricsProcessor
                         .map(layout -> layout.supplyReaders(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[][]::new);
-                MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers, labels::lookupLabel);
+                MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers,
+                        labels::lookupLabel, this::histogramFormatter);
                 metricRecords.add(record);
             }
         }
+    }
+
+    private String histogramFormatter(long[] stats)
+    {
+        return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }
 
     private void updateRecords()

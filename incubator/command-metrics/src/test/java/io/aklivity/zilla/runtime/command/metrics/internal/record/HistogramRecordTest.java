@@ -22,6 +22,8 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.command.metrics.internal.utils.LongArrayFunction;
+
 public class HistogramRecordTest
 {
     public static final LongSupplier[] READER_HISTOGRAM_0 = new LongSupplier[]
@@ -79,13 +81,15 @@ public class HistogramRecordTest
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 999_999_999L
     };
+    private static final LongArrayFunction<String> FORMATTER =
+            stats -> String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
 
     @Test
     public void shouldReturnStats()
     {
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_1};
-        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null);
+        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -99,7 +103,7 @@ public class HistogramRecordTest
     {
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_1, READER_HISTOGRAM_2, READER_HISTOGRAM_3};
-        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null);
+        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -113,7 +117,7 @@ public class HistogramRecordTest
     {
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_4};
-        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null);
+        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -127,7 +131,7 @@ public class HistogramRecordTest
     {
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{READER_HISTOGRAM_0};
-        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null);
+        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -141,7 +145,7 @@ public class HistogramRecordTest
     {
         // GIVEN
         LongSupplier[][] readers = new LongSupplier[][]{};
-        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null);
+        HistogramRecord counter = new HistogramRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();

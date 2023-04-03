@@ -18,23 +18,26 @@ package io.aklivity.zilla.runtime.command.metrics.internal.record;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
 public class CounterRecordTest
 {
-    public static final LongSupplier READER_0 = () -> 0L;
-    public static final LongSupplier READER_42 = () -> 42L;
-    public static final LongSupplier READER_58 = () -> 58L;
-    public static final LongSupplier READER_100 = () -> 100L;
+    private static final LongSupplier READER_0 = () -> 0L;
+    private static final LongSupplier READER_42 = () -> 42L;
+    private static final LongSupplier READER_58 = () -> 58L;
+    private static final LongSupplier READER_100 = () -> 100L;
+    private static final LongFunction<String> FORMATTER = String::valueOf;
+
 
     @Test
     public void shouldReturnSum()
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{READER_42, READER_58, READER_100};
-        CounterRecord counter = new CounterRecord(0L, 0L, readers, null);
+        CounterRecord counter = new CounterRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -48,7 +51,7 @@ public class CounterRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{READER_0};
-        CounterRecord counter = new CounterRecord(0L, 0L, readers, null);
+        CounterRecord counter = new CounterRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -62,7 +65,7 @@ public class CounterRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{};
-        CounterRecord counter = new CounterRecord(0L, 0L, readers, null);
+        CounterRecord counter = new CounterRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();

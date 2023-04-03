@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUti
 
 import java.util.Arrays;
 import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
 public class CounterRecord implements MetricRecord
@@ -31,6 +32,7 @@ public class CounterRecord implements MetricRecord
     private final int metricId;
     private final LongSupplier[] readers;
     private final IntFunction<String> labelResolver;
+    private final LongFunction<String> valueFormatter;
 
     private long value = UNINITIALIZED;
 
@@ -38,13 +40,15 @@ public class CounterRecord implements MetricRecord
         long packedBindingId,
         long packedMetricId,
         LongSupplier[] readers,
-        IntFunction<String> labelResolver)
+        IntFunction<String> labelResolver,
+        LongFunction<String> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
         this.metricId = localId(packedMetricId);
         this.readers = readers;
         this.labelResolver = labelResolver;
+        this.valueFormatter = valueFormatter;
     }
 
     @Override
@@ -72,7 +76,7 @@ public class CounterRecord implements MetricRecord
         {
             update();
         }
-        return String.valueOf(value);
+        return valueFormatter.apply(value);
     }
 
     @Override

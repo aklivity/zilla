@@ -23,6 +23,8 @@ import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUti
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
+import io.aklivity.zilla.runtime.command.metrics.internal.utils.LongArrayFunction;
+
 public class HistogramRecord implements MetricRecord
 {
     private final int namespaceId;
@@ -30,6 +32,7 @@ public class HistogramRecord implements MetricRecord
     private final int metricId;
     private final LongSupplier[][] readers;
     private final IntFunction<String> labelResolver;
+    private final LongArrayFunction<String> valueFormatter;
 
     private long[] stats;
 
@@ -37,13 +40,15 @@ public class HistogramRecord implements MetricRecord
         long packedBindingId,
         long packedMetricId,
         LongSupplier[][] readers,
-        IntFunction<String> labelResolver)
+        IntFunction<String> labelResolver,
+        LongArrayFunction<String> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
         this.metricId = localId(packedMetricId);
         this.readers = readers;
         this.labelResolver = labelResolver;
+        this.valueFormatter = valueFormatter;
     }
 
     @Override
@@ -71,7 +76,7 @@ public class HistogramRecord implements MetricRecord
         {
             update();
         }
-        return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
+        return valueFormatter.apply(stats);
     }
 
     @Override
