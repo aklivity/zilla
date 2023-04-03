@@ -232,7 +232,7 @@ public final class Target implements AutoCloseable
         }
         else
         {
-            supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
+            supplyMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case WindowFW.TYPE_ID:
@@ -276,7 +276,7 @@ public final class Target implements AutoCloseable
 
         if ((msgTypeId & 0x4000_0000) == 0)
         {
-            supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
+            supplyMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:

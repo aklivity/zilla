@@ -1057,7 +1057,7 @@ public class DispatchAgent implements EngineContext, Agent
             final MessageConsumer handler = dispatcher.get(instanceId);
             if (handler != null)
             {
-                supplyMetricRecorder.apply(routeId).onEvent(msgTypeId, buffer, index, length);
+                supplyMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:

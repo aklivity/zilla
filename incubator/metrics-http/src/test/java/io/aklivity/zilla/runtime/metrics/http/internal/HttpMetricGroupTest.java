@@ -83,7 +83,7 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
@@ -92,7 +92,7 @@ public class HttpMetricGroupTest
         // end frame
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
@@ -123,34 +123,36 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
         handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // data frame with 33 bytes length
-        AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
         AtomicBuffer payload1 = new UnsafeBuffer(new byte[33], 0, 33);
-        new DataFW.Builder().wrap(dataBuffer1, 0, 128).routeId(0L).streamId(1L) // received
+        new DataFW.Builder().wrap(dataBuffer1, 0, dataBuffer1.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload1, 0, 33).build();
         handler.onEvent(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
 
         // data frame with 44 bytes length
-        AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
         AtomicBuffer payload2 = new UnsafeBuffer(new byte[44], 0, 44);
-        new DataFW.Builder().wrap(dataBuffer2, 0, 128).routeId(0L).streamId(1L) // received
+        new DataFW.Builder().wrap(dataBuffer2, 0, dataBuffer2.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload2, 0, 44).build();
         handler.onEvent(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
 
         // end frame
-        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[64], 0, 64);
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
@@ -182,7 +184,7 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer1, 0, beginBuffer1.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
@@ -191,7 +193,7 @@ public class HttpMetricGroupTest
         // end frame
         AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
@@ -205,7 +207,7 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer2, 0, beginBuffer2.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
@@ -214,7 +216,7 @@ public class HttpMetricGroupTest
         // end frame
         AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
@@ -246,16 +248,16 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
         handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // abort frame
-        AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new AbortFW.Builder().wrap(abortBuffer, 0, abortBuffer.capacity())
-                .routeId(0L).streamId(1L) // received
+                .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
@@ -304,7 +306,7 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
@@ -313,7 +315,7 @@ public class HttpMetricGroupTest
         // end frame
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
@@ -344,34 +346,36 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
         handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // data frame with 33 bytes length
-        AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
         AtomicBuffer payload1 = new UnsafeBuffer(new byte[33], 0, 33);
-        new DataFW.Builder().wrap(dataBuffer1, 0, 128).routeId(0L).streamId(2L) // sent
+        new DataFW.Builder().wrap(dataBuffer1, 0, 128)
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload1, 0, 33).build();
         handler.onEvent(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
 
         // data frame with 44 bytes length
-        AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
         AtomicBuffer payload2 = new UnsafeBuffer(new byte[44], 0, 44);
-        new DataFW.Builder().wrap(dataBuffer2, 0, 128).routeId(0L).streamId(2L) // sent
+        new DataFW.Builder().wrap(dataBuffer2, 0, dataBuffer2.capacity())
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload2, 0, 44).build();
         handler.onEvent(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
 
         // end frame
-        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[64], 0, 64);
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
@@ -403,7 +407,7 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer1, 0, beginBuffer1.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
@@ -412,7 +416,7 @@ public class HttpMetricGroupTest
         // end frame
         AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
@@ -426,7 +430,7 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer2, 0, beginBuffer2.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
@@ -435,7 +439,7 @@ public class HttpMetricGroupTest
         // end frame
         AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
@@ -467,7 +471,7 @@ public class HttpMetricGroupTest
                 .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
@@ -476,7 +480,7 @@ public class HttpMetricGroupTest
         // abort frame
         AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new AbortFW.Builder().wrap(abortBuffer, 0, abortBuffer.capacity())
-                .routeId(0L).streamId(2L) // sent
+                .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
         handler.onEvent(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
