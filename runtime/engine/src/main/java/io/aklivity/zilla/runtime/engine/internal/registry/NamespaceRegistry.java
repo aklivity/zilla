@@ -116,19 +116,29 @@ public class NamespaceRegistry
         BindingContext context = bindingsByType.apply(config.type);
         assert context != null : "Missing binding type: " + config.type;
 
-        MetricHandler handler = MetricHandler.NO_OP;
-        for (long metricId : config.metricIds)
-        {
-            MetricRegistry metric = supplyMetric.apply(metricId);
-            LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
-            handler = handler.andThen(metric.supplyHandler(metricRecorder)); // chain the MetricHandler's for this binding
-        }
-        BindingRegistry registry = new BindingRegistry(config, context, handler);
+        MetricHandler originHandler = getChainedMetricHandler(config.id, config.originMetricIds);
+        MetricHandler routedHandler = getChainedMetricHandler(config.id, config.routedMetricIds);
+        BindingRegistry registry = new BindingRegistry(config, context, originHandler, routedHandler);
 
         int bindingId = supplyLabelId.applyAsInt(config.entry);
         bindingsById.put(bindingId, registry);
         registry.attach();
         supplyLoadEntry.accept(config.id);
+    }
+
+    private MetricHandler getChainedMetricHandler(long bindingId, long[] metricIds)
+    {
+        MetricHandler handler = MetricHandler.NO_OP;
+        if (metricIds != null)
+        {
+            for (long metricId : metricIds)
+            {
+                MetricRegistry metric = supplyMetric.apply(metricId);
+                LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), bindingId, metricId);
+                handler = handler.andThen(metric.supplyHandler(metricRecorder));
+            }
+        }
+        return handler;
     }
 
     private void detachBinding(

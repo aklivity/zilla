@@ -24,19 +24,21 @@ final class BindingRegistry
 {
     private final BindingConfig binding;
     private final BindingContext context;
-    // all the MetricHandler's that the current binding needs, should be chained up with andThen's and stored here
-    private final MetricHandler metricHandler;
+    private final MetricHandler originMetricHandler;
+    private final MetricHandler routedMetricHandler;
 
     private BindingHandler attached;
 
     BindingRegistry(
         BindingConfig binding,
         BindingContext context,
-        MetricHandler metricHandler)
+        MetricHandler originMetricHandler,
+        MetricHandler routedMetricHandler)
     {
         this.binding = binding;
         this.context = context;
-        this.metricHandler = metricHandler;
+        this.originMetricHandler = originMetricHandler;
+        this.routedMetricHandler = routedMetricHandler;
     }
 
     public void attach()
@@ -55,8 +57,13 @@ final class BindingRegistry
         return attached;
     }
 
-    MetricHandler metricRecorder()
+    MetricHandler originMetricRecorder()
     {
-        return metricHandler;
+        return originMetricHandler;
+    }
+
+    MetricHandler routedMetricRecorder()
+    {
+        return routedMetricHandler;
     }
 }

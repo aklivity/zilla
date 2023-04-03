@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
 import static java.util.Collections.singletonMap;
 
@@ -265,7 +267,8 @@ public class ConfigurationManager
                     }
                 }
 
-                binding.metricIds = resolveMetricIds(namespace0, binding);
+                binding.originMetricIds = resolveMetricIds(ORIGIN, namespace, binding);
+                binding.routedMetricIds = resolveMetricIds(ROUTED, namespace, binding);
 
                 long affinity = tuning.affinity(binding.id);
 
@@ -290,7 +293,7 @@ public class ConfigurationManager
         return namespace;
     }
 
-    private long[] resolveMetricIds(NamespaceConfig namespace, BindingConfig binding)
+    private long[] resolveMetricIds(MetricHandlerKind kind, NamespaceConfig namespace, BindingConfig binding)
     {
         if (binding.telemetryRef == null || binding.telemetryRef.metricRefs == null)
         {
@@ -305,11 +308,28 @@ public class ConfigurationManager
             {
                 if (pattern.matcher(metric.name).matches())
                 {
-                    metricIds.add(namespace.resolveId.applyAsLong(metric.name));
+                    if (getMetricKind(binding) == kind)
+                    {
+                        metricIds.add(namespace.resolveId.applyAsLong(metric.name));
+                    }
                 }
             }
         }
         return metricIds.stream().mapToLong(Long::longValue).toArray();
+    }
+
+    private MetricHandlerKind getMetricKind(BindingConfig binding)
+    {
+        // TODO: Ati !!!
+        if (("tcp".equalsIgnoreCase(binding.type) || "http".equalsIgnoreCase(binding.type)) &&
+                binding.kind == KindConfig.SERVER)
+        {
+            return ORIGIN;
+        }
+        else
+        {
+            return ROUTED;
+        }
     }
 
     public void register(
