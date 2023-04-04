@@ -35,6 +35,7 @@ read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .topic("sensor/one")
+                                .flags("QOS0")
                                 .build()
                              .build()}
 
@@ -44,6 +45,7 @@ read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .topic("sensor/one")
+                                .flags("QOS0")
                                 .build()
                              .build()}
 
@@ -53,6 +55,7 @@ read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .topic("sensor/one")
+                                .flags("QOS0")
                                 .build()
                              .build()}
 

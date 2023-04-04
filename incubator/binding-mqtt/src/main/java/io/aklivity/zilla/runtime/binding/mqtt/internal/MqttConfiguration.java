@@ -47,6 +47,7 @@ public class MqttConfiguration extends Configuration
         WILDCARD_SUBSCRIPTION_AVAILABLE = config.property("wildcard.subscription.available", true);
         SUBSCRIPTION_IDENTIFIERS_AVAILABLE = config.property("subscription.identifiers.available", true);
         SHARED_SUBSCRIPTION_AVAILABLE = config.property("shared.subscription.available", false);
+        //TODO: Add session available, default to true, turn off for non-session tests
         NO_LOCAL = config.property("no.local", true);
         SESSION_EXPIRY_GRACE_PERIOD = config.property("session.expiry.grace.period", 30);
         CLIENT_ID = config.property("client.id");

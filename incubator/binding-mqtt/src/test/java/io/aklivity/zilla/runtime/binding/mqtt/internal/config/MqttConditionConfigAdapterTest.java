@@ -15,11 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities.PUBLISH_ONLY;
-import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities.SUBSCRIBE_ONLY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import jakarta.json.bind.Jsonb;
@@ -47,24 +46,22 @@ public class MqttConditionConfigAdapterTest
         String text =
                 "{" +
                     "\"topic\": \"test\"," +
-                    "\"capabilities\": \"publish_only\"" +
                 "}";
 
         MqttConditionConfig condition = jsonb.fromJson(text, MqttConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
         assertThat(condition.topic, equalTo("test"));
-        assertThat(condition.capabilities, equalTo(PUBLISH_ONLY));
     }
 
     @Test
     public void shouldWriteCondition()
     {
-        MqttConditionConfig condition = new MqttConditionConfig("test", SUBSCRIBE_ONLY);
+        MqttConditionConfig condition = new MqttConditionConfig("test");
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"topic\":\"test\",\"capabilities\":\"subscribe_only\"}"));
+        assertThat(text, equalTo("{\"topic\":\"test\"}"));
     }
 }

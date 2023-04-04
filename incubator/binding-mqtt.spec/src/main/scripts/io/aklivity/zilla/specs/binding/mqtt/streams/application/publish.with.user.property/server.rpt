@@ -33,7 +33,7 @@ read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("/sensors/1")
-                                .flags("RETAIN")
+                                .flags("RETAIN", "QOS0")
                                 .userProperty("row", "1")
                                 .build()
                             .build()}

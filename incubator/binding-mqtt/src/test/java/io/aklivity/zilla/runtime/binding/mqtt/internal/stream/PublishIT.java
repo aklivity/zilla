@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.PUBLISH_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.TOPIC_ALIAS_MAXIMUM_NAME;
@@ -43,7 +44,7 @@ public class PublishIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(20, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -139,6 +140,7 @@ public class PublishIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
+    @Configure(name = PUBLISH_TIMEOUT_NAME, value = "5")
     public void shouldPublishMultipleMessagesWithDelay() throws Exception
     {
         k3po.start();
@@ -209,12 +211,12 @@ public class PublishIT
     @Test
     @Configuration("server.when.topic.publish.only.yaml")
     @Specification({
-        "${net}/publish.rejected.topic.alias.exceeds.maximum/client"})
+        "${net}/publish.reject.topic.alias.exceeds.maximum/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectPublishWHenTopicAliasExceedsMaximum() throws Exception
+    public void shouldRejectPublishWhenTopicAliasExceedsMaximum() throws Exception
     {
         k3po.finish();
     }
@@ -303,6 +305,7 @@ public class PublishIT
         k3po.finish();
     }
 
+    //TODO: debug old implementation
     @Test
     @Configuration("server.yaml")
     @Specification({

@@ -21,11 +21,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
+import org.kaazing.k3po.lang.el.BytesMatcher;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
@@ -172,9 +174,9 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.beginEx()
             .typeId(0)
             .subscribe()
-            .clientId("client")
-            .filter("sensor/one", 1, "SEND_RETAINED")
-            .build()
+                .clientId("client")
+                .filter("sensor/one", 1, "SEND_RETAINED")
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -188,6 +190,29 @@ public class MqttFunctionsTest
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&
                     0b1000 == f.flags()));
+    }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .filter("sensor/one", 1, "SEND_RETAINED")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .filtersItem(p -> p.pattern("sensor/one").subscriptionId(1).flags(8)))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test

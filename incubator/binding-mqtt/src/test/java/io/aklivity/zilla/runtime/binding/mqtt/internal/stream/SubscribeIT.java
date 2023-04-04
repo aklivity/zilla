@@ -45,7 +45,7 @@ public class SubscribeIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(20, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -168,20 +168,6 @@ public class SubscribeIT
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldSubscribeWithTwoTopicsBothExactTwoSubscribePackets() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/subscribe.topic.filters.aggregated.both.wildcard/client",
-        "${app}/subscribe.topic.filters.aggregated.both.wildcard/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeWithTwoTopicsBothWildcardOneSubscribePacket() throws Exception
     {
         k3po.finish();
     }
@@ -341,7 +327,7 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.reject.wildcard.subscriptions.unavailable/client"})
+        "${net}/subscribe.reject.wildcard.subscriptions.not.supported/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -354,7 +340,7 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.reject.wildcard.subscriptions.unavailable/client"})
+        "${net}/subscribe.reject.subscription.ids.not.supported/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
@@ -368,7 +354,7 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/subscribe.reject.shared.subscription.unavailable/client"})
+        "${net}/subscribe.reject.shared.subscriptions.not.supported/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")

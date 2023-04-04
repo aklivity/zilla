@@ -15,19 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 
 public final class MqttConditionConfig extends ConditionConfig
 {
     public final String topic;
-    public final MqttCapabilities capabilities;
 
     public MqttConditionConfig(
-        String topic,
-        MqttCapabilities capabilities)
+        String topic)
     {
         this.topic = topic;
-        this.capabilities = capabilities;
     }
 }

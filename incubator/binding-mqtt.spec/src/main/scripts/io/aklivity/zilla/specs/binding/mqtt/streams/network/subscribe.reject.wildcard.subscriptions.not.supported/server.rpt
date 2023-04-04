@@ -43,7 +43,7 @@ read  [0x82 0x14]                   # SUBSCRIBE
       [0x00]                        # options = at-most-once, send retained
 
 write [0xe0 0x02]                   # DISCONNECT
-      [0x28]                        # wildcard subscription unavailable
+      [0xa2]                        # wildcard subscription unavailable
       [0x00]                        # properties = none
 
 write abort

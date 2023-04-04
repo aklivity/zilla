@@ -18,38 +18,26 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
-
 public final class MqttConditionMatcher
 {
     private final Matcher topicMatch;
-    private final MqttCapabilities capabilitiesMatch;
 
     public MqttConditionMatcher(
         MqttConditionConfig condition)
     {
         this.topicMatch = condition.topic != null ? asMatcher(condition.topic) : null;
-        this.capabilitiesMatch = condition.capabilities;
     }
 
     public boolean matches(
-        String topic,
-        MqttCapabilities capabilities)
+        String topic)
     {
-        return matchesTopic(topic) &&
-                matchesCapabilities(capabilities);
+        return matchesTopic(topic);
     }
 
     private boolean matchesTopic(
         String topic)
     {
         return this.topicMatch == null || this.topicMatch.reset(topic).matches();
-    }
-
-    private boolean matchesCapabilities(
-        MqttCapabilities capabilities)
-    {
-        return this.capabilitiesMatch == null || (this.capabilitiesMatch.value() & capabilities.value()) != 0;
     }
 
     private static Matcher asMatcher(

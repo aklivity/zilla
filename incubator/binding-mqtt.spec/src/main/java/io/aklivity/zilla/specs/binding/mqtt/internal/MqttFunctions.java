@@ -17,20 +17,27 @@ package io.aklivity.zilla.specs.binding.mqtt.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.function.Predicate;
 
+import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
+import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
@@ -61,6 +68,12 @@ public final class MqttFunctions
     public static MqttBeginExBuilder beginEx()
     {
         return new MqttBeginExBuilder();
+    }
+
+    @Function
+    public static MqttBeginExMatcherBuilder matchBeginEx()
+    {
+        return new MqttBeginExMatcherBuilder();
     }
 
     @Function
@@ -311,7 +324,7 @@ public final class MqttFunctions
                 String... flags)
             {
                 int subscribeFlags = Arrays.stream(flags)
-                    .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
+                    .mapToInt(flag -> 1 << MqttPublishFlags.valueOf(flag).ordinal())
                     .reduce(0, (a, b) -> a | b);
 
                 subscribeDataExRW.flags(subscribeFlags);
@@ -678,6 +691,158 @@ public final class MqttFunctions
         public MqttWillMessageFW build()
         {
             return willMessageRW.build();
+        }
+    }
+
+    public static final class MqttBeginExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final MqttBeginExFW beginExRO = new MqttBeginExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<MqttBeginExFW> caseMatcher;
+
+        public MqttSubscribeBeginExMatcherBuilder subscribe()
+        {
+            final MqttSubscribeBeginExMatcherBuilder matcherBuilder = new MqttSubscribeBeginExMatcherBuilder();
+
+            this.kind = MqttExtensionKind.SUBSCRIBE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        //        public KafkaFetchBeginExMatcherBuilder fetch()
+        //        {
+        //            final KafkaFetchBeginExMatcherBuilder matcherBuilder = new KafkaFetchBeginExMatcherBuilder();
+        //
+        //            this.kind = KafkaApi.FETCH.value();
+        //            this.caseMatcher = matcherBuilder::match;
+        //            return matcherBuilder;
+        //        }
+
+        //        public KafkaProduceBeginExMatcherBuilder produce()
+        //        {
+        //            final KafkaProduceBeginExMatcherBuilder matcherBuilder = new KafkaProduceBeginExMatcherBuilder();
+        //
+        //            this.kind = KafkaApi.PRODUCE.value();
+        //            this.caseMatcher = matcherBuilder::match;
+        //            return matcherBuilder;
+        //        }
+
+        public MqttBeginExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private MqttBeginExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final MqttBeginExFW beginEx = beginExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (beginEx != null &&
+                matchTypeId(beginEx) &&
+                matchKind(beginEx) &&
+                matchCase(beginEx))
+            {
+                byteBuf.position(byteBuf.position() + beginEx.sizeof());
+                return beginEx;
+            }
+
+            throw new Exception(beginEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final MqttBeginExFW beginEx)
+        {
+            return typeId == null || typeId == beginEx.typeId();
+        }
+
+        private boolean matchKind(
+            final MqttBeginExFW beginEx)
+        {
+            return kind == null || kind == beginEx.kind();
+        }
+
+        private boolean matchCase(
+            final MqttBeginExFW beginEx) throws Exception
+        {
+            return caseMatcher == null || caseMatcher.test(beginEx);
+        }
+
+        public final class MqttSubscribeBeginExMatcherBuilder
+        {
+            private String16FW clientId;
+            private Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> topicFiltersRW;
+
+            private MqttSubscribeBeginExMatcherBuilder()
+            {
+            }
+            public MqttSubscribeBeginExMatcherBuilder clientId(
+                String clientId)
+            {
+                this.clientId = new String16FW(clientId);
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder filter(
+                String pattern,
+                int id,
+                String... flags)
+            {
+                if (topicFiltersRW == null)
+                {
+                    this.topicFiltersRW = new Array32FW.Builder<>(new MqttTopicFilterFW.Builder(), new MqttTopicFilterFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                int flagsLocal = Arrays.stream(flags)
+                    .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
+                    .reduce(0, (a, b) -> a | b);
+                topicFiltersRW.item(i -> i
+                    .pattern(pattern)
+                    .subscriptionId(id)
+                    .flags(flagsLocal));
+                return this;
+            }
+
+            public MqttBeginExMatcherBuilder build()
+            {
+                return MqttBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                MqttBeginExFW beginEx)
+            {
+                final MqttSubscribeBeginExFW mergedBeginEx = beginEx.subscribe();
+                return matchClientId(mergedBeginEx) &&
+                    matchTopicFilters(mergedBeginEx);
+            }
+
+            private boolean matchClientId(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                return clientId == null || clientId.equals(subscribeBeginEx.clientId());
+            }
+
+            private boolean matchTopicFilters(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                return topicFiltersRW == null || topicFiltersRW.build().equals(subscribeBeginEx.filters());
+            }
         }
     }
 

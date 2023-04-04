@@ -21,14 +21,12 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.MqttBinding;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class MqttConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
     private static final String TOPIC_NAME = "topic";
-    private static final String CAPABILITIES_NAME = "capabilities";
 
     @Override
     public String type()
@@ -49,11 +47,6 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
             object.add(TOPIC_NAME, mqttCondition.topic);
         }
 
-        if (mqttCondition.capabilities != null)
-        {
-            object.add(CAPABILITIES_NAME, mqttCondition.capabilities.toString().toLowerCase());
-        }
-
         return object.build();
     }
 
@@ -65,10 +58,6 @@ public final class MqttConditionConfigAdapter implements ConditionConfigAdapterS
                 ? object.getString(TOPIC_NAME)
                 : null;
 
-        MqttCapabilities capabilities = object.containsKey(CAPABILITIES_NAME)
-                ? MqttCapabilities.valueOf(object.getString(CAPABILITIES_NAME).toUpperCase())
-                : null;
-
-        return new MqttConditionConfig(topic, capabilities);
+        return new MqttConditionConfig(topic);
     }
 }
