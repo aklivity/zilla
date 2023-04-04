@@ -383,4 +383,100 @@ public class StreamMetricGroupTest
         // THEN
         verify(mockRecorder, times(1)).accept(1L);
     }
+
+    @Test
+    public void shouldResolveStreamActiveReceived()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+
+        // WHEN
+        Metric metric = metricGroup.resolve("stream.active.received");
+
+        // THEN
+        assertThat(metric, instanceOf(StreamActiveReceivedMetric.class));
+        assertThat(metric.name(), equalTo("stream.active.received"));
+        assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
+        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+    }
+
+    @Test
+    public void shouldRecordStreamActiveReceived()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        EngineContext mockEngineContext = mock(EngineContext.class);
+        LongConsumer mockRecorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.resolve("stream.active.received");
+        MetricContext context = metric.supply(mockEngineContext);
+        MetricHandler handler = context.supply(mockRecorder);
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L).build();
+        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(1L) // received
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(mockRecorder, times(1)).accept(1L);
+        verify(mockRecorder, times(1)).accept(0L);
+    }
+
+    @Test
+    public void shouldResolveStreamActiveSent()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+
+        // WHEN
+        Metric metric = metricGroup.resolve("stream.active.sent");
+
+        // THEN
+        assertThat(metric, instanceOf(StreamActiveSentMetric.class));
+        assertThat(metric.name(), equalTo("stream.active.sent"));
+        assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
+        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+    }
+
+    @Test
+    public void shouldRecordStreamActiveSent()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        EngineContext mockEngineContext = mock(EngineContext.class);
+        LongConsumer mockRecorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.resolve("stream.active.sent");
+        MetricContext context = metric.supply(mockEngineContext);
+        MetricHandler handler = context.supply(mockRecorder);
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(2L) // sent
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).affinity(0L).build();
+        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+                .originId(0L).routedId(0L).streamId(2L) // sent
+                .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+                .traceId(0L).authorization(0L).build();
+        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(mockRecorder, times(1)).accept(1L);
+        verify(mockRecorder, times(1)).accept(0L);
+    }
 }
