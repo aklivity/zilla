@@ -14,21 +14,29 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.utils;
 
-public final class MetricUtils
+public final class NamespacedId
 {
-    private MetricUtils()
-    {
-    }
-
     public static int namespaceId(
-        long packedId)
+            long bindingId)
     {
-        return (int) (packedId >> Integer.SIZE) & 0xffff_ffff;
+        return (int)(bindingId >> Integer.SIZE) & 0xffff_ffff;
     }
 
     public static int localId(
-        long packedId)
+            long bindingId)
     {
-        return (int) (packedId >> 0) & 0xffff_ffff;
+        return (int)(bindingId >> 0) & 0xffff_ffff;
+    }
+
+    public static long id(
+            final int namespaceId,
+            final int localId)
+    {
+        return (long) namespaceId << Integer.SIZE |
+                (long) localId << 0;
+    }
+
+    private NamespacedId()
+    {
     }
 }

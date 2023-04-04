@@ -14,8 +14,8 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.localId;
-import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.namespaceId;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.NamespacedId.localId;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.NamespacedId.namespaceId;
 
 import java.util.Arrays;
 import java.util.function.IntFunction;
