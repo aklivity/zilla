@@ -17,6 +17,8 @@ import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 
 public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObject>
 {
+    public static final TelemetryConfig EMPTY_TELEMETRY_CONFIG = new TelemetryConfig(List.of(), List.of());
+
     private static final String ATTRIBUTES_NAME = "attributes";
     private static final String METRICS_NAME = "metrics";
 

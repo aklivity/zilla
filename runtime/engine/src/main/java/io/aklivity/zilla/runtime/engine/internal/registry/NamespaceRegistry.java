@@ -92,10 +92,7 @@ public class NamespaceRegistry
     {
         namespace.vaults.forEach(this::attachVault);
         namespace.guards.forEach(this::attachGuard);
-        if (namespace.telemetry != null && namespace.telemetry.metrics != null)
-        {
-            namespace.telemetry.metrics.forEach(this::attachMetric);
-        }
+        namespace.telemetry.metrics.forEach(this::attachMetric);
         namespace.bindings.forEach(this::attachBinding);
     }
 
@@ -104,10 +101,7 @@ public class NamespaceRegistry
         namespace.vaults.forEach(this::detachVault);
         namespace.guards.forEach(this::detachGuard);
         namespace.bindings.forEach(this::detachBinding);
-        if (namespace.telemetry != null && namespace.telemetry.metrics != null)
-        {
-            namespace.telemetry.metrics.forEach(this::detachMetric);
-        }
+        namespace.telemetry.metrics.forEach(this::detachMetric);
     }
 
     private void attachBinding(
