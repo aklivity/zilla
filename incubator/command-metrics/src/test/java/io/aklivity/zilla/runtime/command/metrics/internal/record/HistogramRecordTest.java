@@ -17,11 +17,10 @@ package io.aklivity.zilla.runtime.command.metrics.internal.record;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
-
-import io.aklivity.zilla.runtime.command.metrics.internal.utils.LongArrayFunction;
 
 public class HistogramRecordTest
 {
@@ -80,7 +79,7 @@ public class HistogramRecordTest
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L,
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 999_999_999L
     };
-    private static final LongArrayFunction<String> FORMATTER =
+    private static final Function<long[], String> FORMATTER =
             stats -> String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
 
     @Test

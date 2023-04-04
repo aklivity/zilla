@@ -19,10 +19,9 @@ import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Histogra
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.localId;
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.MetricUtils.namespaceId;
 
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
-
-import io.aklivity.zilla.runtime.command.metrics.internal.utils.LongArrayFunction;
 
 public class HistogramRecord implements MetricRecord
 {
@@ -31,7 +30,7 @@ public class HistogramRecord implements MetricRecord
     private final int metricId;
     private final LongSupplier[][] readers;
     private final IntFunction<String> labelResolver;
-    private final LongArrayFunction<String> valueFormatter;
+    private final Function<long[], String> valueFormatter;
 
     private long[] stats;
 
@@ -40,7 +39,7 @@ public class HistogramRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[][] readers,
         IntFunction<String> labelResolver,
-        LongArrayFunction<String> valueFormatter)
+        Function<long[], String> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
