@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
-import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.getContentLength;
-import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.getContentLengthValue;
-import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.isContentLengthValid;
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.INVALID_CONTENT_LENGTH;
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.findContentLength;
 import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.isInitial;
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.parseContentLength;
 
 import java.util.function.LongConsumer;
 
@@ -115,19 +115,19 @@ public class HttpRequestSizeMetric implements Metric
             {
             case BeginFW.TYPE_ID:
                 final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-                final HttpHeaderFW contentLength = getContentLength(begin);
-                if (isContentLengthValid(contentLength))
+                final HttpHeaderFW contentLengthHeader = findContentLength(begin);
+                long contentLength = parseContentLength(contentLengthHeader);
+                if (contentLength == INVALID_CONTENT_LENGTH)
                 {
-                    long contentLengthValue = getContentLengthValue(contentLength);
-                    if (contentLengthValue != INITIAL_VALUE)
-                    {
-                        requestSize.put(streamId, contentLengthValue);
-                    }
-                    handlers.put(streamId, this::handleFixedLength);
+                    handlers.put(streamId, this::handleDynamicLength);
                 }
                 else
                 {
-                    handlers.put(streamId, this::handleDynamicLength);
+                    if (contentLength != INITIAL_VALUE)
+                    {
+                        requestSize.put(streamId, contentLength);
+                    }
+                    handlers.put(streamId, this::handleFixedLength);
                 }
                 break;
             default:

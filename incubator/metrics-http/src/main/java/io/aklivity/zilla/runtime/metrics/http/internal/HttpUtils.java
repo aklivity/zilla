@@ -25,6 +25,8 @@ import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.HttpBeginExF
 
 final class HttpUtils
 {
+    public static final int INVALID_CONTENT_LENGTH = -1;
+
     private HttpUtils()
     {
     }
@@ -35,7 +37,7 @@ final class HttpUtils
         return (streamId & 0x0000_0000_0000_0001L) != 0L;
     }
 
-    public static HttpHeaderFW getContentLength(
+    public static HttpHeaderFW findContentLength(
         BeginFW begin)
     {
         final OctetsFW extension = begin.extension();
@@ -46,17 +48,24 @@ final class HttpUtils
         return headers.matchFirst(header -> httpContentLength.equals(header.name()));
     }
 
-    public static boolean isContentLengthValid(
+    public static long parseContentLength(
+        HttpHeaderFW contentLength)
+    {
+        if (isContentLengthValid(contentLength))
+        {
+            DirectBuffer buffer = contentLength.value().value();
+            assert buffer != null;
+            return buffer.parseLongAscii(0, buffer.capacity());
+        }
+        else
+        {
+            return INVALID_CONTENT_LENGTH;
+        }
+    }
+
+    private static boolean isContentLengthValid(
         HttpHeaderFW contentLength)
     {
         return contentLength != null && contentLength.value() != null && contentLength.value().length() != -1;
-    }
-
-    public static long getContentLengthValue(
-        HttpHeaderFW contentLength)
-    {
-        DirectBuffer buffer = contentLength.value().value();
-        assert buffer != null;
-        return buffer.parseLongAscii(0, buffer.capacity());
     }
 }
