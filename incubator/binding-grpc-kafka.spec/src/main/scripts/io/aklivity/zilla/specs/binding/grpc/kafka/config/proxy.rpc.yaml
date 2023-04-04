@@ -23,7 +23,7 @@ guards:
         - service:echo
 bindings:
   grpc0:
-    type: grpc-kafka
+    type: grpc_kafka
     kind: proxy
     routes:
       - guarded:
