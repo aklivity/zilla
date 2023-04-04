@@ -116,8 +116,8 @@ public class NamespaceRegistry
         BindingContext context = bindingsByType.apply(config.type);
         assert context != null : "Missing binding type: " + config.type;
 
-        MetricHandler originHandler = getChainedMetricHandler(config.id, config.originMetricIds);
-        MetricHandler routedHandler = getChainedMetricHandler(config.id, config.routedMetricIds);
+        MetricHandler originHandler = supplyChainedMetricHandler(config.id, config.originMetricIds);
+        MetricHandler routedHandler = supplyChainedMetricHandler(config.id, config.routedMetricIds);
         BindingRegistry registry = new BindingRegistry(config, context, originHandler, routedHandler);
 
         int bindingId = supplyLabelId.applyAsInt(config.entry);
@@ -126,7 +126,7 @@ public class NamespaceRegistry
         supplyLoadEntry.accept(config.id);
     }
 
-    private MetricHandler getChainedMetricHandler(
+    private MetricHandler supplyChainedMetricHandler(
         long bindingId,
         long[] metricIds)
     {

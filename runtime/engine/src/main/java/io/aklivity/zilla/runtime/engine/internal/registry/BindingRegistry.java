@@ -57,12 +57,12 @@ final class BindingRegistry
         return attached;
     }
 
-    MetricHandler originMetricRecorder()
+    MetricHandler originMetricHandler()
     {
         return originMetricHandler;
     }
 
-    MetricHandler routedMetricRecorder()
+    MetricHandler routedMetricHandler()
     {
         return routedMetricHandler;
     }

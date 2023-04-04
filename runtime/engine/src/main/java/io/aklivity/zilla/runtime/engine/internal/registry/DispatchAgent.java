@@ -1572,12 +1572,12 @@ public class DispatchAgent implements EngineContext, Agent
         }
         else if (kind == ORIGIN)
         {
-            result = binding.originMetricRecorder();
+            result = binding.originMetricHandler();
         }
         else
         {
             assert kind == ROUTED;
-            result = binding.routedMetricRecorder();
+            result = binding.routedMetricHandler();
         }
         return result;
     }
