@@ -33,7 +33,6 @@ public final class NamespacedId
         final int namespaceId,
         final int localId)
     {
-        // packs the two provided id's (int) in one combined id (long)
         return (long) namespaceId << Integer.SIZE |
                (long) localId << 0;
     }

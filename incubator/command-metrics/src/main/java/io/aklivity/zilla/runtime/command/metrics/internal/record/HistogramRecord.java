@@ -118,8 +118,9 @@ public class HistogramRecord implements MetricRecord
         return new long[]{minimum, maximum, count, average};
     }
 
-    private long getValue(int i)
+    private long getValue(
+        int index)
     {
-        return BUCKET_LIMITS.get(i) - 1;
+        return BUCKET_LIMITS.get(index) - 1;
     }
 }

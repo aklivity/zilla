@@ -5,6 +5,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 public class TestHistogramMetric implements Metric
 {
     private static final String NAME = "test.histogram";
+
     @Override
     public String name()
     {

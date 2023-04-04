@@ -24,7 +24,7 @@ public class MetricRefAdapter implements JsonbAdapter<MetricRefConfig, JsonValue
     }
 
     private static String asJsonString(
-            JsonValue value)
+        JsonValue value)
     {
         return ((JsonString) value).getString();
     }

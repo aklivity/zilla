@@ -36,7 +36,7 @@ abstract class MetricsLayout extends Layout
     final AtomicBuffer buffer;
 
     MetricsLayout(
-            AtomicBuffer buffer)
+        AtomicBuffer buffer)
     {
         this.buffer = buffer;
     }
@@ -54,25 +54,25 @@ abstract class MetricsLayout extends Layout
     }
 
     int findPosition(
-            long bindingId,
-            long metricId)
+        long bindingId,
+        long metricId)
     {
         // find position or return -1 if not found
         return findPosition(bindingId, metricId, false);
     }
 
     int findOrSetPosition(
-            long bindingId,
-            long metricId)
+        long bindingId,
+        long metricId)
     {
         // find position or create slot if not found
         return findPosition(bindingId, metricId, true);
     }
 
     private int findPosition(
-            long bindingId,
-            long metricId,
-            boolean create)
+        long bindingId,
+        long metricId,
+        boolean create)
     {
         int i = 0;
         boolean done = false;
@@ -105,16 +105,16 @@ abstract class MetricsLayout extends Layout
     }
 
     private boolean isEmptySlot(
-            long bindingId,
-            long metricId)
+        long bindingId,
+        long metricId)
     {
         return bindingId == 0L && metricId == 0L;
     }
 
     abstract void createRecord(
-            long bindingId,
-            long metricId,
-            int index);
+        long bindingId,
+        long metricId,
+        int index);
 
     abstract int recordSize();
 

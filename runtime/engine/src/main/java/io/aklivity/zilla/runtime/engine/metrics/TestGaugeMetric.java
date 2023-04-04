@@ -5,6 +5,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 public class TestGaugeMetric implements Metric
 {
     private static final String NAME = "test.gauge";
+
     @Override
     public String name()
     {
