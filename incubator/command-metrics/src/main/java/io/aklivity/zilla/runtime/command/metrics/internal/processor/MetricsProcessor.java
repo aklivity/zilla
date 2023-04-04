@@ -64,7 +64,8 @@ public class MetricsProcessor
         this.metricRecords = new LinkedList<>();
     }
 
-    public void print(PrintStream out)
+    public void print(
+        PrintStream out)
     {
         if (metricRecords.isEmpty())
         {

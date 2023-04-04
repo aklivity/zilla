@@ -51,7 +51,7 @@ public class StreamClosesReceivedMetric implements Metric
 
     @Override
     public MetricContext supply(
-            EngineContext context)
+        EngineContext context)
     {
         return new StreamClosesReceivedMetricContext();
     }
