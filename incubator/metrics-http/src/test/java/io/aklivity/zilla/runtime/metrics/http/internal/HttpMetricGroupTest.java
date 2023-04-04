@@ -66,13 +66,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame with header Content-Length = 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -98,7 +98,7 @@ public class HttpMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(42L);
+        verify(recorder, times(1)).accept(42L);
     }
 
     @Test
@@ -107,13 +107,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame without Content-Length
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -158,7 +158,7 @@ public class HttpMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(77L);
+        verify(recorder, times(1)).accept(77L);
     }
 
     @Test
@@ -167,13 +167,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame when header Content-Length is empty
         HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
@@ -222,7 +222,7 @@ public class HttpMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
 
         // THEN
-        verify(mockRecorder, times(2)).accept(0L);
+        verify(recorder, times(2)).accept(0L);
     }
 
     @Test
@@ -231,13 +231,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame with header Content-Length = 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -263,7 +263,7 @@ public class HttpMetricGroupTest
         handler.onEvent(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, never()).accept(anyLong());
+        verify(recorder, never()).accept(anyLong());
     }
 
     @Test
@@ -289,13 +289,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.response.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame with Content-Length of 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -321,7 +321,7 @@ public class HttpMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(42L);
+        verify(recorder, times(1)).accept(42L);
     }
 
     @Test
@@ -330,13 +330,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.response.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame without Content-Length
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -381,7 +381,7 @@ public class HttpMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(77L);
+        verify(recorder, times(1)).accept(77L);
     }
 
     @Test
@@ -390,13 +390,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.response.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame when header Content-Length is empty
         HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
@@ -445,7 +445,7 @@ public class HttpMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
 
         // THEN
-        verify(mockRecorder, times(2)).accept(0L);
+        verify(recorder, times(2)).accept(0L);
     }
 
     @Test
@@ -454,13 +454,13 @@ public class HttpMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new HttpMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
 
         // begin frame with header Content-Length = 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -486,6 +486,6 @@ public class HttpMetricGroupTest
         handler.onEvent(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, never()).accept(anyLong());
+        verify(recorder, never()).accept(anyLong());
     }
 }

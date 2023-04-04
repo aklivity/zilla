@@ -123,34 +123,34 @@ public class MetricsProcessorTest
             "ns2          binding1    counter1                                         44\n" +
             "ns1          binding1    gauge1                                           88\n" +
             "ns1          binding1    histogram1    [min: 1 | max: 63 | cnt: 2 | avg: 32]\n\n";
-        LabelManager mockLabelManager = mock(LabelManager.class);
-        when(mockLabelManager.lookupLabel(1)).thenReturn("ns1");
-        when(mockLabelManager.lookupLabel(2)).thenReturn("ns2");
-        when(mockLabelManager.lookupLabel(11)).thenReturn("binding1");
-        when(mockLabelManager.lookupLabel(12)).thenReturn("binding2");
-        when(mockLabelManager.lookupLabel(21)).thenReturn("counter1");
-        when(mockLabelManager.lookupLabel(22)).thenReturn("counter2");
-        when(mockLabelManager.lookupLabel(31)).thenReturn("gauge1");
-        when(mockLabelManager.lookupLabel(41)).thenReturn("histogram1");
+        LabelManager labels = mock(LabelManager.class);
+        when(labels.lookupLabel(1)).thenReturn("ns1");
+        when(labels.lookupLabel(2)).thenReturn("ns2");
+        when(labels.lookupLabel(11)).thenReturn("binding1");
+        when(labels.lookupLabel(12)).thenReturn("binding2");
+        when(labels.lookupLabel(21)).thenReturn("counter1");
+        when(labels.lookupLabel(22)).thenReturn("counter2");
+        when(labels.lookupLabel(31)).thenReturn("gauge1");
+        when(labels.lookupLabel(41)).thenReturn("histogram1");
 
-        CountersLayout mockCountersLayout = mock(CountersLayout.class);
-        when(mockCountersLayout.getIds()).thenReturn(counterIds);
-        when(mockCountersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
-        when(mockCountersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
-        when(mockCountersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
-        when(mockCountersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+        CountersLayout countersLayout = mock(CountersLayout.class);
+        when(countersLayout.getIds()).thenReturn(counterIds);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
-        GaugesLayout mockGaugesLayout = mock(GaugesLayout.class);
-        when(mockGaugesLayout.getIds()).thenReturn(gaugeIds);
-        when(mockGaugesLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_88);
+        GaugesLayout gaugesLayout = mock(GaugesLayout.class);
+        when(gaugesLayout.getIds()).thenReturn(gaugeIds);
+        when(gaugesLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_88);
 
-        HistogramsLayout mockHistogramsLayout = mock(HistogramsLayout.class);
-        when(mockHistogramsLayout.getIds()).thenReturn(histogramIds);
-        when(mockHistogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
+        HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
+        when(histogramsLayout.getIds()).thenReturn(histogramIds);
+        when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
         MetricsProcessor metrics = new MetricsProcessor(
-                List.of(mockCountersLayout), List.of(mockGaugesLayout), List.of(mockHistogramsLayout),
-                mockLabelManager, null, null);
+                List.of(countersLayout), List.of(gaugesLayout), List.of(histogramsLayout),
+                labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -183,41 +183,41 @@ public class MetricsProcessorTest
         String expectedOutput3 =
             "namespace    binding     metric      value\n" +
             "ns1          binding2    counter1       43\n\n";
-        LabelManager mockLabelManager = mock(LabelManager.class);
-        when(mockLabelManager.lookupLabel(1)).thenReturn("ns1");
-        when(mockLabelManager.lookupLabel(2)).thenReturn("ns2");
-        when(mockLabelManager.lookupLabel(11)).thenReturn("binding1");
-        when(mockLabelManager.lookupLabel(12)).thenReturn("binding2");
-        when(mockLabelManager.lookupLabel(21)).thenReturn("counter1");
-        when(mockLabelManager.lookupLabel(22)).thenReturn("counter2");
-        when(mockLabelManager.lookupLabel(41)).thenReturn("histogram1");
-        when(mockLabelManager.supplyLabelId("ns1")).thenReturn(1);
-        when(mockLabelManager.supplyLabelId("ns2")).thenReturn(2);
-        when(mockLabelManager.supplyLabelId("binding2")).thenReturn(12);
+        LabelManager labels = mock(LabelManager.class);
+        when(labels.lookupLabel(1)).thenReturn("ns1");
+        when(labels.lookupLabel(2)).thenReturn("ns2");
+        when(labels.lookupLabel(11)).thenReturn("binding1");
+        when(labels.lookupLabel(12)).thenReturn("binding2");
+        when(labels.lookupLabel(21)).thenReturn("counter1");
+        when(labels.lookupLabel(22)).thenReturn("counter2");
+        when(labels.lookupLabel(41)).thenReturn("histogram1");
+        when(labels.supplyLabelId("ns1")).thenReturn(1);
+        when(labels.supplyLabelId("ns2")).thenReturn(2);
+        when(labels.supplyLabelId("binding2")).thenReturn(12);
 
-        CountersLayout mockCountersLayout = mock(CountersLayout.class);
-        when(mockCountersLayout.getIds()).thenReturn(counterIds);
-        when(mockCountersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
-        when(mockCountersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
-        when(mockCountersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
-        when(mockCountersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
+        CountersLayout countersLayout = mock(CountersLayout.class);
+        when(countersLayout.getIds()).thenReturn(counterIds);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
+        when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_77);
+        when(countersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
+        when(countersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
-        HistogramsLayout mockHistogramsLayout = mock(HistogramsLayout.class);
-        when(mockHistogramsLayout.getIds()).thenReturn(histogramIds);
-        when(mockHistogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
+        HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
+        when(histogramsLayout.getIds()).thenReturn(histogramIds);
+        when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
-        MetricsProcessor metrics1 = new MetricsProcessor(List.of(mockCountersLayout), List.of(), List.of(mockHistogramsLayout),
-                mockLabelManager, "ns2", null);
+        MetricsProcessor metrics1 = new MetricsProcessor(List.of(countersLayout), List.of(), List.of(histogramsLayout),
+                labels, "ns2", null);
         ByteArrayOutputStream os1 = new ByteArrayOutputStream();
         PrintStream out1 = new PrintStream(os1);
 
-        MetricsProcessor metrics2 = new MetricsProcessor(List.of(mockCountersLayout), List.of(), List.of(mockHistogramsLayout),
-                mockLabelManager, null, "binding2");
+        MetricsProcessor metrics2 = new MetricsProcessor(List.of(countersLayout), List.of(), List.of(histogramsLayout),
+                labels, null, "binding2");
         ByteArrayOutputStream os2 = new ByteArrayOutputStream();
         PrintStream out2 = new PrintStream(os2);
 
-        MetricsProcessor metrics3 = new MetricsProcessor(List.of(mockCountersLayout), List.of(), List.of(mockHistogramsLayout),
-                mockLabelManager, "ns1", "binding2");
+        MetricsProcessor metrics3 = new MetricsProcessor(List.of(countersLayout), List.of(), List.of(histogramsLayout),
+                labels, "ns1", "binding2");
         ByteArrayOutputStream os3 = new ByteArrayOutputStream();
         PrintStream out3 = new PrintStream(os3);
 
@@ -252,54 +252,54 @@ public class MetricsProcessorTest
                 "ns1          binding1    counter2                                         77\n" +
                 "ns1          binding1    gauge1                                           62\n" +
                 "ns1          binding1    histogram1    [min: 1 | max: 63 | cnt: 6 | avg: 22]\n\n";
-        LabelManager mockLabelManager = mock(LabelManager.class);
-        when(mockLabelManager.lookupLabel(1)).thenReturn("ns1");
-        when(mockLabelManager.lookupLabel(2)).thenReturn("ns2");
-        when(mockLabelManager.lookupLabel(11)).thenReturn("binding1");
-        when(mockLabelManager.lookupLabel(12)).thenReturn("binding2");
-        when(mockLabelManager.lookupLabel(21)).thenReturn("counter1");
-        when(mockLabelManager.lookupLabel(22)).thenReturn("counter2");
-        when(mockLabelManager.lookupLabel(31)).thenReturn("gauge1");
-        when(mockLabelManager.lookupLabel(41)).thenReturn("histogram1");
+        LabelManager labels = mock(LabelManager.class);
+        when(labels.lookupLabel(1)).thenReturn("ns1");
+        when(labels.lookupLabel(2)).thenReturn("ns2");
+        when(labels.lookupLabel(11)).thenReturn("binding1");
+        when(labels.lookupLabel(12)).thenReturn("binding2");
+        when(labels.lookupLabel(21)).thenReturn("counter1");
+        when(labels.lookupLabel(22)).thenReturn("counter2");
+        when(labels.lookupLabel(31)).thenReturn("gauge1");
+        when(labels.lookupLabel(41)).thenReturn("histogram1");
 
-        CountersLayout mockCountersLayout0 = mock(CountersLayout.class);
-        when(mockCountersLayout0.getIds()).thenReturn(counterIds);
-        when(mockCountersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
-        when(mockCountersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
+        CountersLayout countersLayout0 = mock(CountersLayout.class);
+        when(countersLayout0.getIds()).thenReturn(counterIds);
+        when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
+        when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
 
-        CountersLayout mockCountersLayout1 = mock(CountersLayout.class);
-        when(mockCountersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
-        when(mockCountersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
+        CountersLayout countersLayout1 = mock(CountersLayout.class);
+        when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(countersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
 
-        CountersLayout mockCountersLayout2 = mock(CountersLayout.class);
-        when(mockCountersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
-        when(mockCountersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
+        CountersLayout countersLayout2 = mock(CountersLayout.class);
+        when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(countersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
 
-        GaugesLayout mockGaugesLayout0 = mock(GaugesLayout.class);
-        when(mockGaugesLayout0.getIds()).thenReturn(gaugeIds);
-        when(mockGaugesLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_40);
+        GaugesLayout gaugesLayout0 = mock(GaugesLayout.class);
+        when(gaugesLayout0.getIds()).thenReturn(gaugeIds);
+        when(gaugesLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_40);
 
-        GaugesLayout mockGaugesLayout1 = mock(GaugesLayout.class);
-        when(mockGaugesLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_20);
+        GaugesLayout gaugesLayout1 = mock(GaugesLayout.class);
+        when(gaugesLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_20);
 
-        GaugesLayout mockGaugesLayout2 = mock(GaugesLayout.class);
-        when(mockGaugesLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_2);
+        GaugesLayout gaugesLayout2 = mock(GaugesLayout.class);
+        when(gaugesLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_2);
 
-        HistogramsLayout mockHistogramsLayout0 = mock(HistogramsLayout.class);
-        when(mockHistogramsLayout0.getIds()).thenReturn(histogramIds);
-        when(mockHistogramsLayout0.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
+        HistogramsLayout histogramsLayout0 = mock(HistogramsLayout.class);
+        when(histogramsLayout0.getIds()).thenReturn(histogramIds);
+        when(histogramsLayout0.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
-        HistogramsLayout mockHistogramsLayout1 = mock(HistogramsLayout.class);
-        when(mockHistogramsLayout1.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_2);
+        HistogramsLayout histogramsLayout1 = mock(HistogramsLayout.class);
+        when(histogramsLayout1.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_2);
 
-        HistogramsLayout mockHistogramsLayout2 = mock(HistogramsLayout.class);
-        when(mockHistogramsLayout2.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_3);
+        HistogramsLayout histogramsLayout2 = mock(HistogramsLayout.class);
+        when(histogramsLayout2.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_3);
 
         MetricsProcessor metrics = new MetricsProcessor(
-                List.of(mockCountersLayout0, mockCountersLayout1, mockCountersLayout2),
-                List.of(mockGaugesLayout0, mockGaugesLayout1, mockGaugesLayout2),
-                List.of(mockHistogramsLayout0, mockHistogramsLayout1, mockHistogramsLayout2),
-                mockLabelManager, null, null);
+                List.of(countersLayout0, countersLayout1, countersLayout2),
+                List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
+                List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2),
+                labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -324,23 +324,23 @@ public class MetricsProcessorTest
                 "ns1          binding1    histogram2            [min: 0 | max: 0 | cnt: 0 | avg: 0]\n" +
                 "ns1          binding1    histogram3          [min: 1 | max: 63 | cnt: 4 | avg: 17]\n" +
                 "ns1          binding1    histogram4    [min: 3 | max: 65535 | cnt: 45 | avg: 2916]\n\n";
-        LabelManager mockLabelManager = mock(LabelManager.class);
-        when(mockLabelManager.lookupLabel(1)).thenReturn("ns1");
-        when(mockLabelManager.lookupLabel(11)).thenReturn("binding1");
-        when(mockLabelManager.lookupLabel(42)).thenReturn("histogram2");
-        when(mockLabelManager.lookupLabel(43)).thenReturn("histogram3");
-        when(mockLabelManager.lookupLabel(44)).thenReturn("histogram4");
-        when(mockLabelManager.supplyLabelId("ns1")).thenReturn(1);
-        when(mockLabelManager.supplyLabelId("binding1")).thenReturn(11);
+        LabelManager labels = mock(LabelManager.class);
+        when(labels.lookupLabel(1)).thenReturn("ns1");
+        when(labels.lookupLabel(11)).thenReturn("binding1");
+        when(labels.lookupLabel(42)).thenReturn("histogram2");
+        when(labels.lookupLabel(43)).thenReturn("histogram3");
+        when(labels.lookupLabel(44)).thenReturn("histogram4");
+        when(labels.supplyLabelId("ns1")).thenReturn(1);
+        when(labels.supplyLabelId("binding1")).thenReturn(11);
 
-        HistogramsLayout mockHistogramsLayout = mock(HistogramsLayout.class);
-        when(mockHistogramsLayout.getIds()).thenReturn(histogramIds);
-        when(mockHistogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_42)).thenReturn(READER_HISTOGRAM_2);
-        when(mockHistogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_43)).thenReturn(READER_HISTOGRAM_3);
-        when(mockHistogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_44)).thenReturn(READER_HISTOGRAM_4);
+        HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
+        when(histogramsLayout.getIds()).thenReturn(histogramIds);
+        when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_42)).thenReturn(READER_HISTOGRAM_2);
+        when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_43)).thenReturn(READER_HISTOGRAM_3);
+        when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_44)).thenReturn(READER_HISTOGRAM_4);
 
-        MetricsProcessor metrics = new MetricsProcessor(List.of(), List.of(), List.of(mockHistogramsLayout),
-                mockLabelManager, null, null);
+        MetricsProcessor metrics = new MetricsProcessor(List.of(), List.of(), List.of(histogramsLayout),
+                labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -357,8 +357,8 @@ public class MetricsProcessorTest
         // GIVEN
         String expectedOutput =
                 "namespace    binding    metric    value\n\n";
-        LabelManager mockLabelManager = mock(LabelManager.class);
-        MetricsProcessor metrics = new MetricsProcessor(List.of(), List.of(), List.of(), mockLabelManager, null, null);
+        LabelManager labels = mock(LabelManager.class);
+        MetricsProcessor metrics = new MetricsProcessor(List.of(), List.of(), List.of(), labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 

@@ -64,13 +64,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.opens.received");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
@@ -79,7 +79,7 @@ public class StreamMetricGroupTest
         handler.onEvent(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(1L);
+        verify(recorder, times(1)).accept(1L);
     }
 
     @Test
@@ -105,13 +105,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.opens.sent");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
@@ -120,7 +120,7 @@ public class StreamMetricGroupTest
         handler.onEvent(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(1L);
+        verify(recorder, times(1)).accept(1L);
     }
 
     @Test
@@ -146,13 +146,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.data.received");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         AtomicBuffer payload = new UnsafeBuffer(new byte[8], 0, 8);
         new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
@@ -163,7 +163,7 @@ public class StreamMetricGroupTest
         handler.onEvent(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(8L);
+        verify(recorder, times(1)).accept(8L);
     }
 
     @Test
@@ -189,13 +189,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.data.sent");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         AtomicBuffer payload = new UnsafeBuffer(new byte[8], 0, 8);
         new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
@@ -206,7 +206,7 @@ public class StreamMetricGroupTest
         handler.onEvent(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(8L);
+        verify(recorder, times(1)).accept(8L);
     }
 
 
@@ -233,13 +233,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.errors.received");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
@@ -253,7 +253,7 @@ public class StreamMetricGroupTest
         handler.onEvent(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(2)).accept(1L);
+        verify(recorder, times(2)).accept(1L);
     }
 
     @Test
@@ -279,13 +279,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.errors.sent");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
@@ -299,7 +299,7 @@ public class StreamMetricGroupTest
         handler.onEvent(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(2)).accept(1L);
+        verify(recorder, times(2)).accept(1L);
     }
 
     @Test
@@ -325,13 +325,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.closes.received");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
@@ -340,7 +340,7 @@ public class StreamMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(1L);
+        verify(recorder, times(1)).accept(1L);
     }
 
     @Test
@@ -366,13 +366,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.closes.sent");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
@@ -381,7 +381,7 @@ public class StreamMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(1L);
+        verify(recorder, times(1)).accept(1L);
     }
 
     @Test
@@ -407,13 +407,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.active.received");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(engineContext);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
@@ -428,8 +428,8 @@ public class StreamMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(1L);
-        verify(mockRecorder, times(1)).accept(0L);
+        verify(recorder, times(1)).accept(1L);
+        verify(recorder, times(1)).accept(0L);
     }
 
     @Test
@@ -455,13 +455,13 @@ public class StreamMetricGroupTest
         // GIVEN
         Configuration config = new Configuration();
         MetricGroup metricGroup = new StreamMetricGroup(config);
-        EngineContext mockEngineContext = mock(EngineContext.class);
-        LongConsumer mockRecorder = mock(LongConsumer.class);
+        EngineContext mocked = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
         Metric metric = metricGroup.supply("stream.active.sent");
-        MetricContext context = metric.supply(mockEngineContext);
-        MetricHandler handler = context.supply(mockRecorder);
+        MetricContext context = metric.supply(mocked);
+        MetricHandler handler = context.supply(recorder);
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
@@ -476,7 +476,7 @@ public class StreamMetricGroupTest
         handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
-        verify(mockRecorder, times(1)).accept(1L);
-        verify(mockRecorder, times(1)).accept(0L);
+        verify(recorder, times(1)).accept(1L);
+        verify(recorder, times(1)).accept(0L);
     }
 }
