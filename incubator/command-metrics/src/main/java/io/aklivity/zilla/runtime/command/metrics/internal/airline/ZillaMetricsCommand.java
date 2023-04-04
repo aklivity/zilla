@@ -51,7 +51,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public String namespace;
 
     @Option(name = { "-i", "--interval" })
-    public Integer interval;
+    public int interval;
 
     @Arguments(title = {"name"})
     public List<String> args;
@@ -75,7 +75,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
             {
                 metrics.print(System.out);
                 Thread.sleep(interval * 1000);
-            } while (interval != null);
+            } while (interval != 0);
         }
         catch (InterruptedException | IOException ex)
         {
