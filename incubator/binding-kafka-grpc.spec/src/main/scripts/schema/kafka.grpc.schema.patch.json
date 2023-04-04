@@ -15,7 +15,18 @@
                     "enum": [ "remote_server" ]
                 },
                 "vault": false,
-                "options": false,
+                "options":
+                {
+                    "properties":
+                    {
+                        "acks":
+                        {
+                            "title": "Acks",
+                            "type": "string",
+                            "enum": [ "none", "leader_only", "in_sync_replicas" ]
+
+                        }
+                },
                 "routes":
                 {
                     "items":
@@ -32,107 +43,50 @@
                                         {
                                             "title": "Topic",
                                             "type": "string"
+                                        },
+                                        "key":
+                                        {
+                                            "title": "Key",
+                                            "type": "string"
+                                        },
+                                        "headers":
+                                        {
+                                            "title": "Headers",
+                                            "type": "object",
+                                            "additionalProperties":
+                                            {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "replyTo":
+                                        {
+                                            "title": "ReplyTo",
+                                            "type": "string"
                                         }
                                     },
                                     "additionalProperties": false
                                 }
                             },
-                            "with":
-                            {
-                                "type": "object",
-                                "properties":
-                                {
-                                    "kafka_produce":
-                                    {
-                                        "title": "KafkaProduce",
-                                        "type": "object",
-                                        "additionalProperties" :
-                                        {
-                                            "topic":
-                                            {
-                                                "title": "Topic",
-                                                "type": "string"
-                                            },
-                                            "acks":
-                                            {
-                                                "title": "Acks",
-                                                "type": "string",
-                                                "enum": [ "none", "leader_only", "in_sync_replicas" ]
-                                            },
-                                            "key":
-                                            {
-                                                "title": "Key",
-                                                "type": "string"
-                                            },
-                                            "overrides":
-                                            {
-                                                "title": "Headers",
-                                                "type": "object",
-                                                "additionalProperties":
-                                                {
-                                                    "type": "string"
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "grpc":
-                                    {
-                                        "title": "Grpc",
-                                        "type": "object",
-                                        "additionalProperties" :
-                                        {
-                                            "service":
-                                            {
-                                                "title": "Service",
-                                                "type": "string"
-                                            },
-                                            "method":
-                                            {
-                                                "title": "Method",
-                                                "type": "string"
-                                            },
-                                            "metadata":
-                                            {
-                                                "title": "Metadata",
-                                                "type": "object",
-                                                "additionalProperties" :
-                                                {
-                                                    "oneOf":
-                                                    [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "object",
-                                                            "properties":
-                                                            {
-                                                                "base64":
-                                                                {
-                                                                    "title": "Base64 value",
-                                                                    "type": "string"
-                                                                }
-                                                            }
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                "additionalProperties": false
-                            }
-                        },
-                        "required":
-                        [
-                            "with"
-                        ]
+                            "with": false
+                        }
                     }
                 },
                 "exit": false
             },
-            "required":
+            "anyOf":
             [
-                "routes"
+                {
+                    "required":
+                    [
+                        "exit"
+                    ]
+                },
+                {
+                    "required":
+                    [
+                        "routes"
+                    ]
+                }
             ]
         }
     }
