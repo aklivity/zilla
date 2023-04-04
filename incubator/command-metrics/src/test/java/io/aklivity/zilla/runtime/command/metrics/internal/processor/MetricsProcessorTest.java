@@ -45,6 +45,11 @@ public class MetricsProcessorTest
     public static final long METRIC_ID_1_42 = pack(1, 42);
     public static final long METRIC_ID_1_43 = pack(1, 43);
     public static final long METRIC_ID_1_44 = pack(1, 44);
+    public static final LongSupplier READER_2 = () -> 2L;
+    public static final LongSupplier READER_7 = () -> 7L;
+    public static final LongSupplier READER_20 = () -> 20L;
+    public static final LongSupplier READER_30 = () -> 30L;
+    public static final LongSupplier READER_40 = () -> 40L;
     public static final LongSupplier READER_42 = () -> 42L;
     public static final LongSupplier READER_43 = () -> 43L;
     public static final LongSupplier READER_44 = () -> 44L;
@@ -226,6 +231,84 @@ public class MetricsProcessorTest
         assertThat(os1.toString("UTF8"), equalTo(expectedOutput1));
         assertThat(os2.toString("UTF8"), equalTo(expectedOutput2));
         assertThat(os3.toString("UTF8"), equalTo(expectedOutput3));
+    }
+
+    @Test
+    public void shouldWorkWithMultiCoreAggregation() throws Exception
+    {
+        // GIVEN
+        long[][] counterIds = new long[][]{
+                {BINDING_ID_1_11, METRIC_ID_1_21},
+                {BINDING_ID_1_11, METRIC_ID_1_22}
+        };
+        long[][] gaugeIds = new long[][]{
+                {BINDING_ID_1_11, METRIC_ID_1_31}
+        };
+        long[][] histogramIds = new long[][]{
+                {BINDING_ID_1_11, METRIC_ID_1_41}
+        };
+        String expectedOutput =
+                "namespace    binding     metric                                        value\n" +
+                "ns1          binding1    counter1                                         42\n" +
+                "ns1          binding1    counter2                                         77\n" +
+                "ns1          binding1    gauge1                                           62\n" +
+                "ns1          binding1    histogram1    [min: 1 | max: 63 | cnt: 6 | avg: 22]\n\n";
+        LabelManager mockLabelManager = mock(LabelManager.class);
+        when(mockLabelManager.lookupLabel(1)).thenReturn("ns1");
+        when(mockLabelManager.lookupLabel(2)).thenReturn("ns2");
+        when(mockLabelManager.lookupLabel(11)).thenReturn("binding1");
+        when(mockLabelManager.lookupLabel(12)).thenReturn("binding2");
+        when(mockLabelManager.lookupLabel(21)).thenReturn("counter1");
+        when(mockLabelManager.lookupLabel(22)).thenReturn("counter2");
+        when(mockLabelManager.lookupLabel(31)).thenReturn("gauge1");
+        when(mockLabelManager.lookupLabel(41)).thenReturn("histogram1");
+
+        CountersLayout mockCountersLayout0 = mock(CountersLayout.class);
+        when(mockCountersLayout0.getIds()).thenReturn(counterIds);
+        when(mockCountersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
+        when(mockCountersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_30);
+
+        CountersLayout mockCountersLayout1 = mock(CountersLayout.class);
+        when(mockCountersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(mockCountersLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_40);
+
+        CountersLayout mockCountersLayout2 = mock(CountersLayout.class);
+        when(mockCountersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_20);
+        when(mockCountersLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_22)).thenReturn(READER_7);
+
+        GaugesLayout mockGaugesLayout0 = mock(GaugesLayout.class);
+        when(mockGaugesLayout0.getIds()).thenReturn(gaugeIds);
+        when(mockGaugesLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_40);
+
+        GaugesLayout mockGaugesLayout1 = mock(GaugesLayout.class);
+        when(mockGaugesLayout1.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_20);
+
+        GaugesLayout mockGaugesLayout2 = mock(GaugesLayout.class);
+        when(mockGaugesLayout2.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_2);
+
+        HistogramsLayout mockHistogramsLayout0 = mock(HistogramsLayout.class);
+        when(mockHistogramsLayout0.getIds()).thenReturn(histogramIds);
+        when(mockHistogramsLayout0.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
+
+        HistogramsLayout mockHistogramsLayout1 = mock(HistogramsLayout.class);
+        when(mockHistogramsLayout1.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_2);
+
+        HistogramsLayout mockHistogramsLayout2 = mock(HistogramsLayout.class);
+        when(mockHistogramsLayout2.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_3);
+
+        MetricsProcessor metrics = new MetricsProcessor(
+                List.of(mockCountersLayout0, mockCountersLayout1, mockCountersLayout2),
+                List.of(mockGaugesLayout0, mockGaugesLayout1, mockGaugesLayout2),
+                List.of(mockHistogramsLayout0, mockHistogramsLayout1, mockHistogramsLayout2),
+                mockLabelManager, null, null);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+
+        // WHEN
+        metrics.print(out);
+
+        // THEN
+        assertThat(os.toString("UTF8"), equalTo(expectedOutput));
     }
 
     @Test
