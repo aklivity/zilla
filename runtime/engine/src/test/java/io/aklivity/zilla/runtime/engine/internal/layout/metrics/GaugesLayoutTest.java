@@ -40,19 +40,21 @@ public class GaugesLayoutTest
         assertThat(reader1.getAsLong(), equalTo(0L)); // should be 0L initially
         writer1.accept(1L);
         assertThat(reader1.getAsLong(), equalTo(1L));
-        writer1.accept(1L);
-        writer2.accept(100L);
-        writer3.accept(77L);
-        assertThat(reader1.getAsLong(), equalTo(1L));
-        assertThat(reader2.getAsLong(), equalTo(100L));
-        assertThat(reader3.getAsLong(), equalTo(77L));
+        writer1.accept(-1L);
+        writer2.accept(1L);
+        writer3.accept(1L);
+        writer3.accept(1L);
+        writer3.accept(1L);
+        assertThat(reader1.getAsLong(), equalTo(0L));
+        assertThat(reader2.getAsLong(), equalTo(1L));
+        assertThat(reader3.getAsLong(), equalTo(3L));
         writer2.accept(10L);
         writer3.accept(1L);
         writer2.accept(20L);
-        writer3.accept(1L);
-        writer3.accept(3L);
-        assertThat(reader2.getAsLong(), equalTo(20L));
-        assertThat(reader3.getAsLong(), equalTo(3L));
+        writer3.accept(-1L);
+        writer3.accept(-1L);
+        assertThat(reader2.getAsLong(), equalTo(31L)); // 1 + 10 + 20
+        assertThat(reader3.getAsLong(), equalTo(2L)); // 1 + 1 + 1 - 1 - 1
 
         gaugesLayout.close();
         assertTrue(Files.exists(path));

@@ -429,7 +429,7 @@ public class StreamMetricGroupTest
 
         // THEN
         verify(recorder, times(1)).accept(1L);
-        verify(recorder, times(1)).accept(0L);
+        verify(recorder, times(1)).accept(-1L);
     }
 
     @Test
@@ -477,6 +477,6 @@ public class StreamMetricGroupTest
 
         // THEN
         verify(recorder, times(1)).accept(1L);
-        verify(recorder, times(1)).accept(0L);
+        verify(recorder, times(1)).accept(-1L);
     }
 }

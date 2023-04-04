@@ -44,7 +44,7 @@ public final class GaugesLayout extends MetricsLayout
         long metricId)
     {
         int index = findOrSetPosition(bindingId, metricId);
-        return delta -> buffer.putLong(index + VALUE_OFFSET, delta);
+        return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
     }
 
     @Override

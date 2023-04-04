@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.metrics.stream.internal.StreamUtils.isIn
 import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Long2LongCounterMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
@@ -62,9 +61,6 @@ public class StreamActiveReceivedMetric implements Metric
 
     private final class StreamActiveReceivedMetricContext implements MetricContext
     {
-        private static final long INITIAL_VALUE = 0L;
-
-        private final Long2LongCounterMap activeStreams = new Long2LongCounterMap(INITIAL_VALUE);
         private final FrameFW frameRO = new FrameFW();
 
         @Override
@@ -91,29 +87,23 @@ public class StreamActiveReceivedMetric implements Metric
             final long streamId = frame.streamId();
             if (isInitial(streamId)) // received stream
             {
-                handleFrame(streamId, msgTypeId, recorder);
+                handleFrame(msgTypeId, recorder);
             }
         }
 
         private void handleFrame(
-            long streamId,
             int msgTypeId,
             LongConsumer recorder)
         {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                activeStreams.getAndIncrement(streamId);
-                recorder.accept(activeStreams.size());
+                recorder.accept(1L);
                 break;
             case EndFW.TYPE_ID:
             case AbortFW.TYPE_ID:
             case ResetFW.TYPE_ID:
-                if (activeStreams.getAndDecrement(streamId) == INITIAL_VALUE)
-                {
-                    activeStreams.remove(streamId);
-                }
-                recorder.accept(activeStreams.size());
+                recorder.accept(-1L);
                 break;
             }
         }
