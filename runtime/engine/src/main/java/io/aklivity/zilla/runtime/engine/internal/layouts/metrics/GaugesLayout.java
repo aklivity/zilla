@@ -41,6 +41,7 @@ public final class GaugesLayout extends MetricsLayout
         super(buffer);
     }
 
+    @Override
     public LongConsumer supplyWriter(
         long bindingId,
         long metricId)
@@ -49,6 +50,7 @@ public final class GaugesLayout extends MetricsLayout
         return delta -> buffer.putLong(index + VALUE_OFFSET, delta);
     }
 
+    @Override
     public LongSupplier supplyReader(
         long bindingId,
         long metricId)
@@ -64,6 +66,14 @@ public final class GaugesLayout extends MetricsLayout
             reader = () -> buffer.getLong(index + VALUE_OFFSET);
         }
         return reader;
+    }
+
+    @Override
+    public LongSupplier[] supplyReaders(
+        long bindingId,
+        long metricId)
+    {
+        throw new RuntimeException("not implemented");
     }
 
     @Override

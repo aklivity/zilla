@@ -49,6 +49,7 @@ public final class HistogramsLayout extends MetricsLayout
         super(buffer);
     }
 
+    @Override
     public LongConsumer supplyWriter(
         long bindingId,
         long metricId)
@@ -57,6 +58,15 @@ public final class HistogramsLayout extends MetricsLayout
         return value -> buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
     }
 
+    @Override
+    public LongSupplier supplyReader(
+        long bindingId,
+        long metricId)
+    {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
     public LongSupplier[] supplyReaders(
         long bindingId,
         long metricId)

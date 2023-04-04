@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.command.metrics.internal.airline;
 
 import static io.aklivity.zilla.runtime.command.metrics.internal.layout.Layout.Mode.READ_ONLY;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.HISTOGRAM;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -22,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -36,7 +40,9 @@ import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.GaugesLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.MetricsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.processor.MetricsProcessor;
+import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
 
 @Command(name = "metrics", description = "Show engine metrics")
 public final class ZillaMetricsCommand extends ZillaCommand
@@ -60,21 +66,19 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public void run()
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
-        List<CountersLayout> countersLayouts = List.of();
-        List<GaugesLayout> gaugesLayouts = List.of();
-        List<HistogramsLayout> histogramsLayouts = List.of();
+        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of();
         try
         {
-            countersLayouts = countersLayouts();
-            gaugesLayouts = gaugesLayouts();
-            histogramsLayouts = histogramsLayouts();
+            layouts = Map.of(
+                    COUNTER, countersLayouts(),
+                    GAUGE, gaugesLayouts(),
+                    HISTOGRAM, histogramsLayouts());
             final LabelManager labels = new LabelManager(LABELS_DIRECTORY);
-            MetricsProcessor metrics = new MetricsProcessor(countersLayouts, gaugesLayouts, histogramsLayouts,
-                    labels, namespace, binding);
+            MetricsProcessor metrics = new MetricsProcessor(layouts, labels, namespace, binding);
             do
             {
                 metrics.print(System.out);
-                Thread.sleep(interval * 1000);
+                Thread.sleep(interval * 1000L);
             } while (interval != 0);
         }
         catch (InterruptedException | IOException ex)
@@ -83,25 +87,24 @@ public final class ZillaMetricsCommand extends ZillaCommand
         }
         finally
         {
-            countersLayouts.forEach(CountersLayout::close);
-            gaugesLayouts.forEach(GaugesLayout::close);
-            histogramsLayouts.forEach(HistogramsLayout::close);
+            Map<Metric.Kind, List<MetricsLayout>> layouts0 = layouts;
+            layouts.keySet().stream().flatMap(kind -> layouts0.get(kind).stream()).forEach(MetricsLayout::close);
         }
     }
 
-    private List<CountersLayout> countersLayouts() throws IOException
+    private List<MetricsLayout> countersLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
         return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
     }
 
-    private List<GaugesLayout> gaugesLayouts() throws IOException
+    private List<MetricsLayout> gaugesLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
         return files.filter(this::isGaugesFile).map(this::newGaugesLayout).collect(toList());
     }
 
-    private List<HistogramsLayout> histogramsLayouts() throws IOException
+    private List<MetricsLayout> histogramsLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
         return files.filter(this::isHistogramsFile).map(this::newHistogramsLayout).collect(toList());

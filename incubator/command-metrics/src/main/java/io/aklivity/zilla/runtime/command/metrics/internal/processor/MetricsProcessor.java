@@ -14,20 +14,24 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.processor;
 
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.HISTOGRAM;
+
 import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.GaugesLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.MetricsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.HistogramRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.MetricRecord;
+import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
 
 public class MetricsProcessor
 {
@@ -35,10 +39,9 @@ public class MetricsProcessor
     private static final String BINDING_HEADER = "binding";
     private static final String METRIC_HEADER = "metric";
     private static final String VALUE_HEADER = "value";
+    private static final long[][] EMPTY = new long[0][0];
 
-    private final List<CountersLayout> countersLayouts;
-    private final List<GaugesLayout> gaugesLayouts;
-    private final List<HistogramsLayout> histogramsLayouts;
+    private final Map<Metric.Kind, List<MetricsLayout>> layouts;
     private final LabelManager labels;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
@@ -49,16 +52,12 @@ public class MetricsProcessor
     private int valueWidth;
 
     public MetricsProcessor(
-        List<CountersLayout> countersLayouts,
-        List<GaugesLayout> gaugesLayouts,
-        List<HistogramsLayout> histogramsLayouts,
+        Map<Metric.Kind, List<MetricsLayout>> layouts,
         LabelManager labels,
         String namespaceName,
         String bindingName)
     {
-        this.countersLayouts = countersLayouts;
-        this.gaugesLayouts = gaugesLayouts;
-        this.histogramsLayouts = histogramsLayouts;
+        this.layouts = layouts;
         this.labels = labels;
         this.filter = filterBy(namespaceName, bindingName);
         this.metricRecords = new LinkedList<>();
@@ -97,18 +96,13 @@ public class MetricsProcessor
 
     private void collectCounters()
     {
-        if (countersLayouts.isEmpty())
+        for (long[] counterIds : fetchIds(layouts.get(COUNTER)))
         {
-            return;
-        }
-        long[][] ids = countersLayouts.get(0).getIds();
-        for (long[] id : ids)
-        {
-            long packedBindingId = id[0];
-            long packedMetricId = id[1];
+            long packedBindingId = counterIds[0];
+            long packedMetricId = counterIds[1];
             if (filter.test(packedBindingId))
             {
-                LongSupplier[] readers = countersLayouts.stream()
+                LongSupplier[] readers = layouts.get(COUNTER).stream()
                         .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
@@ -119,6 +113,14 @@ public class MetricsProcessor
         }
     }
 
+    private long[][] fetchIds(
+        List<MetricsLayout> layout)
+    {
+        // the list of ids are expected to be identical in a group of layout files of the same type
+        // e.g. counters0, counters1, counters2 should all have the same set of ids, so we can get it from any
+        return layout.isEmpty() ? EMPTY : layout.get(0).getIds();
+    }
+
     private String counterGaugeFormatter(
         long value)
     {
@@ -127,18 +129,13 @@ public class MetricsProcessor
 
     private void collectGauges()
     {
-        if (gaugesLayouts.isEmpty())
+        for (long[] gaugeIds : fetchIds(layouts.get(GAUGE)))
         {
-            return;
-        }
-        long[][] ids = gaugesLayouts.get(0).getIds();
-        for (long[] id : ids)
-        {
-            long packedBindingId = id[0];
-            long packedMetricId = id[1];
+            long packedBindingId = gaugeIds[0];
+            long packedMetricId = gaugeIds[1];
             if (filter.test(packedBindingId))
             {
-                LongSupplier[] readers = gaugesLayouts.stream()
+                LongSupplier[] readers = layouts.get(GAUGE).stream()
                         .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
@@ -151,18 +148,13 @@ public class MetricsProcessor
 
     private void collectHistograms()
     {
-        if (histogramsLayouts.isEmpty())
+        for (long[] histogramIds : fetchIds(layouts.get(HISTOGRAM)))
         {
-            return;
-        }
-        long[][] ids = histogramsLayouts.get(0).getIds();
-        for (long[] id : ids)
-        {
-            long packedBindingId = id[0];
-            long packedMetricId = id[1];
+            long packedBindingId = histogramIds[0];
+            long packedMetricId = histogramIds[1];
             if (filter.test(packedBindingId))
             {
-                LongSupplier[][] readers = histogramsLayouts.stream()
+                LongSupplier[][] readers = layouts.get(HISTOGRAM).stream()
                         .map(layout -> layout.supplyReaders(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[][]::new);

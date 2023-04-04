@@ -19,12 +19,14 @@ import static org.agrona.IoUtil.unmap;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 import org.agrona.BitUtil;
 import org.agrona.concurrent.AtomicBuffer;
 
-abstract class MetricsLayout extends Layout
+public abstract class MetricsLayout extends Layout
 {
     static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     static final int BINDING_ID_OFFSET = 0;
@@ -109,6 +111,18 @@ abstract class MetricsLayout extends Layout
     {
         return bindingId == 0L && metricId == 0L;
     }
+
+    public abstract LongConsumer supplyWriter(
+        long bindingId,
+        long metricId);
+
+    public abstract LongSupplier supplyReader(
+        long bindingId,
+        long metricId);
+
+    public abstract LongSupplier[] supplyReaders(
+        long bindingId,
+        long metricId);
 
     abstract void createRecord(
         long bindingId,

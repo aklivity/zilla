@@ -14,6 +14,9 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.processor;
 
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric.Kind.HISTOGRAM;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -22,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
@@ -30,6 +34,8 @@ import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.GaugesLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.MetricsLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
 
 public class MetricsProcessorTest
 {
@@ -148,9 +154,11 @@ public class MetricsProcessorTest
         when(histogramsLayout.getIds()).thenReturn(histogramIds);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
-        MetricsProcessor metrics = new MetricsProcessor(
-                List.of(countersLayout), List.of(gaugesLayout), List.of(histogramsLayout),
-                labels, null, null);
+        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+                COUNTER, List.of(countersLayout),
+                GAUGE, List.of(gaugesLayout),
+                HISTOGRAM, List.of(histogramsLayout));
+        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -206,18 +214,20 @@ public class MetricsProcessorTest
         when(histogramsLayout.getIds()).thenReturn(histogramIds);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_1);
 
-        MetricsProcessor metrics1 = new MetricsProcessor(List.of(countersLayout), List.of(), List.of(histogramsLayout),
-                labels, "ns2", null);
+        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+                COUNTER, List.of(countersLayout),
+                GAUGE, List.of(),
+                HISTOGRAM, List.of(histogramsLayout));
+
+        MetricsProcessor metrics1 = new MetricsProcessor(layouts, labels, "ns2", null);
         ByteArrayOutputStream os1 = new ByteArrayOutputStream();
         PrintStream out1 = new PrintStream(os1);
 
-        MetricsProcessor metrics2 = new MetricsProcessor(List.of(countersLayout), List.of(), List.of(histogramsLayout),
-                labels, null, "binding2");
+        MetricsProcessor metrics2 = new MetricsProcessor(layouts, labels, null, "binding2");
         ByteArrayOutputStream os2 = new ByteArrayOutputStream();
         PrintStream out2 = new PrintStream(os2);
 
-        MetricsProcessor metrics3 = new MetricsProcessor(List.of(countersLayout), List.of(), List.of(histogramsLayout),
-                labels, "ns1", "binding2");
+        MetricsProcessor metrics3 = new MetricsProcessor(layouts, labels, "ns1", "binding2");
         ByteArrayOutputStream os3 = new ByteArrayOutputStream();
         PrintStream out3 = new PrintStream(os3);
 
@@ -295,11 +305,11 @@ public class MetricsProcessorTest
         HistogramsLayout histogramsLayout2 = mock(HistogramsLayout.class);
         when(histogramsLayout2.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_41)).thenReturn(READER_HISTOGRAM_3);
 
-        MetricsProcessor metrics = new MetricsProcessor(
-                List.of(countersLayout0, countersLayout1, countersLayout2),
-                List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
-                List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2),
-                labels, null, null);
+        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+                COUNTER, List.of(countersLayout0, countersLayout1, countersLayout2),
+                GAUGE, List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
+                HISTOGRAM, List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2));
+        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -339,8 +349,11 @@ public class MetricsProcessorTest
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_43)).thenReturn(READER_HISTOGRAM_3);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_44)).thenReturn(READER_HISTOGRAM_4);
 
-        MetricsProcessor metrics = new MetricsProcessor(List.of(), List.of(), List.of(histogramsLayout),
-                labels, null, null);
+        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+                COUNTER, List.of(),
+                GAUGE, List.of(),
+                HISTOGRAM, List.of(histogramsLayout));
+        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
@@ -358,7 +371,11 @@ public class MetricsProcessorTest
         String expectedOutput =
                 "namespace    binding    metric    value\n\n";
         LabelManager labels = mock(LabelManager.class);
-        MetricsProcessor metrics = new MetricsProcessor(List.of(), List.of(), List.of(), labels, null, null);
+        Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
+                COUNTER, List.of(),
+                GAUGE, List.of(),
+                HISTOGRAM, List.of());
+        MetricsProcessor metrics = new MetricsProcessor(layouts, labels, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
 
