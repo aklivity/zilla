@@ -55,7 +55,7 @@ public final class TestMetricGroup implements MetricGroup
     }
 
     @Override
-    public Metric resolve(
+    public Metric supply(
         String name)
     {
         return testMetrics.getOrDefault(name, () -> null).get();

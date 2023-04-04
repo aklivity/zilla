@@ -375,7 +375,7 @@ public class DispatchAgent implements EngineContext, Agent
         {
             for (String metricName : metricGroup.metricNames())
             {
-                Metric metric = metricGroup.resolve(metricName);
+                Metric metric = metricGroup.supply(metricName);
                 metricsByName.put(metricName, metric.supply(this));
             }
         }

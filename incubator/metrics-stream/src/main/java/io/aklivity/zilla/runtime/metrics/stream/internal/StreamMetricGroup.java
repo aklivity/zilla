@@ -58,7 +58,7 @@ public class StreamMetricGroup implements MetricGroup
     }
 
     @Override
-    public Metric resolve(
+    public Metric supply(
         String name)
     {
         return streamMetrics.getOrDefault(name, () -> null).get();

@@ -49,7 +49,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.opens.received");
+        Metric metric = metricGroup.supply("stream.opens.received");
 
         // THEN
         assertThat(metric, instanceOf(StreamOpensReceivedMetric.class));
@@ -68,7 +68,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.opens.received");
+        Metric metric = metricGroup.supply("stream.opens.received");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -90,7 +90,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.opens.sent");
+        Metric metric = metricGroup.supply("stream.opens.sent");
 
         // THEN
         assertThat(metric, instanceOf(StreamOpensSentMetric.class));
@@ -109,7 +109,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.opens.sent");
+        Metric metric = metricGroup.supply("stream.opens.sent");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -131,7 +131,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.data.received");
+        Metric metric = metricGroup.supply("stream.data.received");
 
         // THEN
         assertThat(metric, instanceOf(StreamDataReceivedMetric.class));
@@ -150,7 +150,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.data.received");
+        Metric metric = metricGroup.supply("stream.data.received");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -174,7 +174,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.data.sent");
+        Metric metric = metricGroup.supply("stream.data.sent");
 
         // THEN
         assertThat(metric, instanceOf(StreamDataSentMetric.class));
@@ -193,7 +193,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.data.sent");
+        Metric metric = metricGroup.supply("stream.data.sent");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -218,7 +218,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.errors.received");
+        Metric metric = metricGroup.supply("stream.errors.received");
 
         // THEN
         assertThat(metric, instanceOf(StreamErrorsReceivedMetric.class));
@@ -237,7 +237,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.errors.received");
+        Metric metric = metricGroup.supply("stream.errors.received");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -264,7 +264,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.errors.sent");
+        Metric metric = metricGroup.supply("stream.errors.sent");
 
         // THEN
         assertThat(metric, instanceOf(StreamErrorsSentMetric.class));
@@ -283,7 +283,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.errors.sent");
+        Metric metric = metricGroup.supply("stream.errors.sent");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -310,7 +310,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.closes.received");
+        Metric metric = metricGroup.supply("stream.closes.received");
 
         // THEN
         assertThat(metric, instanceOf(StreamClosesReceivedMetric.class));
@@ -329,7 +329,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.closes.received");
+        Metric metric = metricGroup.supply("stream.closes.received");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -351,7 +351,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.closes.sent");
+        Metric metric = metricGroup.supply("stream.closes.sent");
 
         // THEN
         assertThat(metric, instanceOf(StreamClosesSentMetric.class));
@@ -370,7 +370,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.closes.sent");
+        Metric metric = metricGroup.supply("stream.closes.sent");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -392,7 +392,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.active.received");
+        Metric metric = metricGroup.supply("stream.active.received");
 
         // THEN
         assertThat(metric, instanceOf(StreamActiveReceivedMetric.class));
@@ -411,7 +411,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.active.received");
+        Metric metric = metricGroup.supply("stream.active.received");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -440,7 +440,7 @@ public class StreamMetricGroupTest
         MetricGroup metricGroup = new StreamMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.active.sent");
+        Metric metric = metricGroup.supply("stream.active.sent");
 
         // THEN
         assertThat(metric, instanceOf(StreamActiveSentMetric.class));
@@ -459,7 +459,7 @@ public class StreamMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("stream.active.sent");
+        Metric metric = metricGroup.supply("stream.active.sent");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);

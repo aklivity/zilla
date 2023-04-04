@@ -50,7 +50,8 @@ public class HttpMetricGroup implements MetricGroup
     }
 
     @Override
-    public Metric resolve(String name)
+    public Metric supply(
+        String name)
     {
         return httpMetrics.getOrDefault(name, () -> null).get();
     }

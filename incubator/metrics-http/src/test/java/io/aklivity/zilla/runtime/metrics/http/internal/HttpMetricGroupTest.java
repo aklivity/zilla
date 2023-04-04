@@ -51,7 +51,7 @@ public class HttpMetricGroupTest
         MetricGroup metricGroup = new HttpMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.request.size");
+        Metric metric = metricGroup.supply("http.request.size");
 
         // THEN
         assertThat(metric, instanceOf(HttpRequestSizeMetric.class));
@@ -70,7 +70,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.request.size");
+        Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 
@@ -111,7 +111,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.request.size");
+        Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 
@@ -171,7 +171,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.request.size");
+        Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 
@@ -235,7 +235,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.request.size");
+        Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 
@@ -274,7 +274,7 @@ public class HttpMetricGroupTest
         MetricGroup metricGroup = new HttpMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.response.size");
+        Metric metric = metricGroup.supply("http.response.size");
 
         // THEN
         assertThat(metric, instanceOf(HttpResponseSizeMetric.class));
@@ -293,7 +293,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.response.size");
+        Metric metric = metricGroup.supply("http.response.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 
@@ -334,7 +334,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.response.size");
+        Metric metric = metricGroup.supply("http.response.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 
@@ -394,7 +394,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.response.size");
+        Metric metric = metricGroup.supply("http.response.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 
@@ -458,7 +458,7 @@ public class HttpMetricGroupTest
         LongConsumer mockRecorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.resolve("http.request.size");
+        Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(mockEngineContext);
         MetricHandler handler = context.supply(mockRecorder);
 

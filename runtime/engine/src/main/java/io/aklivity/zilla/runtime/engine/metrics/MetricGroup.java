@@ -9,7 +9,7 @@ public interface MetricGroup
 
     URL type();
 
-    Metric resolve(
+    Metric supply(
         String name);
 
     Collection<String> metricNames();

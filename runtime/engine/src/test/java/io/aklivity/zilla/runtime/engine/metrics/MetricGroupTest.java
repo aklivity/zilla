@@ -23,7 +23,7 @@ public class MetricGroupTest
         MetricGroup metricGroup = new TestMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("test.counter");
+        Metric metric = metricGroup.supply("test.counter");
         MetricHandler handler = metric.supply(mock(EngineContext.class)).supply(mock(LongConsumer.class));
 
         // THEN
@@ -42,7 +42,7 @@ public class MetricGroupTest
         MetricGroup metricGroup = new TestMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("test.gauge");
+        Metric metric = metricGroup.supply("test.gauge");
         MetricHandler handler = metric.supply(mock(EngineContext.class)).supply(mock(LongConsumer.class));
 
         // THEN
@@ -61,7 +61,7 @@ public class MetricGroupTest
         MetricGroup metricGroup = new TestMetricGroup(config);
 
         // WHEN
-        Metric metric = metricGroup.resolve("test.histogram");
+        Metric metric = metricGroup.supply("test.histogram");
         MetricHandler handler = metric.supply(mock(EngineContext.class)).supply(mock(LongConsumer.class));
 
         // THEN
