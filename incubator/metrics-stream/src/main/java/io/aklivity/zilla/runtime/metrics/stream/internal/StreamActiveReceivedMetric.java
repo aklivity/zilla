@@ -91,19 +91,20 @@ public class StreamActiveReceivedMetric implements Metric
             final long streamId = frame.streamId();
             if (isInitial(streamId)) // received stream
             {
-                handleFrame(streamId, msgTypeId);
-                recorder.accept(activeStreams.size());
+                handleFrame(streamId, msgTypeId, recorder);
             }
         }
 
         private void handleFrame(
             long streamId,
-            int msgTypeId)
+            int msgTypeId,
+            LongConsumer recorder)
         {
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
                 activeStreams.getAndIncrement(streamId);
+                recorder.accept(activeStreams.size());
                 break;
             case EndFW.TYPE_ID:
             case AbortFW.TYPE_ID:
@@ -112,6 +113,7 @@ public class StreamActiveReceivedMetric implements Metric
                 {
                     activeStreams.remove(streamId);
                 }
+                recorder.accept(activeStreams.size());
                 break;
             }
         }
