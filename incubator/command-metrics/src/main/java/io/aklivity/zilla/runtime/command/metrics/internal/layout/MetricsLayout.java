@@ -71,36 +71,36 @@ abstract class MetricsLayout extends Layout
     private int findPosition(
         long bindingId,
         long metricId,
-        boolean create)
+        boolean createIfEmpty)
     {
-        int i = 0;
+        int pos = 0;
         boolean done = false;
         while (!done)
         {
-            long b = buffer.getLong(i + BINDING_ID_OFFSET);
-            long m = buffer.getLong(i + METRIC_ID_OFFSET);
+            long b = buffer.getLong(pos + BINDING_ID_OFFSET);
+            long m = buffer.getLong(pos + METRIC_ID_OFFSET);
             if (b == bindingId && m == metricId)
             {
                 done = true;
             }
             else if (isEmptySlot(b, m))
             {
-                if (create)
+                if (createIfEmpty)
                 {
-                    createRecord(bindingId, metricId, i);
+                    createRecord(bindingId, metricId, pos);
                 }
                 else
                 {
-                    i = NOT_FOUND;
+                    pos = NOT_FOUND;
                 }
                 done = true;
             }
             else
             {
-                i += recordSize();
+                pos += recordSize();
             }
         }
-        return i;
+        return pos;
     }
 
     private boolean isEmptySlot(
