@@ -12,8 +12,9 @@ import java.nio.file.Paths;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 
 public class GaugesLayoutTest
 {

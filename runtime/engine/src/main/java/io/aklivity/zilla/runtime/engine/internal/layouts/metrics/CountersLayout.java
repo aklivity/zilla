@@ -17,47 +17,28 @@ package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
-import static org.agrona.IoUtil.unmap;
 
 import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
-import java.util.stream.StreamSupport;
 
-import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
 
-public final class CountersLayout extends Layout
+public final class CountersLayout extends MetricsLayout
 {
     // We use the buffer to store structs {long bindingId, long metricId, long value}
-    private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
     private static final int RECORD_SIZE = 3 * FIELD_SIZE;
-    private static final int BINDING_ID_OFFSET = 0;
-    private static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
-    private static final int VALUE_OFFSET = 2 * FIELD_SIZE;
-    private static final int NOT_FOUND = -1;
-
-    private final AtomicBuffer buffer;
 
     private CountersLayout(
         AtomicBuffer buffer)
     {
-        this.buffer = buffer;
-    }
-
-    @Override
-    public void close()
-    {
-        unmap(buffer.byteBuffer());
+        super(buffer);
     }
 
     public LongConsumer supplyWriter(
@@ -85,71 +66,8 @@ public final class CountersLayout extends Layout
         return reader;
     }
 
-    public long[][] getIds()
-    {
-        Spliterator<long[]> spliterator = Spliterators.spliteratorUnknownSize(new CountersIterator(), 0);
-        return StreamSupport.stream(spliterator, false).toArray(long[][]::new);
-    }
-
-    private int findPosition(
-        long bindingId,
-        long metricId)
-    {
-        // find position or return -1 if not found
-        return findPosition(bindingId, metricId, false);
-    }
-
-    private int findOrSetPosition(
-        long bindingId,
-        long metricId)
-    {
-        // find position or create slot if not found
-        return findPosition(bindingId, metricId, true);
-    }
-
-    private int findPosition(
-        long bindingId,
-        long metricId,
-        boolean create)
-    {
-        int i = 0;
-        boolean done = false;
-        while (!done)
-        {
-            long b = buffer.getLong(i + BINDING_ID_OFFSET);
-            long m = buffer.getLong(i + METRIC_ID_OFFSET);
-            if (b == bindingId && m == metricId)
-            {
-                done = true;
-            }
-            else if (isEmptySlot(b, m))
-            {
-                if (create)
-                {
-                    createRecord(bindingId, metricId, i);
-                }
-                else
-                {
-                    i = NOT_FOUND;
-                }
-                done = true;
-            }
-            else
-            {
-                i += RECORD_SIZE;
-            }
-        }
-        return i;
-    }
-
-    private boolean isEmptySlot(
-        long bindingId,
-        long metricId)
-    {
-        return bindingId == 0L && metricId == 0L;
-    }
-
-    private void createRecord(
+    @Override
+    void createRecord(
         long bindingId,
         long metricId,
         int index)
@@ -159,34 +77,10 @@ public final class CountersLayout extends Layout
         buffer.putLong(index + VALUE_OFFSET, 0L); // initial value
     }
 
-    private final class CountersIterator implements Iterator<long[]>
+    @Override
+    int recordSize()
     {
-        private int index = 0;
-
-        @Override
-        public boolean hasNext()
-        {
-            return isBufferLeft() && isRecordLeft();
-        }
-
-        private boolean isBufferLeft()
-        {
-            return index < buffer.capacity();
-        }
-
-        private boolean isRecordLeft()
-        {
-            return buffer.getLong(index + BINDING_ID_OFFSET) != 0L;
-        }
-
-        @Override
-        public long[] next()
-        {
-            long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
-            long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
-            index += RECORD_SIZE;
-            return new long[]{bindingId, metricId};
-        }
+        return RECORD_SIZE;
     }
 
     public static final class Builder extends Layout.Builder<CountersLayout>

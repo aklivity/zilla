@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.layout;
 
-
 public abstract class Layout implements AutoCloseable
 {
     public enum Mode

@@ -17,57 +17,39 @@ package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
-import static org.agrona.IoUtil.unmap;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
-import org.agrona.BitUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
 
-public final class HistogramsLayout extends Layout
+public final class HistogramsLayout extends MetricsLayout
 {
     public static final int BUCKETS = 63;
     public static final Map<Integer, Long> BUCKET_LIMITS = generateBucketLimits();
 
     // We use the buffer to store structs {long bindingId, long metricId, long[] values}
-    private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
-    private static final int BINDING_ID_OFFSET = 0;
-    private static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
     private static final int VALUES_OFFSET = 2 * FIELD_SIZE;
     private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
     private static final int RECORD_SIZE = 2 * FIELD_SIZE + ARRAY_SIZE;
     private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
-    private static final int NOT_FOUND = -1;
-
-    private final AtomicBuffer buffer;
 
     private HistogramsLayout(
         AtomicBuffer buffer)
     {
-        this.buffer = buffer;
-    }
-
-    @Override
-    public void close()
-    {
-        unmap(buffer.byteBuffer());
+        super(buffer);
     }
 
     public LongConsumer supplyWriter(
@@ -75,12 +57,7 @@ public final class HistogramsLayout extends Layout
         long metricId)
     {
         int index = findOrSetPosition(bindingId, metricId);
-        return value ->
-        {
-            System.out.format("HistogramLayout write: bnd=%d met=%d val=%d bck=%d\n",
-                    bindingId, metricId, value, findBucket(value)); // TODO: Ati
-            buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
-        };
+        return value -> buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
     }
 
     public LongSupplier[] supplyReaders(
@@ -106,12 +83,6 @@ public final class HistogramsLayout extends Layout
         return readers;
     }
 
-    public long[][] getIds()
-    {
-        Spliterator<long[]> spliterator = Spliterators.spliteratorUnknownSize(new HistogramsIterator(), 0);
-        return StreamSupport.stream(spliterator, false).toArray(long[][]::new);
-    }
-
     private int findBucket(
         long value)
     {
@@ -119,70 +90,14 @@ public final class HistogramsLayout extends Layout
         return Math.max(63 - Long.numberOfLeadingZeros(value), 0);
     }
 
-    private LongSupplier newLongSupplier(int i)
+    private LongSupplier newLongSupplier(
+        int index)
     {
-        return () -> buffer.getLong(i);
+        return () -> buffer.getLong(index);
     }
 
-    private int findPosition(
-        long bindingId,
-        long metricId)
-    {
-        // find position or return -1 if not found
-        return findPosition(bindingId, metricId, false);
-    }
-
-    private int findOrSetPosition(
-        long bindingId,
-        long metricId)
-    {
-        // find position or create slot if not found
-        return findPosition(bindingId, metricId, true);
-    }
-
-    private int findPosition(
-        long bindingId,
-        long metricId,
-        boolean create)
-    {
-        int i = 0;
-        boolean done = false;
-        while (!done)
-        {
-            long b = buffer.getLong(i + BINDING_ID_OFFSET);
-            long m = buffer.getLong(i + METRIC_ID_OFFSET);
-            if (b == bindingId && m == metricId)
-            {
-                done = true;
-            }
-            else if (isEmptySlot(b, m))
-            {
-                if (create)
-                {
-                    createRecord(bindingId, metricId, i);
-                }
-                else
-                {
-                    i = NOT_FOUND;
-                }
-                done = true;
-            }
-            else
-            {
-                i += RECORD_SIZE;
-            }
-        }
-        return i;
-    }
-
-    private boolean isEmptySlot(
-        long bindingId,
-        long metricId)
-    {
-        return bindingId == 0L && metricId == 0L;
-    }
-
-    private void createRecord(
+    @Override
+    void createRecord(
         long bindingId,
         long metricId,
         int index)
@@ -191,6 +106,12 @@ public final class HistogramsLayout extends Layout
         buffer.putLong(index + METRIC_ID_OFFSET, metricId);
         ByteBuffer initialValues = ByteBuffer.allocate(ARRAY_SIZE); // all zeroes
         buffer.putBytes(index + VALUES_OFFSET, initialValues.array());
+    }
+
+    @Override
+    int recordSize()
+    {
+        return RECORD_SIZE;
     }
 
     // exclusive upper limits of each bucket
@@ -202,36 +123,6 @@ public final class HistogramsLayout extends Layout
             limits.put(i, 1L << (i + 1));
         }
         return limits;
-    }
-
-    private final class HistogramsIterator implements Iterator<long[]>
-    {
-        private int index = 0;
-
-        @Override
-        public boolean hasNext()
-        {
-            return isBufferLeft() && isRecordLeft();
-        }
-
-        private boolean isBufferLeft()
-        {
-            return index < buffer.capacity();
-        }
-
-        private boolean isRecordLeft()
-        {
-            return buffer.getLong(index) != 0L;
-        }
-
-        @Override
-        public long[] next()
-        {
-            long bindingId = buffer.getLong(index + BINDING_ID_OFFSET);
-            long metricId = buffer.getLong(index + METRIC_ID_OFFSET);
-            index += RECORD_SIZE;
-            return new long[]{bindingId, metricId};
-        }
     }
 
     public static final class Builder extends Layout.Builder<HistogramsLayout>
