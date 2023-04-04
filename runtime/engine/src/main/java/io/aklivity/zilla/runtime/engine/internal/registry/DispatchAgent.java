@@ -108,6 +108,7 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.LoadLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadManager;
@@ -255,7 +256,7 @@ public class DispatchAgent implements EngineContext, Agent
                 .mode(CREATE_READ_WRITE)
                 .build();
 
-        final CountersLayout gaugesLayout = new CountersLayout.Builder()
+        final GaugesLayout gaugesLayout = new GaugesLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
                 .capacity(config.counterBufferCapacity())
                 .mode(CREATE_READ_WRITE)

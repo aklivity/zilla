@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.GaugesLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
 
 public class MetricsProcessorTest
@@ -135,7 +136,7 @@ public class MetricsProcessorTest
         when(mockCountersLayout.supplyReader(BINDING_ID_1_12, METRIC_ID_1_21)).thenReturn(READER_43);
         when(mockCountersLayout.supplyReader(BINDING_ID_2_11, METRIC_ID_2_21)).thenReturn(READER_44);
 
-        CountersLayout mockGaugesLayout = mock(CountersLayout.class);
+        GaugesLayout mockGaugesLayout = mock(GaugesLayout.class);
         when(mockGaugesLayout.getIds()).thenReturn(gaugeIds);
         when(mockGaugesLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_31)).thenReturn(READER_88);
 

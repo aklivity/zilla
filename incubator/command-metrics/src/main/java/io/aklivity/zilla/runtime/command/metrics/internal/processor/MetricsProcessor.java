@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.GaugesLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.HistogramRecord;
@@ -37,7 +38,7 @@ public class MetricsProcessor
     private static final String VALUE_HEADER = "value";
 
     private final List<CountersLayout> countersLayouts;
-    private final List<CountersLayout> gaugesLayouts;
+    private final List<GaugesLayout> gaugesLayouts;
     private final List<HistogramsLayout> histogramsLayouts;
     private final LabelManager labels;
     private final LongPredicate filter;
@@ -50,7 +51,7 @@ public class MetricsProcessor
 
     public MetricsProcessor(
         List<CountersLayout> countersLayouts,
-        List<CountersLayout> gaugesLayouts,
+        List<GaugesLayout> gaugesLayouts,
         List<HistogramsLayout> histogramsLayouts,
         LabelManager labels,
         String namespaceName,

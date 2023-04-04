@@ -13,25 +13,20 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.command.metrics.internal.layout;
+package io.aklivity.zilla.runtime.engine.internal.layouts.metrics;
 
 import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
 
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import org.agrona.BitUtil;
@@ -39,24 +34,21 @@ import org.agrona.CloseHelper;
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public final class HistogramsLayout extends Layout
-{
-    public static final int BUCKETS = 63;
-    public static final Map<Integer, Long> BUCKET_LIMITS = generateBucketLimits();
+import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
 
-    // We use the buffer to store structs {long bindingId, long metricId, long[] values}
+public final class GaugesLayout extends Layout
+{
+    // We use the buffer to store structs {long bindingId, long metricId, long value}
     private static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
+    private static final int RECORD_SIZE = 3 * FIELD_SIZE;
     private static final int BINDING_ID_OFFSET = 0;
     private static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
-    private static final int VALUES_OFFSET = 2 * FIELD_SIZE;
-    private static final int ARRAY_SIZE = BUCKETS * FIELD_SIZE;
-    private static final int RECORD_SIZE = 2 * FIELD_SIZE + ARRAY_SIZE;
-    private static final LongSupplier ZERO_LONG_SUPPLIER = () -> 0L;
+    private static final int VALUE_OFFSET = 2 * FIELD_SIZE;
     private static final int NOT_FOUND = -1;
 
     private final AtomicBuffer buffer;
 
-    private HistogramsLayout(
+    private GaugesLayout(
         AtomicBuffer buffer)
     {
         this.buffer = buffer;
@@ -73,53 +65,30 @@ public final class HistogramsLayout extends Layout
         long metricId)
     {
         int index = findOrSetPosition(bindingId, metricId);
-        return value ->
-        {
-            System.out.format("HistogramLayout write: bnd=%d met=%d val=%d bck=%d\n",
-                    bindingId, metricId, value, findBucket(value)); // TODO: Ati
-            buffer.getAndAddLong(index + VALUES_OFFSET + findBucket(value) * FIELD_SIZE, 1);
-        };
+        return delta -> buffer.putLong(index + VALUE_OFFSET, delta);
     }
 
-    public LongSupplier[] supplyReaders(
+    public LongSupplier supplyReader(
         long bindingId,
         long metricId)
     {
-        LongSupplier[] readers;
         int index = findPosition(bindingId, metricId);
+        LongSupplier reader;
         if (index == -1) // not found
         {
-            readers = IntStream.range(0, BUCKETS)
-                    .mapToObj(bucket -> ZERO_LONG_SUPPLIER)
-                    .collect(Collectors.toList())
-                    .toArray(LongSupplier[]::new);
+            reader = () -> 0L;
         }
         else
         {
-            readers = IntStream.range(0, BUCKETS)
-                    .mapToObj(bucket -> newLongSupplier(index + VALUES_OFFSET + bucket * FIELD_SIZE))
-                    .collect(Collectors.toList())
-                    .toArray(LongSupplier[]::new);
+            reader = () -> buffer.getLong(index + VALUE_OFFSET);
         }
-        return readers;
+        return reader;
     }
 
     public long[][] getIds()
     {
-        Spliterator<long[]> spliterator = Spliterators.spliteratorUnknownSize(new HistogramsIterator(), 0);
+        Spliterator<long[]> spliterator = Spliterators.spliteratorUnknownSize(new CountersIterator(), 0);
         return StreamSupport.stream(spliterator, false).toArray(long[][]::new);
-    }
-
-    private int findBucket(
-        long value)
-    {
-        assert value >= 0;
-        return Math.max(63 - Long.numberOfLeadingZeros(value), 0);
-    }
-
-    private LongSupplier newLongSupplier(int i)
-    {
-        return () -> buffer.getLong(i);
     }
 
     private int findPosition(
@@ -187,22 +156,10 @@ public final class HistogramsLayout extends Layout
     {
         buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
         buffer.putLong(index + METRIC_ID_OFFSET, metricId);
-        ByteBuffer initialValues = ByteBuffer.allocate(ARRAY_SIZE); // all zeroes
-        buffer.putBytes(index + VALUES_OFFSET, initialValues.array());
+        buffer.putLong(index + VALUE_OFFSET, 0L); // initial value
     }
 
-    // exclusive upper limits of each bucket
-    private static Map<Integer, Long> generateBucketLimits()
-    {
-        Map<Integer, Long> limits = new HashMap<>();
-        for (int i = 0; i < BUCKETS; i++)
-        {
-            limits.put(i, 1L << (i + 1));
-        }
-        return limits;
-    }
-
-    private final class HistogramsIterator implements Iterator<long[]>
+    private final class CountersIterator implements Iterator<long[]>
     {
         private int index = 0;
 
@@ -219,7 +176,7 @@ public final class HistogramsLayout extends Layout
 
         private boolean isRecordLeft()
         {
-            return buffer.getLong(index) != 0L;
+            return buffer.getLong(index + BINDING_ID_OFFSET) != 0L;
         }
 
         @Override
@@ -232,7 +189,7 @@ public final class HistogramsLayout extends Layout
         }
     }
 
-    public static final class Builder extends Layout.Builder<HistogramsLayout>
+    public static final class Builder extends Layout.Builder<GaugesLayout>
     {
         private long capacity;
         private Path path;
@@ -244,6 +201,7 @@ public final class HistogramsLayout extends Layout
             this.capacity = capacity;
             return this;
         }
+
         public Builder path(
             Path path)
         {
@@ -258,16 +216,17 @@ public final class HistogramsLayout extends Layout
             return this;
         }
 
-        public HistogramsLayout build()
+        @Override
+        public GaugesLayout build()
         {
             final File layoutFile = path.toFile();
             if (mode == Mode.CREATE_READ_WRITE)
             {
                 CloseHelper.close(createEmptyFile(layoutFile, capacity));
             }
-            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "histograms");
+            final MappedByteBuffer mappedBuffer = mapExistingFile(layoutFile, "gauges");
             final AtomicBuffer atomicBuffer = new UnsafeBuffer(mappedBuffer);
-            return new HistogramsLayout(atomicBuffer);
+            return new GaugesLayout(atomicBuffer);
         }
     }
 }

@@ -35,6 +35,7 @@ import com.github.rvesse.airline.annotations.Option;
 import io.aklivity.zilla.runtime.command.ZillaCommand;
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.CountersLayout;
+import io.aklivity.zilla.runtime.command.metrics.internal.layout.GaugesLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.processor.MetricsProcessor;
 
@@ -61,7 +62,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
     {
         String binding = args != null && args.size() >= 1 ? args.get(0) : null;
         List<CountersLayout> countersLayouts = List.of();
-        List<CountersLayout> gaugesLayouts = List.of();
+        List<GaugesLayout> gaugesLayouts = List.of();
         List<HistogramsLayout> histogramsLayouts = List.of();
         try
         {
@@ -84,7 +85,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
         finally
         {
             countersLayouts.forEach(CountersLayout::close);
-            gaugesLayouts.forEach(CountersLayout::close);
+            gaugesLayouts.forEach(GaugesLayout::close);
             histogramsLayouts.forEach(HistogramsLayout::close);
         }
     }
@@ -95,10 +96,10 @@ public final class ZillaMetricsCommand extends ZillaCommand
         return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
     }
 
-    private List<CountersLayout> gaugesLayouts() throws IOException
+    private List<GaugesLayout> gaugesLayouts() throws IOException
     {
         Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
-        return files.filter(this::isGaugesFile).map(this::newCountersLayout).collect(toList());
+        return files.filter(this::isGaugesFile).map(this::newGaugesLayout).collect(toList());
     }
 
     private List<HistogramsLayout> histogramsLayouts() throws IOException
@@ -135,6 +136,12 @@ public final class ZillaMetricsCommand extends ZillaCommand
         Path path)
     {
         return new CountersLayout.Builder().path(path).mode(READ_ONLY).build();
+    }
+
+    private GaugesLayout newGaugesLayout(
+        Path path)
+    {
+        return new GaugesLayout.Builder().path(path).mode(READ_ONLY).build();
     }
 
     private HistogramsLayout newHistogramsLayout(
