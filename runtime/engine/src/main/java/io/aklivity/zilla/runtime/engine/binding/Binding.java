@@ -15,14 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.binding;
 
-import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
-
 import java.net.URL;
-import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
+import io.aklivity.zilla.runtime.engine.config.StreamType;
 
 public interface Binding
 {
@@ -43,18 +40,15 @@ public interface Binding
         return Integer.MAX_VALUE;
     }
 
-    default BiFunction<KindConfig, String, MetricHandlerKind> metricsPolicy()
+    default StreamType originType(
+        KindConfig kind)
     {
-        return (kind, metricGroup) ->
-        {
-            if ("stream".equalsIgnoreCase(metricGroup))
-            {
-                return ROUTED;
-            }
-            else
-            {
-                return null;
-            }
-        };
+        return null;
+    }
+
+    default StreamType routedType(
+        KindConfig kind)
+    {
+        return null;
     }
 }

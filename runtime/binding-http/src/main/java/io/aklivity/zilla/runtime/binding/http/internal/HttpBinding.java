@@ -15,17 +15,15 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ORIGIN;
-import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
+import static io.aklivity.zilla.runtime.engine.config.StreamType.HTTP;
+import static io.aklivity.zilla.runtime.engine.config.StreamType.PROXY;
 
 import java.net.URL;
-import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
+import io.aklivity.zilla.runtime.engine.config.StreamType;
 
 public final class HttpBinding implements Binding
 {
@@ -59,22 +57,42 @@ public final class HttpBinding implements Binding
     }
 
     @Override
-    public BiFunction<KindConfig, String, MetricHandlerKind> metricsPolicy()
+    public StreamType originType(
+        KindConfig kind)
     {
-        return (kind, metricGroup) ->
+        StreamType result;
+        switch (kind)
         {
-            if ("stream".equalsIgnoreCase(metricGroup))
-            {
-                return ROUTED;
-            }
-            else if ("http".equalsIgnoreCase(metricGroup))
-            {
-                return kind == SERVER ? ORIGIN : ROUTED;
-            }
-            else
-            {
-                return null;
-            }
-        };
+        case SERVER:
+            result = HTTP;
+            break;
+        case CLIENT:
+            result = PROXY;
+            break;
+        default:
+            result = null;
+            break;
+        }
+        return result;
+    }
+
+    @Override
+    public StreamType routedType(
+        KindConfig kind)
+    {
+        StreamType result;
+        switch (kind)
+        {
+        case SERVER:
+            result = PROXY;
+            break;
+        case CLIENT:
+            result = HTTP;
+            break;
+        default:
+            result = null;
+            break;
+        }
+        return result;
     }
 }
