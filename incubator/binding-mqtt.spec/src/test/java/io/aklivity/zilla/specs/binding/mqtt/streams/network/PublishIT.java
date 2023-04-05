@@ -69,8 +69,8 @@ public class PublishIT
     // [MQTT-2.2.1-2]
     @Test
     @Specification({
-        "${net}/publish.qos0.reject.packet.id/client",
-        "${net}/publish.qos0.reject.packet.id/server"})
+        "${net}/publish.reject.qos0.with.packet.id/client",
+        "${net}/publish.reject.qos0.with.packet.id/server"})
     public void shouldRejectWithPacketIdAtQos0() throws Exception
     {
         k3po.finish();
@@ -99,8 +99,8 @@ public class PublishIT
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/publish.qos1.reject.missing.packet.id/client",
-        "${net}/publish.qos1.reject.missing.packet.id/server"})
+        "${net}/publish.reject.qos1.without.packet.id/client",
+        "${net}/publish.reject.qos1.without.packet.id/server"})
     public void shouldRejectWithoutPacketIdAtQos1() throws Exception
     {
         k3po.finish();
@@ -109,8 +109,8 @@ public class PublishIT
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/publish.qos2.reject.missing.packet.id/client",
-        "${net}/publish.qos2.reject.missing.packet.id/server"})
+        "${net}/publish.reject.qos2.without.packet.id/client",
+        "${net}/publish.reject.qos2.without.packet.id/server"})
     public void shouldRejectWithoutPacketIdAtQos2() throws Exception
     {
         k3po.finish();

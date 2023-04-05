@@ -101,8 +101,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/disconnect.invalid.fixed.header.flags/client",
-        "${net}/disconnect.invalid.fixed.header.flags/server"})
+        "${net}/disconnect.reject.invalid.fixed.header.flags/client",
+        "${net}/disconnect.reject.invalid.fixed.header.flags/server"})
     public void shouldRejectMalformedDisconnectPacket() throws Exception
     {
         k3po.finish();
@@ -185,8 +185,8 @@ public class ConnectionIT
     // TODO: use subscribe.topic.filter.single.exact/server in the application side
     @Test
     @Specification({
-        "${net}/connect.server.overrides.keep.alive/client",
-        "${net}/connect.server.overrides.keep.alive/server"})
+        "${net}/connect.server.defined.keep.alive/client",
+        "${net}/connect.server.defined.keep.alive/server"})
     public void shouldUseServerOverriddenKeepAlive() throws Exception
     {
         k3po.finish();
@@ -231,8 +231,8 @@ public class ConnectionIT
     // [MQTT-3.2.2-13]
     @Test
     @Specification({
-        "${net}/connect.reject.will.retain.retain.not.supported/client",
-        "${net}/connect.reject.will.retain.retain.not.supported/server"})
+        "${net}/connect.reject.will.retain.not.supported/client",
+        "${net}/connect.reject.will.retain.not.supported/server"})
     public void shouldRejectConnectWithWillRetainRetainNotSupported() throws Exception
     {
         k3po.finish();
@@ -296,8 +296,8 @@ public class ConnectionIT
     // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect.will.reject.will.payload.not.present/client",
-        "${net}/connect.will.reject.will.payload.not.present/server"})
+        "${net}/connect.reject.will.payload.missing/client",
+        "${net}/connect.reject.will.payload.missing/server"})
     public void shouldRejectWillPayloadNotPresent() throws Exception
     {
         k3po.finish();
@@ -306,8 +306,8 @@ public class ConnectionIT
     // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect.will.reject.will.properties.not.present/client",
-        "${net}/connect.will.reject.will.properties.not.present/server"})
+        "${net}/connect.reject.will.properties.missing/client",
+        "${net}/connect.reject.will.properties.missing/server"})
     public void shouldRejectWillPropertiesNotPresent() throws Exception
     {
         k3po.finish();
@@ -316,8 +316,8 @@ public class ConnectionIT
     // [MQTT-3.1.2-9]
     @Test
     @Specification({
-        "${net}/connect.will.reject.will.topic.not.present/client",
-        "${net}/connect.will.reject.will.topic.not.present/server"})
+        "${net}/connect.reject.will.topic.missing/client",
+        "${net}/connect.reject.will.topic.missing/server"})
     public void shouldRejectWillTopicNotPresent() throws Exception
     {
         k3po.finish();
@@ -326,8 +326,8 @@ public class ConnectionIT
     // [MQTT-3.1.2-16]
     @Test
     @Specification({
-        "${net}/connect.reject.username.no.user.flag/client",
-        "${net}/connect.reject.username.no.user.flag/server"})
+        "${net}/connect.reject.username.flag.missing/client",
+        "${net}/connect.reject.username.flag.missing/server"})
     public void shouldRejectUsernameWhenMissingUserFlag() throws Exception
     {
         k3po.finish();
@@ -346,8 +346,8 @@ public class ConnectionIT
     // [MQTT-3.1.2-17]
     @Test
     @Specification({
-        "${net}/connect.reject.username.flag.no.username/client",
-        "${net}/connect.reject.username.flag.no.username/server"})
+        "${net}/connect.reject.username.flag.only/client",
+        "${net}/connect.reject.username.flag.only/server"})
     public void shouldRejectUserFlagWhenMissingUsername() throws Exception
     {
         k3po.finish();

@@ -52,3 +52,12 @@ read  [0x30 0x1b]                    # PUBLISH
       [0x02] 0x0f                    # expiry = 15 seconds
       [0x01 0x01]                    # format = utf-8
       "message"                      # payload
+
+write [0x30 0x28]                    # PUBLISH
+      [0x00 0x0a] "sensor/one"       # topic name
+      [0x27]                         # properties
+      [0x0b 0x01]                    # subscription id = 1
+      [0x02] 0x0f                    # expiry = 15 seconds
+      [0x03 0x00 0x07] "message"     # content type
+      [0x01 0x01]                    # format = utf-8
+      "message2"                     # payload

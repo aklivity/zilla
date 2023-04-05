@@ -20,23 +20,6 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                .clientId("client1")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
-                                .build()
-                             .build()}
-
-connected
-
-write notify SUBSCRIBED
-
-connect await SUBSCRIBED
-        "zilla://streams/app0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
                              .publish()
                                 .clientId("client2")
                                 .topic("sensor/one")
@@ -57,3 +40,22 @@ write zilla:data.ext ${mqtt:dataEx()
 
 write "message"
 write flush
+
+
+write notify PUBLISHED
+
+connect await PUBLISHED
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                .clientId("client1")
+                                .filter("sensor/one", 1)
+                                .build()
+                             .build()}
+
+connected
+

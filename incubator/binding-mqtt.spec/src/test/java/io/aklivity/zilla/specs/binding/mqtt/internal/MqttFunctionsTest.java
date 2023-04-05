@@ -28,7 +28,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.SessionStateFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttEndExFW;
@@ -47,7 +47,7 @@ public class MqttFunctionsTest
     public void shouldEncodePayloadFormat()
     {
         final byte[] bytes = MqttFunctions.payloadFormat("TEXT");
-        final byte[] expected = new byte[]{1};
+        final byte[] expected = new byte[] {1};
         assertArrayEquals(bytes, expected);
     }
 
@@ -56,18 +56,20 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.beginEx()
             .typeId(0)
-            .session()
+                .session()
                 .clientId("client")
                 .expiry(30)
-                .willTopic("will.client")
-                .willDelay(20)
-                .willExpiryInterval(15)
-                .willContentType("message")
-                .willFormat("TEXT")
-                .willResponseTopic("will.client.response")
-                .willCorrelation("request-id-1")
-                .willUserProperty("name", "value")
-                .willPayload("client failed")
+                .willMessage(MqttFunctions.willMessage()
+                    .topic("will.client")
+                    .delay(20)
+                    .expiryInterval(15)
+                    .contentType("message")
+                    .format("TEXT")
+                    .responseTopic("will.client.response")
+                    .correlation("request-id-1")
+                    .userProperty("name", "value")
+                    .payload("client failed")
+                    .build())
                 .build()
             .build();
 
@@ -76,21 +78,40 @@ public class MqttFunctionsTest
 
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
-        assertEquals("will.client", mqttBeginEx.session().willTopic().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
-        assertEquals(20, mqttBeginEx.session().willDelay());
-        assertEquals(15, mqttBeginEx.session().willExpiryInterval());
-        assertEquals("message", mqttBeginEx.session().willContentType().asString());
-        assertEquals("TEXT", mqttBeginEx.session().willFormat().toString());
-        assertEquals("will.client.response", mqttBeginEx.session().willResponseTopic().asString());
-        assertEquals("request-id-1", mqttBeginEx.session().willCorrelation()
+        assertEquals("will.client", mqttBeginEx.session().willMessage().topic().asString());
+        assertEquals(20, mqttBeginEx.session().willMessage().delay());
+        assertEquals(15, mqttBeginEx.session().willMessage().expiryInterval());
+        assertEquals("message", mqttBeginEx.session().willMessage().contentType().asString());
+        assertEquals("TEXT", mqttBeginEx.session().willMessage().format().toString());
+        assertEquals("will.client.response", mqttBeginEx.session().willMessage().responseTopic().asString());
+        assertEquals("request-id-1", mqttBeginEx.session().willMessage().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-        assertNotNull(mqttBeginEx.session().willUserProperties()
+        assertNotNull(mqttBeginEx.session().willMessage().userProperties()
             .matchFirst(h ->
                 "name".equals(h.key().asString()) &&
                     "value".equals(h.value().asString())));
-        assertEquals("client failed", mqttBeginEx.session().willPayload()
+        assertEquals("client failed", mqttBeginEx.session().willMessage().payload()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionBeginExtWithoutWillMessage()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .session()
+                .clientId("client")
+                .expiry(30)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(2, mqttBeginEx.kind());
+        assertEquals("client", mqttBeginEx.session().clientId().asString());
+        assertEquals(30, mqttBeginEx.session().expiry());
     }
 
     @Test
@@ -98,12 +119,14 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.beginEx()
             .typeId(0)
-            .session()
+                .session()
                 .clientId("client")
-                .willTopic("will.client")
-                .willFlags("RETAIN", "QOS1")
-                .willCorrelationBytes("request-id-1".getBytes(UTF_8))
-                .willPayloadBytes(new byte[] {0, 1, 2, 3, 4, 5})
+                .willMessage(MqttFunctions.willMessage()
+                    .topic("will.client")
+                    .flags("RETAIN", "QOS1")
+                    .correlationBytes("request-id-1".getBytes(UTF_8))
+                    .payloadBytes(new byte[] {0, 1, 2, 3, 4, 5})
+                    .build())
                 .build()
             .build();
 
@@ -112,12 +135,12 @@ public class MqttFunctionsTest
 
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
-        assertEquals("will.client", mqttBeginEx.session().willTopic().asString());
-        assertEquals(0b1010, mqttBeginEx.session().willFlags());
-        assertEquals("BINARY", mqttBeginEx.session().willFormat().toString());
-        assertEquals("request-id-1", mqttBeginEx.session().willCorrelation()
+        assertEquals("will.client", mqttBeginEx.session().willMessage().topic().asString());
+        assertEquals(0b1010, mqttBeginEx.session().willMessage().flags());
+        assertEquals("BINARY", mqttBeginEx.session().willMessage().format().toString());
+        assertEquals("request-id-1", mqttBeginEx.session().willMessage().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-        assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, mqttBeginEx.session().willPayload()
+        assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, mqttBeginEx.session().willMessage().payload()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)).getBytes());
     }
 
@@ -125,12 +148,12 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttSubscribeBeginExt()
     {
         final byte[] array = MqttFunctions.beginEx()
-                .typeId(0)
-                .subscribe()
-                    .clientId("client")
-                    .filter("sensor/one", 0)
-                    .build()
-                .build();
+            .typeId(0)
+            .subscribe()
+            .clientId("client")
+            .filter("sensor/one", 0)
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
@@ -147,12 +170,12 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttSubscribeBeginExtWithFlags()
     {
         final byte[] array = MqttFunctions.beginEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .clientId("client")
-                                              .filter("sensor/one", 1, "SEND_RETAINED")
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .clientId("client")
+            .filter("sensor/one", 1, "SEND_RETAINED")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
@@ -171,12 +194,12 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttProduceBeginEx()
     {
         final byte[] array = MqttFunctions.beginEx()
-                .typeId(0)
-                .publish()
-                    .clientId("client")
-                    .topic("sensor/one")
-                    .build()
-                .build();
+            .typeId(0)
+            .publish()
+            .clientId("client")
+            .topic("sensor/one")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
@@ -190,19 +213,19 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttSubscribeDataEx()
     {
         final byte[] array = MqttFunctions.dataEx()
-                .typeId(0)
-                .subscribe()
-                    .topic("sensor/one")
-                    .subscriptionId(1)
-                    .subscriptionId(2)
-                    .expiryInterval(15)
-                    .contentType("message")
-                    .format("TEXT")
-                    .responseTopic("sensor/one")
-                    .correlation("request-id-1")
-                    .userProperty("name", "value")
-                    .build()
-                .build();
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .subscriptionId(1)
+            .subscriptionId(2)
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -214,25 +237,25 @@ public class MqttFunctionsTest
         assertEquals(15, mqttDataEx.subscribe().expiryInterval());
         assertEquals("message", mqttDataEx.subscribe().contentType().asString());
         assertEquals("TEXT", mqttDataEx.subscribe().format().toString());
-        assertEquals("sensor/one",  mqttDataEx.subscribe().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.subscribe().correlation()
+        assertEquals("sensor/one", mqttDataEx.subscribe().responseTopic().asString());
+        assertEquals("request-id-1", mqttDataEx.subscribe().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithUserProperty()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .topic("sensor/one")
-                                              .userProperty("name", "value")
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .userProperty("name", "value")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -240,21 +263,21 @@ public class MqttFunctionsTest
         assertEquals(0, mqttDataEx.typeId());
         assertEquals("sensor/one", mqttDataEx.subscribe().topic().asString());
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithFlags()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .topic("sensor/one")
-                                              .flags("SEND_RETAINED", "NO_LOCAL")
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .flags("SEND_RETAINED", "NO_LOCAL")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -268,33 +291,33 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttSubscribeDataExWithUserPropertyNoTopic()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                            .userProperty("name", "value")
-                                            .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .userProperty("name", "value")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttDataEx.typeId());
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithUserProperties()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .topic("sensor/one")
-                                              .userProperty("name1", "value1")
-                                              .userProperty("name2", "value2")
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .userProperty("name1", "value1")
+            .userProperty("name2", "value2")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -302,29 +325,29 @@ public class MqttFunctionsTest
         assertEquals(0, mqttDataEx.typeId());
         assertEquals("sensor/one", mqttDataEx.subscribe().topic().asString());
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name1".equals(h.key().asString()) &&
-                                                    "value1".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name1".equals(h.key().asString()) &&
+                    "value1".equals(h.value().asString())));
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name2".equals(h.key().asString()) &&
-                                                    "value2".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name2".equals(h.key().asString()) &&
+                    "value2".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithoutTopic()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .expiryInterval(15)
-                                              .contentType("message")
-                                              .format("TEXT")
-                                              .responseTopic("sensor/one")
-                                              .correlation("request-id-1")
-                                              .userProperty("name", "value")
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -334,29 +357,29 @@ public class MqttFunctionsTest
         assertEquals(15, mqttDataEx.subscribe().expiryInterval());
         assertEquals("message", mqttDataEx.subscribe().contentType().asString());
         assertEquals("TEXT", mqttDataEx.subscribe().format().toString());
-        assertEquals("sensor/one",  mqttDataEx.subscribe().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.subscribe().correlation()
+        assertEquals("sensor/one", mqttDataEx.subscribe().responseTopic().asString());
+        assertEquals("request-id-1", mqttDataEx.subscribe().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithoutResponseTopic()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .topic("sensor/one")
-                                              .expiryInterval(15)
-                                              .contentType("message")
-                                              .format("TEXT")
-                                              .correlation("request-id-1")
-                                              .userProperty("name", "value")
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -367,26 +390,26 @@ public class MqttFunctionsTest
         assertEquals("message", mqttDataEx.subscribe().contentType().asString());
         assertEquals("TEXT", mqttDataEx.subscribe().format().toString());
         assertNull(mqttDataEx.subscribe().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.subscribe().correlation()
+        assertEquals("request-id-1", mqttDataEx.subscribe().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithNullDefaults()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .expiryInterval(15)
-                                              .format("TEXT")
-                                              .correlation("request-id-1")
-                                              .userProperty("name", "value")
-                                          .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .expiryInterval(15)
+            .format("TEXT")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -397,29 +420,29 @@ public class MqttFunctionsTest
         assertNull(mqttDataEx.subscribe().contentType().asString());
         assertEquals("TEXT", mqttDataEx.subscribe().format().toString());
         assertNull(mqttDataEx.subscribe().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.subscribe().correlation()
+        assertEquals("request-id-1", mqttDataEx.subscribe().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithBytes()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .topic("sensor/one")
-                                              .expiryInterval(15)
-                                              .contentType("message")
-                                              .format("TEXT")
-                                              .responseTopic("sensor/one")
-                                              .correlationBytes("request-id-1".getBytes(UTF_8))
-                                              .userProperty("name", "value")
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlationBytes("request-id-1".getBytes(UTF_8))
+            .userProperty("name", "value")
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -429,30 +452,30 @@ public class MqttFunctionsTest
         assertEquals(15, mqttDataEx.subscribe().expiryInterval());
         assertEquals("message", mqttDataEx.subscribe().contentType().asString());
         assertEquals("TEXT", mqttDataEx.subscribe().format().toString());
-        assertEquals("sensor/one",  mqttDataEx.subscribe().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.subscribe().correlation()
+        assertEquals("sensor/one", mqttDataEx.subscribe().responseTopic().asString());
+        assertEquals("request-id-1", mqttDataEx.subscribe().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    "value".equals(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    "value".equals(h.value().asString())));
     }
 
     @Test
     public void shouldEncodeMqttSubscribeDataExWithNullUserPropertyValue()
     {
         final byte[] array = MqttFunctions.dataEx()
-                                          .typeId(0)
-                                          .subscribe()
-                                              .topic("sensor/one")
-                                              .expiryInterval(15)
-                                              .contentType("message")
-                                              .format("TEXT")
-                                              .responseTopic("sensor/one")
-                                              .correlation("request-id-1")
-                                              .userProperty("name", null)
-                                              .build()
-                                          .build();
+            .typeId(0)
+            .subscribe()
+            .topic("sensor/one")
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlation("request-id-1")
+            .userProperty("name", null)
+            .build()
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
@@ -462,13 +485,13 @@ public class MqttFunctionsTest
         assertEquals(15, mqttDataEx.subscribe().expiryInterval());
         assertEquals("message", mqttDataEx.subscribe().contentType().asString());
         assertEquals("TEXT", mqttDataEx.subscribe().format().toString());
-        assertEquals("sensor/one",  mqttDataEx.subscribe().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.subscribe().correlation()
+        assertEquals("sensor/one", mqttDataEx.subscribe().responseTopic().asString());
+        assertEquals("request-id-1", mqttDataEx.subscribe().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.subscribe().properties()
-                                .matchFirst(h ->
-                                                "name".equals(h.key().asString()) &&
-                                                    Objects.isNull(h.value().asString())));
+            .matchFirst(h ->
+                "name".equals(h.key().asString()) &&
+                    Objects.isNull(h.value().asString())));
     }
 
     @Test
@@ -477,14 +500,14 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .topic("sensor/one")
-                .expiryInterval(15)
-                .contentType("message")
-                .format("TEXT")
-                .responseTopic("sensor/one")
-                .correlation("request-id-1")
-                .userProperty("name", "value")
-                .build()
+            .topic("sensor/one")
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -495,8 +518,8 @@ public class MqttFunctionsTest
         assertEquals(15, mqttPublishDataEx.publish().expiryInterval());
         assertEquals("message", mqttPublishDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttPublishDataEx.publish().format().toString());
-        assertEquals("sensor/one",  mqttPublishDataEx.publish().responseTopic().asString());
-        assertEquals("request-id-1",  mqttPublishDataEx.publish().correlation()
+        assertEquals("sensor/one", mqttPublishDataEx.publish().responseTopic().asString());
+        assertEquals("request-id-1", mqttPublishDataEx.publish().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttPublishDataEx.publish().properties()
             .matchFirst(h ->
@@ -510,9 +533,9 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .topic("sensor/one")
-                .userProperty("name", "value")
-                .build()
+            .topic("sensor/one")
+            .userProperty("name", "value")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -532,9 +555,9 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .topic("sensor/one")
-                .flags("RETAIN")
-                .build()
+            .topic("sensor/one")
+            .flags("RETAIN")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -551,8 +574,8 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .userProperty("name", "value")
-                .build()
+            .userProperty("name", "value")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -571,10 +594,10 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .topic("sensor/one")
-                .userProperty("name1", "value1")
-                .userProperty("name2", "value2")
-                .build()
+            .topic("sensor/one")
+            .userProperty("name1", "value1")
+            .userProperty("name2", "value2")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -598,13 +621,13 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .expiryInterval(15)
-                .contentType("message")
-                .format("TEXT")
-                .responseTopic("sensor/one")
-                .correlation("request-id-1")
-                .userProperty("name", "value")
-                .build()
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -615,8 +638,8 @@ public class MqttFunctionsTest
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
-        assertEquals("sensor/one",  mqttDataEx.publish().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.publish().correlation()
+        assertEquals("sensor/one", mqttDataEx.publish().responseTopic().asString());
+        assertEquals("request-id-1", mqttDataEx.publish().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.publish().properties()
             .matchFirst(h ->
@@ -630,13 +653,13 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .topic("sensor/one")
-                .expiryInterval(15)
-                .contentType("message")
-                .format("TEXT")
-                .correlation("request-id-1")
-                .userProperty("name", "value")
-                .build()
+            .topic("sensor/one")
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -648,7 +671,7 @@ public class MqttFunctionsTest
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
         assertNull(mqttDataEx.publish().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.publish().correlation()
+        assertEquals("request-id-1", mqttDataEx.publish().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.publish().properties()
             .matchFirst(h ->
@@ -662,11 +685,11 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .expiryInterval(15)
-                .format("TEXT")
-                .correlation("request-id-1")
-                .userProperty("name", "value")
-                .build()
+            .expiryInterval(15)
+            .format("TEXT")
+            .correlation("request-id-1")
+            .userProperty("name", "value")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -678,7 +701,7 @@ public class MqttFunctionsTest
         assertNull(mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
         assertNull(mqttDataEx.publish().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.publish().correlation()
+        assertEquals("request-id-1", mqttDataEx.publish().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.publish().properties()
             .matchFirst(h ->
@@ -692,14 +715,14 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .topic("sensor/one")
-                .expiryInterval(15)
-                .contentType("message")
-                .format("TEXT")
-                .responseTopic("sensor/one")
-                .correlationBytes("request-id-1".getBytes(UTF_8))
-                .userProperty("name", "value")
-                .build()
+            .topic("sensor/one")
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlationBytes("request-id-1".getBytes(UTF_8))
+            .userProperty("name", "value")
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -710,8 +733,8 @@ public class MqttFunctionsTest
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
-        assertEquals("sensor/one",  mqttDataEx.publish().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.publish().correlation()
+        assertEquals("sensor/one", mqttDataEx.publish().responseTopic().asString());
+        assertEquals("request-id-1", mqttDataEx.publish().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.publish().properties()
             .matchFirst(h ->
@@ -725,14 +748,14 @@ public class MqttFunctionsTest
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
             .publish()
-                .topic("sensor/one")
-                .expiryInterval(15)
-                .contentType("message")
-                .format("TEXT")
-                .responseTopic("sensor/one")
-                .correlation("request-id-1")
-                .userProperty("name", null)
-                .build()
+            .topic("sensor/one")
+            .expiryInterval(15)
+            .contentType("message")
+            .format("TEXT")
+            .responseTopic("sensor/one")
+            .correlation("request-id-1")
+            .userProperty("name", null)
+            .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -743,8 +766,8 @@ public class MqttFunctionsTest
         assertEquals(15, mqttDataEx.publish().expiryInterval());
         assertEquals("message", mqttDataEx.publish().contentType().asString());
         assertEquals("TEXT", mqttDataEx.publish().format().toString());
-        assertEquals("sensor/one",  mqttDataEx.publish().responseTopic().asString());
-        assertEquals("request-id-1",  mqttDataEx.publish().correlation()
+        assertEquals("sensor/one", mqttDataEx.publish().responseTopic().asString());
+        assertEquals("request-id-1", mqttDataEx.publish().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
         assertNotNull(mqttDataEx.publish().properties()
             .matchFirst(h ->
@@ -775,9 +798,9 @@ public class MqttFunctionsTest
     public void shouldEncodeMqttAbortExAsUnsubscribe()
     {
         final byte[] array = MqttFunctions.endEx()
-                .typeId(0)
-                .reason("KEEP_ALIVE_EXPIRY")
-                .build();
+            .typeId(0)
+            .reason("KEEP_ALIVE_EXPIRY")
+            .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttEndExFW mqttEndEx = new MqttEndExFW().wrap(buffer, 0, buffer.capacity());
@@ -788,14 +811,14 @@ public class MqttFunctionsTest
     @Test
     public void shouldEncodeMqttSessionState()
     {
-        final byte[] array = MqttFunctions.sessionState()
+        final byte[] array = MqttFunctions.session()
             .clientId("client")
             .subscription("sensor/one", 1, "SEND_RETAINED")
             .subscription("sensor/two", 2, "SEND_RETAINED", "QOS1")
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
-        SessionStateFW sessionState = new SessionStateFW().wrap(buffer, 0, buffer.capacity());
+        MqttSessionStateFW sessionState = new MqttSessionStateFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals("client", sessionState.clientId().asString());
         assertNotNull(sessionState.subscriptions()

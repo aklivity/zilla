@@ -56,18 +56,4 @@ public class SessionIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/session.will.abort.subscribe.to.will.topic/client",
-        "${app}/session.will.abort.subscribe.to.will.topic/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeToWillTopic() throws Exception
-    {
-        k3po.finish();
-    }
 }

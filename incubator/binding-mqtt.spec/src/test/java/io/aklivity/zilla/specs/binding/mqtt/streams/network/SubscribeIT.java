@@ -63,15 +63,6 @@ public class SubscribeIT
         k3po.finish();
     }
 
-    @Test
-    @Specification({
-        "${net}/subscribe.one.message.then.publish.message/client",
-        "${net}/subscribe.one.message.then.publish.message/server"})
-    public void shouldSubscriberOneMessageThenPublishMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
@@ -258,8 +249,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/subscribe.one.message.get.local/client",
-        "${net}/subscribe.one.message.get.local/server"})
+        "${net}/subscribe.receive.message/client",
+        "${net}/subscribe.receive.message/server"})
     public void shouldSubscribeGetLocalPublishedMessage() throws Exception
     {
         k3po.finish();
@@ -277,8 +268,8 @@ public class SubscribeIT
     // [MQTT-3.8.3-5]
     @Test
     @Specification({
-        "${net}/subscribe.reject.malformed.reserved.subscription.options/client",
-        "${net}/subscribe.reject.malformed.reserved.subscription.options/server"})
+        "${net}/subscribe.reject.malformed.subscription.options/client",
+        "${net}/subscribe.reject.malformed.subscription.options/server"})
     public void shouldRejectSubscribeMalformedReservedSubscriptionOptions() throws Exception
     {
         k3po.finish();
@@ -295,8 +286,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/subscribe.reject.subscription.id.not.supported/client",
-        "${net}/subscribe.reject.subscription.id.not.supported/server"})
+        "${net}/subscribe.reject.subscription.ids.not.supported/client",
+        "${net}/subscribe.reject.subscription.ids.not.supported/server"})
     public void shouldConnectWithSubscriptionIdentifiersNotSupported() throws Exception
     {
         k3po.finish();
@@ -304,8 +295,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/subscribe.reject.shared.subscription.not.supported/client",
-        "${net}/subscribe.reject.shared.subscription.not.supported/server"})
+        "${net}/subscribe.reject.shared.subscriptions.not.supported/client",
+        "${net}/subscribe.reject.shared.subscriptions.not.supported/server"})
     public void shouldConnectWithSharedSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();

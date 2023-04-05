@@ -134,7 +134,7 @@ public class PublishIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/publish.multiple.messages.with.delay/client",
-        "${app}/publish.multiple.messages.with.delay/server"})
+        "${app}/publish.multiple.messages/server"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")

@@ -49,8 +49,8 @@ public class SessionIT
     // [MQTT-3.1.2-5], [MQTT-3.1.2-23]
     @Test
     @Specification({
-        "${net}/session.abort.connection.reconnect.non.clean.start/client",
-        "${net}/session.abort.connection.reconnect.non.clean.start/server"})
+        "${net}/session.abort.reconnect.non.clean.start/client",
+        "${net}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
     {
         k3po.finish();
@@ -79,15 +79,6 @@ public class SessionIT
         "${net}/session.will.message.disconnect.with.will.message/client",
         "${net}/session.will.message.disconnect.with.will.message/server"})
     public void shouldConnectWithWillMessageThenDisconnectWithWillMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/session.abrupt.disconnect.session.expires/client",
-        "${net}/session.abrupt.disconnect.session.expires/server"})
-    public void shouldExpireSessionAfterAbruptDisconnect() throws Exception
     {
         k3po.finish();
     }
@@ -134,15 +125,6 @@ public class SessionIT
         "${net}/session.unsubscribe.after.subscribe/client",
         "${net}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/session.will.abort.subscribe.to.will.topic/client",
-        "${net}/session.will.abort.subscribe.to.will.topic/server"})
-    public void shouldSubscribeToWillTopic() throws Exception
     {
         k3po.finish();
     }

@@ -28,6 +28,18 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
+read zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .subscriptionId(1)
+                                 .expiryInterval(15)
+                                 .contentType("message")
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+read "message2"
+
 write notify SUBSCRIBED
 
 

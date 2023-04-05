@@ -33,6 +33,17 @@ connected
 write zilla:data.empty
 write flush
 
+read ${mqtt:session()
+               .clientId("client")
+               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .build()}
+
+write ${mqtt:session()
+               .clientId("client")
+               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .build()}
+write flush
+
 read closed
 write close
 
@@ -47,5 +58,10 @@ read zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-write zilla:data.empty
+write ${mqtt:session()
+               .clientId("client")
+               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .build()}
 write flush
+
+read zilla:data.empty

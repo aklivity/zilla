@@ -173,8 +173,8 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${app}/subscribe.one.message.get.local/client",
-        "${app}/subscribe.one.message.get.local/server"})
+        "${app}/subscribe.receive.message/client",
+        "${app}/subscribe.receive.message/server"})
     public void shouldPublishThenSubscribeOneMessage() throws Exception
     {
         k3po.finish();
@@ -194,24 +194,6 @@ public class SubscribeIT
         "${app}/subscribe.get.retained.as.published/client",
         "${app}/subscribe.get.retained.as.published/server"})
     public void shouldSubscribeGetRetainedMessageAsPublished() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/subscribe.one.message.with.null.payload/client",
-        "${app}/subscribe.one.message.with.null.payload/server"})
-    public void shouldPublishWithNullPayloadToSubscriber() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${app}/subscribe.one.message.then.publish.message/client",
-        "${app}/subscribe.one.message.then.publish.message/server"})
-    public void shouldSubscribeOneMessageThenPublishMessage() throws Exception
     {
         k3po.finish();
     }

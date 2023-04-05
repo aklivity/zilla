@@ -18,18 +18,6 @@ accept "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                .clientId("client1")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
-                                .build()
-                             .build()}
-
-connected
-
 
 accepted
 
@@ -54,4 +42,17 @@ read zilla:data.ext ${mqtt:dataEx()
                             .build()}
 
 read "message"
+
+accepted
+
+read zilla:begin.ext ${mqtt:beginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                .clientId("client1")
+                                .filter("sensor/one", 1)
+                                .build()
+                             .build()}
+
+connected
+
 

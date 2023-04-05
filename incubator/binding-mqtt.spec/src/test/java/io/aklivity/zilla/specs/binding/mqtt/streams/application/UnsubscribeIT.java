@@ -56,8 +56,8 @@ public class UnsubscribeIT
 
     @Test
     @Specification({
-        "${app}/unsubscribe.only.one.topic/client",
-        "${app}/unsubscribe.only.one.topic/server"})
+        "${app}/unsubscribe.topic.filter.single/client",
+        "${app}/unsubscribe.topic.filter.single/server"})
     public void shouldUnsubscribeFromOneTopic() throws Exception
     {
         k3po.finish();

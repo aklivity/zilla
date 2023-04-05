@@ -66,15 +66,29 @@ scope mqtt
         uint8 flags = 0;
     }
 
-    struct SessionState
+    struct MqttSessionState
     {
         string16 clientId;
         MqttTopicFilter[] subscriptions;
     }
 
+    struct MqttWillMessage
+    {
+        string16 topic = null;
+        int32 delay = 0;
+        uint8 flags = 0;
+        int32 expiryInterval = -1;
+        string16 contentType = null;
+        MqttPayloadFormat format = BINARY;
+        string16 responseTopic = null;
+        MqttBinary correlation;
+        MqttUserProperty[] userProperties;
+        MqttBinary payload;
+    }
+
     scope stream
     {
-        enum MqttApi (uint8)
+        enum MqttExtensionKind (uint8)
         {
             SESSION (2),
             SUBSCRIBE (1),
@@ -92,16 +106,7 @@ scope mqtt
         {
             string16 clientId;
             int32 expiry = 0;
-            string16 willTopic = null;
-            int32 willDelay = 0;
-            uint8 willFlags = 0;
-            int32 willExpiryInterval = -1;
-            string16 willContentType = null;
-            MqttPayloadFormat willFormat = BINARY;
-            string16 willResponseTopic = null;
-            MqttBinary willCorrelation;
-            MqttUserProperty[] willUserProperties;
-            MqttBinary willPayload;
+            MqttWillMessage willMessage;
         }
 
         struct MqttSubscribeBeginEx
@@ -152,7 +157,7 @@ scope mqtt
 
         struct MqttEndEx extends core::stream::Extension
         {
-            MqttEndReasonCode reasonCode;
+            MqttEndReasonCode reasonCode = DISCONNECT;
         }
 
         struct MqttFlushEx extends core::stream::Extension
