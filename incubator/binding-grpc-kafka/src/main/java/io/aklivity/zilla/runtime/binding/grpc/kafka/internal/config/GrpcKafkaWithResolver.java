@@ -73,6 +73,8 @@ public final class GrpcKafkaWithResolver
 
         final String16FW service = new String16FW(beginEx.service().asString());
         final String16FW method = new String16FW(beginEx.method().asString());
+        final String16FW request = new String16FW(beginEx.request().get().toString());
+        final String16FW response = new String16FW(beginEx.response().get().toString());
 
         OctetsFW correlationId = null;
         if (idempotencyKey != null)
@@ -185,7 +187,7 @@ public final class GrpcKafkaWithResolver
             }
         }
 
-        return new GrpcKafkaWithResult(service, method, topic, acks, keyRef, overrides, replyTo, filters,
+        return new GrpcKafkaWithResult(service, method, request, response, topic, acks, keyRef, overrides, replyTo, filters,
             options.correlation, hash);
     }
 }
