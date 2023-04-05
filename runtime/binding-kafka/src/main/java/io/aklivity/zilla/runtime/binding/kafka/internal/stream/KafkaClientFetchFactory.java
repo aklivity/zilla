@@ -1992,7 +1992,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                         .latestOffset(client.initialLatestOffset)))
                         .build();
 
-                doFlush(application, routeId, replyId, replySeq, replyAck, replyMax,
+                doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, reserved, kafkaFlushEx);
             }
 

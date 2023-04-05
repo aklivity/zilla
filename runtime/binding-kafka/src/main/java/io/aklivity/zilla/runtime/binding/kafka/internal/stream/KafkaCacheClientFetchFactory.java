@@ -1497,7 +1497,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             //assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
 
-            doFlush(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved, ex -> ex
                             .set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
                                     .typeId(kafkaTypeId)

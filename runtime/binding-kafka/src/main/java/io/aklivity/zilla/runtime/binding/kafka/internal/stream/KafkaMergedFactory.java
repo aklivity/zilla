@@ -862,7 +862,8 @@ public final class KafkaMergedFactory implements BindingHandler
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -873,7 +874,8 @@ public final class KafkaMergedFactory implements BindingHandler
         Flyweight extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1640,7 +1642,7 @@ public final class KafkaMergedFactory implements BindingHandler
                                                 .latestOffset(initialLatestOffsetsById.get(p))))))
                         .build();
 
-                doFlush(sender, routeId, replyId, replySeq, replyAck, replyMax,
+                doFlush(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, reserved, kafkaFlushExFW);
 
                 replySeq += reserved;
