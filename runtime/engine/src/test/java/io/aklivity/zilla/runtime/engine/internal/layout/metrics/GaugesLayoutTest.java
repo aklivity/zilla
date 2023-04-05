@@ -55,6 +55,8 @@ public class GaugesLayoutTest
         writer3.accept(-1L);
         assertThat(reader2.getAsLong(), equalTo(31L)); // 1 + 10 + 20
         assertThat(reader3.getAsLong(), equalTo(2L)); // 1 + 1 + 1 - 1 - 1
+        writer3.accept(-11L);
+        assertThat(reader3.getAsLong(), equalTo(0L)); // should enforce non-negative values
 
         gaugesLayout.close();
         assertTrue(Files.exists(path));

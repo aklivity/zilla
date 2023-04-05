@@ -44,7 +44,7 @@ public final class GaugesLayout extends MetricsLayout
         long metricId)
     {
         int index = findOrSetPosition(bindingId, metricId);
-        return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
+        return delta -> writeNonNegativeValue(index, delta);
     }
 
     @Override
@@ -82,6 +82,15 @@ public final class GaugesLayout extends MetricsLayout
         buffer.putLong(index + BINDING_ID_OFFSET, bindingId);
         buffer.putLong(index + METRIC_ID_OFFSET, metricId);
         buffer.putLong(index + VALUE_OFFSET, 0L); // initial value
+    }
+
+    private void writeNonNegativeValue(int index, long delta)
+    {
+        long previous = buffer.getAndAddLong(index + VALUE_OFFSET, delta);
+        if (previous + delta < 0L)
+        {
+            buffer.putLong(index + VALUE_OFFSET, 0L);
+        }
     }
 
     @Override

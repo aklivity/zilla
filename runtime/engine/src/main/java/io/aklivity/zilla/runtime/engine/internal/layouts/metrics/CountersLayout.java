@@ -47,7 +47,7 @@ public final class CountersLayout extends MetricsLayout
         long metricId)
     {
         int index = findOrSetPosition(bindingId, metricId);
-        return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
+        return delta -> writeNonNegativeDelta(index, delta);
     }
 
     @Override
@@ -91,6 +91,14 @@ public final class CountersLayout extends MetricsLayout
     int recordSize()
     {
         return RECORD_SIZE;
+    }
+
+    private void writeNonNegativeDelta(int index, long delta)
+    {
+        if (delta >= 0L)
+        {
+            buffer.getAndAddLong(index + VALUE_OFFSET, delta);
+        }
     }
 
     public static final class Builder extends Layout.Builder<CountersLayout>

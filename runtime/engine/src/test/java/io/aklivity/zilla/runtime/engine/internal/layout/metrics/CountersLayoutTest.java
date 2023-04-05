@@ -53,6 +53,8 @@ public class CountersLayoutTest
         writer3.accept(1L);
         assertThat(reader2.getAsLong(), equalTo(130L)); // 100 + 10 + 20
         assertThat(reader3.getAsLong(), equalTo(80L)); // 77 + 1 + 1 + 1
+        writer3.accept(-42L);
+        assertThat(reader3.getAsLong(), equalTo(80L)); // should ignore negative numbers
 
         countersLayout.close();
         assertTrue(Files.exists(path));

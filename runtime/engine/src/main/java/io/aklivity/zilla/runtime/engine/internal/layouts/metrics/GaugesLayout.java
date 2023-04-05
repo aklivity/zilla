@@ -47,7 +47,7 @@ public final class GaugesLayout extends MetricsLayout
         long metricId)
     {
         int index = findOrSetPosition(bindingId, metricId);
-        return delta -> buffer.getAndAddLong(index + VALUE_OFFSET, delta);
+        return delta -> writeNonNegativeValue(index, delta);
     }
 
     @Override
@@ -91,6 +91,15 @@ public final class GaugesLayout extends MetricsLayout
     int recordSize()
     {
         return RECORD_SIZE;
+    }
+
+    private void writeNonNegativeValue(int index, long delta)
+    {
+        long previous = buffer.getAndAddLong(index + VALUE_OFFSET, delta);
+        if (previous + delta < 0L)
+        {
+            buffer.putLong(index + VALUE_OFFSET, 0L);
+        }
     }
 
     public static final class Builder extends Layout.Builder<GaugesLayout>
