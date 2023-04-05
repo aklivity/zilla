@@ -15,7 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
-import static io.aklivity.zilla.runtime.engine.internal.config.TelemetryAdapter.EMPTY_TELEMETRY_CONFIG;
 import static java.util.Collections.emptyList;
 
 import java.util.Arrays;
@@ -48,6 +47,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
     private static final List<BindingConfig> BINDINGS_DEFAULT = emptyList();
     private static final List<GuardConfig> GUARDS_DEFAULT = emptyList();
     private static final List<VaultConfig> VAULTS_DEFAULT = emptyList();
+    private static final TelemetryConfig TELEMETRY_DEFAULT = TelemetryConfig.EMPTY;
 
     private final NamspaceRefAdapter reference;
     private final TelemetryAdapter telemetry;
@@ -120,7 +120,7 @@ public class NamespaceAdapter implements JsonbAdapter<NamespaceConfig, JsonObjec
                 : NAMESPACES_DEFAULT;
         TelemetryConfig telemetry0 = object.containsKey(TELEMETRY_NAME)
                 ? telemetry.adaptFromJson(object.getJsonObject(TELEMETRY_NAME))
-                : EMPTY_TELEMETRY_CONFIG;
+                : TELEMETRY_DEFAULT;
         List<BindingConfig> bindings = object.containsKey(BINDINGS_NAME)
                 ? Arrays.asList(binding.adaptFromJson(object.getJsonObject(BINDINGS_NAME)))
                 : BINDINGS_DEFAULT;
