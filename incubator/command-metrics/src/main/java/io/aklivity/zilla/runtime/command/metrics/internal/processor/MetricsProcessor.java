@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.command.metrics.internal.layout.MetricsLayout;
-import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterRecord;
+import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.HistogramRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.MetricRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
@@ -106,7 +106,7 @@ public class MetricsProcessor
                         .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers,
+                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
                         labels::lookupLabel, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
@@ -139,7 +139,7 @@ public class MetricsProcessor
                         .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                         .collect(Collectors.toList())
                         .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers,
+                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
                         labels::lookupLabel, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }

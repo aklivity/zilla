@@ -22,7 +22,7 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-public class CounterRecordTest
+public class CounterGaugeRecordTest
 {
     private static final LongSupplier READER_0 = () -> 0L;
     private static final LongSupplier READER_42 = () -> 42L;
@@ -36,7 +36,7 @@ public class CounterRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{READER_42, READER_58, READER_100};
-        CounterRecord counter = new CounterRecord(0L, 0L, readers, null, FORMATTER);
+        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -50,7 +50,7 @@ public class CounterRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{READER_0};
-        CounterRecord counter = new CounterRecord(0L, 0L, readers, null, FORMATTER);
+        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -64,7 +64,7 @@ public class CounterRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{};
-        CounterRecord counter = new CounterRecord(0L, 0L, readers, null, FORMATTER);
+        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();

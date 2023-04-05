@@ -22,7 +22,7 @@ import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
-public class CounterRecord implements MetricRecord
+public class CounterGaugeRecord implements MetricRecord
 {
     private static final int UNINITIALIZED = -1;
 
@@ -35,7 +35,7 @@ public class CounterRecord implements MetricRecord
 
     private long value = UNINITIALIZED;
 
-    public CounterRecord(
+    public CounterGaugeRecord(
         long packedBindingId,
         long packedMetricId,
         LongSupplier[] readers,
