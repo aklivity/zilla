@@ -191,9 +191,7 @@ public class HistogramsLayoutTest
         histogramsLayout.supplyWriter(11L, 42L);
         histogramsLayout.supplyWriter(22L, 77L);
         assertThrows(IndexOutOfBoundsException.class, () ->
-        {
-            histogramsLayout.supplyWriter(33L, 88L);
-        });
+            histogramsLayout.supplyWriter(33L, 88L));
 
         histogramsLayout.close();
         assertTrue(Files.exists(path));
@@ -203,6 +201,7 @@ public class HistogramsLayoutTest
     @Test
     public void shouldGetIds()
     {
+        // GIVEN
         String fileName = "target/zilla-itests/histograms3";
         Path path = Paths.get(fileName);
         HistogramsLayout countersLayout = new HistogramsLayout.Builder()
@@ -211,11 +210,13 @@ public class HistogramsLayoutTest
                 .mode(CREATE_READ_WRITE)
                 .build();
 
+        // WHEN
         countersLayout.supplyWriter(11L, 42L);
         countersLayout.supplyWriter(22L, 77L);
         countersLayout.supplyWriter(33L, 88L);
-        long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
 
+        // THEN
+        long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
         assertThat(countersLayout.getIds(), equalTo(expectedIds));
     }
 }

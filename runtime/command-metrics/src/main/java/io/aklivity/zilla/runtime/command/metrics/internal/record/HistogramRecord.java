@@ -14,10 +14,10 @@
  */
 package io.aklivity.zilla.runtime.command.metrics.internal.record;
 
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout.BUCKETS;
-import static io.aklivity.zilla.runtime.command.metrics.internal.layout.HistogramsLayout.BUCKET_LIMITS;
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.command.metrics.internal.utils.NamespacedId.namespaceId;
+import static io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO.BUCKETS;
+import static io.aklivity.zilla.runtime.engine.metrics.layout.HistogramsLayoutRO.BUCKET_LIMITS;
 
 import java.util.function.Function;
 import java.util.function.IntFunction;

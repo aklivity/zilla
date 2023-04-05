@@ -27,11 +27,11 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.command.metrics.internal.labels.LabelManager;
-import io.aklivity.zilla.runtime.command.metrics.internal.layout.MetricsLayout;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.HistogramRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.record.MetricRecord;
 import io.aklivity.zilla.runtime.command.metrics.internal.utils.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.layout.MetricsLayoutRO;
 
 public class MetricsProcessor
 {
@@ -41,7 +41,7 @@ public class MetricsProcessor
     private static final String VALUE_HEADER = "value";
     private static final long[][] EMPTY = new long[0][0];
 
-    private final Map<Metric.Kind, List<MetricsLayout>> layouts;
+    private final Map<Metric.Kind, List<MetricsLayoutRO>> layouts;
     private final LabelManager labels;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
@@ -52,7 +52,7 @@ public class MetricsProcessor
     private int valueWidth;
 
     public MetricsProcessor(
-        Map<Metric.Kind, List<MetricsLayout>> layouts,
+        Map<Metric.Kind, List<MetricsLayoutRO>> layouts,
         LabelManager labels,
         String namespaceName,
         String bindingName)
@@ -114,7 +114,7 @@ public class MetricsProcessor
     }
 
     private long[][] fetchIds(
-        List<MetricsLayout> layout)
+        List<MetricsLayoutRO> layout)
     {
         // the list of ids are expected to be identical in a group of layout files of the same type
         // e.g. counters0, counters1, counters2 should all have the same set of ids, so we can get it from any

@@ -13,12 +13,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.internal.layout.metrics;
+package io.aklivity.zilla.runtime.engine.metrics.layout;
 
 import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
@@ -31,7 +30,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 
-public class CountersLayoutTest
+public class CountersLayoutROTest
 {
     @Test
     public void shouldWorkInGenericCase() throws Exception
@@ -43,14 +42,17 @@ public class CountersLayoutTest
                 .capacity(8192)
                 .mode(CREATE_READ_WRITE)
                 .build();
+        CountersLayoutRO countersLayoutRO = new CountersLayoutRO.Builder()
+                .path(path)
+                .build();
 
         LongConsumer writer1 = countersLayout.supplyWriter(11L, 42L);
         LongConsumer writer2 = countersLayout.supplyWriter(22L, 77L);
         LongConsumer writer3 = countersLayout.supplyWriter(33L, 88L);
 
-        LongSupplier reader1 = countersLayout.supplyReader(11L, 42L);
-        LongSupplier reader2 = countersLayout.supplyReader(22L, 77L);
-        LongSupplier reader3 = countersLayout.supplyReader(33L, 88L);
+        LongSupplier reader1 = countersLayoutRO.supplyReader(11L, 42L);
+        LongSupplier reader2 = countersLayoutRO.supplyReader(22L, 77L);
+        LongSupplier reader3 = countersLayoutRO.supplyReader(33L, 88L);
 
         assertThat(reader1.getAsLong(), equalTo(0L)); // should be 0L initially
         writer1.accept(1L);
@@ -77,27 +79,6 @@ public class CountersLayoutTest
     }
 
     @Test
-    public void shouldThrowExceptionIfBufferIsTooSmall() throws Exception
-    {
-        String fileName = "target/zilla-itests/counters1";
-        Path path = Paths.get(fileName);
-        CountersLayout countersLayout = new CountersLayout.Builder()
-                .path(path)
-                .capacity(71) // we'd need 72 bytes here for the 3 records
-                .mode(CREATE_READ_WRITE)
-                .build();
-
-        countersLayout.supplyWriter(11L, 42L);
-        countersLayout.supplyWriter(22L, 77L);
-        assertThrows(IndexOutOfBoundsException.class, () ->
-            countersLayout.supplyWriter(33L, 88L));
-
-        countersLayout.close();
-        assertTrue(Files.exists(path));
-        Files.delete(path);
-    }
-
-    @Test
     public void shouldGetIds()
     {
         // GIVEN
@@ -108,6 +89,9 @@ public class CountersLayoutTest
                 .capacity(8192)
                 .mode(CREATE_READ_WRITE)
                 .build();
+        CountersLayoutRO countersLayoutRO = new CountersLayoutRO.Builder()
+                .path(path)
+                .build();
 
         // WHEN
         countersLayout.supplyWriter(11L, 42L);
@@ -116,6 +100,6 @@ public class CountersLayoutTest
 
         // THEN
         long[][] expectedIds = new long[][]{{11L, 42L}, {22L, 77L}, {33L, 88L}};
-        assertThat(countersLayout.getIds(), equalTo(expectedIds));
+        assertThat(countersLayoutRO.getIds(), equalTo(expectedIds));
     }
 }
