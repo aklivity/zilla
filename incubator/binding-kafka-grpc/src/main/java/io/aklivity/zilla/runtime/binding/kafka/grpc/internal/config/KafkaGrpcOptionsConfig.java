@@ -12,13 +12,18 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.kafka.grpc
+package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
+
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+
+public final class KafkaGrpcOptionsConfig extends OptionsConfig
 {
-    requires io.aklivity.zilla.runtime.engine;
+    public final KafkaAckMode acks;
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with iio.aklivity.zilla.runtime.binding.kafka.grpc.internal.GrpcKafkaBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionConfigAdapter;
+    public KafkaGrpcOptionsConfig(
+        KafkaAckMode acks)
+    {
+        this.acks = acks;
+    }
 }

@@ -12,13 +12,16 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.kafka.grpc
+package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
+
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+
+public interface KafkaGrpcStreamFactory extends BindingHandler
 {
-    requires io.aklivity.zilla.runtime.engine;
+    void attach(
+        BindingConfig binding);
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with iio.aklivity.zilla.runtime.binding.kafka.grpc.internal.GrpcKafkaBindingFactorySpi;
-
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionConfigAdapter;
+    void detach(
+        long bindingId);
 }

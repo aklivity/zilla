@@ -58,7 +58,7 @@
                                                 "type": "string"
                                             }
                                         },
-                                        "replyTo":
+                                        "reply-to":
                                         {
                                             "title": "ReplyTo",
                                             "type": "string"

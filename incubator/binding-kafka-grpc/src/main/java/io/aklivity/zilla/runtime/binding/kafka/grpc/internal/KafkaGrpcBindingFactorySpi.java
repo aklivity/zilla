@@ -12,13 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.binding.kafka.grpc
+package io.aklivity.zilla.runtime.binding.kafka.grpc.internal;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
+
+public final class KafkaGrpcBindingFactorySpi implements BindingFactorySpi
 {
-    requires io.aklivity.zilla.runtime.engine;
+    @Override
+    public String name()
+    {
+        return KafkaGrpcBinding.NAME;
+    }
 
-    provides io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi
-        with iio.aklivity.zilla.runtime.binding.kafka.grpc.internal.GrpcKafkaBindingFactorySpi;
 
-    provides io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi
-        with io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionConfigAdapter;
+    @Override
+    public KafkaGrpcBinding create(
+        Configuration config)
+    {
+        return new KafkaGrpcBinding(new KafkaGrpcConfiguration(config));
+    }
 }
