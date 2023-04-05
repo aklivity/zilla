@@ -14,51 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
-import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
 public final class GrpcKafkaCorrelationConfig
 {
-    public final String16FW replyTo;
     public final String16FW correlationId;
-    public final GrpcKafkaWithProduceHash hash;
-    public List<GrpcKafkaWithFetchFilterResult> filters;
+    public final String16FW service;
+    public final String16FW method;
 
     public GrpcKafkaCorrelationConfig(
-        String16FW replyTo,
         String16FW correlationId,
-        GrpcKafkaWithProduceHash hash,
-        List<GrpcKafkaWithFetchFilterResult> filters)
+        String16FW service,
+        String16FW method)
     {
-        this.replyTo = replyTo;
         this.correlationId = correlationId;
-        this.hash = hash;
-        this.filters = filters;
-    }
-
-    public void filters(
-        Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
-    {
-        if (filters != null)
-        {
-            filters.forEach(f -> builder.item(f::filter));
-        }
-
-        final OctetsFW hashCorrelationId = hash.correlationId();
-
-        if (correlationId != null)
-        {
-            builder.item(i -> i
-                .conditionsItem(c -> c
-                    .header(h -> h
-                        .nameLen(correlationId.length())
-                        .name(correlationId.value(), 0, correlationId.length())
-                        .valueLen(hashCorrelationId.sizeof())
-                        .value(hashCorrelationId.value(), 0, hashCorrelationId.sizeof()))));
-        }
+        this.service = service;
+        this.method = method;
     }
 }

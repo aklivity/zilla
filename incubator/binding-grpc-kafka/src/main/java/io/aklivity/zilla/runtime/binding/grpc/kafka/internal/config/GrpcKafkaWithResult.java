@@ -23,6 +23,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckModeFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
@@ -39,23 +40,34 @@ public class GrpcKafkaWithResult
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();
 
-    private List<GrpcKafkaWithProduceOverrideResult> overrides;
-    private GrpcKafkaCorrelationConfig correlation;
+    private final List<GrpcKafkaWithProduceOverrideResult> overrides;
+    private final List<GrpcKafkaWithFetchFilterResult> filters;
+    private final GrpcKafkaCorrelationConfig correlation;
     private final String16FW topic;
-    private KafkaAckMode acks;
-    private Supplier<DirectBuffer> keyRef;
-    private GrpcKafkaWithProduceHash hash;
-
+    private final String16FW replyTo;
+    private final KafkaAckMode acks;
+    private final Supplier<DirectBuffer> keyRef;
+    private final GrpcKafkaWithProduceHash hash;
+    private final String16FW service;
+    private final String16FW method;
 
     GrpcKafkaWithResult(
+        String16FW service,
+        String16FW method,
         String16FW topic,
         KafkaAckMode acks,
         Supplier<DirectBuffer> keyRef,
         List<GrpcKafkaWithProduceOverrideResult> overrides,
-        GrpcKafkaWithProduceHash hash,
-        GrpcKafkaCorrelationConfig correlation)
+        String16FW replyTo,
+        List<GrpcKafkaWithFetchFilterResult> filters,
+        GrpcKafkaCorrelationConfig correlation,
+        GrpcKafkaWithProduceHash hash)
     {
+        this.method = method;
+        this.service = service;
         this.overrides = overrides;
+        this.replyTo = replyTo;
+        this.filters = filters;
         this.correlation = correlation;
         this.topic = topic;
         this.acks = acks;
@@ -67,14 +79,16 @@ public class GrpcKafkaWithResult
     {
         return topic;
     }
-
+    public String16FW replyTo()
+    {
+        return replyTo;
+    }
 
     public void partitions(
         Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
     {
         builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
     }
-
 
     public void acks(
         KafkaAckModeFW.Builder builder)
@@ -103,12 +117,29 @@ public class GrpcKafkaWithResult
             overrides.forEach(o -> builder.item(o::header));
         }
 
+        builder.item(this::service);
+        builder.item(this::method);
         builder.item(this::correlationId);
     }
 
-    public GrpcKafkaCorrelationConfig correlation()
+    private void service(
+        KafkaHeaderFW.Builder builder)
     {
-        return correlation;
+        builder
+            .nameLen(correlation.service.length())
+            .name(correlation.service.value(), 0, correlation.service.length())
+            .valueLen(service.length())
+            .value(service.value(), 0, service.length());
+    }
+
+    private void method(
+        KafkaHeaderFW.Builder builder)
+    {
+        builder
+            .nameLen(correlation.method.length())
+            .name(correlation.method.value(), 0, correlation.method.length())
+            .valueLen(method.length())
+            .value(method.value(), 0, method.length());
     }
 
     private void correlationId(
@@ -121,5 +152,24 @@ public class GrpcKafkaWithResult
             .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
             .valueLen(correlationId.sizeof())
             .value(correlationId.value(), 0, correlationId.sizeof());
+    }
+
+    public void filters(
+        Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
+    {
+        if (filters != null)
+        {
+            filters.forEach(f -> builder.item(f::filter));
+        }
+
+        final OctetsFW hashCorrelationId = hash.correlationId();
+
+        builder.item(i -> i
+            .conditionsItem(c -> c
+                .header(h -> h
+                    .nameLen(correlation.correlationId.length())
+                    .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
+                    .valueLen(hashCorrelationId.sizeof())
+                    .value(hashCorrelationId.value(), 0, hashCorrelationId.sizeof()))));
     }
 }

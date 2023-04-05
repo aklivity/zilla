@@ -36,6 +36,8 @@ write zilla:data.ext ${kafka:dataEx()
                                      .partition(-1, -1)
                                      .key("test")
                                      .header("zilla:identity", "test")
+                                     .header("zilla:service", "example.EchoService")
+                                     .header("zilla:method", "EchoBidiStream")
                                      .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                      .build()
                                  .build()}

@@ -15,7 +15,53 @@
                     "enum": [ "proxy" ]
                 },
                 "vault": false,
-                "options": false,
+                "options":
+                {
+                    "properties":
+                    {
+                        "correlation":
+                        {
+                            "title": "Correlation",
+                            "type": "object",
+                            "properties":
+                            {
+                                "headers":
+                                {
+                                    "title": "Correlation Kafka Headers",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "service":
+                                        {
+                                            "title": "Grpc Service Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:service"
+                                        },
+                                        "method":
+                                        {
+                                            "title": "Grpc Method Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:method"
+                                        },
+                                        "correlation-id":
+                                        {
+                                            "title": "Correlation-Id Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:correlation-id"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required":
+                            [
+                                "headers"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "routes":
                 {
                     "items":

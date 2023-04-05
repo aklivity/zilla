@@ -1661,15 +1661,15 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        GrpcKafkaWithResult resolved)
+        GrpcKafkaWithResult result)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(FETCH_ONLY))
-                              .topic(resolved.correlation().replyTo)
-                              .partitions(resolved::partitions)
-                              .filters(resolved.correlation()::filters))
+                              .topic(result.replyTo())
+                              .partitions(result::partitions)
+                              .filters(result::filters))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
