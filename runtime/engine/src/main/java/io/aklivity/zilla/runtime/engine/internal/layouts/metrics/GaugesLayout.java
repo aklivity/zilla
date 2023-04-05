@@ -77,7 +77,7 @@ public final class GaugesLayout extends MetricsLayout
     }
 
     @Override
-    void createRecord(
+    protected void createRecord(
         long bindingId,
         long metricId,
         int index)
@@ -88,7 +88,7 @@ public final class GaugesLayout extends MetricsLayout
     }
 
     @Override
-    int recordSize()
+    protected int recordSize()
     {
         return RECORD_SIZE;
     }

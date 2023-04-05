@@ -29,17 +29,17 @@ import org.agrona.concurrent.AtomicBuffer;
 
 import io.aklivity.zilla.runtime.engine.internal.layouts.Layout;
 
-abstract class MetricsLayout extends Layout
+public abstract class MetricsLayout extends Layout
 {
-    static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
-    static final int BINDING_ID_OFFSET = 0;
-    static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
-    static final int VALUE_OFFSET = 2 * FIELD_SIZE;
-    static final int NOT_FOUND = -1;
+    protected static final int FIELD_SIZE = BitUtil.SIZE_OF_LONG;
+    protected static final int BINDING_ID_OFFSET = 0;
+    protected static final int METRIC_ID_OFFSET = 1 * FIELD_SIZE;
+    protected static final int VALUE_OFFSET = 2 * FIELD_SIZE;
+    protected static final int NOT_FOUND = -1;
 
-    final AtomicBuffer buffer;
+    protected final AtomicBuffer buffer;
 
-    MetricsLayout(
+    protected MetricsLayout(
         AtomicBuffer buffer)
     {
         this.buffer = buffer;
@@ -57,15 +57,15 @@ abstract class MetricsLayout extends Layout
         return StreamSupport.stream(spliterator, false).toArray(long[][]::new);
     }
 
-    int findPosition(
-        long bindingId,
-        long metricId)
+    protected int findPosition(
+         long bindingId,
+         long metricId)
     {
         // find position or return -1 if not found
         return findPosition(bindingId, metricId, false);
     }
 
-    int findOrSetPosition(
+    protected int findOrSetPosition(
         long bindingId,
         long metricId)
     {
@@ -127,12 +127,12 @@ abstract class MetricsLayout extends Layout
         long bindingId,
         long metricId);
 
-    abstract void createRecord(
+    protected abstract void createRecord(
         long bindingId,
         long metricId,
         int index);
 
-    abstract int recordSize();
+    protected abstract int recordSize();
 
     final class MetricsIterator implements Iterator<long[]>
     {
