@@ -73,6 +73,13 @@ write zilla:begin.ext ${kafka:beginEx()
                                .build()}
 write flush
 
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 0, 0, 2)
+                                    .build()
+                                .build()}
+
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()

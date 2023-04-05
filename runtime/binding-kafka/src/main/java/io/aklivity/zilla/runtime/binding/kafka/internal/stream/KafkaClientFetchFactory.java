@@ -1717,7 +1717,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private final KafkaFetchClient client;
 
         private int state;
-        private int flushOrDataFramesSent = 0;
+        private int flushOrDataFramesSent;
 
         private long initialSeq;
         private long initialAck;
@@ -1977,7 +1977,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             long authorization,
             int reserved)
         {
-            if (client.decodeRecordBatchLastOffset >= client.initialLatestOffset &&
+            if (KafkaState.replyOpening(state) &&
+                    client.decodeRecordBatchLastOffset >= client.initialLatestOffset &&
                     client.decodableRecords == 0 &&
                     flushOrDataFramesSent == 0)
             {

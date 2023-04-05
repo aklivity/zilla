@@ -77,3 +77,10 @@ write advise zilla:flush ${kafka:flushEx()
                                     .partition(0, 2, 2, 2)
                                     .build()
                                 .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                                .typeId(zilla:id("kafka"))
+                                .fetch()
+                                    .partition(0, 2, 4, 4)
+                                    .build()
+                                .build()}

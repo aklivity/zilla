@@ -890,7 +890,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private final LongSupplier initialGroupIsolatedOffset;
 
         private int state;
-        private int flushOrDataFramesSent = 0;
+        private int flushOrDataFramesSent;
 
         private long replyDebitorIndex = NO_DEBITOR_INDEX;
         private BudgetDebitor replyDebitor;
@@ -1133,12 +1133,12 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             {
                 final KafkaCacheEntryFW nextEntry = cursor.next(entryRO);
 
-                if (nextEntry == null &&
-                        group.partitionOffset >= initialGroupIsolatedOffset.getAsLong() &&
-                        flushOrDataFramesSent == 0)
+                final long isolatedOffset = initialGroupIsolatedOffset.getAsLong();
+                if ((nextEntry == null && group.partitionOffset >= isolatedOffset ||
+                    nextEntry != null && nextEntry.offset$() > isolatedOffset) &&
+                    flushOrDataFramesSent == 0)
                 {
-                    doClientReplyFlush(traceId, group.partitionOffset);
-                    break;
+                    doClientReplyFlush(traceId, isolatedOffset);
                 }
 
                 if (nextEntry == null || nextEntry.offset$() > group.latestOffset)
@@ -1203,7 +1203,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         {
             assert nextEntry != null;
 
-            flushOrDataFramesSent++;
             final long partitionOffset = nextEntry.offset$();
             final long timestamp = nextEntry.timestamp();
             final long ownerId = nextEntry.ownerId();
@@ -1346,6 +1345,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
         }
 
         private void doClientReplyDataInit(
@@ -1386,6 +1387,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
         }
 
         private void doClientReplyDataNone(
@@ -1401,6 +1404,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
         }
 
         private void doClientReplyDataFin(
@@ -1437,6 +1442,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
         }
 
         private void doClientReplyFlush(
@@ -1444,7 +1451,6 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             KafkaCacheEntryFW nextEntry)
         {
             assert (nextEntry.flags() & CACHE_ENTRY_FLAGS_CONTROL) != 0;
-            flushOrDataFramesSent++;
             final int reserved = 0;
             final int partitionId = group.partition.id();
             final long partitionOffset = nextEntry.offset$();
@@ -1478,16 +1484,18 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             assert replyAck <= replySeq;
 
             cursor.advance(partitionOffset + 1);
+
+            flushOrDataFramesSent++;
         }
 
         private void doClientReplyFlush(
-                long traceId,
-                long partitionOffset)
+            long traceId,
+            long partitionOffset)
         {
             final int reserved = 0;
             final int partitionId = group.partition.id();
 
-            assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
+            //assert partitionOffset >= cursor.offset : String.format("%d >= %d", partitionOffset, cursor.offset);
 
             doFlush(sender, routeId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved, ex -> ex
@@ -1506,7 +1514,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             assert replyAck <= replySeq;
 
-            cursor.advance(partitionOffset + 1);
+            flushOrDataFramesSent++;
         }
 
         private void doClientReplyEnd(

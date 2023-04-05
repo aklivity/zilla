@@ -70,7 +70,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 1, 2)
+                                   .partition(0, 1, 8)
                                    .build()
                                .build()}
 write flush
