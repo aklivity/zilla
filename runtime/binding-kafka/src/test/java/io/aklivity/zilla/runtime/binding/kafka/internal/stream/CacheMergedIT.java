@@ -190,7 +190,7 @@ public class CacheMergedIT
     @Specification({
         "${app}/merged.fetch.filter.sync/client",
         "${app}/unmerged.fetch.filter.sync/server"})
-    public void shouldFetchMergedLatestMessages() throws Exception
+    public void shouldFetchMergedFilterSync() throws Exception
     {
         k3po.finish();
     }

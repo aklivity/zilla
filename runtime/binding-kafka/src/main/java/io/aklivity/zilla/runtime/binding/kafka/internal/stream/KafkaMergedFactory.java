@@ -1630,7 +1630,8 @@ public final class KafkaMergedFactory implements BindingHandler
             initialLatestOffsetsById.put(partitionId, latestOffset);
             initialStableOffsetsById.put(partitionId, stableOffset);
 
-            if (nextOffsetsById.equals(initialLatestOffsetsById))
+            if (nextOffsetsById.size() == fetchStreams.size() &&
+                latestOffsetByPartitionId.size() == fetchStreams.size())
             {
                 final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
@@ -2703,7 +2704,7 @@ public final class KafkaMergedFactory implements BindingHandler
             final long latestOffset = partition.latestOffset();
             final long stableOffset = partition.stableOffset();
 
-            merged.onFetchPartitionLeaderReady(traceId, partitionId, latestOffset, stableOffset);
+            merged.onFetchPartitionLeaderReady(traceId, partitionId, stableOffset, latestOffset);
 
             doFetchReplyWindowIfNecessary(traceId);
         }

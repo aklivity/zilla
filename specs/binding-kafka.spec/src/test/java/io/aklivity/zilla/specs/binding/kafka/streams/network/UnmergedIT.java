@@ -73,7 +73,7 @@ public class UnmergedIT
     @Specification({
         "${net}/unmerged.fetch.filter.sync/client",
         "${net}/unmerged.fetch.filter.sync/server"})
-    public void shouldFetchUnmergedPartitionLatest() throws Exception
+    public void shouldFetchUnmergedFilterSync() throws Exception
     {
         k3po.finish();
     }

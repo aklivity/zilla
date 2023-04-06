@@ -278,7 +278,7 @@ public class FetchIT
     @Specification({
         "${net}/filter.sync/client",
         "${net}/filter.sync/server"})
-    public void shouldReceiveSync() throws Exception
+    public void shouldFetchFilterSync() throws Exception
     {
         k3po.finish();
     }

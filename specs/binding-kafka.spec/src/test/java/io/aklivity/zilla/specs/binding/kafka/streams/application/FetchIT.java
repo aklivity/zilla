@@ -308,7 +308,7 @@ public class FetchIT
     @Specification({
         "${app}/filter.sync/client",
         "${app}/filter.sync/server"})
-    public void shouldReceiveSync() throws Exception
+    public void shouldFetchFilterSync() throws Exception
     {
         k3po.finish();
     }

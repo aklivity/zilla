@@ -1948,13 +1948,14 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             OctetsFW payload,
             Flyweight extension)
         {
-            flushOrDataFramesSent++;
             doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, replyDebitorId, reserved, payload, extension);
 
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
         }
 
         private void doApplicationFlush(
@@ -1963,19 +1964,19 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             int reserved,
             Flyweight extension)
         {
-            flushOrDataFramesSent++;
             doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, reserved, extension);
 
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
         }
 
         private void doApplicationFlushIfNecessary(
             long traceId,
-            long authorization,
-            int reserved)
+            long authorization)
         {
             if (KafkaState.replyOpening(state) &&
                     client.decodeRecordBatchLastOffset >= client.initialLatestOffset &&
@@ -1993,12 +1994,14 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         .build();
 
                 doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                        traceId, authorization, reserved, kafkaFlushEx);
+                        traceId, authorization, 0, kafkaFlushEx);
+
+                replySeq += 0;
+
+                assert replyAck <= replySeq;
+
+                flushOrDataFramesSent++;
             }
-
-            replySeq += reserved;
-
-            assert replyAck <= replySeq;
         }
 
         private void doApplicationEnd(
@@ -3124,7 +3127,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 if (topicPartitions.get(partitionId) == leaderId)
                 {
-                    doApplicationFlushIfNecessary(traceId, authorization, 0);
+                    doApplicationFlushIfNecessary(traceId, authorization);
                     signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else

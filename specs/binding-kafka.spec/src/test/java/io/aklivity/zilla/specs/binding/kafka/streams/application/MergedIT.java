@@ -103,7 +103,7 @@ public class MergedIT
     @Specification({
         "${app}/merged.fetch.filter.sync/client",
         "${app}/merged.fetch.filter.sync/server"})
-    public void shouldFetchMergedMessagesLatest() throws Exception
+    public void shouldFetchMergedFilterSync() throws Exception
     {
         k3po.finish();
     }
@@ -287,7 +287,7 @@ public class MergedIT
     @Specification({
         "${app}/unmerged.fetch.filter.sync/client",
         "${app}/unmerged.fetch.filter.sync/server"})
-    public void shouldFetchUnmergedMessagesLatest() throws Exception
+    public void shouldFetchUnmergedFilterSync() throws Exception
     {
         k3po.finish();
     }

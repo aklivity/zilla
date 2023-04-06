@@ -514,7 +514,7 @@ public class ClientFetchIT
     @Specification({
         "${app}/filter.sync/client",
         "${net}/filter.sync/server"})
-    public void shouldFetchLatestMessages() throws Exception
+    public void shouldFetchFilterSync() throws Exception
     {
         k3po.finish();
     }
