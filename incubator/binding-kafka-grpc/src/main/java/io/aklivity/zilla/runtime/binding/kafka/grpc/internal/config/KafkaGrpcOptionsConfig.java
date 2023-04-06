@@ -19,11 +19,15 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class KafkaGrpcOptionsConfig extends OptionsConfig
 {
+    public transient long entryId;
+    public final String entry;
     public final KafkaAckMode acks;
 
     public KafkaGrpcOptionsConfig(
+        String entry,
         KafkaAckMode acks)
     {
+        this.entry = entry;
         this.acks = acks;
     }
 }

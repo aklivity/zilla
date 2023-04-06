@@ -18,7 +18,10 @@ import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.Kafka
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -39,7 +42,19 @@ public final class KafkaGrpcBindingConfig
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(KafkaGrpcOptionsConfig.class::cast)
-                .orElse(new KafkaGrpcOptionsConfig(ACKS_DEFAULT));
+                .map(peek(o -> o.entryId = binding.resolveId.applyAsLong(o.entry)))
+                .orElse(new KafkaGrpcOptionsConfig(null, ACKS_DEFAULT));
         this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r)).collect(toList());
+    }
+
+    private static <T> UnaryOperator<T> peek(
+        Consumer<T> action)
+    {
+        Objects.requireNonNull(action);
+        return u ->
+        {
+            action.accept(u);
+            return u;
+        };
     }
 }

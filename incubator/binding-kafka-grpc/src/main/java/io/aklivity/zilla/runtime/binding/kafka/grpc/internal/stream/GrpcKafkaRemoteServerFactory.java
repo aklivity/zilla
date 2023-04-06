@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.PRODUCE_ONLY;
+import static io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer.NOOP;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.now;
@@ -72,6 +73,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
     private static final String8FW HEADER_NAME_SERVICE = new String8FW("zilla:service");
     private static final String8FW HEADER_NAME_METHOD = new String8FW("zilla:method");
+    private static final String8FW HEADER_NAME_REQUEST = new String8FW("zilla:request");
+    private static final String8FW HEADER_NAME_RESPONSE = new String8FW("zilla:response");
     private static final String8FW HEADER_NAME_CORRELATION_ID = new String8FW("zilla:correlation-id");
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
@@ -174,51 +177,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         int length,
         MessageConsumer grpc)
     {
-        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long originId = begin.originId();
-        final long routedId = begin.routedId();
-        final long initialId = begin.streamId();
-        final long authorization = begin.authorization();
-        final OctetsFW extension = begin.extension();
-        final GrpcBeginExFW grpcBeginEx = extension.get(grpcBeginExRO::tryWrap);
-
-        final GrpcKafkaBindingConfig binding = bindings.get(routedId);
-
-        GrpcKafkaRouteConfig route = null;
-
-        if (binding != null)
-        {
-            route = binding.resolve(authorization, grpcBeginEx);
-        }
-
-        MessageConsumer newStream = null;
-
-        if (route != null)
-        {
-            final long resolvedId = route.id;
-            GrpcKind request = grpcBeginEx.request().get();
-            GrpcKind response = grpcBeginEx.response().get();
-            GrpcKafkaWithResult resolve = route.with.resolve(authorization, grpcBeginEx);
-
-            if (request == UNARY && response == UNARY)
-            {
-                newStream = new GrpcUnaryProxy(grpc, originId, routedId, initialId, resolvedId, resolve)::onGrpcMessage;
-            }
-            else if (request == STREAM && response == UNARY)
-            {
-                newStream = new GrpcClientStreamProxy(grpc, originId, routedId, initialId, resolvedId, resolve)::onGrpcMessage;
-            }
-            else if (request == UNARY && response == STREAM)
-            {
-                newStream = new GrpcServerStreamProxy(grpc, originId, routedId, initialId, resolvedId, resolve)::onGrpcMessage;
-            }
-            else if (request == STREAM && response == STREAM)
-            {
-                newStream = new GrpcBidiStreamProxy(grpc, originId, routedId, initialId, resolvedId, resolve)::onGrpcMessage;
-            }
-        }
-
-        return newStream;
+        return NOOP;
     }
 
     private abstract class GrpcProxy
@@ -229,7 +188,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         protected final long routedId;
         protected final long initialId;
         protected final long replyId;
-        private final KafkaCorrelateProxy correlater;
+        private final KafkaFetchProxy correlater;
 
         protected long initialSeq;
         protected long initialAck;
@@ -250,7 +209,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             long routedId,
             long initialId,
             long resolvedId,
-            KafkaCorrelateProxy correlater,
+            KafkaFetchProxy correlater,
             GrpcKafkaWithResult result)
         {
             this.grpc = grpc;
@@ -928,7 +887,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         }
     }
 
-    private final class KafkaCorrelateProxy
+    private final class KafkaFetchProxy
     {
         private MessageConsumer kafka;
         private final long originId;
@@ -954,7 +913,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         private int replyCap;
         private String lastCorrelationId;
 
-        private KafkaCorrelateProxy(
+        private KafkaFetchProxy(
             long originId,
             long routedId,
             KafkaGrpcConditionResult result)
@@ -1115,6 +1074,10 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 final KafkaHeaderFW service =
                     headers.matchFirst(h -> HEADER_NAME_SERVICE.value().compareTo(h.name().value()) == 0);
                 final KafkaHeaderFW method =
+                    headers.matchFirst(h -> HEADER_NAME_SERVICE.value().compareTo(h.name().value()) == 0);
+                final KafkaHeaderFW request =
+                    headers.matchFirst(h -> HEADER_NAME_SERVICE.value().compareTo(h.name().value()) == 0);
+                final KafkaHeaderFW response =
                     headers.matchFirst(h -> HEADER_NAME_SERVICE.value().compareTo(h.name().value()) == 0);
                 final KafkaHeaderFW correlationId =
                     headers.matchFirst(h -> HEADER_NAME_SERVICE.value().compareTo(h.name().value()) == 0);
@@ -1708,7 +1671,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             r.when.forEach(c ->
             {
                 KafkaGrpcConditionResult result = c.resolve();
-                KafkaCorrelateProxy correlateProxy = new KafkaCorrelateProxy(0, r.id, result);
+                KafkaFetchProxy correlateProxy = new KafkaFetchProxy(binding.options.entryId, r.id, result);
                 correlateProxy.doKafkaBegin(traceId, 0L, 0L);
             }));
     }

@@ -15,6 +15,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     public static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
+    private static final String ENTRY_NAME = "entry";
     private static final String ACKS_NAME = "acks";
 
     @Override
@@ -53,6 +54,8 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
             : ACKS_DEFAULT;
 
-        return new KafkaGrpcOptionsConfig(newProduceAcks);
+        String newEntry = object.getString(ENTRY_NAME);
+
+        return new KafkaGrpcOptionsConfig(newEntry, newProduceAcks);
     }
 }

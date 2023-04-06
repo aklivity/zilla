@@ -19,13 +19,26 @@
                 {
                     "properties":
                     {
+                        "entry":
+                        {
+                            "title": "Entry",
+                            "type": "string"
+                        },
                         "acks":
                         {
                             "title": "Acks",
                             "type": "string",
-                            "enum": [ "none", "leader_only", "in_sync_replicas" ]
-
+                            "enum": [
+                                "none",
+                                "leader_only",
+                                "in_sync_replicas"
+                            ]
                         }
+                    },
+                    "required":
+                    [
+                        "entry"
+                    ]
                 },
                 "routes":
                 {
