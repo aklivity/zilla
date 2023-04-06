@@ -94,14 +94,14 @@ final class KafkaBindingContext implements BindingContext
     }
 
     private KafkaCacheRoute supplyCacheRoute(
-        long routeId)
+        long resolvedId)
     {
-        return cacheRoutesById.computeIfAbsent(routeId, KafkaCacheRoute::new);
+        return cacheRoutesById.computeIfAbsent(resolvedId, KafkaCacheRoute::new);
     }
 
     private KafkaClientRoute supplyClientRoute(
-        long routeId)
+        long resolvedId)
     {
-        return clientRoutesById.computeIfAbsent(routeId, KafkaClientRoute::new);
+        return clientRoutesById.computeIfAbsent(resolvedId, KafkaClientRoute::new);
     }
 }

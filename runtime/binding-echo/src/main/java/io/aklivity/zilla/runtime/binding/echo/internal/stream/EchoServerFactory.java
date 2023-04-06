@@ -84,10 +84,10 @@ public final class EchoServerFactory implements BindingHandler
         MessageConsumer sender)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long routedId = begin.routedId();
         final long authorization = begin.authorization();
 
-        final BindingConfig binding = router.resolve(routeId, authorization);
+        final BindingConfig binding = router.resolve(routedId, authorization);
 
         MessageConsumer newStream = null;
 
@@ -97,7 +97,6 @@ public final class EchoServerFactory implements BindingHandler
 
             newStream = new EchoServer(
                     sender,
-                    routeId,
                     initialId)::onMessage;
         }
 
@@ -107,17 +106,14 @@ public final class EchoServerFactory implements BindingHandler
     private final class EchoServer
     {
         private final MessageConsumer receiver;
-        private final long routeId;
         private final long initialId;
         private final long replyId;
 
         private EchoServer(
             MessageConsumer receiver,
-            long routeId,
             long initialId)
         {
             this.receiver = receiver;
-            this.routeId = routeId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
@@ -171,6 +167,8 @@ public final class EchoServerFactory implements BindingHandler
         private void onBegin(
             final BeginFW begin)
         {
+            final long originId = begin.originId();
+            final long routedId = begin.routedId();
             final long sequence = begin.sequence();
             final long acknowledge = begin.acknowledge();
             final int maximum = begin.maximum();
@@ -179,13 +177,15 @@ public final class EchoServerFactory implements BindingHandler
             final long affinity = begin.affinity();
             final OctetsFW extension = begin.extension();
 
-            doBegin(receiver, routeId, replyId, sequence, acknowledge, maximum, traceId,
+            doBegin(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
                     authorization, affinity, extension);
         }
 
         private void onData(
             final DataFW data)
         {
+            final long originId = data.originId();
+            final long routedId = data.routedId();
             final long sequence = data.sequence();
             final long acknowledge = data.acknowledge();
             final int maximum = data.maximum();
@@ -197,13 +197,15 @@ public final class EchoServerFactory implements BindingHandler
             final OctetsFW payload = data.payload();
             final OctetsFW extension = data.extension();
 
-            doData(receiver, routeId, replyId, sequence, acknowledge, maximum, traceId,
+            doData(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
                     authorization, flags, budgetId, reserved, payload, extension);
         }
 
         private void onFlush(
             final FlushFW flush)
         {
+            final long originId = flush.originId();
+            final long routedId = flush.routedId();
             final long sequence = flush.sequence();
             final long acknowledge = flush.acknowledge();
             final int maximum = flush.maximum();
@@ -213,13 +215,15 @@ public final class EchoServerFactory implements BindingHandler
             final int reserved = flush.reserved();
             final OctetsFW extension = flush.extension();
 
-            doFlush(receiver, routeId, replyId, sequence, acknowledge, maximum, traceId,
+            doFlush(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
                     authorization, budgetId, reserved, extension);
         }
 
         private void onEnd(
             final EndFW end)
         {
+            final long originId = end.originId();
+            final long routedId = end.routedId();
             final long sequence = end.sequence();
             final long acknowledge = end.acknowledge();
             final int maximum = end.maximum();
@@ -227,13 +231,15 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = end.authorization();
             final OctetsFW extension = end.extension();
 
-            doEnd(receiver, routeId, replyId, sequence, acknowledge, maximum, traceId,
+            doEnd(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
                     authorization, extension);
         }
 
         private void onAbort(
             final AbortFW abort)
         {
+            final long originId = abort.originId();
+            final long routedId = abort.routedId();
             final long sequence = abort.sequence();
             final long acknowledge = abort.acknowledge();
             final int maximum = abort.maximum();
@@ -241,13 +247,15 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = abort.authorization();
             final OctetsFW extension = abort.extension();
 
-            doAbort(receiver, routeId, replyId, sequence, acknowledge, maximum, traceId,
+            doAbort(receiver, originId, routedId, replyId, sequence, acknowledge, maximum, traceId,
                     authorization, extension);
         }
 
         private void onReset(
             final ResetFW reset)
         {
+            final long originId = reset.originId();
+            final long routedId = reset.routedId();
             final long sequence = reset.sequence();
             final long acknowledge = reset.acknowledge();
             final int maximum = reset.maximum();
@@ -255,13 +263,15 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = reset.authorization();
             final OctetsFW extension = reset.extension();
 
-            doReset(receiver, routeId, initialId, sequence, acknowledge, maximum, traceId,
+            doReset(receiver, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
                     authorization, extension);
         }
 
         private void onWindow(
             final WindowFW window)
         {
+            final long originId = window.originId();
+            final long routedId = window.routedId();
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
             final int maximum = window.maximum();
@@ -269,13 +279,15 @@ public final class EchoServerFactory implements BindingHandler
             final long budgetId = window.budgetId();
             final int padding = window.padding();
 
-            doWindow(receiver, routeId, initialId, sequence, acknowledge, maximum, traceId,
+            doWindow(receiver, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
                     budgetId, padding);
         }
 
         private void onChallenge(
             ChallengeFW challenge)
         {
+            final long originId = challenge.originId();
+            final long routedId = challenge.routedId();
             final long sequence = challenge.sequence();
             final long acknowledge = challenge.acknowledge();
             final int maximum = challenge.maximum();
@@ -283,14 +295,15 @@ public final class EchoServerFactory implements BindingHandler
             final long authorization = challenge.authorization();
             final OctetsFW extension = challenge.extension();
 
-            doChallenge(receiver, routeId, initialId, sequence, acknowledge, maximum, traceId,
+            doChallenge(receiver, originId, routedId, initialId, sequence, acknowledge, maximum, traceId,
                     authorization, extension);
         }
     }
 
     private void doBegin(
         final MessageConsumer receiver,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -301,7 +314,8 @@ public final class EchoServerFactory implements BindingHandler
         final OctetsFW extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -317,7 +331,8 @@ public final class EchoServerFactory implements BindingHandler
 
     private void doData(
         final MessageConsumer receiver,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -331,7 +346,8 @@ public final class EchoServerFactory implements BindingHandler
         final OctetsFW extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -350,7 +366,8 @@ public final class EchoServerFactory implements BindingHandler
 
     private void doFlush(
         final MessageConsumer receiver,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -362,7 +379,8 @@ public final class EchoServerFactory implements BindingHandler
         final OctetsFW extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -379,7 +397,8 @@ public final class EchoServerFactory implements BindingHandler
 
     private void doAbort(
         final MessageConsumer receiver,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -389,7 +408,8 @@ public final class EchoServerFactory implements BindingHandler
         final OctetsFW extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -404,7 +424,8 @@ public final class EchoServerFactory implements BindingHandler
 
     private void doEnd(
         final MessageConsumer receiver,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -414,7 +435,8 @@ public final class EchoServerFactory implements BindingHandler
         final OctetsFW extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -429,7 +451,8 @@ public final class EchoServerFactory implements BindingHandler
 
     private void doReset(
         final MessageConsumer sender,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -439,22 +462,24 @@ public final class EchoServerFactory implements BindingHandler
         final OctetsFW extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .extension(extension)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     private void doWindow(
         final MessageConsumer sender,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -464,7 +489,8 @@ public final class EchoServerFactory implements BindingHandler
         final int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -479,7 +505,8 @@ public final class EchoServerFactory implements BindingHandler
 
     private void doChallenge(
         final MessageConsumer sender,
-        final long routeId,
+        final long originId,
+        final long routedId,
         final long streamId,
         final long sequence,
         final long acknowledge,
@@ -489,15 +516,16 @@ public final class EchoServerFactory implements BindingHandler
         final OctetsFW extension)
     {
         final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .extension(extension)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
 
         sender.accept(challenge.typeId(), challenge.buffer(), challenge.offset(), challenge.sizeof());
     }

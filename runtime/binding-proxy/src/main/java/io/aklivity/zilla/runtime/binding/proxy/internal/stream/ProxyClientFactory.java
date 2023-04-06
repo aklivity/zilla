@@ -144,18 +144,19 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         MessageConsumer sender)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final ProxyBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
 
         MessageConsumer newStream = null;
 
-        final ProxyBindingConfig binding = router.lookup(routeId);
+        final ProxyBindingConfig binding = router.lookup(routedId);
         final ProxyRouteConfig resolved = binding != null ? binding.resolve(authorization, beginEx) : null;
         if (resolved != null)
         {
-            newStream = new ProxyAppClient(routeId, initialId, sender, resolved.id)::onAppMessage;
+            newStream = new ProxyAppClient(originId, routedId, initialId, sender, resolved.id)::onAppMessage;
         }
 
         return newStream;
@@ -164,7 +165,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     private final class ProxyAppClient
     {
         private final MessageConsumer receiver;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
 
@@ -180,16 +182,18 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         private int replyPad;
 
         private ProxyAppClient(
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             MessageConsumer receiver,
             long resolvedId)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.receiver = receiver;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.net = new ProxyNetClient(this, resolvedId);
+            this.net = new ProxyNetClient(this, routedId, resolvedId);
         }
 
         private void onAppMessage(
@@ -364,7 +368,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long authorization,
             long affinity)
         {
-            doBegin(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity);
         }
 
@@ -376,7 +380,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             int reserved,
             OctetsFW payload)
         {
-            doData(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, budgetId, reserved, payload);
 
             replySeq += reserved;
@@ -388,7 +392,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            doEnd(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doEnd(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
         }
 
@@ -396,7 +400,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            doAbort(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doAbort(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
         }
 
@@ -406,7 +410,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long budgetId,
             int reserved)
         {
-            doFlush(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -414,7 +418,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            doReset(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doReset(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
         }
 
@@ -437,7 +441,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
                 initialMax = minInitialMax;
 
-                doWindow(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, minInitialPad, minimum, capabilities);
             }
         }
@@ -447,7 +451,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            doChallenge(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doChallenge(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, extension);
         }
     }
@@ -455,7 +459,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
     private final class ProxyNetClient
     {
         private final ProxyAppClient app;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private MessageConsumer receiver;
@@ -474,11 +479,13 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
         private ProxyNetClient(
             ProxyAppClient application,
-            long routeId)
+            long originId,
+            long routedId)
         {
             this.app = application;
-            this.routeId = routeId;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.originId = originId;
+            this.routedId = routedId;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId =  supplyReplyId.applyAsLong(initialId);
         }
 
@@ -677,7 +684,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
                 encodeSlotOffset = encodeLocal(buffer);
             }
 
-            receiver = newStream(this::onNetMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+            receiver = newStream(this::onNetMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity);
         }
 
@@ -689,7 +696,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             int reserved,
             OctetsFW payload)
         {
-            doData(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doData(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, flags, budgetId, reserved, payload);
 
             initialSeq += reserved;
@@ -701,7 +708,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            doEnd(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
         }
 
@@ -709,7 +716,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            doAbort(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
         }
 
@@ -719,7 +726,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long budgetId,
             int reserved)
         {
-            doFlush(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -727,7 +734,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long traceId,
             long authorization)
         {
-            doReset(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
         }
 
@@ -736,7 +743,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
             long authorization,
             OctetsFW extension)
         {
-            doChallenge(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doChallenge(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, extension);
         }
 
@@ -759,7 +766,7 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
                 replyMax = minReplyMax;
 
-                doWindow(receiver, routeId, replyId, replySeq, replyAck, replyMax, traceId, authorization, budgetId,
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, budgetId,
                         minReplyPad, minimum, capabilities);
             }
         }
@@ -1109,7 +1116,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1119,7 +1127,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         long affinity)
     {
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1139,7 +1148,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1149,7 +1159,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         long affinity)
     {
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1164,7 +1175,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1177,7 +1189,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         OctetsFW payload)
     {
         DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1195,7 +1208,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     private void doReset(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1204,7 +1218,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1218,7 +1233,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     void doWindow(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1231,7 +1247,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         int capabilities)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1249,7 +1266,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     private void doChallenge(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1259,7 +1277,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         OctetsFW extension)
     {
         final ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1274,7 +1293,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1283,7 +1303,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         long authorization)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1297,7 +1318,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1306,7 +1328,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         long authorization)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1320,7 +1343,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1331,7 +1355,8 @@ public final class ProxyClientFactory implements ProxyStreamFactory
         int reserved)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)

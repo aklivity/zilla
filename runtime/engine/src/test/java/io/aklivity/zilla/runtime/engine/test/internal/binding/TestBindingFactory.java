@@ -99,16 +99,17 @@ final class TestBindingFactory implements BindingHandler
         MessageConsumer source)
     {
         BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        long routeId = begin.routeId();
+        long originId = begin.originId();
+        long routedId = begin.routedId();
         long initialId = begin.streamId();
         long replyId = initialId ^ 1L;
-        long resolvedId = router.get(routeId);
+        long resolvedId = router.get(routedId);
 
         MessageConsumer newStream =  null;
 
         if (resolvedId != -1L)
         {
-            newStream = new TestSource(source, routeId, initialId, replyId, resolvedId)::onMessage;
+            newStream = new TestSource(source, originId, routedId, initialId, replyId, resolvedId)::onMessage;
         }
 
         return newStream;
@@ -117,7 +118,8 @@ final class TestBindingFactory implements BindingHandler
     private final class TestSource
     {
         private final MessageConsumer source;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
 
@@ -139,16 +141,18 @@ final class TestBindingFactory implements BindingHandler
 
         private TestSource(
             MessageConsumer source,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long replyId,
             long resolvedId)
         {
             this.source = source;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = replyId;
-            this.target = new TestTarget(resolvedId);
+            this.target = new TestTarget(routedId, resolvedId);
         }
 
         private void onMessage(
@@ -274,7 +278,7 @@ final class TestBindingFactory implements BindingHandler
         private void doInitialReset(
             long traceId)
         {
-            doReset(source, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+            doReset(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
         }
 
         private void doInitialWindow(
@@ -291,20 +295,20 @@ final class TestBindingFactory implements BindingHandler
             initialPad = padding;
             initialCap = capabilities;
 
-            doWindow(source, routeId, initialId, initialSeq, initialAck, initialMax, traceId,
+            doWindow(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                     initialBud, initialPad, initialCap);
         }
 
         private void doInitialChallenge(
             long traceId)
         {
-            doChallenge(source, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+            doChallenge(source, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
         }
 
         private void doReplyBegin(
             long traceId)
         {
-            doBegin(source, routeId, replyId, replySeq, replyAck, replyMax, traceId);
+            doBegin(source, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
         }
 
         private void doReplyData(
@@ -313,7 +317,8 @@ final class TestBindingFactory implements BindingHandler
             int reserved,
             OctetsFW payload)
         {
-            doData(source, routeId, replyId, replySeq, replyAck, replyMax, replyBud, traceId, flags, reserved, payload);
+            doData(source, originId, routedId, replyId, replySeq, replyAck, replyMax, replyBud,
+                    traceId, flags, reserved, payload);
 
             replySeq += reserved;
         }
@@ -321,26 +326,27 @@ final class TestBindingFactory implements BindingHandler
         private void doReplyEnd(
             long traceId)
         {
-            doEnd(source, routeId, replyId, replySeq, replyAck, replyPad, traceId);
+            doEnd(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId);
         }
 
         private void doReplyAbort(
             long traceId)
         {
-            doAbort(source, routeId, replyId, replySeq, replyAck, replyPad, traceId);
+            doAbort(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId);
         }
 
         private void doReplyFlush(
             long traceId,
             int reserved)
         {
-            doFlush(source, routeId, replyId, replySeq, replyAck, replyPad, traceId, replyBud, reserved);
+            doFlush(source, originId, routedId, replyId, replySeq, replyAck, replyPad, traceId, replyBud, reserved);
         }
 
         private final class TestTarget
         {
             private MessageConsumer target;
-            private final long routeId;
+            private final long originId;
+            private final long routedId;
             private final long initialId;
             private final long replyId;
 
@@ -361,10 +367,12 @@ final class TestBindingFactory implements BindingHandler
             private final TestSource source;
 
             private TestTarget(
-                long routeId)
+                long originId,
+                long routedId)
             {
-                this.routeId = routeId;
-                this.initialId = context.supplyInitialId(routeId);
+                this.originId = originId;
+                this.routedId = routedId;
+                this.initialId = context.supplyInitialId(routedId);
                 this.replyId = context.supplyReplyId(initialId);
                 this.source = TestSource.this;
             }
@@ -492,7 +500,7 @@ final class TestBindingFactory implements BindingHandler
             private void doInitialBegin(
                 long traceId)
             {
-                target = newStream(this::onMessage, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                target = newStream(this::onMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
 
             private void doInitialData(
@@ -501,7 +509,7 @@ final class TestBindingFactory implements BindingHandler
                 int reserved,
                 OctetsFW payload)
             {
-                doData(target, routeId, initialId, initialSeq, initialAck, initialMax, initialBud,
+                doData(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, initialBud,
                         traceId, flags, reserved, payload);
 
                 initialSeq += reserved;
@@ -510,26 +518,26 @@ final class TestBindingFactory implements BindingHandler
             private void doInitialEnd(
                 long traceId)
             {
-                doEnd(target, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doEnd(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
 
             private void doInitialAbort(
                 long traceId)
             {
-                doAbort(target, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doAbort(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
 
             private void doInitialFlush(
                 long traceId,
                 int reserved)
             {
-                doFlush(target, routeId, initialId, initialSeq, initialAck, initialMax, traceId, initialBud, reserved);
+                doFlush(target, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, initialBud, reserved);
             }
 
             private void doReplyReset(
                 long traceId)
             {
-                doReset(target, routeId, replyId, replySeq, replyAck, replyMax, traceId);
+                doReset(target, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
             }
 
             private void doReplyWindow(
@@ -546,20 +554,22 @@ final class TestBindingFactory implements BindingHandler
                 replyPad = padding;
                 replyCap = capabilities;
 
-                doWindow(target, routeId, replyId, replySeq, replyAck, replyMax, traceId, replyBud, replyPad, replyCap);
+                doWindow(target, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, replyBud, replyPad, replyCap);
             }
 
             private void doReplyChallenge(
                 long traceId)
             {
-                doChallenge(target, routeId, replyId, replySeq, replyAck, replyMax, traceId);
+                doChallenge(target, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId);
             }
         }
     }
 
     private MessageConsumer newStream(
         MessageConsumer source,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -570,7 +580,8 @@ final class TestBindingFactory implements BindingHandler
         BindingHandler streamFactory = context.streamFactory();
 
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -589,7 +600,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doBegin(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -599,7 +611,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -613,7 +626,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doData(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -627,7 +641,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -644,7 +659,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doEnd(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -654,7 +670,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -667,7 +684,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doAbort(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -677,7 +695,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -690,7 +709,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doFlush(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -702,7 +722,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -717,7 +738,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doReset(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -727,7 +749,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -740,7 +763,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doWindow(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -753,7 +777,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -769,7 +794,8 @@ final class TestBindingFactory implements BindingHandler
 
     private void doChallenge(
         MessageConsumer stream,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -779,7 +805,8 @@ final class TestBindingFactory implements BindingHandler
         MutableDirectBuffer writeBuffer = context.writeBuffer();
 
         ChallengeFW challenge = challengeRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)

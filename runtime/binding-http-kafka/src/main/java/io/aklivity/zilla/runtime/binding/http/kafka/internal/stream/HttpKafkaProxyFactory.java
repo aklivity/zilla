@@ -174,13 +174,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         MessageConsumer http)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
         final HttpBeginExFW httpBeginEx = extension.get(httpBeginExRO::tryWrap);
 
-        final HttpKafkaBindingConfig binding = bindings.get(routeId);
+        final HttpKafkaBindingConfig binding = bindings.get(routedId);
 
         HttpKafkaRouteConfig route = null;
 
@@ -203,11 +204,23 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
                 if (resolved.merge())
                 {
-                    newStream = new HttpFetchManyProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                    newStream = new HttpFetchManyProxy(
+                            http,
+                            originId,
+                            routedId,
+                            initialId,
+                            resolvedId,
+                            resolved)::onHttpMessage;
                 }
                 else
                 {
-                    newStream = new HttpFetchProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                    newStream = new HttpFetchProxy(
+                            http,
+                            originId,
+                            routedId,
+                            initialId,
+                            resolvedId,
+                            resolved)::onHttpMessage;
                 }
                 break;
             }
@@ -219,20 +232,44 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 {
                     if (!resolved.idempotent())
                     {
-                        newStream = new HttpCorrelateAsyncProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                        newStream = new HttpCorrelateAsyncProxy(
+                                http,
+                                originId,
+                                routedId,
+                                initialId,
+                                resolvedId,
+                                resolved)::onHttpMessage;
                     }
                     else if (resolved.async())
                     {
-                        newStream = new HttpProduceAsyncProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                        newStream = new HttpProduceAsyncProxy(
+                                http,
+                                originId,
+                                routedId,
+                                initialId,
+                                resolvedId,
+                                resolved)::onHttpMessage;
                     }
                     else
                     {
-                        newStream = new HttpProduceSyncProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                        newStream = new HttpProduceSyncProxy(
+                                http,
+                                originId,
+                                routedId,
+                                initialId,
+                                resolvedId,
+                                resolved)::onHttpMessage;
                     }
                 }
                 else
                 {
-                    newStream = new HttpProduceNoReplyProxy(http, routeId, initialId, resolvedId, resolved)::onHttpMessage;
+                    newStream = new HttpProduceNoReplyProxy(
+                            http,
+                            originId,
+                            routedId,
+                            initialId,
+                            resolvedId,
+                            resolved)::onHttpMessage;
                 }
                 break;
             }
@@ -245,7 +282,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private abstract class HttpProxy
     {
         protected final MessageConsumer http;
-        protected final long routeId;
+        protected final long originId;
+        protected final long routedId;
         protected final long initialId;
         protected final long replyId;
 
@@ -264,11 +302,13 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private HttpProxy(
             MessageConsumer http,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId)
         {
             this.http = http;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
@@ -323,13 +363,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private HttpFetchProxy(
             MessageConsumer http,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             HttpKafkaWithFetchResult resolved)
         {
-            super(http, routeId, initialId);
-            this.fetcher = new KafkaFetchProxy(resolvedId, this, resolved);
+            super(http, originId, routedId, initialId);
+            this.fetcher = new KafkaFetchProxy(routedId, resolvedId, this, resolved);
         }
 
         private void onHttpMessage(
@@ -723,7 +764,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             state = HttpKafkaState.openingReply(state);
 
-            doBegin(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -736,7 +777,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = fetcher.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doAbort(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -749,7 +790,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             int flags,
             OctetsFW payload)
         {
-            doData(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, emptyRO);
 
             replySeq += reserved;
@@ -766,7 +807,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = fetcher.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doEnd(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
             }
         }
@@ -779,7 +820,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             replySeq = fetcher.replySeq;
 
-            doFlush(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -793,7 +834,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialAck = fetcher.initialAck;
             initialMax = fetcher.initialMax;
 
-            doWindow(http, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -804,7 +845,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeInitial(state);
 
-                doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
         }
     }
@@ -818,13 +859,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private HttpFetchManyProxy(
             MessageConsumer http,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             HttpKafkaWithFetchResult resolved)
         {
-            super(http, routeId, initialId);
-            this.fetcher = new KafkaFetchProxy(resolvedId, this, resolved);
+            super(http, originId, routedId, initialId);
+            this.fetcher = new KafkaFetchProxy(routedId, resolvedId, this, resolved);
         }
 
         private void onHttpMessage(
@@ -1199,7 +1241,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             state = HttpKafkaState.openingReply(state);
 
-            doBegin(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -1212,7 +1254,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = fetcher.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doAbort(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -1225,7 +1267,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             int flags,
             OctetsFW payload)
         {
-            doData(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, emptyRO);
 
             replySeq += reserved;
@@ -1242,7 +1284,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = fetcher.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doEnd(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
             }
         }
@@ -1255,7 +1297,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             replySeq = fetcher.replySeq;
 
-            doFlush(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -1269,7 +1311,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialAck = fetcher.initialAck;
             initialMax = fetcher.initialMax;
 
-            doWindow(http, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -1280,7 +1322,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeInitial(state);
 
-                doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
         }
     }
@@ -1288,7 +1330,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private final class KafkaFetchProxy
     {
         private MessageConsumer kafka;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final HttpKafkaWithFetchResult resolved;
@@ -1307,14 +1350,16 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         private long cancelWait = NO_CANCEL_ID;
 
         private KafkaFetchProxy(
-            long routeId,
+            long originId,
+            long routedId,
             HttpProxy delegate,
             HttpKafkaWithFetchResult resolved)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.delegate = delegate;
             this.resolved = resolved;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
@@ -1328,13 +1373,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialMax = delegate.initialMax;
             state = HttpKafkaState.openingInitial(state);
 
-            kafka = newKafkaFetcher(this::onKafkaMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+            kafka = newKafkaFetcher(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, resolved);
 
             final long timeout = resolved.timeout();
             if (timeout > 0L)
             {
-                cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, routeId, initialId, SIGNAL_WAIT_EXPIRED, 0);
+                cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
+                        SIGNAL_WAIT_EXPIRED, 0);
             }
         }
 
@@ -1352,7 +1398,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 signaler.cancel(cancelWait);
                 cancelWait = NO_CANCEL_ID;
 
-                doEnd(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -1371,7 +1417,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 signaler.cancel(cancelWait);
                 cancelWait = NO_CANCEL_ID;
 
-                doAbort(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -1384,7 +1430,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             initialSeq = delegate.initialSeq;
 
-            doFlush(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -1609,7 +1655,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeReply(state);
 
-                doReset(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId);
             }
         }
@@ -1624,7 +1670,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
 
-            doWindow(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
     }
@@ -1637,14 +1683,15 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private HttpProduceAsyncProxy(
             MessageConsumer http,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             HttpKafkaWithProduceResult resolved)
         {
-            super(http, routeId, initialId);
-            this.producer = new KafkaProduceProxy(resolvedId, this, resolved);
-            this.correlater = new KafkaCorrelateProxy(resolvedId, this, resolved);
+            super(http, originId, routedId, initialId);
+            this.producer = new KafkaProduceProxy(routedId, resolvedId, this, resolved);
+            this.correlater = new KafkaCorrelateProxy(routedId, resolvedId, this, resolved);
         }
 
         private void onHttpMessage(
@@ -1993,7 +2040,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             state = HttpKafkaState.openingReply(state);
 
-            doBegin(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -2006,7 +2053,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = producer.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doAbort(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -2020,7 +2067,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = producer.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doEnd(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
             }
         }
@@ -2035,7 +2082,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialAck = producer.initialAck;
             initialMax = producer.initialMax;
 
-            doWindow(http, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -2047,7 +2094,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeInitial(state);
 
-                doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
 
             if (!HttpKafkaState.replyOpening(state))
@@ -2074,13 +2121,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private HttpProduceNoReplyProxy(
             MessageConsumer http,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             HttpKafkaWithProduceResult resolved)
         {
-            super(http, routeId, initialId);
-            this.delegate = new KafkaProduceProxy(resolvedId, this, resolved);
+            super(http, originId, routedId, initialId);
+            this.delegate = new KafkaProduceProxy(routedId, resolvedId, this, resolved);
         }
 
         private void onHttpMessage(
@@ -2388,7 +2436,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             state = HttpKafkaState.openingReply(state);
 
-            doBegin(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -2401,7 +2449,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doAbort(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -2415,7 +2463,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doEnd(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
             }
         }
@@ -2430,7 +2478,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
 
-            doWindow(http, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -2460,7 +2508,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private final class KafkaProduceProxy
     {
         private MessageConsumer kafka;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final HttpKafkaWithProduceResult resolved;
@@ -2484,14 +2533,16 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         private OctetsFW deferredPayload;
 
         private KafkaProduceProxy(
-            long routeId,
+            long originId,
+            long routedId,
             HttpProxy delegate,
             HttpKafkaWithProduceResult resolved)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.delegate = delegate;
             this.resolved = resolved;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
@@ -2505,7 +2556,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialMax = delegate.initialMax;
             state = HttpKafkaState.openingInitial(state);
 
-            kafka = newKafkaProducer(this::onKafkaMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+            kafka = newKafkaProducer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, resolved);
         }
 
@@ -2559,7 +2610,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             initialSeq += reserved;
@@ -2578,7 +2629,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = HttpKafkaState.closeInitial(state);
 
-                doEnd(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -2602,7 +2653,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = HttpKafkaState.closeInitial(state);
 
-                doAbort(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -2615,7 +2666,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             initialSeq = delegate.initialSeq;
 
-            doFlush(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+            doFlush(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -2787,7 +2838,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeReply(state);
 
-                doReset(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId);
             }
         }
@@ -2803,7 +2854,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replyPad = delegate.replyPad;
                 replyCap = delegate.replyCap;
 
-                doWindow(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, 0L, replyBud, replyPad, replyCap);
             }
         }
@@ -2815,13 +2866,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private HttpCorrelateAsyncProxy(
             MessageConsumer http,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             HttpKafkaWithProduceResult resolved)
         {
-            super(http, routeId, initialId);
-            this.delegate = new KafkaCorrelateProxy(resolvedId, this, resolved);
+            super(http, originId, routedId, initialId);
+            this.delegate = new KafkaCorrelateProxy(routedId, resolvedId, this, resolved);
         }
 
         private void onHttpMessage(
@@ -3128,7 +3180,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.openingReply(state);
 
-                doBegin(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doBegin(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, affinity, extension);
             }
         }
@@ -3142,7 +3194,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doAbort(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -3155,7 +3207,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             int flags,
             OctetsFW payload)
         {
-            doData(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, emptyRO);
 
             replySeq += reserved;
@@ -3172,7 +3224,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doEnd(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
             }
         }
@@ -3185,7 +3237,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             replySeq = delegate.replySeq;
 
-            doFlush(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -3199,7 +3251,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
 
-            doWindow(http, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -3211,7 +3263,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeInitial(state);
 
-                doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
 
             if (!HttpKafkaState.replyOpening(state))
@@ -3233,7 +3285,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     private final class KafkaCorrelateProxy
     {
         private MessageConsumer kafka;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final HttpKafkaWithProduceResult resolved;
@@ -3255,14 +3308,16 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         private long cancelWait = NO_CANCEL_ID;
 
         private KafkaCorrelateProxy(
-            long routeId,
+            long originId,
+            long routedId,
             HttpProxy delegate,
             HttpKafkaWithProduceResult resolved)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.delegate = delegate;
             this.resolved = resolved;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
@@ -3274,13 +3329,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialMax = delegate.initialMax;
             state = HttpKafkaState.openingInitial(state);
 
-            kafka = newKafkaCorrelater(this::onKafkaMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+            kafka = newKafkaCorrelater(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, resolved);
 
             final long timeout = resolved.timeout();
             if (timeout > 0L)
             {
-                cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, routeId, initialId, SIGNAL_WAIT_EXPIRED, 0);
+                cancelWait = signaler.signalAt(now().toEpochMilli() + timeout, originId, routedId, initialId,
+                        SIGNAL_WAIT_EXPIRED, 0);
             }
             doKafkaWindow(traceId);
         }
@@ -3299,7 +3355,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 signaler.cancel(cancelWait);
                 cancelWait = NO_CANCEL_ID;
 
-                doEnd(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -3318,7 +3374,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 signaler.cancel(cancelWait);
                 cancelWait = NO_CANCEL_ID;
 
-                doAbort(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -3548,7 +3604,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeReply(state);
 
-                doReset(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId);
             }
         }
@@ -3564,7 +3620,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replyPad = delegate.replyPad;
                 replyCap = delegate.replyCap;
 
-                doWindow(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, 0L, replyBud, replyPad, replyCap);
             }
         }
@@ -3578,14 +3634,15 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
         private HttpProduceSyncProxy(
             MessageConsumer http,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             HttpKafkaWithProduceResult resolved)
         {
-            super(http, routeId, initialId);
-            this.producer = new KafkaProduceProxy(resolvedId, this, resolved);
-            this.correlater = new KafkaCorrelateProxy(resolvedId, this, resolved);
+            super(http, originId, routedId, initialId);
+            this.producer = new KafkaProduceProxy(routedId, resolvedId, this, resolved);
+            this.correlater = new KafkaCorrelateProxy(routedId, resolvedId, this, resolved);
         }
 
         private void onHttpMessage(
@@ -3993,7 +4050,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             state = HttpKafkaState.openingReply(state);
 
-            doBegin(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity, extension);
         }
 
@@ -4005,7 +4062,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             int flags,
             OctetsFW payload)
         {
-            doData(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, emptyRO);
 
             replySeq += reserved;
@@ -4022,7 +4079,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = correlater.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doAbort(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -4036,7 +4093,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 replySeq = correlater.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
-                doEnd(http, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
             }
         }
@@ -4049,7 +4106,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             replySeq = correlater.replySeq;
 
-            doFlush(http, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -4063,7 +4120,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             initialAck = producer.initialAck;
             initialMax = producer.initialMax;
 
-            doWindow(http, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
         }
 
@@ -4075,7 +4132,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             {
                 state = HttpKafkaState.closeInitial(state);
 
-                doReset(http, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(http, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
 
             if (!HttpKafkaState.replyOpening(state))
@@ -4096,7 +4153,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4107,7 +4165,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         Flyweight extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4123,7 +4182,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4137,7 +4197,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         Flyweight extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4156,7 +4217,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4165,7 +4227,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         long authorization)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4179,7 +4242,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4188,7 +4252,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         long authorization)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4202,7 +4267,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4213,7 +4279,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         int reserved)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4229,7 +4296,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private MessageConsumer newKafkaFetcher(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4249,7 +4317,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4270,7 +4339,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private MessageConsumer newKafkaProducer(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4290,7 +4360,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4311,7 +4382,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private MessageConsumer newKafkaCorrelater(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4331,7 +4403,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4352,7 +4425,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4364,7 +4438,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         int capabilities)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -4381,7 +4456,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -4389,13 +4465,14 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         long traceId)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }

@@ -29,7 +29,8 @@ scope filesystem
             string16 path;
             string16 type = null;
             int64 payloadSize = 0;
-            int64 modifiedTime = 0;
+            string16 tag = null;
+            int64 timeout = 0;
         }
     }
 }

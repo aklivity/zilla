@@ -98,20 +98,20 @@ public final class ZillaScope implements AutoCloseable
         return String.format("%s [%s]", getClass().getSimpleName(), source.streamsPath());
     }
 
-    public void doRoute(
-        long routeId,
+    public void doBind(
+        long bindingId,
         long authorization,
-        ZillaServerChannel serverChannel)
+        ZillaServerChannel server)
     {
-        source.doRoute(routeId, authorization, serverChannel);
+        source.doBind(bindingId, authorization, server);
     }
 
-    public void doUnroute(
-        long routeId,
+    public void doUnbind(
+        long bindingId,
         long authorization,
-        ZillaServerChannel serverChannel)
+        ZillaServerChannel server)
     {
-        source.doUnroute(routeId, authorization, serverChannel);
+        source.doUnbind(bindingId, authorization, server);
     }
 
     public void doConnect(
@@ -120,11 +120,13 @@ public final class ZillaScope implements AutoCloseable
         ZillaChannelAddress remoteAddress,
         ChannelFuture connectFuture)
     {
-        long routeId = routeId(remoteAddress);
-        final int targetIndex = lookupTargetIndex.applyAsInt(routeId);
+        long originId = bindingId(localAddress);
+        long routedId = bindingId(remoteAddress);
+        final int targetIndex = lookupTargetIndex.applyAsInt(routedId);
         ZillaTarget target = supplyTarget(targetIndex);
         clientChannel.setRemoteScope(targetIndex);
-        clientChannel.routeId(routeId);
+        clientChannel.originId(originId);
+        clientChannel.routedId(routedId);
         target.doConnect(clientChannel, localAddress, remoteAddress, connectFuture);
     }
 
@@ -132,8 +134,8 @@ public final class ZillaScope implements AutoCloseable
         ZillaClientChannel clientChannel,
         ZillaChannelAddress remoteAddress)
     {
-        long routeId = routeId(remoteAddress);
-        final int targetIndex = lookupTargetIndex.applyAsInt(routeId);
+        long routedId = bindingId(remoteAddress);
+        final int targetIndex = lookupTargetIndex.applyAsInt(routedId);
         ZillaTarget target = supplyTarget(targetIndex);
         target.doConnectAbort(clientChannel);
     }
@@ -250,7 +252,6 @@ public final class ZillaScope implements AutoCloseable
     }
 
     public ZillaTarget supplySender(
-        long routeId,
         long streamId)
     {
         final int targetIndex = replyToIndex(streamId);
@@ -372,7 +373,7 @@ public final class ZillaScope implements AutoCloseable
         return target;
     }
 
-    long routeId(
+    long bindingId(
         ZillaChannelAddress remoteAddress)
     {
         final int namespaceId = labels.supplyLabelId(remoteAddress.getNamespace());
