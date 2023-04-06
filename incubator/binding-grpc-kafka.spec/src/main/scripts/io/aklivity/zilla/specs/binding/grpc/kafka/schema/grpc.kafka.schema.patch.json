@@ -45,13 +45,13 @@
                                         },
                                         "request":
                                         {
-                                            "title": "Grpc Request Type",
+                                            "title": "Grpc Request Type Kafka Header",
                                             "type": "string",
                                             "default": "zilla:request"
                                         },
                                         "response":
                                         {
-                                            "title": "Grpc Response Type",
+                                            "title": "Grpc Response Type Kafka Header",
                                             "type": "string",
                                             "default": "zilla:response"
                                         },
