@@ -1631,7 +1631,7 @@ public final class KafkaMergedFactory implements BindingHandler
             initialStableOffsetsById.put(partitionId, stableOffset);
 
             if (nextOffsetsById.size() == fetchStreams.size() &&
-                latestOffsetByPartitionId.size() == fetchStreams.size())
+                initialLatestOffsetsById.size() == fetchStreams.size())
             {
                 final KafkaFlushExFW kafkaFlushExFW = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(kafkaTypeId)
