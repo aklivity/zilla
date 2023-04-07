@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal;
 
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
@@ -34,7 +35,7 @@ final class KafkaGrpcBindingContext implements BindingContext
         KafkaGrpcConfiguration config,
         EngineContext context)
     {
-        this.factories = singletonMap(PROXY, new GrpcKafkaRemoteServerFactory(config, context));
+        this.factories = singletonMap(REMOTE_SERVER, new GrpcKafkaRemoteServerFactory(config, context));
     }
 
     @Override

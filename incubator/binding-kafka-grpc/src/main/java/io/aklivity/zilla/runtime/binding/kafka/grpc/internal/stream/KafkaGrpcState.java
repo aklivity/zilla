@@ -73,6 +73,12 @@ public final class KafkaGrpcState
         return (state & INITIAL_CLOSED) != 0;
     }
 
+    static boolean closed(
+        int state)
+    {
+        return initialClosed(state) && replyClosed(state);
+    }
+
     static int openingReply(
         int state)
     {

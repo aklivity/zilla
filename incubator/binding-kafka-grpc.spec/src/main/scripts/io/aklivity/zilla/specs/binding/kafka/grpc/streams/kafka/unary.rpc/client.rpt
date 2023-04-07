@@ -44,9 +44,7 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
-write close
 write notify SENT_ASYNC_REQUEST
-read closed
 
 connect await SENT_ASYNC_REQUEST
         "zilla://streams/kafka0"
@@ -84,5 +82,3 @@ read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 
-write close
-read closed

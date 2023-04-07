@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaKeyFW;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
@@ -24,6 +23,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckModeFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;

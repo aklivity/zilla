@@ -46,8 +46,6 @@ read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 
-read closed
-write close
 
 accepted
 
@@ -84,5 +82,3 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
-read closed
-write close
