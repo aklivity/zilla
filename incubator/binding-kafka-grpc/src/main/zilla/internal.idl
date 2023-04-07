@@ -18,9 +18,10 @@ scope internal
     {
         struct GrpcQueueMessage
         {
-            int32 correlationId;
+            string16 correlationId;
             int64 traceId;
             int64 authorization;
+            uint8 flags = 3;            // 0x01 FIN, 0x02 INIT, 0x04 INCOMPLETE, 0x08 SKIP
             int32 valueLength;
             octets[valueLength] value = null;
         }

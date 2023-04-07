@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaKeyFW;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
@@ -70,6 +71,11 @@ public class KafkaGrpcConditionResult
         KafkaAckModeFW.Builder builder)
     {
         builder.set(acks);
+    }
+
+    public void key(
+        KafkaKeyFW.Builder builder)
+    {
     }
 
     public void headers(
