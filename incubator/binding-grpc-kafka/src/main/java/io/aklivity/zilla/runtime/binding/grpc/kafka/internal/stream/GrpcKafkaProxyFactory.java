@@ -211,6 +211,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         protected long initialSeq;
         protected long initialAck;
         protected int initialMax;
+        protected int initialBud;
 
         protected int state;
 
@@ -642,6 +643,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private long initialSeq;
         private long initialAck;
         private int initialMax;
+        private long initialBud;
 
         private long replySeq;
         private long replyAck;
@@ -706,6 +708,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = GrpcKafkaState.closeInitial(state);
 
+                doKafkaTombstone(traceId, authorization);
+
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
@@ -729,6 +733,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
                 state = GrpcKafkaState.closeInitial(state);
+
+                doKafkaTombstone(traceId, authorization);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, emptyRO);
@@ -845,6 +851,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             initialAck = acknowledge;
             initialMax = maximum;
+            initialBud = budgetId;
             state = GrpcKafkaState.openInitial(state);
 
             assert initialAck <= initialSeq;
@@ -910,6 +917,23 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, 0L, replyBud, replyPad, replyCap);
             }
+        }
+
+        private void doKafkaTombstone(
+            long traceId,
+            long authorization)
+        {
+            Flyweight tombstoneDataEx = kafkaDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .merged(m -> m
+                    .timestamp(now().toEpochMilli())
+                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                    .key(result::key)
+                    .headers(result::headers))
+                .build();
+
+            doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_FIN, emptyRO, tombstoneDataEx);
         }
     }
 
