@@ -25,33 +25,22 @@ import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
 import org.agrona.collections.Object2ObjectHashMap;
 
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedDataExFW;
 
 public final class KafkaGrpcFetchHeaderHelper
 {
-    private static final OctetsFW HEADER_NAME_SERVICE = new OctetsFW()
-        .wrap(new String8FW("zilla:service").value(), 0, 13);
-    private static final OctetsFW HEADER_NAME_METHOD = new OctetsFW()
-        .wrap(new String8FW("zilla:method").value(), 0, 12);
-    private static final OctetsFW HEADER_NAME_REQUEST = new OctetsFW()
-        .wrap(new String8FW("zilla:request").value(), 0, 13);
-    private static final OctetsFW HEADER_NAME_RESPONSE = new OctetsFW()
-        .wrap(new String8FW("zilla:response").value(), 0, 14);
-    private static final OctetsFW HEADER_NAME_CORRELATION_ID = new OctetsFW()
-        .wrap(new String8FW("zilla:correlation-id").value(), 0, 20);
-
     private static final Map<DirectBuffer, GrpcKind> GRPC_KINDS;
     static
     {
-        DirectBuffer unary = new OctetsFW().wrap(new String16FW("UNARY").value(), 0, 5).value();
-        DirectBuffer stream = new OctetsFW().wrap(new String16FW("STREAM").value(), 0, 6).value();
+        DirectBuffer unary = new String16FW("UNARY").value();
+        DirectBuffer stream = new String16FW("STREAM").value();
 
         Map<DirectBuffer, GrpcKind> kinds = new Object2ObjectHashMap<>();
         kinds.put(unary, UNARY);
@@ -59,20 +48,9 @@ public final class KafkaGrpcFetchHeaderHelper
         GRPC_KINDS = kinds;
     }
 
-    private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
-    {
-        Map<OctetsFW, Consumer<OctetsFW>> visitors = new HashMap<>();
-        visitors.put(HEADER_NAME_SERVICE, this::visitService);
-        visitors.put(HEADER_NAME_METHOD, this::visitMethod);
-        visitors.put(HEADER_NAME_REQUEST, this::visitRequest);
-        visitors.put(HEADER_NAME_RESPONSE, this::visitResponse);
-        visitors.put(HEADER_NAME_CORRELATION_ID, this::visitCorrelationId);
-        this.visitors = visitors;
-    }
+    private final Map<DirectBuffer, Consumer<DirectBuffer>> visitors;
     private final OctetsFW serviceRO = new OctetsFW();
     private final OctetsFW methodRO = new OctetsFW();
-    private final AsciiSequenceView requestRO = new AsciiSequenceView();
-    private final AsciiSequenceView responseRO = new AsciiSequenceView();
     private final AsciiSequenceView correlatedIdRO = new AsciiSequenceView();
 
     public OctetsFW service;
@@ -80,6 +58,18 @@ public final class KafkaGrpcFetchHeaderHelper
     public GrpcKind request;
     public GrpcKind response;
     public CharSequence correlationId;
+
+    public KafkaGrpcFetchHeaderHelper(
+        KafkaGrpcCorrelationConfig correlation)
+    {
+        Map<DirectBuffer, Consumer<DirectBuffer>> visitors = new HashMap<>();
+        visitors.put(correlation.service.value(), this::visitService);
+        visitors.put(correlation.method.value(), this::visitMethod);
+        visitors.put(correlation.request.value(), this::visitRequest);
+        visitors.put(correlation.response.value(), this::visitResponse);
+        visitors.put(correlation.correlationId.value(), this::visitCorrelationId);
+        this.visitors = visitors;
+    }
 
     public void visit(
         KafkaDataExFW dataEx)
@@ -102,10 +92,10 @@ public final class KafkaGrpcFetchHeaderHelper
         KafkaHeaderFW header)
     {
         final OctetsFW name = header.name();
-        final Consumer<OctetsFW> visitor = visitors.get(name);
+        final Consumer<DirectBuffer> visitor = visitors.get(name.value());
         if (visitor != null)
         {
-            visitor.accept(header.value());
+            visitor.accept(header.value().value());
         }
 
         return service != null &&
@@ -116,32 +106,32 @@ public final class KafkaGrpcFetchHeaderHelper
     }
 
     private void visitService(
-        OctetsFW value)
+        DirectBuffer value)
     {
-        service = serviceRO.wrap(value.value(), 0, value.sizeof());
+        service = serviceRO.wrap(value, 0, value.capacity());
     }
 
     private void visitMethod(
-        OctetsFW value)
+        DirectBuffer value)
     {
-        method = methodRO.wrap(value.value(), 0, value.sizeof());
+        method = methodRO.wrap(value, 0, value.capacity());
     }
 
     private void visitRequest(
-        OctetsFW value)
+        DirectBuffer value)
     {
-        request = GRPC_KINDS.get(value.value());
+        request = GRPC_KINDS.get(value);
     }
 
     private void visitResponse(
-        OctetsFW value)
+        DirectBuffer value)
     {
-        response = GRPC_KINDS.get(value.value());
+        response = GRPC_KINDS.get(value);
     }
 
     private void visitCorrelationId(
-        OctetsFW value)
+        DirectBuffer value)
     {
-        correlationId = correlatedIdRO.wrap(value.value(), 0, value.sizeof());
+        correlationId = correlatedIdRO.wrap(value, 0, value.capacity());
     }
 }

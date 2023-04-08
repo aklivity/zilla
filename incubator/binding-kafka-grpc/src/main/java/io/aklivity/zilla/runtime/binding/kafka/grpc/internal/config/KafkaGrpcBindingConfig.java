@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcFetchHeaderHelper;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -33,6 +34,7 @@ public final class KafkaGrpcBindingConfig
     public final String entry;
     public final KindConfig kind;
     public final KafkaGrpcOptionsConfig options;
+    public final KafkaGrpcFetchHeaderHelper helper;
     public final List<KafkaGrpcRouteConfig> routes;
 
     public KafkaGrpcBindingConfig(
@@ -45,6 +47,7 @@ public final class KafkaGrpcBindingConfig
                 .map(KafkaGrpcOptionsConfig.class::cast)
                 .map(peek(o -> o.entryId = binding.resolveId.applyAsLong(o.entry)))
                 .orElse(DEFAULT);
+        this.helper = new KafkaGrpcFetchHeaderHelper(options.correlation);
         this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r)).collect(toList());
     }
 

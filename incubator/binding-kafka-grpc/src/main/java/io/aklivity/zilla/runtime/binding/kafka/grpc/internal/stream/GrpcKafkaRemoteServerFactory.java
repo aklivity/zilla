@@ -116,7 +116,6 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final GrpcQueueMessageFW.Builder queueMessageRW = new GrpcQueueMessageFW.Builder();
 
-    private final KafkaGrpcFetchHeaderHelper helper;
     private final Long2ObjectHashMap<KafkaGrpcBindingConfig> bindings;
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
@@ -147,7 +146,6 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         this.bindings = new Long2ObjectHashMap<>();
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
-        this.helper = new KafkaGrpcFetchHeaderHelper();
     }
 
     @Override
@@ -187,16 +185,19 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         private final Map<String16FW, GrpcProxy> grpcProxies;
         private final KafkaFetchProxy fetch;
         private final KafkaGrpcConditionResult result;
+        private final KafkaGrpcFetchHeaderHelper helper;
 
         private RemoteServer(
             long originId,
             long routedId,
             long entryId,
-            KafkaGrpcConditionResult result)
+            KafkaGrpcConditionResult result,
+            KafkaGrpcFetchHeaderHelper helper)
         {
-            this.result = result;
             this.grpcProxies = new Object2ObjectHashMap<>();
             this.fetch = new KafkaFetchProxy(originId, routedId, entryId, result, this);
+            this.result = result;
+            this.helper = helper;
         }
     }
 
@@ -1109,6 +1110,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                 final KafkaDataExFW kafkaDataEx =
                     dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+                KafkaGrpcFetchHeaderHelper helper = delegate.helper;
                 helper.visit(kafkaDataEx);
 
                 if (helper.service != null &&
@@ -1806,7 +1808,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             r.when.forEach(c ->
             {
                 KafkaGrpcConditionResult result = c.resolve();
-                RemoteServer remoteServer = new RemoteServer(binding.id, r.id, binding.options.entryId, result);
+                RemoteServer remoteServer =
+                    new RemoteServer(binding.id, r.id, binding.options.entryId, result, binding.helper);
                 remoteServer.fetch.doKafkaBegin(traceId, 0L, 0L);
             }));
     }
