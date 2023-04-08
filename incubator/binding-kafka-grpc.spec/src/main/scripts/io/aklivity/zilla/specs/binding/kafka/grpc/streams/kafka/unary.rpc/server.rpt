@@ -20,6 +20,43 @@ accept "zilla://streams/kafka0"
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("FETCH_ONLY")
+                                  .topic("responses")
+                                  .partition(-1, -2)
+                                  .filter()
+                                    .key("test")
+                                    .build()
+                                  .build()
+                              .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .timestamp(kafka:timestamp())
+                                .partition(0, 1, 2)
+                                .progress(0, 2)
+                                .progress(1, 1)
+                                .key("test")
+                                .header("zilla:identity", "test")
+                                .header("zilla:service", "example.EchoService")
+                                .header("zilla:method", "EchoUnary")
+                                .header("zilla:request", "UNARY")
+                                .header("zilla:response", "UNARY")
+                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                .build()
+                            .build()}
+write ${grpc:protobuf()
+            .string(1, "Hello World")
+            .build()}
+write flush
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
@@ -36,8 +73,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .merged()
                                .deferred(0)
                                .partition(-1, -1)
-                               .key("test")
-                               .header("zilla:identity", "test")
                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                .build()
                            .build()}
@@ -46,39 +81,4 @@ read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .merged()
-                                  .capabilities("FETCH_ONLY")
-                                  .topic("responses")
-                                  .partition(-1, -2)
-                                  .filter()
-                                    .key("test")
-                                    .header("zilla:identity", "test")
-                                    .build()
-                                  .filter()
-                                    .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                                    .build()
-                                  .build()
-                              .build()}
-
-connected
-
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("test")
-                                .build()
-                            .build()}
-write ${grpc:protobuf()
-            .string(1, "Hello World")
-            .build()}
-write flush
 

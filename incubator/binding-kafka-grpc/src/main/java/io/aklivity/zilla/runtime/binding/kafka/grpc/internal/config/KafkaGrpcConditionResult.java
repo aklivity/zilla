@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public class KafkaGrpcConditionResult
 {
@@ -36,6 +37,8 @@ public class KafkaGrpcConditionResult
             .partitionId(-1)
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();
+
+    private static final String8FW HEADER_NAME_CORRELATION_ID = new String8FW("zilla:correlation-id");
 
     private final String16FW topic;
     private final KafkaAckMode acks;
@@ -79,9 +82,15 @@ public class KafkaGrpcConditionResult
     }
 
     public void headers(
+        String16FW correlationId,
         Array32FW.Builder<KafkaHeaderFW.Builder,
             KafkaHeaderFW> builder)
     {
+        builder.item(i -> i.nameLen(HEADER_NAME_CORRELATION_ID.length())
+            .name(HEADER_NAME_CORRELATION_ID.value(), 0, HEADER_NAME_CORRELATION_ID.length())
+            .valueLen(correlationId.length())
+            .value(correlationId.value(), 0, correlationId.length())
+        );
     }
 
     public void filters(
