@@ -41,6 +41,7 @@ public final class GrpcKafkaRouteConfig extends OptionsConfig
     private final LongPredicate authorized;
 
     public GrpcKafkaRouteConfig(
+        GrpcKafkaOptionsConfig options,
         RouteConfig route)
     {
         this.id = route.id;
@@ -62,7 +63,7 @@ public final class GrpcKafkaRouteConfig extends OptionsConfig
 
         this.with = Optional.of(route.with)
             .map(GrpcKafkaWithConfig.class::cast)
-            .map(c -> new GrpcKafkaWithResolver(identityReplacer, c))
+            .map(c -> new GrpcKafkaWithResolver(options, identityReplacer, c))
             .get();
         this.authorized = route.authorized;
     }

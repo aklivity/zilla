@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfigAdapter.DEFAULT;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -42,8 +43,8 @@ public final class GrpcKafkaBindingConfig
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(GrpcKafkaOptionsConfig.class::cast)
-                .orElse(new GrpcKafkaOptionsConfig());
-        this.routes = binding.routes.stream().map(r -> new GrpcKafkaRouteConfig(r)).collect(toList());
+                .orElse(DEFAULT);
+        this.routes = binding.routes.stream().map(r -> new GrpcKafkaRouteConfig(options, r)).collect(toList());
     }
 
     public GrpcKafkaRouteConfig resolve(

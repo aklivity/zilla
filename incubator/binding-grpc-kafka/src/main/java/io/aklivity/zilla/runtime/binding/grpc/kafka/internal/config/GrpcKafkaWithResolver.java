@@ -39,21 +39,23 @@ public final class GrpcKafkaWithResolver
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\-]*)'\\]).identity\\}");
 
     private static final String8FW GRPC_METADATA_NAME_IDEMPOTENCY_KEY = new String8FW("idempotency-key");
-    private static final String16FW CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = new String16FW("zilla:correlation-id");
 
     private final OctetsFW dashOctetsRW = new OctetsFW().wrap(new String16FW("-").value(), 0, 1);
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
     private final byte[] hashBytesRW = new byte[8192];
 
+    private final GrpcKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final GrpcKafkaWithConfig with;
     private final Matcher identityMatcher;
 
     public GrpcKafkaWithResolver(
+        GrpcKafkaOptionsConfig options,
         LongObjectBiFunction<MatchResult, String> identityReplacer,
         GrpcKafkaWithConfig with)
     {
+        this.options = options;
         this.identityReplacer = identityReplacer;
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
@@ -68,6 +70,11 @@ public final class GrpcKafkaWithResolver
 
         final GrpcMetadataFW idempotencyKey = beginEx.metadata().matchFirst(m ->
             GRPC_METADATA_NAME_IDEMPOTENCY_KEY.value().compareTo(m.name().value()) == 0);
+
+        final String16FW service = new String16FW(beginEx.service().asString());
+        final String16FW method = new String16FW(beginEx.method().asString());
+        final String16FW request = new String16FW(beginEx.request().get().toString());
+        final String16FW response = new String16FW(beginEx.response().get().toString());
 
         OctetsFW correlationId = null;
         if (idempotencyKey != null)
@@ -180,9 +187,7 @@ public final class GrpcKafkaWithResolver
             }
         }
 
-        final GrpcKafkaCorrelationConfig grpcKafkaCorrelationConfig = new GrpcKafkaCorrelationConfig(
-            replyTo, CORRELATION_HEADERS_CORRELATION_ID_DEFAULT, hash, filters);
-
-        return new GrpcKafkaWithResult(topic, acks, keyRef, overrides, hash, grpcKafkaCorrelationConfig);
+        return new GrpcKafkaWithResult(service, method, request, response, topic, acks, keyRef, overrides, replyTo, filters,
+            options.correlation, hash);
     }
 }
