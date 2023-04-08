@@ -18,7 +18,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class GrpcKafkaOptionsConfig extends OptionsConfig
 {
-    public GrpcKafkaOptionsConfig()
+    public final GrpcKafkaCorrelationConfig correlation;
+
+    public GrpcKafkaOptionsConfig(
+        GrpcKafkaCorrelationConfig correlation)
     {
+        this.correlation = correlation;
     }
 }
