@@ -90,6 +90,8 @@ public class GrpcKafkaOptionsConfigAdapterTest
                         "{" +
                             "\"service\":\"zilla:x-service\"," +
                             "\"method\":\"zilla:x-method\"," +
+                            "\"request\":\"zilla:x-request\"," +
+                            "\"response\":\"zilla:x-response\"," +
                             "\"correlation-id\":\"zilla:x-correlation-id\"" +
                         "}" +
                     "}" +
