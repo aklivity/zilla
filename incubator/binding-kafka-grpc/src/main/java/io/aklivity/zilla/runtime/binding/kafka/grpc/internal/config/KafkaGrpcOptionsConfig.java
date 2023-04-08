@@ -15,20 +15,27 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class KafkaGrpcOptionsConfig extends OptionsConfig
 {
     public transient long entryId;
+    public final String16FW scheme;
+    public final String16FW authority;
     public final String entry;
     public final KafkaAckMode acks;
     public final KafkaGrpcCorrelationConfig correlation;
 
     public KafkaGrpcOptionsConfig(
+        String16FW scheme,
+        String16FW authority,
         String entry,
         KafkaAckMode acks,
         KafkaGrpcCorrelationConfig correlation)
     {
+        this.scheme = scheme;
+        this.authority = authority;
         this.entry = entry;
         this.acks = acks;
         this.correlation = correlation;

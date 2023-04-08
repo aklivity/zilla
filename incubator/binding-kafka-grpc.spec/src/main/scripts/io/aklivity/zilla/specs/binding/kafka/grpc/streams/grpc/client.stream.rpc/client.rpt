@@ -18,25 +18,29 @@ connect "zilla://streams/grpc0"
     option zilla:transmission "half-duplex"
 
 write zilla:begin.ext ${grpc:beginEx()
-                            .typeId(zilla:id("grpc"))
-                            .scheme("http")
-                            .authority("localhost:8080")
-                            .service("example.EchoService")
-                            .method("EchoUnary")
-                            .request("UNARY")
-                            .response("UNARY")
-                            .build()}
+                              .typeId(zilla:id("grpc"))
+                              .scheme("http")
+                              .authority("localhost:8080")
+                              .service("example.EchoService")
+                              .method("EchoClientStream")
+                              .request("STREAM")
+                              .response("UNARY")
+                              .metadata("custom", "test")
+                              .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
+                              .build()}
 connected
 
 write ${grpc:protobuf()
-            .string(1, "Hello World")
+            .string(1, "Hello World1")
             .build()}
 write flush
 
-write close
+write ${grpc:protobuf()
+            .string(1, "Hello World2")
+            .build()}
+write flush
 
 read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 
-read closed

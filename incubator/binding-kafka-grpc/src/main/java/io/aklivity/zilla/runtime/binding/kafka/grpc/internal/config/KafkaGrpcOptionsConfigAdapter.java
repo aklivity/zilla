@@ -30,7 +30,8 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     public static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
-    private static final String ENTRY_DEFAULT = "grpc_client0";
+    private static final String SCHEME_NAME = "scheme";
+    private static final String AUTHORITY_NAME = "authority";
     private static final String ENTRY_NAME = "entry";
     private static final String ACKS_NAME = "acks";
 
@@ -53,7 +54,7 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT,
             CORRELATION_HEADERS_REQUEST_DEFAULT, CORRELATION_HEADERS_RESPONSE_DEFAULT);
     public static final KafkaGrpcOptionsConfig DEFAULT =
-        new KafkaGrpcOptionsConfig(ENTRY_DEFAULT, ACKS_DEFAULT, CORRELATION_DEFAULT);
+        new KafkaGrpcOptionsConfig(null, null, null, ACKS_DEFAULT, CORRELATION_DEFAULT);
 
     @Override
     public OptionsConfigAdapterSpi.Kind kind()
@@ -128,6 +129,8 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
             : ACKS_DEFAULT;
 
+        String16FW newScheme = new String16FW(object.getString(SCHEME_NAME));
+        String16FW newAuthority = new String16FW(object.getString(AUTHORITY_NAME));
         String newEntry = object.getString(ENTRY_NAME);
 
         KafkaGrpcCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
@@ -172,6 +175,6 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             }
         }
 
-        return new KafkaGrpcOptionsConfig(newEntry, newProduceAcks, newCorrelation);
+        return new KafkaGrpcOptionsConfig(newScheme, newAuthority, newEntry, newProduceAcks, newCorrelation);
     }
 }

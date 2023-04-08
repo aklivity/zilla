@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.PROXY;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static java.util.Collections.singletonMap;
 

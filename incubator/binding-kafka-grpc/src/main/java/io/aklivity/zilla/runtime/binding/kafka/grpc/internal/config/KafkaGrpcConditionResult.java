@@ -27,7 +27,6 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public class KafkaGrpcConditionResult
 {
@@ -38,31 +37,44 @@ public class KafkaGrpcConditionResult
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();
 
-    private static final String8FW HEADER_NAME_CORRELATION_ID = new String8FW("zilla:correlation-id");
-
+    private final String16FW scheme;
+    private final String16FW authority;
     private final String16FW topic;
     private final KafkaAckMode acks;
     private final List<KafkaGrpcFetchFilterResult> filters;
     private final String16FW replyTo;
-
+    private final KafkaGrpcCorrelationConfig correlation;
 
     KafkaGrpcConditionResult(
+        String16FW scheme,
+        String16FW authority,
         String16FW topic,
         KafkaAckMode acks,
         List<KafkaGrpcFetchFilterResult> filters,
-        String16FW replyTo)
+        String16FW replyTo,
+        KafkaGrpcCorrelationConfig correlation)
     {
+        this.scheme = scheme;
+        this.authority = authority;
         this.topic = topic;
         this.acks = acks;
         this.filters = filters;
         this.replyTo = replyTo;
+        this.correlation = correlation;
     }
 
+    public String16FW scheme()
+    {
+        return scheme;
+    }
+    public String16FW authority()
+    {
+        return authority;
+    }
     public String16FW topic()
     {
         return topic;
     }
-
 
     public void partitions(
         Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
@@ -86,8 +98,8 @@ public class KafkaGrpcConditionResult
         Array32FW.Builder<KafkaHeaderFW.Builder,
             KafkaHeaderFW> builder)
     {
-        builder.item(i -> i.nameLen(HEADER_NAME_CORRELATION_ID.length())
-            .name(HEADER_NAME_CORRELATION_ID.value(), 0, HEADER_NAME_CORRELATION_ID.length())
+        builder.item(i -> i.nameLen(correlation.correlationId.length())
+            .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
             .valueLen(correlationId.length())
             .value(correlationId.value(), 0, correlationId.length())
         );

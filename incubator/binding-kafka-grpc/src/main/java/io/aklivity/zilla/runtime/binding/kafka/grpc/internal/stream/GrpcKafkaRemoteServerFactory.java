@@ -534,7 +534,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             state = KafkaGrpcState.openingReply(state);
 
             grpc = newGrpcStream(this::onGrpcMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, service, method, request, response);
+                traceId, authorization, affinity, remoteServer.result.scheme(), remoteServer.result.authority(),
+                service, method, request, response);
         }
 
         protected void doGrpcData(
@@ -1825,6 +1826,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         long traceId,
         long authorization,
         long affinity,
+        String16FW scheme,
+        String16FW authority,
         OctetsFW service,
         OctetsFW method,
         GrpcKind request,
@@ -1833,8 +1836,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         final GrpcBeginExFW grpcBeginEx =
             grpcBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(grpcTypeId)
-                .scheme(new String16FW("http")) //TODO: Figure out what should be the actual value
-                .authority(new String16FW("localhost:8080"))
+                .scheme(scheme)
+                .authority(authority)
                 .service(service.value(), 0, service.sizeof())
                 .method(method.value(), 0, method.sizeof())
                 .request(r -> r.set(request))

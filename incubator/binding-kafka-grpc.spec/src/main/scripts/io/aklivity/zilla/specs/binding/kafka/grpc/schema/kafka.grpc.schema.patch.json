@@ -19,6 +19,16 @@
                 {
                     "properties":
                     {
+                        "scheme":
+                        {
+                            "title": "Scheme",
+                            "type": "string"
+                        },
+                        "authority":
+                        {
+                            "title": "Authority",
+                            "type": "string"
+                        },
                         "entry":
                         {
                             "title": "Entry",
@@ -85,7 +95,9 @@
                     },
                     "required":
                     [
-                        "entry"
+                        "entry",
+                        "scheme",
+                        "authority"
                     ]
                 },
                 "routes":

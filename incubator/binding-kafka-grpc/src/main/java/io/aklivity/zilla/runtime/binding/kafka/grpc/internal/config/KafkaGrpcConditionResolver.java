@@ -64,6 +64,6 @@ public final class KafkaGrpcConditionResolver
 
         String16FW replyTo = condition.replyTo;
 
-        return new KafkaGrpcConditionResult(topic, acks, filters, replyTo);
+        return new KafkaGrpcConditionResult(options.scheme, options.authority, topic, acks, filters, replyTo, options.correlation);
     }
 }

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
-import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcOptionsConfigAdapter.ACKS_DEFAULT;
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcOptionsConfigAdapter.DEFAULT;
 import static java.util.stream.Collectors.toList;
 
