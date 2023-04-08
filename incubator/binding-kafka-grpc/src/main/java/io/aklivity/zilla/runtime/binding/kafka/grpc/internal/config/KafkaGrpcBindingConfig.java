@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcOptionsConfigAdapter.ACKS_DEFAULT;
+import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcOptionsConfigAdapter.DEFAULT;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
@@ -43,7 +44,7 @@ public final class KafkaGrpcBindingConfig
         this.options = Optional.ofNullable(binding.options)
                 .map(KafkaGrpcOptionsConfig.class::cast)
                 .map(peek(o -> o.entryId = binding.resolveId.applyAsLong(o.entry)))
-                .orElse(new KafkaGrpcOptionsConfig(null, ACKS_DEFAULT));
+                .orElse(DEFAULT);
         this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r)).collect(toList());
     }
 

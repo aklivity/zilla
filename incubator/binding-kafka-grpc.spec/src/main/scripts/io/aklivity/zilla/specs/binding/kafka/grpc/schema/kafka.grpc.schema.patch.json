@@ -33,6 +33,54 @@
                                 "leader_only",
                                 "in_sync_replicas"
                             ]
+                        },
+                        "correlation":
+                        {
+                            "title": "Correlation",
+                            "type": "object",
+                            "properties":
+                            {
+                                "headers":
+                                {
+                                    "title": "Correlation Kafka Headers",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "service":
+                                        {
+                                            "title": "Grpc Service Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:service"
+                                        },
+                                        "method":
+                                        {
+                                            "title": "Grpc Method Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:method"
+                                        },
+                                        "request":
+                                        {
+                                            "title": "Grpc Request Type Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:request"
+                                        },
+                                        "response":
+                                        {
+                                            "title": "Grpc Response Type Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:response"
+                                        },
+                                        "correlation-id":
+                                        {
+                                            "title": "Correlation-Id Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:correlation-id"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
                         }
                     },
                     "required":

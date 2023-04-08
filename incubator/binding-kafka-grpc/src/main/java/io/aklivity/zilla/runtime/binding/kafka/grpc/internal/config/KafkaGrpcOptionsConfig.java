@@ -22,12 +22,15 @@ public final class KafkaGrpcOptionsConfig extends OptionsConfig
     public transient long entryId;
     public final String entry;
     public final KafkaAckMode acks;
+    public final KafkaGrpcCorrelationConfig correlation;
 
     public KafkaGrpcOptionsConfig(
         String entry,
-        KafkaAckMode acks)
+        KafkaAckMode acks,
+        KafkaGrpcCorrelationConfig correlation)
     {
         this.entry = entry;
         this.acks = acks;
+        this.correlation = correlation;
     }
 }
