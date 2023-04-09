@@ -36,7 +36,7 @@ public class KafkaGrpcRemoteServerIT
         .addScriptRoot("grpc", "io/aklivity/zilla/specs/binding/kafka/grpc/streams/grpc")
         .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/kafka/grpc/streams/kafka");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(2, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -56,8 +56,8 @@ public class KafkaGrpcRemoteServerIT
     @Test
     @Configuration("remote.server.rpc.yaml")
     @Specification({
-        "${grpc}/unary.rpc/server",
-        "${kafka}/unary.rpc/server"})
+        "${kafka}/unary.rpc/server",
+        "${grpc}/unary.rpc/server"})
     public void shouldExchangeMessageWithUnaryRpc() throws Exception
     {
         k3po.finish();

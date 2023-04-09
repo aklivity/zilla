@@ -480,7 +480,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             {
                 final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
                 doGrpcData(traceId, authorization, initialBud, length + initialPad,
-                    newFlags, payload.buffer(), payload.offset(), length);
+                    newFlags, payload.buffer(), 0, length);
 
                 if ((newFlags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
@@ -1410,7 +1410,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             {
                 final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
                 doGrpcData(traceId, authorization, initialBud, length + initialPad,
-                    newFlags, payload.buffer(), payload.offset(), length);
+                    newFlags, payload.buffer(), 0, length);
             }
 
             if (payload.equals(emptyRO) &&
