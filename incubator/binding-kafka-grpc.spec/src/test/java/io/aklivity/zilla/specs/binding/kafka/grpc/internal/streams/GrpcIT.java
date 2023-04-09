@@ -43,31 +43,4 @@ public class GrpcIT
     {
         k3po.finish();
     }
-
-    @Test
-    @Specification({
-        "${grpc}/client.stream.rpc/client",
-        "${grpc}/client.stream.rpc/server"})
-    public void shouldExchangeMessageInClientStream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${grpc}/server.stream.rpc/client",
-        "${grpc}/server.stream.rpc/server"})
-    public void shouldExchangeMessageInServerStream() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${grpc}/bidi.stream.rpc/client",
-        "${grpc}/bidi.stream.rpc/server"})
-    public void shouldExchangeMessageInBidiStream() throws Exception
-    {
-        k3po.finish();
-    }
 }

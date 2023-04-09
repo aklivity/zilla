@@ -88,6 +88,15 @@ public final class KafkaGrpcFetchHeaderHelper
         }
     }
 
+    public boolean resolved()
+    {
+        return service != null &&
+            method != null &&
+            request != null &&
+            response != null &&
+            correlationId != null;
+    }
+
     private boolean dispatch(
         KafkaHeaderFW header)
     {
