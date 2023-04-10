@@ -25,8 +25,6 @@ write zilla:begin.ext ${grpc:beginEx()
                               .method("EchoClientStream")
                               .request("STREAM")
                               .response("UNARY")
-                              .metadata("custom", "test")
-                              .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                               .build()}
 connected
 
@@ -40,7 +38,10 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
+write close
+
 read ${grpc:protobuf()
            .string(1, "Hello World")
            .build()}
 
+read closed

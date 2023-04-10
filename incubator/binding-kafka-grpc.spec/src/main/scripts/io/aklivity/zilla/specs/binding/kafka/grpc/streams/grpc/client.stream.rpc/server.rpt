@@ -37,7 +37,12 @@ read ${grpc:protobuf()
            .string(1, "Hello World2")
            .build()}
 
+read closed
+
 write ${grpc:protobuf()
             .string(1, "Hello World")
             .build()}
 write flush
+
+
+write close

@@ -43,4 +43,13 @@ public class GrpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/client.stream.rpc/client",
+        "${grpc}/client.stream.rpc/server"})
+    public void shouldExchangeMessageInClientStream() throws Exception
+    {
+        k3po.finish();
+    }
 }

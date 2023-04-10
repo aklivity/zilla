@@ -44,4 +44,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/client.stream.rpc/client",
+        "${kafka}/client.stream.rpc/server"})
+    public void shouldExchangeMessageInClientStream() throws Exception
+    {
+        k3po.finish();
+    }
 }

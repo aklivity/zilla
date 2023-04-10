@@ -62,4 +62,14 @@ public class KafkaGrpcRemoteServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
+        "${kafka}/client.stream.rpc/server",
+        "${grpc}/client.stream.rpc/server"})
+    public void shouldExchangeMessageWithClientStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
 }
