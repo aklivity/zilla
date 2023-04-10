@@ -454,7 +454,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             }
             else
             {
-                if (emptyRO.equals(payload))
+                if (payload == null)
                 {
                     correlater.doKafkaEnd(traceId, authorization);
                     doGrpcEnd(traceId, traceId);
@@ -896,7 +896,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     .headers(result::headers))
                 .build();
 
-            doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_FIN, emptyRO, tombstoneDataEx);
+            doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_FIN, null, tombstoneDataEx);
         }
     }
 
