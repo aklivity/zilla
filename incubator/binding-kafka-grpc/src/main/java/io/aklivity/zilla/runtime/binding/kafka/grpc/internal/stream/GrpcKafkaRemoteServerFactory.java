@@ -480,7 +480,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             {
                 final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
                 doGrpcData(traceId, authorization, initialBud, length + initialPad,
-                    newFlags, payload.buffer(), 0, length);
+                    newFlags, payload.value(), 0, length);
 
                 if ((newFlags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
@@ -564,6 +564,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 traceId, authorization, budgetId, reserved, flags, buffer, offset, length, emptyRO);
 
             initialSeq += reserved;
+            remoteServer.fetch.replyReserved -= length;
 
             assert initialSeq <= initialAck + initialMax;
         }
@@ -941,6 +942,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyReserved;
         private long replyBud;
         private int replyPad;
         private int replyCap;
@@ -964,7 +966,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             this.replyAck = 0;
             this.replyMax = bufferPool.slotCapacity();
             this.replyBud = 0;
-            this.replyPad = 5;
+            this.replyPad = 0;
             this.replyCap = 0;
         }
 
@@ -1090,6 +1092,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             assert acknowledge <= replyAck;
 
             replySeq = sequence + reserved;
+            replyReserved += reserved;
 
             assert replyAck <= replySeq;
 
@@ -1200,7 +1203,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                     final int remaining = grpcQueueSlotOffset - progressOffset;
                     grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remaining);
 
-                    grpcQueueSlotOffset = remaining != 0 ? grpcQueueSlotOffset - progressOffset : progressOffset;
+                    grpcQueueSlotOffset = grpcQueueSlotOffset - progressOffset;
                     progressOffset = oldProgressOffset;
                 }
                 else if (progress > 0)
@@ -1358,7 +1361,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             long traceId,
             long authorization)
         {
-            long replyAckMax = Math.max(replySeq - replyPendingAck() - grpcQueueSlotOffset, replyAck);
+            long replyAckMax = Math.max(replySeq - replyReserved, replyAck);
 
             if (replyWindow() - replyAckMax > 0)
             {

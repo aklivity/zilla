@@ -20,10 +20,10 @@ bindings:
     type: kafka_grpc
     kind: remote_server
     options:
-       scheme: http
-       authority: localhost:8080
-       entry: grpc0
-       acks: leader_only
+      scheme: http
+      authority: localhost:8080
+      entry: grpc0
+      acks: leader_only
     routes:
         - exit: kafka0
           when:
