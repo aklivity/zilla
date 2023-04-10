@@ -465,7 +465,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             int flags,
             OctetsFW payload)
         {
-            final int payloadLength = payload.sizeof();
+            final int payloadLength = payload != null ? payload.sizeof() : 0;
             final int length = Math.min(Math.max(initialWindow() - initialPad, 0), payloadLength);
 
             if (length > 0)
@@ -480,7 +480,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 }
             }
 
-            if (payload.equals(emptyRO) &&
+            if ((payload == null || payload.equals(emptyRO)) &&
                 KafkaGrpcState.initialClosing(state))
             {
                 doGrpcEnd(traceId, authorization);
@@ -910,7 +910,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                     .headers(h -> result.headers(delegate.correlationId, h)))
                 .build();
 
-            doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_FIN, emptyRO, tombstoneDataEx);
+            doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_FIN, null, tombstoneDataEx);
         }
     }
 
@@ -1090,7 +1090,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             assert replyAck <= replySeq;
 
             if ((flags & DATA_FLAG_INIT) != 0x00 &&
-                !payload.equals(emptyRO))
+                payload != null)
             {
                 final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
                 final KafkaDataExFW kafkaDataEx =
@@ -1202,10 +1202,12 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW payload)
         {
             final int progress = grpcClient.onKafkaData(traceId, authorization, flags, payload);
-            final int remaining = payload.sizeof() - progress;
-            if (remaining > 0 || payload.equals(emptyRO))
+            int length = payload != null ? payload.sizeof() : 0;
+            final int remaining = length - progress;
+            if (remaining > 0 || payload == null)
             {
                 flags = progress == 0 ? flags : DATA_FLAG_CON;
+                payload = payload == null ? emptyRO : payload;
                 queueGrpcMessage(traceId, authorization, grpcClient.correlationId, flags, payload, remaining);
             }
         }
