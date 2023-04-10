@@ -47,7 +47,6 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.Extens
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcDataExFW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
@@ -369,7 +368,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert replyAck <= replySeq;
 
-            producer.doKafkaEndDeferred(traceId, authorization);
+            producer.doKafkaEnd(traceId, authorization);
 
             onGrpcProxyClosed();
         }
@@ -712,17 +711,11 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 initialMax = delegate.initialMax;
                 state = KafkaGrpcState.closeInitial(state);
 
+                doKafkaTombstone(traceId, authorization);
+
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
             }
-        }
-
-        private void doKafkaEndDeferred(
-            long traceId,
-            long authorization)
-        {
-            state = KafkaGrpcState.closingInitial(state);
-            doKafkaEndAck(traceId, authorization);
         }
 
         private void doKafkaAbort(
@@ -735,6 +728,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 initialAck = delegate.initialAck;
                 initialMax = delegate.initialMax;
                 state = KafkaGrpcState.closeInitial(state);
+
+                doKafkaTombstone(traceId, authorization);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, emptyRO);
@@ -855,16 +850,6 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             assert initialAck <= initialSeq;
 
             delegate.onKafkaWindow(authorization, traceId, budgetId, padding, capabilities);
-
-            doKafkaEndAck(authorization, traceId);
-        }
-
-        private void doKafkaEndAck(long authorization, long traceId)
-        {
-            if (KafkaGrpcState.initialClosing(state) && initialSeq == initialAck)
-            {
-                doKafkaEnd(traceId, authorization);
-            }
         }
 
         private void onKafkaReset(
@@ -909,6 +894,23 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, 0L, replyBud, replyPad, replyCap);
             }
+        }
+
+        private void doKafkaTombstone(
+            long traceId,
+            long authorization)
+        {
+            Flyweight tombstoneDataEx = kafkaDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .merged(m -> m
+                    .timestamp(now().toEpochMilli())
+                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                    .key(result::key)
+                    .headers(h -> result.headers(delegate.correlationId, h)))
+                .build();
+
+            doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_FIN, emptyRO, tombstoneDataEx);
         }
     }
 

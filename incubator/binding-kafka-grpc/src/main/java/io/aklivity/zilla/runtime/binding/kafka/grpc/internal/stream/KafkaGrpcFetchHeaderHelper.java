@@ -26,7 +26,6 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcCor
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedDataExFW;
 
@@ -40,8 +39,6 @@ public final class KafkaGrpcFetchHeaderHelper
 
     public OctetsFW service;
     public OctetsFW method;
-    public GrpcKind request;
-    public GrpcKind response;
     public CharSequence correlationId;
 
     public KafkaGrpcFetchHeaderHelper(
@@ -59,8 +56,6 @@ public final class KafkaGrpcFetchHeaderHelper
     {
         service = null;
         method = null;
-        request = null;
-        response = null;
         correlationId = null;
 
         if (dataEx != null)

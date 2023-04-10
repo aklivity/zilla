@@ -22,6 +22,7 @@
     "io.aklivity.zilla:binding-http-kafka",
     "io.aklivity.zilla:binding-grpc",
     "io.aklivity.zilla:binding-grpc-kafka",
+    "io.aklivity.zilla:binding-kafka-grpc",
     "io.aklivity.zilla:binding-kafka",
     "io.aklivity.zilla:binding-mqtt",
     "io.aklivity.zilla:binding-proxy",
