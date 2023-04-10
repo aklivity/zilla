@@ -38,8 +38,6 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("zilla:identity", "test")
                                 .header("zilla:service", "example.EchoService")
                                 .header("zilla:method", "EchoUnary")
-                                .header("zilla:request", "UNARY")
-                                .header("zilla:response", "UNARY")
                                 .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                 .build()
                             .build()}
@@ -48,3 +46,23 @@ write flush
 
 write abort
 read aborted
+
+connect "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
+
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("responses")
+                                   .partition(-1, -2)
+                                   .filter()
+                                     .key("test")
+                                     .header("zilla:identity", "test")
+                                     .build()
+                                   .filter()
+                                    .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                    .build()
+                                   .build()
+                               .build()}

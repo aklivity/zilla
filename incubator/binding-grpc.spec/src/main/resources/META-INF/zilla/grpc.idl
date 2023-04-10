@@ -16,12 +16,6 @@ scope grpc
 {
     scope stream
     {
-        enum GrpcKind
-        {
-            UNARY,
-            STREAM
-        }
-
         enum GrpcType
         {
             TEXT,
@@ -43,8 +37,6 @@ scope grpc
             string16 authority;
             string16 service;
             string16 method;
-            GrpcKind request;
-            GrpcKind response;
             GrpcMetadata[] metadata;
         }
 

@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +37,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.internal.config.OptionsAdapter;
@@ -89,8 +87,6 @@ public class GrpcOptionsConfigAdapterTest
         assertEquals("protobuf/echo.proto", protobuf.location);
         assertEquals("example.EchoService", service.service);
         assertEquals("EchoUnary", method.method);
-        assertSame(GrpcKind.UNARY, method.request);
-        assertSame(GrpcKind.UNARY, method.response);
     }
 
     @Test

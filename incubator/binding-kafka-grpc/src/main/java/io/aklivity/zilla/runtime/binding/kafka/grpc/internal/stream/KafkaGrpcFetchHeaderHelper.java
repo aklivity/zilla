@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind.STREAM;
-import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind.UNARY;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,30 +21,17 @@ import java.util.function.Consumer;
 
 import org.agrona.AsciiSequenceView;
 import org.agrona.DirectBuffer;
-import org.agrona.collections.Object2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaMergedDataExFW;
 
 public final class KafkaGrpcFetchHeaderHelper
 {
-    private static final Map<DirectBuffer, GrpcKind> GRPC_KINDS;
-    static
-    {
-        DirectBuffer unary = new String16FW("UNARY").value();
-        DirectBuffer stream = new String16FW("STREAM").value();
-
-        Map<DirectBuffer, GrpcKind> kinds = new Object2ObjectHashMap<>();
-        kinds.put(unary, UNARY);
-        kinds.put(stream, STREAM);
-        GRPC_KINDS = kinds;
-    }
 
     private final Map<DirectBuffer, Consumer<DirectBuffer>> visitors;
     private final OctetsFW serviceRO = new OctetsFW();
@@ -65,8 +50,6 @@ public final class KafkaGrpcFetchHeaderHelper
         Map<DirectBuffer, Consumer<DirectBuffer>> visitors = new HashMap<>();
         visitors.put(correlation.service.value(), this::visitService);
         visitors.put(correlation.method.value(), this::visitMethod);
-        visitors.put(correlation.request.value(), this::visitRequest);
-        visitors.put(correlation.response.value(), this::visitResponse);
         visitors.put(correlation.correlationId.value(), this::visitCorrelationId);
         this.visitors = visitors;
     }
@@ -92,8 +75,6 @@ public final class KafkaGrpcFetchHeaderHelper
     {
         return service != null &&
             method != null &&
-            request != null &&
-            response != null &&
             correlationId != null;
     }
 
@@ -109,8 +90,6 @@ public final class KafkaGrpcFetchHeaderHelper
 
         return service != null &&
             method != null &&
-            request != null &&
-            response != null &&
             correlationId != null;
     }
 
@@ -124,18 +103,6 @@ public final class KafkaGrpcFetchHeaderHelper
         DirectBuffer value)
     {
         method = methodRO.wrap(value, 0, value.capacity());
-    }
-
-    private void visitRequest(
-        DirectBuffer value)
-    {
-        request = GRPC_KINDS.get(value);
-    }
-
-    private void visitResponse(
-        DirectBuffer value)
-    {
-        response = GRPC_KINDS.get(value);
     }
 
     private void visitCorrelationId(

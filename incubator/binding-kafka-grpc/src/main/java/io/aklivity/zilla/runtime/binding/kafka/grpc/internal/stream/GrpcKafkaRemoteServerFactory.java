@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.FETCH_ONLY;
 import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaCapabilities.PRODUCE_ONLY;
-import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind.STREAM;
-import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcKind.UNARY;
 import static io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer.NOOP;
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
@@ -183,7 +181,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
     private final class RemoteServer
     {
-        private final Map<String16FW, GrpcClient> grpcProxies;
+        private final Map<String16FW, GrpcClient> grpcClients;
         private final KafkaFetchRemote fetch;
         private final KafkaGrpcConditionResult result;
         private final KafkaGrpcFetchHeaderHelper helper;
@@ -195,36 +193,36 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             KafkaGrpcConditionResult result,
             KafkaGrpcFetchHeaderHelper helper)
         {
-            this.grpcProxies = new Object2ObjectHashMap<>();
+            this.grpcClients = new Object2ObjectHashMap<>();
             this.fetch = new KafkaFetchRemote(originId, routedId, entryId, result, this);
             this.result = result;
             this.helper = helper;
         }
     }
 
-    private abstract class GrpcClient
+    private final class GrpcClient
     {
-        protected MessageConsumer grpc;
-        protected final KafkaProduceRemote producer;
-        protected final String16FW correlationId;
-        protected final RemoteServer remoteServer;
-        protected final long originId;
-        protected final long routedId;
-        protected final long initialId;
-        protected final long replyId;
+        private MessageConsumer grpc;
+        private final KafkaProduceRemote producer;
+        private final String16FW correlationId;
+        private final RemoteServer remoteServer;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
 
-        protected long initialSeq;
-        protected long initialAck;
-        protected int initialMax;
-        protected long initialBud;
-        protected int initialPad;
-        protected int initialCap;
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+        private long initialBud;
+        private int initialPad;
+        private int initialCap;
 
-        protected int state;
+        private int state;
 
-        protected long replySeq;
-        protected long replyAck;
-        protected int replyMax;
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
 
 
         private GrpcClient(
@@ -243,17 +241,17 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             this.producer = new KafkaProduceRemote(originId, resolveId, remoteServer.result, this);
         }
 
-        protected int initialPendingAck()
+        private int initialPendingAck()
         {
             return (int)(initialSeq - initialAck);
         }
 
-        protected int initialWindow()
+        private int initialWindow()
         {
             return initialMax - initialPendingAck();
         }
 
-        protected void onGrpcMessage(
+        private void onGrpcMessage(
             int msgTypeId,
             DirectBuffer buffer,
             int index,
@@ -288,7 +286,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
 
-        protected void onGrpcBegin(
+        private void onGrpcBegin(
             BeginFW begin)
         {
             final long sequence = begin.sequence();
@@ -310,7 +308,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             producer.doKafkaBegin(traceId, authorization, affinity);
         }
 
-        protected void onGrpcData(
+        private void onGrpcData(
             DataFW data)
         {
             final long sequence = data.sequence();
@@ -353,14 +351,9 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             }
 
             producer.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
-
-            if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
-            {
-                producer.doKafkaEnd(traceId, authorization);
-            }
         }
 
-        protected void onGrpcEnd(
+        private void onGrpcEnd(
             EndFW end)
         {
             final long sequence = end.sequence();
@@ -381,7 +374,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             onGrpcProxyClosed();
         }
 
-        protected void onGrpcAbort(
+        private void onGrpcAbort(
             AbortFW abort)
         {
             final long sequence = abort.sequence();
@@ -401,7 +394,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
         }
 
-        protected void onGrpcReset(
+        private void onGrpcReset(
             ResetFW reset)
         {
             final long sequence = reset.sequence();
@@ -424,7 +417,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             producer.doKafkaReset(traceId, authorization);
         }
 
-        protected void onGrpcWindow(
+        private void onGrpcWindow(
             WindowFW window)
         {
             final long sequence = window.sequence();
@@ -453,21 +446,21 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             remoteServer.fetch.flushGrpcMessagesIfBuffered(traceId, authorization);
         }
 
-        protected void onKafkaReset(
+        private void onKafkaReset(
             long traceId,
             long authorization)
         {
             onKafkaError(traceId, authorization);
         }
 
-        protected void onKafkaAbort(
+        private void onKafkaAbort(
             long traceId,
             long authorization)
         {
             onKafkaError(traceId, authorization);
         }
 
-        protected int onKafkaData(
+        private int onKafkaData(
             long traceId,
             long authorization,
             int flags,
@@ -497,7 +490,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             return length;
         }
 
-        protected void onKafkaEnd(
+        private void onKafkaEnd(
             long traceId,
             long authorization)
         {
@@ -511,7 +504,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
 
-        protected void onKafkaWindow(
+        private void onKafkaWindow(
             long authorization,
             long traceId,
             long budgetId,
@@ -521,7 +514,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             doGrpcWindow(authorization, traceId, budgetId, padding, capabilities);
         }
 
-        protected void onKafkaError(
+        private void onKafkaError(
             long traceId,
             long authorization)
         {
@@ -534,23 +527,21 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             onGrpcProxyClosed();
         }
 
-        protected void doGrpcBegin(
+        private void doGrpcBegin(
             long traceId,
             long authorization,
             long affinity,
             OctetsFW service,
-            OctetsFW method,
-            GrpcKind request,
-            GrpcKind response)
+            OctetsFW method)
         {
             state = KafkaGrpcState.openingReply(state);
 
             grpc = newGrpcStream(this::onGrpcMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, remoteServer.result.scheme(), remoteServer.result.authority(),
-                service, method, request, response);
+                service, method);
         }
 
-        protected void doGrpcData(
+        private void doGrpcData(
             long traceId,
             long authorization,
             long budgetId,
@@ -569,7 +560,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             assert initialSeq <= initialAck + initialMax;
         }
 
-        protected void doGrpcAbort(
+        private void doGrpcAbort(
             long traceId,
             long authorization)
         {
@@ -587,7 +578,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             state = KafkaGrpcState.closeInitial(state);
         }
 
-        protected void doGrpcEnd(
+        private void doGrpcEnd(
             long traceId,
             long authorization)
         {
@@ -600,7 +591,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
 
-        protected void doGrpcWindow(
+        private void doGrpcWindow(
             long authorization,
             long traceId,
             long budgetId,
@@ -614,7 +605,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 traceId, authorization, budgetId, padding, capabilities);
         }
 
-        protected void doGrpcReset(
+        private void doGrpcReset(
             long traceId,
             long authorization)
         {
@@ -633,11 +624,11 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
 
-        protected void onGrpcProxyClosed()
+        private void onGrpcProxyClosed()
         {
             if (KafkaGrpcState.closed(state))
             {
-                final GrpcClient grpcClient = remoteServer.grpcProxies.remove(correlationId);
+                final GrpcClient grpcClient = remoteServer.grpcClients.remove(correlationId);
             }
         }
     }
@@ -1110,10 +1101,9 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                     String16FW newCorrelationId = new String16FW(helper.correlationId.toString());
                     lastCorrelationId = newCorrelationId;
 
-                    GrpcClient grpcClient = delegate.grpcProxies.get(newCorrelationId);
+                    GrpcClient grpcClient = delegate.grpcClients.get(newCorrelationId);
                     grpcClient = grpcClient == null ?
-                        newGrpcProxy(traceId, authorization, helper.service, helper.method,
-                            helper.request, helper.response, newCorrelationId) :
+                        newGrpcProxy(traceId, authorization, helper.service, helper.method, newCorrelationId) :
                         grpcClient;
 
                     flushGrpcClientData(grpcClient, traceId, authorization, flags, payload);
@@ -1122,7 +1112,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             }
             else
             {
-                GrpcClient grpcClient = delegate.grpcProxies.get(lastCorrelationId);
+                GrpcClient grpcClient = delegate.grpcClients.get(lastCorrelationId);
                 if (grpcClient != null)
                 {
                     flushGrpcClientData(grpcClient, traceId, authorization, flags, payload);
@@ -1137,36 +1127,17 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             OctetsFW service,
             OctetsFW method,
-            GrpcKind request,
-            GrpcKind response,
             String16FW correlationId)
         {
-
             GrpcClient grpcClient = null;
 
-            if (request == UNARY && response == UNARY)
-            {
-                grpcClient = new GrpcUnaryClient(originId, entryId, routedId, correlationId, delegate);
-            }
-            else if (request == STREAM && response == UNARY)
-            {
-                grpcClient = new GrpcClientStreamClient(originId, entryId, routedId, correlationId, delegate);
-            }
-            else if (request == UNARY && response == STREAM)
-            {
-                grpcClient = new GrpcServerStreamClient(originId, entryId, routedId, correlationId, delegate);
-            }
-            else if (request == STREAM && response == STREAM)
-            {
-                grpcClient = new GrpcBidiStreamClient(originId, entryId, routedId, correlationId, delegate);
-            }
+            grpcClient = new GrpcClient(originId, entryId, routedId, correlationId, delegate);
 
             if (grpcClient != null)
             {
-                grpcClient.doGrpcBegin(traceId, authorization, 0L, service, method,
-                    request, response);
+                grpcClient.doGrpcBegin(traceId, authorization, 0L, service, method);
             }
-            delegate.grpcProxies.put(correlationId, grpcClient);
+            delegate.grpcClients.put(correlationId, grpcClient);
 
             return grpcClient;
         }
@@ -1190,7 +1161,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 final int messageSize = queueMessage.valueLength();
                 final OctetsFW payload = queueMessage.value();
 
-                final GrpcClient grpcClient = delegate.grpcProxies.get(correlationId);
+                final GrpcClient grpcClient = delegate.grpcClients.get(correlationId);
                 final int progress = grpcClient.onKafkaData(messageTraceId, messageAuthorization,
                     flags, payload);
 
@@ -1371,197 +1342,6 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBud, replyPad, replyCap);
             }
-        }
-    }
-
-    private final class GrpcUnaryClient extends GrpcClient
-    {
-        private GrpcUnaryClient(
-            long originId,
-            long routedId,
-            long resolveId,
-            String16FW correlationId,
-            RemoteServer delegate)
-        {
-            super(originId, routedId, resolveId, correlationId, delegate);
-        }
-    }
-
-    private final class GrpcClientStreamClient extends GrpcClient
-    {
-        private GrpcClientStreamClient(
-            long originId,
-            long routedId,
-            long resolveId,
-            String16FW correlationId,
-            RemoteServer delegate)
-        {
-            super(originId, routedId, resolveId, correlationId, delegate);
-        }
-
-        @Override
-        protected int onKafkaData(
-            long traceId,
-            long authorization,
-            int flags,
-            OctetsFW payload)
-        {
-            final int payloadLength = payload.sizeof();
-            final int length = Math.min(Math.max(initialWindow() - initialPad, 0), payloadLength);
-
-            if (length > 0)
-            {
-                final int newFlags = payloadLength == length ? flags : flags & DATA_FLAG_INIT;
-                doGrpcData(traceId, authorization, initialBud, length + initialPad,
-                    newFlags, payload.value(), 0, length);
-            }
-
-            if (payload.equals(emptyRO) &&
-                KafkaGrpcState.initialClosing(state))
-            {
-                doGrpcEnd(traceId, authorization);
-            }
-
-            return length;
-        }
-    }
-
-    private final class GrpcServerStreamClient extends GrpcClient
-    {
-        private GrpcServerStreamClient(
-            long originId,
-            long routedId,
-            long resolveId,
-            String16FW correlationId,
-            RemoteServer delegate)
-        {
-            super(originId, routedId, resolveId, correlationId, delegate);
-        }
-
-        @Override
-        protected void onGrpcData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final long traceId = data.traceId();
-            final long authorization = data.authorization();
-            final long budgetId = data.budgetId();
-            final int reserved = data.reserved();
-            final int flags = data.flags();
-            final OctetsFW payload = data.payload();
-            final OctetsFW extension = data.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-
-            initialSeq = sequence;
-
-            assert initialAck <= initialSeq;
-
-            Flyweight kafkaDataEx = emptyRO;
-            if ((flags & DATA_FLAG_INIT) != 0x00)
-            {
-                GrpcDataExFW dataEx = null;
-                if (extension.sizeof() > 0)
-                {
-                    dataEx = extension.get(grpcDataExRO::tryWrap);
-                }
-
-                final int deferred = dataEx != null ? dataEx.deferred() : 0;
-                kafkaDataEx = kafkaDataExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .merged(m -> m
-                        .deferred(deferred)
-                        .timestamp(now().toEpochMilli())
-                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                        .key(remoteServer.result::key)
-                        .headers(h -> remoteServer.result.headers(correlationId, h)))
-                    .build();
-            }
-
-            producer.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
-        }
-    }
-
-    private final class GrpcBidiStreamClient extends GrpcClient
-    {
-        private GrpcBidiStreamClient(
-            long originId,
-            long routedId,
-            long resolveId,
-            String16FW correlationId,
-            RemoteServer delegate)
-        {
-            super(originId, routedId, resolveId, correlationId, delegate);
-        }
-
-        @Override
-        protected void onGrpcData(
-            DataFW data)
-        {
-            final long sequence = data.sequence();
-            final long acknowledge = data.acknowledge();
-            final long traceId = data.traceId();
-            final long authorization = data.authorization();
-            final long budgetId = data.budgetId();
-            final int reserved = data.reserved();
-            final int flags = data.flags();
-            final OctetsFW payload = data.payload();
-            final OctetsFW extension = data.extension();
-
-            assert acknowledge <= sequence;
-            assert sequence >= replySeq;
-
-            replySeq = sequence;
-
-            assert replyAck <= replySeq;
-
-            Flyweight kafkaDataEx = emptyRO;
-            if ((flags & DATA_FLAG_INIT) != 0x00)
-            {
-                GrpcDataExFW dataEx = null;
-                if (extension.sizeof() > 0)
-                {
-                    dataEx = extension.get(grpcDataExRO::tryWrap);
-                }
-
-                final int deferred = dataEx != null ? dataEx.deferred() : 0;
-                kafkaDataEx = kafkaDataExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .merged(m -> m
-                        .deferred(deferred)
-                        .timestamp(now().toEpochMilli())
-                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                        .key(remoteServer.result::key)
-                        .headers(h -> remoteServer.result.headers(correlationId, h)))
-                    .build();
-            }
-
-            producer.doKafkaData(traceId, authorization, budgetId, reserved, flags, payload, kafkaDataEx);
-        }
-
-        @Override
-        protected void onGrpcEnd(
-            EndFW end)
-        {
-            final long sequence = end.sequence();
-            final long acknowledge = end.acknowledge();
-            final long traceId = end.traceId();
-            final long authorization = end.authorization();
-
-            assert acknowledge <= sequence;
-            assert sequence >= initialSeq;
-
-            initialSeq = sequence;
-            state = KafkaGrpcState.closeInitial(state);
-
-            assert initialAck <= initialSeq;
-
-            doGrpcEnd(traceId, authorization);
-            onGrpcProxyClosed();
         }
     }
 
@@ -1796,9 +1576,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         String16FW scheme,
         String16FW authority,
         OctetsFW service,
-        OctetsFW method,
-        GrpcKind request,
-        GrpcKind response)
+        OctetsFW method)
     {
         final GrpcBeginExFW grpcBeginEx =
             grpcBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -1807,8 +1585,6 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 .authority(authority)
                 .service(service.value(), 0, service.sizeof())
                 .method(method.value(), 0, method.sizeof())
-                .request(r -> r.set(request))
-                .response(r -> r.set(response))
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())

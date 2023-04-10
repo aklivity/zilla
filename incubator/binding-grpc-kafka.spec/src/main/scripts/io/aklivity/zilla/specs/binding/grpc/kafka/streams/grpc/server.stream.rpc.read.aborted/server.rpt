@@ -24,21 +24,14 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .authority("localhost:8080")
                            .service("example.EchoService")
                            .method("EchoServerStream")
-                           .request("UNARY")
-                           .response("STREAM")
                            .metadata("custom", "test")
                            .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                            .build()}
 connected
 
-read ${grpc:protobuf()
-           .string(1, "Hello World")
-           .build()}
 
-read closed
-
-write zilla:abort.ext ${grpc:abortEx()
+write zilla:reset.ext ${grpc:resetEx()
                             .typeId(zilla:id("grpc"))
                             .status("13")
                             .build()}
-write abort
+read abort

@@ -41,7 +41,6 @@ import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcDataExFW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKindFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcType;
@@ -193,9 +192,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
                     initialId,
                     resolved.id,
                     service,
-                    method,
-                    grpcBeginEx.request(),
-                    grpcBeginEx.response())::onAppMessage;
+                    method)::onAppMessage;
             }
         }
 
@@ -212,8 +209,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
 
         private final String service;
         private final String method;
-        private final GrpcKindFW request;
-        private final GrpcKindFW response;
         private final HttpClient delegate;
 
         private long initialSeq;
@@ -234,9 +229,7 @@ public class GrpcClientFactory implements GrpcStreamFactory
             long initialId,
             long resolvedId,
             String service,
-            String method,
-            GrpcKindFW request,
-            GrpcKindFW response)
+            String method)
         {
             this.application = application;
             this.originId = originId;
@@ -246,8 +239,6 @@ public class GrpcClientFactory implements GrpcStreamFactory
             this.delegate = new HttpClient(routedId, resolvedId, this);
             this.service = service;
             this.method = method;
-            this.request = request;
-            this.response = response;
         }
 
         private void onAppMessage(

@@ -14,7 +14,6 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
-import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcKind.UNARY;
 import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType.TEXT;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -66,8 +65,6 @@ public class GrpcFunctionsTest
             .authority("localhost:8080")
             .service("example.EchoService")
             .method("EchoUnary")
-            .request(UNARY.name())
-            .response(UNARY.name())
             .metadata("custom", "test")
             .build();
         DirectBuffer buffer = new UnsafeBuffer(build);
@@ -76,8 +73,6 @@ public class GrpcFunctionsTest
         assertEquals("localhost:8080", beginEx.authority().asString());
         assertEquals("example.EchoService", beginEx.service().asString());
         assertEquals("EchoUnary", beginEx.method().asString());
-        assertEquals(UNARY, beginEx.request().get());
-        assertEquals(UNARY, beginEx.response().get());
         beginEx.metadata().forEach(h ->
         {
             assertTrue(nameBuilder.set("custom".getBytes()).build().equals(h.name()));
@@ -97,8 +92,6 @@ public class GrpcFunctionsTest
             .authority("localhost:8080")
             .service("example.EchoService")
             .method("EchoUnary")
-            .request(UNARY.name())
-            .response(UNARY.name())
             .metadata(custom, value)
             .build();
 
@@ -110,8 +103,6 @@ public class GrpcFunctionsTest
             .authority("localhost:8080")
             .service("example.EchoService")
             .method("EchoUnary")
-            .request(b -> b.set(UNARY).build())
-            .response(b -> b.set(UNARY).build())
             .metadataItem(h -> h.type(t -> t.set(TEXT).build()).nameLen(custom.length())
                 .name(nameBuilder.set(custom.getBytes()).build())
                 .valueLen(value.length()).value(valueBuilder.set(value.getBytes()).build()))

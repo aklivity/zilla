@@ -50,14 +50,10 @@ public class GrpcKafkaWithResult
     private final GrpcKafkaWithProduceHash hash;
     private final String16FW service;
     private final String16FW method;
-    private final String16FW request;
-    private final String16FW response;
 
     GrpcKafkaWithResult(
         String16FW service,
         String16FW method,
-        String16FW request,
-        String16FW response,
         String16FW topic,
         KafkaAckMode acks,
         Supplier<DirectBuffer> keyRef,
@@ -69,8 +65,6 @@ public class GrpcKafkaWithResult
     {
         this.method = method;
         this.service = service;
-        this.request = request;
-        this.response = response;
         this.overrides = overrides;
         this.replyTo = replyTo;
         this.filters = filters;
@@ -125,8 +119,6 @@ public class GrpcKafkaWithResult
 
         builder.item(this::service);
         builder.item(this::method);
-        builder.item(this::request);
-        builder.item(this::response);
         builder.item(this::correlationId);
     }
 
@@ -148,27 +140,6 @@ public class GrpcKafkaWithResult
             .name(correlation.method.value(), 0, correlation.method.length())
             .valueLen(method.length())
             .value(method.value(), 0, method.length());
-    }
-
-    private void request(
-        KafkaHeaderFW.Builder builder)
-    {
-        builder
-            .nameLen(correlation.request.length())
-            .name(correlation.request.value(), 0, correlation.request.length())
-            .valueLen(request.length())
-            .value(request.value(), 0, request.length());
-    }
-
-
-    private void response(
-        KafkaHeaderFW.Builder builder)
-    {
-        builder
-            .nameLen(correlation.response.length())
-            .name(correlation.response.value(), 0, correlation.response.length())
-            .valueLen(response.length())
-            .value(response.value(), 0, response.length());
     }
 
     private void correlationId(

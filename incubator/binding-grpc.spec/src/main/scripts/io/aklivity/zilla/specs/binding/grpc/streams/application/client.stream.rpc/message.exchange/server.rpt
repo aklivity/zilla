@@ -24,8 +24,6 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .authority("localhost:8080")
                            .service("example.EchoService")
                            .method("EchoClientStream")
-                           .request("STREAM")
-                           .response("UNARY")
                            .metadata("custom", "test")
                            .build()}
 connected

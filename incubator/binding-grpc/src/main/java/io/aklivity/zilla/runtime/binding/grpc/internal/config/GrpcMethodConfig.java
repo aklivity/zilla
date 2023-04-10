@@ -14,21 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 
 public class GrpcMethodConfig
 {
     public String method;
-    public GrpcKind request;
-    public GrpcKind response;
 
     public GrpcMethodConfig(
-        String method,
-        GrpcKind request,
-        GrpcKind response)
+        String method)
     {
         this.method = method;
-        this.request = request;
-        this.response = response;
     }
 }

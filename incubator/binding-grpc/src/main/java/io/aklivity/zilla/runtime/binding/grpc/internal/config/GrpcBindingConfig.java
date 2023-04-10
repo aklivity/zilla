@@ -125,9 +125,7 @@ public final class GrpcBindingConfig
                     helper.scheme,
                     helper.authority,
                     helper.te,
-                    helper.metadataHeaders,
-                    method.request,
-                    method.response
+                    helper.metadataHeaders
                 );
             }
         }
