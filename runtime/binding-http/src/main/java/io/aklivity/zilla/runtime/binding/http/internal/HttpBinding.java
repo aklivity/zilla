@@ -15,17 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.http.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ORIGIN;
-import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
-
 import java.net.URL;
-import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
 
 public final class HttpBinding implements Binding
 {
@@ -56,25 +49,5 @@ public final class HttpBinding implements Binding
         EngineContext context)
     {
         return new HttpBindingContext(config, context);
-    }
-
-    @Override
-    public BiFunction<KindConfig, String, MetricHandlerKind> metricsPolicy()
-    {
-        return (kind, metricGroup) ->
-        {
-            if ("stream".equalsIgnoreCase(metricGroup))
-            {
-                return ROUTED;
-            }
-            else if ("http".equalsIgnoreCase(metricGroup))
-            {
-                return kind == SERVER ? ORIGIN : ROUTED;
-            }
-            else
-            {
-                return null;
-            }
-        };
     }
 }

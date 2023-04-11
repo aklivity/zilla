@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ORIGIN;
-import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
 import static java.util.Collections.singletonMap;
 
@@ -30,7 +30,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -56,13 +55,11 @@ import org.leadpony.justify.api.ProblemHandler;
 
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
-import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -81,7 +78,6 @@ public class ConfigurationManager
     protected static final String CONFIG_TEXT_DEFAULT = "{\n  \"name\": \"default\"\n}\n";
     private final Collection<URL> schemaTypes;
     private final Function<String, Guard> guardByType;
-    private final Function<String, Binding> bindingByType;
     private final ToIntFunction<String> supplyId;
     private final IntFunction<ToIntFunction<KindConfig>> maxWorkers;
     private final Tuning tuning;
@@ -97,7 +93,6 @@ public class ConfigurationManager
     public ConfigurationManager(
         Collection<URL> schemaTypes,
         Function<String, Guard> guardByType,
-        Function<String, Binding> bindingByType,
         ToIntFunction<String> supplyId,
         IntFunction<ToIntFunction<KindConfig>> maxWorkers,
         Tuning tuning,
@@ -111,7 +106,6 @@ public class ConfigurationManager
     {
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
-        this.bindingByType = bindingByType;
         this.supplyId = supplyId;
         this.maxWorkers = maxWorkers;
         this.tuning = tuning;
@@ -317,7 +311,7 @@ public class ConfigurationManager
             {
                 if (pattern.matcher(metric.name).matches())
                 {
-                    if (getMetricKind(binding, metric.group) == kind)
+                    if (getMetricKind(binding) == kind)
                     {
                         metricIds.add(namespace.resolveId.applyAsLong(metric.name));
                     }
@@ -328,11 +322,18 @@ public class ConfigurationManager
     }
 
     private MetricHandlerKind getMetricKind(
-        BindingConfig binding,
-        String metricGroup)
+        BindingConfig binding)
     {
-        BiFunction<KindConfig, String, MetricHandlerKind> policy = bindingByType.apply(binding.type).metricsPolicy();
-        return policy.apply(binding.kind, metricGroup);
+        // TODO: Ati !!!
+        if (("tcp".equalsIgnoreCase(binding.type) || "http".equalsIgnoreCase(binding.type)) &&
+                binding.kind == KindConfig.SERVER)
+        {
+            return ORIGIN;
+        }
+        else
+        {
+            return ROUTED;
+        }
     }
 
     public void register(
