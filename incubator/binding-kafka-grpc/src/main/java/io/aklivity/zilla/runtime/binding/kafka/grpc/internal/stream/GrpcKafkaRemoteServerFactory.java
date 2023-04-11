@@ -67,6 +67,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
     private static final int SIGNAL_INITIATE_KAFKA_STREAM = 1;
 
+    private static final int DATA_FLAG_COMPLETE = 0x03;
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_CON = 0x00;
@@ -442,7 +443,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert initialAck <= initialSeq;
 
-            remoteServer.fetch.flushGrpcMessagesIfBuffered(traceId, authorization);
+            remoteServer.fetch.flushGrpcMessagesIfBuffered(traceId, authorization, correlationId);
         }
 
         private void onKafkaReset(
@@ -674,9 +675,9 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             long affinity)
         {
-            initialSeq = delegate.initialSeq;
-            initialAck = delegate.initialAck;
-            initialMax = delegate.initialMax;
+            initialSeq = delegate.replySeq;
+            initialAck = delegate.replyAck;
+            initialMax = delegate.replyMax;
             state = KafkaGrpcState.openingInitial(state);
 
             kafka = newKafkaProducer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
@@ -704,7 +705,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             long traceId,
             long authorization)
         {
-            if (!KafkaGrpcState.initialClosed(state))
+            if (KafkaGrpcState.initialOpened(state) &&
+                !KafkaGrpcState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
@@ -722,7 +724,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             long traceId,
             long authorization)
         {
-            if (!KafkaGrpcState.initialClosed(state))
+            if (KafkaGrpcState.initialOpened(state) &&
+                !KafkaGrpcState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;
                 initialAck = delegate.initialAck;
@@ -877,7 +880,8 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             long traceId,
             long authorization)
         {
-            if (!KafkaGrpcState.replyClosed(state))
+            if (KafkaGrpcState.replyOpened(state) &&
+                !KafkaGrpcState.replyClosed(state))
             {
                 state = KafkaGrpcState.closeReply(state);
 
@@ -910,7 +914,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                     .headers(h -> result.headers(delegate.correlationId, h)))
                 .build();
 
-            doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_FIN, null, tombstoneDataEx);
+            doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
         }
     }
 
@@ -1146,46 +1150,57 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
         private void flushGrpcMessagesIfBuffered(
             long traceId,
-            long authorization)
+            long authorization,
+            String16FW correlationId)
         {
             int progressOffset = 0;
 
+            flush:
             while (progressOffset < grpcQueueSlotOffset)
             {
                 final MutableDirectBuffer grpcQueueBuffer = bufferPool.buffer(grpcQueueSlot);
                 final GrpcQueueMessageFW queueMessage = queueMessageRO
                     .wrap(grpcQueueBuffer, progressOffset, grpcQueueSlotOffset);
 
-                final String16FW correlationId = queueMessage.correlationId();
+                final String16FW messageCorrelationId = queueMessage.correlationId();
                 final long messageTraceId = queueMessage.traceId();
                 final long messageAuthorization = queueMessage.authorization();
                 final int flags = queueMessage.flags();
                 final int messageSize = queueMessage.valueLength();
                 final OctetsFW payload = queueMessage.value();
 
-                final GrpcClient grpcClient = delegate.grpcClients.get(correlationId);
-                final int progress = grpcClient.onKafkaData(messageTraceId, messageAuthorization,
-                    flags, payload);
-
                 final int queuedMessageSize = queueMessage.sizeof();
                 final int oldProgressOffset = progressOffset;
                 progressOffset += queuedMessageSize;
 
-                if (progress == messageSize)
+                if (correlationId.equals(messageCorrelationId))
                 {
-                    final int remaining = grpcQueueSlotOffset - progressOffset;
-                    grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remaining);
+                    final GrpcClient grpcClient = delegate.grpcClients.get(messageCorrelationId);
+                    final int progress = grpcClient.onKafkaData(messageTraceId, messageAuthorization,
+                        flags, payload);
 
-                    grpcQueueSlotOffset = grpcQueueSlotOffset - progressOffset;
-                    progressOffset = oldProgressOffset;
-                }
-                else if (progress > 0)
-                {
-                    final int remainingPayload = queuedMessageSize - progress;
-                    queueGrpcMessage(traceId, authorization, lastCorrelationId, flags, payload, remainingPayload);
-                    final int remainingMessageOffset = grpcQueueSlotOffset - progressOffset;
-                    grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remainingMessageOffset);
-                    grpcQueueSlotOffset -= queuedMessageSize;
+
+                    if (progress == messageSize)
+                    {
+                        final int remaining = grpcQueueSlotOffset - progressOffset;
+                        grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remaining);
+
+                        grpcQueueSlotOffset = grpcQueueSlotOffset - progressOffset;
+                        progressOffset = oldProgressOffset;
+                    }
+                    else if (progress > 0)
+                    {
+                        final int remainingPayload = queuedMessageSize - progress;
+                        queueGrpcMessage(traceId, authorization, lastCorrelationId, flags, payload, remainingPayload);
+                        final int remainingMessageOffset = grpcQueueSlotOffset - progressOffset;
+                        grpcQueueBuffer.putBytes(oldProgressOffset, grpcQueueBuffer, progressOffset, remainingMessageOffset);
+                        grpcQueueSlotOffset -= queuedMessageSize;
+                        break flush;
+                    }
+                    else
+                    {
+                        break flush;
+                    }
                 }
             }
 

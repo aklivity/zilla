@@ -715,8 +715,10 @@ public class GrpcClientFactory implements GrpcStreamFactory
             if (!HTTP_HEADER_VALUE_STATUS_200.equals(status) ||
                 grpcStatus != null && !HEADER_VALUE_GRPC_OK.equals(grpcStatus))
             {
+                final String16FW newGrpcStatus = grpcStatus == null ? HEADER_VALUE_GRPC_INTERNAL_ERROR : grpcStatus;
                 GrpcResetExFW resetEx = grpcResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
-                        .status(grpcStatus)
+                        .typeId(grpcTypeId)
+                        .status(newGrpcStatus)
                         .build();
 
                 delegate.doAppReset(traceId, authorization, resetEx);

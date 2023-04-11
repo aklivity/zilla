@@ -106,6 +106,13 @@ public class GrpcKafkaWithResult
                 .length(key.capacity())
                 .value(key, 0, key.capacity());
         }
+        else
+        {
+            final OctetsFW correlationId = hash.correlationId();
+            builder
+                .length(correlationId.sizeof())
+                .value(correlationId.value(), 0, correlationId.sizeof());
+        }
     }
 
     public void headers(

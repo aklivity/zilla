@@ -58,6 +58,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
+    private static final int DATA_FLAG_COMPLETE = 0x03;
 
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
@@ -896,7 +897,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     .headers(result::headers))
                 .build();
 
-            doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_FIN, null, tombstoneDataEx);
+            doKafkaData(traceId, authorization, initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
         }
     }
 

@@ -3917,7 +3917,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Map<String8FW, String16FW> overrides)
         {
             final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved ||
-                exchange.requestContentLength == NO_CONTENT_LENGTH;
+                exchange.requestContentLength != NO_CONTENT_LENGTH;
 
             doEncodeHttp2Headers(traceId, authorization, exchange.streamId, headers, overrides, endRequest);
             exchange.flushResponseWindowUpdate(traceId, authorization);
@@ -3954,7 +3954,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             remoteSharedBudget -= length;
 
             final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved ||
-                exchange.requestContentLength == NO_CONTENT_LENGTH;
+                exchange.requestContentLength != NO_CONTENT_LENGTH;
             doEncodeHttp2Data(traceId, authorization, reserved, exchange.streamId, payload, endRequest);
 
             final int remotePaddableMax = Math.min(exchange.remoteBudget, encodeMax);
