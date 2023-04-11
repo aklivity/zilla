@@ -721,6 +721,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             assert partitionId == this.partition.id();
             assert partitionOffset >= 0 && partitionOffset >= this.partitionOffset;
+            assert stableOffset <= latestOffset;
+
             this.partitionOffset = partitionOffset;
             this.stableOffset = stableOffset;
             this.latestOffset = latestOffset;
@@ -745,6 +747,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+            assert stableOffset <= latestOffset;
 
             assert partitionOffset >= this.partitionOffset;
             this.partitionOffset = partitionOffset;

@@ -79,6 +79,22 @@ read advised zilla:flush ${kafka:matchFlushEx()
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
+                                 .partition(0, 1, 3, 3)
+                                 .build()
+                             .build()}
+read "Hello, world"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .partition(0, 2, 3, 3)
+                                 .build()
+                             .build()}
+read "Hello, world"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
                                  .partition(0, 4, 4, 4)
                                  .build()
                              .build()}

@@ -84,8 +84,29 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .timestamp(newTimestamp)
+                                  .partition(0, 1, 3, 3)
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .partition(0, 2, 3, 3)
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
                                   .partition(0, 4, 4, 4)
                                   .build()
                               .build()}
 write "Hello, world"
 write flush
+

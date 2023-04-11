@@ -902,8 +902,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final int partitionId = partition.partitionId();
                 final int errorCode = partition.errorCode();
 
-                client.stableOffset = partition.lastStableOffset();
+                client.stableOffset = partition.lastStableOffset() - 1;
                 client.latestOffset = partition.highWatermark() - 1;
+                assert client.stableOffset <= client.latestOffset;
 
                 client.decodePartitionError = errorCode;
                 client.decodePartitionId = partitionId;
