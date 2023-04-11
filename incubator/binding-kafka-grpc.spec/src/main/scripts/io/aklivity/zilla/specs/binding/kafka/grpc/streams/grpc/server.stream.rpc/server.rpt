@@ -23,22 +23,23 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .scheme("http")
                            .authority("localhost:8080")
                            .service("example.EchoService")
-                           .method("EchoClientStream")
+                           .method("EchoServerStream")
                            .build()}
 connected
 
 read ${grpc:protobuf()
-           .string(1, "Hello World1")
-           .build()}
-
-read ${grpc:protobuf()
-           .string(1, "Hello World2")
+           .string(1, "Hello World")
            .build()}
 
 read closed
 
 write ${grpc:protobuf()
-            .string(1, "Hello World")
+            .string(1, "Hello World1")
+            .build()}
+write flush
+
+write ${grpc:protobuf()
+            .string(1, "Hello World2")
             .build()}
 write flush
 

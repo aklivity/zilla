@@ -13,19 +13,26 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/grpc0"
-       option zilla:window 8192
-       option zilla:transmission "half-duplex"
-accepted
+connect "zilla://streams/grpc0"
+    option zilla:window 8192
+    option zilla:transmission "half-duplex"
 
-read zilla:begin.ext ${grpc:matchBeginEx()
-                           .typeId(zilla:id("grpc"))
-                           .scheme("http")
-                           .authority("localhost:8080")
-                           .service("example.EchoService")
-                           .method("EchoClientStream")
-                           .build()}
+write zilla:begin.ext ${grpc:beginEx()
+                              .typeId(zilla:id("grpc"))
+                              .scheme("http")
+                              .authority("localhost:8080")
+                              .service("example.EchoService")
+                              .method("EchoServerStream")
+                              .build()}
+
 connected
+
+write ${grpc:protobuf()
+            .string(1, "Hello World")
+            .build()}
+write flush
+
+write close
 
 read ${grpc:protobuf()
            .string(1, "Hello World1")
@@ -36,10 +43,3 @@ read ${grpc:protobuf()
            .build()}
 
 read closed
-
-write ${grpc:protobuf()
-            .string(1, "Hello World")
-            .build()}
-write flush
-
-write close

@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -44,7 +43,6 @@ public class KafkaGrpcRemoteServerIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
-        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/grpc/config")
         .external("grpc0")
         .external("kafka0")
@@ -69,6 +67,26 @@ public class KafkaGrpcRemoteServerIT
         "${kafka}/client.stream.rpc/server",
         "${grpc}/client.stream.rpc/server"})
     public void shouldExchangeMessageWithClientStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
+        "${kafka}/server.stream.rpc/server",
+        "${grpc}/server.stream.rpc/server"})
+    public void shouldExchangeMessageWithServerStreamRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
+        "${kafka}/bidi.stream.rpc/server",
+        "${grpc}/bidi.stream.rpc/server"})
+    public void shouldExchangeMessageWithBidiStreamRpc() throws Exception
     {
         k3po.finish();
     }

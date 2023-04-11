@@ -31,7 +31,6 @@ import org.junit.Test;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
-
 public class KafkaGrpcConditionConfigAdapterTest
 {
     private Jsonb jsonb;
