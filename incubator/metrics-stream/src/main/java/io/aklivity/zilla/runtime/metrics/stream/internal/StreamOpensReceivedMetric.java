@@ -29,7 +29,8 @@ import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.FrameFW;
 
 public class StreamOpensReceivedMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", StreamMetricGroup.NAME, "opens.received");
+    private static final String GROUP = StreamMetricGroup.NAME;
+    private static final String NAME = String.format("%s.%s", GROUP, "opens.received");
 
     @Override
     public String name()
@@ -59,6 +60,12 @@ public class StreamOpensReceivedMetric implements Metric
     private final class StreamOpensReceivedMetricContext implements MetricContext
     {
         private final FrameFW frameRO = new FrameFW();
+
+        @Override
+        public String group()
+        {
+            return GROUP;
+        }
 
         @Override
         public Metric.Kind kind()

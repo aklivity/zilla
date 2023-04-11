@@ -7,6 +7,11 @@ import java.util.function.LongConsumer;
 @FunctionalInterface
 public interface MetricContext
 {
+    default String group()
+    {
+        return "";
+    }
+
     default Metric.Kind kind()
     {
         return COUNTER;

@@ -577,6 +577,12 @@ public final class HttpServerFactory implements HttpStreamFactory
     }
 
     @Override
+    public long routedTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

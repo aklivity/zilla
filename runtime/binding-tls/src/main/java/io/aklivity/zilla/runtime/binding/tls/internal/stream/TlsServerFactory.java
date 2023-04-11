@@ -194,6 +194,18 @@ public final class TlsServerFactory implements TlsStreamFactory
     }
 
     @Override
+    public long originTypeId()
+    {
+        return proxyTypeId;
+    }
+
+    @Override
+    public long routedTypeId()
+    {
+        return proxyTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

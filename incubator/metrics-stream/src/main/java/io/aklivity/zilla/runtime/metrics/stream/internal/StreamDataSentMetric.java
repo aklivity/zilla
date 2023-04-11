@@ -28,7 +28,8 @@ import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.DataFW;
 
 public class StreamDataSentMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", StreamMetricGroup.NAME, "data.sent");
+    private static final String GROUP = StreamMetricGroup.NAME;
+    private static final String NAME = String.format("%s.%s", GROUP, "data.sent");
 
     @Override
     public String name()
@@ -58,6 +59,12 @@ public class StreamDataSentMetric implements Metric
     private final class StreamDataSentMetricContext implements MetricContext
     {
         private final DataFW dataRO = new DataFW();
+
+        @Override
+        public String group()
+        {
+            return GROUP;
+        }
 
         @Override
         public Metric.Kind kind()

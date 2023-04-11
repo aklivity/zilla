@@ -24,6 +24,11 @@ public class MetricRegistry
         return context.supply(recorder);
     }
 
+    public String group()
+    {
+        return context.group();
+    }
+
     public Metric.Kind kind()
     {
         return context.kind();

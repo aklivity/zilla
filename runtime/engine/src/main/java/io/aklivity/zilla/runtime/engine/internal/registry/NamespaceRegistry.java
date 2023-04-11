@@ -15,7 +15,11 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
+
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
@@ -45,6 +49,7 @@ public class NamespaceRegistry
     private final Function<String, VaultContext> vaultsByType;
     private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
+    private final IntFunction<String> supplyLabelName;
     private final LongFunction<MetricRegistry> supplyMetric;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
@@ -62,6 +67,7 @@ public class NamespaceRegistry
         Function<String, VaultContext> vaultsByType,
         Function<String, MetricContext> metricsByName,
         ToIntFunction<String> supplyLabelId,
+        IntFunction<String> supplyLabelName,
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer supplyLoadEntry,
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
@@ -73,6 +79,7 @@ public class NamespaceRegistry
         this.vaultsByType = vaultsByType;
         this.metricsByName = metricsByName;
         this.supplyLabelId = supplyLabelId;
+        this.supplyLabelName = supplyLabelName;
         this.supplyMetric = supplyMetric;
         this.supplyLoadEntry = supplyLoadEntry;
         this.supplyMetricRecorder = supplyMetricRecorder;
@@ -115,40 +122,79 @@ public class NamespaceRegistry
         int bindingId = supplyLabelId.applyAsInt(config.entry);
         bindingsById.put(bindingId, registry);
         registry.attach();
+        setMetricHandlers(registry, config);
         supplyLoadEntry.accept(config.id);
-
-        BindingHandler binding = registry.streamFactory();
-        MetricHandler handler = supplyChainedMetricHandler(config.id, config.metricIds);
-        // TODO: Ati
-        switch (binding.getClass().getName())
-        {
-        case "io.aklivity.zilla.runtime.binding.http.internal.stream.HttpServerFactory":
-        case "io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpServerFactory":
-            System.out.println("origin");
-            registry.setOriginMetricHandler(handler);
-            break;
-        default:
-            System.out.println("routed");
-            registry.setRoutedMetricHandler(handler);
-            break;
-        }
     }
 
-    private MetricHandler supplyChainedMetricHandler(
-        long bindingId,
-        long[] metricIds)
+    private void setMetricHandlers(
+        BindingRegistry registry,
+        BindingConfig config)
     {
-        MetricHandler handler = MetricHandler.NO_OP;
-        if (metricIds != null)
+        BindingHandler binding = registry.streamFactory();
+        MetricHandler originMetricHandler = MetricHandler.NO_OP;
+        MetricHandler routedMetricHandler = MetricHandler.NO_OP;
+        if (config.metricIds != null)
         {
-            for (long metricId : metricIds)
+            for (long metricId : config.metricIds)
             {
                 MetricRegistry metric = supplyMetric.apply(metricId);
-                LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), bindingId, metricId);
-                handler = handler.andThen(metric.supplyHandler(metricRecorder));
+                LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
+                MetricHandler handler = metric.supplyHandler(metricRecorder);
+                MetricHandlerKind kind = getKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
+                if (kind == ROUTED)
+                {
+                    routedMetricHandler = routedMetricHandler.andThen(handler);
+                }
+                else if (kind == ORIGIN)
+                {
+                    originMetricHandler = originMetricHandler.andThen(handler);
+                }
+                else
+                {
+                    assert kind == null;
+                    // no op
+                }
             }
         }
-        return handler;
+        registry.setOriginMetricHandler(originMetricHandler);
+        registry.setRoutedMetricHandler(routedMetricHandler);
+    }
+
+    private MetricHandlerKind getKind(
+        long originTypeId,
+        long routedTypeId,
+        String metricGroup)
+    {
+        MetricHandlerKind kind = null;
+        String originType = originTypeId < 0L ? "" : supplyLabelName.apply(NamespacedId.localId(originTypeId));
+        String routedType = routedTypeId < 0L ? "" : supplyLabelName.apply(NamespacedId.localId(routedTypeId));
+        switch (metricGroup)
+        {
+        case "http":
+            if ("http".equals(routedType))
+            {
+                kind = ORIGIN;
+            }
+            else if ("http".equals(originType))
+            {
+                kind = ROUTED;
+            }
+            break;
+        case "stream":
+            if (!originType.isEmpty())
+            {
+                kind = ROUTED;
+            }
+            else if (!routedType.isEmpty())
+            {
+                kind = ORIGIN;
+            }
+            break;
+        default:
+            kind = ROUTED;
+            break;
+        }
+        return kind;
     }
 
     private void detachBinding(

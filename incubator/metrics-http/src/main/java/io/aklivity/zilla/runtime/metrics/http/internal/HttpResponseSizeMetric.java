@@ -39,7 +39,8 @@ import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.ResetFW;
 
 public class HttpResponseSizeMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", HttpMetricGroup.NAME, "response.size");
+    private static final String GROUP = HttpMetricGroup.NAME;
+    private static final String NAME = String.format("%s.%s", GROUP, "response.size");
 
     @Override
     public String name()
@@ -74,6 +75,12 @@ public class HttpResponseSizeMetric implements Metric
         private final FrameFW frameRO = new FrameFW();
         private final BeginFW beginRO = new BeginFW();
         private final DataFW dataRO = new DataFW();
+
+        @Override
+        public String group()
+        {
+            return GROUP;
+        }
 
         @Override
         public Metric.Kind kind()

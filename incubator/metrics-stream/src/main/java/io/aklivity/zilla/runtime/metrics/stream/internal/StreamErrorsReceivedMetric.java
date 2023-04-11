@@ -30,7 +30,8 @@ import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.ResetFW;
 
 public class StreamErrorsReceivedMetric implements Metric
 {
-    private static final String NAME = String.format("%s.%s", StreamMetricGroup.NAME, "errors.received");
+    private static final String GROUP = StreamMetricGroup.NAME;
+    private static final String NAME = String.format("%s.%s", GROUP, "errors.received");
 
     @Override
     public String name()
@@ -60,6 +61,12 @@ public class StreamErrorsReceivedMetric implements Metric
     private final class StreamErrorsReceivedMetricContext implements MetricContext
     {
         private final FrameFW frameRO = new FrameFW();
+
+        @Override
+        public String group()
+        {
+            return GROUP;
+        }
 
         @Override
         public Metric.Kind kind()
