@@ -14,13 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream;
 
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import org.agrona.AsciiSequenceView;
-import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcCorrelationConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
@@ -31,23 +27,25 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaM
 
 public final class KafkaGrpcFetchHeaderHelper
 {
-
-    private final Map<DirectBuffer, Consumer<DirectBuffer>> visitors;
+    private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
     private final OctetsFW serviceRO = new OctetsFW();
     private final OctetsFW methodRO = new OctetsFW();
-    private final AsciiSequenceView correlatedIdRO = new AsciiSequenceView();
+    private final OctetsFW correlatedIdRO = new OctetsFW();
 
     public OctetsFW service;
     public OctetsFW method;
-    public CharSequence correlationId;
+    public OctetsFW correlationId;
 
     public KafkaGrpcFetchHeaderHelper(
         KafkaGrpcCorrelationConfig correlation)
     {
-        Map<DirectBuffer, Consumer<DirectBuffer>> visitors = new HashMap<>();
-        visitors.put(correlation.service.value(), this::visitService);
-        visitors.put(correlation.method.value(), this::visitMethod);
-        visitors.put(correlation.correlationId.value(), this::visitCorrelationId);
+        Map<OctetsFW, Consumer<OctetsFW>> visitors = new HashMap<>();
+        visitors.put(new OctetsFW().wrap(correlation.service.value(),
+            0, correlation.service.length()), this::visitService);
+        visitors.put(new OctetsFW().wrap(correlation.method.value(),
+            0, correlation.method.length()), this::visitMethod);
+        visitors.put(new OctetsFW().wrap(correlation.correlationId.value(),
+            0, correlation.correlationId.length()), this::visitCorrelationId);
         this.visitors = visitors;
     }
 
@@ -77,10 +75,10 @@ public final class KafkaGrpcFetchHeaderHelper
         KafkaHeaderFW header)
     {
         final OctetsFW name = header.name();
-        final Consumer<DirectBuffer> visitor = visitors.get(name.value());
+        final Consumer<OctetsFW> visitor = visitors.get(name);
         if (visitor != null)
         {
-            visitor.accept(header.value().value());
+            visitor.accept(header.value());
         }
 
         return service != null &&
@@ -89,20 +87,20 @@ public final class KafkaGrpcFetchHeaderHelper
     }
 
     private void visitService(
-        DirectBuffer value)
+        OctetsFW value)
     {
-        service = serviceRO.wrap(value, 0, value.capacity());
+        service = serviceRO.wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private void visitMethod(
-        DirectBuffer value)
+        OctetsFW value)
     {
-        method = methodRO.wrap(value, 0, value.capacity());
+        method = methodRO.wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private void visitCorrelationId(
-        DirectBuffer value)
+        OctetsFW value)
     {
-        correlationId = correlatedIdRO.wrap(value, 0, value.capacity());
+        correlationId = correlatedIdRO.wrap(value.buffer(), value.offset(), value.limit());
     }
 }

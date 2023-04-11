@@ -18,6 +18,7 @@ import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class KafkaGrpcBinding implements Binding
 {
@@ -41,6 +42,13 @@ public final class KafkaGrpcBinding implements Binding
     public URL type()
     {
         return getClass().getResource("schema/kafka.grpc.schema.patch.json");
+    }
+
+    @Override
+    public int workers(
+        KindConfig kind)
+    {
+        return 1;
     }
 
     @Override

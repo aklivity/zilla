@@ -26,6 +26,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaHeaderFW
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetType;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 
 public class KafkaGrpcConditionResult
@@ -94,14 +95,14 @@ public class KafkaGrpcConditionResult
     }
 
     public void headers(
-        String16FW correlationId,
+        OctetsFW correlationId,
         Array32FW.Builder<KafkaHeaderFW.Builder,
             KafkaHeaderFW> builder)
     {
         builder.item(i -> i.nameLen(correlation.correlationId.length())
             .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
-            .valueLen(correlationId.length())
-            .value(correlationId.value(), 0, correlationId.length())
+            .valueLen(correlationId.sizeof())
+            .value(correlationId.value(), 0, correlationId.sizeof())
         );
     }
 

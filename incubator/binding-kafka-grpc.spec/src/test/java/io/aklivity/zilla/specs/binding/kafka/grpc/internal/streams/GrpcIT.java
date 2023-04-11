@@ -70,4 +70,13 @@ public class GrpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/retry.on.unavailable.server/client",
+        "${grpc}/retry.on.unavailable.server/server"})
+    public void shouldRetryOnUnavailableServer() throws Exception
+    {
+        k3po.finish();
+    }
 }
