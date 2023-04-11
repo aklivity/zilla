@@ -2421,6 +2421,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                      pool.versions.contains(HTTP_2))
             {
                 this.encoder = HttpEncoder.H2C;
+                for (HttpExchange exchange: pool.exchanges.values())
+                {
+                    exchange.remoteBudget += encodeMax;
+                }
             }
 
             doNetworkWindow(traceId, 0L, 0, 0);
@@ -3159,7 +3163,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (exchange != null && !HttpState.initialClosed(exchange.state))
             {
-                exchange.doRequestWindow(traceId);
+                exchange.flushRequestWindow(traceId, 0);
             }
         }
 
@@ -4570,7 +4574,17 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
             }
 
-            doRequestWindow(traceId);
+            if (HttpState.replyOpened(client.state))
+            {
+                remoteBudget = client.remoteSharedBudget;
+                flushRequestWindow(traceId, 0);
+            }
+            else
+            {
+                doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                    traceId, sessionId, client.budgetId, 0);
+            }
+
         }
 
         private void doRequestBegin(
@@ -4713,30 +4727,6 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     onExchangeClosed();
                 }
-            }
-        }
-
-        private void doRequestWindow(
-            long traceId)
-        {
-            long requestAckMax = Math.max(requestSeq - client.initialPendingAck() - client.encodeSlotOffset, requestAck);
-            int requestNoAckMin = (int)(requestSeq - requestAckMax);
-            int minRequestMax = Math.min(requestRemaining - requestNoAckMin + client.initialPad, client.initialMax);
-
-            if (requestAckMax > requestAck ||
-                minRequestMax > requestMax && client.encodeSlotOffset == 0 ||
-                minRequestMax == 0 && requestRemaining == 0 && !HttpState.initialOpened(state))
-            {
-                requestAck = requestAckMax;
-                assert requestAck <= requestSeq;
-
-                requestMax = minRequestMax;
-                assert requestMax >= 0;
-
-                state = HttpState.openInitial(state);
-
-                doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                        traceId, requestAuth, client.budgetId, client.initialPad);
             }
         }
 
@@ -4945,7 +4935,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             int requestCreditMin)
         {
-            if (!HttpState.replyClosed(state))
+            if (!HttpState.initialClosed(state))
             {
                 final int remotePaddableMax = Math.min(remoteBudget, encodeMax);
                 final int remotePad = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
@@ -4954,7 +4944,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int requestWin = requestMax - (int)(requestSeq - requestAck);
                 final int requestCredit = newRequestWin - requestWin;
 
-                if (requestCredit > 0 && requestCredit >= requestCreditMin && newRequestWin > requestPad)
+                if (requestCredit >= 0 && requestCredit >= requestCreditMin && newRequestWin > requestPad)
                 {
                     final int requestNoAck = (int)(requestSeq - requestAck);
                     final int requestAcked = Math.min(requestNoAck, requestCredit);

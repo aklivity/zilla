@@ -628,7 +628,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         {
             if (KafkaGrpcState.closed(state))
             {
-                final GrpcClient grpcClient = remoteServer.grpcClients.remove(correlationId);
+                remoteServer.grpcClients.remove(correlationId);
             }
         }
     }
