@@ -23,6 +23,7 @@ import java.util.function.ToIntFunction;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
+import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
@@ -110,13 +111,27 @@ public class NamespaceRegistry
         BindingContext context = bindingsByType.apply(config.type);
         assert context != null : "Missing binding type: " + config.type;
 
-        MetricHandler handler = supplyChainedMetricHandler(config.id, config.metricIds);
-        BindingRegistry registry = new BindingRegistry(config, context, handler);
-
+        BindingRegistry registry = new BindingRegistry(config, context);
         int bindingId = supplyLabelId.applyAsInt(config.entry);
         bindingsById.put(bindingId, registry);
         registry.attach();
         supplyLoadEntry.accept(config.id);
+
+        BindingHandler binding = registry.streamFactory();
+        MetricHandler handler = supplyChainedMetricHandler(config.id, config.metricIds);
+        // TODO: Ati
+        switch (binding.getClass().getName())
+        {
+        case "io.aklivity.zilla.runtime.binding.http.internal.stream.HttpServerFactory":
+        case "io.aklivity.zilla.runtime.binding.tcp.internal.stream.TcpServerFactory":
+            System.out.println("origin");
+            registry.setOriginMetricHandler(handler);
+            break;
+        default:
+            System.out.println("routed");
+            registry.setRoutedMetricHandler(handler);
+            break;
+        }
     }
 
     private MetricHandler supplyChainedMetricHandler(
