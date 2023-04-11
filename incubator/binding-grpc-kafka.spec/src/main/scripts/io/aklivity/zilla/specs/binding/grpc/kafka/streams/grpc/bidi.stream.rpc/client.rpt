@@ -28,7 +28,6 @@ write zilla:begin.ext ${grpc:beginEx()
                               .build()}
 connected
 
-
 write ${grpc:protobuf()
             .string(1, "Hello World1")
             .build()}

@@ -71,6 +71,10 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        object.add(SCHEME_NAME, kafkaGrpcOptions.scheme.asString());
+        object.add(AUTHORITY_NAME, kafkaGrpcOptions.authority.asString());
+        object.add(ENTRY_NAME, kafkaGrpcOptions.entry);
+
         if (kafkaGrpcOptions.acks != ACKS_DEFAULT)
         {
             object.add(ACKS_NAME, kafkaGrpcOptions.acks.name().toLowerCase());
