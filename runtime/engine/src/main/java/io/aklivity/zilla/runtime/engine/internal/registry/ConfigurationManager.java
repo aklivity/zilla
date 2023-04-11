@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
 import static java.util.Collections.singletonMap;
 
@@ -267,8 +265,7 @@ public class ConfigurationManager
                     }
                 }
 
-                binding.originMetricIds = resolveMetricIds(ORIGIN, namespace, binding);
-                binding.routedMetricIds = resolveMetricIds(ROUTED, namespace, binding);
+                binding.metricIds = resolveMetricIds(namespace, binding);
 
                 long affinity = tuning.affinity(binding.id);
 
@@ -294,7 +291,6 @@ public class ConfigurationManager
     }
 
     private long[] resolveMetricIds(
-        MetricHandlerKind kind,
         NamespaceConfig namespace,
         BindingConfig binding)
     {
@@ -311,29 +307,11 @@ public class ConfigurationManager
             {
                 if (pattern.matcher(metric.name).matches())
                 {
-                    if (getMetricKind(binding) == kind)
-                    {
-                        metricIds.add(namespace.resolveId.applyAsLong(metric.name));
-                    }
+                    metricIds.add(namespace.resolveId.applyAsLong(metric.name));
                 }
             }
         }
         return metricIds.stream().mapToLong(Long::longValue).toArray();
-    }
-
-    private MetricHandlerKind getMetricKind(
-        BindingConfig binding)
-    {
-        // TODO: Ati !!!
-        if (("tcp".equalsIgnoreCase(binding.type) || "http".equalsIgnoreCase(binding.type)) &&
-                binding.kind == KindConfig.SERVER)
-        {
-            return ORIGIN;
-        }
-        else
-        {
-            return ROUTED;
-        }
     }
 
     public void register(

@@ -110,9 +110,8 @@ public class NamespaceRegistry
         BindingContext context = bindingsByType.apply(config.type);
         assert context != null : "Missing binding type: " + config.type;
 
-        MetricHandler originHandler = supplyChainedMetricHandler(config.id, config.originMetricIds);
-        MetricHandler routedHandler = supplyChainedMetricHandler(config.id, config.routedMetricIds);
-        BindingRegistry registry = new BindingRegistry(config, context, originHandler, routedHandler);
+        MetricHandler handler = supplyChainedMetricHandler(config.id, config.metricIds);
+        BindingRegistry registry = new BindingRegistry(config, context, handler);
 
         int bindingId = supplyLabelId.applyAsInt(config.entry);
         bindingsById.put(bindingId, registry);

@@ -24,7 +24,6 @@ final class BindingRegistry
 {
     private final BindingConfig binding;
     private final BindingContext context;
-    private final MetricHandler originMetricHandler;
     private final MetricHandler routedMetricHandler;
 
     private BindingHandler attached;
@@ -32,13 +31,12 @@ final class BindingRegistry
     BindingRegistry(
         BindingConfig binding,
         BindingContext context,
-        MetricHandler originMetricHandler,
-        MetricHandler routedMetricHandler)
+        MetricHandler metricHandler)
     {
         this.binding = binding;
         this.context = context;
-        this.originMetricHandler = originMetricHandler;
-        this.routedMetricHandler = routedMetricHandler;
+        // TODO: Ati
+        this.routedMetricHandler = metricHandler;
     }
 
     public void attach()
@@ -59,7 +57,8 @@ final class BindingRegistry
 
     MetricHandler originMetricHandler()
     {
-        return originMetricHandler;
+        // TODO: Ati
+        return MetricHandler.NO_OP;
     }
 
     MetricHandler routedMetricHandler()
