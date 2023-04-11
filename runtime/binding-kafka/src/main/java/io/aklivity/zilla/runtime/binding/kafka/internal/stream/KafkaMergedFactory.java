@@ -1066,7 +1066,7 @@ public final class KafkaMergedFactory implements BindingHandler
             this.produceStreams = new ArrayList<>();
             this.leadersByPartitionId = new Int2IntHashMap(-1);
             this.latestOffsetByPartitionId = new Long2LongHashMap(-3);
-            this.stableOffsetByPartitionId = new Long2LongHashMap(-1);
+            this.stableOffsetByPartitionId = new Long2LongHashMap(-3);
             this.nextOffsetsById = initialOffsetsById;
             this.initialLatestOffsetsById = new Long2LongHashMap(-3);
             this.initialStableOffsetsById = new Long2LongHashMap(-3);

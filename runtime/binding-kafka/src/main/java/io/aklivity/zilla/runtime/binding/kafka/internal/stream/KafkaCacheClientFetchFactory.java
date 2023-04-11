@@ -1132,7 +1132,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 !KafkaState.replyClosing(state) &&
                 (replyMax - (int)(replySeq - replyAck)) >= replyPad &&
                 cursor.offset <= group.partitionOffset &&
-                cursor.offset <= isolatedOffset.getAsLong())
+                (cursor.offset <= isolatedOffset.getAsLong() ||
+                cursor.offset == 0 && isolatedOffset.getAsLong() == -1))
             {
                 final KafkaCacheEntryFW nextEntry = cursor.next(entryRO);
 
