@@ -15,20 +15,21 @@
  */
 package io.aklivity.zilla.runtime.binding.tcp.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.KindConfig.CLIENT;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
-import static io.aklivity.zilla.runtime.engine.config.StreamType.PROXY;
+import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
 
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
 
 import io.aklivity.zilla.runtime.binding.tcp.internal.config.TcpServerBindingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.StreamType;
+import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
 
 public final class TcpBinding implements Binding
 {
@@ -66,17 +67,19 @@ public final class TcpBinding implements Binding
     }
 
     @Override
-    public StreamType originType(
-        KindConfig kind)
+    public BiFunction<KindConfig, String, MetricHandlerKind> metricsPolicy()
     {
-        return kind == SERVER ? PROXY : null;
-    }
-
-    @Override
-    public StreamType routedType(
-        KindConfig kind)
-    {
-        return kind == CLIENT ? PROXY : null;
+        return (kind, metricGroup) ->
+        {
+            if ("stream".equalsIgnoreCase(metricGroup))
+            {
+                return kind == SERVER ? ORIGIN : ROUTED;
+            }
+            else
+            {
+                return null;
+            }
+        };
     }
 
     private TcpServerBindingConfig supplyServer(

@@ -17,8 +17,6 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.config.MetricHandlerKind.ROUTED;
-import static io.aklivity.zilla.runtime.engine.config.StreamType.HTTP;
-import static io.aklivity.zilla.runtime.engine.config.StreamType.PROXY;
 import static jakarta.json.stream.JsonGenerator.PRETTY_PRINTING;
 import static java.util.Collections.singletonMap;
 
@@ -32,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -67,7 +66,6 @@ import io.aklivity.zilla.runtime.engine.config.MetricHandlerKind;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import io.aklivity.zilla.runtime.engine.config.StreamType;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 import io.aklivity.zilla.runtime.engine.expression.ExpressionResolver;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
@@ -319,7 +317,7 @@ public class ConfigurationManager
             {
                 if (pattern.matcher(metric.name).matches())
                 {
-                    if (getKind(binding, metric.group) == kind)
+                    if (getMetricKind(binding, metric.group) == kind)
                     {
                         metricIds.add(namespace.resolveId.applyAsLong(metric.name));
                     }
@@ -329,37 +327,12 @@ public class ConfigurationManager
         return metricIds.stream().mapToLong(Long::longValue).toArray();
     }
 
-    private MetricHandlerKind getKind(
-        BindingConfig config,
+    private MetricHandlerKind getMetricKind(
+        BindingConfig binding,
         String metricGroup)
     {
-        Binding binding = bindingByType.apply(config.type);
-        StreamType originType = binding.originType(config.kind);
-        StreamType routedType = binding.routedType(config.kind);
-        MetricHandlerKind result = null;
-        if ("http".equalsIgnoreCase(metricGroup))
-        {
-            if (routedType == HTTP)
-            {
-                result = ROUTED;
-            }
-            else if (originType == HTTP)
-            {
-                result = ORIGIN;
-            }
-        }
-        else if ("stream".equalsIgnoreCase(metricGroup))
-        {
-            if (routedType == PROXY)
-            {
-                result = ROUTED;
-            }
-            else if (originType == PROXY)
-            {
-                result = ORIGIN;
-            }
-        }
-        return result;
+        BiFunction<KindConfig, String, MetricHandlerKind> policy = bindingByType.apply(binding.type).metricsPolicy();
+        return policy.apply(binding.kind, metricGroup);
     }
 
     public void register(

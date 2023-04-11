@@ -15,14 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.tls.internal;
 
-import static io.aklivity.zilla.runtime.engine.config.StreamType.PROXY;
-
 import java.net.URL;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.runtime.engine.config.StreamType;
 
 public final class TlsBinding implements Binding
 {
@@ -53,41 +49,5 @@ public final class TlsBinding implements Binding
         EngineContext context)
     {
         return new TlsBindingContext(config, context);
-    }
-
-    @Override
-    public StreamType originType(
-        KindConfig kind)
-    {
-        StreamType result;
-        switch (kind)
-        {
-        case SERVER:
-        case CLIENT:
-            result = PROXY;
-            break;
-        default:
-            result = null;
-            break;
-        }
-        return result;
-    }
-
-    @Override
-    public StreamType routedType(
-        KindConfig kind)
-    {
-        StreamType result;
-        switch (kind)
-        {
-        case SERVER:
-        case CLIENT:
-            result = PROXY;
-            break;
-        default:
-            result = null;
-            break;
-        }
-        return result;
     }
 }
