@@ -3916,7 +3916,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             Array32FW<HttpHeaderFW> headers,
             Map<String8FW, String16FW> overrides)
         {
-            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved ||
+            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved &&
                 exchange.requestContentLength != NO_CONTENT_LENGTH;
 
             doEncodeHttp2Headers(traceId, authorization, exchange.streamId, headers, overrides, endRequest);
@@ -3953,7 +3953,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             exchange.remoteBudget -= length;
             remoteSharedBudget -= length;
 
-            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved ||
+            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved &&
                 exchange.requestContentLength != NO_CONTENT_LENGTH;
             doEncodeHttp2Data(traceId, authorization, reserved, exchange.streamId, payload, endRequest);
 
