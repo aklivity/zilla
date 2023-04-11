@@ -1,21 +1,12 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
-
 import java.util.function.LongConsumer;
 
-@FunctionalInterface
 public interface MetricContext
 {
-    default String group()
-    {
-        return "";
-    }
+    String group();
 
-    default Metric.Kind kind()
-    {
-        return COUNTER;
-    }
+    Metric.Kind kind();
 
     MetricHandler supply(
         LongConsumer recorder);

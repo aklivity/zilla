@@ -16,7 +16,6 @@
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import java.util.function.Function;
-import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.ToIntFunction;
 
@@ -38,7 +37,6 @@ public class ConfigurationRegistry
     private final Function<String, VaultContext> vaultsByType;
     private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
-    private final IntFunction<String> supplyLabelName;
     private final LongConsumer supplyLoadEntry;
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
 
@@ -51,7 +49,6 @@ public class ConfigurationRegistry
             Function<String, VaultContext> vaultsByType,
             Function<String, MetricContext> metricsByName,
             ToIntFunction<String> supplyLabelId,
-            IntFunction<String> supplyLabelName,
             LongConsumer supplyLoadEntry,
             ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
             LongConsumer detachBinding)
@@ -61,7 +58,6 @@ public class ConfigurationRegistry
         this.vaultsByType = vaultsByType;
         this.metricsByName = metricsByName;
         this.supplyLabelId = supplyLabelId;
-        this.supplyLabelName = supplyLabelName;
         this.supplyLoadEntry = supplyLoadEntry;
         this.supplyMetricRecorder = supplyMetricRecorder;
         this.namespacesById = new Int2ObjectHashMap<>();
@@ -137,7 +133,7 @@ public class ConfigurationRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, supplyLabelId,
-                    supplyLabelName, this::resolveMetric, supplyLoadEntry, supplyMetricRecorder, detachBinding);
+                    this::resolveMetric, supplyLoadEntry, supplyMetricRecorder, detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

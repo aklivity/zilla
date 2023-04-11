@@ -380,8 +380,8 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get, labels::supplyLabelId,
-                labels::lookupLabel, supplyLoadEntry::apply, this::supplyMetricWriter, this::detachStreams);
+                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
+                labels::supplyLabelId, supplyLoadEntry::apply, this::supplyMetricWriter, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }

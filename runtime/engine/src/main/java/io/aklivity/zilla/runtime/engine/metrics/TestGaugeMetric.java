@@ -1,10 +1,15 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+
+import java.util.function.LongConsumer;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public class TestGaugeMetric implements Metric
 {
-    private static final String NAME = "test.gauge";
+    private static final String GROUP = "test";
+    private static final String NAME = GROUP + ".gauge";
 
     @Override
     public String name()
@@ -28,6 +33,26 @@ public class TestGaugeMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return recorder -> MetricHandler.NO_OP;
+        return new MetricContext()
+        {
+            @Override
+            public String group()
+            {
+                return GROUP;
+            }
+
+            @Override
+            public Kind kind()
+            {
+                return COUNTER;
+            }
+
+            @Override
+            public MetricHandler supply(
+                LongConsumer recorder)
+            {
+                return MetricHandler.NO_OP;
+            }
+        };
     }
 }

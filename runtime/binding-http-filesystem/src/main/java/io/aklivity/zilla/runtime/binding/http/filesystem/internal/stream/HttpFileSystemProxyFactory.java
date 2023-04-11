@@ -133,6 +133,12 @@ public final class HttpFileSystemProxyFactory implements HttpFileSystemStreamFac
     }
 
     @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

@@ -118,9 +118,15 @@ public class TcpClientFactory implements TcpStreamFactory
     }
 
     @Override
-    public long originTypeId()
+    public int originTypeId()
     {
         return proxyTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return EXTERNAL_TYPE;
     }
 
     @Override

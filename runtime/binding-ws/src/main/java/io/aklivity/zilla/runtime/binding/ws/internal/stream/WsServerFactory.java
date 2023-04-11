@@ -135,6 +135,12 @@ public final class WsServerFactory implements WsStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

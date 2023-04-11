@@ -19,7 +19,6 @@ import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKi
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 
 import java.util.function.Function;
-import java.util.function.IntFunction;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 import java.util.function.ToIntFunction;
@@ -49,7 +48,6 @@ public class NamespaceRegistry
     private final Function<String, VaultContext> vaultsByType;
     private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
-    private final IntFunction<String> supplyLabelName;
     private final LongFunction<MetricRegistry> supplyMetric;
     private final LongConsumer supplyLoadEntry;
     private final int namespaceId;
@@ -67,7 +65,6 @@ public class NamespaceRegistry
         Function<String, VaultContext> vaultsByType,
         Function<String, MetricContext> metricsByName,
         ToIntFunction<String> supplyLabelId,
-        IntFunction<String> supplyLabelName,
         LongFunction<MetricRegistry> supplyMetric,
         LongConsumer supplyLoadEntry,
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
@@ -79,7 +76,6 @@ public class NamespaceRegistry
         this.vaultsByType = vaultsByType;
         this.metricsByName = metricsByName;
         this.supplyLabelId = supplyLabelId;
-        this.supplyLabelName = supplyLabelName;
         this.supplyMetric = supplyMetric;
         this.supplyLoadEntry = supplyLoadEntry;
         this.supplyMetricRecorder = supplyMetricRecorder;
@@ -140,7 +136,7 @@ public class NamespaceRegistry
                 MetricRegistry metric = supplyMetric.apply(metricId);
                 LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
                 MetricHandler handler = metric.supplyHandler(metricRecorder);
-                MetricHandlerKind kind = getKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
+                MetricHandlerKind kind = resolveKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
                 if (kind == ROUTED)
                 {
                     routedMetricHandler = routedMetricHandler.andThen(handler);
@@ -160,38 +156,34 @@ public class NamespaceRegistry
         registry.setRoutedMetricHandler(routedMetricHandler);
     }
 
-    private MetricHandlerKind getKind(
-        long originTypeId,
-        long routedTypeId,
+    private MetricHandlerKind resolveKind(
+        int originTypeId,
+        int routedTypeId,
         String metricGroup)
     {
         MetricHandlerKind kind = null;
-        String originType = originTypeId < 0L ? "" : supplyLabelName.apply(NamespacedId.localId(originTypeId));
-        String routedType = routedTypeId < 0L ? "" : supplyLabelName.apply(NamespacedId.localId(routedTypeId));
         switch (metricGroup)
         {
-        case "http":
-            if ("http".equals(routedType))
-            {
-                kind = ORIGIN;
-            }
-            else if ("http".equals(originType))
-            {
-                kind = ROUTED;
-            }
-            break;
         case "stream":
-            if (!originType.isEmpty())
+            if (originTypeId >= 0)
             {
                 kind = ROUTED;
             }
-            else if (!routedType.isEmpty())
+            else if (routedTypeId >= 0)
             {
                 kind = ORIGIN;
             }
             break;
         default:
-            kind = ROUTED;
+            final int metricGroupId = supplyLabelId.applyAsInt(metricGroup);
+            if (metricGroupId == routedTypeId)
+            {
+                kind = ORIGIN;
+            }
+            else if (metricGroupId == originTypeId)
+            {
+                kind = ROUTED;
+            }
             break;
         }
         return kind;

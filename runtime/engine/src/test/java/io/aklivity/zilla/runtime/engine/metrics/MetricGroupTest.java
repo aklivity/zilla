@@ -24,13 +24,15 @@ public class MetricGroupTest
 
         // WHEN
         Metric metric = metricGroup.supply("test.counter");
-        MetricHandler handler = metric.supply(mock(EngineContext.class)).supply(mock(LongConsumer.class));
+        MetricContext context = metric.supply(mock(EngineContext.class));
+        MetricHandler handler = context.supply(mock(LongConsumer.class));
 
         // THEN
         assertThat(metric, instanceOf(TestCounterMetric.class));
         assertThat(metric.name(), equalTo("test.counter"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(context.group(), equalTo("test"));
         assertThat(handler, instanceOf(MetricHandler.class));
     }
 
@@ -43,13 +45,15 @@ public class MetricGroupTest
 
         // WHEN
         Metric metric = metricGroup.supply("test.gauge");
-        MetricHandler handler = metric.supply(mock(EngineContext.class)).supply(mock(LongConsumer.class));
+        MetricContext context = metric.supply(mock(EngineContext.class));
+        MetricHandler handler = context.supply(mock(LongConsumer.class));
 
         // THEN
         assertThat(metric, instanceOf(TestGaugeMetric.class));
         assertThat(metric.name(), equalTo("test.gauge"));
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(context.group(), equalTo("test"));
         assertThat(handler, instanceOf(MetricHandler.class));
     }
 
@@ -62,13 +66,15 @@ public class MetricGroupTest
 
         // WHEN
         Metric metric = metricGroup.supply("test.histogram");
-        MetricHandler handler = metric.supply(mock(EngineContext.class)).supply(mock(LongConsumer.class));
+        MetricContext context = metric.supply(mock(EngineContext.class));
+        MetricHandler handler = context.supply(mock(LongConsumer.class));
 
         // THEN
         assertThat(metric, instanceOf(TestHistogramMetric.class));
         assertThat(metric.name(), equalTo("test.histogram"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(context.group(), equalTo("test"));
         assertThat(handler, instanceOf(MetricHandler.class));
     }
 }

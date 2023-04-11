@@ -187,6 +187,12 @@ public final class SseServerFactory implements SseStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

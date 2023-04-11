@@ -21,14 +21,17 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public interface BindingHandler
 {
-    default long originTypeId()
+    int STREAM_TYPE = 0;
+    int EXTERNAL_TYPE = -1;
+
+    default int originTypeId()
     {
-        return -1L;
+        return STREAM_TYPE;
     }
 
-    default long routedTypeId()
+    default int routedTypeId()
     {
-        return -1L;
+        return STREAM_TYPE;
     }
 
     MessageConsumer newStream(

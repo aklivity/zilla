@@ -396,7 +396,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
 
     @Override
-    public long originTypeId()
+    public int originTypeId()
     {
         return httpTypeId;
     }

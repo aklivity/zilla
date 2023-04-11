@@ -1,10 +1,15 @@
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
+
+import java.util.function.LongConsumer;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public class TestHistogramMetric implements Metric
 {
-    private static final String NAME = "test.histogram";
+    private static final String GROUP = "test";
+    private static final String NAME = GROUP + ".histogram";
 
     @Override
     public String name()
@@ -15,7 +20,7 @@ public class TestHistogramMetric implements Metric
     @Override
     public Kind kind()
     {
-        return Kind.HISTOGRAM;
+        return HISTOGRAM;
     }
 
     @Override
@@ -28,6 +33,26 @@ public class TestHistogramMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return recorder -> MetricHandler.NO_OP;
+        return new MetricContext()
+        {
+            @Override
+            public String group()
+            {
+                return GROUP;
+            }
+
+            @Override
+            public Kind kind()
+            {
+                return HISTOGRAM;
+            }
+
+            @Override
+            public MetricHandler supply(
+                LongConsumer recorder)
+            {
+                return MetricHandler.NO_OP;
+            }
+        };
     }
 }

@@ -181,13 +181,13 @@ public final class TlsClientFactory implements TlsStreamFactory
     }
 
     @Override
-    public long originTypeId()
+    public int originTypeId()
     {
         return proxyTypeId;
     }
 
     @Override
-    public long routedTypeId()
+    public int routedTypeId()
     {
         return proxyTypeId;
     }
