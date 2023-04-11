@@ -31,6 +31,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read option zilla:flags "init"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -47,9 +48,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
+read await SEND_ASYNC_REQUEST
+
 read advised zilla:flush
 read notify RECEIVED_ADVISE_FLUSH
 
+read option zilla:flags "fin"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -78,6 +82,9 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write advise zilla:flush
+
+write notify SEND_ASYNC_REQUEST
 
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
