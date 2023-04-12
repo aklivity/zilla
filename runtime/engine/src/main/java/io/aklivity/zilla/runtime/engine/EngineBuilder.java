@@ -25,6 +25,8 @@ import org.agrona.ErrorHandler;
 
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactory;
+import io.aklivity.zilla.runtime.engine.exporter.Exporter;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardFactory;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
@@ -78,6 +80,14 @@ public class EngineBuilder
             bindings.add(binding);
         }
 
+        final Set<Exporter> exporters = new LinkedHashSet<>();
+        final ExporterFactory exporterFactory = ExporterFactory.instantiate();
+        for (String name : exporterFactory.names())
+        {
+            Exporter exporter = exporterFactory.create(name, config);
+            exporters.add(exporter);
+        }
+
         final Set<Guard> guards = new LinkedHashSet<>();
         final GuardFactory guardFactory = GuardFactory.instantiate();
         for (String name : guardFactory.names())
@@ -104,6 +114,6 @@ public class EngineBuilder
 
         final ErrorHandler errorHandler = requireNonNull(this.errorHandler, "errorHandler");
 
-        return new Engine(config, bindings, guards, metricGroups, vaults, errorHandler, affinities);
+        return new Engine(config, bindings, exporters, guards, metricGroups, vaults, errorHandler, affinities);
     }
 }

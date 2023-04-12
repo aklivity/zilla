@@ -37,11 +37,13 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
+import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExporterOptionsConfig;
 
 public class NamespaceConfigAdapterTest
 {
@@ -245,15 +247,19 @@ public class NamespaceConfigAdapterTest
     {
         TelemetryConfig telemetry = new TelemetryConfig(
                 List.of(new AttributeConfig("test.attribute", "example")),
-                List.of(new MetricConfig("test", "test.counter"))
+                List.of(new MetricConfig("test", "test.counter")),
+                List.of(new ExporterConfig("test0", "test", new TestExporterOptionsConfig("test42")))
         );
         NamespaceConfig config = new NamespaceConfig("test", emptyList(), telemetry, emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"name\":\"test\",\"telemetry\":{\"attributes\":{\"test.attribute\":\"example\"}," +
-                "\"metrics\":[\"test.counter\"]}}"));
+        assertThat(text, equalTo(
+                "{\"name\":\"test\",\"telemetry\":" +
+                "{\"attributes\":{\"test.attribute\":\"example\"}," +
+                "\"metrics\":[\"test.counter\"]," +
+                "\"exporters\":{\"test0\":{\"type\":\"test\",\"options\":{\"mode\":\"test42\"}}}}}"));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -12,6 +13,7 @@ import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
+import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 
@@ -19,14 +21,17 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
 {
     private static final String ATTRIBUTES_NAME = "attributes";
     private static final String METRICS_NAME = "metrics";
+    private static final String EXPORTERS_NAME = "exporters";
 
     private final AttributeAdapter attribute;
     private final MetricAdapter metric;
+    private final ExporterAdapter exporter;
 
     public TelemetryAdapter()
     {
         this.attribute = new AttributeAdapter();
         this.metric = new MetricAdapter();
+        this.exporter = new ExporterAdapter();
     }
 
     @Override
@@ -36,7 +41,7 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
         JsonObjectBuilder item = Json.createObjectBuilder();
 
         JsonObjectBuilder attributes = Json.createObjectBuilder();
-        for (AttributeConfig a : telemetry.attributes)
+        for (AttributeConfig a: telemetry.attributes)
         {
             Map.Entry<String, JsonValue> entry = attribute.adaptToJson(a);
             attributes.add(entry.getKey(), entry.getValue());
@@ -46,6 +51,10 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
         JsonArrayBuilder metricRefs = Json.createArrayBuilder();
         telemetry.metrics.stream().forEach(m -> metricRefs.add(metric.adaptToJson(m)));
         item.add(METRICS_NAME, metricRefs);
+
+        JsonObject exporters = exporter.adaptToJson(telemetry.exporters.toArray(ExporterConfig[]::new));
+        item.add(EXPORTERS_NAME, exporters);
+
         return item.build();
     }
 
@@ -63,6 +72,11 @@ public class TelemetryAdapter implements JsonbAdapter<TelemetryConfig, JsonObjec
                         .map(metric::adaptFromJson)
                         .collect(Collectors.toList())
                 : List.of();
-        return new TelemetryConfig(attributes, metrics);
+        List<ExporterConfig> exporters = jsonObject.containsKey(EXPORTERS_NAME)
+                ? Arrays.stream(exporter.adaptFromJson(jsonObject.getJsonObject(EXPORTERS_NAME)))
+                        .collect(Collectors.toList())
+                : List.of();
+
+        return new TelemetryConfig(attributes, metrics, exporters);
     }
 }

@@ -92,6 +92,9 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.exporter.Exporter;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
@@ -99,6 +102,7 @@ import io.aklivity.zilla.runtime.engine.internal.Counters;
 import io.aklivity.zilla.runtime.engine.internal.LabelManager;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetCreditor;
 import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
+import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.LoadLayout;
@@ -198,11 +202,14 @@ public class DispatchAgent implements EngineContext, Agent
     private final Long2ObjectHashMap<Future<?>> futuresById;
     private final ElektronSignaler signaler;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
+    private final Long2ObjectHashMap<AgentRunner> exportersById;
 
     private final ConfigurationRegistry configuration;
     private final Deque<Runnable> taskQueue;
     private final LongUnaryOperator affinityMask;
     private final AgentRunner runner;
+    private final IdleStrategy idleStrategy;
+    private final ErrorHandler errorHandler;
     private long initialId;
     private long promiseId;
     private long traceId;
@@ -218,6 +225,7 @@ public class DispatchAgent implements EngineContext, Agent
         ErrorHandler errorHandler,
         LongUnaryOperator affinityMask,
         Collection<Binding> bindings,
+        Collection<Exporter> exporters,
         Collection<Guard> guards,
         Collection<Vault> vaults,
         Collection<MetricGroup> metricGroups,
@@ -353,6 +361,13 @@ public class DispatchAgent implements EngineContext, Agent
             bindingsByType.put(type, binding.supply(this));
         }
 
+        Map<String, ExporterContext> exportersByType = new LinkedHashMap<>();
+        for (Exporter exporter : exporters)
+        {
+            String type = exporter.name();
+            exportersByType.put(type, exporter.supply(this));
+        }
+
         Map<String, GuardContext> guardsByType = new LinkedHashMap<>();
         for (Guard guard : guards)
         {
@@ -378,10 +393,14 @@ public class DispatchAgent implements EngineContext, Agent
         }
 
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
-                labels::supplyLabelId, supplyLoadEntry::apply, this::supplyMetricWriter, this::detachStreams);
+                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get, exportersByType::get,
+                labels::supplyLabelId, supplyLoadEntry::apply, this::onExporterAttached, this::onExporterDetached,
+                this::supplyMetricWriter, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
+        this.idleStrategy = idleStrategy;
+        this.errorHandler = errorHandler;
+        this.exportersById = new Long2ObjectHashMap<>();
     }
 
     public static int indexOfId(
@@ -855,6 +874,35 @@ public class DispatchAgent implements EngineContext, Agent
         long bindingId)
     {
         return supplyLoadEntry.apply(bindingId).replyBytes();
+    }
+
+    @Override
+    public void onExporterAttached(
+        long exporterId)
+    {
+        if (localIndex == 0)
+        {
+            ExporterRegistry registry = configuration.resolveExporter(exporterId);
+            ExporterHandler handler = registry.handler();
+            ExporterAgent agent = new ExporterAgent(exporterId, handler);
+            AgentRunner runner = new AgentRunner(idleStrategy, errorHandler, null, agent);
+            AgentRunner.startOnThread(runner);
+            exportersById.put(exporterId, runner);
+        }
+    }
+
+    @Override
+    public void onExporterDetached(
+        long exporterId)
+    {
+        if (localIndex == 0)
+        {
+            AgentRunner runner = exportersById.remove(exporterId);
+            if (runner != null)
+            {
+                runner.close();
+            }
+        }
     }
 
     public long counter(
