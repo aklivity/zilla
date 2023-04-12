@@ -18,8 +18,6 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
@@ -131,7 +129,6 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -161,7 +158,8 @@ public class DispatchAgent implements EngineContext, Agent
     private final LabelManager labels;
     private final String agentName;
     private final LongFunction<LoadEntry> supplyLoadEntry;
-    private final ObjectLongFunction<MetricHandlerKind, MetricHandler> supplyMetricRecorder;
+    private final LongFunction<MetricHandler> supplyOriginMetricRecorder;
+    private final LongFunction<MetricHandler> supplyRoutedMetricRecorder;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -293,7 +291,8 @@ public class DispatchAgent implements EngineContext, Agent
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
 
         this.supplyLoadEntry = new LoadManager(loadLayout.buffer())::entry;
-        this.supplyMetricRecorder = this::supplyMetricRecorder;
+        this.supplyOriginMetricRecorder = this::supplyOriginMetricRecorder;
+        this.supplyRoutedMetricRecorder = this::supplyRoutedMetricRecorder;
 
         final CountersManager countersManager =
                 new CountersManager(metricsLayout.labelsBuffer(), metricsLayout.valuesBuffer());
@@ -1067,8 +1066,8 @@ public class DispatchAgent implements EngineContext, Agent
             final MessageConsumer handler = dispatcher.get(instanceId);
             if (handler != null)
             {
-                supplyMetricRecorder.apply(ORIGIN, originId).onEvent(msgTypeId, buffer, index, length);
-                supplyMetricRecorder.apply(ROUTED, routedId).onEvent(msgTypeId, buffer, index, length);
+                supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
+                supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
@@ -1396,8 +1395,8 @@ public class DispatchAgent implements EngineContext, Agent
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
                 throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
-                supplyMetricRecorder.apply(ORIGIN, originId).onEvent(msgTypeId, buffer, index, length);
-                supplyMetricRecorder.apply(ROUTED, routedId).onEvent(msgTypeId, buffer, index, length);
+                supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
+                supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
                 streamSets.computeIfAbsent(routedId, k -> new LongHashSet())
                     .add(initialId);
             }
@@ -1557,35 +1556,25 @@ public class DispatchAgent implements EngineContext, Agent
         return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
     }
 
-    // Each binding has a list of metrics configured and the BindingRegistry has the chained up MetricHandler that takes
-    // care of recording all the configured metrics. This function returns the MetricHandler that belongs to the given binding.
-    private MetricHandler supplyMetricRecorder(
-        MetricHandlerKind kind,
+    private MetricHandler supplyOriginMetricRecorder(
         long bindingId)
     {
         BindingRegistry binding = configuration.resolveBinding(bindingId);
-        MetricHandler result;
-        if (binding == null)
-        {
-            result = MetricHandler.NO_OP;
-        }
-        else if (kind == ORIGIN)
-        {
-            result = binding.originMetricHandler();
-        }
-        else
-        {
-            assert kind == ROUTED;
-            result = binding.routedMetricHandler();
-        }
-        return result;
+        return binding != null ? binding.originMetricHandler() : MetricHandler.NO_OP;
+    }
+
+    private MetricHandler supplyRoutedMetricRecorder(
+        long bindingId)
+    {
+        BindingRegistry binding = configuration.resolveBinding(bindingId);
+        return binding != null ? binding.routedMetricHandler() : MetricHandler.NO_OP;
     }
 
     private Target newTarget(
         int index)
     {
         return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry,
-                supplyMetricRecorder);
+                supplyOriginMetricRecorder, supplyRoutedMetricRecorder);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(

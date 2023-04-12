@@ -53,12 +53,14 @@ final class BindingRegistry
         return attached;
     }
 
-    public void setOriginMetricHandler(MetricHandler originMetricHandler)
+    public void setOriginMetricHandler(
+        MetricHandler originMetricHandler)
     {
         this.originMetricHandler = originMetricHandler;
     }
 
-    public void setRoutedMetricHandler(MetricHandler routedMetricHandler)
+    public void setRoutedMetricHandler(
+        MetricHandler routedMetricHandler)
     {
         this.routedMetricHandler = routedMetricHandler;
     }

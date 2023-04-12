@@ -15,8 +15,6 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.stream;
 
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
-import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.isInitial;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
@@ -37,7 +35,6 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.binding.function.MessagePredicate;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
-import io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ChallengeFW;
@@ -49,7 +46,6 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
-import io.aklivity.zilla.runtime.engine.util.function.ObjectLongFunction;
 
 public final class Target implements AutoCloseable
 {
@@ -68,7 +64,8 @@ public final class Target implements AutoCloseable
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final MessageConsumer writeHandler;
     private final LongFunction<LoadEntry> supplyLoadEntry;
-    private final ObjectLongFunction<MetricHandlerKind, MetricHandler> supplyMetricRecorder;
+    private final LongFunction<MetricHandler> supplyOriginMetricRecorder;
+    private final LongFunction<MetricHandler> supplyRoutedMetricRecorder;
 
     private MessagePredicate streamsBuffer;
 
@@ -82,7 +79,8 @@ public final class Target implements AutoCloseable
         Long2ObjectHashMap<LongHashSet> streamSets,
         Int2ObjectHashMap<MessageConsumer>[] throttles,
         LongFunction<LoadEntry> supplyLoadEntry,
-        ObjectLongFunction<MetricHandlerKind, MetricHandler> supplyMetricRecorder)
+        LongFunction<MetricHandler> supplyOriginMetricRecorder,
+        LongFunction<MetricHandler> supplyRoutedMetricRecorder)
     {
         this.timestamps = config.timestamps();
         this.localIndex = index;
@@ -100,7 +98,8 @@ public final class Target implements AutoCloseable
 
         this.writeBuffer = writeBuffer;
         this.supplyLoadEntry = supplyLoadEntry;
-        this.supplyMetricRecorder = supplyMetricRecorder;
+        this.supplyOriginMetricRecorder = supplyOriginMetricRecorder;
+        this.supplyRoutedMetricRecorder = supplyRoutedMetricRecorder;
         this.correlations = correlations;
         this.streams = streams;
         this.streamSets = streamSets;
@@ -236,8 +235,8 @@ public final class Target implements AutoCloseable
         }
         else
         {
-            supplyMetricRecorder.apply(ORIGIN, originId).onEvent(msgTypeId, buffer, index, length);
-            supplyMetricRecorder.apply(ROUTED, routedId).onEvent(msgTypeId, buffer, index, length);
+            supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
+            supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case WindowFW.TYPE_ID:
@@ -281,8 +280,8 @@ public final class Target implements AutoCloseable
 
         if ((msgTypeId & 0x4000_0000) == 0)
         {
-            supplyMetricRecorder.apply(ORIGIN, originId).onEvent(msgTypeId, buffer, index, length);
-            supplyMetricRecorder.apply(ROUTED, routedId).onEvent(msgTypeId, buffer, index, length);
+            supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
+            supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
