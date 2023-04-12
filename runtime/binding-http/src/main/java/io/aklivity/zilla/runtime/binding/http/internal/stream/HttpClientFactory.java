@@ -3163,7 +3163,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if (exchange != null && !HttpState.initialClosed(exchange.state))
             {
-                exchange.flushRequestWindow(traceId, 0);
+                exchange.doRequestWindow(traceId);
             }
         }
 
@@ -4727,6 +4727,30 @@ public final class HttpClientFactory implements HttpStreamFactory
                 {
                     onExchangeClosed();
                 }
+            }
+        }
+
+        private void doRequestWindow(
+            long traceId)
+        {
+            long requestAckMax = Math.max(requestSeq - client.initialPendingAck() - client.encodeSlotOffset, requestAck);
+            int requestNoAckMin = (int)(requestSeq - requestAckMax);
+            int minRequestMax = Math.min(requestRemaining - requestNoAckMin + client.initialPad, client.initialMax);
+
+            if (requestAckMax > requestAck ||
+                minRequestMax > requestMax && client.encodeSlotOffset == 0 ||
+                minRequestMax == 0 && requestRemaining == 0 && !HttpState.initialOpened(state))
+            {
+                requestAck = requestAckMax;
+                assert requestAck <= requestSeq;
+
+                requestMax = minRequestMax;
+                assert requestMax >= 0;
+
+                state = HttpState.openInitial(state);
+
+                doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
+                    traceId, requestAuth, client.budgetId, client.initialPad);
             }
         }
 
