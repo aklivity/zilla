@@ -32,7 +32,7 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public class KafkaGrpcConditionResult
 {
-    private static final String8FW HEADER_NAME_STATUS = new String8FW("status");
+    private static final String8FW HEADER_NAME_STATUS = new String8FW("zilla:status");
 
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
@@ -110,7 +110,7 @@ public class KafkaGrpcConditionResult
             .value(correlationId.buffer(), correlationId.offset(), correlationId.sizeof()));
     }
 
-    public void headersWithErrorCode(
+    public void headersWithStatusCode(
         OctetsFW correlationId,
         String16FW status,
         Array32FW.Builder<KafkaHeaderFW.Builder,
