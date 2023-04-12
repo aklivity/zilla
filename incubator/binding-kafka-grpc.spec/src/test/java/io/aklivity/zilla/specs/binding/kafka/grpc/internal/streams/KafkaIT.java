@@ -80,4 +80,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/client.sent.write.abort/client",
+        "${kafka}/client.sent.write.abort/server"})
+    public void shouldNotProduceOnClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -79,4 +79,13 @@ public class GrpcIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/client.sent.write.abort/client",
+        "${grpc}/client.sent.write.abort/server"})
+    public void shouldNotProduceOnClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }

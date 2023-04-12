@@ -731,7 +731,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             String16FW status)
         {
-            if (KafkaGrpcState.initialOpened(state) &&
+            if (KafkaGrpcState.initialOpening(state) &&
                 !KafkaGrpcState.initialClosed(state))
             {
                 initialSeq = delegate.initialSeq;

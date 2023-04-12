@@ -121,7 +121,7 @@ public class KafkaGrpcConditionResult
         builder.item(i -> i.nameLen(HEADER_NAME_STATUS.length())
             .name(HEADER_NAME_STATUS.value(), 0, HEADER_NAME_STATUS.length())
             .valueLen(status.length())
-            .value(status.value(), status.offset(), status.length()));
+            .value(status.value(), 0, status.length()));
     }
 
     public void filters(

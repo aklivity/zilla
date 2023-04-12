@@ -111,4 +111,14 @@ public class KafkaGrpcRemoteServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
+        "${kafka}/client.sent.write.abort/server",
+        "${grpc}/client.sent.write.abort/server"})
+    public void shouldNotProduceOnClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }
