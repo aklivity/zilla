@@ -42,49 +42,12 @@ write zilla:data.ext ${kafka:dataEx()
                                 .progress(1, 1)
                                 .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                 .header("zilla:identity", "test")
-                                .header("zilla:service", "example.EchoService")
-                                .header("zilla:method", "EchoClientStream")
                                 .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                 .build()
                             .build()}
 write ${grpc:protobuf()
-            .string(1, "Hello World1")
+            .string(1, "Hello World")
             .build()}
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 2, 2)
-                                .progress(0, 3)
-                                .progress(1, 1)
-                                .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                                .header("zilla:identity", "test")
-                                .header("zilla:service", "example.EchoService")
-                                .header("zilla:method", "EchoClientStream")
-                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                                .build()
-                            .build()}
-write ${grpc:protobuf()
-            .string(1, "Hello World2")
-            .build()}
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 3, 2)
-                                .progress(0, 4)
-                                .progress(1, 1)
-                                .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                                .header("zilla:identity", "test")
-                                .header("zilla:service", "example.EchoService")
-                                .header("zilla:method", "EchoClientStream")
-                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                                .build()
-                            .build()}
 write flush
 
 accepted
@@ -101,28 +64,16 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                               .build()
-                           .build()}
-
-read ${grpc:protobuf()
-           .string(1, "Hello World")
-           .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .deferred(0)
                                 .partition(-1, -1)
+                                .key("59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                 .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                .header("status", "13")
                                 .build()
                             .build()}
 read zilla:data.null
 
-read closed
-write close

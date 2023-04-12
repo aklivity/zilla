@@ -71,4 +71,13 @@ public class KafkaIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/missing.service.and.method.headers/client",
+        "${kafka}/missing.service.and.method.headers/server"})
+    public void shouldRejectOnMissingServiceAndMethodHeaders() throws Exception
+    {
+        k3po.finish();
+    }
 }

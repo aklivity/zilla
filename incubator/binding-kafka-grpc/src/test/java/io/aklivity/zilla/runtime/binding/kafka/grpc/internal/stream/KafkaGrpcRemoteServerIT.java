@@ -102,4 +102,13 @@ public class KafkaGrpcRemoteServerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("remote.server.rpc.yaml")
+    @Specification({
+        "${kafka}/missing.service.and.method.headers/server"})
+    public void shouldRejectOnMissingServiceAndMethodHeaders() throws Exception
+    {
+        k3po.finish();
+    }
 }

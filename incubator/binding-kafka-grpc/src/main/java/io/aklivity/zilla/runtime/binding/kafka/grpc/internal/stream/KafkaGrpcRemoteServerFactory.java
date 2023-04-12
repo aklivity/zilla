@@ -941,6 +941,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private long replyBud;
         private int replyPad;
         private int replyCap;
+        private OctetsFW lastCorrelationId;
 
         private KafkaErrorProducer(
             long originId,
@@ -982,23 +983,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             initialSeq += reserved;
 
             assert initialSeq <= initialAck + initialMax;
-        }
-
-        private void doKafkaAbort(
-            long traceId,
-            long authorization,
-            OctetsFW correlationId)
-        {
-            if (KafkaGrpcState.initialOpened(state) &&
-                !KafkaGrpcState.initialClosed(state))
-            {
-                state = KafkaGrpcState.closeInitial(state);
-
-                doKafkaTombstone(traceId, authorization, correlationId);
-
-                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, emptyRO);
-            }
         }
 
         private void onKafkaMessage(
@@ -1093,6 +1077,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         {
             final long sequence = window.sequence();
             final long acknowledge = window.acknowledge();
+            final long traceId = window.traceId();
+            final long authorization = window.authorization();
             final int maximum = window.maximum();
 
             assert acknowledge <= sequence;
@@ -1102,6 +1088,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             state = KafkaGrpcState.openInitial(state);
 
             assert initialAck <= initialSeq;
+
+            doKafkaTombstone(traceId, authorization, lastCorrelationId);
         }
 
         private void onKafkaReset(
@@ -1148,17 +1136,29 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             OctetsFW correlationId)
         {
-            Flyweight tombstoneDataEx = kafkaDataExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(kafkaTypeId)
-                .merged(m -> m
-                    .timestamp(now().toEpochMilli())
-                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                    .key(k -> result.key(correlationId, k))
-                    .headers(h -> result.headers(correlationId, h)))
-                .build();
+            if (!KafkaGrpcState.initialOpened(state))
+            {
+                doKafkaBegin(traceId, authorization, 0);
+                lastCorrelationId =  new OctetsFW.Builder()
+                    .wrap(new UnsafeBuffer(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
+                    .set(correlationId)
+                    .build();
+            }
+            else if (correlationId != null)
+            {
+                Flyweight tombstoneDataEx = kafkaDataExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .merged(m -> m
+                        .timestamp(now().toEpochMilli())
+                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                        .key(k -> result.key(correlationId, k))
+                        .headers(h -> result.headersWithErrorCode(correlationId, HEADER_VALUE_GRPC_INTERNAL_ERROR, h)))
+                    .build();
 
-            doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
+                doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
+                lastCorrelationId = null;
+            }
         }
     }
 
