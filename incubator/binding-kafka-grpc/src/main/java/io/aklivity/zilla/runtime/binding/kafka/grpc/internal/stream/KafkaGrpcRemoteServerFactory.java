@@ -60,7 +60,7 @@ import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactory
+public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactory
 {
     private static final String GRPC_TYPE_NAME = "grpc";
     private static final String KAFKA_TYPE_NAME = "kafka";
@@ -130,7 +130,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
     private long lastBindingId;
 
 
-    public GrpcKafkaRemoteServerFactory(
+    public KafkaGrpcRemoteServerFactory(
         KafkaGrpcConfiguration config,
         EngineContext context)
     {
@@ -345,7 +345,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                         .deferred(deferred)
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                        .key(remoteServer.result::key)
+                        .key(k -> remoteServer.result.key(correlationId, k))
                         .headers(h -> remoteServer.result.headers(correlationId, h)))
                     .build();
             }
@@ -911,11 +911,254 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
                 .merged(m -> m
                     .timestamp(now().toEpochMilli())
                     .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                    .key(result::key)
+                    .key(k -> result.key(delegate.correlationId, k))
                     .headers(h -> result.headers(delegate.correlationId, h)))
                 .build();
 
             doKafkaData(traceId, authorization, delegate.initialBud, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
+        }
+    }
+
+    private final class KafkaErrorProducer
+    {
+        private MessageConsumer kafka;
+        private final long originId;
+        private final long routedId;
+        private final long initialId;
+        private final long replyId;
+        private final KafkaFetchRemote kafkaFetchRemote;
+        private final KafkaGrpcConditionResult result;
+
+        private int state;
+
+        private long initialSeq;
+        private long initialAck;
+        private int initialMax;
+
+        private long replySeq;
+        private long replyAck;
+        private int replyMax;
+        private long replyBud;
+        private int replyPad;
+        private int replyCap;
+
+        private KafkaErrorProducer(
+            long originId,
+            long routedId,
+            KafkaGrpcConditionResult result,
+            KafkaFetchRemote kafkaFetchRemote)
+        {
+            this.originId = originId;
+            this.routedId = routedId;
+            this.result = result;
+            this.initialId = supplyInitialId.applyAsLong(routedId);
+            this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.kafkaFetchRemote = kafkaFetchRemote;
+        }
+
+        private void doKafkaBegin(
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            state = KafkaGrpcState.openingInitial(state);
+
+            kafka = newKafkaProducer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, affinity, result);
+        }
+
+        private void doKafkaData(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int flags,
+            OctetsFW payload,
+            Flyweight extension)
+        {
+            doData(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                traceId, authorization, budgetId, flags, reserved, payload, extension);
+
+            initialSeq += reserved;
+
+            assert initialSeq <= initialAck + initialMax;
+        }
+
+        private void doKafkaAbort(
+            long traceId,
+            long authorization,
+            OctetsFW correlationId)
+        {
+            if (KafkaGrpcState.initialOpened(state) &&
+                !KafkaGrpcState.initialClosed(state))
+            {
+                state = KafkaGrpcState.closeInitial(state);
+
+                doKafkaTombstone(traceId, authorization, correlationId);
+
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, emptyRO);
+            }
+        }
+
+        private void onKafkaMessage(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            switch (msgTypeId)
+            {
+            case BeginFW.TYPE_ID:
+                final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                onKafkaBegin(begin);
+                break;
+            case EndFW.TYPE_ID:
+                final EndFW end = endRO.wrap(buffer, index, index + length);
+                onKafkaEnd(end);
+                break;
+            case AbortFW.TYPE_ID:
+                final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                onKafkaAbort(abort);
+                break;
+            case WindowFW.TYPE_ID:
+                final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                onKafkaWindow(window);
+                break;
+            case ResetFW.TYPE_ID:
+                final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                onKafkaReset(reset);
+                break;
+            }
+        }
+
+        private void onKafkaBegin(
+            BeginFW begin)
+        {
+            final long sequence = begin.sequence();
+            final long acknowledge = begin.acknowledge();
+            final long traceId = begin.traceId();
+            final long authorization = begin.authorization();
+            final OctetsFW extension = begin.extension();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+            assert acknowledge >= replyAck;
+
+            replySeq = sequence;
+            replyAck = acknowledge;
+            state = KafkaGrpcState.openingReply(state);
+
+            assert replyAck <= replySeq;
+
+            doKafkaWindow(traceId);
+        }
+
+        private void onKafkaEnd(
+            EndFW end)
+        {
+            final long sequence = end.sequence();
+            final long acknowledge = end.acknowledge();
+            final long traceId = end.traceId();
+            final long authorization = end.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = KafkaGrpcState.closeReply(state);
+
+            assert replyAck <= replySeq;
+        }
+
+        private void onKafkaAbort(
+            AbortFW abort)
+        {
+            final long sequence = abort.sequence();
+            final long acknowledge = abort.acknowledge();
+            final long traceId = abort.traceId();
+            final long authorization = abort.authorization();
+
+            assert acknowledge <= sequence;
+            assert sequence >= replySeq;
+
+            replySeq = sequence;
+            state = KafkaGrpcState.closeReply(state);
+
+            assert replyAck <= replySeq;
+        }
+
+        private void onKafkaWindow(
+            WindowFW window)
+        {
+            final long sequence = window.sequence();
+            final long acknowledge = window.acknowledge();
+            final int maximum = window.maximum();
+
+            assert acknowledge <= sequence;
+
+            initialAck = acknowledge;
+            initialMax = maximum;
+            state = KafkaGrpcState.openInitial(state);
+
+            assert initialAck <= initialSeq;
+        }
+
+        private void onKafkaReset(
+            ResetFW reset)
+        {
+            final long sequence = reset.sequence();
+            final long acknowledge = reset.acknowledge();
+            final long traceId = reset.traceId();
+            final long authorization = reset.authorization();
+
+            assert acknowledge <= sequence;
+
+            state = KafkaGrpcState.closeInitial(state);
+
+            doKafkaReset(traceId, authorization);
+        }
+
+        private void doKafkaReset(
+            long traceId,
+            long authorization)
+        {
+            if (KafkaGrpcState.replyOpened(state) &&
+                !KafkaGrpcState.replyClosed(state))
+            {
+                state = KafkaGrpcState.closeReply(state);
+
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, emptyRO);
+            }
+        }
+
+        private void doKafkaWindow(
+            long traceId)
+        {
+            if (kafka != null && !KafkaGrpcState.replyClosed(state))
+            {
+                doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                    traceId, 0L, replyBud, replyPad, replyCap);
+            }
+        }
+
+        private void doKafkaTombstone(
+            long traceId,
+            long authorization,
+            OctetsFW correlationId)
+        {
+            Flyweight tombstoneDataEx = kafkaDataExRW
+                .wrap(extBuffer, 0, extBuffer.capacity())
+                .typeId(kafkaTypeId)
+                .merged(m -> m
+                    .timestamp(now().toEpochMilli())
+                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                    .key(k -> result.key(correlationId, k))
+                    .headers(h -> result.headers(correlationId, h)))
+                .build();
+
+            doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
         }
     }
 
@@ -929,6 +1172,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
         private final long replyId;
         private final KafkaGrpcConditionResult result;
         private final RemoteServer delegate;
+        private final KafkaErrorProducer errorProducer;
         private OctetsFW lastCorrelationId;
 
         private int state;
@@ -966,6 +1210,7 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
             this.replyBud = 0;
             this.replyPad = 0;
             this.replyCap = 0;
+            this.errorProducer = new KafkaErrorProducer(originId, routedId, result, this);
         }
 
         private int replyPendingAck()
@@ -987,7 +1232,6 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
             kafka = newKafkaFetch(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, result);
-
         }
 
         private void doKafkaEnd(
@@ -1105,21 +1349,24 @@ public final class GrpcKafkaRemoteServerFactory implements KafkaGrpcStreamFactor
 
                 if (helper.resolved())
                 {
-                    final int correlationLength = helper.correlationId.sizeof();
-                    OctetsFW newCorrelationId = new OctetsFW.Builder()
-                        .wrap(new UnsafeBuffer(new byte[correlationLength]), 0, correlationLength)
-                        .set(helper.correlationId)
-                        .build();
-                    lastCorrelationId = newCorrelationId;
-
-                    GrpcClient grpcClient = delegate.grpcClients.get(newCorrelationId);
-                    grpcClient = grpcClient == null ?
-                        newGrpcClient(traceId, authorization, helper.service, helper.method, newCorrelationId) :
-                        grpcClient;
+                    GrpcClient grpcClient = delegate.grpcClients.get(helper.correlationId);
+                    if (grpcClient == null)
+                    {
+                        final int correlationLength = helper.correlationId.sizeof();
+                        OctetsFW newCorrelationId = new OctetsFW.Builder()
+                            .wrap(new UnsafeBuffer(new byte[correlationLength]), 0, correlationLength)
+                            .set(helper.correlationId)
+                            .build();
+                        lastCorrelationId = newCorrelationId;
+                        grpcClient = newGrpcClient(traceId, authorization, helper.service, helper.method, newCorrelationId);
+                    }
 
                     flushGrpcClientData(grpcClient, traceId, authorization, helper.service, helper.method, flags, payload);
                 }
-                //TODO: Check if correlationId is present
+                else if (helper.correlationId != null)
+                {
+                    errorProducer.doKafkaTombstone(traceId, authorization, helper.correlationId);
+                }
             }
             else
             {

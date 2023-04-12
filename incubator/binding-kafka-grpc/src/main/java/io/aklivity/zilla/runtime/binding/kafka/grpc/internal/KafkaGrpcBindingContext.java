@@ -19,7 +19,7 @@ import static java.util.Collections.singletonMap;
 
 import java.util.Map;
 
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.GrpcKafkaRemoteServerFactory;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcRemoteServerFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
@@ -28,20 +28,20 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 final class KafkaGrpcBindingContext implements BindingContext
 {
-    private final Map<KindConfig, GrpcKafkaRemoteServerFactory> factories;
+    private final Map<KindConfig, KafkaGrpcRemoteServerFactory> factories;
 
     KafkaGrpcBindingContext(
         KafkaGrpcConfiguration config,
         EngineContext context)
     {
-        this.factories = singletonMap(REMOTE_SERVER, new GrpcKafkaRemoteServerFactory(config, context));
+        this.factories = singletonMap(REMOTE_SERVER, new KafkaGrpcRemoteServerFactory(config, context));
     }
 
     @Override
     public BindingHandler attach(
         BindingConfig binding)
     {
-        final GrpcKafkaRemoteServerFactory factory = factories.get(binding.kind);
+        final KafkaGrpcRemoteServerFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {
@@ -55,7 +55,7 @@ final class KafkaGrpcBindingContext implements BindingContext
     public void detach(
         BindingConfig binding)
     {
-        final GrpcKafkaRemoteServerFactory factory = factories.get(binding.kind);
+        final KafkaGrpcRemoteServerFactory factory = factories.get(binding.kind);
 
         if (factory != null)
         {

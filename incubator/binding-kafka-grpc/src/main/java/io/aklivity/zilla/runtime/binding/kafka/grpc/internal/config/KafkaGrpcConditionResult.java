@@ -28,9 +28,12 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 
 public class KafkaGrpcConditionResult
 {
+    private static final String8FW HEADER_NAME_STATUS = new String8FW(":status");
+
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
             .wrap(new UnsafeBuffer(new byte[32]), 0, 32)
@@ -90,8 +93,10 @@ public class KafkaGrpcConditionResult
     }
 
     public void key(
+        OctetsFW key,
         KafkaKeyFW.Builder builder)
     {
+        builder.length(key.sizeof()).value(key);
     }
 
     public void headers(
@@ -102,8 +107,21 @@ public class KafkaGrpcConditionResult
         builder.item(i -> i.nameLen(correlation.correlationId.length())
             .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
             .valueLen(correlationId.sizeof())
-            .value(correlationId.value(), 0, correlationId.sizeof())
-        );
+            .value(correlationId.buffer(), correlationId.offset(), correlationId.sizeof()));
+    }
+
+    public void headersWithErrorCode(
+        OctetsFW correlationId,
+        OctetsFW status,
+        Array32FW.Builder<KafkaHeaderFW.Builder,
+            KafkaHeaderFW> builder)
+    {
+        headers(correlationId, builder);
+
+        builder.item(i -> i.nameLen(HEADER_NAME_STATUS.length())
+            .name(HEADER_NAME_STATUS.value(), 0, HEADER_NAME_STATUS.length())
+            .valueLen(status.sizeof())
+            .value(status.buffer(), status.offset(), status.sizeof()));
     }
 
     public void filters(
