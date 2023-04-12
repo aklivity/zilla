@@ -30,12 +30,15 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaBin
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithResult;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Flyweight;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcDataExFW;
@@ -60,6 +63,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private static final int DATA_FLAG_FIN = 0x01;
     private static final int DATA_FLAG_COMPLETE = 0x03;
 
+    private static final String8FW HEADER_NAME_ZILLA_GRPC_STATUS = new String8FW("zilla:status");
     private static final String16FW HEADER_VALUE_GRPC_OK = new String16FW("0");
     private static final String16FW HEADER_VALUE_GRPC_ABORTED = new String16FW("10");
     private static final String16FW HEADER_VALUE_GRPC_UNIMPLEMENTED = new String16FW("12");
@@ -72,6 +76,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
 
+    private final String16FW.Builder string16RW = new
+        String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
@@ -84,6 +90,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final WindowFW.Builder windowRW = new WindowFW.Builder();
     private final ResetFW.Builder resetRW = new ResetFW.Builder();
 
+    private final ExtensionFW extensionRO = new ExtensionFW();
     private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
     private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
     private final GrpcResetExFW resetExRO = new GrpcResetExFW();
@@ -457,8 +464,26 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
                 if (payload == null)
                 {
+                    final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
+                    final KafkaDataExFW kafkaDataEx =
+                        dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+
+                    KafkaHeaderFW grpcStatus = kafkaDataEx.merged().headers()
+                        .matchFirst(h -> HEADER_NAME_ZILLA_GRPC_STATUS.value().equals(h.name().value()));
+
+                    if (grpcStatus != null &&
+                        !HEADER_VALUE_GRPC_OK.value().equals(grpcStatus.value().value()))
+                    {
+                        String16FW status = string16RW
+                            .set(grpcStatus.value().buffer(), grpcStatus.offset(), grpcStatus.sizeof())
+                            .build();
+                        doGrpcAbort(traceId, authorization, status);
+                    }
+                    else
+                    {
+                        doGrpcEnd(traceId, traceId);
+                    }
                     correlater.doKafkaEnd(traceId, authorization);
-                    doGrpcEnd(traceId, traceId);
                 }
                 else if (GrpcKafkaState.replyOpening(state))
                 {
@@ -496,7 +521,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long authorization)
         {
             doGrpcReset(traceId, authorization);
-            doGrpcAbort(traceId, authorization);
+            doGrpcAbort(traceId, authorization, HEADER_VALUE_GRPC_INTERNAL_ERROR);
 
             producer.doKafkaAbort(traceId, authorization);
             producer.doKafkaReset(traceId, authorization);
@@ -534,7 +559,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
         private void doGrpcAbort(
             long traceId,
-            long authorization)
+            long authorization,
+            String16FW status)
         {
             if (GrpcKafkaState.replyOpened(state) && !GrpcKafkaState.replyClosed(state))
             {
@@ -543,7 +569,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final GrpcAbortExFW grpcAbortEx =
                     grpcAbortExRW.wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(grpcTypeId)
-                        .status(HEADER_VALUE_GRPC_INTERNAL_ERROR)
+                        .status(status)
                         .build();
 
                 doAbort(grpc, originId, routedId, replyId, replySeq, replyAck, replyMax,
