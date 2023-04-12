@@ -41,10 +41,4 @@ public final class KafkaGrpcRouteConfig extends OptionsConfig
 
         this.authorized = route.authorized;
     }
-
-    boolean authorized(
-        long authorization)
-    {
-        return authorized.test(authorization);
-    }
 }
