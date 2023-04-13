@@ -33,13 +33,13 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithConfigAdapter;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceConfigAdapter;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchFilterConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchFilterHeaderConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceOverrideConfig;
 
-public class GrpcKafkaWithConfigAdapterTest
+public class GrpcKafkaWithProduceConfigAdapterTest
 {
     private Jsonb jsonb;
 
@@ -47,7 +47,7 @@ public class GrpcKafkaWithConfigAdapterTest
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new GrpcKafkaWithConfigAdapter());
+                .withAdapters(new GrpcKafkaWithProduceConfigAdapter());
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -73,7 +73,7 @@ public class GrpcKafkaWithConfigAdapterTest
                 "    ]\n" +
                 "}";
 
-        GrpcKafkaWithConfig with = jsonb.fromJson(text, GrpcKafkaWithConfig.class);
+        GrpcKafkaWithProduceConfig with = jsonb.fromJson(text, GrpcKafkaWithProduceConfig.class);
 
         assertThat(with, not(nullValue()));
         assertThat(with.topic, equalTo("items"));
@@ -95,7 +95,7 @@ public class GrpcKafkaWithConfigAdapterTest
     @Test
     public void shouldWriteWith()
     {
-        GrpcKafkaWithConfig with = new GrpcKafkaWithConfig(
+        GrpcKafkaWithProduceConfig with = new GrpcKafkaWithProduceConfig(
             "items",
             LEADER_ONLY,
             "test",

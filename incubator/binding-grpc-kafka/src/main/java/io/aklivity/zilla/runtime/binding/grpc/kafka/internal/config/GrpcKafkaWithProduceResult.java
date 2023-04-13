@@ -31,7 +31,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetTy
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 
-public class GrpcKafkaWithResult
+public class GrpcKafkaWithProduceResult
 {
     private static final KafkaOffsetFW KAFKA_OFFSET_HISTORICAL =
         new KafkaOffsetFW.Builder()
@@ -41,7 +41,6 @@ public class GrpcKafkaWithResult
             .build();
 
     private final List<GrpcKafkaWithProduceOverrideResult> overrides;
-    private final List<GrpcKafkaWithFetchFilterResult> filters;
     private final GrpcKafkaCorrelationConfig correlation;
     private final String16FW topic;
     private final String16FW replyTo;
@@ -51,7 +50,7 @@ public class GrpcKafkaWithResult
     private final String16FW service;
     private final String16FW method;
 
-    GrpcKafkaWithResult(
+    GrpcKafkaWithProduceResult(
         String16FW service,
         String16FW method,
         String16FW topic,
@@ -59,7 +58,6 @@ public class GrpcKafkaWithResult
         Supplier<DirectBuffer> keyRef,
         List<GrpcKafkaWithProduceOverrideResult> overrides,
         String16FW replyTo,
-        List<GrpcKafkaWithFetchFilterResult> filters,
         GrpcKafkaCorrelationConfig correlation,
         GrpcKafkaWithProduceHash hash)
     {
@@ -67,7 +65,6 @@ public class GrpcKafkaWithResult
         this.service = service;
         this.overrides = overrides;
         this.replyTo = replyTo;
-        this.filters = filters;
         this.correlation = correlation;
         this.topic = topic;
         this.acks = acks;
@@ -164,11 +161,6 @@ public class GrpcKafkaWithResult
     public void filters(
         Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
     {
-        if (filters != null)
-        {
-            filters.forEach(f -> builder.item(f::filter));
-        }
-
         final OctetsFW hashCorrelationId = hash.correlationId();
 
         builder.item(i -> i

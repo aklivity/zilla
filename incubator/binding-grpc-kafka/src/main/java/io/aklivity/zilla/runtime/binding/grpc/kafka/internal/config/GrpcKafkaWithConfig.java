@@ -14,36 +14,35 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
-import java.util.List;
 import java.util.Optional;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.engine.config.WithConfig;
-
 
 public final class GrpcKafkaWithConfig extends WithConfig
 {
-    public final String topic;
-    public final KafkaAckMode acks;
-    public final Optional<String> key;
-    public final Optional<List<GrpcKafkaWithProduceOverrideConfig>> overrides;
-    public final String replyTo;
-    public final Optional<List<GrpcKafkaWithFetchFilterConfig>> filters;
-
+    public final GrpcKafkaCapability capability;
+    public final Optional<GrpcKafkaWithFetchConfig> fetch;
+    public final Optional<GrpcKafkaWithProduceConfig> produce;
 
     public GrpcKafkaWithConfig(
-        String topic,
-        KafkaAckMode acks,
-        String key,
-        List<GrpcKafkaWithProduceOverrideConfig> overrides,
-        String replyTo,
-        List<GrpcKafkaWithFetchFilterConfig> filters)
+        GrpcKafkaWithFetchConfig fetch)
     {
-        this.topic = topic;
-        this.acks = acks;
-        this.overrides = Optional.ofNullable(overrides);
-        this.key = Optional.ofNullable(key);
-        this.replyTo = replyTo;
-        this.filters = Optional.ofNullable(filters);
+        this(GrpcKafkaCapability.FETCH, fetch, null);
+    }
+
+    public GrpcKafkaWithConfig(
+        GrpcKafkaWithProduceConfig produce)
+    {
+        this(GrpcKafkaCapability.PRODUCE, null, produce);
+    }
+
+    private GrpcKafkaWithConfig(
+        GrpcKafkaCapability capability,
+        GrpcKafkaWithFetchConfig fetch,
+        GrpcKafkaWithProduceConfig produce)
+    {
+        this.capability = capability;
+        this.fetch = Optional.ofNullable(fetch);
+        this.produce = Optional.ofNullable(produce);
     }
 }

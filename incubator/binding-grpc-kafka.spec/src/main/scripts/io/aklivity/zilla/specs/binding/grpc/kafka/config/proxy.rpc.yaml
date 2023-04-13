@@ -41,7 +41,3 @@ bindings:
           overrides:
             zilla:identity: "${guarded['test0'].identity}"
           reply-to: responses
-          filters:
-            - key: "test"
-              headers:
-                zilla:identity: "${guarded['test0'].identity}"

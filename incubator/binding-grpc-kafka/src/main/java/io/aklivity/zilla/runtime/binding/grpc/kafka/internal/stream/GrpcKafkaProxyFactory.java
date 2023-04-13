@@ -20,6 +20,7 @@ import static java.time.Instant.now;
 
 import java.util.function.LongUnaryOperator;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchResult;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -27,8 +28,8 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaBindingConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceResult;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaRouteConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithResult;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
@@ -178,7 +179,38 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         if (route != null)
         {
             final long resolvedId = route.id;
-            GrpcKafkaWithResult resolve = route.with.resolve(authorization, grpcBeginEx);
+
+            switch (route.with.capability())
+            {
+                case FETCH:
+                {
+                    final GrpcKafkaWithFetchResult resolved = route.with.resolveFetch(authorization);
+
+                    newStream = new HttpFetchProxy(
+                        http,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedId,
+                        resolved)::onHttpMessage;
+                    break;
+                }
+                case PRODUCE:
+                {
+                    final GrpcKafkaWithProduceResult resolved = route.with.resolveProduce(authorization, grpcBeginEx);
+
+                    newStream = new HttpCorrelateAsyncProxy(
+                        http,
+                        originId,
+                        routedId,
+                        initialId,
+                        resolvedId,
+                        resolved)::onHttpMessage;
+
+                    break;
+                }
+
+            GrpcKafkaWithProduceResult resolve = route.with.resolveProduce(authorization, grpcBeginEx);
 
             newStream = new GrpcProxy(grpc, originId, routedId, initialId, resolvedId, resolve)::onGrpcMessage;
         }
@@ -216,7 +248,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long routedId,
             long initialId,
             long resolvedId,
-            GrpcKafkaWithResult result)
+            GrpcKafkaWithProduceResult result)
         {
             this.grpc = grpc;
             this.originId = originId;
@@ -633,7 +665,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final GrpcKafkaWithResult result;
+        private final GrpcKafkaWithProduceResult result;
         private final GrpcProxy delegate;
 
         private int state;
@@ -654,7 +686,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long originId,
             long routedId,
             GrpcProxy delegate,
-            GrpcKafkaWithResult result)
+            GrpcKafkaWithProduceResult result)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -934,7 +966,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final GrpcKafkaWithResult result;
+        private final GrpcKafkaWithProduceResult result;
         private final GrpcProxy delegate;
 
         private int state;
@@ -954,7 +986,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             long originId,
             long routedId,
             GrpcProxy delegate,
-            GrpcKafkaWithResult result)
+            GrpcKafkaWithProduceResult result)
         {
             this.originId = originId;
             this.routedId = routedId;
@@ -1355,7 +1387,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        GrpcKafkaWithResult result)
+        GrpcKafkaWithProduceResult result)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -1398,7 +1430,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         long traceId,
         long authorization,
         long affinity,
-        GrpcKafkaWithResult result)
+        GrpcKafkaWithProduceResult result)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
