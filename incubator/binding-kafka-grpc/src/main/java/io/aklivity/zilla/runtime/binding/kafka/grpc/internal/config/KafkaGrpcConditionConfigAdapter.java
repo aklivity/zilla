@@ -51,10 +51,7 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (condition.topic != null)
-        {
-            object.add(TOPIC_NAME, condition.topic.asString());
-        }
+        object.add(TOPIC_NAME, condition.topic.asString());
 
         if (condition.key.isPresent())
         {
@@ -87,9 +84,8 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String16FW topic = object.containsKey(TOPIC_NAME)
-            ? new String16FW(object.getString(TOPIC_NAME))
-            : null;
+        String16FW topic = new String16FW(object.getString(TOPIC_NAME));
+
         String16FW key = object.containsKey(KEY_NAME)
             ? new String16FW(object.getString(KEY_NAME))
             : null;

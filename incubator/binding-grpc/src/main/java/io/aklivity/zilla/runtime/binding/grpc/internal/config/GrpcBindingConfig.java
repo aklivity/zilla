@@ -125,7 +125,7 @@ public final class GrpcBindingConfig
                     helper.scheme,
                     helper.authority,
                     helper.te,
-                    helper.metadataHeaders
+                    helper.metadata
                 );
             }
         }
@@ -178,7 +178,7 @@ public final class GrpcBindingConfig
         private final String16FW authorityRO = new String16FW();
         private final String16FW teRO = new String16FW();
 
-        public Array32FW<GrpcMetadataFW> metadataHeaders;
+        public Array32FW<GrpcMetadataFW> metadata;
         public CharSequence path;
         public CharSequence serviceName;
         private CharSequence grpcTimeoutText;
@@ -205,13 +205,13 @@ public final class GrpcBindingConfig
             authority = null;
             te = null;
             contentType = null;
-            metadataHeaders = null;
+            metadata = null;
             grpcMetadataRW.wrap(metadataBuffer, 0, metadataBuffer.capacity());
 
             if (beginEx != null)
             {
                 beginEx.headers().forEach(this::dispatch);
-                metadataHeaders = grpcMetadataRW.build();
+                metadata = grpcMetadataRW.build();
             }
         }
 
