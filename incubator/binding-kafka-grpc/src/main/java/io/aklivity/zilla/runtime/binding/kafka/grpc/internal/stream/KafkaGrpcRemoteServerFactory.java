@@ -175,6 +175,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         long bindingId)
     {
         bindings.remove(bindingId);
+
+        signaler.cancel(reconnectAt);
+        reconnectAt = NO_CANCEL_ID;
     }
 
     @Override
@@ -410,7 +413,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 }
                 else if (helper.correlationId != null)
                 {
-                    errorProducer.doKafkaDataNull(traceId, authorization, helper.correlationId);
+                    errorProducer.onKafkaError(traceId, authorization, helper.correlationId);
                 }
             }
             else
@@ -975,7 +978,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private long replyBud;
         private int replyPad;
         private int replyCap;
-        private OctetsFW lastCorrelationId;
+        private List<OctetsFW> correlationIds;
 
         private KafkaErrorProducer(
             long originId,
@@ -1123,7 +1126,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             assert initialAck <= initialSeq;
 
-            doKafkaDataNull(traceId, authorization, lastCorrelationId);
+            doKafkaDataNull(traceId, authorization);
         }
 
         private void onKafkaReset(
@@ -1139,6 +1142,26 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             state = KafkaGrpcState.closeInitial(state);
 
             doKafkaReset(traceId, authorization);
+        }
+
+        private void onKafkaError(
+            long traceId,
+            long authorization,
+            OctetsFW correlationId)
+        {
+            correlationIds.add(new OctetsFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
+                .set(correlationId)
+                .build());
+
+            if (!KafkaGrpcState.initialOpened(state))
+            {
+                doKafkaBegin(traceId, authorization, 0);
+            }
+            else
+            {
+                doKafkaDataNull(traceId, authorization);
+            }
         }
 
         private void doKafkaReset(
@@ -1165,20 +1188,12 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             }
         }
 
+
         private void doKafkaDataNull(
             long traceId,
-            long authorization,
-            OctetsFW correlationId)
+            long authorization)
         {
-            if (!KafkaGrpcState.initialOpened(state))
-            {
-                doKafkaBegin(traceId, authorization, 0);
-                lastCorrelationId =  new OctetsFW.Builder()
-                    .wrap(new UnsafeBuffer(new byte[correlationId.sizeof()]), 0, correlationId.sizeof())
-                    .set(correlationId)
-                    .build();
-            }
-            else if (correlationId != null)
+            correlationIds.forEach(c ->
             {
                 Flyweight tombstoneDataEx = kafkaDataExRW
                     .wrap(extBuffer, 0, extBuffer.capacity())
@@ -1186,13 +1201,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                     .merged(m -> m
                         .timestamp(now().toEpochMilli())
                         .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                        .key(k -> condition.key(correlationId, k))
-                        .headers(h -> condition.headersWithStatusCode(correlationId, HEADER_VALUE_GRPC_INTERNAL_ERROR, h)))
+                        .key(k -> condition.key(c, k))
+                        .headers(h -> condition.headersWithStatusCode(c, HEADER_VALUE_GRPC_INTERNAL_ERROR, h)))
                     .build();
-
                 doKafkaData(traceId, authorization, 0, 0, DATA_FLAG_COMPLETE, null, tombstoneDataEx);
-                lastCorrelationId = null;
-            }
+            });
+
+            correlationIds.clear();
         }
     }
 
