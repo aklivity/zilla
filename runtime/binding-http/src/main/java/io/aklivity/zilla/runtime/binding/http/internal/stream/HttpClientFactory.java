@@ -1184,6 +1184,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             @Override
+            public void onApplicationBegin(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                exchange.doRequestWindow(traceId);
+            }
+
+            @Override
             public void onApplicationWindow(
                 HttpClient client,
                 HttpExchange exchange,
@@ -1280,6 +1290,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             @Override
+            public void onApplicationBegin(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                exchange.flushRequestWindow(traceId, 0);
+            }
+
+            @Override
             public void onApplicationWindow(
                 HttpClient client,
                 HttpExchange exchange,
@@ -1366,11 +1386,21 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             @Override
+            public void onApplicationBegin(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                exchange.flushRequestWindow(traceId, 0);
+            }
+
+            @Override
             public void onApplicationWindow(
-                    HttpClient client,
-                    HttpExchange exchange,
-                    long traceId,
-                    long authorization)
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
             {
                 //NOOP
             }
@@ -1424,6 +1454,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             long acknowledge,
             int maximum,
             int padding);
+
+        public abstract void onApplicationBegin(
+            HttpClient client,
+            HttpExchange exchange,
+            long traceId,
+            long authorization
+        );
 
         public abstract void onApplicationWindow(
             HttpClient client,
@@ -4577,14 +4614,9 @@ public final class HttpClientFactory implements HttpStreamFactory
             if (HttpState.replyOpened(client.state))
             {
                 remoteBudget = client.remoteSharedBudget;
-                flushRequestWindow(traceId, 0);
-            }
-            else
-            {
-                doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                    traceId, sessionId, client.budgetId, 0);
             }
 
+            client.encoder.onApplicationBegin(client, this, traceId, authorization);
         }
 
         private void doRequestBegin(
