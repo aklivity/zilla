@@ -959,12 +959,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final class KafkaErrorProducer
     {
         private MessageConsumer kafka;
+        private final KafkaRemoteServer server;
+        private final KafkaGrpcConditionResult condition;
+        private final List<OctetsFW> correlationIds;
         private final long originId;
         private final long routedId;
         private final long initialId;
         private final long replyId;
-        private final KafkaRemoteServer server;
-        private final KafkaGrpcConditionResult condition;
 
         private int state;
 
@@ -978,7 +979,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private long replyBud;
         private int replyPad;
         private int replyCap;
-        private List<OctetsFW> correlationIds;
 
         private KafkaErrorProducer(
             long originId,
@@ -992,6 +992,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.server = server;
+            this.correlationIds = new ArrayList<>();
         }
 
         private void doKafkaBegin(
