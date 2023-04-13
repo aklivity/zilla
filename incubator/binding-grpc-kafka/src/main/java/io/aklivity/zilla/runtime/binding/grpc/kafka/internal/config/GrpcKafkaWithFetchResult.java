@@ -49,6 +49,11 @@ public class GrpcKafkaWithFetchResult
         return topic;
     }
 
+    public void partitions(
+        Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
+    {
+        builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
+    }
 
     public void filters(
         Array32FW.Builder<KafkaFilterFW.Builder, KafkaFilterFW> builder)
