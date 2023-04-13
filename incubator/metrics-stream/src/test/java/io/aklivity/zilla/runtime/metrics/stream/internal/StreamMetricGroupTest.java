@@ -29,10 +29,10 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.DataFW;
@@ -70,13 +70,13 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.opens.received");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.onEvent(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(1L);
@@ -111,13 +111,13 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.opens.sent");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.onEvent(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(1L);
@@ -152,7 +152,7 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.data.received");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         AtomicBuffer payload = new UnsafeBuffer(new byte[8], 0, 8);
         new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
@@ -160,7 +160,7 @@ public class StreamMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload, 0, 8).build();
-        handler.onEvent(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(8L);
@@ -195,7 +195,7 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.data.sent");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         AtomicBuffer payload = new UnsafeBuffer(new byte[8], 0, 8);
         new DataFW.Builder().wrap(buffer, 0, buffer.capacity())
@@ -203,7 +203,7 @@ public class StreamMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload, 0, 8).build();
-        handler.onEvent(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(DataFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(8L);
@@ -239,18 +239,18 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.errors.received");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(AbortFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(AbortFW.TYPE_ID, buffer, 0, buffer.capacity());
         new ResetFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(2)).accept(1L);
@@ -285,18 +285,18 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.errors.sent");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new AbortFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(AbortFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(AbortFW.TYPE_ID, buffer, 0, buffer.capacity());
         new ResetFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(ResetFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(2)).accept(1L);
@@ -331,13 +331,13 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.closes.received");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(1L);
@@ -372,13 +372,13 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.closes.sent");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer buffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(buffer, 0, buffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
+        handler.accept(EndFW.TYPE_ID, buffer, 0, buffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(1L);
@@ -413,19 +413,19 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.active.received");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(1L);
@@ -461,19 +461,19 @@ public class StreamMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("stream.active.sent");
         MetricContext context = metric.supply(mocked);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(1L);

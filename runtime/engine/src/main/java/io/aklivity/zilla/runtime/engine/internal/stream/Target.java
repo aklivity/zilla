@@ -45,7 +45,6 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public final class Target implements AutoCloseable
 {
@@ -64,8 +63,8 @@ public final class Target implements AutoCloseable
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final MessageConsumer writeHandler;
     private final LongFunction<LoadEntry> supplyLoadEntry;
-    private final LongFunction<MetricHandler> supplyOriginMetricRecorder;
-    private final LongFunction<MetricHandler> supplyRoutedMetricRecorder;
+    private final LongFunction<MessageConsumer> supplyOriginMetricRecorder;
+    private final LongFunction<MessageConsumer> supplyRoutedMetricRecorder;
 
     private MessagePredicate streamsBuffer;
 
@@ -79,8 +78,8 @@ public final class Target implements AutoCloseable
         Long2ObjectHashMap<LongHashSet> streamSets,
         Int2ObjectHashMap<MessageConsumer>[] throttles,
         LongFunction<LoadEntry> supplyLoadEntry,
-        LongFunction<MetricHandler> supplyOriginMetricRecorder,
-        LongFunction<MetricHandler> supplyRoutedMetricRecorder)
+        LongFunction<MessageConsumer> supplyOriginMetricRecorder,
+        LongFunction<MessageConsumer> supplyRoutedMetricRecorder)
     {
         this.timestamps = config.timestamps();
         this.localIndex = index;
@@ -235,8 +234,8 @@ public final class Target implements AutoCloseable
         }
         else
         {
-            supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
-            supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
+            supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
+            supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case WindowFW.TYPE_ID:
@@ -280,8 +279,8 @@ public final class Target implements AutoCloseable
 
         if ((msgTypeId & 0x4000_0000) == 0)
         {
-            supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
-            supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
+            supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
+            supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:

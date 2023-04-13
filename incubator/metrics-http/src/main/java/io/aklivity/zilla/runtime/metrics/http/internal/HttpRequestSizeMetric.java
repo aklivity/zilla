@@ -26,9 +26,9 @@ import org.agrona.collections.Long2LongCounterMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.HttpHeaderFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.BeginFW;
@@ -89,7 +89,7 @@ public class HttpRequestSizeMetric implements Metric
         }
 
         @Override
-        public MetricHandler supply(
+        public MessageConsumer supply(
             LongConsumer recorder)
         {
             return (t, b, i, l) -> handle(recorder, t, b, i, l);

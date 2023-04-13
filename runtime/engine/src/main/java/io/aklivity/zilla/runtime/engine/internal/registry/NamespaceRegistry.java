@@ -27,6 +27,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
@@ -36,7 +37,6 @@ import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
@@ -127,15 +127,15 @@ public class NamespaceRegistry
         BindingConfig config)
     {
         BindingHandler binding = registry.streamFactory();
-        MetricHandler originMetricHandler = MetricHandler.NO_OP;
-        MetricHandler routedMetricHandler = MetricHandler.NO_OP;
+        MessageConsumer originMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer routedMetricHandler = MessageConsumer.NOOP;
         if (config.metricIds != null)
         {
             for (long metricId : config.metricIds)
             {
                 MetricRegistry metric = supplyMetric.apply(metricId);
                 LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
-                MetricHandler handler = metric.supplyHandler(metricRecorder);
+                MessageConsumer handler = metric.supplyHandler(metricRecorder);
                 MetricHandlerKind kind = resolveKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
                 if (kind == ROUTED)
                 {
@@ -152,8 +152,8 @@ public class NamespaceRegistry
                 }
             }
         }
-        registry.setOriginMetricHandler(originMetricHandler);
-        registry.setRoutedMetricHandler(routedMetricHandler);
+        registry.originMetricHandler(originMetricHandler);
+        registry.routedMetricHandler(routedMetricHandler);
     }
 
     private MetricHandlerKind resolveKind(

@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.test.internal.metrics.TestMetricGroup;
 
 public class MetricGroupTest
@@ -25,7 +26,7 @@ public class MetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("test.counter");
         MetricContext context = metric.supply(mock(EngineContext.class));
-        MetricHandler handler = context.supply(mock(LongConsumer.class));
+        MessageConsumer handler = context.supply(mock(LongConsumer.class));
 
         // THEN
         assertThat(metric, instanceOf(TestCounterMetric.class));
@@ -33,7 +34,7 @@ public class MetricGroupTest
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
         assertThat(context.group(), equalTo("test"));
-        assertThat(handler, instanceOf(MetricHandler.class));
+        assertThat(handler, instanceOf(MessageConsumer.class));
     }
 
     @Test
@@ -46,7 +47,7 @@ public class MetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("test.gauge");
         MetricContext context = metric.supply(mock(EngineContext.class));
-        MetricHandler handler = context.supply(mock(LongConsumer.class));
+        MessageConsumer handler = context.supply(mock(LongConsumer.class));
 
         // THEN
         assertThat(metric, instanceOf(TestGaugeMetric.class));
@@ -54,7 +55,7 @@ public class MetricGroupTest
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
         assertThat(context.group(), equalTo("test"));
-        assertThat(handler, instanceOf(MetricHandler.class));
+        assertThat(handler, instanceOf(MessageConsumer.class));
     }
 
     @Test
@@ -67,7 +68,7 @@ public class MetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("test.histogram");
         MetricContext context = metric.supply(mock(EngineContext.class));
-        MetricHandler handler = context.supply(mock(LongConsumer.class));
+        MessageConsumer handler = context.supply(mock(LongConsumer.class));
 
         // THEN
         assertThat(metric, instanceOf(TestHistogramMetric.class));
@@ -75,6 +76,6 @@ public class MetricGroupTest
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
         assertThat(context.group(), equalTo("test"));
-        assertThat(handler, instanceOf(MetricHandler.class));
+        assertThat(handler, instanceOf(MessageConsumer.class));
     }
 }

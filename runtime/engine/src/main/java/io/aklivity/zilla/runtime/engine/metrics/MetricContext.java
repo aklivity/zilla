@@ -2,12 +2,14 @@ package io.aklivity.zilla.runtime.engine.metrics;
 
 import java.util.function.LongConsumer;
 
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+
 public interface MetricContext
 {
     String group();
 
     Metric.Kind kind();
 
-    MetricHandler supply(
+    MessageConsumer supply(
         LongConsumer recorder);
 }

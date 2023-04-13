@@ -126,7 +126,6 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
@@ -158,8 +157,8 @@ public class DispatchAgent implements EngineContext, Agent
     private final LabelManager labels;
     private final String agentName;
     private final LongFunction<LoadEntry> supplyLoadEntry;
-    private final LongFunction<MetricHandler> supplyOriginMetricRecorder;
-    private final LongFunction<MetricHandler> supplyRoutedMetricRecorder;
+    private final LongFunction<MessageConsumer> supplyOriginMetricRecorder;
+    private final LongFunction<MessageConsumer> supplyRoutedMetricRecorder;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -1066,8 +1065,8 @@ public class DispatchAgent implements EngineContext, Agent
             final MessageConsumer handler = dispatcher.get(instanceId);
             if (handler != null)
             {
-                supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
-                supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
+                supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
+                supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
@@ -1395,8 +1394,8 @@ public class DispatchAgent implements EngineContext, Agent
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
                 throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
-                supplyOriginMetricRecorder.apply(originId).onEvent(msgTypeId, buffer, index, length);
-                supplyRoutedMetricRecorder.apply(routedId).onEvent(msgTypeId, buffer, index, length);
+                supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
+                supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
                 streamSets.computeIfAbsent(routedId, k -> new LongHashSet())
                     .add(initialId);
             }
@@ -1556,18 +1555,18 @@ public class DispatchAgent implements EngineContext, Agent
         return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
     }
 
-    private MetricHandler supplyOriginMetricRecorder(
+    private MessageConsumer supplyOriginMetricRecorder(
         long bindingId)
     {
         BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.originMetricHandler() : MetricHandler.NO_OP;
+        return binding != null ? binding.originMetricHandler() : MessageConsumer.NOOP;
     }
 
-    private MetricHandler supplyRoutedMetricRecorder(
+    private MessageConsumer supplyRoutedMetricRecorder(
         long bindingId)
     {
         BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.routedMetricHandler() : MetricHandler.NO_OP;
+        return binding != null ? binding.routedMetricHandler() : MessageConsumer.NOOP;
     }
 
     private Target newTarget(

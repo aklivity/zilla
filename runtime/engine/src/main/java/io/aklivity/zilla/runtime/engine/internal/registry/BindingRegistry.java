@@ -17,8 +17,8 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 final class BindingRegistry
 {
@@ -26,8 +26,8 @@ final class BindingRegistry
     private final BindingContext context;
 
     private BindingHandler attached;
-    private MetricHandler originMetricHandler = MetricHandler.NO_OP;
-    private MetricHandler routedMetricHandler = MetricHandler.NO_OP;
+    private MessageConsumer originMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer routedMetricHandler = MessageConsumer.NOOP;
 
     BindingRegistry(
         BindingConfig binding,
@@ -53,24 +53,24 @@ final class BindingRegistry
         return attached;
     }
 
-    public void setOriginMetricHandler(
-        MetricHandler originMetricHandler)
+    public void originMetricHandler(
+        MessageConsumer originMetricHandler)
     {
         this.originMetricHandler = originMetricHandler;
     }
 
-    public void setRoutedMetricHandler(
-        MetricHandler routedMetricHandler)
+    public void routedMetricHandler(
+        MessageConsumer routedMetricHandler)
     {
         this.routedMetricHandler = routedMetricHandler;
     }
 
-    public MetricHandler originMetricHandler()
+    public MessageConsumer originMetricHandler()
     {
         return originMetricHandler;
     }
 
-    public MetricHandler routedMetricHandler()
+    public MessageConsumer routedMetricHandler()
     {
         return routedMetricHandler;
     }

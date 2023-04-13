@@ -21,9 +21,9 @@ import java.util.function.LongConsumer;
 import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.DataFW;
 
 public class StreamDataReceivedMetric implements Metric
@@ -73,7 +73,7 @@ public class StreamDataReceivedMetric implements Metric
         }
 
         @Override
-        public MetricHandler supply(
+        public MessageConsumer supply(
             LongConsumer recorder)
         {
             return (t, b, i, l) -> handle(recorder, t, b, i, l);

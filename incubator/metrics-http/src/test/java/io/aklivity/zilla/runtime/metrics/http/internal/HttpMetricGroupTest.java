@@ -31,10 +31,10 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.DataFW;
@@ -72,7 +72,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame with header Content-Length = 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -87,7 +87,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // end frame
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -95,7 +95,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(42L);
@@ -113,7 +113,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame without Content-Length
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -127,7 +127,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // data frame with 33 bytes length
         AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
@@ -137,7 +137,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload1, 0, 33).build();
-        handler.onEvent(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
+        handler.accept(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
 
         // data frame with 44 bytes length
         AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
@@ -147,7 +147,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload2, 0, 44).build();
-        handler.onEvent(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
+        handler.accept(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
 
         // end frame
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -155,7 +155,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(77L);
@@ -173,7 +173,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame when header Content-Length is empty
         HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
@@ -188,7 +188,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
 
         // end frame
         AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
@@ -196,7 +196,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
 
         // begin frame when header Content-Length is 0
         HttpBeginExFW httpBeginEx2 = new HttpBeginExFW.Builder()
@@ -211,7 +211,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
 
         // end frame
         AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
@@ -219,7 +219,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
 
         // THEN
         verify(recorder, times(2)).accept(0L);
@@ -237,7 +237,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame with header Content-Length = 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -252,7 +252,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // abort frame
         AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[256], 0, 256);
@@ -260,7 +260,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(1L) // received
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
+        handler.accept(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
 
         // THEN
         verify(recorder, never()).accept(anyLong());
@@ -295,7 +295,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.response.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame with Content-Length of 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -310,7 +310,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // end frame
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -318,7 +318,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(42L);
@@ -336,7 +336,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.response.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame without Content-Length
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -350,7 +350,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // data frame with 33 bytes length
         AtomicBuffer dataBuffer1 = new UnsafeBuffer(new byte[256], 0, 256);
@@ -360,7 +360,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload1, 0, 33).build();
-        handler.onEvent(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
+        handler.accept(DataFW.TYPE_ID, dataBuffer1, 0, dataBuffer1.capacity());
 
         // data frame with 44 bytes length
         AtomicBuffer dataBuffer2 = new UnsafeBuffer(new byte[256], 0, 256);
@@ -370,7 +370,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).budgetId(0L).reserved(0)
                 .payload(payload2, 0, 44).build();
-        handler.onEvent(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
+        handler.accept(DataFW.TYPE_ID, dataBuffer2, 0, dataBuffer2.capacity());
 
         // end frame
         AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -378,7 +378,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
 
         // THEN
         verify(recorder, times(1)).accept(77L);
@@ -396,7 +396,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.response.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame when header Content-Length is empty
         HttpBeginExFW httpBeginEx1 = new HttpBeginExFW.Builder()
@@ -411,7 +411,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx1.buffer(), 0, httpBeginEx1.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer1, 0, beginBuffer1.capacity());
 
         // end frame
         AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
@@ -419,7 +419,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
 
         // begin frame when header Content-Length is 0
         HttpBeginExFW httpBeginEx2 = new HttpBeginExFW.Builder()
@@ -434,7 +434,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx2.buffer(), 0, httpBeginEx2.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer2, 0, beginBuffer2.capacity());
 
         // end frame
         AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
@@ -442,7 +442,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
 
         // THEN
         verify(recorder, times(2)).accept(0L);
@@ -460,7 +460,7 @@ public class HttpMetricGroupTest
         // WHEN
         Metric metric = metricGroup.supply("http.request.size");
         MetricContext context = metric.supply(engineContext);
-        MetricHandler handler = context.supply(recorder);
+        MessageConsumer handler = context.supply(recorder);
 
         // begin frame with header Content-Length = 42
         HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
@@ -475,7 +475,7 @@ public class HttpMetricGroupTest
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).affinity(0L)
                 .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
-        handler.onEvent(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // abort frame
         AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[128], 0, 128);
@@ -483,7 +483,7 @@ public class HttpMetricGroupTest
                 .originId(0L).routedId(0L).streamId(2L) // sent
                 .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
                 .traceId(0L).authorization(0L).build();
-        handler.onEvent(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
+        handler.accept(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
 
         // THEN
         verify(recorder, never()).accept(anyLong());

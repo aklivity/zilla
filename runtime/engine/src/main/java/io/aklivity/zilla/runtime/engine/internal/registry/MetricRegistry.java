@@ -4,9 +4,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.LongConsumer;
 
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.engine.metrics.MetricHandler;
 
 public class MetricRegistry
 {
@@ -18,7 +18,7 @@ public class MetricRegistry
         this.context = requireNonNull(context);
     }
 
-    public MetricHandler supplyHandler(
+    public MessageConsumer supplyHandler(
         LongConsumer recorder)
     {
         return context.supply(recorder);

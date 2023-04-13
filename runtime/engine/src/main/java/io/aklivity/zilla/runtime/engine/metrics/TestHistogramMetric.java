@@ -5,6 +5,7 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public class TestHistogramMetric implements Metric
 {
@@ -48,10 +49,10 @@ public class TestHistogramMetric implements Metric
             }
 
             @Override
-            public MetricHandler supply(
+            public MessageConsumer supply(
                 LongConsumer recorder)
             {
-                return MetricHandler.NO_OP;
+                return MessageConsumer.NOOP;
             }
         };
     }
