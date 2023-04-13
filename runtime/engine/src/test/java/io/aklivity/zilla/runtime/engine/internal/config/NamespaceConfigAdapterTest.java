@@ -26,6 +26,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.List;
+
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -33,9 +35,12 @@ import jakarta.json.bind.JsonbConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
+import io.aklivity.zilla.runtime.engine.config.MetricConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.config.TelemetryConfig;
 import io.aklivity.zilla.runtime.engine.config.VaultConfig;
 
 public class NamespaceConfigAdapterTest
@@ -79,7 +84,7 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespace()
     {
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 
@@ -121,8 +126,9 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithBinding()
     {
-        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, emptyList());
-        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), singletonList(binding), emptyList(), emptyList());
+        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null);
+        NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), null,
+                singletonList(binding), emptyList(), emptyList());
 
         String text = jsonb.toJson(namespace);
 
@@ -161,7 +167,7 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithGuard()
     {
         GuardConfig guard = new GuardConfig("default", "test", null);
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), singletonList(guard), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), singletonList(guard), emptyList());
 
         String text = jsonb.toJson(config);
 
@@ -200,12 +206,54 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithVault()
     {
         VaultConfig vault = new VaultConfig("default", "test", null);
-        NamespaceConfig config = new NamespaceConfig("test", emptyList(), emptyList(), emptyList(), singletonList(vault));
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), null, emptyList(), emptyList(), singletonList(vault));
 
         String text = jsonb.toJson(config);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"name\":\"test\",\"vaults\":{\"default\":{\"type\":\"test\"}}}"));
+    }
+
+    @Test
+    public void shouldReadNamespaceWithTelemetry()
+    {
+        String text =
+                "{" +
+                        "  \"name\": \"test\"," +
+                        "  \"telemetry\": {\n" +
+                        "    \"attributes\": {\n" +
+                        "      \"test.attribute\": \"example\"\n" +
+                        "    },\n" +
+                        "    \"metrics\": [\n" +
+                        "      \"test.counter\"\n" +
+                        "    ]\n" +
+                        "  }\n" +
+                        "}";
+
+        NamespaceConfig config = jsonb.fromJson(text, NamespaceConfig.class);
+
+        assertThat(config, not(nullValue()));
+        assertThat(config.name, equalTo("test"));
+        assertThat(config.telemetry, not(nullValue()));
+        assertThat(config.telemetry.attributes.get(0).name, equalTo("test.attribute"));
+        assertThat(config.telemetry.attributes.get(0).value, equalTo("example"));
+        assertThat(config.telemetry.metrics.get(0).name, equalTo("test.counter"));
+    }
+
+    @Test
+    public void shouldWriteNamespaceWithTelemetry()
+    {
+        TelemetryConfig telemetry = new TelemetryConfig(
+                List.of(new AttributeConfig("test.attribute", "example")),
+                List.of(new MetricConfig("test", "test.counter"))
+        );
+        NamespaceConfig config = new NamespaceConfig("test", emptyList(), telemetry, emptyList(), emptyList(), emptyList());
+
+        String text = jsonb.toJson(config);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"name\":\"test\",\"telemetry\":{\"attributes\":{\"test.attribute\":\"example\"}," +
+                "\"metrics\":[\"test.counter\"]}}"));
     }
 
     @Test
@@ -237,7 +285,8 @@ public class NamespaceConfigAdapterTest
     public void shouldWriteNamespaceWithReference()
     {
         NamespaceRef reference = new NamespaceRef("test", emptyMap());
-        NamespaceConfig config = new NamespaceConfig("test", singletonList(reference), emptyList(), emptyList(), emptyList());
+        NamespaceConfig config = new NamespaceConfig("test", singletonList(reference), null,
+                emptyList(), emptyList(), emptyList());
 
         String text = jsonb.toJson(config);
 

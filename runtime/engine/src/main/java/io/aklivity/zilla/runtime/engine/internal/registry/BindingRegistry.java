@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
 final class BindingRegistry
@@ -25,6 +26,8 @@ final class BindingRegistry
     private final BindingContext context;
 
     private BindingHandler attached;
+    private MessageConsumer originMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer routedMetricHandler = MessageConsumer.NOOP;
 
     BindingRegistry(
         BindingConfig binding,
@@ -48,5 +51,27 @@ final class BindingRegistry
     public BindingHandler streamFactory()
     {
         return attached;
+    }
+
+    public void originMetricHandler(
+        MessageConsumer originMetricHandler)
+    {
+        this.originMetricHandler = originMetricHandler;
+    }
+
+    public void routedMetricHandler(
+        MessageConsumer routedMetricHandler)
+    {
+        this.routedMetricHandler = routedMetricHandler;
+    }
+
+    public MessageConsumer originMetricHandler()
+    {
+        return originMetricHandler;
+    }
+
+    public MessageConsumer routedMetricHandler()
+    {
+        return routedMetricHandler;
     }
 }

@@ -13,10 +13,23 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.util.function;
+package io.aklivity.zilla.runtime.engine.test.internal.metrics;
 
-@FunctionalInterface
-public interface LongLongFunction<R>
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactorySpi;
+
+public final class TestMetricGroupFactorySpi implements MetricGroupFactorySpi
 {
-    R apply(long value1, long value2);
+    @Override
+    public String type()
+    {
+        return TestMetricGroup.NAME;
+    }
+
+    @Override
+    public TestMetricGroup create(
+        Configuration config)
+    {
+        return new TestMetricGroup(config);
+    }
 }

@@ -108,7 +108,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core</scopeNames>
+          <scopeNames>core http</scopeNames>
           <packageName>io.aklivity.zilla.runtime.metrics.http.internal.types</packageName>
         </configuration>
         <executions>

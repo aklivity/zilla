@@ -150,6 +150,12 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

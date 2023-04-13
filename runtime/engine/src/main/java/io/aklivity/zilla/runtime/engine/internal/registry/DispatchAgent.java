@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
+import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
@@ -25,6 +26,9 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIn
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -63,6 +67,7 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
+import org.agrona.collections.Object2ObjectHashMap;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.AgentTerminationException;
@@ -99,6 +104,9 @@ import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.LoadLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
+import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
 import io.aklivity.zilla.runtime.engine.internal.load.LoadManager;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
@@ -115,7 +123,11 @@ import io.aklivity.zilla.runtime.engine.internal.types.stream.FrameFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.engine.internal.types.stream.WindowFW;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
+import io.aklivity.zilla.runtime.engine.util.function.LongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
@@ -145,10 +157,13 @@ public class DispatchAgent implements EngineContext, Agent
     private final LabelManager labels;
     private final String agentName;
     private final LongFunction<LoadEntry> supplyLoadEntry;
+    private final LongFunction<MessageConsumer> supplyOriginMetricRecorder;
+    private final LongFunction<MessageConsumer> supplyRoutedMetricRecorder;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
     private final LoadLayout loadLayout;
+    private final Object2ObjectHashMap<Metric.Kind, LongLongFunction<LongConsumer>> metricWriterSuppliers;
     private final MetricsLayout metricsLayout;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
@@ -205,6 +220,7 @@ public class DispatchAgent implements EngineContext, Agent
         Collection<Binding> bindings,
         Collection<Guard> guards,
         Collection<Vault> vaults,
+        Collection<MetricGroup> metricGroups,
         int index)
     {
         this.localIndex = index;
@@ -230,6 +246,29 @@ public class DispatchAgent implements EngineContext, Agent
                 .valuesBufferCapacity(config.counterValuesBufferCapacity())
                 .build();
 
+        final CountersLayout countersLayout = new CountersLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/counters%d", index)))
+                .capacity(config.counterBufferCapacity())
+                .mode(CREATE_READ_WRITE)
+                .build();
+
+        final GaugesLayout gaugesLayout = new GaugesLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/gauges%d", index)))
+                .capacity(config.counterBufferCapacity())
+                .mode(CREATE_READ_WRITE)
+                .build();
+
+        final HistogramsLayout histogramsLayout = new HistogramsLayout.Builder()
+                .path(config.directory().resolve(String.format("metrics/histograms%d", index)))
+                .capacity(config.counterBufferCapacity())
+                .mode(CREATE_READ_WRITE)
+                .build();
+
+        metricWriterSuppliers = new Object2ObjectHashMap<>();
+        metricWriterSuppliers.put(COUNTER, countersLayout::supplyWriter);
+        metricWriterSuppliers.put(GAUGE, gaugesLayout::supplyWriter);
+        metricWriterSuppliers.put(HISTOGRAM, histogramsLayout::supplyWriter);
+
         final StreamsLayout streamsLayout = new StreamsLayout.Builder()
                 .path(config.directory().resolve(String.format("data%d", index)))
                 .streamsCapacity(config.streamsBufferCapacity())
@@ -251,6 +290,8 @@ public class DispatchAgent implements EngineContext, Agent
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
 
         this.supplyLoadEntry = new LoadManager(loadLayout.buffer())::entry;
+        this.supplyOriginMetricRecorder = this::supplyOriginMetricRecorder;
+        this.supplyRoutedMetricRecorder = this::supplyRoutedMetricRecorder;
 
         final CountersManager countersManager =
                 new CountersManager(metricsLayout.labelsBuffer(), metricsLayout.valuesBuffer());
@@ -325,9 +366,20 @@ public class DispatchAgent implements EngineContext, Agent
             String type = vault.name();
             vaultsByType.put(type, vault.supply(this));
         }
+
+        Map<String, MetricContext> metricsByName = new LinkedHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            for (String metricName : metricGroup.metricNames())
+            {
+                Metric metric = metricGroup.supply(metricName);
+                metricsByName.put(metricName, metric.supply(this));
+            }
+        }
+
         this.configuration = new ConfigurationRegistry(
-                bindingsByType::get, guardsByType::get, vaultsByType::get,
-                labels::supplyLabelId, supplyLoadEntry::apply, this::detachStreams);
+                bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get,
+                labels::supplyLabelId, supplyLoadEntry::apply, this::supplyMetricWriter, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
     }
@@ -1013,6 +1065,8 @@ public class DispatchAgent implements EngineContext, Agent
             final MessageConsumer handler = dispatcher.get(instanceId);
             if (handler != null)
             {
+                supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
+                supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
@@ -1323,6 +1377,7 @@ public class DispatchAgent implements EngineContext, Agent
         int length)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+        final long originId = begin.originId();
         final long routedId = begin.routedId();
         final long initialId = begin.streamId();
 
@@ -1339,8 +1394,8 @@ public class DispatchAgent implements EngineContext, Agent
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
                 throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
-                supplyLoadEntry.apply(routedId).initialOpened(1L);
-
+                supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
+                supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
                 streamSets.computeIfAbsent(routedId, k -> new LongHashSet())
                     .add(initialId);
             }
@@ -1492,10 +1547,33 @@ public class DispatchAgent implements EngineContext, Agent
         return targetsByIndex.computeIfAbsent(index, newTarget);
     }
 
+    private LongConsumer supplyMetricWriter(
+        Metric.Kind kind,
+        long bindingId,
+        long metricId)
+    {
+        return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
+    }
+
+    private MessageConsumer supplyOriginMetricRecorder(
+        long bindingId)
+    {
+        BindingRegistry binding = configuration.resolveBinding(bindingId);
+        return binding != null ? binding.originMetricHandler() : MessageConsumer.NOOP;
+    }
+
+    private MessageConsumer supplyRoutedMetricRecorder(
+        long bindingId)
+    {
+        BindingRegistry binding = configuration.resolveBinding(bindingId);
+        return binding != null ? binding.routedMetricHandler() : MessageConsumer.NOOP;
+    }
+
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry,
+                supplyOriginMetricRecorder, supplyRoutedMetricRecorder);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(

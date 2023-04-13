@@ -29,6 +29,13 @@ guards:
             roles:
                 - read
                 - write
+telemetry:
+    attributes:
+        service.namespace: example
+    metrics:
+        - test.counter
+        - test.gauge
+        - test.histogram
 bindings:
     net0:
         type: test
@@ -37,3 +44,6 @@ bindings:
         guarded:
             test0:
                 - read
+        telemetry:
+            metrics:
+                - test.*

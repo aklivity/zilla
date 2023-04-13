@@ -178,6 +178,12 @@ public class SseClientFactory implements SseStreamFactory
     }
 
     @Override
+    public int routedTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

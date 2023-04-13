@@ -36,6 +36,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
+import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
 
 public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], JsonObject>
 {
@@ -45,18 +46,21 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private static final String KIND_NAME = "kind";
     private static final String OPTIONS_NAME = "options";
     private static final String ROUTES_NAME = "routes";
+    private static final String TELEMETRY_NAME = "telemetry";
 
     private static final List<RouteConfig> ROUTES_DEFAULT = emptyList();
 
     private final KindAdapter kind;
     private final RouteAdapter route;
     private final OptionsAdapter options;
+    private final TelemetryRefAdapter telemetryRef;
 
     public BindingConfigsAdapter()
     {
         this.kind = new KindAdapter();
         this.route = new RouteAdapter();
         this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING);
+        this.telemetryRef = new TelemetryRefAdapter();
     }
 
     @Override
@@ -91,6 +95,12 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 JsonArrayBuilder routes = Json.createArrayBuilder();
                 binding.routes.forEach(r -> routes.add(route.adaptToJson(r)));
                 item.add(ROUTES_NAME, routes);
+            }
+
+            if (binding.telemetryRef != null)
+            {
+                JsonObject telemetryRef0 = telemetryRef.adaptToJson(binding.telemetryRef);
+                item.add(TELEMETRY_NAME, telemetryRef0);
             }
 
             object.add(binding.entry, item);
@@ -142,7 +152,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 routes = routesWithExit;
             }
 
-            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes));
+            TelemetryRefConfig telemetryRef = item.containsKey(TELEMETRY_NAME)
+                    ? this.telemetryRef.adaptFromJson(item.getJsonObject(TELEMETRY_NAME))
+                    : null;
+
+            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes, telemetryRef));
         }
 
         return bindings.toArray(BindingConfig[]::new);

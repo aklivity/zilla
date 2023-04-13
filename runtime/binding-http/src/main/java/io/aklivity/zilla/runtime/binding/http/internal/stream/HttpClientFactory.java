@@ -396,6 +396,12 @@ public final class HttpClientFactory implements HttpStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

@@ -127,6 +127,18 @@ public class TcpServerFactory implements TcpStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return EXTERNAL_TYPE;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return proxyTypeId;
+    }
+
+    @Override
     public MessageConsumer newStream(
         int msgTypeId,
         DirectBuffer buffer,

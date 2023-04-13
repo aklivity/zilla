@@ -25,6 +25,9 @@ import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
+import io.aklivity.zilla.runtime.engine.util.function.ObjectLongLongFunction;
 import io.aklivity.zilla.runtime.engine.vault.VaultContext;
 
 public class ConfigurationRegistry
@@ -32,25 +35,31 @@ public class ConfigurationRegistry
     private final Function<String, BindingContext> bindingsByType;
     private final Function<String, GuardContext> guardsByType;
     private final Function<String, VaultContext> vaultsByType;
+    private final Function<String, MetricContext> metricsByName;
     private final ToIntFunction<String> supplyLabelId;
     private final LongConsumer supplyLoadEntry;
+    private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
 
     private final Int2ObjectHashMap<NamespaceRegistry> namespacesById;
     private final LongConsumer detachBinding;
 
     public ConfigurationRegistry(
-        Function<String, BindingContext> bindingsByType,
-        Function<String, GuardContext> guardsByType,
-        Function<String, VaultContext> vaultsByType,
-        ToIntFunction<String> supplyLabelId,
-        LongConsumer supplyLoadEntry,
-        LongConsumer detachBinding)
+            Function<String, BindingContext> bindingsByType,
+            Function<String, GuardContext> guardsByType,
+            Function<String, VaultContext> vaultsByType,
+            Function<String, MetricContext> metricsByName,
+            ToIntFunction<String> supplyLabelId,
+            LongConsumer supplyLoadEntry,
+            ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
+            LongConsumer detachBinding)
     {
         this.bindingsByType = bindingsByType;
         this.guardsByType = guardsByType;
         this.vaultsByType = vaultsByType;
+        this.metricsByName = metricsByName;
         this.supplyLabelId = supplyLabelId;
         this.supplyLoadEntry = supplyLoadEntry;
+        this.supplyMetricRecorder = supplyMetricRecorder;
         this.namespacesById = new Int2ObjectHashMap<>();
         this.detachBinding = detachBinding;
     }
@@ -97,6 +106,16 @@ public class ConfigurationRegistry
         return namespace != null ? namespace.findVault(localId) : null;
     }
 
+    public MetricRegistry resolveMetric(
+        long metricId)
+    {
+        int namespaceId = NamespacedId.namespaceId(metricId);
+        int localId = NamespacedId.localId(metricId);
+
+        NamespaceRegistry namespace = findNamespace(namespaceId);
+        return namespace != null ? namespace.findMetric(localId) : null;
+    }
+
     public void detachAll()
     {
         namespacesById.values().forEach(n -> n.detach());
@@ -113,8 +132,8 @@ public class ConfigurationRegistry
         NamespaceConfig namespace)
     {
         NamespaceRegistry registry =
-                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, supplyLabelId, supplyLoadEntry,
-                    detachBinding);
+                new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, supplyLabelId,
+                    this::resolveMetric, supplyLoadEntry, supplyMetricRecorder, detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
     }

@@ -577,6 +577,12 @@ public final class HttpServerFactory implements HttpStreamFactory
     }
 
     @Override
+    public int routedTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {
@@ -1992,28 +1998,37 @@ public final class HttpServerFactory implements HttpStreamFactory
             long traceId,
             long authorization)
         {
-            cleanupEncodeSlotIfNecessary();
-            doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-            state = HttpState.closeReply(state);
+            if (!HttpState.replyClosed(state))
+            {
+                cleanupEncodeSlotIfNecessary();
+                doEnd(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
+                state = HttpState.closeReply(state);
+            }
         }
 
         private void doNetworkAbort(
             long traceId,
             long authorization)
         {
-            cleanupEncodeSlotIfNecessary();
-            doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
-            state = HttpState.closeReply(state);
+            if (!HttpState.replyClosed(state))
+            {
+                cleanupEncodeSlotIfNecessary();
+                doAbort(network, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, authorization, EMPTY_OCTETS);
+                state = HttpState.closeReply(state);
+            }
         }
 
         private void doNetworkReset(
             long traceId,
             long authorization)
         {
-            cleanupDecodeSlotIfNecessary();
-            final int initialMax = exchange != null ? decodeMax : 0;
-            doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
-            state = HttpState.closeInitial(state);
+            if (!HttpState.initialClosed(state))
+            {
+                cleanupDecodeSlotIfNecessary();
+                final int initialMax = exchange != null ? decodeMax : 0;
+                doReset(network, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, authorization);
+                state = HttpState.closeInitial(state);
+            }
         }
 
         private void doNetworkWindow(

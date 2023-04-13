@@ -60,6 +60,7 @@ import io.aklivity.zilla.runtime.engine.internal.registry.FileWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.HttpWatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.registry.WatcherTask;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
+import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 import io.aklivity.zilla.runtime.engine.vault.Vault;
 
 public final class Engine implements AutoCloseable
@@ -86,6 +87,7 @@ public final class Engine implements AutoCloseable
         EngineConfiguration config,
         Collection<Binding> bindings,
         Collection<Guard> guards,
+        Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
         ErrorHandler errorHandler,
         Collection<EngineAffinity> affinities)
@@ -137,7 +139,7 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, guards, vaults, coreIndex);
+                        bindings, guards, vaults, metricGroups, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -152,6 +154,7 @@ public final class Engine implements AutoCloseable
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));
 
         final Map<String, Guard> guardsByType = guards.stream()
