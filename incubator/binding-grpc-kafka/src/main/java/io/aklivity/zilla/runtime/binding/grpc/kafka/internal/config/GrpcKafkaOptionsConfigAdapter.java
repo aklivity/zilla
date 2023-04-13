@@ -27,6 +27,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String LAST_MESSAGE_ID_NAME = "last_message_id";
     private static final String CORRELATION_NAME = "correlation";
     private static final String CORRELATION_HEADERS_NAME = "headers";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
@@ -40,7 +41,9 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
         new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
             CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT);
-    public static final GrpcKafkaOptionsConfig DEFAULT = new GrpcKafkaOptionsConfig(CORRELATION_DEFAULT);
+    private static final int LAST_MESSAGE_ID_DEFAULT = 32767;
+    public static final GrpcKafkaOptionsConfig DEFAULT =
+        new GrpcKafkaOptionsConfig(LAST_MESSAGE_ID_DEFAULT, CORRELATION_DEFAULT);
 
     @Override
     public Kind kind()
@@ -96,6 +99,9 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
+        final int lastMessageId = object.containsKey(CORRELATION_NAME) ?
+            object.getInt(LAST_MESSAGE_ID_NAME) : LAST_MESSAGE_ID_DEFAULT;
+
         GrpcKafkaCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
         if (object.containsKey(CORRELATION_NAME))
         {
@@ -126,6 +132,6 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             }
         }
 
-        return new GrpcKafkaOptionsConfig(newCorrelation);
+        return new GrpcKafkaOptionsConfig(lastMessageId, newCorrelation);
     }
 }

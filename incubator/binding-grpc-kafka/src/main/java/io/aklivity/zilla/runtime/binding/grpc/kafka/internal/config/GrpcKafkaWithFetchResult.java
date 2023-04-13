@@ -35,18 +35,26 @@ public class GrpcKafkaWithFetchResult
 
     private final List<GrpcKafkaWithFetchFilterResult> filters;
     private final String16FW topic;
+    private final int lastMessageId;
 
     GrpcKafkaWithFetchResult(
         String16FW topic,
-        List<GrpcKafkaWithFetchFilterResult> filters)
+        List<GrpcKafkaWithFetchFilterResult> filters,
+        int lastMessageId)
     {
         this.filters = filters;
         this.topic = topic;
+        this.lastMessageId = lastMessageId;
     }
 
     public String16FW topic()
     {
         return topic;
+    }
+
+    public int lastMessageId()
+    {
+        return lastMessageId;
     }
 
     public void partitions(

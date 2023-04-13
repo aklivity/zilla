@@ -119,7 +119,7 @@ public final class GrpcKafkaWithResolver
             }
         }
 
-        return new GrpcKafkaWithFetchResult(topic, filters);
+        return new GrpcKafkaWithFetchResult(topic, filters, options.lastMessageId);
     }
 
     public GrpcKafkaWithProduceResult resolveProduce(

@@ -19,6 +19,12 @@
                 {
                     "properties":
                     {
+                        "last_message_id":
+                        {
+                            "title": "Grpc Last Message Id",
+                            "type": "integer",
+                            "minimum": 0
+                        },
                         "correlation":
                         {
                             "title": "Correlation",

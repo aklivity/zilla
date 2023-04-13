@@ -12,20 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
-
-import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
-
-public final class GrpcKafkaOptionsConfig extends OptionsConfig
+scope internal
 {
-    public final int lastMessageId;
-    public final GrpcKafkaCorrelationConfig correlation;
-
-    public GrpcKafkaOptionsConfig(
-        int lastMessageId,
-        GrpcKafkaCorrelationConfig correlation)
+    scope codec
     {
-        this.lastMessageId = lastMessageId;
-        this.correlation = correlation;
+        struct GrpcKafkaMessageFieldPartitionV1
+        {
+            varint32 partitionId;
+            varint64 partitionOffset;
+        }
+
+        struct GrpcKafkaMessageFieldV1
+        {
+            varint32 partitionCount;
+        }
+
+        union GrpcKafkaMessageField switch (uint8)
+        {
+            case 1: GrpcKafkaMessageFieldV1 v1;
+        }
     }
 }

@@ -48,6 +48,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         String text =
                 "{" +
+                    "\"last_message_id\": 127," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +
@@ -72,6 +73,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
+                127,
                 new GrpcKafkaCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
                     new String16FW("zilla:x-service"),
@@ -82,6 +84,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
                 "{" +
+                    "\"last_message_id\": 127," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +
