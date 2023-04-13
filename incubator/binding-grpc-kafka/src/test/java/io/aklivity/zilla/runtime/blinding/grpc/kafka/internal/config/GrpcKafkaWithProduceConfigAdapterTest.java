@@ -20,7 +20,6 @@ import static io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaA
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -35,8 +34,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceConfigAdapter;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchFilterConfig;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchFilterHeaderConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceOverrideConfig;
 
 public class GrpcKafkaWithProduceConfigAdapterTest
@@ -85,11 +82,6 @@ public class GrpcKafkaWithProduceConfigAdapterTest
                     allOf(hasField("name", equalTo("header-test")),
                         hasField("value", equalTo("test"))))));
         assertThat(with.replyTo, equalTo("items-replies"));
-        assertThat(with.filters.get(), contains(
-            both(hasField("key", isPresentAnd(equalTo("fixed-key")))).
-                and(hasField("headers", isPresentAnd(contains(
-                    both(hasField("name", equalTo("tag"))).
-                        and(hasField("value", equalTo("fixed-tag")))))))));
     }
 
     @Test
@@ -100,9 +92,7 @@ public class GrpcKafkaWithProduceConfigAdapterTest
             LEADER_ONLY,
             "test",
             singletonList(new GrpcKafkaWithProduceOverrideConfig("header-test", "test")),
-            "items-replies",
-            singletonList(new GrpcKafkaWithFetchFilterConfig("fixed-key",
-                singletonList(new GrpcKafkaWithFetchFilterHeaderConfig("tag", "fixed-tag"))))
+            "items-replies"
         );
 
         String text = jsonb.toJson(with);

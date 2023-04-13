@@ -35,6 +35,7 @@ bindings:
             metadata:
               custom: test
         with:
+          capability: produce
           topic: requests
           acks: leader_only
           key: test

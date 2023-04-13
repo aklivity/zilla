@@ -62,7 +62,7 @@ public final class GrpcKafkaRouteConfig extends OptionsConfig
         };
 
         this.with = Optional.of(route.with)
-            .map(GrpcKafkaWithProduceConfig.class::cast)
+            .map(GrpcKafkaWithConfig.class::cast)
             .map(c -> new GrpcKafkaWithResolver(options, identityReplacer, c))
             .get();
         this.authorized = route.authorized;
