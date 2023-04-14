@@ -20,57 +20,6 @@ accept "zilla://streams/kafka0"
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
-<<<<<<<< HEAD:incubator/binding-kafka-grpc.spec/src/main/scripts/io/aklivity/zilla/specs/binding/kafka/grpc/streams/kafka/missing.service.and.method.headers/server.rpt
-========
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("requests")
-                                .partition(-1, -2)
-                                .ackMode("LEADER_ONLY")
-                                .build()
-                            .build()}
-
-connected
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("test")
-                               .header("zilla:identity", "test")
-                               .header("zilla:service", "example.EchoService")
-                               .header("zilla:method", "EchoUnary")
-                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                               .build()
-                           .build()}
-
-read ${grpc:protobuf()
-           .string(1, "Hello World")
-           .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("test")
-                               .header("zilla:identity", "test")
-                               .header("zilla:service", "example.EchoService")
-                               .header("zilla:method", "EchoUnary")
-                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                               .build()
-                           .build()}
-read zilla:data.null
-
-read closed
-write close
-
-accepted
-
-read zilla:begin.ext ${kafka:beginEx()
->>>>>>>> feature/grpc-kafka:incubator/binding-grpc-kafka.spec/src/main/scripts/io/aklivity/zilla/specs/binding/grpc/kafka/streams/kafka/unary.rpc/server.rpt
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .capabilities("FETCH_ONLY")
@@ -102,7 +51,6 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
-<<<<<<<< HEAD:incubator/binding-kafka-grpc.spec/src/main/scripts/io/aklivity/zilla/specs/binding/kafka/grpc/streams/kafka/missing.service.and.method.headers/server.rpt
 accepted
 
 read zilla:begin.ext ${kafka:beginEx()
@@ -129,21 +77,3 @@ read zilla:data.ext ${kafka:matchDataEx()
                                 .build()
                             .build()}
 read zilla:data.null
-
-========
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 2, 2)
-                                .progress(0, 3)
-                                .progress(1, 1)
-                                .key("test")
-                                .build()
-                            .build()}
-
-write flush
-
-read closed
-write close
->>>>>>>> feature/grpc-kafka:incubator/binding-grpc-kafka.spec/src/main/scripts/io/aklivity/zilla/specs/binding/grpc/kafka/streams/kafka/unary.rpc/server.rpt
