@@ -2457,7 +2457,6 @@ public final class KafkaFunctions
 
         private Integer typeId;
         private Integer kind;
-        private String8FW transaction;
         private Predicate<KafkaFlushExFW> caseMatcher;
 
         public KafkaMergedFlushExMatcherBuilder merged()
@@ -2479,7 +2478,7 @@ public final class KafkaFunctions
         }
 
         public KafkaFlushExMatcherBuilder typeId(
-                int typeId)
+            int typeId)
         {
             this.typeId = typeId;
             return this;
@@ -2491,7 +2490,7 @@ public final class KafkaFunctions
         }
 
         private KafkaFlushExFW match(
-                ByteBuffer byteBuf) throws Exception
+            ByteBuffer byteBuf) throws Exception
         {
             if (!byteBuf.hasRemaining())
             {
@@ -2514,19 +2513,19 @@ public final class KafkaFunctions
         }
 
         private boolean matchTypeId(
-                final KafkaFlushExFW flushEx)
+            final KafkaFlushExFW flushEx)
         {
             return typeId == null || typeId == flushEx.typeId();
         }
 
         private boolean matchKind(
-                final KafkaFlushExFW flushEx)
+            final KafkaFlushExFW flushEx)
         {
             return kind == null || kind == flushEx.kind();
         }
 
         private boolean matchCase(
-                final KafkaFlushExFW flushEx) throws Exception
+            final KafkaFlushExFW flushEx) throws Exception
         {
             return caseMatcher == null || caseMatcher.test(flushEx);
         }
@@ -2534,7 +2533,6 @@ public final class KafkaFunctions
         public final class KafkaFetchFlushExMatcherBuilder
         {
             private KafkaOffsetFW.Builder partitionRW;
-            private final KafkaFetchFlushExFW.Builder fetchFlushExRW = new KafkaFetchFlushExFW.Builder();
             private Array32FW.Builder<KafkaTransactionFW.Builder, KafkaTransactionFW> transactionRW;
 
             private KafkaFetchFlushExMatcherBuilder()
@@ -2542,27 +2540,27 @@ public final class KafkaFunctions
             }
 
             public KafkaFetchFlushExMatcherBuilder partition(
-                    int partitionId,
-                    long partitionOffset)
+                int partitionId,
+                long partitionOffset)
             {
                 partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
                 return this;
             }
 
             public KafkaFetchFlushExMatcherBuilder partition(
-                    int partitionId,
-                    long partitionOffset,
-                    long latestOffset)
+                int partitionId,
+                long partitionOffset,
+                long latestOffset)
             {
                 partition(partitionId, partitionOffset, latestOffset, latestOffset);
                 return this;
             }
 
             public KafkaFetchFlushExMatcherBuilder partition(
-                    int partitionId,
-                    long partitionOffset,
-                    long stableOffset,
-                    long latestOffset)
+                int partitionId,
+                long partitionOffset,
+                long stableOffset,
+                long latestOffset)
             {
                 assert partitionRW == null;
                 partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
@@ -2577,8 +2575,8 @@ public final class KafkaFunctions
             }
 
             public KafkaFetchFlushExMatcherBuilder transaction(
-                    String result,
-                    long producerId)
+                String result,
+                long producerId)
             {
                 assert transactionRW == null;
                 transactionRW = new Array32FW.Builder<>(new KafkaTransactionFW.Builder(), new KafkaTransactionFW())
@@ -2596,7 +2594,7 @@ public final class KafkaFunctions
             }
 
             private boolean match(
-                    KafkaFlushExFW flushEx)
+                KafkaFlushExFW flushEx)
             {
                 final KafkaFetchFlushExFW fetchFlushEx = flushEx.fetch();
                 return matchPartition(fetchFlushEx) &&
@@ -2604,13 +2602,13 @@ public final class KafkaFunctions
             }
 
             private boolean matchPartition(
-                    final KafkaFetchFlushExFW fetchFlushEx)
+                final KafkaFetchFlushExFW fetchFlushEx)
             {
                 return partitionRW == null || partitionRW.build().equals(fetchFlushEx.partition());
             }
 
             private boolean matchTransaction(
-                    final KafkaFetchFlushExFW fetchFlushEx)
+                final KafkaFetchFlushExFW fetchFlushEx)
             {
                 return transactionRW == null || transactionRW.build().equals(fetchFlushEx.transactions());
             }
@@ -2626,8 +2624,8 @@ public final class KafkaFunctions
             }
 
             public KafkaMergedFlushExMatcherBuilder progress(
-                    int partitionId,
-                    long offset)
+                int partitionId,
+                long offset)
             {
                 progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
                 return this;
@@ -2648,10 +2646,10 @@ public final class KafkaFunctions
             }
 
             public KafkaMergedFlushExMatcherBuilder progress(
-                    int partitionId,
-                    long offset,
-                    long stableOffset,
-                    long latestOffset)
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset)
             {
                 if (progressRW == null)
                 {
