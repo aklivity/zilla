@@ -13,17 +13,17 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/kafka0"
+connect "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .capabilities("FETCH_ONLY")
                                   .topic("responses")
+                                  .partition(0, 2)
+                                  .partition(1, 1)
                                   .partition(-1, -2)
                                   .filter()
                                     .key("test")
@@ -32,22 +32,21 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                   .build()
                               .build()}
 
+
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("test")
-                                .build()
-                            .build()}
-write ${grpc:protobuf()
-            .string(1, "Hello World")
-            .build()}
-write flush
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                              .partition(0, 1, 2)
+                              .progress(0, 2)
+                              .progress(1, 1)
+                              .key("test")
+                              .build()
+                           .build()}
+read ${grpc:protobuf()
+           .string(1, "Hello World")
+           .build()}
 
-read closed
 write close
+read closed

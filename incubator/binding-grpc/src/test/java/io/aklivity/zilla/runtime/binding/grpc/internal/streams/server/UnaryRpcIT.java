@@ -84,6 +84,17 @@ public class UnaryRpcIT
     @Test
     @Configuration("server.when.yaml")
     @Specification({
+        "${net}/empty.message.exchange/client",
+        "${app}/empty.message.exchange/server",
+    })
+    public void shouldExchangeEmptyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.when.yaml")
+    @Specification({
         "${net}/response.timeout/client",
         "${app}/response.timeout/server",
     })

@@ -60,4 +60,14 @@ public class GrpcKafkaFetchProxyIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("fetch.proxy.rpc.yaml")
+    @Specification({
+        "${grpc}/reliable.unary.rpc/client",
+        "${kafka}/reliable.unary.rpc/server"})
+    public void shouldStreamReliableMessageWithUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
 }

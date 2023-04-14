@@ -60,6 +60,17 @@ public class UnaryRpcIT
     }
 
     @Test
+    @Configuration("client.when.yaml")
+    @Specification({
+        "${app}/empty.message.exchange/client",
+        "${net}/empty.message.exchange/server",
+    })
+    public void shouldExchangeEmptyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.when.binary.metadata.yaml")
     @Specification({
         "${app}/binary.metadata/client",

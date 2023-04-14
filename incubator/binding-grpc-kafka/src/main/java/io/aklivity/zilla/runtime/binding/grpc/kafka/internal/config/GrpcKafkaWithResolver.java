@@ -85,8 +85,9 @@ public final class GrpcKafkaWithResolver
         String16FW topic = new String16FW(fetch.topic);
 
         final Array32FW<GrpcMetadataFW> metadata = grpcBeginExFW.metadata();
+        final DirectBuffer metadataName = options.lastMessageIdMetadataName.value();
         GrpcMetadataFW lastMessageIdMetadata = metadata
-            .matchFirst(m -> m.value().value().compareTo(options.lastMessageIdMetadataName.buffer()) == 0);
+            .matchFirst(m -> metadataName.compareTo(m.name().value()) == 0);
         Array32FW<KafkaOffsetFW> partitions = null;
         if (lastMessageIdMetadata != null)
         {
