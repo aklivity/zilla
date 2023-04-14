@@ -199,21 +199,20 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 Zilla is designed from the ground up to be extensible and we anticipate adding support for several new capabilities:
 
 **Protocols and Transformations**
- - gRPC, proxy and Kafka mapping
+ - [gRPC, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=24080080)
+ - [MQTT, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4/views/1?pane=issue&itemId=7132841)
  - GraphQL, proxy and Kafka mapping
- - MQTT, proxy and Kafka mapping
+ - WebHooks, Kafka mapping
  - AMQP, proxy and Kafka mapping
  - WebSocket, proxy and Kafka mapping
- - WebHooks, Kafka mapping
  - HTTP, proxy, including HTTP/3
- - SSE, proxy (Kafka mapping done)
 
 **Integrations** 
+ - [Kubernetes integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735594)
+ - [OpenTelemetry integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735584)
  - OpenAPI integration
  - AsyncAPI integration
  - Avro integration
- - OpenTelemetry integration
- - Kubernetes integration
 
 Please see the [Roadmap project](https://github.com/orgs/aklivity/projects/4) and let us know in the [Slack community][community-join] if you have additional suggestions.
 
