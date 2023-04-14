@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
 
@@ -30,6 +31,7 @@ public class PrometheusExporterFactorySpi implements ExporterFactorySpi
     public Exporter create(
         Configuration config)
     {
-        return new PrometheusExporter(config);
+        // TODO: Ati
+        return new PrometheusExporter(new EngineConfiguration(config));
     }
 }

@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
 import java.net.URL;
 
-import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
@@ -26,10 +26,10 @@ public class PrometheusExporter implements Exporter
     public static final String NAME = "prometheus";
 
     public PrometheusExporter(
-        Configuration config)
+        EngineConfiguration config)
     {
         // TODO: Ati
-        System.out.println("PrometheusExporter.constructor");
+        System.out.println("PrometheusExporter.constructor " + config.directory());
     }
 
     @Override
