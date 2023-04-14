@@ -25,11 +25,12 @@ public class PrometheusExporter implements Exporter
 {
     public static final String NAME = "prometheus";
 
+    private final EngineConfiguration config;
+
     public PrometheusExporter(
         EngineConfiguration config)
     {
-        // TODO: Ati
-        System.out.println("PrometheusExporter.constructor " + config.directory());
+        this.config = config;
     }
 
     @Override
@@ -48,6 +49,6 @@ public class PrometheusExporter implements Exporter
     public ExporterContext supply(
         EngineContext context)
     {
-        return new PrometheusExporterContext(context);
+        return new PrometheusExporterContext(config, context);
     }
 }

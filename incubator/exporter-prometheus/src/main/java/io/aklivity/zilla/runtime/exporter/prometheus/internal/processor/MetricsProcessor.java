@@ -130,7 +130,8 @@ public class MetricsProcessor
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %d";
         // TODO: Ati
-        return String.format(format, s[1], "TODO: put description here", s[1], s[0], s[1], s[2], s[3], value);
+        String metricName = s[1].replace('.', '_');
+        return String.format(format, metricName, "TODO: put description here", metricName, s[0], metricName, s[2], s[3], value);
     }
 
     /*private String counterGaugeFormatter(

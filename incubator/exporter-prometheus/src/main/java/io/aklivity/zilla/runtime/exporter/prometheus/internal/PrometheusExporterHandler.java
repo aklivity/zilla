@@ -32,6 +32,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
@@ -41,15 +42,17 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsP
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
+    private final EngineConfiguration config;
     private final LayoutManager manager;
+
     private Map<Metric.Kind, List<MetricsLayout>> layouts;
     private MetricsProcessor metrics;
 
-    public PrometheusExporterHandler()
+    public PrometheusExporterHandler(
+        EngineConfiguration config)
     {
-        // TODO: Ati
-        System.out.println("PrometheusExporterHandler.constructor");
-        manager = new LayoutManager();
+        this.config = config;
+        this.manager = new LayoutManager(config.directory());
     }
 
     @Override

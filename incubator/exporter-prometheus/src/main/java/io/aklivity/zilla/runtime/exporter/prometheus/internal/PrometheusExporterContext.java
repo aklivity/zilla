@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
+import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
@@ -21,19 +22,21 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 
 public class PrometheusExporterContext implements ExporterContext
 {
+    private final EngineConfiguration config;
+
     public PrometheusExporterContext(
+        EngineConfiguration config,
         EngineContext context)
     {
-        // TODO: Ati
-        System.out.println("PrometheusExporterContext.constructor");
+        this.config = config;
     }
 
     @Override
     public ExporterHandler attach(
-        ExporterConfig config)
+        ExporterConfig exporter)
     {
         // TODO: Ati
-        return new PrometheusExporterHandler();
+        return new PrometheusExporterHandler(config);
     }
 
     @Override

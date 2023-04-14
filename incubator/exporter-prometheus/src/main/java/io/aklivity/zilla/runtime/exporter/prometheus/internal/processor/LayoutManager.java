@@ -20,7 +20,6 @@ import static java.util.stream.Collectors.toList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -33,17 +32,18 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayo
 
 public class LayoutManager
 {
-    private static final Path METRICS_DIRECTORY = Paths.get(".zilla", "engine", "metrics");
-    private static final Path LABELS_DIRECTORY = Paths.get(".zilla", "engine");
     private static final Pattern COUNTERS_PATTERN = Pattern.compile("counters(\\d+)");
     private static final Pattern GAUGES_PATTERN = Pattern.compile("gauges(\\d+)");
     private static final Pattern HISTOGRAMS_PATTERN = Pattern.compile("histograms(\\d+)");
 
+    private final Path metricsDirectory;
     private final LabelManager labels;
 
-    public LayoutManager()
+    public LayoutManager(
+        Path engineDirectory)
     {
-        this.labels = new LabelManager(LABELS_DIRECTORY);
+        this.metricsDirectory = engineDirectory.resolve("metrics");
+        this.labels = new LabelManager(engineDirectory);
     }
 
     public LabelManager labels()
@@ -53,26 +53,26 @@ public class LayoutManager
 
     public List<MetricsLayout> countersLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
+        Stream<Path> files = Files.walk(metricsDirectory, 1);
         return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
     }
 
     public List<MetricsLayout> gaugesLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
+        Stream<Path> files = Files.walk(metricsDirectory, 1);
         return files.filter(this::isGaugesFile).map(this::newGaugesLayout).collect(toList());
     }
 
     public List<MetricsLayout> histogramsLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(METRICS_DIRECTORY, 1);
+        Stream<Path> files = Files.walk(metricsDirectory, 1);
         return files.filter(this::isHistogramsFile).map(this::newHistogramsLayout).collect(toList());
     }
 
     private boolean isCountersFile(
         Path path)
     {
-        return path.getNameCount() - METRICS_DIRECTORY.getNameCount() == 1 &&
+        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
             COUNTERS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
             Files.isRegularFile(path);
     }
@@ -80,7 +80,7 @@ public class LayoutManager
     private boolean isGaugesFile(
         Path path)
     {
-        return path.getNameCount() - METRICS_DIRECTORY.getNameCount() == 1 &&
+        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
             GAUGES_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
             Files.isRegularFile(path);
     }
@@ -88,7 +88,7 @@ public class LayoutManager
     private boolean isHistogramsFile(
         Path path)
     {
-        return path.getNameCount() - METRICS_DIRECTORY.getNameCount() == 1 &&
+        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
             HISTOGRAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
             Files.isRegularFile(path);
     }
