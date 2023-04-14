@@ -137,10 +137,15 @@
                                             "type": "string"
                                         }
                                     },
-                                    "additionalProperties": false
+                                    "additionalProperties": false,
+                                    "required":
+                                    [
+                                        "topic",
+                                        "reply-to"
+                                    ]
                                 }
                             },
-                            "with": false
+                            "with": false,
                         }
                     }
                 },

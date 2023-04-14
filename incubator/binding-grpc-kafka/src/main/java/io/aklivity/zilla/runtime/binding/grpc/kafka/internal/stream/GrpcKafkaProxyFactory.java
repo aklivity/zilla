@@ -86,6 +86,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
 
+
+    private final String16FW.Builder statusRW = new
+        String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
+
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
     private final EndFW.Builder endRW = new EndFW.Builder();
@@ -1302,7 +1306,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     if (grpcStatus != null &&
                         !HEADER_VALUE_GRPC_OK.value().equals(grpcStatus.value().value()))
                     {
-                        String16FW status = string16RW
+                        String16FW status = statusRW
                             .set(grpcStatus.value().buffer(), grpcStatus.offset(), grpcStatus.sizeof())
                             .build();
                         doGrpcAbort(traceId, authorization, status);
@@ -1536,7 +1540,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = GrpcKafkaState.closeInitial(state);
 
-                doKafkaTombstone(traceId, authorization);
+                doKafkaDataNull(traceId, authorization);
 
                 doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
@@ -1554,7 +1558,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = GrpcKafkaState.closeInitial(state);
 
-                doKafkaTombstone(traceId, authorization);
+                doKafkaDataNull(traceId, authorization);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, emptyRO);
@@ -1739,7 +1743,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             }
         }
 
-        private void doKafkaTombstone(
+        private void doKafkaDataNull(
             long traceId,
             long authorization)
         {

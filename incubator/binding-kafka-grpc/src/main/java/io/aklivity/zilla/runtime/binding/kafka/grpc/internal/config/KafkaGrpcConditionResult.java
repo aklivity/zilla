@@ -101,8 +101,7 @@ public class KafkaGrpcConditionResult
 
     public void headers(
         OctetsFW correlationId,
-        Array32FW.Builder<KafkaHeaderFW.Builder,
-            KafkaHeaderFW> builder)
+        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
     {
         builder.item(i -> i.nameLen(correlation.correlationId.length())
             .name(correlation.correlationId.value(), 0, correlation.correlationId.length())
@@ -113,8 +112,7 @@ public class KafkaGrpcConditionResult
     public void headersWithStatusCode(
         OctetsFW correlationId,
         String16FW status,
-        Array32FW.Builder<KafkaHeaderFW.Builder,
-            KafkaHeaderFW> builder)
+        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> builder)
     {
         headers(correlationId, builder);
 

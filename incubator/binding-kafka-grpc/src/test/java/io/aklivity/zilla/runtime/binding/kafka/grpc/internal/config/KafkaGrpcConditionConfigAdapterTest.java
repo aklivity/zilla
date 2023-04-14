@@ -56,7 +56,6 @@ public class KafkaGrpcConditionConfigAdapterTest
                 "    }\n" +
                 "}";
 
-
         KafkaGrpcConditionConfig condition = jsonb.fromJson(text, KafkaGrpcConditionConfig.class);
 
         assertThat(condition, not(nullValue()));
