@@ -840,7 +840,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 String8FW encodedProgress = messageField.encodeProgressOnly(partitions);
                 Varuint32FW len = lenRW.set(encodedProgress.length()).build();
                 int lenSize = len.sizeof();
-                replyPad = result.lastMessageId().sizeof() + lenSize + encodedProgress.length();
+                replyPad = result.messageId().sizeof() + lenSize + encodedProgress.length();
             }
 
             delegate.onKafkaBegin(traceId, authorization, extension);
@@ -897,10 +897,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
                 if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
-                    Varuint32FW key = result.lastMessageId();
+                    Varuint32FW messageId = result.messageId();
 
-                    final int keySize = key.sizeof();
-                    encodeBuffer.putBytes(encodeProgress, key.buffer(), key.offset(), keySize);
+                    final int keySize = messageId.sizeof();
+                    encodeBuffer.putBytes(encodeProgress, messageId.buffer(), messageId.offset(), keySize);
                     encodeProgress += keySize;
 
                     Varuint32FW len = lenRW.set(encodedId.length()).build();

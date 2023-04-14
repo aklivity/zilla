@@ -23,7 +23,6 @@ import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
-
 public final class GrpcKafkaWithFetchConfigAdapter implements JsonbAdapter<GrpcKafkaWithConfig, JsonObject>
 {
     private static final String CAPABILITY_NAME = "capability";
@@ -31,8 +30,6 @@ public final class GrpcKafkaWithFetchConfigAdapter implements JsonbAdapter<GrpcK
     private static final String FILTERS_NAME = "filters";
     private static final String FILTERS_KEY_NAME = "key";
     private static final String FILTERS_HEADERS_NAME = "headers";
-
-
     @Override
     public JsonObject adaptToJson(
         GrpcKafkaWithConfig with)

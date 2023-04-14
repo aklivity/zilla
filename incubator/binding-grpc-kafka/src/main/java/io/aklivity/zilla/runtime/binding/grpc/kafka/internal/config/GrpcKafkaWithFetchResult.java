@@ -37,18 +37,18 @@ public class GrpcKafkaWithFetchResult
     private final Array32FW<KafkaOffsetFW> partitions;
     private final List<GrpcKafkaWithFetchFilterResult> filters;
     private final String16FW topic;
-    private final Varuint32FW lastMessageId;
+    private final Varuint32FW messageId;
 
     GrpcKafkaWithFetchResult(
         String16FW topic,
         Array32FW<KafkaOffsetFW> partitions,
         List<GrpcKafkaWithFetchFilterResult> filters,
-        Varuint32FW lastMessageId)
+        Varuint32FW messageId)
     {
         this.partitions = partitions;
         this.filters = filters;
         this.topic = topic;
-        this.lastMessageId = lastMessageId;
+        this.messageId = messageId;
     }
 
     public String16FW topic()
@@ -56,9 +56,9 @@ public class GrpcKafkaWithFetchResult
         return topic;
     }
 
-    public Varuint32FW lastMessageId()
+    public Varuint32FW messageId()
     {
-        return lastMessageId;
+        return messageId;
     }
 
     public void partitions(

@@ -8,7 +8,7 @@
             {
                 "type":
                 {
-                    "const": "grpc_kafka"
+                    "const": "grpc-kafka"
                 },
                 "kind":
                 {
@@ -19,7 +19,7 @@
                 {
                     "properties":
                     {
-                        "last_message_id":
+                        "last-message-id-field":
                         {
                             "title": "Grpc Last Message Id",
                             "type": "integer",

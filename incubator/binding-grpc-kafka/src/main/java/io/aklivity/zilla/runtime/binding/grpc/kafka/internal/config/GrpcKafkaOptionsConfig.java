@@ -20,16 +20,16 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 public final class GrpcKafkaOptionsConfig extends OptionsConfig
 {
     public final int lastMessageId;
-    public final String8FW lastMessageIdMetadataName;
+    public final String8FW lastMessageIdMetadata;
     public final GrpcKafkaCorrelationConfig correlation;
 
     public GrpcKafkaOptionsConfig(
         int lastMessageId,
-        String8FW lastMessageIdMetadataName,
+        String8FW lastMessageIdMetadata,
         GrpcKafkaCorrelationConfig correlation)
     {
         this.lastMessageId = lastMessageId;
-        this.lastMessageIdMetadataName = lastMessageIdMetadataName;
+        this.lastMessageIdMetadata = lastMessageIdMetadata;
         this.correlation = correlation;
     }
 }

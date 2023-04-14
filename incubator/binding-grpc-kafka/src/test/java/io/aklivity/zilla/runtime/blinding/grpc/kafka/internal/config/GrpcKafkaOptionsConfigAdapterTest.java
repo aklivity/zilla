@@ -49,8 +49,8 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"last_message_id\": 255," +
-                    "\"last_message_id_metadata_name\": \"last-message-id-x\"," +
+                    "\"last-message-id-field\": 255," +
+                    "\"last-message-id-metadata\": \"last-message-id-x\"," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +
@@ -67,7 +67,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
         assertThat(options, not(nullValue()));
         assertThat(options.correlation, not(nullValue()));
         assertThat(options.lastMessageId, equalTo(255));
-        assertThat(options.lastMessageIdMetadataName.asString(), equalTo("last-message-id-x"));
+        assertThat(options.lastMessageIdMetadata.asString(), equalTo("last-message-id-x"));
         assertThat(options.correlation.service.asString(), equalTo("zilla:service-x"));
         assertThat(options.correlation.method.asString(), equalTo("zilla:method-x"));
         assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id-x"));
@@ -89,8 +89,8 @@ public class GrpcKafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
                 "{" +
-                    "\"last_message_id\":255," +
-                    "\"last_message_id_metadata_name\":\"x-last-message-id\"," +
+                    "\"last-message-id-field\":255," +
+                    "\"last-message-id-metadata\":\"x-last-message-id\"," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +
