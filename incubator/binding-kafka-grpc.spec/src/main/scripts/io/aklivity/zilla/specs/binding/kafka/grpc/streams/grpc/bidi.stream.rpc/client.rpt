@@ -46,5 +46,5 @@ read ${grpc:protobuf()
            .string(1, "Hello World2")
            .build()}
 
-write close
 read closed
+write close
