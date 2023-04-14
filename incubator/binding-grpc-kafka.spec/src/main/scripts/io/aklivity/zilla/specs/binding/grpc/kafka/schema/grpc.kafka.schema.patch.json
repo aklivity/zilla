@@ -26,7 +26,7 @@
                             "minimum": 1,
                             "maximum": 536870911
                         },
-                        "last_message_id_metadata_name":
+                        "last-message-id-metadata":
                         {
                             "title": "Grpc Last Message Id Metadata Name",
                             "type": "string"
