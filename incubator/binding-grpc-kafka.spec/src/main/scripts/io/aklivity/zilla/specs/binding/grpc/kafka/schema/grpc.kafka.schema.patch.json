@@ -206,7 +206,7 @@
                                             },
                                             "reply-to":
                                             {
-                                                "title": "Reply-To",
+                                                "title": "Reply-To topic",
                                                 "type": "string"
                                             }
                                         },
