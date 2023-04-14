@@ -25,10 +25,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-public class GrpcIT
+public class GrpcProduceIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("grpc", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/grpc");
+        .addScriptRoot("grpc", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/grpc/produce");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 

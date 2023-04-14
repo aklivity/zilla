@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -73,8 +74,9 @@ public class GrpcKafkaOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
-                127,
-            newLastMessageIdMetadataName, new GrpcKafkaCorrelationConfig(
+                255,
+                new String8FW("newLastMessageId"),
+                new GrpcKafkaCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
                     new String16FW("zilla:x-service"),
                     new String16FW("zilla:x-method")));

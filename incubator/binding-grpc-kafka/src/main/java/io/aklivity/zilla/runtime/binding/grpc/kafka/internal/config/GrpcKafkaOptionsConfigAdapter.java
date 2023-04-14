@@ -41,7 +41,7 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
 
     private static final int LAST_MESSAGE_ID_DEFAULT = 32767;
-    private static final String8FW LAST_MESSAGE_ID_METADATA_NAME_DEFAULT = new String8FW("lastMessageId");
+    private static final String8FW LAST_MESSAGE_ID_METADATA_NAME_DEFAULT = new String8FW("zilla:last-message-id");
     private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
         new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
             CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT);

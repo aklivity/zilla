@@ -30,11 +30,11 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
-public class GrpcKafkaProxyIT
+public class GrpcKafkaProduceProxyIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("grpc", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/grpc")
-        .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/kafka");
+        .addScriptRoot("grpc", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/grpc/produce")
+        .addScriptRoot("kafka", "io/aklivity/zilla/specs/binding/grpc/kafka/streams/kafka/produce");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
@@ -53,7 +53,7 @@ public class GrpcKafkaProxyIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/unary.rpc/client",
         "${kafka}/unary.rpc/server"})
@@ -63,7 +63,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/unary.rpc.rejected/client",
         "${kafka}/unary.rpc.rejected/server"})
@@ -73,7 +73,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/unary.rpc.sent.write.abort/client",
         "${kafka}/unary.rpc.sent.write.abort/server"})
@@ -83,7 +83,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/client.stream.rpc/client",
         "${kafka}/client.stream.rpc/server"})
@@ -93,7 +93,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/client.stream.rpc.write.abort/client",
         "${kafka}/client.stream.rpc.write.abort/server"})
@@ -103,7 +103,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/server.stream.rpc/client",
         "${kafka}/server.stream.rpc/server"})
@@ -113,7 +113,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/server.stream.rpc.read.aborted/client",
         "${kafka}/server.stream.rpc.read.aborted/server"})
@@ -123,7 +123,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/bidi.stream.rpc/client",
         "${kafka}/bidi.stream.rpc/server"})
@@ -133,7 +133,7 @@ public class GrpcKafkaProxyIT
     }
 
     @Test
-    @Configuration("proxy.rpc.yaml")
+    @Configuration("produce.proxy.rpc.yaml")
     @Specification({
         "${grpc}/bidi.stream.rpc.write.abort/client",
         "${kafka}/bidi.stream.rpc.write.abort/server"})

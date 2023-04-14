@@ -311,6 +311,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     {
         private final KafkaFetchProxy fetch;
         private final long resolvedId;
+        private int initialPad;
+        private long initialBud;
 
         private GrpcFetchProxy(
             MessageConsumer grpc,
@@ -389,16 +391,25 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             final long acknowledge = data.acknowledge();
             final long traceId = data.traceId();
             final long authorization = data.authorization();
+            final int reserved = data.reserved();
+            final OctetsFW payload = data.payload();
 
             assert acknowledge <= sequence;
             assert sequence >= initialSeq;
 
-            initialSeq = sequence;
+            initialSeq = sequence + reserved;
 
             assert initialAck <= initialSeq;
 
-            doGrpcReset(traceId, authorization, HEADER_VALUE_GRPC_ABORTED);
-            cleanup(traceId, authorization);
+            if (payload == null || payload.sizeof() == 0)
+            {
+                doGrpcWindow(authorization, traceId, initialBud, initialPad, 0);
+            }
+            else
+            {
+                doGrpcReset(traceId, authorization, HEADER_VALUE_GRPC_ABORTED);
+                cleanup(traceId, authorization);
+            }
         }
 
         private void onGrpcEnd(
@@ -555,6 +566,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             int padding,
             int capabilities)
         {
+            initialPad = padding;
+            initialBud = budgetId;
             doGrpcWindow(authorization, traceId, budgetId, padding, capabilities);
         }
 
@@ -872,12 +885,14 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
                 encodeProgress += payloadSize;
 
+                int messageFieldPadding = encodeProgress;
+
                 if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
                     Varuint32FW key = result.lastMessageId();
 
                     final int keySize = key.sizeof();
-                    encodeBuffer.putBytes(encodeProgress, key.buffer(), key.offset(), key.sizeof());
+                    encodeBuffer.putBytes(encodeProgress, key.buffer(), key.offset(), keySize);
                     encodeProgress += keySize;
 
                     Varuint32FW len = lenRW.set(encodedId.length()).build();
@@ -887,9 +902,10 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     encodeBuffer.putBytes(encodeProgress, encodedId.value(), 0, encodedId.length());
                     encodeProgress += encodedId.length();
                 }
+                messageFieldPadding = encodeProgress - messageFieldPadding;
 
-                delegate.onKafkaData(traceId, authorization, budgetId, reserved, flags,
-                    encodeBuffer, encodeOffset, encodeProgress, extension);
+                delegate.onKafkaData(traceId, authorization, budgetId, reserved + messageFieldPadding, flags,
+                    encodeBuffer, encodeOffset, encodeProgress - encodeOffset, extension);
             }
         }
 
@@ -1004,7 +1020,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             int padding,
             int capabilities)
         {
-            replyAck = delegate.replyAck;
+            replyAck = delegate.replyAck - replyPad;
             replyMax = delegate.replyMax;
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
