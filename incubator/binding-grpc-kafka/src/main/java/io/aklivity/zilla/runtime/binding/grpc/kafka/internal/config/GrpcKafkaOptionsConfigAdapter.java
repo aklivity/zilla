@@ -15,7 +15,6 @@
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -23,6 +22,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaBinding;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 

@@ -19,7 +19,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -31,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaCor
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfigAdapter;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
 public class GrpcKafkaOptionsConfigAdapterTest
 {
@@ -49,14 +49,15 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"last_message_id\": 127," +
+                    "\"last_message_id\": 255," +
+                    "\"last_message_id_metadata_name\": \"last-message-id-x\"," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +
                         "{" +
-                            "\"service\":\"zilla:service\"," +
-                            "\"method\":\"zilla:method\"," +
-                            "\"correlation-id\":\"zilla:correlation-id\"" +
+                            "\"service\":\"zilla:service-x\"," +
+                            "\"method\":\"zilla:method-x\"," +
+                            "\"correlation-id\":\"zilla:correlation-id-x\"" +
                         "}" +
                     "}" +
                 "}";
@@ -65,9 +66,11 @@ public class GrpcKafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.correlation, not(nullValue()));
-        assertThat(options.correlation.service.asString(), equalTo("zilla:service"));
-        assertThat(options.correlation.method.asString(), equalTo("zilla:method"));
-        assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id"));
+        assertThat(options.lastMessageId, equalTo(255));
+        assertThat(options.lastMessageIdMetadataName.asString(), equalTo("last-message-id-x"));
+        assertThat(options.correlation.service.asString(), equalTo("zilla:service-x"));
+        assertThat(options.correlation.method.asString(), equalTo("zilla:method-x"));
+        assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id-x"));
     }
 
     @Test
@@ -75,7 +78,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
                 255,
-                new String8FW("newLastMessageId"),
+                new String8FW("x-last-message-id"),
                 new GrpcKafkaCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
                     new String16FW("zilla:x-service"),
@@ -86,7 +89,8 @@ public class GrpcKafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
                 "{" +
-                    "\"last_message_id\": 127," +
+                    "\"last_message_id\":255," +
+                    "\"last_message_id_metadata_name\":\"x-last-message-id\"," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +

@@ -14,8 +14,11 @@
  */
 package io.aklivity.zilla.runtime.blinding.grpc.kafka.internal.stream;
 
-import io.aklivity.zilla.runtime.engine.test.EngineRule;
-import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.rules.RuleChain.outerRule;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -24,10 +27,8 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.rules.RuleChain.outerRule;
+import io.aklivity.zilla.runtime.engine.test.EngineRule;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
 public class GrpcKafkaFetchProxyIT
 {
@@ -67,6 +68,16 @@ public class GrpcKafkaFetchProxyIT
         "${grpc}/reliable.unary.rpc/client",
         "${kafka}/reliable.unary.rpc/server"})
     public void shouldStreamReliableMessageWithUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("fetch.proxy.rpc.yaml")
+    @Specification({
+        "${grpc}/reject.request.body.unary.rpc/client",
+        "${kafka}/reject.request.body.unary.rpc/server"})
+    public void shouldRejectRequestBodyUnaryRpc() throws Exception
     {
         k3po.finish();
     }

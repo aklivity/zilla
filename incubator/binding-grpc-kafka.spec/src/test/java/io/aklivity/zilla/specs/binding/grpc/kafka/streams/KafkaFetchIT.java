@@ -53,4 +53,12 @@ public class KafkaFetchIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "${kafka}/reject.request.body.unary.rpc/client",
+        "${kafka}/reject.request.body.unary.rpc/server"})
+    public void shouldRejectRequestBodyUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
 }

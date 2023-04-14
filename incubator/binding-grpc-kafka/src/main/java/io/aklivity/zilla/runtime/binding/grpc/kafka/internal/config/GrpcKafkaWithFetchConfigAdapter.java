@@ -26,7 +26,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 public final class GrpcKafkaWithFetchConfigAdapter implements JsonbAdapter<GrpcKafkaWithConfig, JsonObject>
 {
-
+    private static final String CAPABILITY_NAME = "capability";
     private static final String TOPIC_NAME = "topic";
     private static final String FILTERS_NAME = "filters";
     private static final String FILTERS_KEY_NAME = "key";
@@ -41,6 +41,7 @@ public final class GrpcKafkaWithFetchConfigAdapter implements JsonbAdapter<GrpcK
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        object.add(CAPABILITY_NAME, GrpcKafkaCapability.FETCH.asString());
         object.add(TOPIC_NAME, grpcKafkaWith.topic);
 
         if (grpcKafkaWith.filters.isPresent())

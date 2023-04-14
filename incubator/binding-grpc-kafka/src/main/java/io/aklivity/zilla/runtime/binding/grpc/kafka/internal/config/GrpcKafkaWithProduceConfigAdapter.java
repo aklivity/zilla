@@ -28,6 +28,7 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
 {
     private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
 
+    private static final String CAPABILITY_NAME = "capability";
     private static final String TOPIC_NAME = "topic";
     private static final String ACKS_NAME = "acks";
     private static final String KEY_NAME = "key";
@@ -42,6 +43,7 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
+        object.add(CAPABILITY_NAME, GrpcKafkaCapability.PRODUCE.asString());
         object.add(TOPIC_NAME, grpcKafkaWith.topic);
 
         if (grpcKafkaWith.acks != ACKS_DEFAULT)
@@ -65,6 +67,8 @@ public final class GrpcKafkaWithProduceConfigAdapter implements JsonbAdapter<Grp
 
             object.add(OVERRIDES_NAME, newOverrides);
         }
+
+        object.add(REPLY_TO_NAME, grpcKafkaWith.replyTo);
 
         return object.build();
     }

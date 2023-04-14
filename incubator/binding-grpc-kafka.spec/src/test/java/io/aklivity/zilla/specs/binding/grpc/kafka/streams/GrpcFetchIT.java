@@ -52,4 +52,13 @@ public class GrpcFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${grpc}/reject.request.body.unary.rpc/client",
+        "${grpc}/reject.request.body.unary.rpc/server"})
+    public void shouldRejectRequestBodyUnaryRpc() throws Exception
+    {
+        k3po.finish();
+    }
 }

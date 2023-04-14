@@ -24,8 +24,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                               .merged()
                                   .capabilities("FETCH_ONLY")
                                   .topic("responses")
-                                  .partition(0, 2)
-                                  .partition(1, 1)
                                   .partition(-1, -2)
                                   .filter()
                                     .key("test")
@@ -34,32 +32,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                   .build()
                               .build()}
 
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .merged()
-                                   .capabilities("FETCH_ONLY")
-                                   .topic("responses")
-                                   .partition(0, 1)
-                                   .partition(1, 1)
-                                   .build()
-                               .build()}
-
 connected
 
-write zilla:data.ext ${kafka:dataEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .timestamp(kafka:timestamp())
-                                .partition(0, 1, 2)
-                                .progress(0, 2)
-                                .progress(1, 1)
-                                .key("test")
-                                .build()
-                            .build()}
-write ${grpc:protobuf()
-            .string(1, "Hello World")
-            .build()}
-write flush
-
-read closed
-write close
+read aborted
+write aborted

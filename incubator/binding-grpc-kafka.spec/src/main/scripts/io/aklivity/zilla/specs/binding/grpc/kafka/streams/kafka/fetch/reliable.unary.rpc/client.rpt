@@ -32,6 +32,15 @@ write zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+read zilla:begin.ext ${kafka:matchBeginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("responses")
+                                   .partition(0, 1)
+                                   .partition(1, 1)
+                                   .build()
+                               .build()}
 
 connected
 

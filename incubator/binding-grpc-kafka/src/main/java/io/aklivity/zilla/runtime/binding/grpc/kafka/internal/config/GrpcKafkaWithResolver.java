@@ -22,13 +22,13 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaIdHelper;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaIdHelper;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;

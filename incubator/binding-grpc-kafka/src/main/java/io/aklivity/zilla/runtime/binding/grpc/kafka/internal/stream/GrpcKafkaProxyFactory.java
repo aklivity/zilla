@@ -48,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcDa
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.SignalFW;
@@ -654,6 +655,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             int padding,
             int capabilities)
         {
+            initialAck = fetch.initialAck;
+            initialMax = fetch.initialMax;
+
             doWindow(grpc, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, budgetId, padding, capabilities);
         }
@@ -821,16 +825,18 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             assert replyAck <= replySeq;
 
             final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
-            final KafkaDataExFW kafkaBeginEx =
-                beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
-            final KafkaMergedDataExFW kafkaMergedDataEx =
-                kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
-            final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
+            final KafkaBeginExFW kafkaBeginEx =
+                beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaBeginExRO::tryWrap) : null;
+            final KafkaMergedBeginExFW kafkaMergedBeginEx =
+                kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaBeginExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
+            final Array32FW<KafkaOffsetFW> partitions = kafkaMergedBeginEx != null ? kafkaMergedBeginEx.partitions() : null;
 
-            if (kafkaMergedDataEx != null)
+            if (kafkaMergedBeginEx != null)
             {
-                String8FW encodedProgress = messageField.encodeProgressOnly(progress);
-                replyPad = encodedProgress.length();
+                String8FW encodedProgress = messageField.encodeProgressOnly(partitions);
+                Varuint32FW len = lenRW.set(encodedProgress.length()).build();
+                int lenSize = len.sizeof();
+                replyPad = result.lastMessageId().sizeof() + lenSize + encodedProgress.length();
             }
 
             delegate.onKafkaBegin(traceId, authorization, extension);
@@ -885,8 +891,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
                 encodeProgress += payloadSize;
 
-                int messageFieldPadding = encodeProgress;
-
                 if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
                     Varuint32FW key = result.lastMessageId();
@@ -902,9 +906,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     encodeBuffer.putBytes(encodeProgress, encodedId.value(), 0, encodedId.length());
                     encodeProgress += encodedId.length();
                 }
-                messageFieldPadding = encodeProgress - messageFieldPadding;
 
-                delegate.onKafkaData(traceId, authorization, budgetId, reserved + messageFieldPadding, flags,
+                delegate.onKafkaData(traceId, authorization, budgetId, reserved, flags,
                     encodeBuffer, encodeOffset, encodeProgress - encodeOffset, extension);
             }
         }
@@ -1020,7 +1023,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             int padding,
             int capabilities)
         {
-            replyAck = delegate.replyAck - replyPad;
+            replyAck = Math.max(delegate.replyAck - replyPad, 0);
             replyMax = delegate.replyMax;
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
