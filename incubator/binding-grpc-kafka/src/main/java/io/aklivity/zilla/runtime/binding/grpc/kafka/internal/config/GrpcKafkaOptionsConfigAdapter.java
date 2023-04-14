@@ -32,19 +32,14 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
     private static final String CORRELATION_HEADERS_SERVICE_NAME = "service";
     private static final String CORRELATION_HEADERS_METHOD_NAME = "method";
-    private static final String CORRELATION_HEADERS_REQUEST_NAME = "request";
-    private static final String CORRELATION_HEADERS_RESPONSE_NAME = "response";
 
     private static final String16FW CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = new String16FW("zilla:correlation-id");
     private static final String16FW CORRELATION_HEADERS_SERVICE_DEFAULT = new String16FW("zilla:service");
     private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
-    private static final String16FW CORRELATION_HEADERS_REQUEST_DEFAULT = new String16FW("zilla:request");
-    private static final String16FW CORRELATION_HEADERS_RESPONSE_DEFAULT = new String16FW("zilla:response");
 
     private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
         new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
-            CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT,
-            CORRELATION_HEADERS_REQUEST_DEFAULT, CORRELATION_HEADERS_RESPONSE_DEFAULT);
+            CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT);
     public static final GrpcKafkaOptionsConfig DEFAULT = new GrpcKafkaOptionsConfig(CORRELATION_DEFAULT);
 
     @Override
@@ -81,16 +76,6 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             if (!CORRELATION_HEADERS_METHOD_DEFAULT.equals(correlation.method))
             {
                 newHeaders.add(CORRELATION_HEADERS_METHOD_NAME, correlation.method.asString());
-            }
-
-            if (!CORRELATION_HEADERS_REQUEST_DEFAULT.equals(correlation.request))
-            {
-                newHeaders.add(CORRELATION_HEADERS_REQUEST_NAME, correlation.request.asString());
-            }
-
-            if (!CORRELATION_HEADERS_RESPONSE_DEFAULT.equals(correlation.response))
-            {
-                newHeaders.add(CORRELATION_HEADERS_RESPONSE_NAME, correlation.response.asString());
             }
 
             if (!CORRELATION_HEADERS_CORRELATION_ID_DEFAULT.equals(correlation.correlationId))
@@ -131,25 +116,13 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
                     newMethod = new String16FW(headers.getString(CORRELATION_HEADERS_METHOD_NAME));
                 }
 
-                String16FW newRequest = CORRELATION_HEADERS_REQUEST_DEFAULT;
-                if (headers.containsKey(CORRELATION_HEADERS_REQUEST_NAME))
-                {
-                    newRequest = new String16FW(headers.getString(CORRELATION_HEADERS_REQUEST_NAME));
-                }
-
-                String16FW newResponse = CORRELATION_HEADERS_RESPONSE_DEFAULT;
-                if (headers.containsKey(CORRELATION_HEADERS_RESPONSE_NAME))
-                {
-                    newResponse = new String16FW(headers.getString(CORRELATION_HEADERS_RESPONSE_NAME));
-                }
-
                 String16FW newCorrelationId = CORRELATION_HEADERS_CORRELATION_ID_DEFAULT;
                 if (headers.containsKey(CORRELATION_HEADERS_CORRELATION_ID_NAME))
                 {
                     newCorrelationId = new String16FW(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
                 }
 
-                newCorrelation = new GrpcKafkaCorrelationConfig(newCorrelationId, newService, newMethod, newRequest, newResponse);
+                newCorrelation = new GrpcKafkaCorrelationConfig(newCorrelationId, newService, newMethod);
             }
         }
 

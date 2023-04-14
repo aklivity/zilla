@@ -75,9 +75,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
                 new GrpcKafkaCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
                     new String16FW("zilla:x-service"),
-                    new String16FW("zilla:x-method"),
-                    new String16FW("zilla:x-request"),
-                    new String16FW("zilla:x-response")));
+                    new String16FW("zilla:x-method")));
 
         String text = jsonb.toJson(options);
 
@@ -90,8 +88,6 @@ public class GrpcKafkaOptionsConfigAdapterTest
                         "{" +
                             "\"service\":\"zilla:x-service\"," +
                             "\"method\":\"zilla:x-method\"," +
-                            "\"request\":\"zilla:x-request\"," +
-                            "\"response\":\"zilla:x-response\"," +
                             "\"correlation-id\":\"zilla:x-correlation-id\"" +
                         "}" +
                     "}" +

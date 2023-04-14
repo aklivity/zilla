@@ -24,8 +24,6 @@ read zilla:begin.ext ${grpc:matchBeginEx()
                            .authority("localhost:8080")
                            .service("example.EchoService")
                            .method("EchoBidiStream")
-                           .request("STREAM")
-                           .response("STREAM")
                            .metadata("custom", "test")
                            .metadata("idempotency-key", "59410e57-3e0f-4b61-9328-f645a7968ac8")
                            .build()}
@@ -49,5 +47,5 @@ write ${grpc:protobuf()
             .build()}
 write flush
 
-read closed
 write close
+read closed

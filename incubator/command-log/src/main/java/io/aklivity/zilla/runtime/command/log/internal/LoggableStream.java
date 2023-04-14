@@ -799,8 +799,6 @@ public final class LoggableStream implements AutoCloseable
         out.printf(verboseFormat, index, offset, timestamp, format("authority: %s", grpcBeginEx.authority().asString()));
         out.printf(verboseFormat, index, offset, timestamp, format("service: %s", grpcBeginEx.service().asString()));
         out.printf(verboseFormat, index, offset, timestamp, format("method: %s", grpcBeginEx.method().asString()));
-        out.printf(verboseFormat, index, offset, timestamp, format("request: %s", grpcBeginEx.request().get()));
-        out.printf(verboseFormat, index, offset, timestamp, format("response: %s", grpcBeginEx.response().get()));
 
         grpcBeginEx.metadata().forEach(m ->
         {

@@ -31,7 +31,6 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
-import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
@@ -130,20 +129,6 @@ public final class GrpcFunctions
             return this;
         }
 
-        public GrpcBeginExBuilder request(
-            String request)
-        {
-            beginExRW.request(r -> r.set(GrpcKind.valueOf(request)));
-            return this;
-        }
-
-        public GrpcBeginExBuilder response(
-            String response)
-        {
-            beginExRW.response(r -> r.set(GrpcKind.valueOf(response)));
-            return this;
-        }
-
         public GrpcBeginExBuilder metadata(
             String name,
             String value)
@@ -190,8 +175,6 @@ public final class GrpcFunctions
         private String authority;
         private String service;
         private String method;
-        private GrpcKind request;
-        private GrpcKind response;
 
         public GrpcBeginExMatcherBuilder typeId(
             int typeId)
@@ -225,20 +208,6 @@ public final class GrpcFunctions
             String method)
         {
             this.method = method;
-            return this;
-        }
-
-        public GrpcBeginExMatcherBuilder request(
-            String request)
-        {
-            this.request = GrpcKind.valueOf(request);
-            return this;
-        }
-
-        public GrpcBeginExMatcherBuilder response(
-            String response)
-        {
-            this.response = GrpcKind.valueOf(response);
             return this;
         }
 
@@ -281,8 +250,6 @@ public final class GrpcFunctions
                 matchAuthority(beginEx) &&
                 matchService(beginEx) &&
                 matchMethod(beginEx) &&
-                matchRequest(beginEx) &&
-                matchResponse(beginEx) &&
                 matchMetadata(beginEx))
             {
                 byteBuf.position(byteBuf.position() + beginEx.sizeof());
@@ -323,18 +290,6 @@ public final class GrpcFunctions
             GrpcBeginExFW beginEx)
         {
             return service.equals(beginEx.service().asString());
-        }
-
-        private boolean matchRequest(
-            GrpcBeginExFW beginEx)
-        {
-            return request == beginEx.request().get();
-        }
-
-        private boolean matchResponse(
-            GrpcBeginExFW beginEx)
-        {
-            return response == beginEx.response().get();
         }
 
         private boolean matchTypeId(

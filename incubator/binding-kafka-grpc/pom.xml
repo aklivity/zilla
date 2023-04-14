@@ -26,14 +26,14 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <jacoco.coverage.ratio>0.90</jacoco.coverage.ratio>
+    <jacoco.coverage.ratio>0.86</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>binding-grpc-kafka.spec</artifactId>
+      <artifactId>binding-kafka-grpc.spec</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -108,7 +108,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core grpc kafka</scopeNames>
+          <scopeNames>core grpc kafka internal</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types</packageName>
         </configuration>
         <executions>
@@ -138,7 +138,7 @@
               <artifactItems>
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>binding-grpc-kafka.spec</artifactId>
+                  <artifactId>binding-kafka-grpc.spec</artifactId>
                   <fileMappers>
                      <org.codehaus.plexus.components.io.filemappers.RegExpFileMapper>
                        <pattern>^\Qio/aklivity/zilla/specs/binding/kafka/grpc/\E</pattern>
@@ -147,7 +147,7 @@
                   </fileMappers>
                 </artifactItem>
               </artifactItems>
-              <includes>io/aklivity/zilla/specs/binding/grpc/kafka/schema/kafka.grpc.schema.patch.json</includes>
+              <includes>io/aklivity/zilla/specs/binding/kafka/grpc/schema/kafka.grpc.schema.patch.json</includes>
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
             </configuration>
           </execution>

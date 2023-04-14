@@ -16,7 +16,6 @@ package io.aklivity.zilla.runtime.binding.grpc.internal.config;
 
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcKind;
 import io.aklivity.zilla.runtime.binding.grpc.internal.types.stream.GrpcMetadataFW;
 
 public class GrpcMethodResult
@@ -28,8 +27,6 @@ public class GrpcMethodResult
     public final String16FW scheme;
     public final String16FW authority;
     public final String16FW te;
-    public final GrpcKind request;
-    public final GrpcKind response;
     public final Array32FW<GrpcMetadataFW> metadata;
 
     public GrpcMethodResult(
@@ -40,9 +37,7 @@ public class GrpcMethodResult
         String16FW scheme,
         String16FW authority,
         String16FW te,
-        Array32FW<GrpcMetadataFW> metadata,
-        GrpcKind request,
-        GrpcKind response)
+        Array32FW<GrpcMetadataFW> metadata)
     {
         this.service = service;
         this.method = method;
@@ -52,7 +47,5 @@ public class GrpcMethodResult
         this.contentType = contentType;
         this.te = te;
         this.metadata = metadata;
-        this.request = request;
-        this.response = response;
     }
 }

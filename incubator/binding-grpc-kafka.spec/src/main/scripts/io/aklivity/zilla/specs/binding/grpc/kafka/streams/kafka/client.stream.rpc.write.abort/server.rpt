@@ -40,8 +40,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:identity", "test")
                                .header("zilla:service", "example.EchoService")
                                .header("zilla:method", "EchoClientStream")
-                               .header("zilla:request", "STREAM")
-                               .header("zilla:response", "UNARY")
                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
                                .build()
                            .build()}
@@ -49,8 +47,39 @@ read ${grpc:protobuf()
            .string(1, "Hello World1")
            .build()}
 
-
 write abort
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                               .deferred(0)
+                               .partition(-1, -1)
+                               .key("test")
+                               .header("zilla:identity", "test")
+                               .header("zilla:service", "example.EchoService")
+                               .header("zilla:method", "EchoClientStream")
+                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                               .build()
+                           .build()}
+read zilla:data.null
+
 read aborted
 
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                  .capabilities("FETCH_ONLY")
+                                  .topic("responses")
+                                  .partition(-1, -2)
+                                  .filter()
+                                    .key("test")
+                                    .header("zilla:identity", "test")
+                                    .build()
+                                  .filter()
+                                   .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                   .build()
+                                  .build()
+                              .build()}
 

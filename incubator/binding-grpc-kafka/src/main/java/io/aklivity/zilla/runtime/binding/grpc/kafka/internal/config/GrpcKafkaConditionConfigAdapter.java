@@ -132,18 +132,4 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
         return new GrpcKafkaConditionConfig(service, method, newMetadata);
     }
 
-    private static JsonObject getJsonObject(
-        JsonValue v)
-    {
-        JsonObject value = null;
-        try
-        {
-            value = JsonObject.class.cast(v);
-        }
-        catch (ClassCastException ex)
-        {
-        }
-        return value;
-    }
-
 }

@@ -29,32 +29,26 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+
 write zilla:data.ext ${kafka:dataEx()
-                                 .typeId(zilla:id("kafka"))
-                                 .merged()
-                                     .deferred(0)
-                                     .partition(-1, -1)
-                                     .key("test")
-                                     .header("zilla:identity", "test")
-                                     .header("zilla:service", "example.EchoService")
-                                     .header("zilla:method", "EchoServerStream")
-                                     .header("zilla:request", "UNARY")
-                                     .header("zilla:response", "STREAM")
-                                     .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
-                                     .build()
-                                 .build()}
-write ${grpc:protobuf()
-            .string(1, "Hello World")
-            .build()}
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .deferred(0)
+                                .partition(-1, -1)
+                                .key("test")
+                                .header("zilla:identity", "test")
+                                .header("zilla:service", "example.EchoService")
+                                .header("zilla:method", "EchoServerStream")
+                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                .build()
+                            .build()}
+
+
 write flush
 
+write abort
 
-write close
-write notify SENT_ASYNC_REQUEST
-read closed
-
-connect await SENT_ASYNC_REQUEST
-        "zilla://streams/kafka0"
+connect "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"
 

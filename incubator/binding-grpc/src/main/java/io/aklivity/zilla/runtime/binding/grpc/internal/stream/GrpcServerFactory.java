@@ -1434,8 +1434,6 @@ public final class GrpcServerFactory implements GrpcStreamFactory
             .authority(method.authority)
             .service(method.service.toString())
             .method(method.method.toString())
-            .request(r -> r.set(method.request).build())
-            .response(r -> r.set(method.response).build())
             .metadata(method.metadata)
             .build();
 
