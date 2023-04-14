@@ -83,7 +83,6 @@ public final class GrpcKafkaWithFetchConfigAdapter implements JsonbAdapter<GrpcK
     {
         String newTopic = object.getString(TOPIC_NAME);
 
-
         List<GrpcKafkaWithFetchFilterConfig> newFilters = null;
         if (object.containsKey(FILTERS_NAME))
         {

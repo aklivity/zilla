@@ -20,10 +20,6 @@ import static java.time.Instant.now;
 
 import java.util.function.LongUnaryOperator;
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedDataExFW;
-import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -34,8 +30,10 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaBin
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithFetchResult;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaWithProduceResult;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaHeaderFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
@@ -50,6 +48,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcDa
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaDataExFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.WindowFW;
@@ -58,13 +57,12 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 {
     private static final String GRPC_TYPE_NAME = "grpc";
     private static final String KAFKA_TYPE_NAME = "kafka";
-
-    private static final int BYTES_WIRE_TYPE = 2;
 
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
@@ -77,11 +75,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     private final String16FW.Builder string16RW =
         new String16FW.Builder().wrap(new UnsafeBuffer(new byte[256], 0, 256), 0, 256);
 
-    private final Varuint32FW.Builder keyRW =
-        new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);
-
-    //private final SseKafkaEventIdFW.Builder eventIdRW =
-    //    new SseKafkaEventIdFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+    private final Varuint32FW.Builder lenRW =
+        new Varuint32FW.Builder().wrap(new UnsafeBuffer(new byte[1024 * 8]), 0, 1024 * 8);;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
@@ -118,6 +113,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
+    private final GrpcKafkaIdHelper messageField = new GrpcKafkaIdHelper();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -195,7 +191,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
             case FETCH:
             {
-                final GrpcKafkaWithFetchResult result = route.with.resolveFetch(authorization);
+                final GrpcKafkaWithFetchResult result =
+                    route.with.resolveFetch(authorization, grpcBeginEx, messageField);
 
                 newStream = new GrpcFetchProxy(
                     grpc,
@@ -208,7 +205,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             }
             case PRODUCE:
             {
-                final GrpcKafkaWithProduceResult result = route.with.resolveProduce(authorization, grpcBeginEx);
+                final GrpcKafkaWithProduceResult result =
+                    route.with.resolveProduce(authorization, grpcBeginEx);
 
                 newStream = new GrpcProduceProxy(
                     grpc,
@@ -678,6 +676,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private final GrpcKafkaWithFetchResult result;
         private final GrpcProxy delegate;
 
+        private String8FW encodedId;
         private int state;
 
         private long initialSeq;
@@ -687,6 +686,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private long replySeq;
         private long replyAck;
         private int replyMax;
+        private int replyPad;
 
         private KafkaFetchProxy(
             long originId,
@@ -807,6 +807,19 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            final ExtensionFW beginEx = extension.get(extensionRO::tryWrap);
+            final KafkaDataExFW kafkaBeginEx =
+                beginEx != null && beginEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
+            final KafkaMergedDataExFW kafkaMergedDataEx =
+                kafkaBeginEx != null && kafkaBeginEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaBeginEx.merged() : null;
+            final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
+
+            if (kafkaMergedDataEx != null)
+            {
+                String8FW encodedProgress = messageField.encodeProgressOnly(progress);
+                replyPad = encodedProgress.length();
+            }
+
             delegate.onKafkaBegin(traceId, authorization, extension);
         }
 
@@ -840,13 +853,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
                 final MutableDirectBuffer encodeBuffer = writeBuffer;
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
-                final int encodeLimit = encodeBuffer.capacity();
                 final int payloadSize = payload.sizeof();
-
-                int encodeProgress = encodeOffset;
-
-                encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
-                encodeProgress += payloadSize;
 
                 if ((flags & DATA_FLAG_INIT) != 0x00)
                 {
@@ -856,27 +863,33 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     final KafkaMergedDataExFW kafkaMergedDataEx =
                         kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
                     final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
+
+                    encodedId = messageField.encodeProgressOnly(progress);
                 }
+
+                int encodeProgress = encodeOffset;
+
+                encodeBuffer.putBytes(encodeProgress, payload.buffer(), payload.offset(), payloadSize);
+                encodeProgress += payloadSize;
 
                 if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
-                    Varuint32FW key = keyRW.set(result.lastMessageId() << 3 | BYTES_WIRE_TYPE).build();
-
+                    Varuint32FW key = result.lastMessageId();
 
                     final int keySize = key.sizeof();
                     encodeBuffer.putBytes(encodeProgress, key.buffer(), key.offset(), key.sizeof());
                     encodeProgress += keySize;
 
-                    final byte[] bytes = value.getBytes();
-                    Varuint32FW len = lenRW.set(bytes.length).build();
+                    Varuint32FW len = lenRW.set(encodedId.length()).build();
                     int lenSize = len.sizeof();
-                    messageBuffer.putBytes(messageBufferLimit, len.buffer(), len.offset(), lenSize);
-                    messageBufferLimit += lenSize;
-                    messageBuffer.putBytes(messageBufferLimit, bytes);
-                    messageBufferLimit += bytes.length;
+                    encodeBuffer.putBytes(encodeProgress, len.buffer(), len.offset(), lenSize);
+                    encodeProgress += lenSize;
+                    encodeBuffer.putBytes(encodeProgress, encodedId.value(), 0, encodedId.length());
+                    encodeProgress += encodedId.length();
                 }
 
-                delegate.onKafkaData(traceId, authorization, budgetId, reserved, flags, payload, extension);
+                delegate.onKafkaData(traceId, authorization, budgetId, reserved, flags,
+                    encodeBuffer, encodeOffset, encodeProgress, extension);
             }
         }
 
@@ -995,7 +1008,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             replyMax = delegate.replyMax;
 
             doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
-                traceId, authorization, budgetId, padding, capabilities);
+                traceId, authorization, budgetId, padding + replyPad, capabilities);
         }
     }
 
@@ -2306,50 +2319,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
 
         return receiver;
-    }
-
-    public String8FW encodeProgressOnly(
-        final Array32FW<KafkaOffsetFW> progress)
-    {
-        eventIdRW.rewrap();
-        SseKafkaEventIdFW eventId = eventIdRW
-            .v1(v1 -> v1.partitionCount(progress.fieldCount()))
-            .build();
-
-        MutableDirectBuffer buffer = eventIdRW.buffer();
-        offset.value = eventId.limit();
-        progress.forEach(p ->
-        {
-            offset.value = partitionV1RW.wrap(buffer, offset.value, buffer.capacity())
-                .partitionId(p.partitionId())
-                .partitionOffset(p.partitionOffset())
-                .build()
-                .limit();
-        });
-
-        String8FW encoded = encode8(eventId);
-
-        if (etag != null)
-        {
-            final DirectBuffer encodedValue = encoded.value();
-            final DirectBuffer etagValue = etag.value().value();
-            final int encodedValueLength = encodedValue.capacity();
-            final int etagValueLength = etagValue.capacity();
-            final int encodedLength = encodedValueLength + 1 + etagValueLength;
-
-            final MutableDirectBuffer encodedBuf = progressOnlyRW;
-            int encodedOffset = 0;
-            encodedBuf.putBytes(encodedOffset, encodedValue, 0, encodedValueLength);
-            encodedOffset += encodedValueLength;
-            encodedBuf.putByte(encodedOffset++, (byte) '/');
-            encodedBuf.putBytes(encodedOffset, etagValue, 0, etagValueLength);
-            encodedOffset += etagValueLength;
-            assert encodedOffset == encodedLength;
-
-            encoded = stringRW.set(encodedBuf, 0, encodedLength).build();
-        }
-
-        return encoded;
     }
 
     private void doWindow(

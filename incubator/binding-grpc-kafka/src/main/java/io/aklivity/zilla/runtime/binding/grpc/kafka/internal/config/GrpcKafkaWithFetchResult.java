@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaFilterFW
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public class GrpcKafkaWithFetchResult
 {
@@ -33,15 +34,18 @@ public class GrpcKafkaWithFetchResult
             .partitionOffset(KafkaOffsetType.HISTORICAL.value())
             .build();
 
+    private final Array32FW<KafkaOffsetFW> partitions;
     private final List<GrpcKafkaWithFetchFilterResult> filters;
     private final String16FW topic;
-    private final int lastMessageId;
+    private final Varuint32FW lastMessageId;
 
     GrpcKafkaWithFetchResult(
         String16FW topic,
+        Array32FW<KafkaOffsetFW> partitions,
         List<GrpcKafkaWithFetchFilterResult> filters,
-        int lastMessageId)
+        Varuint32FW lastMessageId)
     {
+        this.partitions = partitions;
         this.filters = filters;
         this.topic = topic;
         this.lastMessageId = lastMessageId;
@@ -52,7 +56,7 @@ public class GrpcKafkaWithFetchResult
         return topic;
     }
 
-    public int lastMessageId()
+    public Varuint32FW lastMessageId()
     {
         return lastMessageId;
     }
@@ -60,7 +64,14 @@ public class GrpcKafkaWithFetchResult
     public void partitions(
         Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> builder)
     {
-        builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
+        if (partitions != null)
+        {
+            partitions.forEach(p -> builder.item(n -> n.set(p)));
+        }
+        else
+        {
+            builder.item(p -> p.set(KAFKA_OFFSET_HISTORICAL));
+        }
     }
 
     public void filters(

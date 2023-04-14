@@ -74,7 +74,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
                 127,
-                new GrpcKafkaCorrelationConfig(
+            newLastMessageIdMetadataName, new GrpcKafkaCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
                     new String16FW("zilla:x-service"),
                     new String16FW("zilla:x-method")));

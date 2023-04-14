@@ -22,6 +22,9 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaIdHelper;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -32,9 +35,11 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public final class GrpcKafkaWithResolver
 {
+    private static final int BYTES_WIRE_TYPE = 2;
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\-]*)'\\]).identity\\}");
 
@@ -43,8 +48,11 @@ public final class GrpcKafkaWithResolver
     private final OctetsFW dashOctetsRW = new OctetsFW().wrap(new String16FW("-").value(), 0, 1);
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+    private final String8FW.Builder string8RW =
+        new String8FW.Builder().wrap(new UnsafeBuffer(new byte[2048], 0, 2048), 0, 256);
     private final byte[] hashBytesRW = new byte[8192];
 
+    private final Varuint32FW key;
     private final GrpcKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final GrpcKafkaWithConfig with;
@@ -59,6 +67,8 @@ public final class GrpcKafkaWithResolver
         this.identityReplacer = identityReplacer;
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
+        this.key = new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+            .set(options.lastMessageId << 3 | BYTES_WIRE_TYPE).build();
     }
 
     public GrpcKafkaCapability capability()
@@ -67,16 +77,31 @@ public final class GrpcKafkaWithResolver
     }
 
     public GrpcKafkaWithFetchResult resolveFetch(
-        long authorization)
+        long authorization,
+        GrpcBeginExFW grpcBeginExFW,
+        GrpcKafkaIdHelper messageField)
     {
         final GrpcKafkaWithFetchConfig fetch = with.fetch.get();
         String16FW topic = new String16FW(fetch.topic);
 
+        final Array32FW<GrpcMetadataFW> metadata = grpcBeginExFW.metadata();
+        GrpcMetadataFW lastMessageIdMetadata = metadata
+            .matchFirst(m -> m.value().value().compareTo(options.lastMessageIdMetadataName.buffer()) == 0);
+        Array32FW<KafkaOffsetFW> partitions = null;
+        if (lastMessageIdMetadata != null)
+        {
+            final String8FW lastMessageId = string8RW
+                .set(lastMessageIdMetadata.value().value(), 0, lastMessageIdMetadata.valueLen())
+                .build();
+            final DirectBuffer progress64 = messageField.findProgress(lastMessageId);
+            partitions = messageField.decode(progress64);
+        }
+
         List<GrpcKafkaWithFetchFilterResult> filters = null;
+
         if (fetch.filters.isPresent())
         {
             filters = new ArrayList<>();
-
             for (GrpcKafkaWithFetchFilterConfig filter : fetch.filters.get())
             {
                 DirectBuffer key = null;
@@ -119,7 +144,7 @@ public final class GrpcKafkaWithResolver
             }
         }
 
-        return new GrpcKafkaWithFetchResult(topic, filters, options.lastMessageId);
+        return new GrpcKafkaWithFetchResult(topic, partitions, filters, key);
     }
 
     public GrpcKafkaWithProduceResult resolveProduce(

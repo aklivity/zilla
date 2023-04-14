@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -28,6 +29,7 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
     private static final String LAST_MESSAGE_ID_NAME = "last_message_id";
+    private static final String LAST_MESSAGE_ID_METADATA_NAME_NAME = "last_message_id_metadata_name";
     private static final String CORRELATION_NAME = "correlation";
     private static final String CORRELATION_HEADERS_NAME = "headers";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
@@ -38,12 +40,13 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String16FW CORRELATION_HEADERS_SERVICE_DEFAULT = new String16FW("zilla:service");
     private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
 
+    private static final int LAST_MESSAGE_ID_DEFAULT = 32767;
+    private static final String8FW LAST_MESSAGE_ID_METADATA_NAME_DEFAULT = new String8FW("lastMessageId");
     private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
         new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
             CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT);
-    private static final int LAST_MESSAGE_ID_DEFAULT = 32767;
     public static final GrpcKafkaOptionsConfig DEFAULT =
-        new GrpcKafkaOptionsConfig(LAST_MESSAGE_ID_DEFAULT, CORRELATION_DEFAULT);
+        new GrpcKafkaOptionsConfig(LAST_MESSAGE_ID_DEFAULT, LAST_MESSAGE_ID_METADATA_NAME_DEFAULT, CORRELATION_DEFAULT);
 
     @Override
     public Kind kind()
@@ -64,6 +67,16 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
         GrpcKafkaOptionsConfig grpcKafkaOptions = (GrpcKafkaOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (LAST_MESSAGE_ID_DEFAULT != grpcKafkaOptions.lastMessageId)
+        {
+            object.add(LAST_MESSAGE_ID_NAME, grpcKafkaOptions.lastMessageId);
+        }
+
+        if (!LAST_MESSAGE_ID_METADATA_NAME_DEFAULT.equals(grpcKafkaOptions.lastMessageIdMetadataName))
+        {
+            object.add(LAST_MESSAGE_ID_METADATA_NAME_NAME, grpcKafkaOptions.lastMessageIdMetadataName.asString());
+        }
 
         GrpcKafkaCorrelationConfig correlation = grpcKafkaOptions.correlation;
         if (correlation != null &&
@@ -99,8 +112,21 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        final int lastMessageId = object.containsKey(CORRELATION_NAME) ?
-            object.getInt(LAST_MESSAGE_ID_NAME) : LAST_MESSAGE_ID_DEFAULT;
+        int newLastMessageId = LAST_MESSAGE_ID_DEFAULT;
+        if (object.containsKey(CORRELATION_NAME))
+        {
+            int lastMessageId = object.getInt(LAST_MESSAGE_ID_NAME);
+            if (lastMessageId < 19000 || lastMessageId > 19999)
+            {
+                newLastMessageId = lastMessageId;
+            }
+        }
+
+        String8FW newLastMessageIdMetadataName = LAST_MESSAGE_ID_METADATA_NAME_DEFAULT;
+        if (object.containsKey(LAST_MESSAGE_ID_METADATA_NAME_NAME))
+        {
+            newLastMessageIdMetadataName = new String8FW(object.getString(LAST_MESSAGE_ID_METADATA_NAME_NAME));
+        }
 
         GrpcKafkaCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
         if (object.containsKey(CORRELATION_NAME))
@@ -132,6 +158,6 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             }
         }
 
-        return new GrpcKafkaOptionsConfig(lastMessageId, newCorrelation);
+        return new GrpcKafkaOptionsConfig(newLastMessageId, newLastMessageIdMetadataName, newCorrelation);
     }
 }
