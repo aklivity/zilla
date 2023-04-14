@@ -18,7 +18,10 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 
@@ -68,12 +71,16 @@ public class PrometheusExporterHandler implements ExporterHandler
     {
         // TODO: Ati
         System.out.println("PrometheusExporterHandler.export");
-        metrics.print(System.out);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+        metrics.print(out);
         try
         {
+            System.out.println(os.toString("UTF8"));
+            System.out.println("---");
             Thread.sleep(5 * 1000L);
         }
-        catch (InterruptedException ex)
+        catch (InterruptedException | UnsupportedEncodingException ex)
         {
             LangUtil.rethrowUnchecked(ex);
         }

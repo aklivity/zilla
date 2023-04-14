@@ -19,10 +19,11 @@ import static io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.Names
 
 import java.util.Arrays;
 import java.util.function.IntFunction;
-import java.util.function.LongFunction;
 import java.util.function.LongSupplier;
 
-public class CounterGaugeRecord implements MetricRecord
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectLongFunction;
+
+public class CounterRecord implements MetricRecord
 {
     private static final int UNINITIALIZED = -1;
 
@@ -31,16 +32,18 @@ public class CounterGaugeRecord implements MetricRecord
     private final int metricId;
     private final LongSupplier[] readers;
     private final IntFunction<String> labelResolver;
-    private final LongFunction<String> valueFormatter;
+    //private final LongFunction<String> valueFormatter;
+    private final ObjectLongFunction<String, String[]> valueFormatter;
 
     private long value = UNINITIALIZED;
 
-    public CounterGaugeRecord(
+    public CounterRecord(
         long packedBindingId,
         long packedMetricId,
         LongSupplier[] readers,
         IntFunction<String> labelResolver,
-        LongFunction<String> valueFormatter)
+        //LongFunction<String> valueFormatter)
+        ObjectLongFunction<String, String[]> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
@@ -75,7 +78,9 @@ public class CounterGaugeRecord implements MetricRecord
         {
             update();
         }
-        return valueFormatter.apply(value);
+        //return valueFormatter.apply(value);
+        final String kind = "counter"; // TODO: Ati
+        return valueFormatter.apply(new String[]{kind, metricName(), namespaceName(), bindingName()}, value);
     }
 
     @Override
@@ -88,5 +93,4 @@ public class CounterGaugeRecord implements MetricRecord
     {
         return Arrays.stream(readers).map(LongSupplier::getAsLong).reduce(Long::sum).orElse(0L);
     }
-
 }

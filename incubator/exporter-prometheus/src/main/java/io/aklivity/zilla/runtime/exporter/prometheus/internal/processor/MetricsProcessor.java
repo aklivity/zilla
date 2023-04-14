@@ -29,7 +29,8 @@ import java.util.stream.Collectors;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.CounterGaugeRecord;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.CounterRecord;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.GaugeRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.HistogramRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.MetricRecord;
 
@@ -106,7 +107,7 @@ public class MetricsProcessor
                     .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
+                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers,
                     labels::lookupLabel, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
@@ -122,10 +123,21 @@ public class MetricsProcessor
     }
 
     private String counterGaugeFormatter(
+        String[] s, long value)
+    {
+        String format =
+            "# HELP %s %s\n" +
+            "# TYPE %s %s\n" +
+            "%s{namespace=\"%s\",binding=\"%s\"} %d";
+        // TODO: Ati
+        return String.format(format, s[1], "TODO: put description here", s[1], s[0], s[1], s[2], s[3], value);
+    }
+
+    /*private String counterGaugeFormatter(
         long value)
     {
         return String.valueOf(value);
-    }
+    }*/
 
     private void collectGauges()
     {
@@ -139,7 +151,7 @@ public class MetricsProcessor
                     .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
+                MetricRecord record = new GaugeRecord(packedBindingId, packedMetricId, readers,
                     labels::lookupLabel, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
@@ -168,7 +180,9 @@ public class MetricsProcessor
     private String histogramFormatter(
         long[] stats)
     {
-        return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
+        // TODO: Ati
+        return "";
+        // return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
     }
 
     private void updateRecords()
@@ -195,6 +209,16 @@ public class MetricsProcessor
     private void printRecords(
         PrintStream out)
     {
+        for (MetricRecord metric : metricRecords)
+        {
+            out.println(metric.stringValue());
+            out.println();
+        }
+    }
+
+    /*private void printRecords(
+        PrintStream out)
+    {
         String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
             valueWidth + "s\n";
         out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
@@ -203,5 +227,5 @@ public class MetricsProcessor
             out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
         }
         out.println();
-    }
+    }*/
 }
