@@ -68,7 +68,7 @@ public final class GrpcKafkaWithResolver
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
         this.key = new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
-            .set(options.lastMessageId << 3 | BYTES_WIRE_TYPE).build();
+            .set(options.lastMessageIdField << 3 | BYTES_WIRE_TYPE).build();
     }
 
     public GrpcKafkaCapability capability()

@@ -66,7 +66,7 @@ public class GrpcKafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.correlation, not(nullValue()));
-        assertThat(options.lastMessageId, equalTo(255));
+        assertThat(options.lastMessageIdField, equalTo(255));
         assertThat(options.lastMessageIdMetadata.asString(), equalTo("last-message-id-x"));
         assertThat(options.correlation.service.asString(), equalTo("zilla:service-x"));
         assertThat(options.correlation.method.asString(), equalTo("zilla:method-x"));

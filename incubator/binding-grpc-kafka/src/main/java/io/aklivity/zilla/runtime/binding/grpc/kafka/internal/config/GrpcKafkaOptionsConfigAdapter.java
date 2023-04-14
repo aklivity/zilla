@@ -40,13 +40,13 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String16FW CORRELATION_HEADERS_SERVICE_DEFAULT = new String16FW("zilla:service");
     private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
 
-    private static final int LAST_MESSAGE_ID_DEFAULT = 32767;
+    private static final int LAST_MESSAGE_ID_FIELD_DEFAULT = 32767;
     private static final String8FW LAST_MESSAGE_ID_METADATA_DEFAULT = new String8FW("last-message-id");
     private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
         new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
             CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT);
     public static final GrpcKafkaOptionsConfig DEFAULT =
-        new GrpcKafkaOptionsConfig(LAST_MESSAGE_ID_DEFAULT, LAST_MESSAGE_ID_METADATA_DEFAULT, CORRELATION_DEFAULT);
+        new GrpcKafkaOptionsConfig(LAST_MESSAGE_ID_FIELD_DEFAULT, LAST_MESSAGE_ID_METADATA_DEFAULT, CORRELATION_DEFAULT);
 
     @Override
     public Kind kind()
@@ -68,9 +68,9 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        if (LAST_MESSAGE_ID_DEFAULT != grpcKafkaOptions.lastMessageId)
+        if (LAST_MESSAGE_ID_FIELD_DEFAULT != grpcKafkaOptions.lastMessageIdField)
         {
-            object.add(LAST_MESSAGE_ID_FIELD_NAME, grpcKafkaOptions.lastMessageId);
+            object.add(LAST_MESSAGE_ID_FIELD_NAME, grpcKafkaOptions.lastMessageIdField);
         }
 
         if (!LAST_MESSAGE_ID_METADATA_DEFAULT.equals(grpcKafkaOptions.lastMessageIdMetadata))
@@ -112,7 +112,7 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        int newLastMessageId = LAST_MESSAGE_ID_DEFAULT;
+        int newLastMessageId = LAST_MESSAGE_ID_FIELD_DEFAULT;
         if (object.containsKey(CORRELATION_NAME))
         {
             int lastMessageId = object.getInt(LAST_MESSAGE_ID_FIELD_NAME);
