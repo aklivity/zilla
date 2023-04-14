@@ -475,7 +475,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            fetch.doKafkaReset(traceId, authorization);
+            cleanup(traceId, authorization);
         }
 
         private void onGrpcWindow(

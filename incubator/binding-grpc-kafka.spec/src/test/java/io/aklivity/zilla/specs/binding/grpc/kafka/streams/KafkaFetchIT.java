@@ -61,4 +61,22 @@ public class KafkaFetchIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${kafka}/client.sent.write.abort.unary.rpc/client",
+        "${kafka}/client.sent.write.abort.unary.rpc/server"})
+    public void shouldNotExchangeMessageOnClientSentWriteAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/client.sent.read.abort.unary.rpc/client",
+        "${kafka}/client.sent.read.abort.unary.rpc/server"})
+    public void shouldNotExchangeMessageOnClientSentReadAbort() throws Exception
+    {
+        k3po.finish();
+    }
 }
