@@ -12,13 +12,24 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.exporter.prometheus
+package io.aklivity.zilla.runtime.exporter.prometheus.internal;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.exporter.Exporter;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi;
+
+public class PrometheusExporterFactorySpi implements ExporterFactorySpi
 {
-    requires io.aklivity.zilla.runtime.engine;
+    @Override
+    public String type()
+    {
+        return PrometheusExporter.NAME;
+    }
 
-    provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
-        with io.aklivity.zilla.runtime.exporter.prometheus.internal.PrometheusExporterFactorySpi;
-
-//    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-//        with io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfigAdapter;
+    @Override
+    public Exporter create(
+        Configuration config)
+    {
+        return new PrometheusExporter(config);
+    }
 }
