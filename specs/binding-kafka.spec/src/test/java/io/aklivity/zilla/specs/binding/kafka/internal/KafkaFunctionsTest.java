@@ -3876,6 +3876,34 @@ public class KafkaFunctionsTest
     }
 
     @Test
+    public void shouldMatchFetchFlushExtensionWithTransaction() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchFlushEx()
+                .typeId(0x01)
+                .fetch()
+                .transaction("ABORT", 1)
+                .build()
+                .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaFlushExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+                .typeId(0x01)
+                .fetch(f -> f
+                        .partition(p -> p
+                        .partitionId(0)
+                        .partitionOffset(0L)
+                        .stableOffset(0L)
+                        .latestOffset(1L))
+                        .transactionsItem(t -> t
+                            .result(r -> r.set(KafkaTransactionResult.ABORT))
+                            .producerId(1)))
+                .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchFetchFlushExtensionWithLatestOffset() throws Exception
     {
         BytesMatcher matcher = KafkaFunctions.matchFlushEx()

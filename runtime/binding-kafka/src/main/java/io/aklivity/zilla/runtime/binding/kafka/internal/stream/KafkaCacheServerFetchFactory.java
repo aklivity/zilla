@@ -766,11 +766,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
-                    Node stable = partition.seekNotBefore(stableOffset);
-                    while (!stable.sentinel())
+                    Node stable = partition.seekNotAfter(stableOffset);
+                    while (!stable.sentinel() &&
+                        stable.segment().lastOffset() > this.stableOffset)
                     {
                         stable.findAndAbortProducerId(producerId, abortedEntryRO);
-                        stable = stable.next();
+                        stable = stable.previous();
                     }
                 }
             }

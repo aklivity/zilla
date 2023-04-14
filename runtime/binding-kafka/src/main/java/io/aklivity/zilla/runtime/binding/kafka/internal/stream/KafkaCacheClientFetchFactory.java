@@ -1128,21 +1128,21 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 String.format("!replyClosing(%08x) [%016x] [%016x] [%016x] %s",
                         state, replyBudgetId, replyId, replyDebitorIndex, replyDebitor);
 
+            final long initialIsolatedOffset = initialGroupIsolatedOffset.getAsLong();
+
             while (KafkaState.replyOpened(state) &&
                 !KafkaState.replyClosing(state) &&
                 (replyMax - (int)(replySeq - replyAck)) >= replyPad &&
                 cursor.offset <= group.partitionOffset &&
-                (cursor.offset <= isolatedOffset.getAsLong() ||
-                cursor.offset == 0 && isolatedOffset.getAsLong() == -1))
+                cursor.offset <= isolatedOffset.getAsLong())
             {
                 final KafkaCacheEntryFW nextEntry = cursor.next(entryRO);
 
-                final long isolatedOffset = initialGroupIsolatedOffset.getAsLong();
-                if ((nextEntry == null && group.partitionOffset >= isolatedOffset ||
-                    nextEntry != null && nextEntry.offset$() > isolatedOffset) &&
-                    flushOrDataFramesSent == 0)
+                if (flushOrDataFramesSent == 0 &&
+                    (nextEntry == null && group.partitionOffset >= initialIsolatedOffset ||
+                    nextEntry != null && nextEntry.offset$() > initialIsolatedOffset))
                 {
-                    doClientReplyFlush(traceId, isolatedOffset);
+                    doClientReplyFlush(traceId, initialIsolatedOffset);
                 }
 
                 if (nextEntry == null || nextEntry.offset$() > group.latestOffset)
@@ -1193,6 +1193,15 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 {
                     break;
                 }
+            }
+
+            if (flushOrDataFramesSent == 0 &&
+                KafkaState.replyOpened(state) &&
+                !KafkaState.replyClosing(state) &&
+                group.partitionOffset >= initialIsolatedOffset &&
+                cursor.offset > initialIsolatedOffset)
+            {
+                doClientReplyFlush(traceId, cursor.offset - 1);
             }
 
             if (maximumOffset == HISTORICAL && cursor.offset > initialGroupLatestOffset)

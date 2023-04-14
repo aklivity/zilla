@@ -50,6 +50,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkipFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
@@ -2456,6 +2457,7 @@ public final class KafkaFunctions
 
         private Integer typeId;
         private Integer kind;
+        private String8FW transaction;
         private Predicate<KafkaFlushExFW> caseMatcher;
 
         public KafkaMergedFlushExMatcherBuilder merged()
@@ -2532,6 +2534,8 @@ public final class KafkaFunctions
         public final class KafkaFetchFlushExMatcherBuilder
         {
             private KafkaOffsetFW.Builder partitionRW;
+            private final KafkaFetchFlushExFW.Builder fetchFlushExRW = new KafkaFetchFlushExFW.Builder();
+            private Array32FW.Builder<KafkaTransactionFW.Builder, KafkaTransactionFW> transactionRW;
 
             private KafkaFetchFlushExMatcherBuilder()
             {
@@ -2572,6 +2576,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaFetchFlushExMatcherBuilder transaction(
+                    String result,
+                    long producerId)
+            {
+                assert transactionRW == null;
+                transactionRW = new Array32FW.Builder<>(new KafkaTransactionFW.Builder(), new KafkaTransactionFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                transactionRW.item(t -> t
+                        .result(r -> r.set(KafkaTransactionResult.valueOf(result)))
+                        .producerId(producerId));
+                return this;
+            }
+
             public KafkaFlushExMatcherBuilder build()
             {
                 return KafkaFlushExMatcherBuilder.this;
@@ -2580,14 +2598,21 @@ public final class KafkaFunctions
             private boolean match(
                     KafkaFlushExFW flushEx)
             {
-                final KafkaFetchFlushExFW fetchDataEx = flushEx.fetch();
-                return matchPartition(fetchDataEx);
+                final KafkaFetchFlushExFW fetchFlushEx = flushEx.fetch();
+                return matchPartition(fetchFlushEx) &&
+                       matchTransaction(fetchFlushEx);
             }
 
             private boolean matchPartition(
-                    final KafkaFetchFlushExFW fetchDataEx)
+                    final KafkaFetchFlushExFW fetchFlushEx)
             {
-                return partitionRW == null || partitionRW.build().equals(fetchDataEx.partition());
+                return partitionRW == null || partitionRW.build().equals(fetchFlushEx.partition());
+            }
+
+            private boolean matchTransaction(
+                    final KafkaFetchFlushExFW fetchFlushEx)
+            {
+                return transactionRW == null || transactionRW.build().equals(fetchFlushEx.transactions());
             }
 
         }
