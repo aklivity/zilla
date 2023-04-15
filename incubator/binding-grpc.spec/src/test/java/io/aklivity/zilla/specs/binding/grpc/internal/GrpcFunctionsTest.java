@@ -14,6 +14,7 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
+import static io.aklivity.zilla.specs.binding.grpc.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType.TEXT;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -28,11 +29,14 @@ import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
+import io.aklivity.zilla.specs.binding.grpc.internal.types.Array32FW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
@@ -150,8 +154,23 @@ public class GrpcFunctionsTest
     @Test
     public void shouldGenerateProtobuf()
     {
-        byte[] message = GrpcFunctions.protobuf().string(1, "value").build();
-        byte[] expected = {10, 5, 118, 97, 108, 117, 101};
+        final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW =
+            new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW());
+        partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
+        partitionsRW.item(p -> p.partitionId(0)
+            .partitionOffset(2)
+            .stableOffset(DEFAULT_LATEST_OFFSET)
+            .latestOffset(DEFAULT_LATEST_OFFSET))
+            .build();
+
+        byte[] message = GrpcFunctions.protobuf()
+            .string(1, "value")
+            .lastMessageId(32767).partition(0, 2)
+            .build()
+            .build();
+        byte[] expected = {10, 5, 118, 97, 108, 117, 101, -6, -1, 15, 36, 32, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0,
+            0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
         assertArrayEquals(expected, message);
     }
 }

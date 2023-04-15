@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
+import static io.aklivity.zilla.specs.binding.grpc.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.LinkedHashMap;
@@ -28,12 +30,15 @@ import org.kaazing.k3po.lang.el.BytesMatcher;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
+import io.aklivity.zilla.specs.binding.grpc.internal.types.Array32FW;
+import io.aklivity.zilla.specs.binding.grpc.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.specs.binding.grpc.internal.types.stream.GrpcType;
 import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
+
 
 public final class GrpcFunctions
 {
@@ -433,7 +438,6 @@ public final class GrpcFunctions
         private final MutableDirectBuffer messageBuffer = new UnsafeBuffer(new byte[1024 * 8]);
         private int messageBufferLimit = 0;
 
-
         private ProtobufBuilder()
         {
             MutableDirectBuffer keyBuffer = new UnsafeBuffer(new byte[1024 * 8]);
@@ -461,11 +465,80 @@ public final class GrpcFunctions
             return this;
         }
 
+        public LastMessageIdBuilder lastMessageId(
+            int field)
+        {
+            return new LastMessageIdBuilder(field);
+        }
+
         public byte[] build()
         {
             final byte[] array = new byte[messageBufferLimit];
             messageBuffer.getBytes(0, array);
             return array;
+        }
+
+        public final class LastMessageIdBuilder
+        {
+            private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW =
+                new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW());
+            private final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+            private LastMessageIdBuilder(
+                int field)
+            {
+                Varuint32FW key = keyRW.set(field << 3 | BYTES_WIRE_TYPE).build();
+                final int keySize = key.sizeof();
+                messageBuffer.putBytes(messageBufferLimit, key.buffer(), key.offset(), key.sizeof());
+                messageBufferLimit += keySize;
+
+                partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
+            }
+
+            public LastMessageIdBuilder partition(
+                int partitionId,
+                long offset)
+            {
+                partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public LastMessageIdBuilder partition(
+                int partitionId,
+                long offset,
+                long latestOffset)
+            {
+                partition(partitionId, offset, latestOffset, latestOffset);
+                return this;
+            }
+
+            public LastMessageIdBuilder partition(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset)
+            {
+                partitionsRW.item(p -> p.partitionId(partitionId)
+                    .partitionOffset(offset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset));
+
+                return this;
+            }
+
+            public ProtobufBuilder build()
+            {
+                Array32FW<KafkaOffsetFW> partitions = partitionsRW.build();
+
+                Varuint32FW len = lenRW.set(partitions.sizeof()).build();
+                int lenSize = len.sizeof();
+                messageBuffer.putBytes(messageBufferLimit, len.buffer(), len.offset(), lenSize);
+                messageBufferLimit += lenSize;
+
+                messageBuffer.putBytes(messageBufferLimit, partitions.buffer(), partitions.offset(), partitions.sizeof());
+                messageBufferLimit += partitions.sizeof();
+                return ProtobufBuilder.this;
+            }
         }
     }
 

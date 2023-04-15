@@ -33,7 +33,10 @@ read closed
 
 write ${grpc:protobuf()
             .string(1, "Hello World")
-            .string(32767, "AQQABAIC")
+            .lastMessageId(32767)
+                .partition(0, 2)
+                .partition(1, 1)
+                .build()
             .build()}
 write flush
 

@@ -15,6 +15,7 @@ This project includes:
   Jakarta JSON Processing API under Eclipse Public License 2.0 or GNU General Public License, version 2 with the GNU Classpath Exception
   org.leadpony.justify under The Apache Software License, Version 2.0
   zilla::specs::binding-http.spec under The Apache Software License, Version 2.0
+  zilla::specs::binding-kafka.spec under The Apache Software License, Version 2.0
   zilla::specs::binding-proxy.spec under The Apache Software License, Version 2.0
   zilla::specs::engine.spec under The Apache Software License, Version 2.0
 

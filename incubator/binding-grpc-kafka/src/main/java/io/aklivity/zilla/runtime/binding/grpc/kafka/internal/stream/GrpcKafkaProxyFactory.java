@@ -697,7 +697,6 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
         private final GrpcKafkaWithFetchResult result;
         private final GrpcProxy delegate;
 
-        private String8FW encodedId;
         private int state;
 
         private long initialSeq;
@@ -837,10 +836,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
             if (kafkaMergedBeginEx != null)
             {
-                String8FW encodedProgress = messageField.encodeProgressOnly(partitions);
-                Varuint32FW len = lenRW.set(encodedProgress.length()).build();
+                Varuint32FW len = lenRW.set(partitions.length()).build();
                 int lenSize = len.sizeof();
-                replyPad = result.messageId().sizeof() + lenSize + encodedProgress.length();
+                replyPad = result.messageId().sizeof() + lenSize + partitions.sizeof();
             }
 
             delegate.onKafkaBegin(traceId, authorization, extension);
@@ -878,6 +876,8 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
                 final int payloadSize = payload.sizeof();
 
+                Array32FW<KafkaOffsetFW> progress = null;
+
                 if ((flags & DATA_FLAG_INIT) != 0x00)
                 {
                     final ExtensionFW dataEx = extension.get(extensionRO::tryWrap);
@@ -885,9 +885,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
                     final KafkaMergedDataExFW kafkaMergedDataEx =
                         kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
-                    final Array32FW<KafkaOffsetFW> progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
-
-                    encodedId = messageField.encodeProgressOnly(progress);
+                    progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
                 }
 
                 int encodeProgress = encodeOffset;
@@ -903,16 +901,17 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                     encodeBuffer.putBytes(encodeProgress, messageId.buffer(), messageId.offset(), keySize);
                     encodeProgress += keySize;
 
-                    Varuint32FW len = lenRW.set(encodedId.length()).build();
+                    Varuint32FW len = lenRW.set(progress.sizeof()).build();
                     int lenSize = len.sizeof();
                     encodeBuffer.putBytes(encodeProgress, len.buffer(), len.offset(), lenSize);
                     encodeProgress += lenSize;
-                    encodeBuffer.putBytes(encodeProgress, encodedId.value(), 0, encodedId.length());
-                    encodeProgress += encodedId.length();
+                    encodeBuffer.putBytes(encodeProgress, progress.buffer(), progress.offset(), progress.sizeof());
+                    encodeProgress += progress.sizeof();
                 }
 
+                int length = encodeProgress - encodeOffset;
                 delegate.onKafkaData(traceId, authorization, budgetId, reserved, flags,
-                    encodeBuffer, encodeOffset, encodeProgress - encodeOffset, extension);
+                    encodeBuffer, encodeOffset, length, extension);
             }
         }
 
