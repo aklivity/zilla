@@ -14,8 +14,6 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.kafka.internal;
 
-import static io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
