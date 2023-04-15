@@ -14,7 +14,9 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.kafka.internal;
 
+import static io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
@@ -23,8 +25,14 @@ import java.lang.reflect.Method;
 import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
+import org.agrona.DirectBuffer;
+import org.agrona.collections.MutableInteger;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
+
+import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 
 public class GrpcKafkaFunctionsTest
 {
@@ -42,11 +50,20 @@ public class GrpcKafkaFunctionsTest
     @Test
     public void shouldGenerateProtobuf()
     {
-        byte[] message = GrpcKafkaFunctions.messageId()
+        byte[] build = GrpcKafkaFunctions.messageId()
             .partition(0, 2)
             .build();
-        byte[] expected = {32, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-        assertArrayEquals(expected, message);
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        final Array32FW<KafkaOffsetFW> partitions =
+            new Array32FW<>(new KafkaOffsetFW());
+        partitions.wrap(buffer, 0, buffer.capacity());
+
+        final MutableInteger partitionCount = new MutableInteger();
+        partitions.forEach(f -> partitionCount.value++);
+        assertEquals(1, partitionCount.value);
+
+        assertNotNull(partitions
+            .matchFirst(p -> p.partitionId() == 0 && p.partitionOffset() == 2L));
     }
 }
