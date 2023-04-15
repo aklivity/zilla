@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.LinkedHashMap;
@@ -445,7 +447,7 @@ public final class GrpcFunctions
             int field,
             String value)
         {
-            bytes(field, value.getBytes());
+            bytes(field, value.getBytes(UTF_8));
             return this;
         }
 
