@@ -8,7 +8,7 @@
             {
                 "type":
                 {
-                    "const": "kafka_grpc"
+                    "const": "kafka-grpc"
                 },
                 "kind":
                 {

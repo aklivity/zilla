@@ -22,11 +22,14 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.GrpcKafkaBinding;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
+    private static final String LAST_MESSAGE_ID_FIELD_NAME = "last-message-id-field";
+    private static final String LAST_MESSAGE_ID_METADATA_NAME = "last-message-id-metadata";
     private static final String CORRELATION_NAME = "correlation";
     private static final String CORRELATION_HEADERS_NAME = "headers";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
@@ -37,10 +40,13 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     private static final String16FW CORRELATION_HEADERS_SERVICE_DEFAULT = new String16FW("zilla:service");
     private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
 
+    private static final int LAST_MESSAGE_ID_FIELD_DEFAULT = 32767;
+    private static final String8FW LAST_MESSAGE_ID_METADATA_DEFAULT = new String8FW("last-message-id");
     private static final GrpcKafkaCorrelationConfig CORRELATION_DEFAULT =
         new GrpcKafkaCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
             CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT);
-    public static final GrpcKafkaOptionsConfig DEFAULT = new GrpcKafkaOptionsConfig(CORRELATION_DEFAULT);
+    public static final GrpcKafkaOptionsConfig DEFAULT =
+        new GrpcKafkaOptionsConfig(LAST_MESSAGE_ID_FIELD_DEFAULT, LAST_MESSAGE_ID_METADATA_DEFAULT, CORRELATION_DEFAULT);
 
     @Override
     public Kind kind()
@@ -61,6 +67,16 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
         GrpcKafkaOptionsConfig grpcKafkaOptions = (GrpcKafkaOptionsConfig) options;
 
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (LAST_MESSAGE_ID_FIELD_DEFAULT != grpcKafkaOptions.lastMessageIdField)
+        {
+            object.add(LAST_MESSAGE_ID_FIELD_NAME, grpcKafkaOptions.lastMessageIdField);
+        }
+
+        if (!LAST_MESSAGE_ID_METADATA_DEFAULT.equals(grpcKafkaOptions.lastMessageIdMetadata))
+        {
+            object.add(LAST_MESSAGE_ID_METADATA_NAME, grpcKafkaOptions.lastMessageIdMetadata.asString());
+        }
 
         GrpcKafkaCorrelationConfig correlation = grpcKafkaOptions.correlation;
         if (correlation != null &&
@@ -96,6 +112,22 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
+        int newLastMessageId = LAST_MESSAGE_ID_FIELD_DEFAULT;
+        if (object.containsKey(CORRELATION_NAME))
+        {
+            int lastMessageId = object.getInt(LAST_MESSAGE_ID_FIELD_NAME);
+            if (lastMessageId < 19000 || lastMessageId > 19999)
+            {
+                newLastMessageId = lastMessageId;
+            }
+        }
+
+        String8FW newLastMessageIdMetadataName = LAST_MESSAGE_ID_METADATA_DEFAULT;
+        if (object.containsKey(LAST_MESSAGE_ID_METADATA_NAME))
+        {
+            newLastMessageIdMetadataName = new String8FW(object.getString(LAST_MESSAGE_ID_METADATA_NAME));
+        }
+
         GrpcKafkaCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
         if (object.containsKey(CORRELATION_NAME))
         {
@@ -126,6 +158,6 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             }
         }
 
-        return new GrpcKafkaOptionsConfig(newCorrelation);
+        return new GrpcKafkaOptionsConfig(newLastMessageId, newLastMessageIdMetadataName, newCorrelation);
     }
 }

@@ -108,7 +108,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core grpc kafka</scopeNames>
+          <scopeNames>core grpc kafka internal</scopeNames>
           <packageName>io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types</packageName>
         </configuration>
         <executions>

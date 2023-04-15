@@ -25,16 +25,21 @@ import java.util.regex.Pattern;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.stream.GrpcKafkaIdHelper;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
+import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public final class GrpcKafkaWithResolver
 {
+    private static final int BYTES_WIRE_TYPE = 2;
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\-]*)'\\]).identity\\}");
 
@@ -43,8 +48,11 @@ public final class GrpcKafkaWithResolver
     private final OctetsFW dashOctetsRW = new OctetsFW().wrap(new String16FW("-").value(), 0, 1);
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
+    private final String8FW.Builder string8RW =
+        new String8FW.Builder().wrap(new UnsafeBuffer(new byte[2048], 0, 2048), 0, 256);
     private final byte[] hashBytesRW = new byte[8192];
 
+    private final Varuint32FW key;
     private final GrpcKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final GrpcKafkaWithConfig with;
@@ -59,91 +67,43 @@ public final class GrpcKafkaWithResolver
         this.identityReplacer = identityReplacer;
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
+        this.key = new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+            .set(options.lastMessageIdField << 3 | BYTES_WIRE_TYPE).build();
     }
 
-    public GrpcKafkaWithResult resolve(
-        long authorization,
-        GrpcBeginExFW beginEx)
+    public GrpcKafkaCapability capability()
     {
-        String16FW topic = new String16FW(with.topic);
-        KafkaAckMode acks = with.acks;
+        return with.capability;
+    }
 
-        final GrpcMetadataFW idempotencyKey = beginEx.metadata().matchFirst(m ->
-            GRPC_METADATA_NAME_IDEMPOTENCY_KEY.value().compareTo(m.name().value()) == 0);
+    public GrpcKafkaWithFetchResult resolveFetch(
+        long authorization,
+        GrpcBeginExFW grpcBeginExFW,
+        GrpcKafkaIdHelper messageField)
+    {
+        final GrpcKafkaWithFetchConfig fetch = with.fetch.get();
+        String16FW topic = new String16FW(fetch.topic);
 
-        final String16FW service = new String16FW(beginEx.service().asString());
-        final String16FW method = new String16FW(beginEx.method().asString());
-
-        OctetsFW correlationId = null;
-        if (idempotencyKey != null)
+        final Array32FW<GrpcMetadataFW> metadata = grpcBeginExFW.metadata();
+        final DirectBuffer metadataName = options.lastMessageIdMetadata.value();
+        GrpcMetadataFW lastMessageIdMetadata = metadata
+            .matchFirst(m -> metadataName.compareTo(m.name().value()) == 0);
+        Array32FW<KafkaOffsetFW> partitions = null;
+        if (lastMessageIdMetadata != null)
         {
-            correlationId = new OctetsFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[idempotencyKey.valueLen()]), 0, idempotencyKey.valueLen())
-                .set(idempotencyKey.value())
+            final String8FW lastMessageId = string8RW
+                .set(lastMessageIdMetadata.value().value(), 0, lastMessageIdMetadata.valueLen())
                 .build();
+            final DirectBuffer progress64 = messageField.findProgress(lastMessageId);
+            partitions = messageField.decode(progress64);
         }
-        else
-        {
-            final byte[] newIdempotencyKey = UUID.randomUUID().toString().getBytes();
-            correlationId = new OctetsFW.Builder()
-                .wrap(new UnsafeBuffer(new byte[newIdempotencyKey.length]), 0, newIdempotencyKey.length)
-                .set(newIdempotencyKey)
-                .build();
-        }
-
-        GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
-        hash.digestHash();
-        hash.updateHash(beginEx.service().value());
-        hash.updateHash(beginEx.method().value());
-        hash.updateHash(beginEx.metadata().items());
-
-        Supplier<DirectBuffer> keyRef = () -> null;
-        if (with.key.isPresent())
-        {
-            String key0 = with.key.get();
-
-            identityMatcher.reset(key0);
-            if (identityMatcher.matches())
-            {
-                key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-            }
-
-            String key = key0;
-            keyRef = () -> new String16FW(key).value();
-        }
-
-        List<GrpcKafkaWithProduceOverrideResult> overrides = null;
-        if (with.overrides.isPresent())
-        {
-            overrides = new ArrayList<>();
-
-            for (GrpcKafkaWithProduceOverrideConfig override : with.overrides.get())
-            {
-                String name0 = override.name;
-                DirectBuffer name = new String16FW(name0).value();
-
-                String value0 = override.value;
-                Matcher valueMatcher = identityMatcher.reset(value0);
-                if (identityMatcher.matches())
-                {
-                    value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
-                }
-
-                String value = value0;
-                Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
-
-                overrides.add(new GrpcKafkaWithProduceOverrideResult(name, valueRef, hash::updateHash));
-            }
-        }
-
-        String16FW replyTo = new String16FW(with.replyTo);
 
         List<GrpcKafkaWithFetchFilterResult> filters = null;
-        if (with.filters.isPresent())
+
+        if (fetch.filters.isPresent())
         {
             filters = new ArrayList<>();
-
-            for (GrpcKafkaWithFetchFilterConfig filter : with.filters.get())
+            for (GrpcKafkaWithFetchFilterConfig filter : fetch.filters.get())
             {
                 DirectBuffer key = null;
                 if (filter.key.isPresent())
@@ -185,7 +145,90 @@ public final class GrpcKafkaWithResolver
             }
         }
 
-        return new GrpcKafkaWithResult(service, method, topic, acks, keyRef, overrides, replyTo, filters,
+        return new GrpcKafkaWithFetchResult(topic, partitions, filters, key);
+    }
+
+    public GrpcKafkaWithProduceResult resolveProduce(
+        long authorization,
+        GrpcBeginExFW beginEx)
+    {
+        GrpcKafkaWithProduceConfig produce = with.produce.get();
+
+        String16FW topic = new String16FW(produce.topic);
+        KafkaAckMode acks = produce.acks;
+
+        final GrpcMetadataFW idempotencyKey = beginEx.metadata().matchFirst(m ->
+            GRPC_METADATA_NAME_IDEMPOTENCY_KEY.value().compareTo(m.name().value()) == 0);
+
+        final String16FW service = new String16FW(beginEx.service().asString());
+        final String16FW method = new String16FW(beginEx.method().asString());
+
+        OctetsFW correlationId = null;
+        if (idempotencyKey != null)
+        {
+            correlationId = new OctetsFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[idempotencyKey.valueLen()]), 0, idempotencyKey.valueLen())
+                .set(idempotencyKey.value())
+                .build();
+        }
+        else
+        {
+            final byte[] newIdempotencyKey = UUID.randomUUID().toString().getBytes();
+            correlationId = new OctetsFW.Builder()
+                .wrap(new UnsafeBuffer(new byte[newIdempotencyKey.length]), 0, newIdempotencyKey.length)
+                .set(newIdempotencyKey)
+                .build();
+        }
+
+        GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
+        hash.digestHash();
+        hash.updateHash(beginEx.service().value());
+        hash.updateHash(beginEx.method().value());
+        hash.updateHash(beginEx.metadata().items());
+
+        Supplier<DirectBuffer> keyRef = () -> null;
+        if (produce.key.isPresent())
+        {
+            String key0 = produce.key.get();
+
+            identityMatcher.reset(key0);
+            if (identityMatcher.matches())
+            {
+                key0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+            }
+
+            String key = key0;
+            keyRef = () -> new String16FW(key).value();
+        }
+
+        List<GrpcKafkaWithProduceOverrideResult> overrides = null;
+        if (produce.overrides.isPresent())
+        {
+            overrides = new ArrayList<>();
+
+            for (GrpcKafkaWithProduceOverrideConfig override : produce.overrides.get())
+            {
+                String name0 = override.name;
+                DirectBuffer name = new String16FW(name0).value();
+
+                String value0 = override.value;
+                Matcher valueMatcher = identityMatcher.reset(value0);
+                if (identityMatcher.matches())
+                {
+                    value0 = identityMatcher.replaceAll(r -> identityReplacer.apply(authorization, r));
+                }
+
+                String value = value0;
+                Supplier<DirectBuffer> valueRef = () -> new String16FW(value).value();
+
+                overrides.add(new GrpcKafkaWithProduceOverrideResult(name, valueRef, hash::updateHash));
+            }
+        }
+
+        String16FW replyTo = new String16FW(produce.replyTo);
+
+
+        return new GrpcKafkaWithProduceResult(service, method, topic, acks, keyRef, overrides, replyTo,
             options.correlation, hash);
     }
 }

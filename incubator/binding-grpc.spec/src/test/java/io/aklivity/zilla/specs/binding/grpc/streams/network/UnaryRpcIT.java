@@ -48,6 +48,16 @@ public class UnaryRpcIT
 
     @Test
     @Specification({
+        "${net}/empty.message.exchange/client",
+        "${net}/empty.message.exchange/server",
+    })
+    public void shouldExchangeEmptyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/binary.metadata/client",
         "${net}/binary.metadata/server",
     })

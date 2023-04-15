@@ -22,7 +22,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class KafkaGrpcBinding implements Binding
 {
-    public static final String NAME = "kafka_grpc";
+    public static final String NAME = "kafka-grpc";
 
     private final KafkaGrpcConfiguration config;
 

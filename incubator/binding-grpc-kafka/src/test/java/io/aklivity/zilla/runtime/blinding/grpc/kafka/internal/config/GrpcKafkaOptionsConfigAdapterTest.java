@@ -30,6 +30,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaCor
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfigAdapter;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
 public class GrpcKafkaOptionsConfigAdapterTest
 {
@@ -48,13 +49,15 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         String text =
                 "{" +
+                    "\"last-message-id-field\": 255," +
+                    "\"last-message-id-metadata\": \"last-message-id-x\"," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +
                         "{" +
-                            "\"service\":\"zilla:service\"," +
-                            "\"method\":\"zilla:method\"," +
-                            "\"correlation-id\":\"zilla:correlation-id\"" +
+                            "\"service\":\"zilla:service-x\"," +
+                            "\"method\":\"zilla:method-x\"," +
+                            "\"correlation-id\":\"zilla:correlation-id-x\"" +
                         "}" +
                     "}" +
                 "}";
@@ -63,15 +66,19 @@ public class GrpcKafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.correlation, not(nullValue()));
-        assertThat(options.correlation.service.asString(), equalTo("zilla:service"));
-        assertThat(options.correlation.method.asString(), equalTo("zilla:method"));
-        assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id"));
+        assertThat(options.lastMessageIdField, equalTo(255));
+        assertThat(options.lastMessageIdMetadata.asString(), equalTo("last-message-id-x"));
+        assertThat(options.correlation.service.asString(), equalTo("zilla:service-x"));
+        assertThat(options.correlation.method.asString(), equalTo("zilla:method-x"));
+        assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id-x"));
     }
 
     @Test
     public void shouldWriteOptions()
     {
         GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
+                255,
+                new String8FW("x-last-message-id"),
                 new GrpcKafkaCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
                     new String16FW("zilla:x-service"),
@@ -82,6 +89,8 @@ public class GrpcKafkaOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
                 "{" +
+                    "\"last-message-id-field\":255," +
+                    "\"last-message-id-metadata\":\"x-last-message-id\"," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +

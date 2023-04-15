@@ -77,4 +77,3 @@ read zilla:data.ext ${kafka:matchDataEx()
                                 .build()
                             .build()}
 read zilla:data.null
-

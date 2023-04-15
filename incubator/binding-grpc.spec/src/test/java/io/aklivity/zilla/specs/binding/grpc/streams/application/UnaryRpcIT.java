@@ -47,6 +47,16 @@ public class UnaryRpcIT
 
     @Test
     @Specification({
+        "${app}/empty.message.exchange/client",
+        "${app}/empty.message.exchange/server",
+    })
+    public void shouldExchangeEmptyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/response.timeout/client",
         "${app}/response.timeout/server",
     })

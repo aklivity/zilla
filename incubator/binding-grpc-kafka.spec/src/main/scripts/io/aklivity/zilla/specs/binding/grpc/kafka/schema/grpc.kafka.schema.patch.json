@@ -8,7 +8,7 @@
             {
                 "type":
                 {
-                    "const": "grpc_kafka"
+                    "const": "grpc-kafka"
                 },
                 "kind":
                 {
@@ -19,6 +19,18 @@
                 {
                     "properties":
                     {
+                        "last-message-id-field":
+                        {
+                            "title": "Grpc Last Message Id",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 536870911
+                        },
+                        "last-message-id-metadata":
+                        {
+                            "title": "Grpc Last Message Id Metadata Name",
+                            "type": "string"
+                        },
                         "correlation":
                         {
                             "title": "Correlation",
@@ -115,65 +127,101 @@
                             },
                             "with":
                             {
-                                "type": "object",
-                                "properties":
-                                {
-                                    "topic":
+                                "oneOf":
+                                [
                                     {
-                                        "title": "Topic",
-                                        "type": "string"
-                                    },
-                                    "acks":
-                                    {
-                                        "title": "Acks",
-                                        "type": "string",
-                                        "enum": [ "none", "leader_only", "in_sync_replicas" ]
-                                    },
-                                    "key":
-                                    {
-                                        "title": "Key",
-                                        "type": "string"
-                                    },
-                                    "overrides": {
-                                        "title": "Headers",
-                                        "type": "object",
-                                        "additionalProperties": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "reply-to":
-                                    {
-                                        "title": "Reply-To",
-                                        "type": "string"
-                                    },
-                                    "filters":
-                                    {
-                                        "title": "Filters",
-                                        "type": "array",
-                                        "items":
+                                        "properties":
                                         {
-                                            "properties":
+                                            "capability":
                                             {
-                                                "key":
+                                                "title": "Capability",
+                                                "type": "string",
+                                                "const": "fetch"
+                                            },
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "filters":
+                                            {
+                                                "title": "Filters",
+                                                "type": "array",
+                                                "items":
                                                 {
-                                                    "title": "Key",
-                                                    "type": "string"
-                                                },
-                                                "headers":
-                                                {
-                                                    "title": "Headers",
-                                                    "type": "object",
-                                                    "additionalProperties" :
+                                                    "properties":
                                                     {
-                                                        "type": "string"
-                                                    }
+                                                        "key":
+                                                        {
+                                                            "title": "Key",
+                                                            "type": "string"
+                                                        },
+                                                        "headers":
+                                                        {
+                                                            "title": "Headers",
+                                                            "type": "object",
+                                                            "additionalProperties" :
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "properties":
+                                        {
+                                            "capability":
+                                            {
+                                                "title": "Capability",
+                                                "type": "string",
+                                                "const": "produce"
+                                            },
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "acks":
+                                            {
+                                                "title": "Acks",
+                                                "type": "string",
+                                                "enum": [ "none", "leader_only", "in_sync_replicas" ]
+                                            },
+                                            "key":
+                                            {
+                                                "title": "Key",
+                                                "type": "string"
+                                            },
+                                            "overrides": {
+                                                "title": "Headers",
+                                                "type": "object",
+                                                "additionalProperties": {
+                                                    "type": "string"
                                                 }
                                             },
-                                            "additionalProperties": false
-                                        }
+                                            "reply-to":
+                                            {
+                                                "title": "Reply-To topic",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "required":
+                                        [
+                                            "reply-to"
+                                        ]
                                     }
-                                },
-                                "additionalProperties": false
+                                ],
+                                "required":
+                                [
+                                    "capability",
+                                    "topic"
+                                ]
                             }
                         },
                         "required":

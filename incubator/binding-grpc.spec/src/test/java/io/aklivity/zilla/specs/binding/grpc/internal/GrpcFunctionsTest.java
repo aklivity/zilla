@@ -150,7 +150,9 @@ public class GrpcFunctionsTest
     @Test
     public void shouldGenerateProtobuf()
     {
-        byte[] message = GrpcFunctions.protobuf().string(1, "value").build();
+        byte[] message = GrpcFunctions.protobuf()
+            .string(1, "value")
+            .build();
         byte[] expected = {10, 5, 118, 97, 108, 117, 101};
         assertArrayEquals(expected, message);
     }

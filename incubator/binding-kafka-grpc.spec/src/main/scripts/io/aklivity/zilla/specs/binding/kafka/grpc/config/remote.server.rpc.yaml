@@ -17,7 +17,7 @@
 name: test
 bindings:
   remote_server0:
-    type: kafka_grpc
+    type: kafka-grpc
     kind: remote_server
     options:
       entry: kafka0

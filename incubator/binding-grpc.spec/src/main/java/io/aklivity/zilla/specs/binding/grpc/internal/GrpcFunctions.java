@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.internal;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.LinkedHashMap;
@@ -433,7 +435,6 @@ public final class GrpcFunctions
         private final MutableDirectBuffer messageBuffer = new UnsafeBuffer(new byte[1024 * 8]);
         private int messageBufferLimit = 0;
 
-
         private ProtobufBuilder()
         {
             MutableDirectBuffer keyBuffer = new UnsafeBuffer(new byte[1024 * 8]);
@@ -446,18 +447,25 @@ public final class GrpcFunctions
             int field,
             String value)
         {
+            bytes(field, value.getBytes(UTF_8));
+            return this;
+        }
+
+        public ProtobufBuilder bytes(
+            int field,
+            byte[] value)
+        {
             Varuint32FW key = keyRW.set(field << 3 | BYTES_WIRE_TYPE).build();
             final int keySize = key.sizeof();
             messageBuffer.putBytes(messageBufferLimit, key.buffer(), key.offset(), key.sizeof());
             messageBufferLimit += keySize;
 
-            final byte[] bytes = value.getBytes();
-            Varuint32FW len = lenRW.set(bytes.length).build();
+            Varuint32FW len = lenRW.set(value.length).build();
             int lenSize = len.sizeof();
             messageBuffer.putBytes(messageBufferLimit, len.buffer(), len.offset(), lenSize);
             messageBufferLimit += lenSize;
-            messageBuffer.putBytes(messageBufferLimit, bytes);
-            messageBufferLimit += bytes.length;
+            messageBuffer.putBytes(messageBufferLimit, value);
+            messageBufferLimit += value.length;
             return this;
         }
 
