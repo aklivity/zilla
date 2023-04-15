@@ -34,10 +34,10 @@ read closed
 
 write ${grpc:protobuf()
             .string(1, "Hello World")
-            .lastMessageId(32767)
+            .bytes(32767, grpc_kafka:messageId()
                 .partition(0, 2)
                 .partition(1, 1)
-                .build()
+                .build())
             .build()}
 write flush
 

@@ -42,11 +42,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>binding-kafka.spec</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -83,7 +78,7 @@
         <artifactId>flyweight-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <scopeNames>core grpc kafka</scopeNames>
+          <scopeNames>core grpc</scopeNames>
           <packageName>io.aklivity.zilla.specs.binding.grpc.internal.types</packageName>
         </configuration>
         <executions>
