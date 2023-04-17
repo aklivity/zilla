@@ -41,7 +41,7 @@ public final class KafkaGrpcConditionResolver
         String16FW topic = condition.topic;
         KafkaAckMode acks = options.acks;
 
-        List<KafkaGrpcFetchFilterResult> filters = new ArrayList<>();
+        List<KafkaGrpcFetchFilterResult> filters = null;
         DirectBuffer key = null;
         if (condition.key.isPresent())
         {
@@ -60,7 +60,11 @@ public final class KafkaGrpcConditionResolver
             });
         }
 
-        filters.add(new KafkaGrpcFetchFilterResult(key, headers));
+        if (key != null || !headers.isEmpty())
+        {
+            filters = new ArrayList<>();
+            filters.add(new KafkaGrpcFetchFilterResult(key, headers));
+        }
 
         String16FW replyTo = condition.replyTo;
 

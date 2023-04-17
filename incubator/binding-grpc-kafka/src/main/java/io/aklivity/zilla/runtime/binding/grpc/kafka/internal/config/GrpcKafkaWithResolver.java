@@ -32,10 +32,10 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.engine.util.function.LongObjectBiFunction;
-import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public final class GrpcKafkaWithResolver
 {

@@ -37,6 +37,7 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Varuint32FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.AbortFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.DataFW;
@@ -58,7 +59,6 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.specs.engine.internal.types.Varuint32FW;
 
 public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 {
