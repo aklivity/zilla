@@ -41,7 +41,6 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayo
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.LayoutManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsProcessor;
 
-
 public class PrometheusExporterHandler implements ExporterHandler
 {
     private final EngineConfiguration config;
@@ -85,12 +84,20 @@ public class PrometheusExporterHandler implements ExporterHandler
         {
             startServer();
         }
+        /*try
+        {
+            MINUTES.sleep(2);
+        }
+        catch (InterruptedException ex)
+        {
+        }*/
         return 0;
     }
 
     @Override
     public void stop()
     {
+        System.out.println("PrometheusExporterHandler stop");
         server.stop(0);
         server = null;
         layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
