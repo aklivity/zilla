@@ -12,14 +12,22 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-module io.aklivity.zilla.runtime.exporter.prometheus
+package io.aklivity.zilla.runtime.exporter.prometheus.internal.config;
+
+import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
+
+public class PrometheusOptionsConfig extends OptionsConfig
 {
-    requires jdk.httpserver;
-    requires io.aklivity.zilla.runtime.engine;
+    public static final PrometheusOptionsConfig DEFAULT = new PrometheusOptionsConfig(9090, "/metrics");
 
-    provides io.aklivity.zilla.runtime.engine.exporter.ExporterFactorySpi
-        with io.aklivity.zilla.runtime.exporter.prometheus.internal.PrometheusExporterFactorySpi;
+    public int port;
+    public String path;
 
-    provides io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi
-        with io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfigAdapter;
+    public PrometheusOptionsConfig(
+        int port,
+        String path)
+    {
+        this.port = port;
+        this.path = path;
+    }
 }

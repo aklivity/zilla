@@ -35,14 +35,12 @@ public class PrometheusExporterContext implements ExporterContext
     public ExporterHandler attach(
         ExporterConfig exporter)
     {
-        // TODO: Ati
-        return new PrometheusExporterHandler(config);
+        return new PrometheusExporterHandler(config, exporter);
     }
 
     @Override
     public void detach(
         long exporterId)
     {
-        // TODO: Ati
     }
 }

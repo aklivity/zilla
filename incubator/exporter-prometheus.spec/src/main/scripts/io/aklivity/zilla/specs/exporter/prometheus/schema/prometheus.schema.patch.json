@@ -9,6 +9,23 @@
                 "type":
                 {
                     "const": "prometheus"
+                },
+                "options":
+                {
+                    "properties":
+                    {
+                        "port":
+                        {
+                            "title": "Port",
+                            "type": "int"
+                        },
+                        "path":
+                        {
+                            "title": "Path",
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             }
         }

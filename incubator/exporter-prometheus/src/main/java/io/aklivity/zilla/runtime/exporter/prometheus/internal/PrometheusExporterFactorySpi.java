@@ -31,7 +31,6 @@ public class PrometheusExporterFactorySpi implements ExporterFactorySpi
     public Exporter create(
         Configuration config)
     {
-        // TODO: Ati
         return new PrometheusExporter(new EngineConfiguration(config));
     }
 }
