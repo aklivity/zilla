@@ -27,9 +27,4 @@ public interface Exporter
 
     ExporterContext supply(
         EngineContext context);
-
-    default int maxWorkers()
-    {
-        return 1;
-    }
 }
