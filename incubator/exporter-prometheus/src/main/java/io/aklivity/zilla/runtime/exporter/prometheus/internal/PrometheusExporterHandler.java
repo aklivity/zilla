@@ -72,6 +72,9 @@ public class PrometheusExporterHandler implements ExporterHandler
                 HISTOGRAM, manager.histogramsLayouts()
             );
             metrics = new MetricsProcessor(layouts, manager.labels(), null, null);
+            server = HttpServer.create(new InetSocketAddress(options.port), 0);
+            server.createContext(options.path, new MetricsHttpHandler());
+            server.start();
         }
         catch (IOException ex)
         {
@@ -82,26 +85,17 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public int export()
     {
-        if (server == null)
-        {
-            startServer();
-        }
-        // TODO: Ati
-        /*try
-        {
-            MINUTES.sleep(2);
-        }
-        catch (InterruptedException ex)
-        {
-        }*/
         return 0;
     }
 
     @Override
     public void stop()
     {
-        server.stop(0);
-        server = null;
+        if (server != null)
+        {
+            server.stop(0);
+            server = null;
+        }
         layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
     }
 
@@ -124,20 +118,6 @@ public class PrometheusExporterHandler implements ExporterHandler
             }
         }
         return options;
-    }
-
-    private void startServer()
-    {
-        try
-        {
-            server = HttpServer.create(new InetSocketAddress(options.port), 0);
-            server.createContext(options.path, new MetricsHttpHandler());
-            server.start();
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
     }
 
     private String generateOutput()

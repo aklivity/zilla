@@ -25,12 +25,12 @@ import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
 
 public class HttpMetricGroup implements MetricGroup
 {
+    public static final String NAME = "http";
+
     private final Map<String, Supplier<Metric>> httpMetrics = Map.of(
         "http.request.size", HttpRequestSizeMetric::new,
         "http.response.size", HttpResponseSizeMetric::new
     );
-
-    public static final String NAME = "http";
 
     public HttpMetricGroup(
         Configuration config)
