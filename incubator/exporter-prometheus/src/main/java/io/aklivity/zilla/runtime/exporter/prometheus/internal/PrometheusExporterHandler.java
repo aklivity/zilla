@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
+import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
+import static java.net.HttpURLConnection.HTTP_OK;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -47,6 +49,7 @@ public class PrometheusExporterHandler implements ExporterHandler
 
     private Map<Metric.Kind, List<MetricsLayout>> layouts;
     private MetricsProcessor metrics;
+    private HttpServer server;
 
     public PrometheusExporterHandler(
         EngineConfiguration config)
@@ -78,62 +81,36 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public int export()
     {
-        // TODO: Ati
-        System.out.println("PrometheusExporterHandler.export");
-        //System.out.println(generateOutput());
-        //System.out.println("---");
-        startServer();
+        if (server == null)
+        {
+            startServer();
+        }
         return 0;
     }
 
     @Override
     public void stop()
     {
-        // TODO: Ati
-        System.out.println("PrometheusExporterHandler.stop");
+        server.stop(0);
+        server = null;
         layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
     }
 
     private void startServer()
     {
-        int port = 9090;
         try
         {
-            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-            server.createContext("/metrics", new MyHttpHandler());
-            server.setExecutor(null);
+            //int port = 9090; // TODO: Ati
+            int port = 9999; // TODO: Ati
+            String path = "/metrics"; // TODO: Ati
+            server = HttpServer.create(new InetSocketAddress(port), 0);
+            server.createContext(path, new MetricsHttpHandler());
             server.start();
-            // TODO: Ati - stop server etc
-            while (true)
-            {
-                // block forever
-            }
+            System.out.println("http server listening on port " + port);
         }
         catch (IOException ex)
         {
             LangUtil.rethrowUnchecked(ex);
-        }
-        // TODO: Ati
-        System.out.println("http server listening on port " + port);
-    }
-
-    // TODO: Ati
-    class MyHttpHandler implements HttpHandler
-    {
-        public void handle(
-            HttpExchange t) throws IOException
-        {
-            if ("GET".equals(t.getRequestMethod()))
-            {
-                String response = generateOutput();
-                t.sendResponseHeaders(200, response.length());
-                t.getResponseBody().write(response.getBytes());
-            }
-            else
-            {
-                t.sendResponseHeaders(405, -1);
-            }
-            t.close();
         }
     }
 
@@ -152,5 +129,26 @@ public class PrometheusExporterHandler implements ExporterHandler
             LangUtil.rethrowUnchecked(ex);
         }
         return output;
+    }
+
+    private class MetricsHttpHandler implements HttpHandler
+    {
+        private static final int NO_RESPONSE_BODY = -1;
+
+        public void handle(
+            HttpExchange exchange) throws IOException
+        {
+            if ("GET".equals(exchange.getRequestMethod()))
+            {
+                String response = generateOutput();
+                exchange.sendResponseHeaders(HTTP_OK, response.length());
+                exchange.getResponseBody().write(response.getBytes());
+            }
+            else
+            {
+                exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
+            }
+            exchange.close();
+        }
     }
 }

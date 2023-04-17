@@ -215,12 +215,9 @@ public class ConfigurationManager
                 vault.id = namespace.resolveId.applyAsLong(vault.name);
             }
 
-            if (namespace.telemetry != null && namespace.telemetry.metrics != null)
+            for (MetricConfig metric : namespace.telemetry.metrics)
             {
-                for (MetricConfig metric : namespace.telemetry.metrics)
-                {
-                    metric.id = namespace.resolveId.applyAsLong(metric.name);
-                }
+                metric.id = namespace.resolveId.applyAsLong(metric.name);
             }
 
             for (BindingConfig binding : namespace.bindings)
