@@ -56,8 +56,8 @@ public final class ZillaMetricsCommand extends ZillaCommand
     private static final Pattern GAUGES_PATTERN = Pattern.compile("gauges(\\d+)");
     private static final Pattern HISTOGRAMS_PATTERN = Pattern.compile("histograms(\\d+)");
 
-    private final Path labelsDirectory;
-    private final Path metricsDirectory;
+    private final Path labelsPath;
+    private final Path metricsPath;
 
     @Option(name = { "--namespace" })
     public String namespace;
@@ -76,8 +76,8 @@ public final class ZillaMetricsCommand extends ZillaCommand
     public ZillaMetricsCommand()
     {
         Path engineDirectory = engineDirectory();
-        this.labelsDirectory = engineDirectory;
-        this.metricsDirectory = engineDirectory.resolve("metrics");
+        this.labelsPath = engineDirectory;
+        this.metricsPath = engineDirectory.resolve("metrics");
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
                     COUNTER, countersLayouts(),
                     GAUGE, gaugesLayouts(),
                     HISTOGRAM, histogramsLayouts());
-            final LabelManager labels = new LabelManager(labelsDirectory);
+            final LabelManager labels = new LabelManager(labelsPath);
             MetricsProcessor metrics = new MetricsProcessor(layouts, labels, namespace, binding);
             do
             {
@@ -134,26 +134,26 @@ public final class ZillaMetricsCommand extends ZillaCommand
 
     private List<MetricsLayout> countersLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(metricsDirectory, 1);
+        Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
     }
 
     private List<MetricsLayout> gaugesLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(metricsDirectory, 1);
+        Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isGaugesFile).map(this::newGaugesLayout).collect(toList());
     }
 
     private List<MetricsLayout> histogramsLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(metricsDirectory, 1);
+        Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isHistogramsFile).map(this::newHistogramsLayout).collect(toList());
     }
 
     private boolean isCountersFile(
         Path path)
     {
-        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
+        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
                 COUNTERS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
                 Files.isRegularFile(path);
     }
@@ -161,7 +161,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
     private boolean isGaugesFile(
         Path path)
     {
-        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
+        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
                 GAUGES_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
                 Files.isRegularFile(path);
     }
@@ -169,7 +169,7 @@ public final class ZillaMetricsCommand extends ZillaCommand
     private boolean isHistogramsFile(
         Path path)
     {
-        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
+        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
                 HISTOGRAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
                 Files.isRegularFile(path);
     }
