@@ -48,6 +48,7 @@ import org.agrona.concurrent.AgentRunner;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
+import io.aklivity.zilla.runtime.engine.exporter.Exporter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.guard.Guard;
@@ -86,6 +87,7 @@ public final class Engine implements AutoCloseable
     Engine(
         EngineConfiguration config,
         Collection<Binding> bindings,
+        Collection<Exporter> exporters,
         Collection<Guard> guards,
         Collection<MetricGroup> metricGroups,
         Collection<Vault> vaults,
@@ -139,7 +141,7 @@ public final class Engine implements AutoCloseable
         {
             DispatchAgent agent =
                 new DispatchAgent(config, tasks, labels, errorHandler, tuning::affinity,
-                        bindings, guards, vaults, metricGroups, coreIndex);
+                        bindings, exporters, guards, vaults, metricGroups, coreIndex);
             dispatchers.add(agent);
         }
 
@@ -153,6 +155,7 @@ public final class Engine implements AutoCloseable
 
         final Collection<URL> schemaTypes = new ArrayList<>();
         schemaTypes.addAll(bindings.stream().map(Binding::type).filter(Objects::nonNull).collect(toList()));
+        schemaTypes.addAll(exporters.stream().map(Exporter::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(guards.stream().map(Guard::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(metricGroups.stream().map(MetricGroup::type).filter(Objects::nonNull).collect(toList()));
         schemaTypes.addAll(vaults.stream().map(Vault::type).filter(Objects::nonNull).collect(toList()));

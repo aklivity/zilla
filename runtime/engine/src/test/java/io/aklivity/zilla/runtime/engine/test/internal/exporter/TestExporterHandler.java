@@ -13,17 +13,25 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
-import java.util.List;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 
-public class TelemetryRefConfig
+class TestExporterHandler implements ExporterHandler
 {
-    public final List<MetricRefConfig> metricRefs;
-
-    public TelemetryRefConfig(
-        List<MetricRefConfig> metricRefs)
+    @Override
+    public void start()
     {
-        this.metricRefs = metricRefs;
+    }
+
+    @Override
+    public int export()
+    {
+        return 0;
+    }
+
+    @Override
+    public void stop()
+    {
     }
 }

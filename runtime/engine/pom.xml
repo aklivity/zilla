@@ -201,6 +201,7 @@
               </artifactItems>
               <includes>
                 io/aklivity/zilla/specs/engine/schema/binding/test.schema.patch.json,
+                io/aklivity/zilla/specs/engine/schema/exporter/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/guard/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/metrics/test.schema.patch.json,
                 io/aklivity/zilla/specs/engine/schema/vault/test.schema.patch.json
@@ -239,6 +240,7 @@
                 <include>io/aklivity/zilla/runtime/engine/test/internal/k3po/ext/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/**/*.schema.patch.json</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/binding/**/*.class</include>
+                <include>io/aklivity/zilla/runtime/engine/test/internal/exporter/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/expression/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/guard/**/*.class</include>
                 <include>io/aklivity/zilla/runtime/engine/test/internal/metrics/**/*.class</include>

@@ -15,37 +15,41 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static java.util.Objects.requireNonNull;
+import java.util.function.IntConsumer;
 
-import java.util.function.LongConsumer;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
-import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-
-public class MetricRegistry
+public class ExporterRegistry
 {
-    private final MetricContext context;
+    private final int id;
+    private final ExporterHandler handler;
+    private final IntConsumer attached;
+    private final IntConsumer detached;
 
-    MetricRegistry(
-        MetricContext context)
+    public ExporterRegistry(
+        int id,
+        ExporterHandler handler,
+        IntConsumer attached,
+        IntConsumer detached)
     {
-        this.context = requireNonNull(context);
+        this.id = id;
+        this.handler = handler;
+        this.attached = attached;
+        this.detached = detached;
     }
 
-    public MessageConsumer supplyHandler(
-        LongConsumer recorder)
+    public void attach()
     {
-        return context.supply(recorder);
+        attached.accept(id);
     }
 
-    public String group()
+    public void detach()
     {
-        return context.group();
+        detached.accept(id);
     }
 
-    public Metric.Kind kind()
+    public ExporterHandler handler()
     {
-        return context.kind();
+        return handler;
     }
 }

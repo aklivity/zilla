@@ -15,15 +15,23 @@
  */
 package io.aklivity.zilla.runtime.engine.config;
 
-import java.util.List;
+import static java.util.Objects.requireNonNull;
 
-public class TelemetryRefConfig
+public class ExporterConfig
 {
-    public final List<MetricRefConfig> metricRefs;
+    public final String name;
+    public final String type;
+    public final OptionsConfig options;
 
-    public TelemetryRefConfig(
-        List<MetricRefConfig> metricRefs)
+    public transient long id;
+
+    public ExporterConfig(
+        String name,
+        String type,
+        OptionsConfig options)
     {
-        this.metricRefs = metricRefs;
+        this.name = requireNonNull(name);
+        this.type = requireNonNull(type);
+        this.options = options;
     }
 }

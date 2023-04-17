@@ -13,31 +13,38 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics;
+package io.aklivity.zilla.runtime.engine.test.internal.exporter;
 
+import java.net.URL;
+
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.exporter.Exporter;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 
-public interface Metric
+public class TestExporter implements Exporter
 {
-    enum Kind
+    public TestExporter(
+        Configuration config)
     {
-        COUNTER,
-        GAUGE,
-        HISTOGRAM
     }
 
-    enum Unit
+    @Override
+    public String name()
     {
-        BYTES,
-        COUNT
+        return "test";
     }
 
-    String name();
+    @Override
+    public URL type()
+    {
+        return getClass().getResource("test.schema.patch.json");
+    }
 
-    Kind kind();
-
-    Unit unit();
-
-    MetricContext supply(
-        EngineContext context);
+    @Override
+    public ExporterContext supply(
+        EngineContext context)
+    {
+        return new TestExporterContext();
+    }
 }

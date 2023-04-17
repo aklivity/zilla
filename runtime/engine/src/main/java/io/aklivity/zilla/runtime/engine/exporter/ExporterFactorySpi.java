@@ -13,17 +13,14 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.config;
+package io.aklivity.zilla.runtime.engine.exporter;
 
-import java.util.List;
+import io.aklivity.zilla.runtime.engine.Configuration;
 
-public class TelemetryRefConfig
+public interface ExporterFactorySpi
 {
-    public final List<MetricRefConfig> metricRefs;
+    String type();
 
-    public TelemetryRefConfig(
-        List<MetricRefConfig> metricRefs)
-    {
-        this.metricRefs = metricRefs;
-    }
+    Exporter create(
+        Configuration config);
 }

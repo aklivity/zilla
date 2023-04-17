@@ -143,4 +143,10 @@ public interface EngineContext
     void replyBytes(
         long bindingId,
         long count);
+
+    void onExporterAttached(
+        long exporterId);
+
+    void onExporterDetached(
+        long exporterId);
 }

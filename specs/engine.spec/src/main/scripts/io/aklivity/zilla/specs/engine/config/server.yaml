@@ -36,6 +36,9 @@ telemetry:
         - test.counter
         - test.gauge
         - test.histogram
+    exporters:
+        test0:
+            type: test
 bindings:
     net0:
         type: test

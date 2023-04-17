@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package io.aklivity.zilla.runtime.engine.metrics;
+package io.aklivity.zilla.runtime.engine.exporter;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
@@ -25,13 +25,13 @@ import java.util.ServiceLoader;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 
-public final class MetricGroupFactory
+public final class ExporterFactory
 {
-    private final Map<String, MetricGroupFactorySpi> factorySpis;
+    private final Map<String, ExporterFactorySpi> factorySpis;
 
-    public static MetricGroupFactory instantiate()
+    public static ExporterFactory instantiate()
     {
-        return instantiate(load(MetricGroupFactorySpi.class));
+        return instantiate(load(ExporterFactorySpi.class));
     }
 
     public Iterable<String> names()
@@ -39,28 +39,28 @@ public final class MetricGroupFactory
         return factorySpis.keySet();
     }
 
-    public MetricGroup create(
+    public Exporter create(
         String type,
         Configuration config)
     {
         requireNonNull(type, "type");
 
-        MetricGroupFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized metrics type: " + type);
+        ExporterFactorySpi factorySpi = requireNonNull(factorySpis.get(type), () -> "Unrecognized exporter type: " + type);
 
         return factorySpi.create(config);
     }
 
-    private static MetricGroupFactory instantiate(
-        ServiceLoader<MetricGroupFactorySpi> factories)
+    private static ExporterFactory instantiate(
+        ServiceLoader<ExporterFactorySpi> factories)
     {
-        Map<String, MetricGroupFactorySpi> factorySpisByName = new HashMap<>();
+        Map<String, ExporterFactorySpi> factorySpisByName = new HashMap<>();
         factories.forEach(factorySpi -> factorySpisByName.put(factorySpi.type(), factorySpi));
 
-        return new MetricGroupFactory(unmodifiableMap(factorySpisByName));
+        return new ExporterFactory(unmodifiableMap(factorySpisByName));
     }
 
-    private MetricGroupFactory(
-        Map<String, MetricGroupFactorySpi> factorySpis)
+    private ExporterFactory(
+        Map<String, ExporterFactorySpi> factorySpis)
     {
         this.factorySpis = factorySpis;
     }
