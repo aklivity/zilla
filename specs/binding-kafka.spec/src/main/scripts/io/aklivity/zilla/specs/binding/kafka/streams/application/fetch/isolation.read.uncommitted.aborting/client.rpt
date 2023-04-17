@@ -59,11 +59,11 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, 1, 0, 2)
+                                  .partition(0, 1, -1, 2)
                                   .build()
                               .build()}
 
@@ -71,7 +71,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
                                  .producerId(1)
-                                 .partition(0, 1, 0, 2)
+                                 .partition(0, 1, -1, 2)
                                  .key("key1")
                                  .header("header2", "value2")
                                  .build()
@@ -82,16 +82,16 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
                                  .producerId(1)
-                                 .partition(0, 2, 0, 2)
+                                 .partition(0, 2, -1, 2)
                                  .header("header1", "value1")
                                  .build()
                              .build()}
 read "Hello, world"
 
-read advised zilla:flush ${kafka:flushEx()
+read advised zilla:flush ${kafka:matchFlushEx()
                                 .typeId(zilla:id("kafka"))
                                 .fetch()
-                                    .partition(0, 3, 3, 3)
+                                    .partition(0, 3, 2, 3)
                                     .transaction("ABORT", 1)
                                     .build()
                                 .build()}

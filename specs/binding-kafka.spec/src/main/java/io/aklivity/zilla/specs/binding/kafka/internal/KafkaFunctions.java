@@ -50,6 +50,7 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkip;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaSkipFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaTransactionResult;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.KafkaValueMatchFW;
@@ -105,6 +106,12 @@ public final class KafkaFunctions
     public static KafkaFlushExBuilder flushEx()
     {
         return new KafkaFlushExBuilder();
+    }
+
+    @Function
+    public static KafkaFlushExMatcherBuilder matchFlushEx()
+    {
+        return new KafkaFlushExMatcherBuilder();
     }
 
     @Function
@@ -1551,6 +1558,20 @@ public final class KafkaFunctions
                 return this;
             }
 
+            public KafkaMergedFlushExBuilder progress(
+                    int partitionId,
+                    long offset,
+                    long stableOffset,
+                    long latestOffset)
+            {
+                mergedFlushExRW.progressItem(p -> p
+                        .partitionId(partitionId)
+                        .partitionOffset(offset)
+                        .stableOffset(stableOffset)
+                        .latestOffset(latestOffset));
+                return this;
+            }
+
             public KafkaMergedFlushExBuilder capabilities(
                 String capabilities)
             {
@@ -2428,6 +2449,241 @@ public final class KafkaFunctions
         }
     }
 
+    public static final class KafkaFlushExMatcherBuilder
+    {
+        private final DirectBuffer bufferRO = new UnsafeBuffer();
+
+        private final KafkaFlushExFW flushExRO = new KafkaFlushExFW();
+
+        private Integer typeId;
+        private Integer kind;
+        private Predicate<KafkaFlushExFW> caseMatcher;
+
+        public KafkaMergedFlushExMatcherBuilder merged()
+        {
+            final KafkaMergedFlushExMatcherBuilder matcherBuilder = new KafkaMergedFlushExMatcherBuilder();
+
+            this.kind = KafkaApi.MERGED.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaFetchFlushExMatcherBuilder fetch()
+        {
+            final KafkaFetchFlushExMatcherBuilder matcherBuilder = new KafkaFetchFlushExMatcherBuilder();
+
+            this.kind = KafkaApi.FETCH.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaFlushExMatcherBuilder typeId(
+            int typeId)
+        {
+            this.typeId = typeId;
+            return this;
+        }
+
+        public BytesMatcher build()
+        {
+            return typeId != null || kind != null ? this::match : buf -> null;
+        }
+
+        private KafkaFlushExFW match(
+            ByteBuffer byteBuf) throws Exception
+        {
+            if (!byteBuf.hasRemaining())
+            {
+                return null;
+            }
+
+            bufferRO.wrap(byteBuf);
+            final KafkaFlushExFW flushEx = flushExRO.tryWrap(bufferRO, byteBuf.position(), byteBuf.capacity());
+
+            if (flushEx != null &&
+                matchTypeId(flushEx) &&
+                matchKind(flushEx) &&
+                matchCase(flushEx))
+            {
+                byteBuf.position(byteBuf.position() + flushEx.sizeof());
+                return flushEx;
+            }
+
+            throw new Exception(flushEx.toString());
+        }
+
+        private boolean matchTypeId(
+            final KafkaFlushExFW flushEx)
+        {
+            return typeId == null || typeId == flushEx.typeId();
+        }
+
+        private boolean matchKind(
+            final KafkaFlushExFW flushEx)
+        {
+            return kind == null || kind == flushEx.kind();
+        }
+
+        private boolean matchCase(
+            final KafkaFlushExFW flushEx) throws Exception
+        {
+            return caseMatcher == null || caseMatcher.test(flushEx);
+        }
+
+        public final class KafkaFetchFlushExMatcherBuilder
+        {
+            private KafkaOffsetFW.Builder partitionRW;
+            private Array32FW.Builder<KafkaTransactionFW.Builder, KafkaTransactionFW> transactionRW;
+
+            private KafkaFetchFlushExMatcherBuilder()
+            {
+            }
+
+            public KafkaFetchFlushExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset)
+            {
+                partition(partitionId, partitionOffset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaFetchFlushExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                long latestOffset)
+            {
+                partition(partitionId, partitionOffset, latestOffset, latestOffset);
+                return this;
+            }
+
+            public KafkaFetchFlushExMatcherBuilder partition(
+                int partitionId,
+                long partitionOffset,
+                long stableOffset,
+                long latestOffset)
+            {
+                assert partitionRW == null;
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                partitionRW
+                        .partitionId(partitionId)
+                        .partitionOffset(partitionOffset)
+                        .stableOffset(stableOffset)
+                        .latestOffset(latestOffset);
+
+                return this;
+            }
+
+            public KafkaFetchFlushExMatcherBuilder transaction(
+                String result,
+                long producerId)
+            {
+                assert transactionRW == null;
+                transactionRW = new Array32FW.Builder<>(new KafkaTransactionFW.Builder(), new KafkaTransactionFW())
+                        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                transactionRW.item(t -> t
+                        .result(r -> r.set(KafkaTransactionResult.valueOf(result)))
+                        .producerId(producerId));
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                final KafkaFetchFlushExFW fetchFlushEx = flushEx.fetch();
+                return matchPartition(fetchFlushEx) &&
+                       matchTransaction(fetchFlushEx);
+            }
+
+            private boolean matchPartition(
+                final KafkaFetchFlushExFW fetchFlushEx)
+            {
+                return partitionRW == null || partitionRW.build().equals(fetchFlushEx.partition());
+            }
+
+            private boolean matchTransaction(
+                final KafkaFetchFlushExFW fetchFlushEx)
+            {
+                return transactionRW == null || transactionRW.build().equals(fetchFlushEx.transactions());
+            }
+
+        }
+
+        public final class KafkaMergedFlushExMatcherBuilder
+        {
+            private Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> progressRW;
+
+            private KafkaMergedFlushExMatcherBuilder()
+            {
+            }
+
+            public KafkaMergedFlushExMatcherBuilder progress(
+                int partitionId,
+                long offset)
+            {
+                progress(partitionId, offset, DEFAULT_LATEST_OFFSET);
+                return this;
+            }
+
+            public KafkaMergedFlushExMatcherBuilder progress(
+                int partitionId,
+                long offset,
+                long latestOffset)
+            {
+                if (progressRW == null)
+                {
+                    this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                progressRW.item(i -> i.partitionId(partitionId).partitionOffset(offset).latestOffset(latestOffset));
+                return this;
+            }
+
+            public KafkaMergedFlushExMatcherBuilder progress(
+                int partitionId,
+                long offset,
+                long stableOffset,
+                long latestOffset)
+            {
+                if (progressRW == null)
+                {
+                    this.progressRW = new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW())
+                            .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+                }
+                progressRW.item(i -> i
+                        .partitionId(partitionId)
+                        .partitionOffset(offset)
+                        .stableOffset(stableOffset)
+                        .latestOffset(latestOffset));
+                return this;
+            }
+
+            public KafkaFlushExMatcherBuilder build()
+            {
+                return KafkaFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaFlushExFW flushEx)
+            {
+                final KafkaMergedFlushExFW mergedFlushEx = flushEx.merged();
+                return matchProgress(mergedFlushEx);
+            }
+
+            private boolean matchProgress(
+                final KafkaMergedFlushExFW mergedFlushEx)
+            {
+                return progressRW == null || progressRW.build().equals(mergedFlushEx.progress());
+            }
+        }
+    }
+
     public static final class KafkaBeginExMatcherBuilder
     {
         private final DirectBuffer bufferRO = new UnsafeBuffer();
@@ -2555,6 +2811,24 @@ public final class KafkaFunctions
                 partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
 
                 partitionRW.partitionId(partitionId).partitionOffset(partitionOffset).latestOffset(latestOffset);
+
+                return this;
+            }
+
+            public KafkaFetchBeginExMatcherBuilder partition(
+                    int partitionId,
+                    long partitionOffset,
+                    long stableOffset,
+                    long latestOffset)
+            {
+                assert partitionRW == null;
+                partitionRW = new KafkaOffsetFW.Builder().wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
+
+                partitionRW
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset)
+                    .stableOffset(stableOffset)
+                    .latestOffset(latestOffset);
 
                 return this;
             }

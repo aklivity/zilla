@@ -66,6 +66,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private static final int DATA_FLAG_INIT = 0x02;
     private static final int DATA_FLAG_FIN = 0x01;
+    private static final int DATA_FLAG_INCOMPLETE = 0x04;
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
@@ -1676,7 +1677,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
     private final class HttpProduceAsyncProxy extends HttpProxy
     {
-        private final KafkaProduceProxy delegate;
+        private final KafkaProduceProxy producer;
+        private final KafkaCorrelateProxy correlater;
         private int producedFlags;
 
         private HttpProduceAsyncProxy(
@@ -1688,7 +1690,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             HttpKafkaWithProduceResult resolved)
         {
             super(http, originId, routedId, initialId);
-            this.delegate = new KafkaProduceProxy(routedId, resolvedId, this, resolved);
+            this.producer = new KafkaProduceProxy(routedId, resolvedId, this, resolved);
+            this.correlater = new KafkaCorrelateProxy(routedId, resolvedId, this, resolved);
         }
 
         private void onHttpMessage(
@@ -1751,7 +1754,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.doKafkaBegin(traceId, authorization, affinity);
+            producer.doKafkaBegin(traceId, authorization, affinity);
 
             Flyweight kafkaDataEx = emptyRO;
             if (httpBeginEx != null)
@@ -1773,11 +1776,11 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                             .deferred(deferred0)
                             .timestamp(now().toEpochMilli())
                             .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                            .key(delegate.resolved::key)
-                            .headers(hs -> delegate.resolved.headers(headers, hs)))
+                            .key(producer.resolved::key)
+                            .headers(hs -> producer.resolved.headers(headers, hs)))
                         .build();
 
-                delegate.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
+                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INIT, emptyRO, kafkaDataEx);
                 this.producedFlags |= DATA_FLAG_INIT;
             }
         }
@@ -1801,9 +1804,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.resolved.updateHash(payload.value());
+            producer.resolved.updateHash(payload.value());
 
-            delegate.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyRO);
+            producer.doKafkaData(traceId, authorization, budgetId, reserved, flags & ~producedFlags, payload, emptyRO);
         }
 
         private void onHttpEnd(
@@ -1822,19 +1825,9 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.resolved.digestHash();
+            producer.resolved.digestHash();
 
-            Flyweight kafkaDataEx = kafkaDataExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .merged(m -> m
-                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                        .headers(delegate.resolved::trailers))
-                    .build();
-
-            delegate.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
-
-            delegate.doKafkaEndDeferred(traceId, authorization);
+            correlater.doKafkaBegin(traceId, authorization, 0L);
         }
 
         private void onHttpAbort(
@@ -1853,7 +1846,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            delegate.doKafkaAbort(traceId, authorization);
+            producer.doKafkaAbort(traceId, authorization);
+            correlater.doKafkaAbort(traceId, authorization);
         }
 
         protected void onHttpFlush(
@@ -1873,7 +1867,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doKafkaFlush(traceId, authorization, budgetId, reserved);
+            producer.doKafkaFlush(traceId, authorization, budgetId, reserved);
         }
 
         private void onHttpReset(
@@ -1895,7 +1889,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doKafkaReset(traceId);
+            producer.doKafkaReset(traceId);
+            correlater.doKafkaReset(traceId);
         }
 
         private void onHttpWindow(
@@ -1923,7 +1918,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            delegate.doKafkaWindow(traceId);
+            producer.doKafkaWindow(traceId);
         }
 
         @Override
@@ -1951,6 +1946,55 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         }
 
         @Override
+        protected void onKafkaData(
+                long traceId,
+                long authorization,
+                long budgetId,
+                int reserved,
+                int flags,
+                OctetsFW payload,
+                OctetsFW extension)
+        {
+            if (!HttpKafkaState.initialClosing(producer.state))
+            {
+                Flyweight kafkaDataEx = kafkaDataExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .merged(m -> m
+                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                                .headers(producer.resolved::trailers))
+                        .build();
+
+                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INCOMPLETE, emptyRO, kafkaDataEx);
+
+                producer.doKafkaEndDeferred(traceId, authorization);
+            }
+        }
+
+        @Override
+        protected void onKafkaFlush(
+                long traceId,
+                long authorization,
+                long budgetId,
+                int reserved)
+        {
+            if (!HttpKafkaState.initialClosing(producer.state))
+            {
+                Flyweight kafkaDataEx = kafkaDataExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .merged(m -> m
+                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                                .headers(producer.resolved::trailers))
+                        .build();
+
+                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
+
+                producer.doKafkaEndDeferred(traceId, authorization);
+            }
+        }
+
+        @Override
         protected void onKafkaEnd(
             long traceId,
             long authorization)
@@ -1960,7 +2004,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 HttpBeginExFW httpBeginEx = httpBeginExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
-                        .headers(delegate.resolved::async)
+                        .headers(producer.resolved::async)
                         .build();
 
                 doHttpBegin(traceId, authorization, 0L, httpBeginEx);
@@ -1970,7 +2014,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
 
             if (HttpKafkaState.initialClosed(state))
             {
-                delegate.doKafkaEnd(traceId, authorization);
+                producer.doKafkaEnd(traceId, authorization);
+                correlater.doKafkaEnd(traceId, authorization);
             }
 
             doHttpEnd(traceId, authorization);
@@ -2005,7 +2050,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             if (!HttpKafkaState.replyClosed(state))
             {
-                replySeq = delegate.replySeq;
+                replySeq = producer.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
                 doAbort(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -2019,7 +2064,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
         {
             if (!HttpKafkaState.replyClosed(state))
             {
-                replySeq = delegate.replySeq;
+                replySeq = producer.replySeq;
                 state = HttpKafkaState.closeReply(state);
 
                 doEnd(http, originId, routedId, replyId, replySeq, replyAck, replyMax,
@@ -2034,8 +2079,8 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             int padding,
             int capabilities)
         {
-            initialAck = delegate.initialAck;
-            initialMax = delegate.initialMax;
+            initialAck = producer.initialAck;
+            initialMax = producer.initialMax;
 
             doWindow(http, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, capabilities);
@@ -2057,7 +2102,7 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                 HttpBeginExFW httpBeginEx = httpBeginExRW
                         .wrap(extBuffer, 0, extBuffer.capacity())
                         .typeId(httpTypeId)
-                        .headers(delegate.resolved::error)
+                        .headers(producer.resolved::error)
                         .build();
 
                 doHttpBegin(traceId, authorization, 0L, httpBeginEx);
@@ -3734,18 +3779,6 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             producer.resolved.digestHash();
 
             correlater.doKafkaBegin(traceId, authorization, 0L);
-
-            Flyweight kafkaDataEx = kafkaDataExRW
-                    .wrap(extBuffer, 0, extBuffer.capacity())
-                    .typeId(kafkaTypeId)
-                    .merged(m -> m
-                        .partition(p -> p.partitionId(-1).partitionOffset(-1))
-                        .headers(producer.resolved::trailers))
-                    .build();
-
-            producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
-
-            producer.doKafkaEndDeferred(traceId, authorization);
         }
 
         private void onHttpAbort(
@@ -3913,6 +3946,21 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
                     doHttpData(traceId, authorization, budgetId, reserved, flags, payload);
                 }
 
+                if (!HttpKafkaState.initialClosing(producer.state))
+                {
+                    Flyweight kafkaDataEx = kafkaDataExRW
+                            .wrap(extBuffer, 0, extBuffer.capacity())
+                            .typeId(kafkaTypeId)
+                            .merged(m -> m
+                                    .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                                    .headers(producer.resolved::trailers))
+                            .build();
+
+                    producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_INCOMPLETE, emptyRO, kafkaDataEx);
+
+                    producer.doKafkaEndDeferred(traceId, authorization);
+                }
+
                 if ((flags & 0x01) != 0x00) // FIN
                 {
                     correlater.doKafkaEnd(traceId, authorization);
@@ -3950,7 +3998,24 @@ public final class HttpKafkaProxyFactory implements HttpKafkaStreamFactory
             long budgetId,
             int reserved)
         {
-            doHttpFlush(traceId, authorization, budgetId, reserved);
+            if (!HttpKafkaState.initialClosing(producer.state))
+            {
+                Flyweight kafkaDataEx = kafkaDataExRW
+                        .wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .merged(m -> m
+                                .partition(p -> p.partitionId(-1).partitionOffset(-1))
+                                .headers(producer.resolved::trailers))
+                        .build();
+
+                producer.doKafkaData(traceId, authorization, 0L, 0, DATA_FLAG_FIN, emptyRO, kafkaDataEx);
+
+                producer.doKafkaEndDeferred(traceId, authorization);
+            }
+            else
+            {
+                doHttpFlush(traceId, authorization, budgetId, reserved);
+            }
         }
 
         @Override

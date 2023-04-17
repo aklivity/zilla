@@ -456,6 +456,18 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/filter.sync/client",
+        "${app}/filter.sync/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldFetchFilterSync() throws Exception
+    {
+        partition.append(0L);
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/filter.key/client",
         "${app}/filter.none/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

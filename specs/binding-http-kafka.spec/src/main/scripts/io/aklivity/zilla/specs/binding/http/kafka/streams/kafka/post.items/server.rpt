@@ -31,6 +31,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read option zilla:flags "init"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -47,8 +48,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:identity", "test")
                                .build()
                            .build()}
-
-read option zilla:flags "init"
 read zilla:data.empty
 
 read option zilla:flags "none"
@@ -58,6 +57,9 @@ read ' : '
 read option zilla:flags "none"
 read '"widget" }'
 
+read await SEND_ASYNC_REQUEST
+
+read option zilla:flags "fin"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -65,8 +67,6 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:correlation-id", "92d0bf92-63e0-4cfc-ae73-71dee92d1544-dc8d14b922019435ad8d783d8272b34d")
                                .build()
                            .build()}
-
-read option zilla:flags "fin"
 read zilla:data.empty
 
 read closed
@@ -87,6 +87,10 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                               .build()}
 
 connected
+
+write advise zilla:flush
+
+write notify SEND_ASYNC_REQUEST
 
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
