@@ -15,6 +15,7 @@
 module io.aklivity.zilla.runtime.command.metrics
 {
     requires io.aklivity.zilla.runtime.command;
+    requires io.aklivity.zilla.runtime.engine;
 
     requires transitive org.agrona.core;
 
