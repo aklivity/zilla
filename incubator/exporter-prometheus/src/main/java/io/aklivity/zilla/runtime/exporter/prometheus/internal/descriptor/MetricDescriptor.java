@@ -22,9 +22,6 @@ public interface MetricDescriptor
     String name(
         String internalName);
 
-    default String description(
-        String internalName)
-    {
-        return "";
-    }
+    String description(
+        String internalName);
 }

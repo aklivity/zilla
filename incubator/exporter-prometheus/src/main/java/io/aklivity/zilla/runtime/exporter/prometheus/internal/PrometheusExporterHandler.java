@@ -112,23 +112,22 @@ public class PrometheusExporterHandler implements ExporterHandler
         if (options != null && options.endpoints != null && options.endpoints.length > 0)
         {
             endpoint = options.endpoints[0];
+            if (endpoint.scheme == null)
+            {
+                endpoint.scheme = DEFAULT.scheme;
+            }
+            if (endpoint.port == 0)
+            {
+                endpoint.port = DEFAULT.port;
+            }
+            if (endpoint.path == null)
+            {
+                endpoint.path = DEFAULT.path;
+            }
         }
         else
         {
             endpoint = DEFAULT;
-        }
-
-        if (endpoint.scheme == null)
-        {
-            endpoint.scheme = DEFAULT.scheme;
-        }
-        if (endpoint.port == 0)
-        {
-            endpoint.port = DEFAULT.port;
-        }
-        if (endpoint.path == null)
-        {
-            endpoint.path = DEFAULT.path;
         }
         return endpoint;
     }
