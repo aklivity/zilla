@@ -31,6 +31,7 @@ public class StreamClosesReceivedMetric implements Metric
 {
     private static final String GROUP = StreamMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "closes.received");
+    private static final String DESCRIPTION = "Number of closed received streams";
 
     @Override
     public String name()
@@ -55,6 +56,12 @@ public class StreamClosesReceivedMetric implements Metric
         EngineContext context)
     {
         return new StreamClosesReceivedMetricContext();
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     private final class StreamClosesReceivedMetricContext implements MetricContext

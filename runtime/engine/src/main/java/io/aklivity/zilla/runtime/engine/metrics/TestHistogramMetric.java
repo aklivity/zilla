@@ -26,6 +26,7 @@ public class TestHistogramMetric implements Metric
 {
     private static final String GROUP = "test";
     private static final String NAME = GROUP + ".histogram";
+    private static final String DESCRIPTION = "Description for test.histogram";
 
     @Override
     public String name()
@@ -43,6 +44,12 @@ public class TestHistogramMetric implements Metric
     public Unit unit()
     {
         return Unit.BYTES;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

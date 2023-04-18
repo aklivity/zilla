@@ -41,6 +41,7 @@ public class HttpRequestSizeMetric implements Metric
 {
     private static final String GROUP = HttpMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "request.size");
+    private static final String DESCRIPTION = "HTTP request content length";
 
     @Override
     public String name()
@@ -58,6 +59,12 @@ public class HttpRequestSizeMetric implements Metric
     public Unit unit()
     {
         return Unit.BYTES;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

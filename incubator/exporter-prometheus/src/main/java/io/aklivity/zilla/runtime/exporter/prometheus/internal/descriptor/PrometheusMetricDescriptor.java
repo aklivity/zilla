@@ -87,8 +87,7 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         String result = descriptions.get(internalName);
         if (result == null)
         {
-            // TODO: Ati
-            result = "TODO description for " + internalName;
+            result = resolveMetric(internalName).description();
             descriptions.put(internalName, result);
         }
         return result;

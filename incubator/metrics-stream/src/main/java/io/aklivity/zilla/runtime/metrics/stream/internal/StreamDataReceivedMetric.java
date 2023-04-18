@@ -30,6 +30,7 @@ public class StreamDataReceivedMetric implements Metric
 {
     private static final String GROUP = StreamMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "data.received");
+    private static final String DESCRIPTION = "Bytes of data on received streams";
 
     @Override
     public String name()
@@ -47,6 +48,12 @@ public class StreamDataReceivedMetric implements Metric
     public Unit unit()
     {
         return Unit.BYTES;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

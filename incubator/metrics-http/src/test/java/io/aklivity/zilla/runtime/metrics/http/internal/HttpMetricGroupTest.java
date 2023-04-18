@@ -58,6 +58,7 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.request.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.description(), equalTo("HTTP request content length"));
     }
 
     @Test
@@ -281,6 +282,7 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.response.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.description(), equalTo("HTTP response content length"));
     }
 
     @Test

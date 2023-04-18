@@ -39,7 +39,7 @@ public class PrometheusMetricDescriptorTest
         // THEN
         assertThat(kind, equalTo("counter"));
         assertThat(name, equalTo("test_counter_total"));
-        assertThat(description, equalTo("TODO description for test.counter")); // TODO: Ati
+        assertThat(description, equalTo("Description for test.counter"));
     }
 
     @Test
@@ -57,7 +57,7 @@ public class PrometheusMetricDescriptorTest
         // THEN
         assertThat(kind, equalTo("gauge"));
         assertThat(name, equalTo("test_gauge"));
-        assertThat(description, equalTo("TODO description for test.gauge")); // TODO: Ati
+        assertThat(description, equalTo("Description for test.gauge"));
     }
 
     @Test
@@ -75,6 +75,6 @@ public class PrometheusMetricDescriptorTest
         // THEN
         assertThat(kind, equalTo("histogram"));
         assertThat(name, equalTo("test_histogram_bytes"));
-        assertThat(description, equalTo("TODO description for test.histogram")); // TODO: Ati
+        assertThat(description, equalTo("Description for test.histogram"));
     }
 }

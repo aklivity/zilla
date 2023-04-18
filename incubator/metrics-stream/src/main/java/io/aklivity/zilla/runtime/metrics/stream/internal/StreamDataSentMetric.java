@@ -30,6 +30,7 @@ public class StreamDataSentMetric implements Metric
 {
     private static final String GROUP = StreamMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "data.sent");
+    private static final String DESCRIPTION = "Bytes of data on sent streams";
 
     @Override
     public String name()
@@ -47,6 +48,12 @@ public class StreamDataSentMetric implements Metric
     public Unit unit()
     {
         return Unit.BYTES;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

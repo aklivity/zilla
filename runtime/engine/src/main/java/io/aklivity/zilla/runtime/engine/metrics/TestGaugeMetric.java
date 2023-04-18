@@ -26,6 +26,7 @@ public class TestGaugeMetric implements Metric
 {
     private static final String GROUP = "test";
     private static final String NAME = GROUP + ".gauge";
+    private static final String DESCRIPTION = "Description for test.gauge";
 
     @Override
     public String name()
@@ -43,6 +44,12 @@ public class TestGaugeMetric implements Metric
     public Unit unit()
     {
         return Unit.COUNT;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override
