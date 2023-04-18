@@ -12,18 +12,22 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.metrics.stream.internal;
+package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.net.URL;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.Exporter;
+import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterFactory;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.PrometheusExporter;
 
 public final class PrometheusExporterFactoryTest
 {
@@ -36,9 +40,12 @@ public final class PrometheusExporterFactoryTest
 
         // WHEN
         Exporter exporter = factory.create("prometheus", config);
+        ExporterContext context = exporter.supply(mock(EngineContext.class));
 
         // THEN
         assertThat(exporter, instanceOf(PrometheusExporter.class));
         assertThat(exporter.name(), equalTo("prometheus"));
+        assertThat(exporter.type(), instanceOf(URL.class));
+        assertThat(context, instanceOf(ExporterContext.class));
     }
 }

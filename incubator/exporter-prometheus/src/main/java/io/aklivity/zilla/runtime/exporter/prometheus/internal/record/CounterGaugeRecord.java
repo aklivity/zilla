@@ -23,7 +23,7 @@ import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectLongFunction;
 
-public class CounterRecord implements MetricRecord
+public class CounterGaugeRecord implements MetricRecord
 {
     private static final int UNINITIALIZED = -1;
 
@@ -36,7 +36,7 @@ public class CounterRecord implements MetricRecord
 
     private long value = UNINITIALIZED;
 
-    public CounterRecord(
+    public CounterGaugeRecord(
         long packedBindingId,
         long packedMetricId,
         LongSupplier[] readers,

@@ -32,17 +32,12 @@ import java.util.stream.Collectors;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.CounterRecord;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.GaugeRecord;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.HistogramRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.MetricRecord;
 
 public class MetricsProcessor
 {
-    /*private static final String NAMESPACE_HEADER = "namespace";
-    private static final String BINDING_HEADER = "binding";
-    private static final String METRIC_HEADER = "metric";
-    private static final String VALUE_HEADER = "value";*/
     private static final long[][] EMPTY = new long[0][0];
 
     private final Map<Metric.Kind, List<MetricsLayout>> layouts;
@@ -52,11 +47,6 @@ public class MetricsProcessor
     private final Function<String, String> descriptionSupplier;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
-
-    /*private int namespaceWidth;
-    private int bindingWidth;
-    private int metricWidth;
-    private int valueWidth;*/
 
     public MetricsProcessor(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
@@ -86,7 +76,6 @@ public class MetricsProcessor
             collectHistograms();
         }
         updateRecords();
-        //calculateColumnWidths();
         printRecords(out);
     }
 
@@ -119,7 +108,7 @@ public class MetricsProcessor
                     .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
-                MetricRecord record = new CounterRecord(packedBindingId, packedMetricId, readers,
+                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
                     labels::lookupLabel, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
@@ -149,12 +138,6 @@ public class MetricsProcessor
         return String.format(format, name, description, name, kind, name, namespace, binding, value);
     }
 
-    /*private String counterGaugeFormatter(
-        long value)
-    {
-        return String.valueOf(value);
-    }*/
-
     private void collectGauges()
     {
         for (long[] gaugeIds : fetchIds(layouts.get(GAUGE)))
@@ -167,7 +150,7 @@ public class MetricsProcessor
                     .map(layout -> layout.supplyReader(packedBindingId, packedMetricId))
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
-                MetricRecord record = new GaugeRecord(packedBindingId, packedMetricId, readers,
+                MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
                     labels::lookupLabel, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
@@ -223,22 +206,6 @@ public class MetricsProcessor
         metricRecords.forEach(MetricRecord::update);
     }
 
-    /*private void calculateColumnWidths()
-    {
-        namespaceWidth = NAMESPACE_HEADER.length();
-        bindingWidth = BINDING_HEADER.length();
-        metricWidth = METRIC_HEADER.length();
-        valueWidth = VALUE_HEADER.length();
-
-        for (MetricRecord metric : metricRecords)
-        {
-            namespaceWidth = Math.max(namespaceWidth, metric.namespaceName().length());
-            bindingWidth = Math.max(bindingWidth, metric.bindingName().length());
-            metricWidth = Math.max(metricWidth, metric.metricName().length());
-            valueWidth = Math.max(valueWidth, metric.stringValue().length());
-        }
-    }*/
-
     private void printRecords(
         PrintStream out)
     {
@@ -248,17 +215,4 @@ public class MetricsProcessor
             out.println();
         }
     }
-
-    /*private void printRecords(
-        PrintStream out)
-    {
-        String format = "%-" + namespaceWidth + "s    %-" + bindingWidth + "s    %-" + metricWidth + "s    %" +
-            valueWidth + "s\n";
-        out.format(format, NAMESPACE_HEADER, BINDING_HEADER, METRIC_HEADER, VALUE_HEADER);
-        for (MetricRecord metric : metricRecords)
-        {
-            out.format(format, metric.namespaceName(), metric.bindingName(), metric.metricName(), metric.stringValue());
-        }
-        out.println();
-    }*/
 }

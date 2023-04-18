@@ -53,7 +53,8 @@ public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     }
 
     @Override
-    public JsonObject adaptToJson(OptionsConfig options)
+    public JsonObject adaptToJson(
+        OptionsConfig options)
     {
         PrometheusOptionsConfig prometheusOptionsConfig = (PrometheusOptionsConfig) options;
         JsonObjectBuilder object = Json.createObjectBuilder();
@@ -67,7 +68,8 @@ public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     }
 
     @Override
-    public OptionsConfig adaptFromJson(JsonObject object)
+    public OptionsConfig adaptFromJson(
+        JsonObject object)
     {
         EndpointConfig[] e = object.containsKey(ENDPOINTS_NAME)
             ? object.getJsonArray(ENDPOINTS_NAME).stream()

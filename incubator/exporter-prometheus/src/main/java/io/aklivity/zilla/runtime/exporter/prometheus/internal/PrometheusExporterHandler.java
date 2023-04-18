@@ -104,7 +104,8 @@ public class PrometheusExporterHandler implements ExporterHandler
         layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
     }
 
-    private EndpointConfig resolveEndpoint(ExporterConfig exporter)
+    private EndpointConfig resolveEndpoint(
+        ExporterConfig exporter)
     {
         PrometheusOptionsConfig options = (PrometheusOptionsConfig) exporter.options;
         EndpointConfig endpoint;

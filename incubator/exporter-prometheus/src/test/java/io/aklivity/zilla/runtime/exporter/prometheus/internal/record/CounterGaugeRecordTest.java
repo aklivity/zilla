@@ -12,15 +12,17 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.command.metrics.internal.record;
+package io.aklivity.zilla.runtime.exporter.prometheus.internal.record;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-import java.util.function.LongFunction;
+import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
+
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectLongFunction;
 
 public class CounterGaugeRecordTest
 {
@@ -28,14 +30,15 @@ public class CounterGaugeRecordTest
     private static final LongSupplier READER_42 = () -> 42L;
     private static final LongSupplier READER_58 = () -> 58L;
     private static final LongSupplier READER_100 = () -> 100L;
-    private static final LongFunction<String> FORMATTER = String::valueOf;
+    private static final IntFunction<String> LABEL_RESOLVER = i -> "";
+    private static final ObjectLongFunction<String, String[]> FORMATTER = (names, value) -> String.valueOf(value);
 
     @Test
     public void shouldReturnSum()
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{READER_42, READER_58, READER_100};
-        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null, FORMATTER);
+        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, LABEL_RESOLVER, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -49,7 +52,7 @@ public class CounterGaugeRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{READER_0};
-        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null, FORMATTER);
+        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, LABEL_RESOLVER, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
@@ -63,7 +66,7 @@ public class CounterGaugeRecordTest
     {
         // GIVEN
         LongSupplier[] readers = new LongSupplier[]{};
-        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, null, FORMATTER);
+        CounterGaugeRecord counter = new CounterGaugeRecord(0L, 0L, readers, LABEL_RESOLVER, FORMATTER);
 
         // WHEN
         String stringValue = counter.stringValue();
