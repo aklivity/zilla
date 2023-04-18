@@ -16,7 +16,11 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
@@ -27,8 +31,14 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.PrometheusExporter
 
 public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String PORT_NAME = "port";
-    private static final String PATH_NAME = "path";
+    private static final String ENDPOINTS_NAME = "endpoints";
+
+    private final EndpointAdapter endpoint;
+
+    public PrometheusOptionsConfigAdapter()
+    {
+        this.endpoint = new EndpointAdapter();
+    }
 
     @Override
     public Kind kind()
@@ -47,25 +57,25 @@ public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     {
         PrometheusOptionsConfig prometheusOptionsConfig = (PrometheusOptionsConfig) options;
         JsonObjectBuilder object = Json.createObjectBuilder();
-
-        object.add(PORT_NAME, prometheusOptionsConfig.port);
-        if (prometheusOptionsConfig.path != null)
+        if (prometheusOptionsConfig.endpoints != null)
         {
-            object.add(PATH_NAME, prometheusOptionsConfig.path);
+            JsonArrayBuilder entries = Json.createArrayBuilder();
+            Arrays.stream(prometheusOptionsConfig.endpoints).forEach(v -> entries.add(endpoint.adaptToJson(v)));
+            object.add(ENDPOINTS_NAME, entries);
         }
-
         return object.build();
     }
 
     @Override
     public OptionsConfig adaptFromJson(JsonObject object)
     {
-        int port = object.containsKey(PORT_NAME)
-            ? object.getInt(PORT_NAME)
-            : 0;
-        String path = object.containsKey(PATH_NAME)
-            ? object.getString(PATH_NAME)
+        EndpointConfig[] e = object.containsKey(ENDPOINTS_NAME)
+            ? object.getJsonArray(ENDPOINTS_NAME).stream()
+                .map(i -> (JsonObject) i)
+                .map(endpoint::adaptFromJson)
+                .collect(Collectors.toList())
+                .toArray(EndpointConfig[]::new)
             : null;
-        return new PrometheusOptionsConfig(port, path);
+        return new PrometheusOptionsConfig(e);
     }
 }

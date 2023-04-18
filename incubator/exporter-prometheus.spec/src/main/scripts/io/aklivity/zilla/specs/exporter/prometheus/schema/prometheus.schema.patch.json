@@ -14,15 +14,32 @@
                 {
                     "properties":
                     {
-                        "port":
+                        "endpoints":
                         {
-                            "title": "Port",
-                            "type": "int"
-                        },
-                        "path":
-                        {
-                            "title": "Path",
-                            "type": "string"
+                            "type": "array",
+                            "items":
+                            {
+                                "properties":
+                                {
+                                    "scheme":
+                                    {
+                                        "title": "Scheme",
+                                        "type": "string"
+                                    },
+                                    "port":
+                                    {
+                                        "title": "Port",
+                                        "type": "int"
+                                    },
+                                    "path":
+                                    {
+                                        "title": "Path",
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "maxItems": 1
                         }
                     },
                     "additionalProperties": false

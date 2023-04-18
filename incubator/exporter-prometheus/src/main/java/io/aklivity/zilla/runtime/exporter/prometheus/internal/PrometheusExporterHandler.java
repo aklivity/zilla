@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig.DEFAULT;
+import static io.aklivity.zilla.runtime.exporter.prometheus.internal.config.EndpointConfig.DEFAULT;
 import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
 import static java.net.HttpURLConnection.HTTP_OK;
 
@@ -39,6 +39,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.EndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.LayoutManager;
@@ -46,7 +47,7 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsP
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
-    private final PrometheusOptionsConfig options;
+    private final EndpointConfig endpoint;
     private final LayoutManager manager;
 
     private Map<Metric.Kind, List<MetricsLayout>> layouts;
@@ -57,7 +58,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         EngineConfiguration config,
         ExporterConfig exporter)
     {
-        this.options = resolveOptions(exporter);
+        this.endpoint = resolveEndpoint(exporter);
         this.manager = new LayoutManager(config.directory());
     }
 
@@ -72,8 +73,8 @@ public class PrometheusExporterHandler implements ExporterHandler
                 HISTOGRAM, manager.histogramsLayouts()
             );
             metrics = new MetricsProcessor(layouts, manager.labels(), null, null);
-            server = HttpServer.create(new InetSocketAddress(options.port), 0);
-            server.createContext(options.path, new MetricsHttpHandler());
+            server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
+            server.createContext(endpoint.path, new MetricsHttpHandler());
             server.start();
         }
         catch (IOException ex)
@@ -99,25 +100,33 @@ public class PrometheusExporterHandler implements ExporterHandler
         layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
     }
 
-    private PrometheusOptionsConfig resolveOptions(ExporterConfig exporter)
+    private EndpointConfig resolveEndpoint(ExporterConfig exporter)
     {
         PrometheusOptionsConfig options = (PrometheusOptionsConfig) exporter.options;
-        if (options == null)
+        EndpointConfig endpoint;
+
+        if (options != null && options.endpoints != null && options.endpoints.length > 0)
         {
-            options = DEFAULT;
+            endpoint = options.endpoints[0];
         }
         else
         {
-            if (options.port == 0)
-            {
-                options.port = DEFAULT.port;
-            }
-            if (options.path == null)
-            {
-                options.path = DEFAULT.path;
-            }
+            endpoint = DEFAULT;
         }
-        return options;
+
+        if (endpoint.scheme == null)
+        {
+            endpoint.scheme = DEFAULT.scheme;
+        }
+        if (endpoint.port == 0)
+        {
+            endpoint.port = DEFAULT.port;
+        }
+        if (endpoint.path == null)
+        {
+            endpoint.path = DEFAULT.path;
+        }
+        return endpoint;
     }
 
     private String generateOutput()

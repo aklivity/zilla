@@ -16,13 +16,21 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.config;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
-public class PrometheusOptionsConfig extends OptionsConfig
+public class EndpointConfig extends OptionsConfig
 {
-    public EndpointConfig[] endpoints;
+    public static final EndpointConfig DEFAULT = new EndpointConfig("http", 9090, "/metrics");
 
-    public PrometheusOptionsConfig(
-        EndpointConfig[] endpoints)
+    public String scheme;
+    public int port;
+    public String path;
+
+    public EndpointConfig(
+        String scheme,
+        int port,
+        String path)
     {
-        this.endpoints = endpoints;
+        this.scheme = scheme;
+        this.port = port;
+        this.path = path;
     }
 }
