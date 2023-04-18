@@ -38,6 +38,8 @@ The `setup.sh` script:
 
 ```bash
 $ ./setup.sh
++ docker image inspect zilla-examples/sse-server:latest --format 'Image Found {{.RepoTags}}'
+Image Found [zilla-examples/sse-server:latest]
 + helm install zilla-sse-proxy-jwt chart --namespace zilla-sse-proxy-jwt --create-namespace --wait
 NAME: zilla-sse-proxy-jwt
 LAST DEPLOYED: [...]
@@ -57,6 +59,13 @@ Connection to localhost port 9090 [tcp/websm] succeeded!
 + sleep 1
 + nc -z localhost 8001
 Connection to localhost port 8001 [tcp/vcom-tunnel] succeeded!
+```
+
+Note: if you see the following output from `./setup.sh` then you need to first build the `zilla-examples/sse-server:latest` image, see above.
+```bash
++ docker image inspect zilla-examples/sse-server --format 'Image Found {{.RepoTags}}'
+
+Error: No such image: zilla-examples/sse-server
 ```
 
 ### Generate JWT token

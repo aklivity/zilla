@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+# Verify SSE Server image already available locally
+docker image inspect zilla-examples/sse-server:latest --format 'Image Found {{.RepoTags}}'
+
 # Install Zilla and SSE server to the Kubernetes cluster with helm and wait for the pods to start up
 helm install zilla-sse-proxy-jwt chart --namespace zilla-sse-proxy-jwt --create-namespace --wait
 
