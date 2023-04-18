@@ -42,7 +42,7 @@ public class TestHistogramMetric implements Metric
     @Override
     public Unit unit()
     {
-        return Unit.COUNT;
+        return Unit.BYTES;
     }
 
     @Override

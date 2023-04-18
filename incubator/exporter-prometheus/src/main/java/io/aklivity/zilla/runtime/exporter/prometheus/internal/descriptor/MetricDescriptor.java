@@ -12,31 +12,19 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package io.aklivity.zilla.runtime.exporter.prometheus.internal.utils;
+package io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor;
 
-import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-public interface Metric
+public interface MetricDescriptor
 {
-    enum Kind
+    String kind(
+        String internalName);
+
+    String name(
+        String internalName);
+
+    default String description(
+        String internalName)
     {
-        COUNTER,
-        GAUGE,
-        HISTOGRAM
+        return "";
     }
-
-    enum Unit
-    {
-        BYTES,
-        COUNT
-    }
-
-    String name();
-
-    Kind kind();
-
-    Unit unit();
-
-    MetricContext supply(
-        EngineContext context);
 }

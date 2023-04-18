@@ -41,6 +41,7 @@ import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.EndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.LayoutManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsProcessor;
@@ -49,6 +50,7 @@ public class PrometheusExporterHandler implements ExporterHandler
 {
     private final EndpointConfig endpoint;
     private final LayoutManager manager;
+    private final PrometheusMetricDescriptor metricDescriptor;
 
     private Map<Metric.Kind, List<MetricsLayout>> layouts;
     private MetricsProcessor metrics;
@@ -60,6 +62,7 @@ public class PrometheusExporterHandler implements ExporterHandler
     {
         this.endpoint = resolveEndpoint(exporter);
         this.manager = new LayoutManager(config.directory());
+        this.metricDescriptor = new PrometheusMetricDescriptor(config);
     }
 
     @Override
@@ -72,7 +75,8 @@ public class PrometheusExporterHandler implements ExporterHandler
                 GAUGE, manager.gaugesLayouts(),
                 HISTOGRAM, manager.histogramsLayouts()
             );
-            metrics = new MetricsProcessor(layouts, manager.labels(), null, null);
+            metrics = new MetricsProcessor(layouts, manager.labels(), metricDescriptor::kind, metricDescriptor::name,
+                metricDescriptor::description, null, null);
             server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
             server.createContext(endpoint.path, new MetricsHttpHandler());
             server.start();

@@ -32,7 +32,6 @@ public class GaugeRecord implements MetricRecord
     private final int metricId;
     private final LongSupplier[] readers;
     private final IntFunction<String> labelResolver;
-    //private final LongFunction<String> valueFormatter;
     private final ObjectLongFunction<String, String[]> valueFormatter;
 
     private long value = UNINITIALIZED;
@@ -42,7 +41,6 @@ public class GaugeRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[] readers,
         IntFunction<String> labelResolver,
-        //LongFunction<String> valueFormatter)
         ObjectLongFunction<String, String[]> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
@@ -78,9 +76,7 @@ public class GaugeRecord implements MetricRecord
         {
             update();
         }
-        //return valueFormatter.apply(value);
-        final String kind = "gauge"; // TODO: Ati
-        return valueFormatter.apply(new String[]{kind, metricName(), namespaceName(), bindingName()}, value);
+        return valueFormatter.apply(new String[]{metricName(), namespaceName(), bindingName()}, value);
     }
 
     @Override

@@ -31,7 +31,6 @@ public class HistogramRecord implements MetricRecord
     private final int metricId;
     private final LongSupplier[][] readers;
     private final IntFunction<String> labelResolver;
-    //private final Function<long[], String> valueFormatter;
     private final ObjectObjectObjectFunction<String, String[], long[], long[]> valueFormatter;
 
     private long[] values;
@@ -42,7 +41,6 @@ public class HistogramRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[][] readers,
         IntFunction<String> labelResolver,
-        //Function<long[], String> valueFormatter)
         ObjectObjectObjectFunction<String, String[], long[], long[]> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
@@ -78,9 +76,7 @@ public class HistogramRecord implements MetricRecord
         {
             update();
         }
-        //return valueFormatter.apply(stats);
-        final String kind = "histogram"; // TODO: Ati
-        String[] s = {kind, metricName(), namespaceName(), bindingName()};
+        String[] s = {metricName(), namespaceName(), bindingName()};
         return valueFormatter.apply(s, values, stats);
     }
 
@@ -115,7 +111,6 @@ public class HistogramRecord implements MetricRecord
         long minimum = minIndex == -1 ? 0L : getValue(minIndex);
         long maximum = maxIndex == -1 ? 0L : getValue(maxIndex);
         long average = count == 0L ? 0L : sum / count;
-        //stats = new long[]{minimum, maximum, count, average}; // TODO: Ati !!!!
         stats = new long[]{minimum, maximum, sum, count, average};
     }
 

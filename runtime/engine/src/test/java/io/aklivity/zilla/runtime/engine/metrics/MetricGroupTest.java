@@ -89,7 +89,7 @@ public class MetricGroupTest
         assertThat(metric, instanceOf(TestHistogramMetric.class));
         assertThat(metric.name(), equalTo("test.histogram"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
-        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
         assertThat(context.group(), equalTo("test"));
         assertThat(handler, instanceOf(MessageConsumer.class));
     }

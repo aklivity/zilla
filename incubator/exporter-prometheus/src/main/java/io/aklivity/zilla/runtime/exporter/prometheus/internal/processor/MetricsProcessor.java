@@ -24,6 +24,7 @@ import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -38,30 +39,39 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.MetricRecor
 
 public class MetricsProcessor
 {
-    private static final String NAMESPACE_HEADER = "namespace";
+    /*private static final String NAMESPACE_HEADER = "namespace";
     private static final String BINDING_HEADER = "binding";
     private static final String METRIC_HEADER = "metric";
-    private static final String VALUE_HEADER = "value";
+    private static final String VALUE_HEADER = "value";*/
     private static final long[][] EMPTY = new long[0][0];
 
     private final Map<Metric.Kind, List<MetricsLayout>> layouts;
     private final LabelManager labels;
+    private final Function<String, String> kindSupplier;
+    private final Function<String, String> nameSupplier;
+    private final Function<String, String> descriptionSupplier;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
 
-    private int namespaceWidth;
+    /*private int namespaceWidth;
     private int bindingWidth;
     private int metricWidth;
-    private int valueWidth;
+    private int valueWidth;*/
 
     public MetricsProcessor(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
         LabelManager labels,
+        Function<String, String> kindSupplier,
+        Function<String, String> nameSupplier,
+        Function<String, String> descriptionSupplier,
         String namespaceName,
         String bindingName)
     {
         this.layouts = layouts;
         this.labels = labels;
+        this.kindSupplier = kindSupplier;
+        this.nameSupplier = nameSupplier;
+        this.descriptionSupplier = descriptionSupplier;
         this.filter = filterBy(namespaceName, bindingName);
         this.metricRecords = new LinkedList<>();
     }
@@ -76,7 +86,7 @@ public class MetricsProcessor
             collectHistograms();
         }
         updateRecords();
-        calculateColumnWidths();
+        //calculateColumnWidths();
         printRecords(out);
     }
 
@@ -127,13 +137,16 @@ public class MetricsProcessor
     private String counterGaugeFormatter(
         String[] s, long value)
     {
+        String kind = kindSupplier.apply(s[0]);
+        String name = nameSupplier.apply(s[0]);
+        String description = descriptionSupplier.apply(s[0]);
+        String namespace = s[1];
+        String binding = s[2];
         String format =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %d";
-        // TODO: Ati
-        String metricName = s[1].replace('.', '_');
-        return String.format(format, metricName, "TODO: put description here", metricName, s[0], metricName, s[2], s[3], value);
+        return String.format(format, name, description, name, kind, name, namespace, binding, value);
     }
 
     /*private String counterGaugeFormatter(
@@ -185,20 +198,23 @@ public class MetricsProcessor
         long[] values,
         long[] stats)
     {
-        String metricName = s[1].replace('.', '_') + "_bytes"; // TODO: Ati !!!
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format(
-            "# HELP %s %s\n" +
-            "# TYPE %s %s\n",
-            metricName, "TOOD bla bla desc", metricName, s[0]));
+        String kind = kindSupplier.apply(s[0]);
+        String name = nameSupplier.apply(s[0]);
+        String description = descriptionSupplier.apply(s[0]);
+        String namespace = s[1];
+        String binding = s[2];
+        long sum = stats[2];
+        long count = stats[3];
+        sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", name, description, name, kind));
         for (int i = 0; i < BUCKETS; i++)
         {
             String limit = i == BUCKETS - 1 ? "+Inf" : String.valueOf(BUCKET_LIMITS.get(i));
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
-                metricName, limit, s[2], s[3], values[i]));
+                name, limit, namespace, binding, values[i]));
         }
-        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n", metricName, s[2], s[3], stats[2]));
-        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n", metricName, s[2], s[3], stats[3]));
+        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n", name, namespace, binding, sum));
+        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n", name, namespace, binding, count));
         return sb.toString();
     }
 
@@ -207,7 +223,7 @@ public class MetricsProcessor
         metricRecords.forEach(MetricRecord::update);
     }
 
-    private void calculateColumnWidths()
+    /*private void calculateColumnWidths()
     {
         namespaceWidth = NAMESPACE_HEADER.length();
         bindingWidth = BINDING_HEADER.length();
@@ -221,7 +237,7 @@ public class MetricsProcessor
             metricWidth = Math.max(metricWidth, metric.metricName().length());
             valueWidth = Math.max(valueWidth, metric.stringValue().length());
         }
-    }
+    }*/
 
     private void printRecords(
         PrintStream out)
