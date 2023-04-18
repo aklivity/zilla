@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.processor;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout.BUCKETS;
+import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout.BUCKET_LIMITS;
 
 import java.io.PrintStream;
 import java.util.LinkedList;
@@ -179,11 +181,25 @@ public class MetricsProcessor
     }
 
     private String histogramFormatter(
+        String[] s,
+        long[] values,
         long[] stats)
     {
-        // TODO: Ati
-        return "";
-        // return String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[2], stats[3]);
+        String metricName = s[1].replace('.', '_') + "_bytes"; // TODO: Ati !!!
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format(
+            "# HELP %s %s\n" +
+            "# TYPE %s %s\n",
+            metricName, "TOOD bla bla desc", metricName, s[0]));
+        for (int i = 0; i < BUCKETS; i++)
+        {
+            String limit = i == BUCKETS - 1 ? "+Inf" : String.valueOf(BUCKET_LIMITS.get(i));
+            sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
+                metricName, limit, s[2], s[3], values[i]));
+        }
+        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n", metricName, s[2], s[3], stats[2]));
+        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n", metricName, s[2], s[3], stats[3]));
+        return sb.toString();
     }
 
     private void updateRecords()

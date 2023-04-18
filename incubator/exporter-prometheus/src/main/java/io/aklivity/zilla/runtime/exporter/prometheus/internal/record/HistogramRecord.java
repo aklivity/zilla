@@ -19,9 +19,10 @@ import static io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.Hist
 import static io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.NamespacedId.localId;
 import static io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.NamespacedId.namespaceId;
 
-import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
+
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectObjectObjectFunction;
 
 public class HistogramRecord implements MetricRecord
 {
@@ -30,8 +31,10 @@ public class HistogramRecord implements MetricRecord
     private final int metricId;
     private final LongSupplier[][] readers;
     private final IntFunction<String> labelResolver;
-    private final Function<long[], String> valueFormatter;
+    //private final Function<long[], String> valueFormatter;
+    private final ObjectObjectObjectFunction<String, String[], long[], long[]> valueFormatter;
 
+    private long[] values;
     private long[] stats;
 
     public HistogramRecord(
@@ -39,7 +42,8 @@ public class HistogramRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[][] readers,
         IntFunction<String> labelResolver,
-        Function<long[], String> valueFormatter)
+        //Function<long[], String> valueFormatter)
+        ObjectObjectObjectFunction<String, String[], long[], long[]> valueFormatter)
     {
         this.namespaceId = namespaceId(packedBindingId);
         this.bindingId = localId(packedBindingId);
@@ -74,30 +78,28 @@ public class HistogramRecord implements MetricRecord
         {
             update();
         }
-        return valueFormatter.apply(stats);
+        //return valueFormatter.apply(stats);
+        final String kind = "histogram"; // TODO: Ati
+        String[] s = {kind, metricName(), namespaceName(), bindingName()};
+        return valueFormatter.apply(s, values, stats);
     }
 
     @Override
     public void update()
     {
-        stats = stats();
-    }
-
-    private long[] stats()
-    {
         long count = 0L;
         long sum = 0L;
         int minIndex = -1;
         int maxIndex = -1;
-        long[] histogram = new long[BUCKETS];
+        values = new long[BUCKETS];
 
         for (int i = 0; i < BUCKETS; i++)
         {
             for (LongSupplier[] reader : readers)
             {
-                histogram[i] += reader[i].getAsLong();
+                values[i] += reader[i].getAsLong();
             }
-            long bucketCount = histogram[i];
+            long bucketCount = values[i];
             count += bucketCount;
             sum += bucketCount * getValue(i);
             if (bucketCount != 0)
@@ -113,7 +115,8 @@ public class HistogramRecord implements MetricRecord
         long minimum = minIndex == -1 ? 0L : getValue(minIndex);
         long maximum = maxIndex == -1 ? 0L : getValue(maxIndex);
         long average = count == 0L ? 0L : sum / count;
-        return new long[]{minimum, maximum, count, average};
+        //stats = new long[]{minimum, maximum, count, average}; // TODO: Ati !!!!
+        stats = new long[]{minimum, maximum, sum, count, average};
     }
 
     private long getValue(
