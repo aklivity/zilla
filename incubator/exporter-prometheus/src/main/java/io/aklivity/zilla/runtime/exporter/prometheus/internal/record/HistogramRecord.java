@@ -26,12 +26,11 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectObject
 
 public class HistogramRecord implements MetricRecord
 {
-    private final int namespaceId;
-    private final int bindingId;
-    private final int metricId;
     private final LongSupplier[][] readers;
-    private final IntFunction<String> labelResolver;
     private final ObjectObjectObjectFunction<String, String[], long[], long[]> valueFormatter;
+    private final String namespaceName;
+    private final String bindingName;
+    private final String metricName;
 
     private long[] values;
     private long[] stats;
@@ -43,30 +42,29 @@ public class HistogramRecord implements MetricRecord
         IntFunction<String> labelResolver,
         ObjectObjectObjectFunction<String, String[], long[], long[]> valueFormatter)
     {
-        this.namespaceId = namespaceId(packedBindingId);
-        this.bindingId = localId(packedBindingId);
-        this.metricId = localId(packedMetricId);
         this.readers = readers;
-        this.labelResolver = labelResolver;
         this.valueFormatter = valueFormatter;
+        this.namespaceName = labelResolver.apply(namespaceId(packedBindingId));
+        this.bindingName = labelResolver.apply(localId(packedBindingId));
+        this.metricName = labelResolver.apply(localId(packedMetricId));
     }
 
     @Override
     public String namespaceName()
     {
-        return labelResolver.apply(namespaceId);
+        return namespaceName;
     }
 
     @Override
     public String bindingName()
     {
-        return labelResolver.apply(bindingId);
+        return bindingName;
     }
 
     @Override
     public String metricName()
     {
-        return labelResolver.apply(metricId);
+        return metricName;
     }
 
     @Override
