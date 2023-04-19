@@ -25,12 +25,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.CounterGaugeRecord;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.record.HistogramRecord;
@@ -41,7 +41,7 @@ public class MetricsProcessor
     private static final long[][] EMPTY = new long[0][0];
 
     private final Map<Metric.Kind, List<MetricsLayout>> layouts;
-    private final LabelManager labels;
+    private final IntFunction<String> localNameSupplier;
     private final Function<String, String> kindSupplier;
     private final Function<String, String> nameSupplier;
     private final Function<String, String> descriptionSupplier;
@@ -50,7 +50,7 @@ public class MetricsProcessor
 
     public MetricsProcessor(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
-        LabelManager labels,
+        IntFunction<String> localNameSupplier,
         Function<String, String> kindSupplier,
         Function<String, String> nameSupplier,
         Function<String, String> descriptionSupplier,
@@ -58,7 +58,7 @@ public class MetricsProcessor
         String bindingName)
     {
         this.layouts = layouts;
-        this.labels = labels;
+        this.localNameSupplier = localNameSupplier;
         this.kindSupplier = kindSupplier;
         this.nameSupplier = nameSupplier;
         this.descriptionSupplier = descriptionSupplier;
@@ -83,17 +83,7 @@ public class MetricsProcessor
         String namespace,
         String binding)
     {
-        int namespaceId = namespace != null ? Math.max(labels.supplyLabelId(namespace), 0) : 0;
-        int bindingId = binding != null ? Math.max(labels.supplyLabelId(binding), 0) : 0;
-
-        long namespacedId =
-            (long) namespaceId << Integer.SIZE |
-                (long) bindingId << 0;
-
-        long mask =
-            (namespace != null ? 0xffff_ffff_0000_0000L : 0x0000_0000_0000_0000L) |
-                (binding != null ? 0x0000_0000_ffff_ffffL : 0x0000_0000_0000_0000L);
-        return id -> (id & mask) == namespacedId;
+        return id -> true; // not implemented in exporter-prometheus
     }
 
     private void collectCounters()
@@ -109,7 +99,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                    labels::lookupLabel, this::counterGaugeFormatter);
+                    localNameSupplier, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
         }
@@ -152,7 +142,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                    labels::lookupLabel, this::counterGaugeFormatter);
+                    localNameSupplier, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
         }
@@ -171,7 +161,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[][]::new);
                 MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers,
-                    labels::lookupLabel, this::histogramFormatter);
+                    localNameSupplier, this::histogramFormatter);
                 metricRecords.add(record);
             }
         }

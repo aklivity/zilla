@@ -35,6 +35,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
@@ -46,9 +47,10 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsP
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
-    private final PrometheusEndpointConfig endpoint;
     private final LayoutManager manager;
     private final PrometheusMetricDescriptor metricDescriptor;
+    private final EngineContext context;
+    private final PrometheusEndpointConfig endpoint;
 
     private Map<Metric.Kind, List<MetricsLayout>> layouts;
     private MetricsProcessor metrics;
@@ -56,11 +58,13 @@ public class PrometheusExporterHandler implements ExporterHandler
 
     public PrometheusExporterHandler(
         EngineConfiguration config,
+        EngineContext context,
         PrometheusOptionsConfig options)
     {
-        this.endpoint = options.endpoints[0]; // only one endpoint is supported for now
         this.manager = new LayoutManager(config.directory());
         this.metricDescriptor = new PrometheusMetricDescriptor(config);
+        this.context = context;
+        this.endpoint = options.endpoints[0]; // only one endpoint is supported for now
     }
 
     @Override
@@ -73,8 +77,8 @@ public class PrometheusExporterHandler implements ExporterHandler
                 GAUGE, manager.gaugesLayouts(),
                 HISTOGRAM, manager.histogramsLayouts()
             );
-            metrics = new MetricsProcessor(layouts, manager.labels(), metricDescriptor::kind, metricDescriptor::name,
-                metricDescriptor::description, null, null);
+            metrics = new MetricsProcessor(layouts, context::supplyLocalName, metricDescriptor::kind,
+                metricDescriptor::name, metricDescriptor::description, null, null);
             server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
             server.createContext(endpoint.path, new MetricsHttpHandler());
             server.start();

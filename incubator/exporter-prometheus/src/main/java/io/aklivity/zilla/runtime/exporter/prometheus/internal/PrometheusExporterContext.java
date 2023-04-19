@@ -24,12 +24,14 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusO
 public class PrometheusExporterContext implements ExporterContext
 {
     private final EngineConfiguration config;
+    private final EngineContext context;
 
     public PrometheusExporterContext(
         EngineConfiguration config,
         EngineContext context)
     {
         this.config = config;
+        this.context = context;
     }
 
     @Override
@@ -37,7 +39,7 @@ public class PrometheusExporterContext implements ExporterContext
         ExporterConfig exporter)
     {
         PrometheusOptionsConfig options = (PrometheusOptionsConfig) exporter.options;
-        return new PrometheusExporterHandler(config, options);
+        return new PrometheusExporterHandler(config, context, options);
     }
 
     @Override

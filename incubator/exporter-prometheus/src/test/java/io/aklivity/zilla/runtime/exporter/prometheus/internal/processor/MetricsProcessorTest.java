@@ -27,12 +27,12 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.CountersLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.GaugesLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout;
@@ -210,16 +210,6 @@ public class MetricsProcessorTest
             "histogram_1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 0\n" +
             "histogram_1_sum{namespace=\"ns1\",binding=\"binding1\"} 64\n" +
             "histogram_1_count{namespace=\"ns1\",binding=\"binding1\"} 2\n\n\n";
-        LabelManager labels = mock(LabelManager.class);
-        when(labels.lookupLabel(1)).thenReturn("ns1");
-        when(labels.lookupLabel(2)).thenReturn("ns2");
-        when(labels.lookupLabel(11)).thenReturn("binding1");
-        when(labels.lookupLabel(12)).thenReturn("binding2");
-        when(labels.lookupLabel(21)).thenReturn("counter1");
-        when(labels.lookupLabel(22)).thenReturn("counter2");
-        when(labels.lookupLabel(31)).thenReturn("gauge1");
-        when(labels.lookupLabel(41)).thenReturn("histogram1");
-
         CountersLayout countersLayout = mock(CountersLayout.class);
         when(countersLayout.getIds()).thenReturn(counterIds);
         when(countersLayout.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_42);
@@ -240,6 +230,16 @@ public class MetricsProcessorTest
                 GAUGE, List.of(gaugesLayout),
                 HISTOGRAM, List.of(histogramsLayout));
 
+        IntFunction<String> localNameSupplier = mock(IntFunction.class);
+        when(localNameSupplier.apply(1)).thenReturn("ns1");
+        when(localNameSupplier.apply(2)).thenReturn("ns2");
+        when(localNameSupplier.apply(11)).thenReturn("binding1");
+        when(localNameSupplier.apply(12)).thenReturn("binding2");
+        when(localNameSupplier.apply(21)).thenReturn("counter1");
+        when(localNameSupplier.apply(22)).thenReturn("counter2");
+        when(localNameSupplier.apply(31)).thenReturn("gauge1");
+        when(localNameSupplier.apply(41)).thenReturn("histogram1");
+
         Function<String, String> kindSupplier = mock(Function.class);
         when(kindSupplier.apply("counter1")).thenReturn("counter");
         when(kindSupplier.apply("counter2")).thenReturn("counter");
@@ -258,7 +258,7 @@ public class MetricsProcessorTest
         when(descriptionSupplier.apply("gauge1")).thenReturn("description for gauge1");
         when(descriptionSupplier.apply("histogram1")).thenReturn("description for histogram1");
 
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels,
+        MetricsProcessor metrics = new MetricsProcessor(layouts, localNameSupplier,
             kindSupplier, nameSupplier, descriptionSupplier, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
@@ -269,8 +269,6 @@ public class MetricsProcessorTest
         // THEN
         assertThat(os.toString("UTF8"), equalTo(expectedOutput));
     }
-
-    // TODO: Ati
 
     @Test
     public void shouldWorkWithMultiCoreAggregation() throws Exception
@@ -366,16 +364,6 @@ public class MetricsProcessorTest
             "histogram_1_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 0\n" +
             "histogram_1_sum{namespace=\"ns1\",binding=\"binding1\"} 134\n" +
             "histogram_1_count{namespace=\"ns1\",binding=\"binding1\"} 6\n\n\n";
-        LabelManager labels = mock(LabelManager.class);
-        when(labels.lookupLabel(1)).thenReturn("ns1");
-        when(labels.lookupLabel(2)).thenReturn("ns2");
-        when(labels.lookupLabel(11)).thenReturn("binding1");
-        when(labels.lookupLabel(12)).thenReturn("binding2");
-        when(labels.lookupLabel(21)).thenReturn("counter1");
-        when(labels.lookupLabel(22)).thenReturn("counter2");
-        when(labels.lookupLabel(31)).thenReturn("gauge1");
-        when(labels.lookupLabel(41)).thenReturn("histogram1");
-
         CountersLayout countersLayout0 = mock(CountersLayout.class);
         when(countersLayout0.getIds()).thenReturn(counterIds);
         when(countersLayout0.supplyReader(BINDING_ID_1_11, METRIC_ID_1_21)).thenReturn(READER_2);
@@ -414,6 +402,16 @@ public class MetricsProcessorTest
                 GAUGE, List.of(gaugesLayout0, gaugesLayout1, gaugesLayout2),
                 HISTOGRAM, List.of(histogramsLayout0, histogramsLayout1, histogramsLayout2));
 
+        IntFunction<String> localNameSupplier = mock(IntFunction.class);
+        when(localNameSupplier.apply(1)).thenReturn("ns1");
+        when(localNameSupplier.apply(2)).thenReturn("ns2");
+        when(localNameSupplier.apply(11)).thenReturn("binding1");
+        when(localNameSupplier.apply(12)).thenReturn("binding2");
+        when(localNameSupplier.apply(21)).thenReturn("counter1");
+        when(localNameSupplier.apply(22)).thenReturn("counter2");
+        when(localNameSupplier.apply(31)).thenReturn("gauge1");
+        when(localNameSupplier.apply(41)).thenReturn("histogram1");
+
         Function<String, String> kindSupplier = mock(Function.class);
         when(kindSupplier.apply("counter1")).thenReturn("counter");
         when(kindSupplier.apply("counter2")).thenReturn("counter");
@@ -432,7 +430,7 @@ public class MetricsProcessorTest
         when(descriptionSupplier.apply("gauge1")).thenReturn("description for gauge1");
         when(descriptionSupplier.apply("histogram1")).thenReturn("description for histogram1");
 
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels,
+        MetricsProcessor metrics = new MetricsProcessor(layouts, localNameSupplier,
             kindSupplier, nameSupplier, descriptionSupplier, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
@@ -589,14 +587,6 @@ public class MetricsProcessorTest
             "histogram_3_bucket{le=\"+Inf\",namespace=\"ns1\",binding=\"binding1\"} 0\n" +
             "histogram_3_sum{namespace=\"ns1\",binding=\"binding1\"} 70\n" +
             "histogram_3_count{namespace=\"ns1\",binding=\"binding1\"} 4\n\n\n";
-        LabelManager labels = mock(LabelManager.class);
-        when(labels.lookupLabel(1)).thenReturn("ns1");
-        when(labels.lookupLabel(11)).thenReturn("binding1");
-        when(labels.lookupLabel(42)).thenReturn("histogram2");
-        when(labels.lookupLabel(43)).thenReturn("histogram3");
-        when(labels.supplyLabelId("ns1")).thenReturn(1);
-        when(labels.supplyLabelId("binding1")).thenReturn(11);
-
         HistogramsLayout histogramsLayout = mock(HistogramsLayout.class);
         when(histogramsLayout.getIds()).thenReturn(histogramIds);
         when(histogramsLayout.supplyReaders(BINDING_ID_1_11, METRIC_ID_1_42)).thenReturn(READER_HISTOGRAM_2);
@@ -607,6 +597,12 @@ public class MetricsProcessorTest
                 COUNTER, List.of(),
                 GAUGE, List.of(),
                 HISTOGRAM, List.of(histogramsLayout));
+
+        IntFunction<String> localNameSupplier = mock(IntFunction.class);
+        when(localNameSupplier.apply(1)).thenReturn("ns1");
+        when(localNameSupplier.apply(11)).thenReturn("binding1");
+        when(localNameSupplier.apply(42)).thenReturn("histogram2");
+        when(localNameSupplier.apply(43)).thenReturn("histogram3");
 
         Function<String, String> kindSupplier = mock(Function.class);
         when(kindSupplier.apply("histogram2")).thenReturn("histogram");
@@ -620,7 +616,7 @@ public class MetricsProcessorTest
         when(descriptionSupplier.apply("histogram2")).thenReturn("description for histogram 2");
         when(descriptionSupplier.apply("histogram3")).thenReturn("description for histogram 3");
 
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels,
+        MetricsProcessor metrics = new MetricsProcessor(layouts, localNameSupplier,
             kindSupplier, nameSupplier, descriptionSupplier, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
@@ -637,15 +633,15 @@ public class MetricsProcessorTest
     {
         // GIVEN
         String expectedOutput = "";
-        LabelManager labels = mock(LabelManager.class);
         Map<Metric.Kind, List<MetricsLayout>> layouts = Map.of(
                 COUNTER, List.of(),
                 GAUGE, List.of(),
                 HISTOGRAM, List.of());
+        IntFunction<String> localNameSupplier = mock(IntFunction.class);
         Function<String, String> kindSupplier = mock(Function.class);
         Function<String, String> nameSupplier = mock(Function.class);
         Function<String, String> descriptionSupplier = mock(Function.class);
-        MetricsProcessor metrics = new MetricsProcessor(layouts, labels,
+        MetricsProcessor metrics = new MetricsProcessor(layouts, localNameSupplier,
             kindSupplier, nameSupplier, descriptionSupplier, null, null);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);

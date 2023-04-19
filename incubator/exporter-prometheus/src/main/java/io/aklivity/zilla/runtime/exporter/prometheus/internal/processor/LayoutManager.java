@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.labels.LabelManager;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.CountersLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.GaugesLayout;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.HistogramsLayout;
@@ -37,18 +36,11 @@ public class LayoutManager
     private static final Pattern HISTOGRAMS_PATTERN = Pattern.compile("histograms(\\d+)");
 
     private final Path metricsDirectory;
-    private final LabelManager labels;
 
     public LayoutManager(
         Path engineDirectory)
     {
         this.metricsDirectory = engineDirectory.resolve("metrics");
-        this.labels = new LabelManager(engineDirectory);
-    }
-
-    public LabelManager labels()
-    {
-        return labels;
     }
 
     public List<MetricsLayout> countersLayouts() throws IOException
