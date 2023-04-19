@@ -21,14 +21,14 @@ import java.util.Arrays;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectLongFunction;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.Object3LongFunction;
 
 public class CounterGaugeRecord implements MetricRecord
 {
     private static final int UNINITIALIZED = -1;
 
     private final LongSupplier[] readers;
-    private final ObjectLongFunction<String, String[]> valueFormatter;
+    private final Object3LongFunction<String, String, String, String> valueFormatter;
     private final String namespaceName;
     private final String bindingName;
     private final String metricName;
@@ -40,7 +40,7 @@ public class CounterGaugeRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[] readers,
         IntFunction<String> labelResolver,
-        ObjectLongFunction<String, String[]> valueFormatter)
+        Object3LongFunction<String, String, String, String> valueFormatter)
     {
         this.readers = readers;
         this.valueFormatter = valueFormatter;
@@ -74,7 +74,7 @@ public class CounterGaugeRecord implements MetricRecord
         {
             update();
         }
-        return valueFormatter.apply(new String[]{metricName(), namespaceName(), bindingName()}, value);
+        return valueFormatter.apply(metricName, namespaceName, bindingName, value);
     }
 
     @Override

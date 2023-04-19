@@ -124,18 +124,19 @@ public class MetricsProcessor
     }
 
     private String counterGaugeFormatter(
-        String[] s, long value)
+        String metric,
+        String namespace,
+        String binding,
+        long value)
     {
-        String kind = kindSupplier.apply(s[0]);
-        String name = nameSupplier.apply(s[0]);
-        String description = descriptionSupplier.apply(s[0]);
-        String namespace = s[1];
-        String binding = s[2];
+        String kind = kindSupplier.apply(metric);
+        String extName = nameSupplier.apply(metric);
+        String description = descriptionSupplier.apply(metric);
         String format =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
             "%s{namespace=\"%s\",binding=\"%s\"} %d";
-        return String.format(format, name, description, name, kind, name, namespace, binding, value);
+        return String.format(format, extName, description, extName, kind, extName, namespace, binding, value);
     }
 
     private void collectGauges()
@@ -177,27 +178,27 @@ public class MetricsProcessor
     }
 
     private String histogramFormatter(
-        String[] s,
+        String metric,
+        String namespace,
+        String binding,
         long[] values,
         long[] stats)
     {
         StringBuilder sb = new StringBuilder();
-        String kind = kindSupplier.apply(s[0]);
-        String name = nameSupplier.apply(s[0]);
-        String description = descriptionSupplier.apply(s[0]);
-        String namespace = s[1];
-        String binding = s[2];
+        String kind = kindSupplier.apply(metric);
+        String extName = nameSupplier.apply(metric);
+        String description = descriptionSupplier.apply(metric);
         long sum = stats[2];
         long count = stats[3];
-        sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", name, description, name, kind));
+        sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));
         for (int i = 0; i < BUCKETS; i++)
         {
             String limit = i == BUCKETS - 1 ? "+Inf" : String.valueOf(BUCKET_LIMITS.get(i));
             sb.append(String.format("%s_bucket{le=\"%s\",namespace=\"%s\",binding=\"%s\"} %d\n",
-                name, limit, namespace, binding, values[i]));
+                extName, limit, namespace, binding, values[i]));
         }
-        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n", name, namespace, binding, sum));
-        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n", name, namespace, binding, count));
+        sb.append(String.format("%s_sum{namespace=\"%s\",binding=\"%s\"} %d\n", extName, namespace, binding, sum));
+        sb.append(String.format("%s_count{namespace=\"%s\",binding=\"%s\"} %d\n", extName, namespace, binding, count));
         return sb.toString();
     }
 

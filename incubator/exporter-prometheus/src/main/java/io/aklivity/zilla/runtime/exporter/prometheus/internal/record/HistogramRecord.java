@@ -22,12 +22,12 @@ import static io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.Names
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
 
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.TriFunction;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.QuintFunction;
 
 public class HistogramRecord implements MetricRecord
 {
     private final LongSupplier[][] readers;
-    private final TriFunction<String, String[], long[], long[]> valueFormatter;
+    private final QuintFunction<String, String, String, String, long[], long[]> valueFormatter;
     private final String namespaceName;
     private final String bindingName;
     private final String metricName;
@@ -40,7 +40,7 @@ public class HistogramRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[][] readers,
         IntFunction<String> labelResolver,
-        TriFunction<String, String[], long[], long[]> valueFormatter)
+        QuintFunction<String, String, String, String, long[], long[]> valueFormatter)
     {
         this.readers = readers;
         this.valueFormatter = valueFormatter;
@@ -74,8 +74,7 @@ public class HistogramRecord implements MetricRecord
         {
             update();
         }
-        String[] s = {metricName(), namespaceName(), bindingName()};
-        return valueFormatter.apply(s, values, stats);
+        return valueFormatter.apply(metricName, namespaceName, bindingName, values, stats);
     }
 
     @Override

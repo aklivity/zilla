@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.utils;
 
 @FunctionalInterface
-public interface TriFunction<R, T, U, V>
+public interface QuintFunction<R, T, U, V, W, X>
 {
-    R apply(T object1, U object2, V object3);
+    R apply(T t, U u, V v, W w, X x);
 }

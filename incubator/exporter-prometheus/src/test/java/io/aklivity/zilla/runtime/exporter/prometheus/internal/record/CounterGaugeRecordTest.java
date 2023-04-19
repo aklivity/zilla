@@ -22,7 +22,7 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectLongFunction;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.Object3LongFunction;
 
 public class CounterGaugeRecordTest
 {
@@ -31,7 +31,8 @@ public class CounterGaugeRecordTest
     private static final LongSupplier READER_58 = () -> 58L;
     private static final LongSupplier READER_100 = () -> 100L;
     private static final IntFunction<String> LABEL_RESOLVER = i -> "";
-    private static final ObjectLongFunction<String, String[]> FORMATTER = (names, value) -> String.valueOf(value);
+    private static final Object3LongFunction<String, String, String, String> FORMATTER =
+        (m, n, b, value) -> String.valueOf(value);
 
     @Test
     public void shouldReturnSum()

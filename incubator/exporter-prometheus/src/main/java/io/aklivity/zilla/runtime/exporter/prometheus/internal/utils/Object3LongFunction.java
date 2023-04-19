@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.utils;
 
 @FunctionalInterface
-public interface ObjectLongFunction<R, T>
+public interface Object3LongFunction<R, T, U, V>
 {
-    R apply(T object, long value);
+    R apply(T t, U u, V v, long value);
 }
