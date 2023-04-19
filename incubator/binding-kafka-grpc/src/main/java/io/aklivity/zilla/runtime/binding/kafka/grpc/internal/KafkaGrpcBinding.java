@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal;
 
 import java.net.URL;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.agrona.collections.Long2ObjectHashMap;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -23,6 +26,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class KafkaGrpcBinding implements Binding
 {
     public static final String NAME = "kafka-grpc";
+    private final Long2ObjectHashMap<AtomicInteger> workers = new Long2ObjectHashMap<>();
 
     private final KafkaGrpcConfiguration config;
 
@@ -55,6 +59,15 @@ public final class KafkaGrpcBinding implements Binding
     public KafkaGrpcBindingContext supply(
         EngineContext context)
     {
-        return new KafkaGrpcBindingContext(config, context);
+        return new KafkaGrpcBindingContext(config, context, this::doSignal);
+    }
+
+    public boolean doSignal(
+        long bindingId)
+    {
+        final AtomicInteger worker = workers.computeIfAbsent(bindingId, id -> new AtomicInteger(0));
+        final int workerNumber = worker.getAndIncrement();
+
+        return workerNumber == 0;
     }
 }

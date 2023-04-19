@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcRemoteServerFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -32,9 +33,10 @@ final class KafkaGrpcBindingContext implements BindingContext
 
     KafkaGrpcBindingContext(
         KafkaGrpcConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        Function<Long, Boolean> doSignal)
     {
-        this.factories = singletonMap(REMOTE_SERVER, new KafkaGrpcRemoteServerFactory(config, context));
+        this.factories = singletonMap(REMOTE_SERVER, new KafkaGrpcRemoteServerFactory(config, context, doSignal));
     }
 
     @Override
