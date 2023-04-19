@@ -19,7 +19,7 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
-public class EndpointAdapter implements JsonbAdapter<EndpointConfig, JsonObject>
+public class PrometheusEndpointAdapter implements JsonbAdapter<PrometheusEndpointConfig, JsonObject>
 {
     private static final String SCHEME_NAME = "scheme";
     private static final String PORT_NAME = "port";
@@ -27,7 +27,7 @@ public class EndpointAdapter implements JsonbAdapter<EndpointConfig, JsonObject>
 
     @Override
     public JsonObject adaptToJson(
-        EndpointConfig endpoint)
+        PrometheusEndpointConfig endpoint)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
         if (endpoint.scheme != null)
@@ -43,7 +43,7 @@ public class EndpointAdapter implements JsonbAdapter<EndpointConfig, JsonObject>
     }
 
     @Override
-    public EndpointConfig adaptFromJson(
+    public PrometheusEndpointConfig adaptFromJson(
         JsonObject object)
     {
         String scheme = object.containsKey(SCHEME_NAME)
@@ -55,6 +55,6 @@ public class EndpointAdapter implements JsonbAdapter<EndpointConfig, JsonObject>
         String path = object.containsKey(PATH_NAME)
             ? object.getString(PATH_NAME)
             : null;
-        return new EndpointConfig(scheme, port, path);
+        return new PrometheusEndpointConfig(scheme, port, path);
     }
 }

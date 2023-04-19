@@ -69,8 +69,8 @@ public class PrometheusOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         // GIVEN
-        EndpointConfig endpoint = new EndpointConfig("http", 9090, "/metrics");
-        PrometheusOptionsConfig config = new PrometheusOptionsConfig(new EndpointConfig[]{endpoint});
+        PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 9090, "/metrics");
+        PrometheusOptionsConfig config = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
 
         // WHEN
         String text = jsonb.toJson(config);

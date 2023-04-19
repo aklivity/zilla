@@ -18,10 +18,10 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class PrometheusOptionsConfig extends OptionsConfig
 {
-    public EndpointConfig[] endpoints;
+    public PrometheusEndpointConfig[] endpoints;
 
     public PrometheusOptionsConfig(
-        EndpointConfig[] endpoints)
+        PrometheusEndpointConfig[] endpoints)
     {
         this.endpoints = endpoints;
     }

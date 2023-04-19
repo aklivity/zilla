@@ -33,11 +33,11 @@ public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
 {
     private static final String ENDPOINTS_NAME = "endpoints";
 
-    private final EndpointAdapter endpoint;
+    private final PrometheusEndpointAdapter endpoint;
 
     public PrometheusOptionsConfigAdapter()
     {
-        this.endpoint = new EndpointAdapter();
+        this.endpoint = new PrometheusEndpointAdapter();
     }
 
     @Override
@@ -71,12 +71,12 @@ public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        EndpointConfig[] e = object.containsKey(ENDPOINTS_NAME)
+        PrometheusEndpointConfig[] e = object.containsKey(ENDPOINTS_NAME)
             ? object.getJsonArray(ENDPOINTS_NAME).stream()
                 .map(i -> (JsonObject) i)
                 .map(endpoint::adaptFromJson)
                 .collect(Collectors.toList())
-                .toArray(EndpointConfig[]::new)
+                .toArray(PrometheusEndpointConfig[]::new)
             : null;
         return new PrometheusOptionsConfig(e);
     }

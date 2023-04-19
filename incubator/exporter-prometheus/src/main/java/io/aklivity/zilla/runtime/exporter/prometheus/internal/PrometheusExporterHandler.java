@@ -17,7 +17,7 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.config.EndpointConfig.DEFAULT;
+import static io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig.DEFAULT;
 import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
 import static java.net.HttpURLConnection.HTTP_OK;
 
@@ -39,7 +39,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.EndpointConfig;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor.PrometheusMetricDescriptor;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.layout.MetricsLayout;
@@ -48,7 +48,7 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.processor.MetricsP
 
 public class PrometheusExporterHandler implements ExporterHandler
 {
-    private final EndpointConfig endpoint;
+    private final PrometheusEndpointConfig endpoint;
     private final LayoutManager manager;
     private final PrometheusMetricDescriptor metricDescriptor;
 
@@ -104,11 +104,11 @@ public class PrometheusExporterHandler implements ExporterHandler
         layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
     }
 
-    private EndpointConfig resolveEndpoint(
+    private PrometheusEndpointConfig resolveEndpoint(
         ExporterConfig exporter)
     {
         PrometheusOptionsConfig options = (PrometheusOptionsConfig) exporter.options;
-        EndpointConfig endpoint;
+        PrometheusEndpointConfig endpoint;
 
         if (options != null && options.endpoints != null && options.endpoints.length > 0)
         {
