@@ -63,6 +63,12 @@ scope kafka
         case 3: kafka::KafkaHeaders headers;
     }
 
+    enum KafkaEvaluation (uint8)
+    {
+        LAZY(0),
+        EAGER(1)
+    }
+
     struct KafkaFilter
     {
         KafkaCondition[] conditions; // ANDed
@@ -210,6 +216,7 @@ scope kafka
             string16 topic;
             KafkaOffset[] partitions;
             KafkaFilter[] filters; // ORed
+            KafkaEvaluation evaluation = LAZY;
             KafkaIsolation isolation = READ_COMMITTED;
             KafkaDeltaType deltaType = NONE;
             KafkaAckMode ackMode = IN_SYNC_REPLICAS;
@@ -219,6 +226,7 @@ scope kafka
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
+            int64 filters = 0;          // INIT only
             KafkaOffset partition;      // INIT only
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
@@ -259,6 +267,7 @@ scope kafka
             string16 topic;
             KafkaOffset partition;
             KafkaFilter[] filters; // ORed
+            KafkaEvaluation evaluation = LAZY;
             KafkaIsolation isolation = READ_UNCOMMITTED;
             KafkaDeltaType deltaType = NONE;
         }
@@ -269,6 +278,7 @@ scope kafka
             int64 timestamp = 0;        // INIT only
             int32 headersSizeMax = 4;   // INIT only
             int64 producerId = -1;      // INIT only
+            int64 filters = 0;          // INIT only
             KafkaOffset partition;      // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
