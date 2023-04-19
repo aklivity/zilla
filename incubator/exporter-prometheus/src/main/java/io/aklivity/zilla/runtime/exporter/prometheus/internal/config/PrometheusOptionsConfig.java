@@ -18,6 +18,9 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public class PrometheusOptionsConfig extends OptionsConfig
 {
+    public static final PrometheusOptionsConfig DEFAULT =
+        new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{PrometheusEndpointConfig.DEFAULT});
+
     public PrometheusEndpointConfig[] endpoints;
 
     public PrometheusOptionsConfig(

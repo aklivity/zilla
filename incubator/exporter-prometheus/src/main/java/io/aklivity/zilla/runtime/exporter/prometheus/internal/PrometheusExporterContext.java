@@ -19,6 +19,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
 
 public class PrometheusExporterContext implements ExporterContext
 {
@@ -35,7 +36,8 @@ public class PrometheusExporterContext implements ExporterContext
     public ExporterHandler attach(
         ExporterConfig exporter)
     {
-        return new PrometheusExporterHandler(config, exporter);
+        PrometheusOptionsConfig options = (PrometheusOptionsConfig) exporter.options;
+        return new PrometheusExporterHandler(config, options);
     }
 
     @Override

@@ -47,13 +47,53 @@ public class PrometheusOptionsConfigAdapterTest
                 "\"endpoints\":\n" +
                 "[\n" +
                     "{\n" +
-                        "\"scheme\": \"http\",\n" +
-                        "\"port\": 9090,\n" +
-                        "\"path\": \"/metrics\"\n" +
+                        "\"scheme\": \"https\",\n" +
+                        "\"port\": 9999,\n" +
+                        "\"path\": \"/metrix\"\n" +
                     "}\n" +
                 "]\n" +
             "}";
 
+
+        // WHEN
+        PrometheusOptionsConfig options = jsonb.fromJson(text, PrometheusOptionsConfig.class);
+
+        // THEN
+        assertThat(options, not(nullValue()));
+        assertThat(options.endpoints[0].scheme, equalTo("https"));
+        assertThat(options.endpoints[0].port, equalTo(9999));
+        assertThat(options.endpoints[0].path, equalTo("/metrix"));
+    }
+
+    @Test
+    public void shouldApplyDefaultValues()
+    {
+        // GIVEN
+        String text =
+            "{\n" +
+                "\"endpoints\":\n" +
+                "[\n" +
+                    "{\n" +
+                    "}\n" +
+                "]\n" +
+            "}";
+
+
+        // WHEN
+        PrometheusOptionsConfig options = jsonb.fromJson(text, PrometheusOptionsConfig.class);
+
+        // THEN
+        assertThat(options, not(nullValue()));
+        assertThat(options.endpoints[0].scheme, equalTo("http"));
+        assertThat(options.endpoints[0].port, equalTo(9090));
+        assertThat(options.endpoints[0].path, equalTo("/metrics"));
+    }
+
+    @Test
+    public void shouldApplyDefaultEndpoint()
+    {
+        // GIVEN
+        String text = "{}";
 
         // WHEN
         PrometheusOptionsConfig options = jsonb.fromJson(text, PrometheusOptionsConfig.class);

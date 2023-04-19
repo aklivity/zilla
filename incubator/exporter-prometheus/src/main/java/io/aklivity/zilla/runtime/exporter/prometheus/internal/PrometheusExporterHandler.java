@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
-import static io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig.DEFAULT;
 import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
 import static java.net.HttpURLConnection.HTTP_OK;
 
@@ -36,7 +35,6 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
@@ -58,9 +56,9 @@ public class PrometheusExporterHandler implements ExporterHandler
 
     public PrometheusExporterHandler(
         EngineConfiguration config,
-        ExporterConfig exporter)
+        PrometheusOptionsConfig options)
     {
-        this.endpoint = resolveEndpoint(exporter);
+        this.endpoint = options.endpoints[0]; // only one endpoint is supported for now
         this.manager = new LayoutManager(config.directory());
         this.metricDescriptor = new PrometheusMetricDescriptor(config);
     }
@@ -102,35 +100,6 @@ public class PrometheusExporterHandler implements ExporterHandler
             server = null;
         }
         layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
-    }
-
-    private PrometheusEndpointConfig resolveEndpoint(
-        ExporterConfig exporter)
-    {
-        PrometheusOptionsConfig options = (PrometheusOptionsConfig) exporter.options;
-        PrometheusEndpointConfig endpoint;
-
-        if (options != null && options.endpoints != null && options.endpoints.length > 0)
-        {
-            endpoint = options.endpoints[0];
-            if (endpoint.scheme == null)
-            {
-                endpoint.scheme = DEFAULT.scheme;
-            }
-            if (endpoint.port == 0)
-            {
-                endpoint.port = DEFAULT.port;
-            }
-            if (endpoint.path == null)
-            {
-                endpoint.path = DEFAULT.path;
-            }
-        }
-        else
-        {
-            endpoint = DEFAULT;
-        }
-        return endpoint;
     }
 
     private String generateOutput()

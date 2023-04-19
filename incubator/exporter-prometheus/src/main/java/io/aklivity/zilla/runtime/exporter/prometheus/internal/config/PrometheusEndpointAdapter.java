@@ -24,6 +24,9 @@ public class PrometheusEndpointAdapter implements JsonbAdapter<PrometheusEndpoin
     private static final String SCHEME_NAME = "scheme";
     private static final String PORT_NAME = "port";
     private static final String PATH_NAME = "path";
+    private static final String DEFAULT_SCHEME = "http";
+    private static final int DEFAULT_PORT = 9090;
+    private static final String DEFAULT_PATH = "/metrics";
 
     @Override
     public JsonObject adaptToJson(
@@ -48,13 +51,13 @@ public class PrometheusEndpointAdapter implements JsonbAdapter<PrometheusEndpoin
     {
         String scheme = object.containsKey(SCHEME_NAME)
             ? object.getString(SCHEME_NAME)
-            : null;
+            : DEFAULT_SCHEME;
         int port = object.containsKey(PORT_NAME)
             ? object.getInt(PORT_NAME)
-            : 0;
+            : DEFAULT_PORT;
         String path = object.containsKey(PATH_NAME)
             ? object.getString(PATH_NAME)
-            : null;
+            : DEFAULT_PATH;
         return new PrometheusEndpointConfig(scheme, port, path);
     }
 }

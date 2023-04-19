@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.config;
 
 import static io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi.Kind.EXPORTER;
+import static io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig.DEFAULT;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -71,13 +72,22 @@ public class PrometheusOptionsConfigAdapter implements OptionsConfigAdapterSpi, 
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        PrometheusEndpointConfig[] e = object.containsKey(ENDPOINTS_NAME)
-            ? object.getJsonArray(ENDPOINTS_NAME).stream()
-                .map(i -> (JsonObject) i)
-                .map(endpoint::adaptFromJson)
-                .collect(Collectors.toList())
-                .toArray(PrometheusEndpointConfig[]::new)
-            : null;
-        return new PrometheusOptionsConfig(e);
+        OptionsConfig result;
+        if (object == null)
+        {
+            result = DEFAULT;
+        }
+        else
+        {
+            PrometheusEndpointConfig[] e = object.containsKey(ENDPOINTS_NAME)
+                ? object.getJsonArray(ENDPOINTS_NAME).stream()
+                    .map(i -> (JsonObject) i)
+                    .map(endpoint::adaptFromJson)
+                    .collect(Collectors.toList())
+                    .toArray(PrometheusEndpointConfig[]::new)
+                : DEFAULT.endpoints;
+            result = new PrometheusOptionsConfig(e);
+        }
+        return result;
     }
 }

@@ -68,9 +68,7 @@ public class ExporterAdapter implements JsonbAdapter<ExporterConfig[], JsonObjec
             JsonObject item = jsonObject.getJsonObject(name);
             String type = item.getString(TYPE_NAME);
             options.adaptType(type);
-            OptionsConfig opts = item.containsKey(OPTIONS_NAME) ?
-                    options.adaptFromJson(item.getJsonObject(OPTIONS_NAME)) :
-                    null;
+            OptionsConfig opts = options.adaptFromJson(item.getJsonObject(OPTIONS_NAME));
             exporters.add(new ExporterConfig(name, type, opts));
         }
         return exporters.toArray(ExporterConfig[]::new);

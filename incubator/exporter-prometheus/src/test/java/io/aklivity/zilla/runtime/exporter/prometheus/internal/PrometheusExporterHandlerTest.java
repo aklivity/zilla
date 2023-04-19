@@ -31,7 +31,6 @@ import java.time.Duration;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
 
@@ -47,8 +46,7 @@ public class PrometheusExporterHandlerTest
         when(config.directory()).thenReturn(tmp);
         PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 4242, "/metrics");
         PrometheusOptionsConfig options = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
-        ExporterConfig exporter = new ExporterConfig("prometheus0", "prometheus", options);
-        PrometheusExporterHandler handler = new PrometheusExporterHandler(config, exporter);
+        PrometheusExporterHandler handler = new PrometheusExporterHandler(config, options);
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest
             .newBuilder(new URI("http://localhost:4242/metrics"))

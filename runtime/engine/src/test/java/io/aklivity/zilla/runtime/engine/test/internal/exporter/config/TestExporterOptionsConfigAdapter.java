@@ -55,10 +55,9 @@ public final class TestExporterOptionsConfigAdapter implements OptionsConfigAdap
     public OptionsConfig adaptFromJson(
         JsonObject object)
     {
-        String mode = object.containsKey(MODE_NAME)
+        String mode = object != null && object.containsKey(MODE_NAME)
                 ? object.getString(MODE_NAME)
                 : null;
-
         return new TestExporterOptionsConfig(mode);
     }
 }
