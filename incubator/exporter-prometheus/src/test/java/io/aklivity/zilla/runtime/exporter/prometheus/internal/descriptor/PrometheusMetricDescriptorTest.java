@@ -17,10 +17,16 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.function.Function;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
+import io.aklivity.zilla.runtime.engine.metrics.TestCounterMetric;
+import io.aklivity.zilla.runtime.engine.metrics.TestGaugeMetric;
+import io.aklivity.zilla.runtime.engine.metrics.TestHistogramMetric;
 
 public class PrometheusMetricDescriptorTest
 {
@@ -28,8 +34,9 @@ public class PrometheusMetricDescriptorTest
     public void shouldDescribeCounter()
     {
         // GIVEN
-        PrometheusMetricDescriptor descriptor =
-            new PrometheusMetricDescriptor(mock(EngineConfiguration.class));
+        Function<String, Metric> metricResolver = mock(Function.class);
+        when(metricResolver.apply("test.counter")).thenReturn(new TestCounterMetric());
+        PrometheusMetricDescriptor descriptor = new PrometheusMetricDescriptor(metricResolver);
 
         // WHEN
         String kind = descriptor.kind("test.counter");
@@ -46,8 +53,9 @@ public class PrometheusMetricDescriptorTest
     public void shouldDescribeGauge()
     {
         // GIVEN
-        PrometheusMetricDescriptor descriptor =
-            new PrometheusMetricDescriptor(mock(EngineConfiguration.class));
+        Function<String, Metric> metricResolver = mock(Function.class);
+        when(metricResolver.apply("test.gauge")).thenReturn(new TestGaugeMetric());
+        PrometheusMetricDescriptor descriptor = new PrometheusMetricDescriptor(metricResolver);
 
         // WHEN
         String kind = descriptor.kind("test.gauge");
@@ -64,8 +72,9 @@ public class PrometheusMetricDescriptorTest
     public void shouldDescribeHistogram()
     {
         // GIVEN
-        PrometheusMetricDescriptor descriptor =
-            new PrometheusMetricDescriptor(mock(EngineConfiguration.class));
+        Function<String, Metric> metricResolver = mock(Function.class);
+        when(metricResolver.apply("test.histogram")).thenReturn(new TestHistogramMetric());
+        PrometheusMetricDescriptor descriptor = new PrometheusMetricDescriptor(metricResolver);
 
         // WHEN
         String kind = descriptor.kind("test.histogram");

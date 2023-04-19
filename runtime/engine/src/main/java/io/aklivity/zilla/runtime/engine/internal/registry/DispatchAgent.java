@@ -168,6 +168,7 @@ public class DispatchAgent implements EngineContext, Agent
     private final boolean timestamps;
     private final LoadLayout loadLayout;
     private final Object2ObjectHashMap<Metric.Kind, LongLongFunction<LongConsumer>> metricWriterSuppliers;
+    private final Map<String, MetricGroup> metricGroupsByName;
     private final MetricsLayout metricsLayout;
     private final StreamsLayout streamsLayout;
     private final BufferPoolLayout bufferPoolLayout;
@@ -390,6 +391,12 @@ public class DispatchAgent implements EngineContext, Agent
                 Metric metric = metricGroup.supply(metricName);
                 metricsByName.put(metricName, metric.supply(this));
             }
+        }
+
+        this.metricGroupsByName = new Object2ObjectHashMap<>();
+        for (MetricGroup metricGroup : metricGroups)
+        {
+            metricGroupsByName.put(metricGroup.name(), metricGroup);
         }
 
         this.configuration = new ConfigurationRegistry(
@@ -903,6 +910,14 @@ public class DispatchAgent implements EngineContext, Agent
                 runner.close();
             }
         }
+    }
+
+    @Override
+    public Metric resolveMetric(
+        String metricName)
+    {
+        String metricGroupName = metricName.split("\\.")[0];
+        return metricGroupsByName.get(metricGroupName).supply(metricName);
     }
 
     public long counter(

@@ -62,7 +62,7 @@ public class PrometheusExporterHandler implements ExporterHandler
         PrometheusOptionsConfig options)
     {
         this.manager = new LayoutManager(config.directory());
-        this.metricDescriptor = new PrometheusMetricDescriptor(config);
+        this.metricDescriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         this.context = context;
         this.endpoint = options.endpoints[0]; // only one endpoint is supported for now
     }

@@ -18,27 +18,23 @@ import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.BYTES;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import org.agrona.collections.Object2ObjectHashMap;
 
-import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
-import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
-import io.aklivity.zilla.runtime.engine.metrics.MetricGroupFactory;
 
 public class PrometheusMetricDescriptor implements MetricDescriptor
 {
-    private final MetricGroupFactory metricGroupFactory;
-    private final Map<String, MetricGroup> metricGroups;
+    private final Function<String, Metric> metricResolver;
     private final Map<String, String> names;
     private final Map<String, String> kinds;
     private final Map<String, String> descriptions;
 
     public PrometheusMetricDescriptor(
-        EngineConfiguration config)
+        Function<String, Metric> metricResolver)
     {
-        this.metricGroupFactory = MetricGroupFactory.instantiate();
-        this.metricGroups = metricGroups(config);
+        this.metricResolver = metricResolver;
         this.names = new Object2ObjectHashMap<>();
         this.kinds = new Object2ObjectHashMap<>();
         this.descriptions = new Object2ObjectHashMap<>();
@@ -51,7 +47,7 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         String result = kinds.get(internalName);
         if (result == null)
         {
-            result = resolveMetric(internalName).kind().toString().toLowerCase();
+            result = metricResolver.apply(internalName).kind().toString().toLowerCase();
             kinds.put(internalName, result);
         }
         return result;
@@ -64,7 +60,7 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         String result = names.get(internalName);
         if (result == null)
         {
-            Metric metric = resolveMetric(internalName);
+            Metric metric = metricResolver.apply(internalName);
             result = metric.name();
             result = result.replace('.', '_');
             if (metric.unit() == BYTES)
@@ -87,28 +83,9 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         String result = descriptions.get(internalName);
         if (result == null)
         {
-            result = resolveMetric(internalName).description();
+            result = metricResolver.apply(internalName).description();
             descriptions.put(internalName, result);
         }
         return result;
-    }
-
-    private Map<String, MetricGroup> metricGroups(
-        EngineConfiguration config)
-    {
-        final Map<String, MetricGroup> metricGroups = new Object2ObjectHashMap<>();
-        for (String name : metricGroupFactory.names())
-        {
-            MetricGroup metricGroup = metricGroupFactory.create(name, config);
-            metricGroups.put(name, metricGroup);
-        }
-        return metricGroups;
-    }
-
-    private Metric resolveMetric(
-        String internalName)
-    {
-        String metricGroupName = internalName.split("\\.")[0];
-        return metricGroups.get(metricGroupName).supply(internalName);
     }
 }

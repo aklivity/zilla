@@ -32,6 +32,7 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
+import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.poller.PollerKey;
 import io.aklivity.zilla.runtime.engine.vault.VaultHandler;
 
@@ -117,6 +118,9 @@ public interface EngineContext
 
     URL resolvePath(
         String path);
+
+    Metric resolveMetric(
+        String name);
 
     void initialOpened(
         long bindingId);
