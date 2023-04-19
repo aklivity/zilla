@@ -126,7 +126,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
-    private final Function<Long, Boolean> doSignal;
+    private final Function<Long, Boolean> canInitiate;
     private final Signaler signaler;
     private final int grpcTypeId;
     private final int kafkaTypeId;
@@ -136,7 +136,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     public KafkaGrpcRemoteServerFactory(
         KafkaGrpcConfiguration config,
         EngineContext context,
-        Function<Long, Boolean> doSignal)
+        Function<Long, Boolean> canInitiate)
     {
         this.bufferPool = context.bufferPool();
         this.writeBuffer = context.writeBuffer();
@@ -146,7 +146,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
         this.supplyTraceId = context::supplyTraceId;
-        this.doSignal = doSignal;
+        this.canInitiate = canInitiate;
         this.bindings = new Long2ObjectHashMap<>();
         this.servers = new ArrayList<>();
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
@@ -160,7 +160,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         KafkaGrpcBindingConfig newBinding = new KafkaGrpcBindingConfig(binding);
         bindings.put(binding.id, newBinding);
 
-        if (doSignal.apply(binding.id))
+        if (canInitiate.apply(binding.id))
         {
             newBinding.routes.forEach(r ->
                 r.when.forEach(c ->

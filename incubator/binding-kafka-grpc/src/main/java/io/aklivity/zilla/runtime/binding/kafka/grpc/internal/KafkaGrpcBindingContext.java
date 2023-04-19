@@ -34,9 +34,9 @@ final class KafkaGrpcBindingContext implements BindingContext
     KafkaGrpcBindingContext(
         KafkaGrpcConfiguration config,
         EngineContext context,
-        Function<Long, Boolean> doSignal)
+        Function<Long, Boolean> canInitiate)
     {
-        this.factories = singletonMap(REMOTE_SERVER, new KafkaGrpcRemoteServerFactory(config, context, doSignal));
+        this.factories = singletonMap(REMOTE_SERVER, new KafkaGrpcRemoteServerFactory(config, context, canInitiate));
     }
 
     @Override
