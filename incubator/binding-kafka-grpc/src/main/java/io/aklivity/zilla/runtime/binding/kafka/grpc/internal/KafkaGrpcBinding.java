@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class KafkaGrpcBinding implements Binding
 {
+    private static final int INITIAL_WORKER_COUNT = 0;
     public static final String NAME = "kafka-grpc";
 
     private final ConcurrentMap<Long, AtomicInteger> workers = new ConcurrentHashMap<>();
@@ -60,15 +61,24 @@ public final class KafkaGrpcBinding implements Binding
     public KafkaGrpcBindingContext supply(
         EngineContext context)
     {
-        return new KafkaGrpcBindingContext(config, context, this::canInitiate);
+        return new KafkaGrpcBindingContext(config, context, this::activate, this::deactivate);
     }
 
-    private boolean canInitiate(
+    private boolean activate(
         long bindingId)
     {
-        final AtomicInteger worker = workers.computeIfAbsent(bindingId, id -> new AtomicInteger(0));
+        final AtomicInteger worker = workers.computeIfAbsent(bindingId, id -> new AtomicInteger(INITIAL_WORKER_COUNT));
         final int workerCount = worker.incrementAndGet();
 
         return workerCount <= 1;
+    }
+
+    private void deactivate(
+        long bindingId)
+    {
+        AtomicInteger worker = workers.get(bindingId);
+        assert worker != null;
+        worker.decrementAndGet();
+        workers.remove(bindingId, new AtomicInteger(INITIAL_WORKER_COUNT));
     }
 }
