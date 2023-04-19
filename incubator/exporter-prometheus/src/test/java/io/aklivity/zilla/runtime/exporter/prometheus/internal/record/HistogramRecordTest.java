@@ -22,7 +22,7 @@ import java.util.function.LongSupplier;
 
 import org.junit.Test;
 
-import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.ObjectObjectObjectFunction;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.TriFunction;
 
 public class HistogramRecordTest
 {
@@ -82,7 +82,7 @@ public class HistogramRecordTest
         () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 0L, () -> 999_999_999L
     };
     private static final IntFunction<String> LABEL_RESOLVER = i -> "";
-    private static final ObjectObjectObjectFunction<String, String[], long[], long[]> FORMATTER = (names, values, stats) ->
+    private static final TriFunction<String, String[], long[], long[]> FORMATTER = (names, values, stats) ->
         String.format("[min: %d | max: %d | cnt: %d | avg: %d]", stats[0], stats[1], stats[3], stats[4]);
 
     @Test

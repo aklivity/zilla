@@ -15,7 +15,7 @@
 package io.aklivity.zilla.runtime.exporter.prometheus.internal.utils;
 
 @FunctionalInterface
-public interface ObjectObjectObjectFunction<R, T, U, V>
+public interface TriFunction<R, T, U, V>
 {
     R apply(T object1, U object2, V object3);
 }
