@@ -24,6 +24,8 @@ import static java.time.Instant.now;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongConsumer;
+import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.LongUnaryOperator;
 
@@ -125,6 +127,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
+    private final LongPredicate activate;
+    private final LongConsumer deactivate;
     private final Signaler signaler;
     private final int grpcTypeId;
     private final int kafkaTypeId;
@@ -133,7 +137,9 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
     public KafkaGrpcRemoteServerFactory(
         KafkaGrpcConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        LongPredicate activate,
+        LongConsumer deactivate)
     {
         this.bufferPool = context.bufferPool();
         this.writeBuffer = context.writeBuffer();
@@ -143,6 +149,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.supplyReplyId = context::supplyReplyId;
         this.signaler = context.signaler();
         this.supplyTraceId = context::supplyTraceId;
+        this.activate = activate;
+        this.deactivate = deactivate;
         this.bindings = new Long2ObjectHashMap<>();
         this.servers = new ArrayList<>();
         this.grpcTypeId = context.supplyTypeId(GRPC_TYPE_NAME);
@@ -156,18 +164,21 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         KafkaGrpcBindingConfig newBinding = new KafkaGrpcBindingConfig(binding);
         bindings.put(binding.id, newBinding);
 
-        newBinding.routes.forEach(r ->
-            r.when.forEach(c ->
-            {
-                KafkaGrpcConditionResult condition = c.resolve();
-                servers.add(
-                    new KafkaRemoteServer(newBinding.id, newBinding.options.entryId, r.id, condition, newBinding.helper));
-            }));
+        if (activate.test(binding.id))
+        {
+            newBinding.routes.forEach(r ->
+                r.when.forEach(c ->
+                {
+                    KafkaGrpcConditionResult condition = c.resolve();
+                    servers.add(
+                        new KafkaRemoteServer(newBinding.id, newBinding.options.entryId, r.id, condition, newBinding.helper));
+                }));
 
-        this.reconnectAt = signaler.signalAt(
-            currentTimeMillis(),
-            SIGNAL_INITIATE_KAFKA_STREAM,
-            this::onKafkaStreamInitializationSignal);
+            this.reconnectAt = signaler.signalAt(
+                currentTimeMillis(),
+                SIGNAL_INITIATE_KAFKA_STREAM,
+                this::onKafkaStreamInitializationSignal);
+        }
     }
 
     @Override
@@ -175,6 +186,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         long bindingId)
     {
         bindings.remove(bindingId);
+        deactivate.accept(bindingId);
 
         signaler.cancel(reconnectAt);
         reconnectAt = NO_CANCEL_ID;

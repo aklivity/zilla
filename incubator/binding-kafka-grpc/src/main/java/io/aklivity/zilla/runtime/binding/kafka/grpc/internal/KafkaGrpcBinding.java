@@ -15,6 +15,9 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal;
 
 import java.net.URL;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
@@ -24,12 +27,16 @@ public final class KafkaGrpcBinding implements Binding
 {
     public static final String NAME = "kafka-grpc";
 
+    private static final AtomicInteger WORKER_COUNT_ZERO = new AtomicInteger();
+
+    private final ConcurrentMap<Long, AtomicInteger> workers;
     private final KafkaGrpcConfiguration config;
 
     KafkaGrpcBinding(
         KafkaGrpcConfiguration config)
     {
         this.config = config;
+        this.workers = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -55,6 +62,24 @@ public final class KafkaGrpcBinding implements Binding
     public KafkaGrpcBindingContext supply(
         EngineContext context)
     {
-        return new KafkaGrpcBindingContext(config, context);
+        return new KafkaGrpcBindingContext(config, context, this::activate, this::deactivate);
+    }
+
+    private boolean activate(
+        long bindingId)
+    {
+        final AtomicInteger worker = workers.computeIfAbsent(bindingId, id -> new AtomicInteger());
+        final int workerCount = worker.incrementAndGet();
+
+        return workerCount <= 1;
+    }
+
+    private void deactivate(
+        long bindingId)
+    {
+        AtomicInteger worker = workers.get(bindingId);
+        assert worker != null;
+        worker.decrementAndGet();
+        workers.remove(bindingId, WORKER_COUNT_ZERO);
     }
 }

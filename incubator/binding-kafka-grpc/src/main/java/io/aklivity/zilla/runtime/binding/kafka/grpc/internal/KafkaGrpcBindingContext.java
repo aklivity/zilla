@@ -18,6 +18,8 @@ import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static java.util.Collections.singletonMap;
 
 import java.util.Map;
+import java.util.function.LongConsumer;
+import java.util.function.LongPredicate;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcRemoteServerFactory;
 import io.aklivity.zilla.runtime.engine.EngineContext;
@@ -32,9 +34,11 @@ final class KafkaGrpcBindingContext implements BindingContext
 
     KafkaGrpcBindingContext(
         KafkaGrpcConfiguration config,
-        EngineContext context)
+        EngineContext context,
+        LongPredicate activate,
+        LongConsumer deactivate)
     {
-        this.factories = singletonMap(REMOTE_SERVER, new KafkaGrpcRemoteServerFactory(config, context));
+        this.factories = singletonMap(REMOTE_SERVER, new KafkaGrpcRemoteServerFactory(config, context, activate, deactivate));
     }
 
     @Override
