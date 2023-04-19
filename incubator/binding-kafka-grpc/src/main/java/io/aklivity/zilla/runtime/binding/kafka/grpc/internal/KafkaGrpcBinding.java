@@ -27,7 +27,7 @@ public final class KafkaGrpcBinding implements Binding
 {
     public static final String NAME = "kafka-grpc";
 
-    private static final AtomicInteger WORKER_COUNT = new AtomicInteger();
+    private static final AtomicInteger WORKER_COUNT_ZERO = new AtomicInteger();
 
     private final ConcurrentMap<Long, AtomicInteger> workers;
     private final KafkaGrpcConfiguration config;
@@ -80,6 +80,6 @@ public final class KafkaGrpcBinding implements Binding
         AtomicInteger worker = workers.get(bindingId);
         assert worker != null;
         worker.decrementAndGet();
-        workers.remove(bindingId, WORKER_COUNT);
+        workers.remove(bindingId, WORKER_COUNT_ZERO);
     }
 }
