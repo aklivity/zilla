@@ -66,7 +66,7 @@ public class PrometheusOptionsConfigAdapterTest
     }
 
     @Test
-    public void shouldApplyDefaultValues()
+    public void shouldApplyDefaultPath()
     {
         // GIVEN
         String text =
@@ -84,24 +84,8 @@ public class PrometheusOptionsConfigAdapterTest
 
         // THEN
         assertThat(options, not(nullValue()));
-        assertThat(options.endpoints[0].scheme, equalTo("http"));
-        assertThat(options.endpoints[0].port, equalTo(9090));
-        assertThat(options.endpoints[0].path, equalTo("/metrics"));
-    }
-
-    @Test
-    public void shouldApplyDefaultEndpoint()
-    {
-        // GIVEN
-        String text = "{}";
-
-        // WHEN
-        PrometheusOptionsConfig options = jsonb.fromJson(text, PrometheusOptionsConfig.class);
-
-        // THEN
-        assertThat(options, not(nullValue()));
-        assertThat(options.endpoints[0].scheme, equalTo("http"));
-        assertThat(options.endpoints[0].port, equalTo(9090));
+        assertThat(options.endpoints[0].scheme, nullValue());
+        assertThat(options.endpoints[0].port, equalTo(0));
         assertThat(options.endpoints[0].path, equalTo("/metrics"));
     }
 
