@@ -45,22 +45,22 @@ public final class GrpcKafkaFunctions
         }
 
         public MessageIdBuilder partitionCount(
-            int fieldCount)
+            int partitionCount)
         {
             GrpcKafkaMessageFieldFW messageField =
-                messageFieldRW.v1(v1 -> v1.partitionCount(fieldCount)).build();
+                messageFieldRW.v1(v1 -> v1.partitionCount(partitionCount)).build();
             progressOffset = messageField.limit();
             return this;
         }
 
         public MessageIdBuilder partition(
             int partitionId,
-            long offset)
+            long partitionOffset)
         {
             MutableDirectBuffer buffer = messageFieldRW.buffer();
             progressOffset = partitionV1RW.wrap(buffer, progressOffset, buffer.capacity())
                 .partitionId(partitionId)
-                .partitionOffset(offset)
+                .partitionOffset(partitionOffset)
                 .build()
                 .limit();
             return this;
