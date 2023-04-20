@@ -28,7 +28,7 @@ public class CounterGaugeRecord implements MetricRecord
     private static final int UNINITIALIZED = -1;
 
     private final LongSupplier[] readers;
-    private final Object3LongFunction<String, String, String, String> valueFormatter;
+    private final Object3LongFunction<String, String, String, String> formatValue;
     private final String namespaceName;
     private final String bindingName;
     private final String metricName;
@@ -40,10 +40,10 @@ public class CounterGaugeRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[] readers,
         IntFunction<String> labelResolver,
-        Object3LongFunction<String, String, String, String> valueFormatter)
+        Object3LongFunction<String, String, String, String> formatValue)
     {
         this.readers = readers;
-        this.valueFormatter = valueFormatter;
+        this.formatValue = formatValue;
         this.namespaceName = labelResolver.apply(namespaceId(packedBindingId));
         this.bindingName = labelResolver.apply(localId(packedBindingId));
         this.metricName = labelResolver.apply(localId(packedMetricId));
@@ -74,7 +74,7 @@ public class CounterGaugeRecord implements MetricRecord
         {
             update();
         }
-        return valueFormatter.apply(metricName, namespaceName, bindingName, value);
+        return formatValue.apply(metricName, namespaceName, bindingName, value);
     }
 
     @Override

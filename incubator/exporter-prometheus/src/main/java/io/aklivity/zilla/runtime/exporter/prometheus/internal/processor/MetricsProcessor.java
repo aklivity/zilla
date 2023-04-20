@@ -99,7 +99,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                    supplyLocalName, this::counterGaugeFormatter);
+                    supplyLocalName, this::formatCounterGauge);
                 metricRecords.add(record);
             }
         }
@@ -113,7 +113,7 @@ public class MetricsProcessor
         return layout.isEmpty() ? EMPTY : layout.get(0).getIds();
     }
 
-    private String counterGaugeFormatter(
+    private String formatCounterGauge(
         String metric,
         String namespace,
         String binding,
@@ -142,7 +142,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                    supplyLocalName, this::counterGaugeFormatter);
+                    supplyLocalName, this::formatCounterGauge);
                 metricRecords.add(record);
             }
         }
@@ -161,13 +161,13 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[][]::new);
                 MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers,
-                    supplyLocalName, this::histogramFormatter);
+                    supplyLocalName, this::formatHistogram);
                 metricRecords.add(record);
             }
         }
     }
 
-    private String histogramFormatter(
+    private String formatHistogram(
         String metric,
         String namespace,
         String binding,

@@ -27,7 +27,7 @@ import io.aklivity.zilla.runtime.exporter.prometheus.internal.utils.QuintFunctio
 public class HistogramRecord implements MetricRecord
 {
     private final LongSupplier[][] readers;
-    private final QuintFunction<String, String, String, String, long[], long[]> valueFormatter;
+    private final QuintFunction<String, String, String, String, long[], long[]> formatValue;
     private final String namespaceName;
     private final String bindingName;
     private final String metricName;
@@ -40,10 +40,10 @@ public class HistogramRecord implements MetricRecord
         long packedMetricId,
         LongSupplier[][] readers,
         IntFunction<String> labelResolver,
-        QuintFunction<String, String, String, String, long[], long[]> valueFormatter)
+        QuintFunction<String, String, String, String, long[], long[]> formatValue)
     {
         this.readers = readers;
-        this.valueFormatter = valueFormatter;
+        this.formatValue = formatValue;
         this.namespaceName = labelResolver.apply(namespaceId(packedBindingId));
         this.bindingName = labelResolver.apply(localId(packedBindingId));
         this.metricName = labelResolver.apply(localId(packedMetricId));
@@ -74,7 +74,7 @@ public class HistogramRecord implements MetricRecord
         {
             update();
         }
-        return valueFormatter.apply(metricName, namespaceName, bindingName, values, stats);
+        return formatValue.apply(metricName, namespaceName, bindingName, values, stats);
     }
 
     @Override
