@@ -32,7 +32,9 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusEndpointConfig;
+import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusExporterConfig;
 import io.aklivity.zilla.runtime.exporter.prometheus.internal.config.PrometheusOptionsConfig;
 
 public class PrometheusExporterHandlerTest
@@ -45,10 +47,12 @@ public class PrometheusExporterHandlerTest
         Path tmp = Files.createTempDirectory("engine");
         Files.createDirectory(tmp.resolve("metrics"));
         when(config.directory()).thenReturn(tmp);
+        EngineContext context = mock(EngineContext.class);
         PrometheusEndpointConfig endpoint = new PrometheusEndpointConfig("http", 4242, "/metrics");
         PrometheusOptionsConfig options = new PrometheusOptionsConfig(new PrometheusEndpointConfig[]{endpoint});
-        EngineContext context = mock(EngineContext.class);
-        PrometheusExporterHandler handler = new PrometheusExporterHandler(config, context, options);
+        ExporterConfig exporter = new ExporterConfig("test0", "prometheus", options);
+        PrometheusExporterConfig prometheusExporter = new PrometheusExporterConfig(exporter);
+        PrometheusExporterHandler handler = new PrometheusExporterHandler(config, context, prometheusExporter);
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest
             .newBuilder(new URI("http://localhost:4242/metrics"))
