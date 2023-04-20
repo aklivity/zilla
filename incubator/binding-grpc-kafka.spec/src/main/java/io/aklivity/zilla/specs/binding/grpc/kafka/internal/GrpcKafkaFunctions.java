@@ -14,15 +14,14 @@
  */
 package io.aklivity.zilla.specs.binding.grpc.kafka.internal;
 
-import static io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.kaazing.k3po.lang.el.Function;
 import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 
-import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
+import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
 
 public final class GrpcKafkaFunctions
 {
@@ -34,55 +33,46 @@ public final class GrpcKafkaFunctions
 
     public static final class MessageIdBuilder
     {
-        private final Array32FW.Builder<KafkaOffsetFW.Builder, KafkaOffsetFW> partitionsRW =
-            new Array32FW.Builder<>(new KafkaOffsetFW.Builder(), new KafkaOffsetFW());
-        private final MutableDirectBuffer partitionBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private final GrpcKafkaMessageFieldFW.Builder messageFieldRW = new GrpcKafkaMessageFieldFW.Builder();
+        private final GrpcKafkaMessageFieldPartitionV1FW.Builder partitionV1RW =
+            new GrpcKafkaMessageFieldPartitionV1FW.Builder();
+        private final MutableDirectBuffer progressBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+        private int progressOffset;
 
         private MessageIdBuilder()
         {
-            partitionsRW.wrap(partitionBuffer, 0, partitionBuffer.capacity());
+            messageFieldRW.wrap(progressBuffer, 0, progressBuffer.capacity());
+        }
+
+        public MessageIdBuilder partitionCount(
+            int fieldCount)
+        {
+            GrpcKafkaMessageFieldFW messageField =
+                messageFieldRW.v1(v1 -> v1.partitionCount(fieldCount)).build();
+            progressOffset = messageField.limit();
+            return this;
         }
 
         public MessageIdBuilder partition(
             int partitionId,
             long offset)
         {
-            partition(partitionId, offset, DEFAULT_LATEST_OFFSET);
-            return this;
-        }
-
-        public MessageIdBuilder partition(
-            int partitionId,
-            long offset,
-            long latestOffset)
-        {
-            partition(partitionId, offset, latestOffset, latestOffset);
-            return this;
-        }
-
-        public MessageIdBuilder partition(
-            int partitionId,
-            long offset,
-            long stableOffset,
-            long latestOffset)
-        {
-            partitionsRW.item(p -> p.partitionId(partitionId)
+            MutableDirectBuffer buffer = messageFieldRW.buffer();
+            progressOffset = partitionV1RW.wrap(buffer, progressOffset, buffer.capacity())
+                .partitionId(partitionId)
                 .partitionOffset(offset)
-                .stableOffset(stableOffset)
-                .latestOffset(latestOffset));
-
+                .build()
+                .limit();
             return this;
         }
 
         public byte[] build()
         {
-            Array32FW<KafkaOffsetFW> partitions = partitionsRW.build();
-            final byte[] array = new byte[partitions.sizeof()];
-            partitions.buffer().getBytes(partitions.offset(), array);
+            final byte[] array = new byte[progressOffset];
+            messageFieldRW.buffer().getBytes(0, array);
             return array;
         }
     }
-
 
     public static class Mapper extends FunctionMapperSpi.Reflective
     {

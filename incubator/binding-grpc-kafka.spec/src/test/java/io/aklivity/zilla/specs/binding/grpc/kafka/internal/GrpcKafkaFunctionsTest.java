@@ -24,13 +24,13 @@ import javax.el.ELContext;
 import javax.el.FunctionMapper;
 
 import org.agrona.DirectBuffer;
-import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 import org.kaazing.k3po.lang.internal.el.ExpressionContext;
 
-import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.Array32FW;
-import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.KafkaOffsetFW;
+import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
+import io.aklivity.zilla.specs.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
+
 
 public class GrpcKafkaFunctionsTest
 {
@@ -49,19 +49,20 @@ public class GrpcKafkaFunctionsTest
     public void shouldGenerateProtobuf()
     {
         byte[] build = GrpcKafkaFunctions.messageId()
+            .partitionCount(1)
             .partition(0, 2)
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
-        final Array32FW<KafkaOffsetFW> partitions =
-            new Array32FW<>(new KafkaOffsetFW());
-        partitions.wrap(buffer, 0, buffer.capacity());
+        final GrpcKafkaMessageFieldFW partitionCount =
+            new GrpcKafkaMessageFieldFW();
+        partitionCount.wrap(buffer, 0, buffer.capacity());
 
-        final MutableInteger partitionCount = new MutableInteger();
-        partitions.forEach(f -> partitionCount.value++);
-        assertEquals(1, partitionCount.value);
+        assertEquals(1, partitionCount.v1().partitionCount());
 
-        assertNotNull(partitions
-            .matchFirst(p -> p.partitionId() == 0 && p.partitionOffset() == 2L));
+        final GrpcKafkaMessageFieldPartitionV1FW partitions = new GrpcKafkaMessageFieldPartitionV1FW();
+        partitions.wrap(buffer, partitionCount.limit(), buffer.capacity());
+        assertEquals(0, partitions.partitionId());
+        assertEquals(2, partitions.partitionOffset());
     }
 }

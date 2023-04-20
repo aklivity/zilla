@@ -52,7 +52,7 @@ public final class GrpcKafkaWithResolver
         new String8FW.Builder().wrap(new UnsafeBuffer(new byte[2048], 0, 2048), 0, 256);
     private final byte[] hashBytesRW = new byte[8192];
 
-    private final Varuint32FW key;
+    private final Varuint32FW fieldId;
     private final GrpcKafkaOptionsConfig options;
     private final LongObjectBiFunction<MatchResult, String> identityReplacer;
     private final GrpcKafkaWithConfig with;
@@ -67,7 +67,7 @@ public final class GrpcKafkaWithResolver
         this.identityReplacer = identityReplacer;
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
-        this.key = new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
+        this.fieldId = new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
             .set(options.lastMessageIdField << 3 | BYTES_WIRE_TYPE).build();
     }
 
@@ -94,8 +94,7 @@ public final class GrpcKafkaWithResolver
             final String8FW lastMessageId = string8RW
                 .set(lastMessageIdMetadata.value().value(), 0, lastMessageIdMetadata.valueLen())
                 .build();
-            final DirectBuffer progress64 = messageField.findProgress(lastMessageId);
-            partitions = messageField.decode(progress64);
+            partitions = messageField.decode(lastMessageId.value());
         }
 
         List<GrpcKafkaWithFetchFilterResult> filters = null;
@@ -145,7 +144,7 @@ public final class GrpcKafkaWithResolver
             }
         }
 
-        return new GrpcKafkaWithFetchResult(topic, partitions, filters, key);
+        return new GrpcKafkaWithFetchResult(topic, partitions, filters, fieldId);
     }
 
     public GrpcKafkaWithProduceResult resolveProduce(

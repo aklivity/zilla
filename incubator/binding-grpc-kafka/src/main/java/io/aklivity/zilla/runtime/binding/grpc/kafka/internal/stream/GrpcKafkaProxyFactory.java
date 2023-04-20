@@ -118,7 +118,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
-    private final GrpcKafkaIdHelper messageField = new GrpcKafkaIdHelper();
+    private final GrpcKafkaIdHelper messageFieldHelper = new GrpcKafkaIdHelper();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
@@ -197,7 +197,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             case FETCH:
             {
                 final GrpcKafkaWithFetchResult result =
-                    route.with.resolveFetch(authorization, grpcBeginEx, messageField);
+                    route.with.resolveFetch(authorization, grpcBeginEx, messageFieldHelper);
 
                 newStream = new GrpcFetchProxy(
                     grpc,
@@ -838,7 +838,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
             {
                 Varuint32FW len = lenRW.set(partitions.length()).build();
                 int lenSize = len.sizeof();
-                replyPad = result.messageId().sizeof() + lenSize + partitions.sizeof();
+                replyPad = result.fieldId().sizeof() + lenSize + partitions.sizeof();
             }
 
             delegate.onKafkaBegin(traceId, authorization, extension);
@@ -876,7 +876,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 final int encodeOffset = DataFW.FIELD_OFFSET_PAYLOAD;
                 final int payloadSize = payload.sizeof();
 
-                Array32FW<KafkaOffsetFW> progress = null;
+                OctetsFW progress = null;
 
                 if ((flags & DATA_FLAG_INIT) != 0x00)
                 {
@@ -885,7 +885,9 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                         dataEx != null && dataEx.typeId() == kafkaTypeId ? extension.get(kafkaDataExRO::tryWrap) : null;
                     final KafkaMergedDataExFW kafkaMergedDataEx =
                         kafkaDataEx != null && kafkaDataEx.kind() == KafkaDataExFW.KIND_MERGED ? kafkaDataEx.merged() : null;
-                    progress = kafkaMergedDataEx != null ? kafkaMergedDataEx.progress() : null;
+                    progress = kafkaMergedDataEx != null ?
+                        messageFieldHelper.encodeProgress(kafkaMergedDataEx.progress()) :
+                        null;
                 }
 
                 int encodeProgress = encodeOffset;
@@ -895,18 +897,19 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
 
                 if ((flags & DATA_FLAG_FIN) != 0x00) // FIN
                 {
-                    Varuint32FW messageId = result.messageId();
+                    Varuint32FW fieldId = result.fieldId();
 
-                    final int keySize = messageId.sizeof();
-                    encodeBuffer.putBytes(encodeProgress, messageId.buffer(), messageId.offset(), keySize);
-                    encodeProgress += keySize;
+                    final int fieldIdSize = fieldId.sizeof();
+                    encodeBuffer.putBytes(encodeProgress, fieldId.buffer(), fieldId.offset(), fieldIdSize);
+                    encodeProgress += fieldIdSize;
 
-                    Varuint32FW len = lenRW.set(progress.sizeof()).build();
+                    int progressLength = progress.sizeof();
+                    Varuint32FW len = lenRW.set(progressLength).build();
                     int lenSize = len.sizeof();
                     encodeBuffer.putBytes(encodeProgress, len.buffer(), len.offset(), lenSize);
                     encodeProgress += lenSize;
-                    encodeBuffer.putBytes(encodeProgress, progress.buffer(), progress.offset(), progress.sizeof());
-                    encodeProgress += progress.sizeof();
+                    encodeBuffer.putBytes(encodeProgress, progress.buffer(), progress.offset(), progressLength);
+                    encodeProgress += progressLength;
                 }
 
                 int length = encodeProgress - encodeOffset;

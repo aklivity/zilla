@@ -34,6 +34,7 @@ read closed
 write ${grpc:protobuf()
             .string(1, "Hello World")
             .bytes(32767, grpc_kafka:messageId()
+                .partitionCount(2)
                 .partition(0, 2)
                 .partition(1, 1)
                 .build())
