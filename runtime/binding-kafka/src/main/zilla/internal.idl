@@ -36,6 +36,7 @@ scope internal
             kafka::KafkaHeader[] trailers;
             uint32 paddingLen;
             octets[paddingLen] padding;
+            int64 filters;
         }
 
         struct KafkaCacheDelta

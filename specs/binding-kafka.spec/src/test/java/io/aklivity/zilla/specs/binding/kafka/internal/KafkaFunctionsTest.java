@@ -1702,8 +1702,8 @@ public class KafkaFunctionsTest
                                          .filter()
                                              .header("name", "value")
                                              .build()
-                                             .evaluation("LAZY")
-                                             .isolation("READ_UNCOMMITTED")
+                                         .evaluation("LAZY")
+                                         .isolation("READ_UNCOMMITTED")
                                          .deltaType("NONE")
                                          .build()
                                      .build();

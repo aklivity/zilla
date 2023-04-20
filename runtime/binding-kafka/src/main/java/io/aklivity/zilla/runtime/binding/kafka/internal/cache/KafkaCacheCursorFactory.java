@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeadersFW;
@@ -962,6 +963,93 @@ public final class KafkaCacheCursorFactory
             }
         }
 
+        private static final class EagerOr extends KafkaFilterCondition
+        {
+            private final List<KafkaFilterCondition> conditions;
+
+            private EagerOr(
+                List<KafkaFilterCondition> conditions)
+            {
+                this.conditions = conditions;
+            }
+
+            @Override
+            public int reset(
+                KafkaCacheSegment segment,
+                long offset,
+                long latestOffset,
+                int position)
+            {
+                int nextPositionMin = NEXT_SEGMENT_VALUE;
+
+                if (segment != null)
+                {
+                    if (position == POSITION_UNSET)
+                    {
+                        final KafkaCacheIndexFile indexFile = segment.indexFile();
+                        assert indexFile != null;
+                        final int offsetDelta = (int)(offset - segment.baseOffset());
+                        position = cursorValue(indexFile.floor(offsetDelta));
+                    }
+
+                    nextPositionMin = NEXT_SEGMENT_VALUE;
+                    for (int i = 0; i < conditions.size(); i++)
+                    {
+                        final KafkaFilterCondition condition = conditions.get(i);
+                        final int nextPosition = condition.reset(segment, offset, latestOffset, position);
+                        nextPositionMin = Math.min(nextPosition, nextPositionMin);
+                    }
+                }
+
+                return nextPositionMin;
+            }
+
+            @Override
+            public int next(
+                int position)
+            {
+                int nextPositionMin = NEXT_SEGMENT_VALUE;
+                int nextPositionMax = RETRY_SEGMENT_VALUE;
+                for (int i = 0; i < conditions.size(); i++)
+                {
+                    final KafkaFilterCondition condition = conditions.get(i);
+                    final int nextPosition = condition.next(position);
+                    if (nextPosition != RETRY_SEGMENT_VALUE)
+                    {
+                        nextPositionMin = Math.min(nextPosition, nextPositionMin);
+                    }
+                    nextPositionMax = Math.max(nextPosition, nextPositionMax);
+                }
+
+                if (nextPositionMax == RETRY_SEGMENT_VALUE)
+                {
+                    nextPositionMin = RETRY_SEGMENT_VALUE;
+                }
+
+                return nextPositionMin;
+            }
+
+            @Override
+            public boolean test(
+                KafkaCacheEntryFW cacheEntry)
+            {
+                boolean accept = false;
+                for (int i = 0; i < conditions.size(); i++)
+                {
+                    final KafkaFilterCondition condition = conditions.get(i);
+                    accept |= condition.test(cacheEntry);
+                    // TODO: Update cacheEntry.filters() here based on the conditions matched
+                }
+                return accept;
+            }
+
+            @Override
+            public String toString()
+            {
+                return String.format("%s%s", getClass().getSimpleName(), conditions);
+            }
+        }
+
         private static DirectBuffer copyBuffer(
             DirectBuffer buffer,
             int index,
@@ -990,7 +1078,8 @@ public final class KafkaCacheCursorFactory
     }
 
     public KafkaFilterCondition asCondition(
-        ArrayFW<KafkaFilterFW> filters)
+        ArrayFW<KafkaFilterFW> filters,
+        KafkaEvaluation evaluation)
     {
         KafkaFilterCondition condition;
         if (filters.isEmpty())
@@ -1001,7 +1090,14 @@ public final class KafkaCacheCursorFactory
         {
             final List<KafkaFilterCondition> asConditions = new ArrayList<>();
             filters.forEach(f -> asConditions.add(asCondition(f)));
-            condition = asConditions.size() == 1 ? asConditions.get(0) : new KafkaFilterCondition.Or(asConditions);
+            if (KafkaEvaluation.EAGER == evaluation)
+            {
+                condition = asConditions.size() == 1 ? asConditions.get(0) : new KafkaFilterCondition.EagerOr(asConditions);
+            }
+            else
+            {
+                condition = asConditions.size() == 1 ? asConditions.get(0) : new KafkaFilterCondition.Or(asConditions);
+            }
         }
         return condition;
     }

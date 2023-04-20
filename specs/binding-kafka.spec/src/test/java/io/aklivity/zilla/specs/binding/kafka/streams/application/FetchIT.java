@@ -369,6 +369,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/filter.header.or.header.eager/client",
+        "${app}/filter.header.or.header.eager/server"})
+    public void shouldReceiveMessagesWithHeaderOrHeaderEAGERFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.key.and.header.or.header/client",
         "${app}/filter.key.and.header.or.header/server"})
     public void shouldReceiveMessagesWithKeyAndHeaderOrHeaderFilter() throws Exception

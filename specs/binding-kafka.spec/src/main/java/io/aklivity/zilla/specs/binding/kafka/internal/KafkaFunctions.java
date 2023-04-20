@@ -2455,7 +2455,8 @@ public final class KafkaFunctions
                     matchTimestamp(mergedDataEx) &&
                     matchKey(mergedDataEx) &&
                     matchDelta(mergedDataEx) &&
-                    matchHeaders(mergedDataEx);
+                    matchHeaders(mergedDataEx) &&
+                    matchFilters(mergedDataEx);
             }
 
             private boolean matchPartition(

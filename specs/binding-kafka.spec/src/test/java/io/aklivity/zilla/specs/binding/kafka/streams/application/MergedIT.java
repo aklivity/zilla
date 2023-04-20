@@ -92,6 +92,15 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.filter.key.or.header.eager/client",
+        "${app}/merged.fetch.filter.key.or.header.eager/server"})
+    public void shouldFetchMergedMessagesWithKeyOrHeaderEagerFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.filter.none/client",
         "${app}/merged.fetch.filter.none/server"})
     public void shouldFetchMergedMessagesWithNoFilter() throws Exception
