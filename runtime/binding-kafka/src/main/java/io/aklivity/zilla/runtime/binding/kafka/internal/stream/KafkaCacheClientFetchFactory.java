@@ -1220,7 +1220,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             final long partitionOffset = nextEntry.offset$();
             final long timestamp = nextEntry.timestamp();
-            final long filters = nextEntry.filters();
+            final long filters = cursor.filters;
             final long ownerId = nextEntry.ownerId();
             final int entryFlags = nextEntry.flags();
             final KafkaKeyFW key = nextEntry.key();

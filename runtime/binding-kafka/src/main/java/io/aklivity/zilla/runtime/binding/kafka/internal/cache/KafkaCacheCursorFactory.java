@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorIndex;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorRetryValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorValue;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation.EAGER;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaSkip.SKIP_MANY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW.KIND_SKIP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW.KIND_VALUE;
@@ -90,6 +91,7 @@ public final class KafkaCacheCursorFactory
 
         private Node segmentNode;
         private KafkaCacheSegment segment;
+        public long filters;
         public long offset;
         private long latestOffset;
         private int position;
@@ -198,10 +200,12 @@ public final class KafkaCacheCursorFactory
 
                 // TODO: when doing reset, condition.reset(condition)
                 // TODO: remove nextOffset < offset from if condition
-                if (nextOffset < offset || !condition.test(nextEntry))
+                if (nextOffset < offset || condition.test(nextEntry) == 0L)
                 {
                     nextEntry = null;
                 }
+
+                filters =  nextEntry != null ? condition.test(nextEntry) : 0L;
 
                 if (nextEntry != null && deltaType != KafkaDeltaType.NONE)
                 {
@@ -353,7 +357,7 @@ public final class KafkaCacheCursorFactory
         public abstract int next(
             int position);
 
-        public abstract boolean test(
+        public abstract long test(
             KafkaCacheEntryFW cacheEntry);
 
         private static final class None extends KafkaFilterCondition
@@ -409,10 +413,10 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public boolean test(
+            public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                return cacheEntry != null;
+                return cacheEntry != null ? 1L : 0L;
             }
 
             @Override
@@ -570,11 +574,11 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public boolean test(
+            public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                return none.test(cacheEntry) &&
-                    (cacheEntry.offset() < positionSkip || !nested.test(cacheEntry));
+                return (none.test(cacheEntry) == 1L &&
+                    (cacheEntry.offset() < positionSkip || nested.test(cacheEntry) == 0L)) ? 1L : 0L;
             }
 
             @Override
@@ -660,7 +664,7 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public boolean test(
+            public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
                 final Array32FW<KafkaHeaderFW> headers = cacheEntry.headers();
@@ -707,7 +711,7 @@ public final class KafkaCacheCursorFactory
                     }
                 }
 
-                return matchCandidate && matchOffset == matchesLimit;
+                return (matchCandidate && matchOffset == matchesLimit) ? 1L : 0L;
             }
         }
 
@@ -721,10 +725,10 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public boolean test(
+            public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                return test(cacheEntry.key());
+                return test(cacheEntry.key()) ? 1L : 0L;
             }
         }
 
@@ -741,13 +745,13 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public boolean test(
+            public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
                 final ArrayFW<KafkaHeaderFW> headers = cacheEntry.headers();
                 match.value = false;
                 headers.forEach(header -> match.value |= test(header));
-                return match.value;
+                return match.value ? 1L : 0L;
             }
         }
 
@@ -858,11 +862,11 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public boolean test(
+            public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                boolean accept = true;
-                for (int i = 0; accept && i < conditions.size(); i++)
+                long accept = 1L;
+                for (int i = 0; accept != 0L && i < conditions.size(); i++)
                 {
                     final KafkaFilterCondition condition = conditions.get(i);
                     accept &= condition.test(cacheEntry);
@@ -877,11 +881,11 @@ public final class KafkaCacheCursorFactory
             }
         }
 
-        private static final class Or extends KafkaFilterCondition
+        private static class Or extends KafkaFilterCondition
         {
             private final List<KafkaFilterCondition> conditions;
 
-            private Or(
+            Or(
                 List<KafkaFilterCondition> conditions)
             {
                 this.conditions = conditions;
@@ -944,11 +948,35 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public boolean test(
-                KafkaCacheEntryFW cacheEntry)
+            public long test(KafkaCacheEntryFW cacheEntry)
             {
-                boolean accept = false;
-                for (int i = 0; !accept && i < conditions.size(); i++)
+                return 0L;
+            }
+
+            @Override
+            public String toString()
+            {
+                return String.format("%s%s", getClass().getSimpleName(), conditions);
+            }
+        }
+
+        private static final class LazyOr extends Or
+        {
+            private final List<KafkaFilterCondition> conditions;
+
+            private LazyOr(
+                    List<KafkaFilterCondition> conditions)
+            {
+                super(conditions);
+                this.conditions = conditions;
+            }
+
+            @Override
+            public long test(
+                    KafkaCacheEntryFW cacheEntry)
+            {
+                long accept = 0L;
+                for (int i = 0; accept == 0L && i < conditions.size(); i++)
                 {
                     final KafkaFilterCondition condition = conditions.get(i);
                     accept |= condition.test(cacheEntry);
@@ -963,82 +991,30 @@ public final class KafkaCacheCursorFactory
             }
         }
 
-        private static final class EagerOr extends KafkaFilterCondition
+        private static final class EagerOr extends Or
         {
             private final List<KafkaFilterCondition> conditions;
 
             private EagerOr(
                 List<KafkaFilterCondition> conditions)
             {
+                super(conditions);
                 this.conditions = conditions;
             }
 
             @Override
-            public int reset(
-                KafkaCacheSegment segment,
-                long offset,
-                long latestOffset,
-                int position)
-            {
-                int nextPositionMin = NEXT_SEGMENT_VALUE;
-
-                if (segment != null)
-                {
-                    if (position == POSITION_UNSET)
-                    {
-                        final KafkaCacheIndexFile indexFile = segment.indexFile();
-                        assert indexFile != null;
-                        final int offsetDelta = (int)(offset - segment.baseOffset());
-                        position = cursorValue(indexFile.floor(offsetDelta));
-                    }
-
-                    nextPositionMin = NEXT_SEGMENT_VALUE;
-                    for (int i = 0; i < conditions.size(); i++)
-                    {
-                        final KafkaFilterCondition condition = conditions.get(i);
-                        final int nextPosition = condition.reset(segment, offset, latestOffset, position);
-                        nextPositionMin = Math.min(nextPosition, nextPositionMin);
-                    }
-                }
-
-                return nextPositionMin;
-            }
-
-            @Override
-            public int next(
-                int position)
-            {
-                int nextPositionMin = NEXT_SEGMENT_VALUE;
-                int nextPositionMax = RETRY_SEGMENT_VALUE;
-                for (int i = 0; i < conditions.size(); i++)
-                {
-                    final KafkaFilterCondition condition = conditions.get(i);
-                    final int nextPosition = condition.next(position);
-                    if (nextPosition != RETRY_SEGMENT_VALUE)
-                    {
-                        nextPositionMin = Math.min(nextPosition, nextPositionMin);
-                    }
-                    nextPositionMax = Math.max(nextPosition, nextPositionMax);
-                }
-
-                if (nextPositionMax == RETRY_SEGMENT_VALUE)
-                {
-                    nextPositionMin = RETRY_SEGMENT_VALUE;
-                }
-
-                return nextPositionMin;
-            }
-
-            @Override
-            public boolean test(
+            public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                boolean accept = false;
+                long accept = 0L;
                 for (int i = 0; i < conditions.size(); i++)
                 {
                     final KafkaFilterCondition condition = conditions.get(i);
-                    accept |= condition.test(cacheEntry);
-                    // TODO: Update cacheEntry.filters() here based on the conditions matched
+                    final long result = condition.test(cacheEntry);
+                    if (result != 0L)
+                    {
+                        accept |= i + 1;
+                    }
                 }
                 return accept;
             }
@@ -1081,7 +1057,7 @@ public final class KafkaCacheCursorFactory
         ArrayFW<KafkaFilterFW> filters,
         KafkaEvaluation evaluation)
     {
-        KafkaFilterCondition condition;
+        KafkaFilterCondition condition = null;
         if (filters.isEmpty())
         {
             condition = new KafkaFilterCondition.None();
@@ -1090,13 +1066,14 @@ public final class KafkaCacheCursorFactory
         {
             final List<KafkaFilterCondition> asConditions = new ArrayList<>();
             filters.forEach(f -> asConditions.add(asCondition(f)));
-            if (KafkaEvaluation.EAGER == evaluation)
+            switch (evaluation)
             {
+            case EAGER:
                 condition = asConditions.size() == 1 ? asConditions.get(0) : new KafkaFilterCondition.EagerOr(asConditions);
-            }
-            else
-            {
-                condition = asConditions.size() == 1 ? asConditions.get(0) : new KafkaFilterCondition.Or(asConditions);
+                break;
+            case LAZY:
+                condition = asConditions.size() == 1 ? asConditions.get(0) : new KafkaFilterCondition.LazyOr(asConditions);
+                break;
             }
         }
         return condition;
