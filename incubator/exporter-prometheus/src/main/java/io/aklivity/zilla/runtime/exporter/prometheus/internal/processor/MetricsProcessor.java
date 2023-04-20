@@ -41,27 +41,27 @@ public class MetricsProcessor
     private static final long[][] EMPTY = new long[0][0];
 
     private final Map<Metric.Kind, List<MetricsLayout>> layouts;
-    private final IntFunction<String> localNameSupplier;
-    private final Function<String, String> kindSupplier;
-    private final Function<String, String> nameSupplier;
-    private final Function<String, String> descriptionSupplier;
+    private final IntFunction<String> supplyLocalName;
+    private final Function<String, String> supplyKind;
+    private final Function<String, String> supplyName;
+    private final Function<String, String> supplyDescription;
     private final LongPredicate filter;
     private final List<MetricRecord> metricRecords;
 
     public MetricsProcessor(
         Map<Metric.Kind, List<MetricsLayout>> layouts,
-        IntFunction<String> localNameSupplier,
-        Function<String, String> kindSupplier,
-        Function<String, String> nameSupplier,
-        Function<String, String> descriptionSupplier,
+        IntFunction<String> supplyLocalName,
+        Function<String, String> supplyKind,
+        Function<String, String> supplyName,
+        Function<String, String> supplyDescription,
         String namespaceName,
         String bindingName)
     {
         this.layouts = layouts;
-        this.localNameSupplier = localNameSupplier;
-        this.kindSupplier = kindSupplier;
-        this.nameSupplier = nameSupplier;
-        this.descriptionSupplier = descriptionSupplier;
+        this.supplyLocalName = supplyLocalName;
+        this.supplyKind = supplyKind;
+        this.supplyName = supplyName;
+        this.supplyDescription = supplyDescription;
         this.filter = filterBy(namespaceName, bindingName);
         this.metricRecords = new LinkedList<>();
     }
@@ -99,7 +99,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                    localNameSupplier, this::counterGaugeFormatter);
+                    supplyLocalName, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
         }
@@ -119,9 +119,9 @@ public class MetricsProcessor
         String binding,
         long value)
     {
-        String kind = kindSupplier.apply(metric);
-        String extName = nameSupplier.apply(metric);
-        String description = descriptionSupplier.apply(metric);
+        String kind = supplyKind.apply(metric);
+        String extName = supplyName.apply(metric);
+        String description = supplyDescription.apply(metric);
         String format =
             "# HELP %s %s\n" +
             "# TYPE %s %s\n" +
@@ -142,7 +142,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[]::new);
                 MetricRecord record = new CounterGaugeRecord(packedBindingId, packedMetricId, readers,
-                    localNameSupplier, this::counterGaugeFormatter);
+                    supplyLocalName, this::counterGaugeFormatter);
                 metricRecords.add(record);
             }
         }
@@ -161,7 +161,7 @@ public class MetricsProcessor
                     .collect(Collectors.toList())
                     .toArray(LongSupplier[][]::new);
                 MetricRecord record = new HistogramRecord(packedBindingId, packedMetricId, readers,
-                    localNameSupplier, this::histogramFormatter);
+                    supplyLocalName, this::histogramFormatter);
                 metricRecords.add(record);
             }
         }
@@ -175,9 +175,9 @@ public class MetricsProcessor
         long[] stats)
     {
         StringBuilder sb = new StringBuilder();
-        String kind = kindSupplier.apply(metric);
-        String extName = nameSupplier.apply(metric);
-        String description = descriptionSupplier.apply(metric);
+        String kind = supplyKind.apply(metric);
+        String extName = supplyName.apply(metric);
+        String description = supplyDescription.apply(metric);
         long sum = stats[2];
         long count = stats[3];
         sb.append(String.format("# HELP %s %s\n# TYPE %s %s\n", extName, description, extName, kind));

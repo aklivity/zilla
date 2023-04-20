@@ -35,36 +35,36 @@ public class LayoutManager
     private static final Pattern GAUGES_PATTERN = Pattern.compile("gauges(\\d+)");
     private static final Pattern HISTOGRAMS_PATTERN = Pattern.compile("histograms(\\d+)");
 
-    private final Path metricsDirectory;
+    private final Path metricsPath;
 
     public LayoutManager(
         Path engineDirectory)
     {
-        this.metricsDirectory = engineDirectory.resolve("metrics");
+        this.metricsPath = engineDirectory.resolve("metrics");
     }
 
     public List<MetricsLayout> countersLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(metricsDirectory, 1);
+        Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isCountersFile).map(this::newCountersLayout).collect(toList());
     }
 
     public List<MetricsLayout> gaugesLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(metricsDirectory, 1);
+        Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isGaugesFile).map(this::newGaugesLayout).collect(toList());
     }
 
     public List<MetricsLayout> histogramsLayouts() throws IOException
     {
-        Stream<Path> files = Files.walk(metricsDirectory, 1);
+        Stream<Path> files = Files.walk(metricsPath, 1);
         return files.filter(this::isHistogramsFile).map(this::newHistogramsLayout).collect(toList());
     }
 
     private boolean isCountersFile(
         Path path)
     {
-        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
+        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
             COUNTERS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
             Files.isRegularFile(path);
     }
@@ -72,7 +72,7 @@ public class LayoutManager
     private boolean isGaugesFile(
         Path path)
     {
-        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
+        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
             GAUGES_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
             Files.isRegularFile(path);
     }
@@ -80,7 +80,7 @@ public class LayoutManager
     private boolean isHistogramsFile(
         Path path)
     {
-        return path.getNameCount() - metricsDirectory.getNameCount() == 1 &&
+        return path.getNameCount() - metricsPath.getNameCount() == 1 &&
             HISTOGRAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
             Files.isRegularFile(path);
     }
