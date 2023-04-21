@@ -1128,8 +1128,6 @@ public class DispatchAgent implements EngineContext, Agent
             final MessageConsumer handler = dispatcher.get(instanceId);
             if (handler != null)
             {
-                supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
-                supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
                 switch (msgTypeId)
                 {
                 case BeginFW.TYPE_ID:
@@ -1450,15 +1448,17 @@ public class DispatchAgent implements EngineContext, Agent
         final BindingHandler streamFactory = binding != null ? binding.streamFactory() : null;
         if (streamFactory != null)
         {
-            final MessageConsumer replyTo = supplyReplyTo(initialId);
+            MessageConsumer metricHandler = supplyOriginMetricRecorder.apply(originId)
+                .andThen(supplyRoutedMetricRecorder.apply(routedId));
+            final MessageConsumer replyTo = metricHandler.andThen(supplyReplyTo(initialId));
             newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
             if (newStream != null)
             {
+                newStream = metricHandler.andThen(newStream);
+
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
                 throttles[throttleIndex(replyId)].put(instanceId(replyId), newStream);
-                supplyOriginMetricRecorder.apply(originId).accept(msgTypeId, buffer, index, length);
-                supplyRoutedMetricRecorder.apply(routedId).accept(msgTypeId, buffer, index, length);
                 streamSets.computeIfAbsent(routedId, k -> new LongHashSet())
                     .add(initialId);
             }
@@ -1635,8 +1635,7 @@ public class DispatchAgent implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry,
-                supplyOriginMetricRecorder, supplyRoutedMetricRecorder);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(
