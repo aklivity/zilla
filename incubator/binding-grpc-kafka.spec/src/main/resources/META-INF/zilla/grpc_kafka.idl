@@ -12,24 +12,21 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
-scope internal
+scope grpc_kafka
 {
-    scope codec
+    struct GrpcKafkaMessageFieldPartitionV1
     {
-        struct GrpcKafkaMessageFieldPartitionV1
-        {
-            varint32 partitionId;
-            varint64 partitionOffset;
-        }
+        varint32 partitionId;
+        varint64 partitionOffset;
+    }
 
-        struct GrpcKafkaMessageFieldV1
-        {
-            varint32 partitionCount;
-        }
+    struct GrpcKafkaMessageFieldV1
+    {
+        varint32 partitionCount;
+    }
 
-        union GrpcKafkaMessageField switch (uint8)
-        {
-            case 1: GrpcKafkaMessageFieldV1 v1;
-        }
+    union GrpcKafkaMessageField switch (uint8)
+    {
+        case 1: GrpcKafkaMessageFieldV1 v1;
     }
 }

@@ -19,15 +19,16 @@ import java.util.Base64;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectCache;
+import org.agrona.collections.MutableInteger;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.Array32FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldFW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldPartitionV1FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.GrpcKafkaMessageFieldV1FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.KafkaOffsetType;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.codec.GrpcKafkaMessageFieldFW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.codec.GrpcKafkaMessageFieldPartitionV1FW;
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.codec.GrpcKafkaMessageFieldV1FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.OctetsFW;
 
 public final class GrpcKafkaIdHelper
 {
@@ -45,7 +46,8 @@ public final class GrpcKafkaIdHelper
     private final Base64.Decoder decoder64 = Base64.getUrlDecoder();
 
     private final MutableDirectBuffer bufferRW = new UnsafeBuffer(0L, 0);
-    private final DirectBuffer bufferRO = new UnsafeBuffer(0L, 0);
+    private final OctetsFW.Builder lastMessageIdRW = new OctetsFW.Builder()
+        .wrap(new UnsafeBuffer(new byte[1024]), 0, 1024);
     private final byte[] base64RW = new byte[256];
 
     private final Int2ObjectCache<byte[]> byteArrays = new Int2ObjectCache<>(1, 16, i -> {});
@@ -55,44 +57,30 @@ public final class GrpcKafkaIdHelper
                 .wrap(new UnsafeBuffer(new byte[36]), 0, 36)
                 .item(o -> o.partitionId(-1).partitionOffset(KafkaOffsetType.HISTORICAL.value()))
                 .build();
+    private final MutableInteger offset = new MutableInteger();
 
-
-    public DirectBuffer findProgress(
-        String8FW lastId)
+    public OctetsFW encodeProgress(
+        final Array32FW<KafkaOffsetFW> progress)
     {
-        DirectBuffer progress64 = null;
+        messageFieldRW.rewrap();
+        GrpcKafkaMessageFieldFW messageField = messageFieldRW
+            .v1(v1 -> v1.partitionCount(progress.fieldCount()))
+            .build();
 
-        final DirectBuffer id = lastId != null ? lastId.value() : null;
-        if (id != null)
+        MutableDirectBuffer buffer = messageFieldRW.buffer();
+        offset.value = messageField.limit();
+        progress.forEach(p ->
         {
-            int progressAt = 0;
-            int progressEnd = id.capacity();
-            int commaAt = indexOfByte(id, progressAt, progressEnd, (byte) ',');
-            if (commaAt != -1)
-            {
-                int openQuoteAt = indexOfByte(id, commaAt, progressEnd, (byte) '"');
-                if (openQuoteAt != -1)
-                {
-                    progressAt = openQuoteAt + 1;
-                    int closeQuoteAt = indexOfByte(id, progressAt, progressEnd, (byte) '"');
-                    if (closeQuoteAt != -1)
-                    {
-                        progressEnd = closeQuoteAt - 1;
-                    }
-                }
-            }
+            offset.value = partitionV1RW.wrap(buffer, offset.value, buffer.capacity())
+                .partitionId(p.partitionId())
+                .partitionOffset(p.partitionOffset())
+                .build()
+                .limit();
+        });
 
-            int slashAt = indexOfByte(id, progressAt, progressEnd, (byte) '/');
-            if (slashAt != -1)
-            {
-                progressEnd = slashAt;
-            }
+        OctetsFW encoded = lastMessageIdRW.set(buffer, 0, offset.value).build();
 
-            bufferRO.wrap(id, progressAt, progressEnd - progressAt);
-            progress64 = bufferRO;
-        }
-
-        return progress64;
+        return encoded;
     }
 
     public Array32FW<KafkaOffsetFW> decode(
