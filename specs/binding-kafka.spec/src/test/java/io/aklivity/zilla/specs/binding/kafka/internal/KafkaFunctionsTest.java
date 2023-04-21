@@ -441,7 +441,7 @@ public class KafkaFunctionsTest
                                      .typeId(0x01)
                                      .merged()
                                          .timestamp(12345678L)
-                                         .filters(0L)
+                                         .filters(-1L)
                                          .partition(0, 0L)
                                          .progress(0, 1L)
                                          .key("match")
@@ -456,7 +456,7 @@ public class KafkaFunctionsTest
 
         final KafkaMergedDataExFW mergedDataEx = dataEx.merged();
         assertEquals(12345678L, mergedDataEx.timestamp());
-        assertEquals(0L, mergedDataEx.filters());
+        assertEquals(-1L, mergedDataEx.filters());
 
         final KafkaOffsetFW partition = mergedDataEx.partition();
         assertEquals(0, partition.partitionId());
@@ -1837,7 +1837,7 @@ public class KafkaFunctionsTest
                                      .fetch()
                                          .deferred(10)
                                          .timestamp(12345678L)
-                                         .filters(0L)
+                                         .filters(-1L)
                                          .partition(0, 1L)
                                          .key("match")
                                          .delta("JSON_PATCH", 0)
@@ -1853,7 +1853,7 @@ public class KafkaFunctionsTest
         final KafkaFetchDataExFW fetchDataEx = dataEx.fetch();
         assertEquals(10, fetchDataEx.deferred());
         assertEquals(12345678L, fetchDataEx.timestamp());
-        assertEquals(0L, fetchDataEx.filters());
+        assertEquals(-1L, fetchDataEx.filters());
 
         final KafkaOffsetFW partition = fetchDataEx.partition();
         assertEquals(0, partition.partitionId());
@@ -2012,7 +2012,7 @@ public class KafkaFunctionsTest
                                              .typeId(0x01)
                                              .fetch()
                                                  .timestamp(12345678L)
-                                                 .filters(0L)
+                                                 .filters(-1L)
                                                  .partition(0, 0L)
                                                  .key("match")
                                                  .header("name", "value")
@@ -2024,7 +2024,7 @@ public class KafkaFunctionsTest
         new KafkaDataExFW.Builder().wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
                 .typeId(0x01)
                 .fetch(f -> f.timestamp(12345678L)
-                             .filters(0L)
+                             .filters(-1L)
                              .partition(p -> p.partitionId(0).partitionOffset(0L))
                              .key(k -> k.length(5)
                                         .value(v -> v.set("match".getBytes(UTF_8))))

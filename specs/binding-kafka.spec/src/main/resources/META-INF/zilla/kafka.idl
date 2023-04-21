@@ -226,7 +226,7 @@ scope kafka
         {
             int32 deferred = 0;         // INIT only (TODO: move to DATA frame)
             int64 timestamp = 0;        // INIT only
-            int64 filters = 0;          // INIT only
+            int64 filters = -1;          // INIT only
             KafkaOffset partition;      // INIT only
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
@@ -278,7 +278,7 @@ scope kafka
             int64 timestamp = 0;        // INIT only
             int32 headersSizeMax = 4;   // INIT only
             int64 producerId = -1;      // INIT only
-            int64 filters = 0;          // INIT only
+            int64 filters = -1;          // INIT only
             KafkaOffset partition;      // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN

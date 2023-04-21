@@ -416,7 +416,7 @@ public final class KafkaCacheCursorFactory
             public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                return cacheEntry != null ? 1L : 0L;
+                return cacheEntry != null ? -1L : 0L;
             }
 
             @Override
@@ -577,7 +577,7 @@ public final class KafkaCacheCursorFactory
             public long test(
                 KafkaCacheEntryFW cacheEntry)
             {
-                return (none.test(cacheEntry) == 1L &&
+                return (none.test(cacheEntry) == -1L &&
                     (cacheEntry.offset() < positionSkip || nested.test(cacheEntry) == 0L)) ? 1L : 0L;
             }
 
@@ -881,7 +881,7 @@ public final class KafkaCacheCursorFactory
             }
         }
 
-        private static class Or extends KafkaFilterCondition
+        private abstract static class Or extends KafkaFilterCondition
         {
             private final List<KafkaFilterCondition> conditions;
 
@@ -948,12 +948,6 @@ public final class KafkaCacheCursorFactory
             }
 
             @Override
-            public long test(KafkaCacheEntryFW cacheEntry)
-            {
-                return 0L;
-            }
-
-            @Override
             public String toString()
             {
                 return String.format("%s%s", getClass().getSimpleName(), conditions);
@@ -965,7 +959,7 @@ public final class KafkaCacheCursorFactory
             private final List<KafkaFilterCondition> conditions;
 
             private LazyOr(
-                    List<KafkaFilterCondition> conditions)
+                List<KafkaFilterCondition> conditions)
             {
                 super(conditions);
                 this.conditions = conditions;
@@ -973,7 +967,7 @@ public final class KafkaCacheCursorFactory
 
             @Override
             public long test(
-                    KafkaCacheEntryFW cacheEntry)
+                KafkaCacheEntryFW cacheEntry)
             {
                 long accept = 0L;
                 for (int i = 0; accept == 0L && i < conditions.size(); i++)
@@ -1010,11 +1004,7 @@ public final class KafkaCacheCursorFactory
                 for (int i = 0; i < conditions.size(); i++)
                 {
                     final KafkaFilterCondition condition = conditions.get(i);
-                    final long result = condition.test(cacheEntry);
-                    if (result != 0L)
-                    {
-                        accept |= i + 1;
-                    }
+                    accept |= condition.test(cacheEntry) != 0L ? conditions.indexOf(condition) + 1 : 0L;
                 }
                 return accept;
             }
