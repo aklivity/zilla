@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.agrona.LangUtil;
+import org.agrona.collections.Int2ObjectHashMap;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -50,11 +51,11 @@ public class PrometheusExporterHandler implements ExporterHandler
     private final LayoutManager manager;
     private final PrometheusMetricDescriptor metricDescriptor;
     private final EngineContext context;
-    private final PrometheusEndpointConfig endpoint;
+    private final PrometheusEndpointConfig[] endpoints;
+    private final Map<Integer, HttpServer> servers;
 
     private Map<Metric.Kind, List<MetricsLayout>> layouts;
     private MetricsProcessor metrics;
-    private HttpServer server;
 
     public PrometheusExporterHandler(
         EngineConfiguration config,
@@ -64,7 +65,8 @@ public class PrometheusExporterHandler implements ExporterHandler
         this.manager = new LayoutManager(config.directory());
         this.metricDescriptor = new PrometheusMetricDescriptor(context::resolveMetric);
         this.context = context;
-        this.endpoint = exporter.options().endpoints[0]; // options is mandatory, only one endpoint is supported for now
+        this.endpoints = exporter.options().endpoints; // options is required, at least one endpoint is required
+        this.servers = new Int2ObjectHashMap<>();
     }
 
     @Override
@@ -79,9 +81,13 @@ public class PrometheusExporterHandler implements ExporterHandler
             );
             metrics = new MetricsProcessor(layouts, context::supplyLocalName, metricDescriptor::kind,
                 metricDescriptor::name, metricDescriptor::description, null, null);
-            server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
-            server.createContext(endpoint.path, new MetricsHttpHandler());
-            server.start();
+            for (PrometheusEndpointConfig endpoint : endpoints)
+            {
+                HttpServer server = HttpServer.create(new InetSocketAddress(endpoint.port), 0);
+                server.createContext(endpoint.path, new MetricsHttpHandler());
+                server.start();
+                servers.put(endpoint.port, server);
+            }
         }
         catch (IOException ex)
         {
@@ -98,12 +104,15 @@ public class PrometheusExporterHandler implements ExporterHandler
     @Override
     public void stop()
     {
-        if (server != null)
+        for (int port : servers.keySet())
         {
+            HttpServer server = servers.remove(port);
             server.stop(0);
-            server = null;
         }
-        layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
+        if (layouts != null)
+        {
+            layouts.keySet().stream().flatMap(kind -> layouts.get(kind).stream()).forEach(MetricsLayout::close);
+        }
     }
 
     private String generateOutput()
