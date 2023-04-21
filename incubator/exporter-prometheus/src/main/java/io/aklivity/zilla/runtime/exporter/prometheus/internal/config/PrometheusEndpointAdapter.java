@@ -47,12 +47,8 @@ public class PrometheusEndpointAdapter implements JsonbAdapter<PrometheusEndpoin
     public PrometheusEndpointConfig adaptFromJson(
         JsonObject object)
     {
-        String scheme = object.containsKey(SCHEME_NAME)
-            ? object.getString(SCHEME_NAME)
-            : null;
-        int port = object.containsKey(PORT_NAME)
-            ? object.getInt(PORT_NAME)
-            : 0;
+        String scheme = object.getString(SCHEME_NAME);
+        int port = object.getInt(PORT_NAME);
         String path = object.containsKey(PATH_NAME)
             ? object.getString(PATH_NAME)
             : DEFAULT_PATH;

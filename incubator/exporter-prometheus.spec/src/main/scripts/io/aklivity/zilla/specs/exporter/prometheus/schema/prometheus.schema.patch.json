@@ -37,6 +37,11 @@
                                         "type": "string"
                                     }
                                 },
+                                "required":
+                                [
+                                    "scheme",
+                                    "port"
+                                ],
                                 "additionalProperties": false
                             },
                             "maxItems": 1
