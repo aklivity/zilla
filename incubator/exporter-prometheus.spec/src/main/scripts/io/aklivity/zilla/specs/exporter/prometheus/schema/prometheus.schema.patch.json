@@ -24,7 +24,10 @@
                                     "scheme":
                                     {
                                         "title": "Scheme",
-                                        "type": "string"
+                                        "enum":
+                                        [
+                                            "http"
+                                        ]
                                     },
                                     "port":
                                     {
