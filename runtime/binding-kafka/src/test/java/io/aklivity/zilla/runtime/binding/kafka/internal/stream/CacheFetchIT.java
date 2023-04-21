@@ -728,6 +728,21 @@ public class CacheFetchIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/filter.headers.many.eager/client",
+        "${app}/filter.none/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    public void shouldReceiveMessagesWithHeadersManyEagerFilter() throws Exception
+    {
+        partition.append(1L);
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_MESSAGE_2");
+        k3po.notifyBarrier("SEND_MESSAGE_3");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/filter.headers.many.empty/client",
         "${app}/filter.none/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

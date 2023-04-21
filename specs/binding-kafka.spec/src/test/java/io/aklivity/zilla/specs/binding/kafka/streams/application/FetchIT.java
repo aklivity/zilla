@@ -576,6 +576,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/filter.headers.many.eager/client",
+        "${app}/filter.headers.many.eager/server"})
+    public void shouldReceiveMessagesWithHeadersManyEagerFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.headers.many.empty/client",
         "${app}/filter.headers.many.empty/server"})
     public void shouldReceiveMessagesWithHeadersManyEmptyFilter() throws Exception

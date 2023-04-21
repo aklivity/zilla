@@ -76,6 +76,7 @@ read notify RECEIVED_MESSAGE_2
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
+                                 .filters(1)
                                  .partition(0, 3, 8)
                                  .key("key1")
                                  .header("header1", "value1")

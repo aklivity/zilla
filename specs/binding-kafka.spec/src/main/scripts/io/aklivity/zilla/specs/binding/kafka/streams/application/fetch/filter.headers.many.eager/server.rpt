@@ -58,14 +58,17 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("test")
                                   .partition(0, 1)
                                   .filter()
-                                       .header("header1", "value1")
-                                       .build()
-                                  .filter()
-                                      .header("header1", "value1")
-                                      .header("header2", "value2")
+                                      .headers("header3")
+                                          .sequence("one", "two", "three", "four")
+                                          .build()
                                       .build()
                                   .filter()
-                                      .header("header2", "value2")
+                                      .headers("header3")
+                                         .sequence("one")
+                                         .skip(1)
+                                         .sequence("three")
+                                         .skip(1)
+                                         .build()
                                       .build()
                                   .evaluation("EAGER")
                                   .build()
@@ -77,7 +80,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 1, 8)
+                                   .partition(0, 1, 2)
                                    .build()
                                .build()}
 write flush
@@ -85,48 +88,12 @@ write flush
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
-                                  .timestamp(newTimestamp)
-                                  .filters(4)
-                                  .partition(0, 1, 8)
-                                  .key("key1")
-                                  .header("header2", "value2")
-                                  .build()
-                              .build()}
-write "Hello, world"
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .timestamp(newTimestamp)
-                                  .filters(1)
-                                  .partition(0, 2, 8)
-                                  .header("header1", "value1")
-                                  .build()
-                              .build()}
-write "Hello, world"
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .timestamp(newTimestamp)
-                                  .filters(1)
-                                  .partition(0, 3, 8)
-                                  .header("header1", "value1")
-                                  .build()
-                              .build()}
-write "Hello, world"
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .timestamp(newTimestamp)
-                                  .filters(7)
-                                  .partition(0, 4, 8)
-                                  .header("header1", "value1")
-                                  .header("header2", "value2")
+                                  .filters(3)
+                                  .partition(0, 7, 8)
+                                  .header("header3", "one")
+                                  .header("header3", "two")
+                                  .header("header3", "three")
+                                  .header("header3", "four")
                                   .build()
                               .build()}
 write "Hello, world"
