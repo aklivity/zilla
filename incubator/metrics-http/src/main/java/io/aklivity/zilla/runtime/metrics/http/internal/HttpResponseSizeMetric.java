@@ -67,6 +67,12 @@ public class HttpResponseSizeMetric implements Metric
         return new HttpResponseSizeMetricContext();
     }
 
+    @Override
+    public String description()
+    {
+        return "HTTP response content length";
+    }
+
     private final class HttpResponseSizeMetricContext implements MetricContext
     {
         private static final long INITIAL_VALUE = 0L;

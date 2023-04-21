@@ -48,6 +48,7 @@ public class MetricGroupTest
         assertThat(metric.name(), equalTo("test.counter"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Description for test.counter"));
         assertThat(context.group(), equalTo("test"));
         assertThat(handler, instanceOf(MessageConsumer.class));
     }
@@ -69,6 +70,7 @@ public class MetricGroupTest
         assertThat(metric.name(), equalTo("test.gauge"));
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Description for test.gauge"));
         assertThat(context.group(), equalTo("test"));
         assertThat(handler, instanceOf(MessageConsumer.class));
     }
@@ -89,7 +91,8 @@ public class MetricGroupTest
         assertThat(metric, instanceOf(TestHistogramMetric.class));
         assertThat(metric.name(), equalTo("test.histogram"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
-        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.description(), equalTo("Description for test.histogram"));
         assertThat(context.group(), equalTo("test"));
         assertThat(handler, instanceOf(MessageConsumer.class));
     }

@@ -86,7 +86,8 @@ public class TelemetryConfigsAdapterTest
         assertThat(telemetry.metrics.get(1).name, equalTo("test.histogram"));
         assertThat(telemetry.exporters.get(0).name, equalTo("test0"));
         assertThat(telemetry.exporters.get(0).type, equalTo("test"));
-        assertThat(telemetry.exporters.get(0).options, nullValue());
+        assertThat(telemetry.exporters.get(0).options, instanceOf(TestExporterOptionsConfig.class));
+        assertThat(((TestExporterOptionsConfig)telemetry.exporters.get(0).options).mode, nullValue());
     }
 
     @Test

@@ -155,7 +155,8 @@
                 },
                 "uniqueItems": true
             },
-            "exporter": {
+            "exporter":
+            {
                 "title": "Exporter",
                 "type": "object",
                 "properties":

@@ -38,6 +38,8 @@ public interface Metric
 
     Unit unit();
 
+    String description();
+
     MetricContext supply(
         EngineContext context);
 }

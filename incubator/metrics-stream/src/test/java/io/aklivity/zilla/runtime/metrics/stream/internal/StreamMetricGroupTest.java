@@ -56,6 +56,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.opens.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of opened received streams"));
     }
 
     @Test
@@ -97,6 +98,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.opens.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of closed sent streams"));
     }
 
     @Test
@@ -138,6 +140,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.data.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.description(), equalTo("Bytes of data on received streams"));
     }
 
     @Test
@@ -181,6 +184,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.data.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.description(), equalTo("Bytes of data on sent streams"));
     }
 
     @Test
@@ -225,6 +229,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.errors.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of errors on received streams"));
     }
 
     @Test
@@ -271,6 +276,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.errors.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of errors on sent streams"));
     }
 
     @Test
@@ -317,6 +323,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.closes.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of closed received streams"));
     }
 
     @Test
@@ -358,6 +365,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.closes.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of closed sent streams"));
     }
 
     @Test
@@ -399,6 +407,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.active.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of currently active received streams"));
     }
 
     @Test
@@ -447,6 +456,7 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.active.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of currently active sent streams"));
     }
 
     @Test

@@ -31,6 +31,7 @@ public class StreamOpensSentMetric implements Metric
 {
     private static final String GROUP = StreamMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "opens.sent");
+    private static final String DESCRIPTION = "Number of closed sent streams";
 
     @Override
     public String name()
@@ -48,6 +49,12 @@ public class StreamOpensSentMetric implements Metric
     public Unit unit()
     {
         return Unit.COUNT;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

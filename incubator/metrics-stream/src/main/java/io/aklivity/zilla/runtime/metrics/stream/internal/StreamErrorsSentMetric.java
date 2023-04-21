@@ -32,6 +32,7 @@ public class StreamErrorsSentMetric implements Metric
 {
     private static final String GROUP = StreamMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "errors.sent");
+    private static final String DESCRIPTION = "Number of errors on sent streams";
 
     @Override
     public String name()
@@ -49,6 +50,12 @@ public class StreamErrorsSentMetric implements Metric
     public Unit unit()
     {
         return Unit.COUNT;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

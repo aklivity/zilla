@@ -1,0 +1,55 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/telemetry/exporter/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "prometheus"
+                },
+                "options":
+                {
+                    "properties":
+                    {
+                        "endpoints":
+                        {
+                            "type": "array",
+                            "items":
+                            {
+                                "properties":
+                                {
+                                    "scheme":
+                                    {
+                                        "title": "Scheme",
+                                        "type": "string"
+                                    },
+                                    "port":
+                                    {
+                                        "title": "Port",
+                                        "type": "int"
+                                    },
+                                    "path":
+                                    {
+                                        "title": "Path",
+                                        "type": "string"
+                                    }
+                                },
+                                "required":
+                                [
+                                    "scheme",
+                                    "port"
+                                ],
+                                "additionalProperties": false
+                            },
+                            "minItems": 1
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            }
+        }
+    }
+]

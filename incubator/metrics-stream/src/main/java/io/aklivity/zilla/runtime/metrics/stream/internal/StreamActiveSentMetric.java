@@ -34,6 +34,7 @@ public class StreamActiveSentMetric implements Metric
 {
     private static final String GROUP = StreamMetricGroup.NAME;
     private static final String NAME = String.format("%s.%s", GROUP, "active.sent");
+    private static final String DESCRIPTION = "Number of currently active sent streams";
 
     @Override
     public String name()
@@ -51,6 +52,12 @@ public class StreamActiveSentMetric implements Metric
     public Unit unit()
     {
         return Unit.COUNT;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

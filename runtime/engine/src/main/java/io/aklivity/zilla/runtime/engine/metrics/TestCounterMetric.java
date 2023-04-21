@@ -26,6 +26,7 @@ public class TestCounterMetric implements Metric
 {
     private static final String GROUP = "test";
     private static final String NAME = GROUP + ".counter";
+    private static final String DESCRIPTION = "Description for test.counter";
 
     @Override
     public String name()
@@ -43,6 +44,12 @@ public class TestCounterMetric implements Metric
     public Unit unit()
     {
         return Unit.COUNT;
+    }
+
+    @Override
+    public String description()
+    {
+        return DESCRIPTION;
     }
 
     @Override

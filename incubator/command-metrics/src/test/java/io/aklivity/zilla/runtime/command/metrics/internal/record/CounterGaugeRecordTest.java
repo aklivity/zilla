@@ -30,7 +30,6 @@ public class CounterGaugeRecordTest
     private static final LongSupplier READER_100 = () -> 100L;
     private static final LongFunction<String> FORMATTER = String::valueOf;
 
-
     @Test
     public void shouldReturnSum()
     {
