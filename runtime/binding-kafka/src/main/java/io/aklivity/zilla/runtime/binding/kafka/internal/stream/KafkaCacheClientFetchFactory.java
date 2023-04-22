@@ -1296,7 +1296,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                                           reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_INIT:
-                    doClientReplyDataInit(traceId, deferred, timestamp, ownerId, key, deltaType, ancestor, fragment,
+                    doClientReplyDataInit(traceId, deferred, timestamp, ownerId, filters, key, deltaType, ancestor, fragment,
                                           reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_NONE:
@@ -1372,6 +1372,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             int deferred,
             long timestamp,
             long producerId,
+            long filters,
             KafkaKeyFW key,
             KafkaDeltaType deltaType,
             long ancestorOffset,
@@ -1391,6 +1392,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .fetch(f -> f.deferred(deferred)
                                      .timestamp(timestamp)
                                      .producerId(producerId)
+                                     .filters(filters)
                                      .partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
                                                       .stableOffset(stableOffset)

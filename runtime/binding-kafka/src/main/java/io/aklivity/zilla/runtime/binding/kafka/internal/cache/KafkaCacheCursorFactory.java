@@ -21,7 +21,6 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheC
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorIndex;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorRetryValue;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorRecord.cursorValue;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation.EAGER;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaSkip.SKIP_MANY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW.KIND_SKIP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaValueMatchFW.KIND_VALUE;

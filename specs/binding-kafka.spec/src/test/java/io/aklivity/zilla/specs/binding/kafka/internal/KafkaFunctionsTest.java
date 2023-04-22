@@ -910,18 +910,18 @@ public class KafkaFunctionsTest
     public void shouldGenerateMergedFlushExtensionWithStableOffset()
     {
         byte[] build = KafkaFunctions.flushEx()
-                .typeId(0x01)
-                .merged()
-                .capabilities("PRODUCE_AND_FETCH")
-                .progress(0, 1L, 1L, 1L)
-                .filter()
-                .key("match")
-                .build()
-                .filter()
-                .header("name", "value")
-                .build()
-                .build()
-                .build();
+                                     .typeId(0x01)
+                                     .merged()
+                                         .capabilities("PRODUCE_AND_FETCH")
+                                         .progress(0, 1L, 1L, 1L)
+                                         .filter()
+                                             .key("match")
+                                             .build()
+                                         .filter()
+                                             .header("name", "value")
+                                             .build()
+                                         .build()
+                                    .build();
 
         DirectBuffer buffer = new UnsafeBuffer(build);
         KafkaFlushExFW flushEx = new KafkaFlushExFW().wrap(buffer, 0, buffer.capacity());
