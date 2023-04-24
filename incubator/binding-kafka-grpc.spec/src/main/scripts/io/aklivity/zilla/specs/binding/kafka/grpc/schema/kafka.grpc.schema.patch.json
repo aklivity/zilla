@@ -19,21 +19,6 @@
                 {
                     "properties":
                     {
-                        "scheme":
-                        {
-                            "title": "Scheme",
-                            "type": "string"
-                        },
-                        "authority":
-                        {
-                            "title": "Authority",
-                            "type": "string"
-                        },
-                        "entry":
-                        {
-                            "title": "Entry",
-                            "type": "string"
-                        },
                         "acks":
                         {
                             "title": "Acks",
@@ -92,13 +77,7 @@
                             },
                             "additionalProperties": false
                         }
-                    },
-                    "required":
-                    [
-                        "entry",
-                        "scheme",
-                        "authority"
-                    ]
+                    }
                 },
                 "routes":
                 {
@@ -145,26 +124,46 @@
                                     ]
                                 }
                             },
-                            "with": false,
+                            "with":
+                            {
+                                "properties":
+                                {
+                                    "scheme":
+                                    {
+                                        "title": "Scheme",
+                                        "type": "string"
+                                    },
+                                    "authority":
+                                    {
+                                        "title": "Authority",
+                                        "type": "string"
+                                    },
+                                    "entry":
+                                    {
+                                        "title": "Entry",
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            },
+                            "required":
+                            [
+                                "entry",
+                                "scheme",
+                                "authority"
+                            ]
                         }
-                    }
+                    },
+                    "required":
+                    [
+                        "with"
+                    ]
                 },
                 "exit": false
             },
-            "anyOf":
+            "required":
             [
-                {
-                    "required":
-                    [
-                        "exit"
-                    ]
-                },
-                {
-                    "required":
-                    [
-                        "routes"
-                    ]
-                }
+                "routes"
             ]
         }
     }

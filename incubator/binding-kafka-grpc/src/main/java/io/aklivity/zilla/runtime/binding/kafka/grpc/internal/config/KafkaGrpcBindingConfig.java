@@ -44,10 +44,10 @@ public final class KafkaGrpcBindingConfig
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(KafkaGrpcOptionsConfig.class::cast)
-                .map(peek(o -> o.entryId = binding.resolveId.applyAsLong(o.entry)))
                 .orElse(DEFAULT);
+        this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r, binding.resolveId))
+            .collect(toList());
         this.helper = new KafkaGrpcFetchHeaderHelper(options.correlation);
-        this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r)).collect(toList());
     }
 
     private static <T> UnaryOperator<T> peek(

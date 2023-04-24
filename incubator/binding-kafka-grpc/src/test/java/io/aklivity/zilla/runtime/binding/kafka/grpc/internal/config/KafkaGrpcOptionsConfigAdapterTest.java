@@ -47,9 +47,6 @@ public class KafkaGrpcOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"scheme\":\"http\"," +
-                    "\"authority\":\"localhost:8080\"," +
-                    "\"entry\":\"grpc0\"," +
                     "\"acks\":\"leader_only\"," +
                     "\"correlation\":" +
                     "{" +
@@ -65,8 +62,6 @@ public class KafkaGrpcOptionsConfigAdapterTest
         KafkaGrpcOptionsConfig options = jsonb.fromJson(text, KafkaGrpcOptionsConfig.class);
 
         assertThat(options, not(nullValue()));
-        assertThat(options.scheme.asString(), equalTo("http"));
-        assertThat(options.authority.asString(), equalTo("localhost:8080"));
         assertThat(options.acks, equalTo(LEADER_ONLY));
         assertThat(options.correlation, not(nullValue()));
         assertThat(options.correlation.service.asString(), equalTo("zilla:service"));
@@ -78,9 +73,6 @@ public class KafkaGrpcOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         KafkaGrpcOptionsConfig options = new KafkaGrpcOptionsConfig(
-                new String16FW("http"),
-                new String16FW("localhost:8080"),
-                "grpc0",
                 LEADER_ONLY,
                 new KafkaGrpcCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
@@ -92,9 +84,6 @@ public class KafkaGrpcOptionsConfigAdapterTest
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
                 "{" +
-                    "\"scheme\":\"http\"," +
-                    "\"authority\":\"localhost:8080\"," +
-                    "\"entry\":\"grpc0\"," +
                     "\"acks\":\"leader_only\"," +
                     "\"correlation\":" +
                     "{" +

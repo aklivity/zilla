@@ -26,14 +26,17 @@ public final class KafkaGrpcConditionResolver
 {
     private final KafkaGrpcOptionsConfig options;
     private final KafkaGrpcConditionConfig condition;
+    private final KafkaGrpcWithConfig with;
 
 
     public KafkaGrpcConditionResolver(
         KafkaGrpcOptionsConfig options,
-        KafkaGrpcConditionConfig condition)
+        KafkaGrpcConditionConfig condition,
+        KafkaGrpcWithConfig with)
     {
         this.options = options;
         this.condition = condition;
+        this.with = with;
     }
 
     public KafkaGrpcConditionResult resolve()
@@ -68,7 +71,7 @@ public final class KafkaGrpcConditionResolver
 
         String16FW replyTo = condition.replyTo;
 
-        return new KafkaGrpcConditionResult(options.scheme, options.authority, topic, acks,
+        return new KafkaGrpcConditionResult(with.scheme, with.authority, topic, acks,
             filters, replyTo, options.correlation);
     }
 }

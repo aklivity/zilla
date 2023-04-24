@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 import java.util.function.LongPredicate;
+import java.util.function.ToLongFunction;
 
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
@@ -25,18 +26,21 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class KafkaGrpcRouteConfig extends OptionsConfig
 {
     public final long id;
-
+    public final KafkaGrpcWithConfig with;
     public final List<KafkaGrpcConditionResolver> when;
     private final LongPredicate authorized;
 
     public KafkaGrpcRouteConfig(
         KafkaGrpcOptionsConfig options,
-        RouteConfig route)
+        RouteConfig route,
+        ToLongFunction<String> resolveId)
     {
         this.id = route.id;
+        this.with = (KafkaGrpcWithConfig) route.with;
+        this.with.entryId = resolveId.applyAsLong(with.entry);
         this.when = route.when.stream()
             .map(KafkaGrpcConditionConfig.class::cast)
-            .map(c -> new KafkaGrpcConditionResolver(options, c))
+            .map(c -> new KafkaGrpcConditionResolver(options, c, with))
             .collect(toList());
 
         this.authorized = route.authorized;
