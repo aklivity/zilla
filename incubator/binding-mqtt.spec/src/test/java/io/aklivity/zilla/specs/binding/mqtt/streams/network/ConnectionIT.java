@@ -130,7 +130,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.successful.fragmented/client",
         "${net}/connect.successful.fragmented/server"})
-    public void shouldProcessFragmentedConnectPacket() throws Exception
+    public void shouldConnectFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -182,7 +182,7 @@ public class ConnectionIT
     }
 
     // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
-    // TODO: use subscribe.topic.filter.single.exact/server in the application side
+    //TODO: decide how to implement this: have a config, if it's defined, we always override keep-alive?
     @Test
     @Specification({
         "${net}/connect.server.defined.keep.alive/client",
@@ -243,7 +243,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.username.not.authorized/client",
         "${net}/connect.reject.username.not.authorized/server"})
-    public void shouldRejectConnectWithUsername() throws Exception
+    public void shouldRejectConnectWithUsernameNotAuthorized() throws Exception
     {
         k3po.finish();
     }
@@ -252,7 +252,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.password.not.authorized/client",
         "${net}/connect.reject.password.not.authorized/server"})
-    public void shouldRejectConnectWithPassword() throws Exception
+    public void shouldRejectConnectWithPasswordNotAuthorized() throws Exception
     {
         k3po.finish();
     }

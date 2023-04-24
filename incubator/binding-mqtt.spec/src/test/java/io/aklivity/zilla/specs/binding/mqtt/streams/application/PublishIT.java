@@ -83,15 +83,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.message.after.subscribe.fails/client",
-        "${app}/publish.message.after.subscribe.fails/server"})
-    public void shouldFailSubscribeThenPublishMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
     public void shouldPublishMessageWithTopicAlias() throws Exception

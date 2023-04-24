@@ -23,11 +23,13 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NOT_AUTHORIZED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.NO_SUBSCRIPTION_EXISTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.PROTOCOL_ERROR;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUBSCRIPTION_ID_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SUCCESS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_ALIAS_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.TOPIC_NAME_INVALID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.UNSUPPORTED_PROTOCOL_VERSION;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.WILDCARDS_NOT_SUPPORTED;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttReasonCodes.SHARED_SUBSCRIPTION_NOT_SUPPORTED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags.RETAIN_AS_PUBLISHED;
@@ -57,6 +59,7 @@ import static io.aklivity.zilla.runtime.engine.budget.BudgetDebitor.NO_DEBITOR_I
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
@@ -76,6 +79,7 @@ import java.util.function.Supplier;
 
 import jakarta.json.Json;
 import jakarta.json.JsonBuilderFactory;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 
 import org.agrona.DirectBuffer;
@@ -206,6 +210,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int PUBLISH_FRAMING = 255;
 
     private static final String16FW NULL_STRING = new String16FW((String) null);
+    public static final String SHARED_SUBSCRIPTION_LITERAL = "$share";
 
     private final JsonBuilderFactory json = Json.createBuilderFactory(new HashMap<>());
     private final JsonObjectBuilder objectBuilder = json.createObjectBuilder();
@@ -298,6 +303,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttServerDecoder decodeUnknownType = this::decodeUnknownType;
 
     private final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType;
+    private final boolean session;
 
     {
         final Map<MqttPacketType, MqttServerDecoder> decodersByPacketType = new EnumMap<>(MqttPacketType.class);
@@ -321,7 +327,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MutableDirectBuffer willDataExtBuffer;
     private final MutableDirectBuffer payloadBuffer;
     private final MutableDirectBuffer propertyBuffer;
-    private final MutableDirectBuffer sessionPayloadBuffer;
+    private final MutableDirectBuffer sessionExtBuffer;
     private final MutableDirectBuffer userPropertiesBuffer;
     private final MutableDirectBuffer willMessageBuffer;
     private final MutableDirectBuffer willPropertyBuffer;
@@ -368,7 +374,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.propertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.userPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.payloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
-        this.sessionPayloadBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
+        this.sessionExtBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willMessageBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willPropertyBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.willUserPropertiesBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
@@ -392,6 +398,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.wildcardSubscriptions = config.wildcardSubscriptionAvailable() ? (byte) 1 : 0;
         this.subscriptionIdentifiers = config.subscriptionIdentifierAvailable() ? (byte) 1 : 0;
         this.sharedSubscriptions = config.sharedSubscriptionAvailable() ? (byte) 1 : 0;
+        this.session = config.sessionAvailable();
         this.topicAliasMaximumLimit = (short) Math.max(config.topicAliasMaximum(), 0);
         this.noLocal = config.noLocal();
         this.sessionExpiryGracePeriod = config.sessionExpiryGracePeriod();
@@ -736,6 +743,13 @@ public final class MqttServerFactory implements MqttStreamFactory
             final int length = packet.remainingLength();
             final MqttPacketType packetType = MqttPacketType.valueOf(packet.typeAndFlags() >> 4);
             final MqttServerDecoder decoder = decodersByPacketType.getOrDefault(packetType, decodeUnknownType);
+
+            if (!server.connected && packetType != MqttPacketType.CONNECT)
+            {
+                //TODO: how?
+                server.doNetworkAbort(traceId, authorization);
+                return offset;
+            }
 
             if (limit - packet.limit() >= length)
             {
@@ -1098,7 +1112,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         //TODO: do we need activeStreams count?
         private final Int2ObjectHashMap<String> topicAliases;
 
-        //private MqttSessionStream sessionStream;
+        private MqttSessionStream sessionStream;
         //private MqttWillStream willStream;
 
         private String16FW clientId;
@@ -1238,7 +1252,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (decodeSeq > decodeAck + decodeMax)
             {
                 doNetworkReset(supplyTraceId.getAsLong(), authorization);
-            } else
+            }
+            else
             {
                 final long budgetId = data.budgetId();
                 final OctetsFW payload = data.payload();
@@ -1545,17 +1560,21 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     //progress = onResolveSession(traceId, authorization, reasonCode, progress, connect, payload);
                 }
-                else
+
+                if (session)
                 {
-                    doCancelConnectTimeoutIfNecessary();
-                    doEncodeConnack(traceId, authorization, reasonCode, assignedClientId);
-                    connected = true;
-                    keepAlive = connect.keepAlive();
-                    keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
-                    doSignalKeepAliveTimeoutIfNecessary();
-                    decoder = decodePacketType;
-                    progress = connect.limit();
+                    onResolveSession(traceId, authorization, reasonCode, progress, connect, payload);
                 }
+
+                doCancelConnectTimeoutIfNecessary();
+                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId);
+                connected = true;
+                keepAlive = connect.keepAlive();
+                keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
+                doSignalKeepAliveTimeoutIfNecessary();
+                decoder = decodePacketType;
+                progress = connect.limit();
+
             }
 
             if (reasonCode != SUCCESS)
@@ -1569,131 +1588,141 @@ public final class MqttServerFactory implements MqttStreamFactory
             return progress;
         }
 
-        //        private int onResolveSession(
-        //            long traceId,
-        //            long authorization,
-        //            int reasonCode,
-        //            int progress,
-        //            MqttConnectFW connect,
-        //            MqttConnectPayload payload)
-        //        {
-        //            final int flags = connect.flags();
-        //            final String topic = String.format(SESSION_WILDCARD_TOPIC_FORMAT, clientId.asString());
-        //            final int topicKey = topicKey(topic);
-        //            final MqttBindingConfig binding = bindings.get(routeId);
-        //            final MqttRouteConfig resolved = binding != null ? binding.resolve(authorization, topic, PUBLISH_ONLY) : null;
-        //
-        //            if (resolved != null)
-        //            {
-        //                final long resolvedId = resolved.id;
-        //
-        //                final boolean willFlagSet = isSetWillFlag(flags);
-        //
-        //                objectBuilder.add(SESSION_EXPIRES_AT_NAME, System.currentTimeMillis() +
-        //                    TimeUnit.SECONDS.toMillis(sessionExpiryInterval));
-        //
-        //                if (willFlagSet && payload.willDelay > 0)
-        //                {
-        //                    objectBuilder.add(WILL_DELAY_NAME, payload.willDelay);
-        //                    objectBuilder.add(WILL_TOPIC_NAME, payload.willTopic.asString());
-        //                }
-        //
-        //                final JsonObject sessionObj = objectBuilder.build();
-        //                final OctetsFW sessionPayload =
-        //                    sessionPayloadRW.wrap(sessionPayloadBuffer, 0, sessionPayloadBuffer.capacity())
-        //                        .set(sessionObj.toString().getBytes(UTF_8))
-        //                        .build();
-        //
-        //                if (sessionStream == null)
-        //                {
-        //                    sessionStream = new MqttSessionStream(resolvedId, 0, willFlagSet, topic);
-        //                    sessionStream.doApplicationBeginOrFlush(traceId, authorization, affinity, topic, NO_FLAGS,
-        //                        0, PUBLISH_ONLY);
-        //                }
-        //
-        //                int willPayloadSize = 0;
-        //                final int willFlags = decodeWillFlags(willFlagSet, flags);
-        //                MqttDataExFW willDataEx = null;
-        //                if (willFlagSet)
-        //                {
-        //                    willPayloadSize = payload.willPayload.bytes().sizeof();
-        //
-        //                    final MqttDataExFW.Builder builder = mqttWillDataExRW.wrap(willDataExtBuffer, 0, willDataExtBuffer.capacity())
-        //                        .typeId(mqttTypeId)
-        //                        .topic(String.format(WILL_TOPIC_FORMAT,
-        //                            clientId.asString()))
-        //                        .flags(willFlags)
-        //                        .expiryInterval(payload.expiryInterval)
-        //                        .contentType(payload.contentType)
-        //                        .format(f -> f.set(payload.payloadFormat))
-        //                        .responseTopic(payload.responseTopic)
-        //                        .correlation(c -> c.bytes(payload.correlationData));
-        //
-        //                    final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
-        //                    userProperties.forEach(c -> builder.propertiesItem(p -> p.key(c.key()).value(c.value())));
-        //
-        //                    willDataEx = builder.build();
-        //
-        //                    if (willStream == null)
-        //                    {
-        //                        this.willStream = new MqttWillStream(sessionStream.routeId, authorization, 0,
-        //                            payload.willTopic.asString(), payload.willPayload.bytes(), willDataEx);
-        //                    }
-        //                }
-        //
-        //                final int payloadSize = sessionPayload.sizeof() + willPayloadSize;
-        //
-        //                boolean canPublish = MqttState.initialOpened(sessionStream.state);
-        //
-        //                int reserved = payloadSize + sessionStream.initialPad;
-        //                canPublish &= sessionStream.initialSeq + reserved <= sessionStream.initialAck + sessionStream.initialMax;
-        //
-        //                if (canPublish && sessionStream.debitorIndex != NO_DEBITOR_INDEX && reserved != 0)
-        //                {
-        //                    final int minimum = reserved; // TODO: fragmentation
-        //                    reserved = sessionStream.debitor.claim(sessionStream.debitorIndex,
-        //                        sessionStream.initialId, minimum, reserved);
-        //                }
-        //
-        //                if (canPublish && (reserved != 0 || payloadSize == 0))
-        //                {
-        //                    connected = true;
-        //
-        //                    onEncodeSession(sessionStream, traceId, authorization, reserved, sessionPayload);
-        //                    onEncodeWillMessageIfNecessary(sessionStream, traceId, authorization, reserved, willFlagSet,
-        //                        payload.willPayload, willDataEx);
-        //
-        //                    if (reasonCode == SUCCESS)
-        //                    {
-        //                        keepAlive = connect.keepAlive();
-        //                        keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
-        //                        doSignalKeepAliveTimeoutIfNecessary();
-        //                        decoder = decodePacketType;
-        //                        progress = connect.limit();
-        //                    }
-        //                } else
-        //                {
-        //                    this.propertyMask = 0;
-        //                    this.topicAliasMaximum = 0;
-        //                    this.sessionExpiryInterval = 0;
-        //                    decodePublisherKey = topicKey;
-        //
-        //                    if (sessionStateUnavailable)
-        //                    {
-        //                        keepAlive = connect.keepAlive();
-        //                        keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
-        //                        doSignalKeepAliveTimeoutIfNecessary();
-        //                        decoder = decodePacketType;
-        //                        progress = connect.limit();
-        //                    }
-        //                }
-        //            } else
-        //            {
-        //                sessionStream = new MqttSessionStream(0, topic);
-        //            }
-        //
-        //            return progress;
-        //        }
+        private int onResolveSession(
+            long traceId,
+            long authorization,
+            int reasonCode,
+            int progress,
+            MqttConnectFW connect,
+            MqttConnectPayload payload)
+        {
+            final int flags = connect.flags();
+            final MqttBindingConfig binding = bindings.get(routeId);
+            // TODO: implement this part, once we agreed on routing configs
+            final MqttRouteConfig resolved = binding != null ? binding.resolve(authorization, topic) : null;
+
+            if (resolved != null)
+            {
+                final long resolvedId = resolved.id;
+
+                final boolean willFlagSet = isSetWillFlag(flags);
+
+                final MqttBeginExFW.Builder builder = mqttBeginExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .session(sessionBuilder ->
+                    {
+                        sessionBuilder.clientId(clientId);
+                        sessionBuilder.expiry(sessionExpiryInterval);
+                        publishBuilder.expiryInterval(mqttPublishHeaderRO.expiryInterval);
+                        publishBuilder.contentType(mqttPublishHeaderRO.contentType);
+                        publishBuilder.format(f -> f.set(mqttPublishHeaderRO.payloadFormat));
+                        publishBuilder.responseTopic(mqttPublishHeaderRO.responseTopic);
+                        publishBuilder.correlation(c -> c.bytes(mqttPublishHeaderRO.correlationData));
+                        final Array32FW<MqttUserPropertyFW> userProperties = userPropertiesRW.build();
+                        userProperties.forEach(c -> publishBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
+                    });
+
+                if (willFlagSet && payload.willDelay > 0)
+                {
+                    objectBuilder.add(WILL_DELAY_NAME, payload.willDelay);
+                    objectBuilder.add(WILL_TOPIC_NAME, payload.willTopic.asString());
+                }
+
+                final JsonObject sessionObj = objectBuilder.build();
+                final OctetsFW sessionPayload =
+                    sessionPayloadRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                        .set(sessionObj.toString().getBytes(UTF_8))
+                        .build();
+
+                if (sessionStream == null)
+                {
+                    sessionStream = new MqttSessionStream(resolvedId, 0, willFlagSet, topic);
+                    sessionStream.doApplicationBeginOrFlush(traceId, authorization, affinity, topic, NO_FLAGS, 0);
+                }
+
+                int willPayloadSize = 0;
+                final int willFlags = decodeWillFlags(willFlagSet, flags);
+                MqttDataExFW willDataEx = null;
+                if (willFlagSet)
+                {
+                    willPayloadSize = payload.willPayload.bytes().sizeof();
+
+                    final MqttDataExFW.Builder builder = mqttWillDataExRW.wrap(willDataExtBuffer, 0, willDataExtBuffer.capacity())
+                        .typeId(mqttTypeId)
+                        .topic(String.format(WILL_TOPIC_FORMAT,
+                            clientId.asString()))
+                        .flags(willFlags)
+                        .expiryInterval(payload.expiryInterval)
+                        .contentType(payload.contentType)
+                        .format(f -> f.set(payload.payloadFormat))
+                        .responseTopic(payload.responseTopic)
+                        .correlation(c -> c.bytes(payload.correlationData));
+
+                    final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
+                    userProperties.forEach(c -> builder.propertiesItem(p -> p.key(c.key()).value(c.value())));
+
+                    willDataEx = builder.build();
+
+                    if (willStream == null)
+                    {
+                        this.willStream = new MqttWillStream(sessionStream.routeId, authorization, 0,
+                            payload.willTopic.asString(), payload.willPayload.bytes(), willDataEx);
+                    }
+                }
+
+                final int payloadSize = sessionPayload.sizeof() + willPayloadSize;
+
+                boolean canPublish = MqttState.initialOpened(sessionStream.state);
+
+                int reserved = payloadSize + sessionStream.initialPad;
+                canPublish &= sessionStream.initialSeq + reserved <= sessionStream.initialAck + sessionStream.initialMax;
+
+                if (canPublish && sessionStream.debitorIndex != NO_DEBITOR_INDEX && reserved != 0)
+                {
+                    final int minimum = reserved; // TODO: fragmentation
+                    reserved = sessionStream.debitor.claim(sessionStream.debitorIndex,
+                        sessionStream.initialId, minimum, reserved);
+                }
+
+                if (canPublish && (reserved != 0 || payloadSize == 0))
+                {
+                    connected = true;
+
+                    onEncodeSession(sessionStream, traceId, authorization, reserved, sessionPayload);
+                    onEncodeWillMessageIfNecessary(sessionStream, traceId, authorization, reserved, willFlagSet,
+                        payload.willPayload, willDataEx);
+
+                    if (reasonCode == SUCCESS)
+                    {
+                        keepAlive = connect.keepAlive();
+                        keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
+                        doSignalKeepAliveTimeoutIfNecessary();
+                        decoder = decodePacketType;
+                        progress = connect.limit();
+                    }
+                } else
+                {
+                    this.propertyMask = 0;
+                    this.topicAliasMaximum = 0;
+                    this.sessionExpiryInterval = 0;
+                    decodePublisherKey = topicKey;
+
+                    if (sessionStateUnavailable)
+                    {
+                        keepAlive = connect.keepAlive();
+                        keepAliveTimeout = Math.round(TimeUnit.SECONDS.toMillis(keepAlive) * 1.5);
+                        doSignalKeepAliveTimeoutIfNecessary();
+                        decoder = decodePacketType;
+                        progress = connect.limit();
+                    }
+                }
+            } else
+            {
+                sessionStream = new MqttSessionStream(0, topic);
+            }
+
+            return progress;
+        }
 
         private MqttPublishStream resolvePublishStream(
             long traceId,
@@ -1861,6 +1890,20 @@ public final class MqttServerFactory implements MqttStreamFactory
                         break;
                     }
 
+                    if (sharedSubscriptions == 0 && filter.contains(SHARED_SUBSCRIPTION_LITERAL))
+                    {
+                        onDecodeError(traceId, authorization, SHARED_SUBSCRIPTION_NOT_SUPPORTED);
+                        decoder = decodeIgnoreAll;
+                        break;
+                    }
+
+                    if (subscriptionIdentifiers == 0 && containsSubscriptionId)
+                    {
+                        onDecodeError(traceId, authorization, SUBSCRIPTION_ID_NOT_SUPPORTED);
+                        decoder = decodeIgnoreAll;
+                        break;
+                    }
+
                     final int options = mqttSubscribePayload.options();
                     final int flags = calculateSubscribeFlags(traceId, authorization, options);
 
@@ -1995,7 +2038,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (connected)
             {
                 doEncodeDisconnect(traceId, authorization, reasonCode);
-            } else
+            }
+            else
             {
                 doEncodeConnack(traceId, authorization, reasonCode, false);
             }
@@ -2538,14 +2582,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (decodeSlot == NO_SLOT)
                 {
                     cleanupNetwork(traceId, authorization);
-                } else
+                }
+                else
                 {
                     final MutableDirectBuffer slotBuffer = bufferPool.buffer(decodeSlot);
                     slotBuffer.putBytes(0, buffer, progress, limit - progress);
                     decodeSlotOffset = limit - progress;
                     decodeSlotReserved = (int) ((long) reserved * (limit - progress) / (limit - offset));
                 }
-            } else
+            }
+            else
             {
                 cleanupDecodeSlotIfNecessary();
 
@@ -2690,956 +2736,955 @@ public final class MqttServerFactory implements MqttStreamFactory
         //                willStream.publishWillMessage(traceId);
         //            }
         //        }
-        //        private class MqttSessionStream
-        //        {
-        //            private MessageConsumer application;
-        //            private final int topicKey;
-        //            private final boolean willFlagSet;
-        //
-        //            private long routeId;
-        //            private long initialId;
-        //            private long replyId;
-        //            private long budgetId;
-        //
-        //            private BudgetDebitor debitor;
-        //            private long debitorIndex = NO_DEBITOR_INDEX;
-        //
-        //            private long initialSeq;
-        //            private long initialAck;
-        //            private int initialMax;
-        //            private int initialPad;
-        //
-        //            private long replySeq;
-        //            private long replyAck;
-        //            private int replyMax;
-        //
-        //            private String topicFilter;
-        //
-        //            private int packetId;
-        //
-        //            private int state;
-        //            private int publishOnlyCapabilities;
-        //
-        //            private long sessionExpiresId = NO_CANCEL_ID;
-        //            private long sessionExpiresAt;
-        //
-        //            MqttSessionStream(
-        //                int packetId,
-        //                String topicFilter)
-        //            {
-        //                this.packetId = packetId;
-        //                this.willFlagSet = false;
-        //                this.topicFilter = topicFilter;
-        //                this.topicKey = topicKey(topicFilter);
-        //            }
-        //
-        //            MqttSessionStream(
-        //                long routeId,
-        //                int packetId,
-        //                boolean willFlagSet,
-        //                String topicFilter)
-        //            {
-        //                this.routeId = routeId;
-        //                this.initialId = supplyInitialId.applyAsLong(routeId);
-        //                this.replyId = supplyReplyId.applyAsLong(initialId);
-        //                this.packetId = packetId;
-        //                this.willFlagSet = willFlagSet;
-        //                this.topicFilter = topicFilter;
-        //                this.topicKey = topicKey(topicFilter);
-        //            }
-        //
-        //            private void onApplication(
-        //                int msgTypeId,
-        //                DirectBuffer buffer,
-        //                int index,
-        //                int length)
-        //            {
-        //                switch (msgTypeId)
-        //                {
-        //                case BeginFW.TYPE_ID:
-        //                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        //                    onApplicationBegin(begin);
-        //                    break;
-        //                case DataFW.TYPE_ID:
-        //                    final DataFW data = dataRO.wrap(buffer, index, index + length);
-        //                    onApplicationData(data);
-        //                    break;
-        //                case EndFW.TYPE_ID:
-        //                    final EndFW end = endRO.wrap(buffer, index, index + length);
-        //                    onApplicationEnd(end);
-        //                    break;
-        //                case AbortFW.TYPE_ID:
-        //                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-        //                    onApplicationAbort(abort);
-        //                    break;
-        //                case WindowFW.TYPE_ID:
-        //                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
-        //                    onApplicationWindow(window);
-        //                    break;
-        //                case ResetFW.TYPE_ID:
-        //                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-        //                    onApplicationReset(reset);
-        //                    break;
-        //                case SignalFW.TYPE_ID:
-        //                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-        //                    onApplicationSignal(signal);
-        //                    break;
-        //                }
-        //            }
-        //
-        //            private void onApplicationWindow(
-        //                WindowFW window)
-        //            {
-        //                final long sequence = window.sequence();
-        //                final long acknowledge = window.acknowledge();
-        //                final int maximum = window.maximum();
-        //                final long traceId = window.traceId();
-        //                final long authorization = window.authorization();
-        //                final long budgetId = window.budgetId();
-        //                final int padding = window.padding();
-        //
-        //                if (!MqttState.initialOpened(state))
-        //                {
-        //                    doCancelConnectTimeoutIfNecessary();
-        //                    doEncodeConnack(traceId, authorization, SUCCESS, assignedClientId);
-        //                }
-        //
-        //                this.state = MqttState.openInitial(state);
-        //                this.budgetId = budgetId;
-        //
-        //                assert acknowledge <= sequence;
-        //                assert sequence <= initialSeq;
-        //                assert acknowledge >= initialAck;
-        //                assert maximum + acknowledge >= initialMax + initialAck;
-        //
-        //                initialAck = acknowledge;
-        //                initialMax = maximum;
-        //                initialPad = padding;
-        //
-        //                assert initialAck <= initialSeq;
-        //
-        //                if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
-        //                {
-        //                    debitor = supplyDebitor.apply(budgetId);
-        //                    debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetworkIfNecessary);
-        //                }
-        //
-        //                if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
-        //                {
-        //                    doApplicationEnd(traceId, authorization, EMPTY_OCTETS);
-        //                } else if (decodePublisherKey == topicKey)
-        //                {
-        //                    decodeNetworkIfNecessary(traceId);
-        //                }
-        //            }
-        //
-        //            private void onApplicationReset(
-        //                ResetFW reset)
-        //            {
-        //                final long traceId = reset.traceId();
-        //                final long authorization = reset.authorization();
-        //
-        //                if (!MqttState.initialOpened(state))
-        //                {
-        //                    doCancelConnectTimeoutIfNecessary();
-        //                    doEncodeConnack(traceId, authorization, SUCCESS, assignedClientId);
-        //                    sessionStateUnavailable = true;
-        //                }
-        //
-        //                setInitialClosed();
-        //
-        //                decodeNetworkIfNecessary(traceId);
-        //                cleanup(traceId, authorization);
-        //            }
-        //
-        //            private void onApplicationSignal(
-        //                SignalFW signal)
-        //            {
-        //                final int signalId = signal.signalId();
-        //
-        //                switch (signalId)
-        //                {
-        //                case SESSION_EXPIRY_SIGNAL:
-        //                    onSessionExpiredSignal(signal);
-        //                    break;
-        //                default:
-        //                    break;
-        //                }
-        //            }
-        //
-        //            private void onSessionExpiredSignal(
-        //                SignalFW signal)
-        //            {
-        //                final long traceId = signal.traceId();
-        //                final long authorization = signal.authorization();
-        //                final long now = System.currentTimeMillis();
-        //
-        //                if (MqttState.initialClosing(state) && now >= sessionExpiresAt)
-        //                {
-        //                    doApplicationFlushOrEnd(traceId, authorization, NO_FLAGS, PUBLISH_ONLY);
-        //                } else
-        //                {
-        //                    sessionExpiresId = NO_CANCEL_ID;
-        //                    doSignalSessionExpirationIfNecessary();
-        //                }
-        //            }
-        //
-        //            private void onApplicationBegin(
-        //                BeginFW begin)
-        //            {
-        //                state = MqttState.openReply(state);
-        //
-        //                final long traceId = begin.traceId();
-        //                final long authorization = begin.authorization();
-        //
-        //                doApplicationWindowIfNecessary(traceId, authorization, encodeSlotOffset, encodeBudgetMax);
-        //            }
-        //
-        //            private void onApplicationData(
-        //                DataFW data)
-        //            {
-        //                final long sequence = data.sequence();
-        //                final long acknowledge = data.acknowledge();
-        //                final long traceId = data.traceId();
-        //                final int reserved = data.reserved();
-        //                final long authorization = data.authorization();
-        //                final int flags = data.flags();
-        //                final OctetsFW payload = data.payload();
-        //                final OctetsFW extension = data.extension();
-        //
-        //                assert acknowledge <= sequence;
-        //                assert sequence >= replySeq;
-        //                assert acknowledge <= replyAck;
-        //
-        //                replySeq = sequence + reserved;
-        //                encodeSharedBudget -= reserved;
-        //
-        //                assert replyAck <= replySeq;
-        //
-        //                if (replySeq > replyAck + replyMax)
-        //                {
-        //                    doApplicationReset(traceId, authorization);
-        //                    doNetworkAbort(traceId, authorization);
-        //                } else
-        //                {
-        //                    if (payload != null)
-        //                    {
-        //                        onSessionStateUpdated(payload, extension);
-        //                    }
-        //                    doApplicationWindowIfNecessary(traceId, authorization, encodeSlotOffset, encodeBudgetMax);
-        //                }
-        //            }
-        //
-        //            private void onApplicationEnd(
-        //                EndFW end)
-        //            {
-        //                setReplyClosed();
-        //            }
-        //
-        //            private void onApplicationAbort(
-        //                AbortFW abort)
-        //            {
-        //                setReplyClosed();
-        //
-        //                final long traceId = abort.traceId();
-        //                final long authorization = abort.authorization();
-        //
-        //                cleanup(traceId, authorization);
-        //            }
-        //
-        //            private void doApplicationBeginOrFlush(
-        //                long traceId,
-        //                long authorization,
-        //                long affinity,
-        //                String topicFilter,
-        //                int flags,
-        //                int subscriptionId,
-        //                MqttCapabilities capability)
-        //            {
-        //                final int newCapabilities = publishOnlyCapabilities | capability.value();
-        //                if (!MqttState.initialOpening(state))
-        //                {
-        //                    this.publishOnlyCapabilities = newCapabilities;
-        //                    doApplicationBegin(traceId, authorization, affinity, topicFilter, flags, subscriptionId);
-        //                } else if (newCapabilities != publishOnlyCapabilities)
-        //                {
-        //                    this.publishOnlyCapabilities = newCapabilities;
-        //                    doApplicationFlush(traceId, authorization, 0, flags);
-        //                }
-        //            }
-        //
-        //            private void doApplicationBegin(
-        //                long traceId,
-        //                long authorization,
-        //                long affinity,
-        //                String topicFilter,
-        //                int flags,
-        //                int subscriptionId)
-        //            {
-        //                assert state == 0;
-        //                state = MqttState.openingInitial(state);
-        //
-        //                final MqttBeginExFW beginEx = mqttBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-        //                    .typeId(mqttTypeId)
-        //                    .capabilities(r -> r.set(valueOf(publishOnlyCapabilities)))
-        //                    .clientId(clientId)
-        //                    .topic(topicFilter)
-        //                    .flags(flags)
-        //                    .subscriptionId(subscriptionId)
-        //                    .build();
-        //
-        //                application = newStream(this::onApplication, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, affinity, beginEx);
-        //
-        //                final int topicKey = topicKey(topicFilter);
-        //                final MutableInteger activeStreams = activeStreamsByTopic.computeIfAbsent(topicKey, key -> new MutableInteger());
-        //                activeStreams.value++;
-        //            }
-        //
-        //            private void doApplicationData(
-        //                long traceId,
-        //                long authorization,
-        //                int reserved,
-        //                OctetsFW payload,
-        //                Flyweight extension)
-        //            {
-        //                assert MqttState.initialOpening(state);
-        //
-        //                assert hasPublishCapability(this.publishOnlyCapabilities);
-        //
-        //                final DirectBuffer buffer = payload.buffer();
-        //                final int offset = payload.offset();
-        //                final int limit = payload.limit();
-        //                final int length = limit - offset;
-        //                assert reserved >= length + initialPad;
-        //
-        //                if (MqttState.closed(state))
-        //                {
-        //                    onSessionStateUpdated(payload, extension);
-        //                } else
-        //                {
-        //                    doData(application, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                        traceId, authorization, budgetId, reserved, buffer, offset, length, extension);
-        //
-        //                    initialSeq += reserved;
-        //                    assert initialSeq <= initialAck + initialMax;
-        //                }
-        //            }
-        //
-        //            private void onSessionStateUpdated(
-        //                OctetsFW payload,
-        //                Flyweight extension)
-        //            {
-        //            }
-        //
-        //            private void doSignalSessionExpirationIfNecessary()
-        //            {
-        //                sessionExpiresAt = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(sessionExpiryInterval);
-        //
-        //                if (sessionExpiresId == NO_CANCEL_ID)
-        //                {
-        //                    sessionExpiresId = signaler.signalAt(sessionExpiresAt, routeId, initialId, SESSION_EXPIRY_SIGNAL, 0);
-        //                }
-        //            }
-        //
-        //            private void cleanup(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                doApplicationAbortIfNecessary(traceId, authorization);
-        //                doApplicationResetIfNecessary(traceId, authorization);
-        //            }
-        //
-        //            private void doApplicationFlushOrEnd(
-        //                long traceId,
-        //                long authorization,
-        //                int flags,
-        //                MqttCapabilities capability)
-        //            {
-        //                final int newCapabilities = publishOnlyCapabilities & ~capability.value();
-        //                if (newCapabilities == 0)
-        //                {
-        //                    this.publishOnlyCapabilities = newCapabilities;
-        //                    if (!MqttState.initialOpened(state))
-        //                    {
-        //                        state = MqttState.closingInitial(state);
-        //                    } else
-        //                    {
-        //                        doApplicationEnd(traceId, authorization, EMPTY_OCTETS);
-        //                    }
-        //                } else if (newCapabilities != publishOnlyCapabilities)
-        //                {
-        //                    this.publishOnlyCapabilities = newCapabilities;
-        //                    doApplicationFlush(traceId, authorization, 0, flags);
-        //                }
-        //            }
-        //
-        //            private void doApplicationAbort(
-        //                long traceId,
-        //                long authorization,
-        //                Flyweight extension)
-        //            {
-        //                setInitialClosed();
-        //
-        //                doAbort(application, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, extension);
-        //            }
-        //
-        //            private void doApplicationAbortIfNecessary(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                if (!MqttState.initialClosed(state))
-        //                {
-        //                    doApplicationAbort(traceId, authorization, EMPTY_OCTETS);
-        //                }
-        //            }
-        //
-        //            private void doApplicationEnd(
-        //                long traceId,
-        //                long authorization,
-        //                Flyweight extension)
-        //            {
-        //                setInitialClosed();
-        //                publishOnlyCapabilities = 0;
-        //                streams.remove(topicKey);
-        //
-        //                doEnd(application, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, extension);
-        //            }
-        //
-        //            private void doApplicationWindowIfNecessary(
-        //                long traceId,
-        //                long authorization,
-        //                int minReplyNoAck,
-        //                int minReplyMax)
-        //            {
-        //                if (MqttState.replyOpened(state))
-        //                {
-        //                    doApplicationWindow(traceId, authorization, minReplyNoAck, minReplyMax);
-        //                }
-        //            }
-        //
-        //            private void doApplicationWindow(
-        //                long traceId,
-        //                long authorization,
-        //                int minReplyNoAck,
-        //                int minReplyMax)
-        //            {
-        //                final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
-        //
-        //                if (newReplyAck > replyAck || minReplyMax > replyMax || !MqttState.replyOpened(state))
-        //                {
-        //                    replyAck = newReplyAck;
-        //                    assert replyAck <= replySeq;
-        //
-        //                    replyMax = minReplyMax;
-        //
-        //                    doWindow(application, routeId, replyId, replySeq, replyAck, replyMax,
-        //                        traceId, authorization, encodeBudgetId, PUBLISH_FRAMING);
-        //                }
-        //            }
-        //
-        //            private void doApplicationReset(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                setReplyClosed();
-        //
-        //                doReset(application, routeId, replyId, replySeq, replyAck, replyMax,
-        //                    traceId, authorization, EMPTY_OCTETS);
-        //            }
-        //
-        //            private void doApplicationResetIfNecessary(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                if (!MqttState.replyClosed(state))
-        //                {
-        //                    doApplicationReset(traceId, authorization);
-        //                }
-        //            }
-        //
-        //            private void setReplyClosed()
-        //            {
-        //                assert !MqttState.replyClosed(state);
-        //
-        //                state = MqttState.closeReply(state);
-        //
-        //                if (MqttState.closed(state))
-        //                {
-        //                    publishOnlyCapabilities = 0;
-        //                    streams.remove(topicKey);
-        //                    final MutableInteger count = activeStreamsByTopic.get(topicKey);
-        //
-        //                    assert count != null;
-        //
-        //                    count.value--;
-        //
-        //                    assert count.value >= 0;
-        //
-        //                    if (count.value == 0)
-        //                    {
-        //                        activeStreamsByTopic.remove(topicKey);
-        //                    }
-        //                }
-        //            }
-        //
-        //            private void doApplicationFlush(
-        //                long traceId,
-        //                long authorization,
-        //                int reserved,
-        //                int flags)
-        //            {
-        //                doFlush(application, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, 0L, reserved,
-        //                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
-        //                        .typeId(mqttTypeId)
-        //                        .flags(flags)
-        //                        .capabilities(c -> c.set(valueOf(publishOnlyCapabilities)))
-        //                        .build()
-        //                        .sizeof()));
-        //
-        //                initialSeq += reserved;
-        //                assert initialSeq <= initialAck + initialMax;
-        //            }
-        //
-        //            private void setInitialClosed()
-        //            {
-        //                assert !MqttState.initialClosed(state);
-        //
-        //                state = MqttState.closeInitial(state);
-        //
-        //                if (debitorIndex != NO_DEBITOR_INDEX)
-        //                {
-        //                    debitor.release(debitorIndex, initialId);
-        //                    debitorIndex = NO_DEBITOR_INDEX;
-        //                }
-        //
-        //                if (MqttState.closed(state))
-        //                {
-        //                    publishOnlyCapabilities = 0;
-        //                    streams.remove(topicKey);
-        //
-        //                    final MutableInteger activeStreams = activeStreamsByTopic.get(topicKey);
-        //
-        //                    assert activeStreams != null;
-        //
-        //                    activeStreams.value--;
-        //
-        //                    assert activeStreams.value >= 0;
-        //
-        //                    if (activeStreams.value == 0)
-        //                    {
-        //                        activeStreamsByTopic.remove(topicKey);
-        //                    }
-        //                }
-        //            }
-        //        }
-        //        private class MqttWillStream
-        //        {
-        //            private final int publishOnlyCapabilities = PUBLISH_ONLY.value();
-        //
-        //            private MessageConsumer application;
-        //            private final int topicKey;
-        //
-        //            private long routeId;
-        //            private long initialId;
-        //            private long replyId;
-        //            private long budgetId;
-        //
-        //            private long authorization;
-        //
-        //            private BudgetDebitor debitor;
-        //            private long debitorIndex = NO_DEBITOR_INDEX;
-        //
-        //            private long initialSeq;
-        //            private long initialAck;
-        //            private int initialMax;
-        //            private int initialPad;
-        //
-        //            private long replySeq;
-        //            private long replyAck;
-        //            private int replyMax;
-        //
-        //            private String topicFilter;
-        //
-        //            private MqttDataExFW willMessage;
-        //            private OctetsFW willPayload;
-        //
-        //            private int packetId;
-        //
-        //            private int state;
-        //
-        //            MqttWillStream(
-        //                long routeId,
-        //                long authorization,
-        //                int packetId,
-        //                String topicFilter,
-        //                OctetsFW willPayload,
-        //                MqttDataExFW willMessage)
-        //            {
-        //                this.routeId = routeId;
-        //                this.authorization = authorization;
-        //                this.initialId = supplyInitialId.applyAsLong(routeId);
-        //                this.replyId = supplyReplyId.applyAsLong(initialId);
-        //                this.packetId = packetId;
-        //                this.topicFilter = topicFilter;
-        //                this.topicKey = topicKey(topicFilter);
-        //                this.willPayload = willPayload;
-        //                this.willMessage = encodeWillMessage(topicFilter, willMessage);
-        //            }
-        //
-        //            private void onApplication(
-        //                int msgTypeId,
-        //                DirectBuffer buffer,
-        //                int index,
-        //                int length)
-        //            {
-        //                switch (msgTypeId)
-        //                {
-        //                case BeginFW.TYPE_ID:
-        //                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        //                    onApplicationBegin(begin);
-        //                    break;
-        //                case EndFW.TYPE_ID:
-        //                    final EndFW end = endRO.wrap(buffer, index, index + length);
-        //                    onApplicationEnd(end);
-        //                    break;
-        //                case AbortFW.TYPE_ID:
-        //                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-        //                    onApplicationAbort(abort);
-        //                    break;
-        //                case WindowFW.TYPE_ID:
-        //                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
-        //                    onApplicationWindow(window);
-        //                    break;
-        //                case ResetFW.TYPE_ID:
-        //                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-        //                    onApplicationReset(reset);
-        //                    break;
-        //                }
-        //            }
-        //
-        //            private void onApplicationWindow(
-        //                WindowFW window)
-        //            {
-        //                final long sequence = window.sequence();
-        //                final long acknowledge = window.acknowledge();
-        //                final int maximum = window.maximum();
-        //                final long traceId = window.traceId();
-        //                final long authorization = window.authorization();
-        //                final long budgetId = window.budgetId();
-        //                final int padding = window.padding();
-        //
-        //                assert acknowledge <= sequence;
-        //                assert sequence <= initialSeq;
-        //                assert acknowledge >= initialAck;
-        //                assert maximum + acknowledge >= initialMax + initialAck;
-        //
-        //                this.state = MqttState.openInitial(state);
-        //                this.budgetId = budgetId;
-        //                this.initialAck = acknowledge;
-        //                this.initialMax = maximum;
-        //                this.initialPad = padding;
-        //
-        //                assert initialAck <= initialSeq;
-        //
-        //                if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
-        //                {
-        //                    debitor = supplyDebitor.apply(budgetId);
-        //                    debitorIndex = debitor.acquire(budgetId, initialId, MqttWillStream.this::publishWillMessage);
-        //                }
-        //
-        //                publishWillMessage(traceId);
-        //
-        //                if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
-        //                {
-        //                    doApplicationEnd(traceId, authorization, EMPTY_OCTETS);
-        //                } else if (decodePublisherKey == topicKey)
-        //                {
-        //                    decodeNetworkIfNecessary(traceId);
-        //                }
-        //            }
-        //
-        //            private void onApplicationReset(
-        //                ResetFW reset)
-        //            {
-        //                setInitialClosed();
-        //
-        //                final long traceId = reset.traceId();
-        //                final long authorization = reset.authorization();
-        //
-        //                decodeNetworkIfNecessary(traceId);
-        //                cleanup(traceId, authorization);
-        //            }
-        //
-        //            private void onApplicationBegin(
-        //                BeginFW begin)
-        //            {
-        //                state = MqttState.openReply(state);
-        //
-        //                final long traceId = begin.traceId();
-        //                final long authorization = begin.authorization();
-        //
-        //                doApplicationWindowIfNecessary(traceId, authorization);
-        //            }
-        //
-        //            private void onApplicationEnd(
-        //                EndFW end)
-        //            {
-        //                setReplyClosed();
-        //            }
-        //
-        //            private void onApplicationAbort(
-        //                AbortFW abort)
-        //            {
-        //                setReplyClosed();
-        //
-        //                final long traceId = abort.traceId();
-        //                final long authorization = abort.authorization();
-        //
-        //                cleanup(traceId, authorization);
-        //            }
-        //
-        //            private MqttDataExFW encodeWillMessage(
-        //                String topic,
-        //                MqttDataExFW dataEx)
-        //            {
-        //                final int publishFlags = dataEx.flags() & ~RETAIN_FLAG;
-        //                final int expiryInterval = dataEx.expiryInterval();
-        //                final MqttPayloadFormatFW format = dataEx.format();
-        //                final String16FW contentType = dataEx.contentType();
-        //                final String16FW responseTopic = dataEx.responseTopic();
-        //                final MqttBinaryFW correlation = dataEx.correlation();
-        //                final Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> properties =
-        //                    dataEx.properties();
-        //
-        //                return mqttWillMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
-        //                    .typeId(mqttTypeId)
-        //                    .topic(topic)
-        //                    .flags(publishFlags)
-        //                    .expiryInterval(expiryInterval)
-        //                    .contentType(contentType)
-        //                    .format(format)
-        //                    .responseTopic(responseTopic)
-        //                    .correlation(correlation)
-        //                    .properties(properties)
-        //                    .build();
-        //            }
-        //
-        //            private void doApplicationBegin(
-        //                long traceId,
-        //                long authorization,
-        //                long affinity,
-        //                int flags,
-        //                int subscriptionId)
-        //            {
-        //                assert state == 0;
-        //                state = MqttState.openingInitial(state);
-        //
-        //                final MqttBeginExFW beginEx = mqttWillBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
-        //                    .typeId(mqttTypeId)
-        //                    .capabilities(r -> r.set(valueOf(publishOnlyCapabilities)))
-        //                    .clientId(clientId)
-        //                    .topic(topicFilter)
-        //                    .flags(flags)
-        //                    .subscriptionId(subscriptionId)
-        //                    .build();
-        //
-        //                application = newStream(this::onApplication, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, affinity, beginEx);
-        //
-        //                final int topicKey = topicKey(topicFilter);
-        //                final MutableInteger activeStreams = activeStreamsByTopic.computeIfAbsent(topicKey, key -> new MutableInteger());
-        //                activeStreams.value++;
-        //            }
-        //
-        //            private void doApplicationData(
-        //                long traceId,
-        //                long authorization,
-        //                int reserved,
-        //                int flags,
-        //                OctetsFW payload,
-        //                Flyweight extension)
-        //            {
-        //                assert MqttState.initialOpening(state);
-        //
-        //                assert hasPublishCapability(this.publishOnlyCapabilities);
-        //
-        //                final DirectBuffer buffer = payload.buffer();
-        //                final int offset = payload.offset();
-        //                final int limit = payload.limit();
-        //                final int length = limit - offset;
-        //                assert reserved >= length + initialPad;
-        //
-        //                doData(application, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, budgetId, reserved, flags, buffer, offset, length, extension);
-        //
-        //                initialSeq += reserved;
-        //                assert initialSeq <= initialAck + initialMax;
-        //            }
-        //
-        //            private void cleanup(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                doApplicationAbortIfNecessary(traceId, authorization);
-        //                doApplicationResetIfNecessary(traceId, authorization);
-        //            }
-        //
-        //            private void doApplicationAbort(
-        //                long traceId,
-        //                long authorization,
-        //                Flyweight extension)
-        //            {
-        //                setInitialClosed();
-        //
-        //                doAbort(application, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, extension);
-        //            }
-        //
-        //            private void doApplicationAbortIfNecessary(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                if (!MqttState.initialClosed(state))
-        //                {
-        //                    doApplicationAbort(traceId, authorization, EMPTY_OCTETS);
-        //                }
-        //            }
-        //
-        //            private void doApplicationEnd(
-        //                long traceId,
-        //                long authorization,
-        //                Flyweight extension)
-        //            {
-        //                setInitialClosed();
-        //                streams.remove(topicKey);
-        //                willStream = null;
-        //
-        //                doEnd(application, routeId, initialId, initialSeq, initialAck, initialMax,
-        //                    traceId, authorization, extension);
-        //            }
-        //
-        //            private void doApplicationWindowIfNecessary(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                if (MqttState.replyOpened(state))
-        //                {
-        //                    doWindow(application, routeId, replyId, replySeq, replyAck, replyMax,
-        //                        traceId, authorization, encodeBudgetId, PUBLISH_FRAMING);
-        //                }
-        //            }
-        //
-        //            private void doApplicationReset(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                setReplyClosed();
-        //
-        //                doReset(application, routeId, replyId, replySeq, replyAck, replyMax,
-        //                    traceId, authorization, EMPTY_OCTETS);
-        //            }
-        //
-        //            private void doApplicationResetIfNecessary(
-        //                long traceId,
-        //                long authorization)
-        //            {
-        //                if (!MqttState.replyClosed(state))
-        //                {
-        //                    doApplicationReset(traceId, authorization);
-        //                }
-        //            }
-        //
-        //            private void setReplyClosed()
-        //            {
-        //                assert !MqttState.replyClosed(state);
-        //
-        //                state = MqttState.closeReply(state);
-        //
-        //                if (MqttState.closed(state))
-        //                {
-        //                    streams.remove(topicKey);
-        //                    final MutableInteger count = activeStreamsByTopic.get(topicKey);
-        //
-        //                    assert count != null;
-        //
-        //                    count.value--;
-        //
-        //                    assert count.value >= 0;
-        //
-        //                    if (count.value == 0)
-        //                    {
-        //                        activeStreamsByTopic.remove(topicKey);
-        //                    }
-        //                }
-        //            }
-        //
-        //            private void setInitialClosed()
-        //            {
-        //                assert !MqttState.initialClosed(state);
-        //
-        //                state = MqttState.closeInitial(state);
-        //
-        //                if (debitorIndex != NO_DEBITOR_INDEX)
-        //                {
-        //                    debitor.release(debitorIndex, initialId);
-        //                    debitorIndex = NO_DEBITOR_INDEX;
-        //                }
-        //
-        //                if (MqttState.closed(state))
-        //                {
-        //                    streams.remove(topicKey);
-        //
-        //                    final MutableInteger activeStreams = activeStreamsByTopic.get(topicKey);
-        //
-        //                    assert activeStreams != null;
-        //
-        //                    activeStreams.value--;
-        //
-        //                    assert activeStreams.value >= 0;
-        //
-        //                    if (activeStreams.value == 0)
-        //                    {
-        //                        activeStreamsByTopic.remove(topicKey);
-        //                    }
-        //                }
-        //            }
-        //
-        //            private void publishWillMessage(
-        //                long traceId)
-        //            {
-        //                final OctetsFW payload = willPayload;
-        //                final int payloadSize = payload.sizeof();
-        //
-        //                int reserved = payloadSize + initialPad;
-        //                boolean canPublish = initialSeq + reserved <= initialAck + initialMax;
-        //                int dataFlags = 0x03;
-        //
-        //                if (canPublish && debitorIndex != NO_DEBITOR_INDEX && reserved != 0)
-        //                {
-        //                    final int minimum = reserved; // TODO: fragmentation
-        //                    reserved = debitor.claim(debitorIndex, initialId, minimum, reserved);
-        //
-        //                    if (reserved != minimum)
-        //                    {
-        //                        dataFlags &= ~0x01;
-        //                    }
-        //                }
-        //
-        //                if (canPublish && (reserved != 0 || payloadSize == 0))
-        //                {
-        //                    doApplicationData(traceId, authorization, reserved, dataFlags, payload, willMessage);
-        //
-        //                    if (dataFlags == 0x03)
-        //                    {
-        //                        this.state = MqttState.closingInitial(state);
-        //                    }
-        //                }
-        //            }
-        //        }
+        private class MqttSessionStream
+        {
+            private MessageConsumer application;
+            private final int topicKey;
+            private final boolean willFlagSet;
+
+            private long routeId;
+            private long initialId;
+            private long replyId;
+            private long budgetId;
+
+            private BudgetDebitor debitor;
+            private long debitorIndex = NO_DEBITOR_INDEX;
+
+            private long initialSeq;
+            private long initialAck;
+            private int initialMax;
+            private int initialPad;
+
+            private long replySeq;
+            private long replyAck;
+            private int replyMax;
+
+            private String topicFilter;
+
+            private int packetId;
+
+            private int state;
+            private int publishOnlyCapabilities;
+
+            private long sessionExpiresId = NO_CANCEL_ID;
+            private long sessionExpiresAt;
+
+            MqttSessionStream(
+                int packetId,
+                String topicFilter)
+            {
+                this.packetId = packetId;
+                this.willFlagSet = false;
+                this.topicFilter = topicFilter;
+                this.topicKey = topicKey(topicFilter);
+            }
+
+            MqttSessionStream(
+                long routeId,
+                int packetId,
+                boolean willFlagSet,
+                String topicFilter)
+            {
+                this.routeId = routeId;
+                this.initialId = supplyInitialId.applyAsLong(routeId);
+                this.replyId = supplyReplyId.applyAsLong(initialId);
+                this.packetId = packetId;
+                this.willFlagSet = willFlagSet;
+                this.topicFilter = topicFilter;
+                this.topicKey = topicKey(topicFilter);
+            }
+
+            private void onSessionReply(
+                int msgTypeId,
+                DirectBuffer buffer,
+                int index,
+                int length)
+            {
+                switch (msgTypeId)
+                {
+                case BeginFW.TYPE_ID:
+                    final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+                    onSessionReplyBegin(begin);
+                    break;
+                case DataFW.TYPE_ID:
+                    final DataFW data = dataRO.wrap(buffer, index, index + length);
+                    onSessionReplyData(data);
+                    break;
+                case EndFW.TYPE_ID:
+                    final EndFW end = endRO.wrap(buffer, index, index + length);
+                    onSessionReplyEnd(end);
+                    break;
+                case AbortFW.TYPE_ID:
+                    final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+                    onSessionReplyAbort(abort);
+                    break;
+                case WindowFW.TYPE_ID:
+                    final WindowFW window = windowRO.wrap(buffer, index, index + length);
+                    onSessionReplyWindow(window);
+                    break;
+                case ResetFW.TYPE_ID:
+                    final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+                    onSessionReplyReset(reset);
+                    break;
+                case SignalFW.TYPE_ID:
+                    final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                    onSessionReplySignal(signal);
+                    break;
+                }
+            }
+
+            private void onSessionReplyWindow(
+                WindowFW window)
+            {
+                final long sequence = window.sequence();
+                final long acknowledge = window.acknowledge();
+                final int maximum = window.maximum();
+                final long traceId = window.traceId();
+                final long authorization = window.authorization();
+                final long budgetId = window.budgetId();
+                final int padding = window.padding();
+
+                if (!MqttState.initialOpened(state))
+                {
+                    doCancelConnectTimeoutIfNecessary();
+                    doEncodeConnack(traceId, authorization, SUCCESS, assignedClientId);
+                }
+
+                this.state = MqttState.openInitial(state);
+                this.budgetId = budgetId;
+
+                assert acknowledge <= sequence;
+                assert sequence <= initialSeq;
+                assert acknowledge >= initialAck;
+                assert maximum + acknowledge >= initialMax + initialAck;
+
+                initialAck = acknowledge;
+                initialMax = maximum;
+                initialPad = padding;
+
+                assert initialAck <= initialSeq;
+
+                if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
+                {
+                    debitor = supplyDebitor.apply(budgetId);
+                    debitorIndex = debitor.acquire(budgetId, initialId, MqttServer.this::decodeNetworkIfNecessary);
+                }
+
+                if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
+                {
+                    doApplicationEnd(traceId, authorization, EMPTY_OCTETS);
+                } else if (decodePublisherKey == topicKey)
+                {
+                    decodeNetworkIfNecessary(traceId);
+                }
+            }
+
+            private void onSessionReplyReset(
+                ResetFW reset)
+            {
+                final long traceId = reset.traceId();
+                final long authorization = reset.authorization();
+
+                if (!MqttState.initialOpened(state))
+                {
+                    doCancelConnectTimeoutIfNecessary();
+                    doEncodeConnack(traceId, authorization, SUCCESS, assignedClientId);
+                    sessionStateUnavailable = true;
+                }
+
+                setInitialClosed();
+
+                decodeNetworkIfNecessary(traceId);
+                cleanup(traceId, authorization);
+            }
+
+            private void onSessionReplySignal(
+                SignalFW signal)
+            {
+                final int signalId = signal.signalId();
+
+                switch (signalId)
+                {
+                case SESSION_EXPIRY_SIGNAL:
+                    onSessionExpiredSignal(signal);
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            private void onSessionExpiredSignal(
+                SignalFW signal)
+            {
+                final long traceId = signal.traceId();
+                final long authorization = signal.authorization();
+                final long now = System.currentTimeMillis();
+
+                if (MqttState.initialClosing(state) && now >= sessionExpiresAt)
+                {
+                    doApplicationFlushOrEnd(traceId, authorization, NO_FLAGS, PUBLISH_ONLY);
+                } else
+                {
+                    sessionExpiresId = NO_CANCEL_ID;
+                    doSignalSessionExpirationIfNecessary();
+                }
+            }
+
+            private void onSessionReplyBegin(
+                BeginFW begin)
+            {
+                state = MqttState.openReply(state);
+
+                final long traceId = begin.traceId();
+                final long authorization = begin.authorization();
+
+                doApplicationWindowIfNecessary(traceId, authorization, encodeSlotOffset, encodeBudgetMax);
+            }
+
+            private void onSessionReplyData(
+                DataFW data)
+            {
+                final long sequence = data.sequence();
+                final long acknowledge = data.acknowledge();
+                final long traceId = data.traceId();
+                final int reserved = data.reserved();
+                final long authorization = data.authorization();
+                final int flags = data.flags();
+                final OctetsFW payload = data.payload();
+                final OctetsFW extension = data.extension();
+
+                assert acknowledge <= sequence;
+                assert sequence >= replySeq;
+                assert acknowledge <= replyAck;
+
+                replySeq = sequence + reserved;
+                encodeSharedBudget -= reserved;
+
+                assert replyAck <= replySeq;
+
+                if (replySeq > replyAck + replyMax)
+                {
+                    doApplicationReset(traceId, authorization);
+                    doNetworkAbort(traceId, authorization);
+                } else
+                {
+                    if (payload != null)
+                    {
+                        onSessionStateUpdated(payload, extension);
+                    }
+                    doApplicationWindowIfNecessary(traceId, authorization, encodeSlotOffset, encodeBudgetMax);
+                }
+            }
+
+            private void onSessionReplyEnd(
+                EndFW end)
+            {
+                setReplyClosed();
+            }
+
+            private void onSessionReplyAbort(
+                AbortFW abort)
+            {
+                setReplyClosed();
+
+                final long traceId = abort.traceId();
+                final long authorization = abort.authorization();
+
+                cleanup(traceId, authorization);
+            }
+
+            private void doApplicationBeginOrFlush(
+                long traceId,
+                long authorization,
+                long affinity,
+                String topicFilter,
+                int flags,
+                int subscriptionId)
+            {
+                final int newCapabilities = publishOnlyCapabilities | capability.value();
+                if (!MqttState.initialOpening(state))
+                {
+                    this.publishOnlyCapabilities = newCapabilities;
+                    doApplicationBegin(traceId, authorization, affinity, topicFilter, flags, subscriptionId);
+                } else if (newCapabilities != publishOnlyCapabilities)
+                {
+                    this.publishOnlyCapabilities = newCapabilities;
+                    doApplicationFlush(traceId, authorization, 0, flags);
+                }
+            }
+
+            private void doApplicationBegin(
+                long traceId,
+                long authorization,
+                long affinity,
+                String topicFilter,
+                int flags,
+                int subscriptionId)
+            {
+                assert state == 0;
+                state = MqttState.openingInitial(state);
+
+                final MqttBeginExFW beginEx = mqttBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .capabilities(r -> r.set(valueOf(publishOnlyCapabilities)))
+                    .clientId(clientId)
+                    .topic(topicFilter)
+                    .flags(flags)
+                    .subscriptionId(subscriptionId)
+                    .build();
+
+                application = newStream(this::onSessionReply, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, affinity, beginEx);
+
+                final int topicKey = topicKey(topicFilter);
+                final MutableInteger activeStreams = activeStreamsByTopic.computeIfAbsent(topicKey, key -> new MutableInteger());
+                activeStreams.value++;
+            }
+
+            private void doApplicationData(
+                long traceId,
+                long authorization,
+                int reserved,
+                OctetsFW payload,
+                Flyweight extension)
+            {
+                assert MqttState.initialOpening(state);
+
+                assert hasPublishCapability(this.publishOnlyCapabilities);
+
+                final DirectBuffer buffer = payload.buffer();
+                final int offset = payload.offset();
+                final int limit = payload.limit();
+                final int length = limit - offset;
+                assert reserved >= length + initialPad;
+
+                if (MqttState.closed(state))
+                {
+                    onSessionStateUpdated(payload, extension);
+                } else
+                {
+                    doData(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                        traceId, authorization, budgetId, reserved, buffer, offset, length, extension);
+
+                    initialSeq += reserved;
+                    assert initialSeq <= initialAck + initialMax;
+                }
+            }
+
+            private void onSessionStateUpdated(
+                OctetsFW payload,
+                Flyweight extension)
+            {
+            }
+
+            private void doSignalSessionExpirationIfNecessary()
+            {
+                sessionExpiresAt = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(sessionExpiryInterval);
+
+                if (sessionExpiresId == NO_CANCEL_ID)
+                {
+                    sessionExpiresId = signaler.signalAt(sessionExpiresAt, routeId, initialId, SESSION_EXPIRY_SIGNAL, 0);
+                }
+            }
+
+            private void cleanup(
+                long traceId,
+                long authorization)
+            {
+                doApplicationAbortIfNecessary(traceId, authorization);
+                doApplicationResetIfNecessary(traceId, authorization);
+            }
+
+            private void doApplicationFlushOrEnd(
+                long traceId,
+                long authorization,
+                int flags,
+                MqttCapabilities capability)
+            {
+                final int newCapabilities = publishOnlyCapabilities & ~capability.value();
+                if (newCapabilities == 0)
+                {
+                    this.publishOnlyCapabilities = newCapabilities;
+                    if (!MqttState.initialOpened(state))
+                    {
+                        state = MqttState.closingInitial(state);
+                    } else
+                    {
+                        doApplicationEnd(traceId, authorization, EMPTY_OCTETS);
+                    }
+                } else if (newCapabilities != publishOnlyCapabilities)
+                {
+                    this.publishOnlyCapabilities = newCapabilities;
+                    doApplicationFlush(traceId, authorization, 0, flags);
+                }
+            }
+
+            private void doApplicationAbort(
+                long traceId,
+                long authorization,
+                Flyweight extension)
+            {
+                setInitialClosed();
+
+                doAbort(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, extension);
+            }
+
+            private void doApplicationAbortIfNecessary(
+                long traceId,
+                long authorization)
+            {
+                if (!MqttState.initialClosed(state))
+                {
+                    doApplicationAbort(traceId, authorization, EMPTY_OCTETS);
+                }
+            }
+
+            private void doApplicationEnd(
+                long traceId,
+                long authorization,
+                Flyweight extension)
+            {
+                setInitialClosed();
+                publishOnlyCapabilities = 0;
+                streams.remove(topicKey);
+
+                doEnd(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, extension);
+            }
+
+            private void doApplicationWindowIfNecessary(
+                long traceId,
+                long authorization,
+                int minReplyNoAck,
+                int minReplyMax)
+            {
+                if (MqttState.replyOpened(state))
+                {
+                    doApplicationWindow(traceId, authorization, minReplyNoAck, minReplyMax);
+                }
+            }
+
+            private void doApplicationWindow(
+                long traceId,
+                long authorization,
+                int minReplyNoAck,
+                int minReplyMax)
+            {
+                final long newReplyAck = Math.max(replySeq - minReplyNoAck, replyAck);
+
+                if (newReplyAck > replyAck || minReplyMax > replyMax || !MqttState.replyOpened(state))
+                {
+                    replyAck = newReplyAck;
+                    assert replyAck <= replySeq;
+
+                    replyMax = minReplyMax;
+
+                    doWindow(application, routeId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, encodeBudgetId, PUBLISH_FRAMING);
+                }
+            }
+
+            private void doApplicationReset(
+                long traceId,
+                long authorization)
+            {
+                setReplyClosed();
+
+                doReset(application, routeId, replyId, replySeq, replyAck, replyMax,
+                    traceId, authorization, EMPTY_OCTETS);
+            }
+
+            private void doApplicationResetIfNecessary(
+                long traceId,
+                long authorization)
+            {
+                if (!MqttState.replyClosed(state))
+                {
+                    doApplicationReset(traceId, authorization);
+                }
+            }
+
+            private void setReplyClosed()
+            {
+                assert !MqttState.replyClosed(state);
+
+                state = MqttState.closeReply(state);
+
+                if (MqttState.closed(state))
+                {
+                    publishOnlyCapabilities = 0;
+                    streams.remove(topicKey);
+                    final MutableInteger count = activeStreamsByTopic.get(topicKey);
+
+                    assert count != null;
+
+                    count.value--;
+
+                    assert count.value >= 0;
+
+                    if (count.value == 0)
+                    {
+                        activeStreamsByTopic.remove(topicKey);
+                    }
+                }
+            }
+
+            private void doApplicationFlush(
+                long traceId,
+                long authorization,
+                int reserved,
+                int flags)
+            {
+                doFlush(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                    traceId, authorization, 0L, reserved,
+                    ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
+                        .typeId(mqttTypeId)
+                        .flags(flags)
+                        .capabilities(c -> c.set(valueOf(publishOnlyCapabilities)))
+                        .build()
+                        .sizeof()));
+
+                initialSeq += reserved;
+                assert initialSeq <= initialAck + initialMax;
+            }
+
+            private void setInitialClosed()
+            {
+                assert !MqttState.initialClosed(state);
+
+                state = MqttState.closeInitial(state);
+
+                if (debitorIndex != NO_DEBITOR_INDEX)
+                {
+                    debitor.release(debitorIndex, initialId);
+                    debitorIndex = NO_DEBITOR_INDEX;
+                }
+
+                if (MqttState.closed(state))
+                {
+                    publishOnlyCapabilities = 0;
+                    streams.remove(topicKey);
+
+                    final MutableInteger activeStreams = activeStreamsByTopic.get(topicKey);
+
+                    assert activeStreams != null;
+
+                    activeStreams.value--;
+
+                    assert activeStreams.value >= 0;
+
+                    if (activeStreams.value == 0)
+                    {
+                        activeStreamsByTopic.remove(topicKey);
+                    }
+                }
+            }
+        }
+//                private class MqttWillStream
+//                {
+//                    private final int publishOnlyCapabilities = PUBLISH_ONLY.value();
+//
+//                    private MessageConsumer application;
+//                    private final int topicKey;
+//
+//                    private long routeId;
+//                    private long initialId;
+//                    private long replyId;
+//                    private long budgetId;
+//
+//                    private long authorization;
+//
+//                    private BudgetDebitor debitor;
+//                    private long debitorIndex = NO_DEBITOR_INDEX;
+//
+//                    private long initialSeq;
+//                    private long initialAck;
+//                    private int initialMax;
+//                    private int initialPad;
+//
+//                    private long replySeq;
+//                    private long replyAck;
+//                    private int replyMax;
+//
+//                    private String topicFilter;
+//
+//                    private MqttDataExFW willMessage;
+//                    private OctetsFW willPayload;
+//
+//                    private int packetId;
+//
+//                    private int state;
+//
+//                    MqttWillStream(
+//                        long routeId,
+//                        long authorization,
+//                        int packetId,
+//                        String topicFilter,
+//                        OctetsFW willPayload,
+//                        MqttDataExFW willMessage)
+//                    {
+//                        this.routeId = routeId;
+//                        this.authorization = authorization;
+//                        this.initialId = supplyInitialId.applyAsLong(routeId);
+//                        this.replyId = supplyReplyId.applyAsLong(initialId);
+//                        this.packetId = packetId;
+//                        this.topicFilter = topicFilter;
+//                        this.topicKey = topicKey(topicFilter);
+//                        this.willPayload = willPayload;
+//                        this.willMessage = encodeWillMessage(topicFilter, willMessage);
+//                    }
+//
+//                    private void onApplication(
+//                        int msgTypeId,
+//                        DirectBuffer buffer,
+//                        int index,
+//                        int length)
+//                    {
+//                        switch (msgTypeId)
+//                        {
+//                        case BeginFW.TYPE_ID:
+//                            final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+//                            onApplicationBegin(begin);
+//                            break;
+//                        case EndFW.TYPE_ID:
+//                            final EndFW end = endRO.wrap(buffer, index, index + length);
+//                            onApplicationEnd(end);
+//                            break;
+//                        case AbortFW.TYPE_ID:
+//                            final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+//                            onApplicationAbort(abort);
+//                            break;
+//                        case WindowFW.TYPE_ID:
+//                            final WindowFW window = windowRO.wrap(buffer, index, index + length);
+//                            onApplicationWindow(window);
+//                            break;
+//                        case ResetFW.TYPE_ID:
+//                            final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+//                            onApplicationReset(reset);
+//                            break;
+//                        }
+//                    }
+//
+//                    private void onApplicationWindow(
+//                        WindowFW window)
+//                    {
+//                        final long sequence = window.sequence();
+//                        final long acknowledge = window.acknowledge();
+//                        final int maximum = window.maximum();
+//                        final long traceId = window.traceId();
+//                        final long authorization = window.authorization();
+//                        final long budgetId = window.budgetId();
+//                        final int padding = window.padding();
+//
+//                        assert acknowledge <= sequence;
+//                        assert sequence <= initialSeq;
+//                        assert acknowledge >= initialAck;
+//                        assert maximum + acknowledge >= initialMax + initialAck;
+//
+//                        this.state = MqttState.openInitial(state);
+//                        this.budgetId = budgetId;
+//                        this.initialAck = acknowledge;
+//                        this.initialMax = maximum;
+//                        this.initialPad = padding;
+//
+//                        assert initialAck <= initialSeq;
+//
+//                        if (budgetId != 0L && debitorIndex == NO_DEBITOR_INDEX)
+//                        {
+//                            debitor = supplyDebitor.apply(budgetId);
+//                            debitorIndex = debitor.acquire(budgetId, initialId, MqttWillStream.this::publishWillMessage);
+//                        }
+//
+//                        publishWillMessage(traceId);
+//
+//                        if (MqttState.initialClosing(state) && !MqttState.initialClosed(state))
+//                        {
+//                            doApplicationEnd(traceId, authorization, EMPTY_OCTETS);
+//                        } else if (decodePublisherKey == topicKey)
+//                        {
+//                            decodeNetworkIfNecessary(traceId);
+//                        }
+//                    }
+//
+//                    private void onApplicationReset(
+//                        ResetFW reset)
+//                    {
+//                        setInitialClosed();
+//
+//                        final long traceId = reset.traceId();
+//                        final long authorization = reset.authorization();
+//
+//                        decodeNetworkIfNecessary(traceId);
+//                        cleanup(traceId, authorization);
+//                    }
+//
+//                    private void onApplicationBegin(
+//                        BeginFW begin)
+//                    {
+//                        state = MqttState.openReply(state);
+//
+//                        final long traceId = begin.traceId();
+//                        final long authorization = begin.authorization();
+//
+//                        doApplicationWindowIfNecessary(traceId, authorization);
+//                    }
+//
+//                    private void onApplicationEnd(
+//                        EndFW end)
+//                    {
+//                        setReplyClosed();
+//                    }
+//
+//                    private void onApplicationAbort(
+//                        AbortFW abort)
+//                    {
+//                        setReplyClosed();
+//
+//                        final long traceId = abort.traceId();
+//                        final long authorization = abort.authorization();
+//
+//                        cleanup(traceId, authorization);
+//                    }
+//
+//                    private MqttDataExFW encodeWillMessage(
+//                        String topic,
+//                        MqttDataExFW dataEx)
+//                    {
+//                        final int publishFlags = dataEx.flags() & ~RETAIN_FLAG;
+//                        final int expiryInterval = dataEx.expiryInterval();
+//                        final MqttPayloadFormatFW format = dataEx.format();
+//                        final String16FW contentType = dataEx.contentType();
+//                        final String16FW responseTopic = dataEx.responseTopic();
+//                        final MqttBinaryFW correlation = dataEx.correlation();
+//                        final Array32FW<io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttUserPropertyFW> properties =
+//                            dataEx.properties();
+//
+//                        return mqttWillMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+//                            .typeId(mqttTypeId)
+//                            .topic(topic)
+//                            .flags(publishFlags)
+//                            .expiryInterval(expiryInterval)
+//                            .contentType(contentType)
+//                            .format(format)
+//                            .responseTopic(responseTopic)
+//                            .correlation(correlation)
+//                            .properties(properties)
+//                            .build();
+//                    }
+//
+//                    private void doApplicationBegin(
+//                        long traceId,
+//                        long authorization,
+//                        long affinity,
+//                        int flags,
+//                        int subscriptionId)
+//                    {
+//                        assert state == 0;
+//                        state = MqttState.openingInitial(state);
+//
+//                        final MqttBeginExFW beginEx = mqttWillBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
+//                            .typeId(mqttTypeId)
+//                            .capabilities(r -> r.set(valueOf(publishOnlyCapabilities)))
+//                            .clientId(clientId)
+//                            .topic(topicFilter)
+//                            .flags(flags)
+//                            .subscriptionId(subscriptionId)
+//                            .build();
+//
+//                        application = newStream(this::onApplication, routeId, initialId, initialSeq, initialAck, initialMax,
+//                            traceId, authorization, affinity, beginEx);
+//
+//                        final int topicKey = topicKey(topicFilter);
+//                        final MutableInteger activeStreams = activeStreamsByTopic.computeIfAbsent(topicKey, key -> new MutableInteger());
+//                        activeStreams.value++;
+//                    }
+//
+//                    private void doApplicationData(
+//                        long traceId,
+//                        long authorization,
+//                        int reserved,
+//                        int flags,
+//                        OctetsFW payload,
+//                        Flyweight extension)
+//                    {
+//                        assert MqttState.initialOpening(state);
+//
+//                        assert hasPublishCapability(this.publishOnlyCapabilities);
+//
+//                        final DirectBuffer buffer = payload.buffer();
+//                        final int offset = payload.offset();
+//                        final int limit = payload.limit();
+//                        final int length = limit - offset;
+//                        assert reserved >= length + initialPad;
+//
+//                        doData(application, routeId, initialId, initialSeq, initialAck, initialMax,
+//                            traceId, authorization, budgetId, reserved, flags, buffer, offset, length, extension);
+//
+//                        initialSeq += reserved;
+//                        assert initialSeq <= initialAck + initialMax;
+//                    }
+//
+//                    private void cleanup(
+//                        long traceId,
+//                        long authorization)
+//                    {
+//                        doApplicationAbortIfNecessary(traceId, authorization);
+//                        doApplicationResetIfNecessary(traceId, authorization);
+//                    }
+//
+//                    private void doApplicationAbort(
+//                        long traceId,
+//                        long authorization,
+//                        Flyweight extension)
+//                    {
+//                        setInitialClosed();
+//
+//                        doAbort(application, routeId, initialId, initialSeq, initialAck, initialMax,
+//                            traceId, authorization, extension);
+//                    }
+//
+//                    private void doApplicationAbortIfNecessary(
+//                        long traceId,
+//                        long authorization)
+//                    {
+//                        if (!MqttState.initialClosed(state))
+//                        {
+//                            doApplicationAbort(traceId, authorization, EMPTY_OCTETS);
+//                        }
+//                    }
+//
+//                    private void doApplicationEnd(
+//                        long traceId,
+//                        long authorization,
+//                        Flyweight extension)
+//                    {
+//                        setInitialClosed();
+//                        streams.remove(topicKey);
+//                        willStream = null;
+//
+//                        doEnd(application, routeId, initialId, initialSeq, initialAck, initialMax,
+//                            traceId, authorization, extension);
+//                    }
+//
+//                    private void doApplicationWindowIfNecessary(
+//                        long traceId,
+//                        long authorization)
+//                    {
+//                        if (MqttState.replyOpened(state))
+//                        {
+//                            doWindow(application, routeId, replyId, replySeq, replyAck, replyMax,
+//                                traceId, authorization, encodeBudgetId, PUBLISH_FRAMING);
+//                        }
+//                    }
+//
+//                    private void doApplicationReset(
+//                        long traceId,
+//                        long authorization)
+//                    {
+//                        setReplyClosed();
+//
+//                        doReset(application, routeId, replyId, replySeq, replyAck, replyMax,
+//                            traceId, authorization, EMPTY_OCTETS);
+//                    }
+//
+//                    private void doApplicationResetIfNecessary(
+//                        long traceId,
+//                        long authorization)
+//                    {
+//                        if (!MqttState.replyClosed(state))
+//                        {
+//                            doApplicationReset(traceId, authorization);
+//                        }
+//                    }
+//
+//                    private void setReplyClosed()
+//                    {
+//                        assert !MqttState.replyClosed(state);
+//
+//                        state = MqttState.closeReply(state);
+//
+//                        if (MqttState.closed(state))
+//                        {
+//                            streams.remove(topicKey);
+//                            final MutableInteger count = activeStreamsByTopic.get(topicKey);
+//
+//                            assert count != null;
+//
+//                            count.value--;
+//
+//                            assert count.value >= 0;
+//
+//                            if (count.value == 0)
+//                            {
+//                                activeStreamsByTopic.remove(topicKey);
+//                            }
+//                        }
+//                    }
+//
+//                    private void setInitialClosed()
+//                    {
+//                        assert !MqttState.initialClosed(state);
+//
+//                        state = MqttState.closeInitial(state);
+//
+//                        if (debitorIndex != NO_DEBITOR_INDEX)
+//                        {
+//                            debitor.release(debitorIndex, initialId);
+//                            debitorIndex = NO_DEBITOR_INDEX;
+//                        }
+//
+//                        if (MqttState.closed(state))
+//                        {
+//                            streams.remove(topicKey);
+//
+//                            final MutableInteger activeStreams = activeStreamsByTopic.get(topicKey);
+//
+//                            assert activeStreams != null;
+//
+//                            activeStreams.value--;
+//
+//                            assert activeStreams.value >= 0;
+//
+//                            if (activeStreams.value == 0)
+//                            {
+//                                activeStreamsByTopic.remove(topicKey);
+//                            }
+//                        }
+//                    }
+//
+//                    private void publishWillMessage(
+//                        long traceId)
+//                    {
+//                        final OctetsFW payload = willPayload;
+//                        final int payloadSize = payload.sizeof();
+//
+//                        int reserved = payloadSize + initialPad;
+//                        boolean canPublish = initialSeq + reserved <= initialAck + initialMax;
+//                        int dataFlags = 0x03;
+//
+//                        if (canPublish && debitorIndex != NO_DEBITOR_INDEX && reserved != 0)
+//                        {
+//                            final int minimum = reserved; // TODO: fragmentation
+//                            reserved = debitor.claim(debitorIndex, initialId, minimum, reserved);
+//
+//                            if (reserved != minimum)
+//                            {
+//                                dataFlags &= ~0x01;
+//                            }
+//                        }
+//
+//                        if (canPublish && (reserved != 0 || payloadSize == 0))
+//                        {
+//                            doApplicationData(traceId, authorization, reserved, dataFlags, payload, willMessage);
+//
+//                            if (dataFlags == 0x03)
+//                            {
+//                                this.state = MqttState.closingInitial(state);
+//                            }
+//                        }
+//                    }
+//                }
 
         private class MqttPublishStream
         {
@@ -4165,7 +4210,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     })
                     .build();
 
-                application = newStream(this::onApplication, routeId, initialId, initialSeq, initialAck, initialMax,
+                application = newStream(this::onSubscribeReply, routeId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, beginEx);
 
                 doSubscribeReplyWindow(traceId, authorization, 0, 0);
@@ -4298,7 +4343,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 }
             }
 
-            private void onApplication(
+            private void onSubscribeReply(
                 int msgTypeId,
                 DirectBuffer buffer,
                 int index,

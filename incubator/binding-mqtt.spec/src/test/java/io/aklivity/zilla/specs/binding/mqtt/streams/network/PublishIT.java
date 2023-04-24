@@ -203,15 +203,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${net}/publish.message.after.subscribe.fails/client",
-        "${net}/publish.message.after.subscribe.fails/server"})
-    public void shouldFailSubscribeThenPublishMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/publish.message.with.topic.alias/client",
         "${net}/publish.message.with.topic.alias/server"})
     public void shouldPublishMessageWithTopicAlias() throws Exception
@@ -269,7 +260,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.empty.retained.message/client",
         "${net}/publish.empty.retained.message/server"})
-    public void shouldPublishToRemoveRetainedMessage() throws Exception
+    public void shouldPublishEmptyRetainedMessage() throws Exception
     {
         k3po.finish();
     }

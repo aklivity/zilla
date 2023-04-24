@@ -46,4 +46,4 @@ write [0xe0 0x02]                                   # DISCONNECT
       [0x9e]                                        # shared subscription unavailable
       [0x00]                                        # properties = none
 
-write abort
+write close

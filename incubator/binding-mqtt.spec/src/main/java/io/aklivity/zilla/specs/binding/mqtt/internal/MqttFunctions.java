@@ -324,7 +324,7 @@ public final class MqttFunctions
                 String... flags)
             {
                 int subscribeFlags = Arrays.stream(flags)
-                    .mapToInt(flag -> 1 << MqttPublishFlags.valueOf(flag).ordinal())
+                    .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
                     .reduce(0, (a, b) -> a | b);
 
                 subscribeDataExRW.flags(subscribeFlags);

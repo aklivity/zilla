@@ -58,9 +58,8 @@ public class SessionIT
     @Rule
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
-
     @Test
-    @Configuration("server.when.topic.or.sessions.yaml")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/session.connect.with.session.expiry/client",
         "${app}/session.connect.with.session.expiry/server"})

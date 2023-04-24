@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.RETAIN_AVAILABLE;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_EXPIRY_GRACE_PERIOD;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_EXPIRY_INTERVAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SHARED_SUBSCRIPTION_AVAILABLE;
@@ -42,6 +43,7 @@ public class MqttConfigurationTest
     public static final String WILDCARD_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.wildcard.subscription.available";
     public static final String SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME = "zilla.binding.mqtt.subscription.identifiers.available";
     public static final String SHARED_SUBSCRIPTION_AVAILABLE_NAME = "zilla.binding.mqtt.shared.subscription.available";
+    public static final String SESSION_AVAILABLE_NAME = "zilla.binding.mqtt.session.available";
     public static final String NO_LOCAL_NAME = "zilla.binding.mqtt.no.local";
     public static final String SESSION_EXPIRY_GRACE_PERIOD_NAME = "zilla.binding.mqtt.session.expiry.grace.period";
     public static final String CLIENT_ID_NAME = "zilla.binding.mqtt.client.id";
@@ -58,6 +60,7 @@ public class MqttConfigurationTest
         assertEquals(WILDCARD_SUBSCRIPTION_AVAILABLE.name(), WILDCARD_SUBSCRIPTION_AVAILABLE_NAME);
         assertEquals(SUBSCRIPTION_IDENTIFIERS_AVAILABLE.name(), SUBSCRIPTION_IDENTIFIERS_AVAILABLE_NAME);
         assertEquals(SHARED_SUBSCRIPTION_AVAILABLE.name(), SHARED_SUBSCRIPTION_AVAILABLE_NAME);
+        assertEquals(SESSION_AVAILABLE.name(), SESSION_AVAILABLE_NAME);
         assertEquals(NO_LOCAL.name(), NO_LOCAL_NAME);
         assertEquals(SESSION_EXPIRY_GRACE_PERIOD.name(), SESSION_EXPIRY_GRACE_PERIOD_NAME);
         assertEquals(CLIENT_ID.name(), CLIENT_ID_NAME);

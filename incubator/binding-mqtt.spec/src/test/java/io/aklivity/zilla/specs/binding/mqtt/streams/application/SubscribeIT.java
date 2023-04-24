@@ -202,7 +202,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
-    public void shouldPublishMessageAndSubscribeCorrelatedMessage() throws Exception
+    public void shouldReceiveCorrelationDataAfterSendingSubscribe() throws Exception
     {
         k3po.finish();
     }

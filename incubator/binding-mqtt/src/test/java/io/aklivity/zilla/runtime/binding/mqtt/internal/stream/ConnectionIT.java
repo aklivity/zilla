@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.CONNECT_TIMEOUT_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.RETAIN_AVAILABLE_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
@@ -64,11 +65,12 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.successful/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldExchangeConnectAndConnackPackets() throws Exception
+    public void shouldConnect() throws Exception
     {
         k3po.finish();
     }
@@ -77,11 +79,12 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.server.assigned.client.id/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldExchangeConnectAndConnackPacketsWithServerAssignedClientId() throws Exception
+    public void shouldConnectWithServerAssignedClientId() throws Exception
     {
         k3po.finish();
     }
@@ -90,6 +93,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.missing.client.id/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -103,11 +107,12 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/disconnect/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldExchangeConnectionPacketsThenDisconnect() throws Exception
+    public void shouldConnectThenDisconnect() throws Exception
     {
         k3po.finish();
     }
@@ -116,11 +121,12 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.invalid.protocol.version/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectInvalidMqttProtocolVersion() throws Exception
+    public void shouldRejectInvalidProtocolVersion() throws Exception
     {
         k3po.finish();
     }
@@ -129,6 +135,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.invalid.flags/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -142,6 +149,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.invalid.authentication.method/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -154,7 +162,8 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/disconnect.invalid.fixed.header.flags/client"})
+        "${net}/disconnect.reject.invalid.fixed.header.flags/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -169,6 +178,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.second.connect/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -182,19 +192,36 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.successful.fragmented/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldProcessFragmentedConnectPacket() throws Exception
+    public void shouldConnectFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.1.0-1]
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/connect.reject.other.packet.before.connect/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
+    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
+    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
+    public void shouldRejectOtherPacketBeforeConnect() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("server.when.topic.publish.only.yaml")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.topic.alias.maximum.repeated/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -209,6 +236,7 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.close/client",
         "${app}/client.sent.abort/server"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -223,6 +251,7 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.abort/client",
         "${app}/client.sent.abort/server"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -237,6 +266,7 @@ public class ConnectionIT
     @Specification({
         "${net}/client.sent.reset/client",
         "${app}/client.sent.abort/server"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -250,6 +280,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/disconnect.after.keep.alive.timeout/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -263,6 +294,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.timeout.before.connect/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     @Configure(name = CONNECT_TIMEOUT_NAME, value = "1")
     public void shouldTimeoutBeforeConnect() throws Exception
@@ -275,6 +307,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.maximum.qos.0/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldConnectWithMaximumQos0() throws Exception
@@ -285,13 +318,14 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/connect.retain.unavailable/client"})
+        "${net}/connect.retain.not.supported/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = RETAIN_AVAILABLE_NAME, value = "false")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldConnectWithNoRetain() throws Exception
+    public void shouldConnectWithRetainNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -301,10 +335,11 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.username.not.authorized/client"})
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectConnectWithUsername() throws Exception
+    public void shouldRejectConnectWithUsernameNotAuthorized() throws Exception
     {
         k3po.finish();
     }
@@ -313,11 +348,12 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.reject.password.not.authorized/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectConnectWithPassword() throws Exception
+    public void shouldRejectConnectWithPasswordNotAuthorized() throws Exception
     {
         k3po.finish();
     }
@@ -326,6 +362,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.will.invalid.will.qos/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -352,6 +389,7 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.will.reject.will.qos.2.without.will.flag/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
@@ -365,55 +403,12 @@ public class ConnectionIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/connect.will.reject.will.retain.without.will.flag/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     public void shouldRejectWillRetainWithoutWillFlag() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.topic.or.sessions.yaml")
-    @Specification({
-        "${net}/connect.will.message.with.abrupt.disconnect/client",
-        "${app}/connect.will.message.with.abrupt.disconnect/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldPublishWillMessageAfterAbruptClientDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.when.topic.or.sessions.yaml")
-    @Specification({
-        "${net}/connect.will.message.with.normal.disconnect/client",
-        "${app}/connect.will.message.with.normal.disconnect/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldNotPublishWillMessageAfterNormalClientDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    //TODO: can this be deleted? I think in the current form, this scenario is not valid
-    // If the first connection is rejected, the will topic won't be populated, hence the publish on app side cannot happen
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${net}/connect.with.will.message.then.publish.one.message/client",
-        "${app}/connect.with.will.message.then.publish.one.message/server"})
-    @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
-    @Configure(name = MAXIMUM_QOS_NAME, value = "2")
-    @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldConnectWithWillMessageThenPublishOneMessage() throws Exception
     {
         k3po.finish();
     }
