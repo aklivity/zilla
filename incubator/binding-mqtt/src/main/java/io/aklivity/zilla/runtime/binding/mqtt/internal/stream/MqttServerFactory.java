@@ -748,6 +748,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 //TODO: how?
                 server.doNetworkAbort(traceId, authorization);
+
                 return offset;
             }
 
@@ -761,6 +762,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         return offset;
     }
 
+    //TODO: create decodeInitialType: the first packet has to be connect. If success => change decoder to decodePacket
     private int decodeConnect(
         MqttServer server,
         final long traceId,
@@ -1173,6 +1175,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             this.replyId = replyId;
             this.affinity = affinity;
             this.encodeBudgetId = budgetId;
+            //TODO: change to decodeInitialType
             this.decoder = decodePacketType;
             this.publishStreams = new Int2ObjectHashMap<>();
             this.subscribeStreams = new Int2ObjectHashMap<>();
