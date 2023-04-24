@@ -44,14 +44,6 @@ write ${mqtt:session()
                .build()}
 write flush
 
-write advise zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .build()}
-
-read ${mqtt:session()
-               .clientId("client")
-               .build()}
-
 write ${mqtt:session()
                .clientId("client")
                .build()}
