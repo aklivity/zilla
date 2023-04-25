@@ -175,7 +175,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.receive.message/client",
         "${app}/subscribe.receive.message/server"})
-    public void shouldPublishThenSubscribeOneMessage() throws Exception
+    public void shouldSubscribeThenReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
