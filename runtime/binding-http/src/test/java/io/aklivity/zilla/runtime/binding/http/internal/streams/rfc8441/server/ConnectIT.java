@@ -57,8 +57,8 @@ public class ConnectIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${app}/connect/server",
-        "${net}/connect/client"})
+        "${app}/server",
+        "${net}/client"})
     public void shouldConnect() throws Exception
     {
         k3po.finish();
