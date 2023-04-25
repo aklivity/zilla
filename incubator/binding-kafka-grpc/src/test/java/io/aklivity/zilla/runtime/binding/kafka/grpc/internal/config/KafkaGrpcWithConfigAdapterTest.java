@@ -28,7 +28,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 
-
 public class KafkaGrpcWithConfigAdapterTest
 {
     private Jsonb jsonb;
@@ -42,7 +41,7 @@ public class KafkaGrpcWithConfigAdapterTest
     }
 
     @Test
-    public void shouldReadOptions()
+    public void shouldReadWith()
     {
         String text =
                 "{" +
@@ -60,7 +59,7 @@ public class KafkaGrpcWithConfigAdapterTest
     }
 
     @Test
-    public void shouldWriteOptions()
+    public void shouldWriteWith()
     {
         KafkaGrpcWithConfig options = new KafkaGrpcWithConfig(
                 new String16FW("http"),
