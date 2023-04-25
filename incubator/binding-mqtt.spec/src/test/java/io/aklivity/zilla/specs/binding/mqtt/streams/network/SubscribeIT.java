@@ -251,7 +251,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.receive.message/client",
         "${net}/subscribe.receive.message/server"})
-    public void shouldSubscribeGetLocalPublishedMessage() throws Exception
+    public void shouldSubscribeThenReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
@@ -270,7 +270,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.malformed.subscription.options/client",
         "${net}/subscribe.reject.malformed.subscription.options/server"})
-    public void shouldRejectSubscribeMalformedReservedSubscriptionOptions() throws Exception
+    public void shouldRejectSubscribeMalformedSubscriptionOptions() throws Exception
     {
         k3po.finish();
     }

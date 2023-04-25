@@ -187,7 +187,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.server.defined.keep.alive/client",
         "${net}/connect.server.defined.keep.alive/server"})
-    public void shouldUseServerOverriddenKeepAlive() throws Exception
+    public void shouldConnectAndUseServerDefinedKeepAlive() throws Exception
     {
         k3po.finish();
     }
@@ -233,7 +233,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.will.retain.not.supported/client",
         "${net}/connect.reject.will.retain.not.supported/server"})
-    public void shouldRejectConnectWithWillRetainRetainNotSupported() throws Exception
+    public void shouldRejectConnectWillRetainNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -298,7 +298,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.will.payload.missing/client",
         "${net}/connect.reject.will.payload.missing/server"})
-    public void shouldRejectWillPayloadNotPresent() throws Exception
+    public void shouldRejectConnectWillPayloadMissing() throws Exception
     {
         k3po.finish();
     }
@@ -308,7 +308,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.will.properties.missing/client",
         "${net}/connect.reject.will.properties.missing/server"})
-    public void shouldRejectWillPropertiesNotPresent() throws Exception
+    public void shouldRejectConnectWillPropertiesMissing() throws Exception
     {
         k3po.finish();
     }
@@ -318,7 +318,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.will.topic.missing/client",
         "${net}/connect.reject.will.topic.missing/server"})
-    public void shouldRejectWillTopicNotPresent() throws Exception
+    public void shouldRejectConnectWillTopicNotMissing() throws Exception
     {
         k3po.finish();
     }
@@ -328,7 +328,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.username.flag.missing/client",
         "${net}/connect.reject.username.flag.missing/server"})
-    public void shouldRejectUsernameWhenMissingUserFlag() throws Exception
+    public void shouldRejectUsernameUserFlagMissing() throws Exception
     {
         k3po.finish();
     }
@@ -348,7 +348,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.reject.username.flag.only/client",
         "${net}/connect.reject.username.flag.only/server"})
-    public void shouldRejectUserFlagWhenMissingUsername() throws Exception
+    public void shouldRejectConnectUsernameFlagOnly() throws Exception
     {
         k3po.finish();
     }

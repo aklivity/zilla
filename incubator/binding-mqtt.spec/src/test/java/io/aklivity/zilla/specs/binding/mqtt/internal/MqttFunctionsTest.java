@@ -59,7 +59,7 @@ public class MqttFunctionsTest
                 .session()
                 .clientId("client")
                 .expiry(30)
-                .willMessage(MqttFunctions.willMessage()
+                .will()
                     .topic("will.client")
                     .delay(20)
                     .expiryInterval(15)
@@ -69,7 +69,7 @@ public class MqttFunctionsTest
                     .correlation("request-id-1")
                     .userProperty("name", "value")
                     .payload("client failed")
-                    .build())
+                    .build()
                 .build()
             .build();
 
@@ -121,12 +121,12 @@ public class MqttFunctionsTest
             .typeId(0)
                 .session()
                 .clientId("client")
-                .willMessage(MqttFunctions.willMessage()
+                .will()
                     .topic("will.client")
                     .flags("RETAIN", "QOS1")
                     .correlationBytes("request-id-1".getBytes(UTF_8))
                     .payloadBytes(new byte[] {0, 1, 2, 3, 4, 5})
-                    .build())
+                    .build()
                 .build()
             .build();
 

@@ -71,7 +71,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos0.with.packet.id/client",
         "${net}/publish.reject.qos0.with.packet.id/server"})
-    public void shouldRejectWithPacketIdAtQos0() throws Exception
+    public void shouldRejectPublishQos0WithPackedId() throws Exception
     {
         k3po.finish();
     }
@@ -101,7 +101,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos1.without.packet.id/client",
         "${net}/publish.reject.qos1.without.packet.id/server"})
-    public void shouldRejectWithoutPacketIdAtQos1() throws Exception
+    public void shouldRejectPublishQos1WithoutPackedId() throws Exception
     {
         k3po.finish();
     }
@@ -111,7 +111,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.qos2.without.packet.id/client",
         "${net}/publish.reject.qos2.without.packet.id/server"})
-    public void shouldRejectWithoutPacketIdAtQos2() throws Exception
+    public void shouldRejectPublishQos2WithoutPackedId() throws Exception
     {
         k3po.finish();
     }

@@ -87,12 +87,6 @@ public final class MqttFunctions
         return new MqttSessionStateBuilder();
     }
 
-    @Function
-    public static MqttWillMessageBuilder willMessage()
-    {
-        return new MqttWillMessageBuilder();
-    }
-
     public static final class MqttBeginExBuilder
     {
         private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
@@ -166,11 +160,15 @@ public final class MqttFunctions
                 return this;
             }
 
-            public MqttSessionBeginExBuilder willMessage(
-                MqttWillMessageFW willMessageFW)
+
+            public void willMessage(MqttWillMessageFW willMessage)
             {
-                sessionBeginExRW.willMessage(willMessageFW);
-                return this;
+                sessionBeginExRW.willMessage(willMessage);
+            }
+
+            public MqttWillMessageBuilder will()
+            {
+                return new MqttWillMessageBuilder(this);
             }
 
             public MqttBeginExBuilder build()
@@ -179,6 +177,7 @@ public final class MqttFunctions
                 beginExRO.wrap(writeBuffer, 0, subscribeBeginEx.limit());
                 return MqttBeginExBuilder.this;
             }
+
         }
 
         public final class MqttSubscribeBeginExBuilder
@@ -580,9 +579,11 @@ public final class MqttFunctions
     public static final class MqttWillMessageBuilder
     {
         private final MqttWillMessageFW.Builder willMessageRW = new MqttWillMessageFW.Builder();
+        private final MqttBeginExBuilder.MqttSessionBeginExBuilder beginExBuilder;
 
-        private MqttWillMessageBuilder()
+        private MqttWillMessageBuilder(MqttBeginExBuilder.MqttSessionBeginExBuilder beginExBuilder)
         {
+            this.beginExBuilder = beginExBuilder;
             MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
             willMessageRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
@@ -675,9 +676,10 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttWillMessageFW build()
+        public MqttBeginExBuilder.MqttSessionBeginExBuilder build()
         {
-            return willMessageRW.build();
+            beginExBuilder.willMessage(willMessageRW.build());
+            return beginExBuilder;
         }
     }
 
