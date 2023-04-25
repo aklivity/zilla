@@ -1,0 +1,73 @@
+#
+# Copyright 2021-2022 Aklivity Inc.
+#
+# Aklivity licenses this file to you under the Apache License,
+# version 2.0 (the "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+accept "zilla://streams/net0"
+       option zilla:window 8192
+       option zilla:transmission "duplex"
+accepted
+connected
+
+# server connection preface - SETTINGS frame
+write [0x00 0x00 0x18]                   # length = 24
+      [0x04]                             # HTTP2 SETTINGS frame
+      [0x00]                             # flags = 0x00
+      [0x00 0x00 0x00 0x00]              # stream_id = 0
+      [0x00 0x03 0x7f 0xff 0xff 0xff]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 2147483647
+      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x03) = 65535
+      [0x00 0x06 0x00 0x00 0x20 0x00]    # SETTINGS_MAX_HEADER_LIST_SIZE(0x06) = 8192
+      [0x00 0x08 0x00 0x00 0x00 0x01]    # SETTINGS_ENABLE_CONNECT_PROTOCOL(0x08) = true
+write flush
+
+# client connection preface
+read "PRI * HTTP/2.0\r\n"
+     "\r\n"
+     "SM\r\n"
+     "\r\n"
+
+read  [0x00 0x00 0x0c]                   # length = 12
+      [0x04]                             # HTTP2 SETTINGS frame
+      [0x00]                             # flags = 0x00
+      [0x00 0x00 0x00 0x00]              # stream_id = 0
+      [0x00 0x03 0x00 0x00 0x00 0x64]    # SETTINGS_MAX_CONCURRENT_STREAMS(0x03) = 100
+      [0x00 0x04 0x00 0x00 0xff 0xff]    # SETTINGS_INITIAL_WINDOW_SIZE(0x04) = 65535
+
+read [0x00 0x00 0x36]                                                               # length = 54
+     [0x01]                                                                         # HEADERS frame
+     [0x04]                                                                         # END_HEADERS
+     [0x00 0x00 0x00 0x01]                                                          # stream_id = 1
+     [0x02 0x07 0x43 0x4f 0x4e 0x4e 0x45 0x43 0x54]                                 # :method: CONNECT
+     [0x86]                                                                         # :scheme: http
+     [0x01] [0x0e] "localhost:8080"                                                 # :authority: localhost:8080
+     [0x04] [0x05] [0x2f 0x63 0x68 0x61 0x74]                                       # :path: /chat
+     [0x00 0x09] [0x3a 0x70 0x72 0x6f 0x74 0x6f 0x63 0x6f 0x6c] [0x09] "websocket"  # :protocol: websocket
+
+## client settings ACK
+read [0x00 0x00 0x00]                   # length = 0
+     [0x04]                             # HTTP2 SETTINGS frame
+     [0x01]                             # ACK
+     [0x00 0x00 0x00 0x00]              # stream_id = 0
+
+write [0x00 0x00 0x00]                  # length = 0
+      [0x04]                            # HTTP2 SETTINGS frame
+      [0x01]                            # ACK
+      [0x00 0x00 0x00 0x00]             # stream_id = 0
+write flush
+
+write [0x00 0x00 0x01]                                      # length
+      [0x01]                                                # HEADERS frame
+      [0x04]                                                # END_HEADERS
+      [0x00 0x00 0x00 0x01]                                 # stream_id=1
+      [0x88]                                                # HTTP2 status 200
