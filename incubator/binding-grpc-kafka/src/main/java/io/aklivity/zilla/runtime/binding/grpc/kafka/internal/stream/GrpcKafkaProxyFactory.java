@@ -764,7 +764,7 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
                 state = GrpcKafkaState.closeInitial(state);
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                    traceId, authorization, extensionRO);
+                    traceId, authorization, emptyRO);
             }
         }
 
