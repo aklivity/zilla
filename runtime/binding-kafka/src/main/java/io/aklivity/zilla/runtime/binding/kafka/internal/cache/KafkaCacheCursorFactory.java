@@ -63,7 +63,7 @@ public final class KafkaCacheCursorFactory
 
     private final MutableDirectBuffer writeBuffer;
     private final CRC32C checksum;
-    private final KafkaFilterCondition nullKeyInfo;
+    private final KafkaKeyFW nullKeyRO;
 
     public static final int POSITION_UNSET = -1;
     public static final int INDEX_UNSET = -1;
@@ -73,7 +73,7 @@ public final class KafkaCacheCursorFactory
     {
         this.writeBuffer = writeBuffer;
         this.checksum = new CRC32C();
-        this.nullKeyInfo = initNullKeyInfo(0L, checksum);
+        this.nullKeyRO = initNullKeyRO();
     }
 
     public KafkaCacheCursor newCursor(
@@ -198,14 +198,14 @@ public final class KafkaCacheCursorFactory
 
                 final long nextOffset = nextEntry.offset$();
 
+                filters = condition.test(nextEntry);
+
                 // TODO: when doing reset, condition.reset(condition)
                 // TODO: remove nextOffset < offset from if condition
-                if (nextOffset < offset || condition.test(nextEntry) == 0L)
+                if (nextOffset < offset || filters == 0L)
                 {
                     nextEntry = null;
                 }
-
-                filters =  nextEntry != null ? condition.test(nextEntry) : 0L;
 
                 if (nextEntry != null && deltaType != KafkaDeltaType.NONE)
                 {
@@ -1123,9 +1123,7 @@ public final class KafkaCacheCursorFactory
         long mask,
         KafkaKeyFW key)
     {
-        final OctetsFW value = key.value();
-
-        return value == null ? nullKeyInfo : new KafkaFilterCondition.Key(mask, checksum, key);
+        return new KafkaFilterCondition.Key(mask, checksum, key);
     }
 
     private KafkaFilterCondition asHeaderCondition(
@@ -1167,15 +1165,14 @@ public final class KafkaCacheCursorFactory
         return new KafkaFilterCondition.HeaderSequence(mask, checksum, valueMatchRO, headerRO, headers);
     }
 
-    private static KafkaFilterCondition.Key initNullKeyInfo(
-        long mask,
-        CRC32C checksum)
+    private static KafkaKeyFW initNullKeyRO()
     {
         final KafkaKeyFW nullKeyRO = new KafkaKeyFW.Builder()
                 .wrap(new UnsafeBuffer(ByteBuffer.allocate(5)), 0, 5)
                 .length(-1)
                 .value((OctetsFW) null)
                 .build();
-        return new KafkaFilterCondition.Key(mask, checksum, nullKeyRO);
+
+        return nullKeyRO;
     }
 }
