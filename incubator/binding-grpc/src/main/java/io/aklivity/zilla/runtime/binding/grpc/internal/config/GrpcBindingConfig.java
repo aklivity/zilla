@@ -70,7 +70,7 @@ public final class GrpcBindingConfig
         MutableDirectBuffer metadataBuffer)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = GrpcOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());

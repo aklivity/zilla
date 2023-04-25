@@ -171,7 +171,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 {
                     KafkaGrpcConditionResult condition = c.resolve();
                     servers.add(
-                        new KafkaRemoteServer(newBinding.id, r.with.entryId, r.id, condition, newBinding.helper));
+                        new KafkaRemoteServer(newBinding.id, newBinding.entryId, r.id, condition, newBinding.helper));
                 }));
 
             this.reconnectAt = signaler.signalAt(

@@ -36,7 +36,7 @@ public final class SseBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = binding.options instanceof SseOptionsConfig ? (SseOptionsConfig) binding.options : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(SseRouteConfig::new).collect(toList());

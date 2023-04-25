@@ -35,7 +35,7 @@ public final class ProxyBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = ProxyOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(ProxyRouteConfig::new).collect(toList());

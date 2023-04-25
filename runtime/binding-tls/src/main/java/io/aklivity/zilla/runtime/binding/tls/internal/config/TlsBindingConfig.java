@@ -76,7 +76,7 @@ public final class TlsBindingConfig
     {
         this.id = binding.id;
         this.vaultId = binding.vaultId;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = TlsOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(TlsRouteConfig::new).collect(toList());

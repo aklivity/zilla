@@ -36,7 +36,7 @@ public final class WsBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = binding.options instanceof WsOptionsConfig ? (WsOptionsConfig) binding.options : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(WsRouteConfig::new).collect(toList());

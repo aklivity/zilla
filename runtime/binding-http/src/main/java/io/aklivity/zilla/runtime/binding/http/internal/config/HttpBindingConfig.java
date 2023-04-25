@@ -50,7 +50,7 @@ public final class HttpBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(HttpRouteConfig::new).collect(toList());

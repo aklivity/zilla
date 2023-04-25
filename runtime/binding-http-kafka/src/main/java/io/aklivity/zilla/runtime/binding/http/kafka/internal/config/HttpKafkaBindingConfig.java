@@ -46,7 +46,7 @@ public final class HttpKafkaBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(HttpKafkaOptionsConfig.class::cast)

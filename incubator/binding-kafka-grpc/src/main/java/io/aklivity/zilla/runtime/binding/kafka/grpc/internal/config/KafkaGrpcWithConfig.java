@@ -19,18 +19,14 @@ import io.aklivity.zilla.runtime.engine.config.WithConfig;
 
 public final class KafkaGrpcWithConfig extends WithConfig
 {
-    public transient long entryId;
     public final String16FW scheme;
     public final String16FW authority;
-    public final String entry;
 
     public KafkaGrpcWithConfig(
         String16FW scheme,
-        String16FW authority,
-        String entry)
+        String16FW authority)
     {
         this.scheme = scheme;
         this.authority = authority;
-        this.entry = entry;
     }
 }

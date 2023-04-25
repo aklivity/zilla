@@ -213,7 +213,8 @@ public class ConfigurationManager
 
             for (BindingConfig binding : namespace.bindings)
             {
-                binding.id = namespace.resolveId.applyAsLong(binding.entry);
+                binding.id = namespace.resolveId.applyAsLong(binding.name);
+                binding.entryId = namespace.resolveId.applyAsLong(binding.entry);
                 binding.resolveId = namespace.resolveId;
 
                 if (binding.vault != null)

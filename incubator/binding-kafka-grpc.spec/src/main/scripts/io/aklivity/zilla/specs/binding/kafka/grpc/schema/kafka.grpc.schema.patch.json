@@ -137,11 +137,6 @@
                                     {
                                         "title": "Authority",
                                         "type": "string"
-                                    },
-                                    "entry":
-                                    {
-                                        "title": "Entry",
-                                        "type": "string"
                                     }
                                 },
                                 "additionalProperties": false

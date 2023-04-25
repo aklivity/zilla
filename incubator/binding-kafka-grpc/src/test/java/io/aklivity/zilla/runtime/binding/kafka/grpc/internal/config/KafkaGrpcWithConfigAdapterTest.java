@@ -46,8 +46,7 @@ public class KafkaGrpcWithConfigAdapterTest
         String text =
                 "{" +
                     "\"scheme\":\"http\"," +
-                    "\"authority\":\"localhost:8080\"," +
-                    "\"entry\":\"grpc0\"" +
+                    "\"authority\":\"localhost:8080\"" +
                 "}";
 
         KafkaGrpcWithConfig with = jsonb.fromJson(text, KafkaGrpcWithConfig.class);
@@ -55,7 +54,6 @@ public class KafkaGrpcWithConfigAdapterTest
         assertThat(with, not(nullValue()));
         assertThat(with.scheme.asString(), equalTo("http"));
         assertThat(with.authority.asString(), equalTo("localhost:8080"));
-        assertThat(with.entry, equalTo("grpc0"));
     }
 
     @Test
@@ -63,8 +61,7 @@ public class KafkaGrpcWithConfigAdapterTest
     {
         KafkaGrpcWithConfig options = new KafkaGrpcWithConfig(
                 new String16FW("http"),
-                new String16FW("localhost:8080"),
-                "grpc0");
+                new String16FW("localhost:8080"));
 
         String text = jsonb.toJson(options);
 
@@ -72,8 +69,7 @@ public class KafkaGrpcWithConfigAdapterTest
         assertThat(text, equalTo(
                 "{" +
                     "\"scheme\":\"http\"," +
-                    "\"authority\":\"localhost:8080\"," +
-                    "\"entry\":\"grpc0\"" +
+                    "\"authority\":\"localhost:8080\"" +
                 "}"));
     }
 }

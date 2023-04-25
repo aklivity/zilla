@@ -28,7 +28,6 @@ public class KafkaGrpcWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
 {
     private static final String SCHEME_NAME = "scheme";
     private static final String AUTHORITY_NAME = "authority";
-    private static final String ENTRY_NAME = "entry";
 
     @Override
     public String type()
@@ -46,7 +45,6 @@ public class KafkaGrpcWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
 
         object.add(SCHEME_NAME, kafkaGrpcWith.scheme.asString());
         object.add(AUTHORITY_NAME, kafkaGrpcWith.authority.asString());
-        object.add(ENTRY_NAME, kafkaGrpcWith.entry);
 
         return object.build();
     }
@@ -57,8 +55,7 @@ public class KafkaGrpcWithConfigAdapter implements WithConfigAdapterSpi, JsonbAd
     {
         String16FW newScheme = new String16FW(object.getString(SCHEME_NAME));
         String16FW newAuthority = new String16FW(object.getString(AUTHORITY_NAME));
-        String newEntry = object.getString(ENTRY_NAME);
 
-        return new KafkaGrpcWithConfig(newScheme, newAuthority, newEntry);
+        return new KafkaGrpcWithConfig(newScheme, newAuthority);
     }
 }

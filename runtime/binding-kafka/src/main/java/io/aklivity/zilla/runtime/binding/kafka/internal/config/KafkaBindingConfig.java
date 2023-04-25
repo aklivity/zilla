@@ -34,7 +34,7 @@ public final class KafkaBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());

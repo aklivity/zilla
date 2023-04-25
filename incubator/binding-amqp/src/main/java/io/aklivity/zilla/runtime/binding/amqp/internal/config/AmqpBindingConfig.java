@@ -34,7 +34,7 @@ public final class AmqpBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(AmqpRouteConfig::new).collect(toList());
     }

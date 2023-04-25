@@ -39,7 +39,7 @@ public final class GrpcKafkaBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(GrpcKafkaOptionsConfig.class::cast)

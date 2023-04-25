@@ -19,6 +19,7 @@ bindings:
   remote_server0:
     type: kafka-grpc
     kind: remote_server
+    entry: kafka0
     options:
       acks: leader_only
     routes:
@@ -30,6 +31,5 @@ bindings:
               headers:
                 zilla:service: example.EchoService
           with:
-            entry: kafka0
             scheme: http
             authority: localhost:8080

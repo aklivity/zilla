@@ -18,10 +18,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.Kafka
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
 
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcFetchHeaderHelper;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
@@ -30,7 +27,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class KafkaGrpcBindingConfig
 {
     public final long id;
-    public final String entry;
+    public final long entryId;
     public final KindConfig kind;
     public final KafkaGrpcOptionsConfig options;
     public final KafkaGrpcFetchHeaderHelper helper;
@@ -40,24 +37,13 @@ public final class KafkaGrpcBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entryId = binding.entryId;
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(KafkaGrpcOptionsConfig.class::cast)
                 .orElse(DEFAULT);
-        this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r, binding.resolveId))
+        this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r))
             .collect(toList());
         this.helper = new KafkaGrpcFetchHeaderHelper(options.correlation);
-    }
-
-    private static <T> UnaryOperator<T> peek(
-        Consumer<T> action)
-    {
-        Objects.requireNonNull(action);
-        return u ->
-        {
-            action.accept(u);
-            return u;
-        };
     }
 }

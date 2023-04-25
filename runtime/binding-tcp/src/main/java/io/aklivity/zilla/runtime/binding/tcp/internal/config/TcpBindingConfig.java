@@ -42,7 +42,7 @@ public final class TcpBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = TcpOptionsConfig.class.cast(binding.options);
         this.routes = binding.kind == KindConfig.CLIENT && binding.routes.isEmpty()

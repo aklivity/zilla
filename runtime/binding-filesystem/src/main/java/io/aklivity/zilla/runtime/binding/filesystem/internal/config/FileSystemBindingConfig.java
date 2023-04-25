@@ -28,7 +28,7 @@ public final class FileSystemBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.entry = binding.name;
         this.kind = binding.kind;
         this.options = FileSystemOptionsConfig.class.cast(binding.options);
     }
