@@ -63,7 +63,6 @@ public final class KafkaCacheCursorFactory
 
     private final MutableDirectBuffer writeBuffer;
     private final CRC32C checksum;
-    private final KafkaKeyFW nullKeyRO;
 
     public static final int POSITION_UNSET = -1;
     public static final int INDEX_UNSET = -1;
@@ -73,7 +72,6 @@ public final class KafkaCacheCursorFactory
     {
         this.writeBuffer = writeBuffer;
         this.checksum = new CRC32C();
-        this.nullKeyRO = initNullKeyRO();
     }
 
     public KafkaCacheCursor newCursor(
@@ -1163,16 +1161,5 @@ public final class KafkaCacheCursorFactory
         KafkaHeadersFW headers)
     {
         return new KafkaFilterCondition.HeaderSequence(mask, checksum, valueMatchRO, headerRO, headers);
-    }
-
-    private static KafkaKeyFW initNullKeyRO()
-    {
-        final KafkaKeyFW nullKeyRO = new KafkaKeyFW.Builder()
-                .wrap(new UnsafeBuffer(ByteBuffer.allocate(5)), 0, 5)
-                .length(-1)
-                .value((OctetsFW) null)
-                .build();
-
-        return nullKeyRO;
     }
 }
