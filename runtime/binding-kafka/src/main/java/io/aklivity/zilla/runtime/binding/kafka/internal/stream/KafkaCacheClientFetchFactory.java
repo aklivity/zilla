@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaIsolation;
@@ -196,6 +197,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         final String16FW beginTopic = kafkaFetchBeginEx.topic();
         final KafkaOffsetFW progress = kafkaFetchBeginEx.partition();
         final ArrayFW<KafkaFilterFW> filters = kafkaFetchBeginEx.filters();
+        final KafkaEvaluation evaluation = kafkaFetchBeginEx.evaluation().get();
         final KafkaIsolation isolation = kafkaFetchBeginEx.isolation().get();
         final KafkaDeltaType deltaType = kafkaFetchBeginEx.deltaType().get();
         final String topicName = beginTopic.asString();
@@ -236,7 +238,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 fanout = newFanout;
             }
 
-            final KafkaFilterCondition condition = cursorFactory.asCondition(filters);
+            final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
             final long latestOffset = kafkaFetchBeginEx.partition().latestOffset();
             final KafkaOffsetType maximumOffset = KafkaOffsetType.valueOf((byte) latestOffset);
             final Int2IntHashMap leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topicName);
@@ -1218,6 +1220,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
 
             final long partitionOffset = nextEntry.offset$();
             final long timestamp = nextEntry.timestamp();
+            final long filters = cursor.filters;
             final long ownerId = nextEntry.ownerId();
             final int entryFlags = nextEntry.flags();
             final KafkaKeyFW key = nextEntry.key();
@@ -1289,11 +1292,11 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                 switch (flags & ~FLAG_SKIP)
                 {
                 case FLAG_INIT | FLAG_FIN:
-                    doClientReplyDataFull(traceId, timestamp, ownerId, key, headers, deltaType, ancestor, fragment,
+                    doClientReplyDataFull(traceId, timestamp, ownerId, filters, key, headers, deltaType, ancestor, fragment,
                                           reserved, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_INIT:
-                    doClientReplyDataInit(traceId, deferred, timestamp, ownerId, key, deltaType, ancestor, fragment,
+                    doClientReplyDataInit(traceId, deferred, timestamp, ownerId, filters, key, deltaType, ancestor, fragment,
                                           reserved, length, flags, partitionId, partitionOffset, stableOffset, latestOffset);
                     break;
                 case FLAG_NONE:
@@ -1322,6 +1325,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             long traceId,
             long timestamp,
             long producerId,
+            long filters,
             KafkaKeyFW key,
             ArrayFW<KafkaHeaderFW> headers,
             KafkaDeltaType deltaType,
@@ -1340,6 +1344,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .typeId(kafkaTypeId)
                         .fetch(f -> f.timestamp(timestamp)
                                      .producerId(producerId)
+                                     .filters(filters)
                                      .partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
                                                       .stableOffset(stableOffset)
@@ -1367,6 +1372,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             int deferred,
             long timestamp,
             long producerId,
+            long filters,
             KafkaKeyFW key,
             KafkaDeltaType deltaType,
             long ancestorOffset,
@@ -1386,6 +1392,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
                         .fetch(f -> f.deferred(deferred)
                                      .timestamp(timestamp)
                                      .producerId(producerId)
+                                     .filters(filters)
                                      .partition(p -> p.partitionId(partitionId)
                                                       .partitionOffset(partitionOffset)
                                                       .stableOffset(stableOffset)

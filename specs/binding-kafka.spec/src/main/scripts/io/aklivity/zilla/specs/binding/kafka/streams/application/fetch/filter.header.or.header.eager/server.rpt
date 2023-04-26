@@ -58,9 +58,16 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("test")
                                   .partition(0, 1)
                                   .filter()
-                                      .key("key1")
-                                      .headerNot("header2", "value2")
+                                       .header("header1", "value1")
+                                       .build()
+                                  .filter()
+                                      .header("header1", "value1")
+                                      .header("header2", "value2")
                                       .build()
+                                  .filter()
+                                      .header("header2", "value2")
+                                      .build()
+                                  .evaluation("EAGER")
                                   .build()
                               .build()}
 
@@ -79,10 +86,47 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .timestamp(newTimestamp)
+                                  .filters(4)
+                                  .partition(0, 1, 8)
+                                  .key("key1")
+                                  .header("header2", "value2")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .filters(1)
+                                  .partition(0, 2, 8)
+                                  .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
                                   .filters(1)
                                   .partition(0, 3, 8)
-                                  .key("key1")
                                   .header("header1", "value1")
+                                  .build()
+                              .build()}
+write "Hello, world"
+write flush
+
+write zilla:data.ext ${kafka:dataEx()
+                              .typeId(zilla:id("kafka"))
+                              .fetch()
+                                  .timestamp(newTimestamp)
+                                  .filters(7)
+                                  .partition(0, 4, 8)
+                                  .header("header1", "value1")
+                                  .header("header2", "value2")
                                   .build()
                               .build()}
 write "Hello, world"

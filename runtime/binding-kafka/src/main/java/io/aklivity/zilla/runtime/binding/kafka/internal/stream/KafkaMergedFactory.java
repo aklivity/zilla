@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaConfigFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluationFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeadersFW;
@@ -1013,6 +1014,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
         private KafkaOffsetType maximumOffset;
         private List<KafkaMergedFilter> filters;
+        private KafkaEvaluationFW evaluation;
 
         private int state;
         private KafkaCapabilities capabilities;
@@ -1144,6 +1146,7 @@ public final class KafkaMergedFactory implements BindingHandler
 
             this.maximumOffset = asMaximumOffset(mergedBeginEx.partitions());
             this.filters = asMergedFilters(filters);
+            this.evaluation = mergedBeginEx.evaluation();
 
             describeStream.doDescribeInitialBegin(traceId);
         }
@@ -1494,6 +1497,7 @@ public final class KafkaMergedFactory implements BindingHandler
                 final KafkaKeyFW key = kafkaFetchDataEx.key();
                 final ArrayFW<KafkaHeaderFW> headers = kafkaFetchDataEx.headers();
                 final KafkaDeltaFW delta = kafkaFetchDataEx.delta();
+                final long filters = kafkaFetchDataEx.filters();
 
                 nextOffsetsById.put(partitionId, partitionOffset + 1);
 
@@ -1501,6 +1505,7 @@ public final class KafkaMergedFactory implements BindingHandler
                      .typeId(kafkaTypeId)
                      .merged(f -> f.deferred(deferred)
                                    .timestamp(timestamp)
+                                   .filters(filters)
                                    .partition(p -> p.partitionId(partitionId)
                                                     .partitionOffset(partitionOffset)
                                                     .latestOffset(latestOffset))
@@ -2553,6 +2558,7 @@ public final class KafkaMergedFactory implements BindingHandler
                                                       .partitionOffset(partitionOffset)
                                                       .latestOffset(merged.maximumOffset.value()))
                                      .filters(fs -> merged.filters.forEach(mf -> fs.item(i -> setFetchFilter(i, mf))))
+                                     .evaluation(merged.evaluation)
                                      .isolation(i -> i.set(merged.isolation))
                                      .deltaType(t -> t.set(merged.deltaType)))
                         .build()

@@ -170,6 +170,17 @@ public class CacheMergedIT
         k3po.finish();
     }
 
+    @Ignore("requires k3po parallel reads")
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.filter.key.or.header.eager/client",
+        "${app}/unmerged.fetch.filter.none/server"})
+    public void shouldFetchMergedMessagesWithKeyOrHeaderEagerFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
