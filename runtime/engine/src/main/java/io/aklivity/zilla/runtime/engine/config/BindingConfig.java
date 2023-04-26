@@ -30,9 +30,9 @@ public class BindingConfig
 
     public final String vault;
     public final String name;
-    public final String entry;
     public final String type;
     public final KindConfig kind;
+    public final String entry;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
 
