@@ -55,9 +55,16 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .partition(0, 1)
                                    .filter()
-                                       .key("key1")
-                                       .headerNot("header2", "value2")
+                                       .header("header1", "value1")
                                        .build()
+                                   .filter()
+                                       .header("header1", "value1")
+                                       .header("header2", "value2")
+                                       .build()
+                                   .filter()
+                                       .header("header2", "value2")
+                                       .build()
+                                   .evaluation("EAGER")
                                    .build()
                                .build()}
 
@@ -71,6 +78,27 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .filters(4)
+                                 .partition(0, 1, 8)
+                                 .key("key1")
+                                 .header("header2", "value2")
+                                 .build()
+                             .build()}
+read "Hello, world"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .filters(1)
+                                 .partition(0, 2, 8)
+                                 .header("header1", "value1")
+                                 .build()
+                             .build()}
+read "Hello, world"
+
 read notify RECEIVED_MESSAGE_2
 
 read zilla:data.ext ${kafka:matchDataEx()
@@ -78,8 +106,18 @@ read zilla:data.ext ${kafka:matchDataEx()
                              .fetch()
                                  .filters(1)
                                  .partition(0, 3, 8)
-                                 .key("key1")
                                  .header("header1", "value1")
+                                 .build()
+                             .build()}
+read "Hello, world"
+
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .fetch()
+                                 .filters(7)
+                                 .partition(0, 4, 8)
+                                 .header("header1", "value1")
+                                 .header("header2", "value2")
                                  .build()
                              .build()}
 read "Hello, world"

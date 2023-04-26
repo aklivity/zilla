@@ -55,31 +55,35 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("test")
                                    .partition(0, 1)
                                    .filter()
-                                       .key("key1")
-                                       .headerNot("header2", "value2")
+                                       .headers("header3")
+                                          .sequence("one", "two", "three", "four")
+                                          .build()
                                        .build()
+                                   .filter()
+                                       .headers("header3")
+                                          .sequence("one")
+                                          .skip(1)
+                                          .sequence("three")
+                                          .skip(1)
+                                          .build()
+                                       .build()
+                                   .evaluation("EAGER")
                                    .build()
                                .build()}
 
 connected
-
-read zilla:begin.ext ${kafka:beginEx()
-                              .typeId(zilla:id("kafka"))
-                              .fetch()
-                                  .topic("test")
-                                  .partition(0, 1, 8)
-                                  .build()
-                              .build()}
 
 read notify RECEIVED_MESSAGE_2
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
-                                 .filters(1)
-                                 .partition(0, 3, 8)
-                                 .key("key1")
-                                 .header("header1", "value1")
+                                 .filters(3)
+                                 .partition(0, 7, 8)
+                                 .header("header3", "one")
+                                 .header("header3", "two")
+                                 .header("header3", "three")
+                                 .header("header3", "four")
                                  .build()
                              .build()}
 read "Hello, world"

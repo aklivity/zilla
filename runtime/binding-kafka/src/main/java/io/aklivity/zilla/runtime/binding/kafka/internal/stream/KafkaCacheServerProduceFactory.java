@@ -52,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
@@ -1023,7 +1024,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             KafkaCachePartition partition)
         {
             this.partition = partition;
-            this.cursor = cursorFactory.newCursor(cursorFactory.asCondition(EMPTY_FILTER), KafkaDeltaType.NONE);
+            this.cursor = cursorFactory.newCursor(
+                    cursorFactory
+                        .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
+                        KafkaDeltaType.NONE);
             this.fan = fan;
             this.sender = sender;
             this.originId = originId;
