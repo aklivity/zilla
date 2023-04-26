@@ -39,7 +39,7 @@ public final class HttpBindingConfig
     private static final HttpAccessControlConfig DEFAULT_ACCESS_CONTROL = new HttpAccessControlConfig(SAME_ORIGIN);
 
     public final long id;
-    public final String entry;
+    public final String name;
     public final HttpOptionsConfig options;
     public final KindConfig kind;
     public final List<HttpRouteConfig> routes;
@@ -50,7 +50,7 @@ public final class HttpBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.name;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = HttpOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(HttpRouteConfig::new).collect(toList());

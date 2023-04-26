@@ -39,9 +39,9 @@ public class BindingConfig
     public BindingConfig(
         String vault,
         String name,
-        String entry,
         String type,
         KindConfig kind,
+        String entry,
         OptionsConfig options,
         List<RouteConfig> routes)
     {

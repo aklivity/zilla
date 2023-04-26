@@ -86,8 +86,8 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBinding()
     {
-        BindingConfig[] bindings = { new BindingConfig(null, "test", null, "test",
-            SERVER, null, emptyList()) };
+        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null,
+            null, emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -123,7 +123,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBindingWithVault()
     {
-        BindingConfig[] bindings = { new BindingConfig("test", "test",  null, "test", SERVER, null, emptyList()) };
+        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, null, emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -160,7 +160,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithOptions()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test",  null, "test", SERVER, new TestBindingOptionsConfig("test"), emptyList()) };
+            { new BindingConfig(null, "test", "test", SERVER, null, new TestBindingOptionsConfig("test"), emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -200,7 +200,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithRoute()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", null, "test", SERVER, null, singletonList(new RouteConfig("test"))) };
+            { new BindingConfig(null, "test", "test", SERVER, null, null, singletonList(new RouteConfig("test"))) };
 
         String text = jsonb.toJson(bindings);
 
@@ -242,7 +242,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithRemoteServerKind()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test_entry", "test", REMOTE_SERVER,
+            { new BindingConfig(null, "test", "test", REMOTE_SERVER, "test_entry",
                 null, singletonList(new RouteConfig("test"))) };
 
         String text = jsonb.toJson(bindings);

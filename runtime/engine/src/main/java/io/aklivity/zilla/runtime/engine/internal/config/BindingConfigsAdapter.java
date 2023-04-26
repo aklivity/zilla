@@ -154,7 +154,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 ? item.getString(ENTRY_NAME)
                 : null;
 
-            bindings.add(new BindingConfig(vault, name, entry, type, kind, opts, routes));
+            bindings.add(new BindingConfig(vault, name, type, kind, entry, opts, routes));
         }
 
         return bindings.toArray(BindingConfig[]::new);

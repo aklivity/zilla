@@ -134,7 +134,7 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithBinding()
     {
-        BindingConfig binding = new BindingConfig(null, "test",  null, "test", SERVER, null, emptyList());
+        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, null, emptyList());
         NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), singletonList(binding), emptyList(), emptyList());
 
         String text = jsonb.toJson(namespace);
