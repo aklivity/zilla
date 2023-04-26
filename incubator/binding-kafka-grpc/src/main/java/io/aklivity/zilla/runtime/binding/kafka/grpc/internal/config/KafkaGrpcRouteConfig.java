@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public final class KafkaGrpcRouteConfig extends OptionsConfig
 {
     public final long id;
-
+    public final KafkaGrpcWithConfig with;
     public final List<KafkaGrpcConditionResolver> when;
     private final LongPredicate authorized;
 
@@ -34,9 +34,10 @@ public final class KafkaGrpcRouteConfig extends OptionsConfig
         RouteConfig route)
     {
         this.id = route.id;
+        this.with = (KafkaGrpcWithConfig) route.with;
         this.when = route.when.stream()
             .map(KafkaGrpcConditionConfig.class::cast)
-            .map(c -> new KafkaGrpcConditionResolver(options, c))
+            .map(c -> new KafkaGrpcConditionResolver(options, c, with))
             .collect(toList());
 
         this.authorized = route.authorized;

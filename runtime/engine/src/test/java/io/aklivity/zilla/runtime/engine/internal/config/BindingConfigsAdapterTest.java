@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -85,7 +86,8 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBinding()
     {
-        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null, emptyList()) };
+        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null,
+            null, emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -121,7 +123,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBindingWithVault()
     {
-        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, emptyList()) };
+        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, null, emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -148,7 +150,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
         assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].entry, equalTo("test"));
+        assertThat(bindings[0].name, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].options, instanceOf(TestBindingOptionsConfig.class));
         assertThat(((TestBindingOptionsConfig) bindings[0].options).mode, equalTo("test"));
@@ -158,7 +160,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithOptions()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, new TestBindingOptionsConfig("test"), emptyList()) };
+            { new BindingConfig(null, "test", "test", SERVER, null, new TestBindingOptionsConfig("test"), emptyList()) };
 
         String text = jsonb.toJson(bindings);
 
@@ -187,7 +189,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
         assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].entry, equalTo("test"));
+        assertThat(bindings[0].name, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].routes, hasSize(1));
         assertThat(bindings[0].routes.get(0).exit, equalTo("test"));
@@ -198,12 +200,56 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithRoute()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, null, singletonList(new RouteConfig("test"))) };
+            { new BindingConfig(null, "test", "test", SERVER, null, null, singletonList(new RouteConfig("test"))) };
 
         String text = jsonb.toJson(bindings);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\",\"routes\":[{\"exit\":\"test\"}]}}"));
+    }
+
+    @Test
+    public void shouldReadBindingWithRemoteServerKind()
+    {
+        String text =
+            "{" +
+                "\"test\":" +
+                "{" +
+                "\"type\": \"test\"," +
+                "\"kind\": \"remote_server\"," +
+                "\"entry\": \"test_entry\"," +
+                "\"routes\":" +
+                "[" +
+                "{" +
+                "\"exit\": \"test\"" +
+                "}" +
+                "]" +
+                "}" +
+                "}";
+
+        BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
+
+        assertThat(bindings[0], not(nullValue()));
+        assertThat(bindings[0].name, equalTo("test"));
+        assertThat(bindings[0].kind, equalTo(REMOTE_SERVER));
+        assertThat(bindings[0].entry, equalTo("test_entry"));
+        assertThat(bindings[0].routes, hasSize(1));
+        assertThat(bindings[0].routes.get(0).exit, equalTo("test"));
+        assertThat(bindings[0].routes.get(0).when, empty());
+    }
+
+    @Test
+    public void shouldWriteBindingWithRemoteServerKind()
+    {
+        BindingConfig[] bindings =
+            { new BindingConfig(null, "test", "test", REMOTE_SERVER, "test_entry",
+                null, singletonList(new RouteConfig("test"))) };
+
+        String text = jsonb.toJson(bindings);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"remote_server\"," +
+            "\"entry\":\"test_entry\",\"routes\":[{\"exit\":\"test\"}]}}"));
     }
 
 }

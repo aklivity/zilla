@@ -91,7 +91,7 @@ public class NamespaceRegistry
         BindingContext context = bindingsByType.apply(config.type);
         assert context != null : "Missing binding type: " + config.type;
 
-        int bindingId = supplyLabelId.applyAsInt(config.entry);
+        int bindingId = supplyLabelId.applyAsInt(config.name);
         BindingRegistry registry = new BindingRegistry(config, context);
         bindingsById.put(bindingId, registry);
         registry.attach();
@@ -101,7 +101,7 @@ public class NamespaceRegistry
     private void detachBinding(
         BindingConfig config)
     {
-        int bindingId = supplyLabelId.applyAsInt(config.entry);
+        int bindingId = supplyLabelId.applyAsInt(config.name);
         BindingRegistry context = bindingsById.remove(bindingId);
         if (context != null)
         {

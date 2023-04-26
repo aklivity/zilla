@@ -59,7 +59,7 @@ public final class GrpcBindingConfig
     private final HttpGrpcHeaderHelper helper;
 
     public final long id;
-    public final String entry;
+    public final String name;
     public final KindConfig kind;
     public final GrpcOptionsConfig options;
     public final List<GrpcRouteConfig> routes;
@@ -70,7 +70,7 @@ public final class GrpcBindingConfig
         MutableDirectBuffer metadataBuffer)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = GrpcOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(GrpcRouteConfig::new).collect(toList());

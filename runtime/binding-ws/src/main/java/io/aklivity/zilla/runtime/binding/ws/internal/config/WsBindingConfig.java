@@ -27,7 +27,7 @@ public final class WsBindingConfig
     private static final WsOptionsConfig DEFAULT_OPTIONS = new WsOptionsConfig(null, null, null, null);
 
     public final long id;
-    public final String entry;
+    public final String name;
     public final WsOptionsConfig options;
     public final KindConfig kind;
     public final List<WsRouteConfig> routes;
@@ -36,7 +36,7 @@ public final class WsBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = binding.options instanceof WsOptionsConfig ? (WsOptionsConfig) binding.options : DEFAULT_OPTIONS;
         this.routes = binding.routes.stream().map(WsRouteConfig::new).collect(toList());

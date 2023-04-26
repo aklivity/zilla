@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class GrpcKafkaBindingConfig
 {
     public final long id;
-    public final String entry;
+    public final String name;
     public final KindConfig kind;
     public final GrpcKafkaOptionsConfig options;
     public final List<GrpcKafkaRouteConfig> routes;
@@ -39,7 +39,7 @@ public final class GrpcKafkaBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = Optional.ofNullable(binding.options)
                 .map(GrpcKafkaOptionsConfig.class::cast)

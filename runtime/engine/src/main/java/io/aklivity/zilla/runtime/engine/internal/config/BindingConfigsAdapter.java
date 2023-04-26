@@ -44,6 +44,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private static final String EXIT_NAME = "exit";
     private static final String TYPE_NAME = "type";
     private static final String KIND_NAME = "kind";
+    private static final String ENTRY_NAME = "entry";
     private static final String OPTIONS_NAME = "options";
     private static final String ROUTES_NAME = "routes";
 
@@ -83,6 +84,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             item.add(KIND_NAME, kind.adaptToJson(binding.kind));
 
+            if (binding.entry != null)
+            {
+                item.add(ENTRY_NAME, binding.entry);
+            }
+
             if (binding.options != null)
             {
                 item.add(OPTIONS_NAME, options.adaptToJson(binding.options));
@@ -95,7 +101,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 item.add(ROUTES_NAME, routes);
             }
 
-            object.add(binding.entry, item);
+            object.add(binding.name, item);
         }
 
         return object.build();
@@ -107,9 +113,9 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     {
         List<BindingConfig> bindings = new LinkedList<>();
 
-        for (String entry : object.keySet())
+        for (String name : object.keySet())
         {
-            JsonObject item = object.getJsonObject(entry);
+            JsonObject item = object.getJsonObject(name);
             String type = item.getString(TYPE_NAME);
 
             route.adaptType(type);
@@ -144,7 +150,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 routes = routesWithExit;
             }
 
-            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes));
+            String entry = item.containsKey(ENTRY_NAME)
+                ? item.getString(ENTRY_NAME)
+                : null;
+
+            bindings.add(new BindingConfig(vault, name, type, kind, entry, opts, routes));
         }
 
         return bindings.toArray(BindingConfig[]::new);
