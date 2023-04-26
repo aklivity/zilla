@@ -41,10 +41,10 @@ import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], JsonObject>
 {
     private static final String VAULT_NAME = "vault";
-    private static final String ENTRY_NAME = "entry";
     private static final String EXIT_NAME = "exit";
     private static final String TYPE_NAME = "type";
     private static final String KIND_NAME = "kind";
+    private static final String ENTRY_NAME = "entry";
     private static final String OPTIONS_NAME = "options";
     private static final String ROUTES_NAME = "routes";
 
