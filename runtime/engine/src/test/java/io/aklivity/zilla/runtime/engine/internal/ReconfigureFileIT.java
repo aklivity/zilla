@@ -145,7 +145,6 @@ public class ReconfigureFileIT
         k3po.finish();
     }
 
-    @Ignore("Github Actions")
     @Test
     @Configuration("zilla.reconfigure.modify.complex.chain.json")
     @Specification({

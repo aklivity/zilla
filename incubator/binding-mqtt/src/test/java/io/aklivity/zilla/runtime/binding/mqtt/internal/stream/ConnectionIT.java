@@ -1130,7 +1130,6 @@ public class ConnectionIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("server.yaml")
     @Specification({

@@ -58,7 +58,6 @@ public class ConnectionManagementPoolSize1IT
     @Rule
     public final TestRule chain = outerRule(engine).around(counters).around(k3po).around(timeout);
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("client.yaml")
     @Specification({
