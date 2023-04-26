@@ -63,7 +63,6 @@ public final class KafkaCacheCursorFactory
 
     private final MutableDirectBuffer writeBuffer;
     private final CRC32C checksum;
-    private final KafkaKeyFW nullKeyRO;
 
     public static final int POSITION_UNSET = -1;
     public static final int INDEX_UNSET = -1;
@@ -73,7 +72,6 @@ public final class KafkaCacheCursorFactory
     {
         this.writeBuffer = writeBuffer;
         this.checksum = new CRC32C();
-        this.nullKeyRO = initNullKeyRO();
     }
 
     public KafkaCacheCursor newCursor(
@@ -508,6 +506,17 @@ public final class KafkaCacheCursorFactory
             protected Equals(
                 long mask,
                 CRC32C checksum,
+                DirectBuffer shared)
+            {
+                this.mask = mask;
+                this.value = shared;
+                this.hash = computeHash(shared, 0, shared.capacity(), checksum);
+                this.comparable = new UnsafeBuffer();
+            }
+
+            protected Equals(
+                long mask,
+                CRC32C checksum,
                 DirectBuffer buffer,
                 int index,
                 int length)
@@ -724,6 +733,15 @@ public final class KafkaCacheCursorFactory
 
         private static final class Key extends Equals
         {
+            private static final KafkaKeyFW NULL_KEY_RO = initNullKeyRO();
+
+            private Key(
+                long mask,
+                CRC32C checksum)
+            {
+                super(mask, checksum, NULL_KEY_RO.buffer());
+            }
+
             private Key(
                 long mask,
                 CRC32C checksum,
@@ -1126,7 +1144,7 @@ public final class KafkaCacheCursorFactory
         final OctetsFW value = key.value();
 
         return value == null ?
-            new KafkaFilterCondition.Key(mask, checksum, nullKeyRO) : new KafkaFilterCondition.Key(mask, checksum, key);
+            new KafkaFilterCondition.Key(mask, checksum) : new KafkaFilterCondition.Key(mask, checksum, key);
 
     }
 
