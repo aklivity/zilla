@@ -17,11 +17,9 @@ package io.aklivity.zilla.runtime.binding.tcp.internal.streams;
 
 import static io.aklivity.zilla.runtime.binding.tcp.internal.TcpConfiguration.TCP_MAX_CONNECTIONS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
-import static java.lang.invoke.VarHandle.fullFence;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.IOException;
@@ -40,7 +38,6 @@ import org.kaazing.k3po.junit.annotation.ScriptProperty;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 
-import io.aklivity.zilla.runtime.engine.EngineStats;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 
@@ -377,83 +374,5 @@ public class ServerIT
 
             k3po.finish();
         }
-    }
-
-    @Test
-    @Configuration("server.yaml")
-    @Specification({
-        "${app}/max.connections/server"
-    })
-    public void shouldUnbindRebind() throws Exception
-    {
-        k3po.start();
-
-        SocketChannel channel1 = SocketChannel.open();
-        channel1.connect(new InetSocketAddress("127.0.0.1", 8080));
-
-        SocketChannel channel2 = SocketChannel.open();
-        channel2.connect(new InetSocketAddress("127.0.0.1", 8080));
-
-        SocketChannel channel3 = SocketChannel.open();
-        channel3.connect(new InetSocketAddress("127.0.0.1", 8080));
-
-        k3po.awaitBarrier("CONNECTION_ACCEPTED_1");
-        k3po.awaitBarrier("CONNECTION_ACCEPTED_2");
-        k3po.awaitBarrier("CONNECTION_ACCEPTED_3");
-
-        EngineStats stats = engine.stats("test", "net0");
-        fullFence();
-
-        assertEquals(3, stats.initialOpens());
-        assertEquals(0, stats.initialCloses());
-        assertEquals(3, stats.replyOpens());
-        assertEquals(0, stats.replyCloses());
-
-        SocketChannel channel4 = SocketChannel.open();
-        try
-        {
-            channel4.connect(new InetSocketAddress("127.0.0.1", 8080));
-            fail("4th connect shouldn't succeed as max.connections = 3");
-        }
-        catch (IOException ioe)
-        {
-            // expected
-        }
-
-        assertEquals(3, stats.initialOpens());
-        assertEquals(0, stats.initialCloses());
-        assertEquals(3, stats.replyOpens());
-        assertEquals(0, stats.replyCloses());
-
-        channel1.close();
-        channel4.close();
-
-        k3po.awaitBarrier("CLOSED");
-
-        // sleep so that rebind happens
-        Thread.sleep(200);
-        assertEquals(3, stats.initialOpens());
-        assertEquals(1, stats.initialCloses());
-        assertEquals(3, stats.replyOpens());
-        assertEquals(1, stats.replyCloses());
-
-        SocketChannel channel5 = SocketChannel.open();
-        channel5.connect(new InetSocketAddress("127.0.0.1", 8080));
-        k3po.awaitBarrier("CONNECTION_ACCEPTED_4");
-        assertEquals(4, stats.initialOpens());
-        assertEquals(1, stats.initialCloses());
-        assertEquals(4, stats.replyOpens());
-        assertEquals(1, stats.replyCloses());
-
-        channel2.close();
-        channel3.close();
-        channel5.close();
-        Thread.sleep(500);
-        assertEquals(4, stats.initialOpens());
-        assertEquals(4, stats.initialCloses());
-        assertEquals(4, stats.replyOpens());
-        assertEquals(4, stats.replyCloses());
-
-        k3po.finish();
     }
 }

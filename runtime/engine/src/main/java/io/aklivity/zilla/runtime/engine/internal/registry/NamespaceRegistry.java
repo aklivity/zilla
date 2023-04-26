@@ -53,7 +53,6 @@ public class NamespaceRegistry
     private final Function<String, ExporterContext> exportersByType;
     private final ToIntFunction<String> supplyLabelId;
     private final LongFunction<MetricRegistry> supplyMetric;
-    private final LongConsumer supplyLoadEntry;
     private final LongConsumer exporterAttached;
     private final LongConsumer exporterDetached;
     private final int namespaceId;
@@ -74,7 +73,6 @@ public class NamespaceRegistry
         Function<String, ExporterContext> exportersByType,
         ToIntFunction<String> supplyLabelId,
         LongFunction<MetricRegistry> supplyMetric,
-        LongConsumer supplyLoadEntry,
         LongConsumer exporterAttached,
         LongConsumer exporterDetached,
         ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
@@ -88,7 +86,6 @@ public class NamespaceRegistry
         this.exportersByType = exportersByType;
         this.supplyLabelId = supplyLabelId;
         this.supplyMetric = supplyMetric;
-        this.supplyLoadEntry = supplyLoadEntry;
         this.supplyMetricRecorder = supplyMetricRecorder;
         this.exporterAttached = exporterAttached;
         this.exporterDetached = exporterDetached;
@@ -135,7 +132,6 @@ public class NamespaceRegistry
         bindingsById.put(bindingId, registry);
         registry.attach();
         setMetricHandlers(registry, config);
-        supplyLoadEntry.accept(config.id);
     }
 
     private void setMetricHandlers(

@@ -21,7 +21,6 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
 
 import java.net.URL;
 import java.util.LinkedList;
@@ -34,7 +33,6 @@ import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
-import io.aklivity.zilla.runtime.engine.EngineStats;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 
@@ -87,16 +85,6 @@ public class EngineTest
                 .build())
         {
             engine.start();
-
-            EngineStats stats = engine.stats("default", "test0");
-            assertEquals(0L, stats.initialOpens());
-            assertEquals(0L, stats.initialCloses());
-            assertEquals(0L, stats.initialErrors());
-            assertEquals(0L, stats.initialBytes());
-            assertEquals(0L, stats.replyOpens());
-            assertEquals(0L, stats.replyCloses());
-            assertEquals(0L, stats.replyErrors());
-            assertEquals(0L, stats.replyBytes());
         }
         catch (Throwable ex)
         {

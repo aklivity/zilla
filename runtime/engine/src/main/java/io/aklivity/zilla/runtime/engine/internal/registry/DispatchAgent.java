@@ -105,14 +105,11 @@ import io.aklivity.zilla.runtime.engine.internal.budget.DefaultBudgetDebitor;
 import io.aklivity.zilla.runtime.engine.internal.exporter.ExporterAgent;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BudgetsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.BufferPoolLayout;
-import io.aklivity.zilla.runtime.engine.internal.layouts.LoadLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.MetricsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.StreamsLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.CountersLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.GaugesLayout;
 import io.aklivity.zilla.runtime.engine.internal.layouts.metrics.HistogramsLayout;
-import io.aklivity.zilla.runtime.engine.internal.load.LoadEntry;
-import io.aklivity.zilla.runtime.engine.internal.load.LoadManager;
 import io.aklivity.zilla.runtime.engine.internal.poller.Poller;
 import io.aklivity.zilla.runtime.engine.internal.stream.NamespacedId;
 import io.aklivity.zilla.runtime.engine.internal.stream.StreamId;
@@ -160,13 +157,11 @@ public class DispatchAgent implements EngineContext, Agent
     private final URL configURL;
     private final LabelManager labels;
     private final String agentName;
-    private final LongFunction<LoadEntry> supplyLoadEntry;
     private final LongFunction<MessageConsumer> supplyOriginMetricRecorder;
     private final LongFunction<MessageConsumer> supplyRoutedMetricRecorder;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
-    private final LoadLayout loadLayout;
     private final Object2ObjectHashMap<Metric.Kind, LongLongFunction<LongConsumer>> metricWriterSuppliers;
     private final Map<String, MetricGroup> metricGroupsByName;
     private final MetricsLayout metricsLayout;
@@ -244,11 +239,6 @@ public class DispatchAgent implements EngineContext, Agent
                 config.minParkNanos(),
                 config.maxParkNanos());
 
-        final LoadLayout loadLayout = new LoadLayout.Builder()
-                .path(config.directory().resolve(String.format("load%d", index)))
-                .capacity(config.loadBufferCapacity())
-                .build();
-
         final MetricsLayout metricsLayout = new MetricsLayout.Builder()
                 .path(config.directory().resolve(String.format("metrics%d", index)))
                 .labelsBufferCapacity(config.counterLabelsBufferCapacity())
@@ -292,13 +282,11 @@ public class DispatchAgent implements EngineContext, Agent
                 .build();
 
         this.agentName = String.format("engine/data#%d", index);
-        this.loadLayout = loadLayout;
         this.metricsLayout = metricsLayout;
         this.streamsLayout = streamsLayout;
         this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
 
-        this.supplyLoadEntry = new LoadManager(loadLayout.buffer())::entry;
         this.supplyOriginMetricRecorder = this::supplyOriginMetricRecorder;
         this.supplyRoutedMetricRecorder = this::supplyRoutedMetricRecorder;
 
@@ -401,7 +389,7 @@ public class DispatchAgent implements EngineContext, Agent
 
         this.configuration = new ConfigurationRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, metricsByName::get, exportersByType::get,
-                labels::supplyLabelId, supplyLoadEntry::apply, this::onExporterAttached, this::onExporterDetached,
+                labels::supplyLabelId, this::onExporterAttached, this::onExporterDetached,
                 this::supplyMetricWriter, this::detachStreams);
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.correlations = new Long2ObjectHashMap<>();
@@ -733,7 +721,6 @@ public class DispatchAgent implements EngineContext, Agent
         targetsByIndex.forEach((k, v) -> quietClose(v));
 
         quietClose(streamsLayout);
-        quietClose(loadLayout);
         quietClose(metricsLayout);
         quietClose(bufferPoolLayout);
 
@@ -746,64 +733,6 @@ public class DispatchAgent implements EngineContext, Agent
                     String.format("Some resources not released: %d buffers, %d creditors, %d debitors",
                                   acquiredBuffers, acquiredCreditors, acquiredDebitors));
         }
-    }
-
-    @Override
-    public void initialOpened(
-        long bindingId)
-    {
-        supplyLoadEntry.apply(bindingId).initialOpened(1L);
-    }
-
-    @Override
-    public void initialClosed(
-        long bindingId)
-    {
-        supplyLoadEntry.apply(bindingId).initialClosed(1L);
-    }
-
-    @Override
-    public void initialErrored(
-        long bindingId)
-    {
-        supplyLoadEntry.apply(bindingId).initialErrored(1L);
-    }
-
-    @Override
-    public void initialBytes(
-        long bindingId,
-        long bytes)
-    {
-        supplyLoadEntry.apply(bindingId).initialBytesRead(bytes);
-    }
-
-    @Override
-    public void replyOpened(
-        long bindingId)
-    {
-        supplyLoadEntry.apply(bindingId).replyOpened(1L);
-    }
-
-    @Override
-    public void replyClosed(
-        long bindingId)
-    {
-        supplyLoadEntry.apply(bindingId).replyClosed(1L);
-    }
-
-    @Override
-    public void replyErrored(
-        long bindingId)
-    {
-        supplyLoadEntry.apply(bindingId).replyErrored(1L);
-    }
-
-    @Override
-    public void replyBytes(
-        long bindingId,
-        long bytes)
-    {
-        supplyLoadEntry.apply(bindingId).replyBytesWritten(bytes);
     }
 
     @Override
@@ -833,54 +762,6 @@ public class DispatchAgent implements EngineContext, Agent
     public AgentRunner runner()
     {
         return runner;
-    }
-
-    public long initialOpens(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).initialOpens();
-    }
-
-    public long initialCloses(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).initialCloses();
-    }
-
-    public long initialErrors(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).initialErrors();
-    }
-
-    public long initialBytes(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).initialBytes();
-    }
-
-    public long replyOpens(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).replyOpens();
-    }
-
-    public long replyCloses(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).replyCloses();
-    }
-
-    public long replyErrors(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).replyErrors();
-    }
-
-    public long replyBytes(
-        long bindingId)
-    {
-        return supplyLoadEntry.apply(bindingId).replyBytes();
     }
 
     @Override
@@ -1134,17 +1015,13 @@ public class DispatchAgent implements EngineContext, Agent
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case DataFW.TYPE_ID:
-                    int bytesRead = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
-                    supplyLoadEntry.apply(routedId).initialBytesRead(bytesRead);
                     handler.accept(msgTypeId, buffer, index, length);
                     break;
                 case EndFW.TYPE_ID:
-                    supplyLoadEntry.apply(routedId).initialClosed(1L);
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     break;
                 case AbortFW.TYPE_ID:
-                    supplyLoadEntry.apply(routedId).initialClosed(1L).initialErrored(1L);
                     handler.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     break;
@@ -1343,7 +1220,6 @@ public class DispatchAgent implements EngineContext, Agent
                     throttle.accept(msgTypeId, buffer, index, length);
                     break;
                 case ResetFW.TYPE_ID:
-                    supplyLoadEntry.apply(routedId).replyClosed(1L).replyErrored(1L);
                     throttle.accept(msgTypeId, buffer, index, length);
                     dispatcher.remove(instanceId);
                     break;
@@ -1635,7 +1511,7 @@ public class DispatchAgent implements EngineContext, Agent
     private Target newTarget(
         int index)
     {
-        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles, supplyLoadEntry);
+        return new Target(config, index, writeBuffer, correlations, streams, streamSets, throttles);
     }
 
     private DefaultBudgetDebitor newBudgetDebitor(

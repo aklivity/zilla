@@ -288,12 +288,6 @@
         </dependency>
         <dependency>
           <groupId>${project.groupId}</groupId>
-          <artifactId>command-load</artifactId>
-          <version>${project.version}</version>
-          <scope>runtime</scope>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
           <artifactId>command-metrics</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
