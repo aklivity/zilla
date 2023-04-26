@@ -47,9 +47,9 @@ public class BindingConfig
     {
         this.vault = vault;
         this.name = name;
-        this.entry = entry;
         this.type = requireNonNull(type);
         this.kind = requireNonNull(kind);
+        this.entry = entry;
         this.options = options;
         this.routes = routes;
     }
