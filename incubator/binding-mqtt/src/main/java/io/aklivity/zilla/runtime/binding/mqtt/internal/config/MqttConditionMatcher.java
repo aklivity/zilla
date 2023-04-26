@@ -15,23 +15,35 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.internal.config;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class MqttConditionMatcher
 {
     private final Matcher topicMatch;
+    private final MqttCapabilities capabilitiesMatch;
 
     public MqttConditionMatcher(
         MqttConditionConfig condition)
     {
         this.topicMatch = condition.topic != null ? asMatcher(condition.topic) : null;
+        this.capabilitiesMatch = condition.capabilities;
     }
 
     public boolean matches(
-        String topic)
+        MqttCapabilities capabilities)
     {
-        return matchesTopic(topic);
+        return matchesCapabilities(capabilities);
+    }
+
+    public boolean matches(
+        String topic,
+        MqttCapabilities capabilities)
+    {
+        return matchesTopic(topic) &&
+            matchesCapabilities(capabilities);
     }
 
     private boolean matchesTopic(
@@ -40,13 +52,19 @@ public final class MqttConditionMatcher
         return this.topicMatch == null || this.topicMatch.reset(topic).matches();
     }
 
+    private boolean matchesCapabilities(
+        MqttCapabilities capabilities)
+    {
+        return this.capabilitiesMatch == null || (this.capabilitiesMatch.value() & capabilities.value()) != 0;
+    }
+
     private static Matcher asMatcher(
         String wildcard)
     {
         return Pattern.compile(wildcard
-                .replace(".", "\\.")
-                .replace("$", "\\$")
-                .replace("+", "[^/]*")
-                .replace("#", ".*")).matcher("");
+            .replace(".", "\\.")
+            .replace("$", "\\$")
+            .replace("+", "[^/]*")
+            .replace("#", ".*")).matcher("");
     }
 }

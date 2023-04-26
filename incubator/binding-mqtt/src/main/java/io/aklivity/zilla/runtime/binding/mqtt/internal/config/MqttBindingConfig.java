@@ -19,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
@@ -38,22 +39,23 @@ public final class MqttBindingConfig
         this.routes = binding.routes.stream().map(MqttRouteConfig::new).collect(toList());
     }
 
-    //TODO: delete?
     public MqttRouteConfig resolve(
-        long authorization)
+        long authorization,
+        MqttCapabilities capabilities)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization))
+            .filter(r -> r.authorized(authorization) && r.matches(capabilities))
             .findFirst()
             .orElse(null);
     }
 
     public MqttRouteConfig resolve(
         long authorization,
-        String topic)
+        String topic,
+        MqttCapabilities capabilities)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization) && r.matches(topic))
+            .filter(r -> r.authorized(authorization) && r.matches(topic, capabilities))
             .findFirst()
             .orElse(null);
     }

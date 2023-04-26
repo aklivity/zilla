@@ -33,6 +33,13 @@
                                         {
                                             "title": "Topic",
                                             "type": "string"
+                                        },
+                                        "capabilities":
+                                        {
+                                            "title": "Capabilities",
+                                            "type": "string",
+                                            "enum": [ "session", "publish", "subscribe", "publish_and_subscribe" ],
+                                            "default": "publish_and_subscribe"
                                         }
                                     }
                                 }

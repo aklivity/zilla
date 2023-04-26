@@ -22,7 +22,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/+/#", 1, "SEND_RETAINED")
+                                .filter("sensor/+/#", 1, "SEND_RETAINED", "QOS0")
                                 .build()
                              .build()}
 
@@ -30,8 +30,8 @@ connected
 
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .filter("sensor/+/#", 1, "SEND_RETAINED")
-                                 .filter("sensor/+/1", 2, "SEND_RETAINED")
+                                 .filter("sensor/+/#", 1, "SEND_RETAINED", "QOS0")
+                                 .filter("sensor/+/1", 2, "SEND_RETAINED", "QOS0")
                                  .build()}
 
 read zilla:data.ext ${mqtt:dataEx()

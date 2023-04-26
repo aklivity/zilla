@@ -14,18 +14,14 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
-
-accepted
-
-read zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                .clientId("client")
-                                .filter("sensor/+", 1, "SEND_RETAINED", "QOS0")
-                                .build()
-                             .build()}
-
-connected
+---
+name: test
+bindings:
+  net0:
+    type: mqtt
+    kind: server
+    routes:
+      - exit: app0
+        when:
+          - topic: sensor/one
+            capabilities: publish

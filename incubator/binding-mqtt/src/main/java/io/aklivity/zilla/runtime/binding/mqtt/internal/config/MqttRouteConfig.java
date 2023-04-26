@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.function.LongPredicate;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
@@ -48,8 +49,15 @@ public final class MqttRouteConfig extends OptionsConfig
     }
 
     boolean matches(
-        String topic)
+        MqttCapabilities capabilities)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(capabilities));
+    }
+
+    boolean matches(
+        String topic,
+        MqttCapabilities capabilities)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic, capabilities));
     }
 }

@@ -92,14 +92,14 @@ public class UnsubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/unsubscribe.invalid.fixed.header.flags/client",
+        "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldExchangeConnectionPacketsThenRejectMalformedUnsubscribePacket() throws Exception
+    public void shouldRejectMalformedUnsubscribePacket() throws Exception
     {
         k3po.finish();
     }

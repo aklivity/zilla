@@ -34,6 +34,14 @@ scope mqtt
         RETAIN(3)
     }
 
+    enum MqttCapabilities (uint8)
+    {
+        PUBLISH_ONLY(1),
+        SUBSCRIBE_ONLY(2),
+        PUBLISH_AND_SUBSCRIBE(3),
+        SESSION(4)
+    }
+
     enum MqttEndReasonCode (uint8)
     {
         DISCONNECT(0),

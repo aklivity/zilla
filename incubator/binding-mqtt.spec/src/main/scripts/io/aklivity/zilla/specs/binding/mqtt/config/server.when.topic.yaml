@@ -23,5 +23,4 @@ bindings:
     routes:
       - exit: app0
         when:
-          - capability: SESSION, SUBSCRIBE, PUBLISH
-            topic: sensor/one
+          - topic: sensor/one
