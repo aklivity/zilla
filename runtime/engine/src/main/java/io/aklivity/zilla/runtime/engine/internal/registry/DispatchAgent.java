@@ -157,8 +157,10 @@ public class DispatchAgent implements EngineContext, Agent
     private final URL configURL;
     private final LabelManager labels;
     private final String agentName;
-    private final LongFunction<MessageConsumer> supplyOriginMetricRecorder;
-    private final LongFunction<MessageConsumer> supplyRoutedMetricRecorder;
+    private final LongFunction<MessageConsumer> supplyReceivedOriginMetricRecorder;
+    private final LongFunction<MessageConsumer> supplySentOriginMetricRecorder;
+    private final LongFunction<MessageConsumer> supplyReceivedRoutedMetricRecorder;
+    private final LongFunction<MessageConsumer> supplySentRoutedMetricRecorder;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -287,8 +289,10 @@ public class DispatchAgent implements EngineContext, Agent
         this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
 
-        this.supplyOriginMetricRecorder = this::supplyOriginMetricRecorder;
-        this.supplyRoutedMetricRecorder = this::supplyRoutedMetricRecorder;
+        this.supplyReceivedOriginMetricRecorder = this::supplyReceivedOriginMetricRecorder;
+        this.supplySentOriginMetricRecorder = this::supplySentOriginMetricRecorder;
+        this.supplyReceivedRoutedMetricRecorder = this::supplyReceivedRoutedMetricRecorder;
+        this.supplySentRoutedMetricRecorder = this::supplySentRoutedMetricRecorder;
 
         final CountersManager countersManager =
                 new CountersManager(metricsLayout.labelsBuffer(), metricsLayout.valuesBuffer());
@@ -1324,13 +1328,15 @@ public class DispatchAgent implements EngineContext, Agent
         final BindingHandler streamFactory = binding != null ? binding.streamFactory() : null;
         if (streamFactory != null)
         {
-            MessageConsumer metricHandler = supplyOriginMetricRecorder.apply(originId)
-                .andThen(supplyRoutedMetricRecorder.apply(routedId));
-            final MessageConsumer replyTo = metricHandler.andThen(supplyReplyTo(initialId));
+            MessageConsumer sentMetricHandler = supplySentOriginMetricRecorder.apply(originId)
+                .andThen(supplySentRoutedMetricRecorder.apply(routedId));
+            final MessageConsumer replyTo = sentMetricHandler.andThen(supplyReplyTo(initialId));
             newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
             if (newStream != null)
             {
-                newStream = metricHandler.andThen(newStream);
+                MessageConsumer receivedMetricHandler = supplyReceivedOriginMetricRecorder.apply(originId)
+                    .andThen(supplyReceivedRoutedMetricRecorder.apply(routedId));
+                newStream = receivedMetricHandler.andThen(newStream);
 
                 final long replyId = supplyReplyId(initialId);
                 streams[streamIndex(initialId)].put(instanceId(initialId), newStream);
@@ -1494,18 +1500,32 @@ public class DispatchAgent implements EngineContext, Agent
         return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
     }
 
-    private MessageConsumer supplyOriginMetricRecorder(
+    private MessageConsumer supplyReceivedOriginMetricRecorder(
         long bindingId)
     {
         BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.originMetricHandler() : MessageConsumer.NOOP;
+        return binding != null ? binding.receivedOriginMetricHandler() : MessageConsumer.NOOP;
     }
 
-    private MessageConsumer supplyRoutedMetricRecorder(
+    private MessageConsumer supplySentOriginMetricRecorder(
         long bindingId)
     {
         BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.routedMetricHandler() : MessageConsumer.NOOP;
+        return binding != null ? binding.sentOriginMetricHandler() : MessageConsumer.NOOP;
+    }
+
+    private MessageConsumer supplyReceivedRoutedMetricRecorder(
+        long bindingId)
+    {
+        BindingRegistry binding = configuration.resolveBinding(bindingId);
+        return binding != null ? binding.receivedRoutedMetricHandler() : MessageConsumer.NOOP;
+    }
+
+    private MessageConsumer supplySentRoutedMetricRecorder(
+        long bindingId)
+    {
+        BindingRegistry binding = configuration.resolveBinding(bindingId);
+        return binding != null ? binding.sentRoutedMetricHandler() : MessageConsumer.NOOP;
     }
 
     private Target newTarget(

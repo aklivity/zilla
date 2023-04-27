@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.StreamDirection.BOTH;
+
 import io.aklivity.zilla.runtime.engine.EngineContext;
 
 public interface Metric
@@ -32,11 +34,23 @@ public interface Metric
         COUNT
     }
 
+    enum StreamDirection
+    {
+        RECEIVED,
+        SENT,
+        BOTH
+    }
+
     String name();
 
     Kind kind();
 
     Unit unit();
+
+    default StreamDirection streamDirection()
+    {
+        return BOTH;
+    }
 
     String description();
 

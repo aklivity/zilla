@@ -48,4 +48,9 @@ public class MetricRegistry
     {
         return context.kind();
     }
+
+    public Metric.StreamDirection streamDirection()
+    {
+        return context.streamDirection();
+    }
 }

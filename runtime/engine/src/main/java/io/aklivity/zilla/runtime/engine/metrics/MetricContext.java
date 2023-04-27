@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.StreamDirection.BOTH;
+
 import java.util.function.LongConsumer;
 
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -24,6 +26,11 @@ public interface MetricContext
     String group();
 
     Metric.Kind kind();
+
+    default Metric.StreamDirection streamDirection()
+    {
+        return BOTH;
+    }
 
     MessageConsumer supply(
         LongConsumer recorder);

@@ -17,12 +17,14 @@ package io.aklivity.zilla.runtime.metrics.http.internal;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.Collection;
 import java.util.function.LongConsumer;
 
 import org.agrona.concurrent.AtomicBuffer;
@@ -44,6 +46,20 @@ import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.HttpBeginExF
 public class HttpMetricGroupTest
 {
     @Test
+    public void shouldReturnMetricNames()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+
+        // WHEN
+        Collection<String> metricNames = metricGroup.metricNames();
+
+        // THEN
+        assertThat(metricNames, containsInAnyOrder("http.request.size", "http.response.size"));
+    }
+
+    @Test
     public void shouldResolveHttpRequestSize()
     {
         // GIVEN
@@ -58,7 +74,25 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.request.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
         assertThat(metric.description(), equalTo("HTTP request content length"));
+    }
+
+    @Test
+    public void shouldResolveHttpRequestSizeContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        Metric metric = metricGroup.supply("http.request.size");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.group(), equalTo("http"));
+        assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
     }
 
     @Test
@@ -282,7 +316,25 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.response.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.SENT));
         assertThat(metric.description(), equalTo("HTTP response content length"));
+    }
+
+    @Test
+    public void shouldResolveHttpResponseSizeContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        Metric metric = metricGroup.supply("http.response.size");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.group(), equalTo("http"));
+        assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.SENT));
     }
 
     @Test

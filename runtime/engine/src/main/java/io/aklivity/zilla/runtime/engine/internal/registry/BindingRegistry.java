@@ -26,8 +26,10 @@ final class BindingRegistry
     private final BindingContext context;
 
     private BindingHandler attached;
-    private MessageConsumer originMetricHandler = MessageConsumer.NOOP;
-    private MessageConsumer routedMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer sentOriginMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer receivedOriginMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer sentRoutedMetricHandler = MessageConsumer.NOOP;
+    private MessageConsumer receivedRoutedMetricHandler = MessageConsumer.NOOP;
 
     BindingRegistry(
         BindingConfig binding,
@@ -53,25 +55,47 @@ final class BindingRegistry
         return attached;
     }
 
-    public void originMetricHandler(
-        MessageConsumer originMetricHandler)
+    public void sentOriginMetricHandler(
+        MessageConsumer sentOriginMetricHandler)
     {
-        this.originMetricHandler = originMetricHandler;
+        this.sentOriginMetricHandler = sentOriginMetricHandler;
     }
 
-    public void routedMetricHandler(
-        MessageConsumer routedMetricHandler)
+    public void receivedOriginMetricHandler(
+        MessageConsumer receivedOriginMetricHandler)
     {
-        this.routedMetricHandler = routedMetricHandler;
+        this.receivedOriginMetricHandler = receivedOriginMetricHandler;
     }
 
-    public MessageConsumer originMetricHandler()
+    public void sentRoutedMetricHandler(
+        MessageConsumer sentRoutedMetricHandler)
     {
-        return originMetricHandler;
+        this.sentRoutedMetricHandler = sentRoutedMetricHandler;
     }
 
-    public MessageConsumer routedMetricHandler()
+    public void receivedRoutedMetricHandler(
+        MessageConsumer receivedRoutedMetricHandler)
     {
-        return routedMetricHandler;
+        this.receivedRoutedMetricHandler = receivedRoutedMetricHandler;
+    }
+
+    public MessageConsumer sentOriginMetricHandler()
+    {
+        return sentOriginMetricHandler;
+    }
+
+    public MessageConsumer receivedOriginMetricHandler()
+    {
+        return receivedOriginMetricHandler;
+    }
+
+    public MessageConsumer sentRoutedMetricHandler()
+    {
+        return sentRoutedMetricHandler;
+    }
+
+    public MessageConsumer receivedRoutedMetricHandler()
+    {
+        return receivedRoutedMetricHandler;
     }
 }
