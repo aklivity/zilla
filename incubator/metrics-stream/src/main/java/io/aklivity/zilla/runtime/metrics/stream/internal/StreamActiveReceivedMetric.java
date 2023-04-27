@@ -14,21 +14,12 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
-import static io.aklivity.zilla.runtime.metrics.stream.internal.StreamUtils.isInitial;
-
 import java.util.function.LongConsumer;
-
-import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.AbortFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.BeginFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.EndFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.FrameFW;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.ResetFW;
 
 public class StreamActiveReceivedMetric implements Metric
 {
@@ -55,6 +46,12 @@ public class StreamActiveReceivedMetric implements Metric
     }
 
     @Override
+    public StreamDirection streamDirection()
+    {
+        return StreamDirection.RECEIVED;
+    }
+
+    @Override
     public String description()
     {
         return DESCRIPTION;
@@ -69,8 +66,6 @@ public class StreamActiveReceivedMetric implements Metric
 
     private final class StreamActiveReceivedMetricContext implements MetricContext
     {
-        private final FrameFW frameRO = new FrameFW();
-
         @Override
         public String group()
         {
@@ -84,42 +79,16 @@ public class StreamActiveReceivedMetric implements Metric
         }
 
         @Override
+        public StreamDirection streamDirection()
+        {
+            return StreamActiveReceivedMetric.this.streamDirection();
+        }
+
+        @Override
         public MessageConsumer supply(
             LongConsumer recorder)
         {
-            return (t, b, i, l) -> handle(recorder, t, b, i, l);
-        }
-
-        private void handle(
-            LongConsumer recorder,
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            FrameFW frame = frameRO.wrap(buffer, index, index + length);
-            final long streamId = frame.streamId();
-            if (isInitial(streamId)) // received stream
-            {
-                handleFrame(msgTypeId, recorder);
-            }
-        }
-
-        private void handleFrame(
-            int msgTypeId,
-            LongConsumer recorder)
-        {
-            switch (msgTypeId)
-            {
-            case BeginFW.TYPE_ID:
-                recorder.accept(1L);
-                break;
-            case EndFW.TYPE_ID:
-            case AbortFW.TYPE_ID:
-            case ResetFW.TYPE_ID:
-                recorder.accept(-1L);
-                break;
-            }
+            return new StreamActiveHandler(recorder);
         }
     }
 }
