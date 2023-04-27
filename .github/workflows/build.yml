@@ -37,4 +37,6 @@ jobs:
       if: failure()
       with:
         name: zilla-dump
-        path: runtime/*/target/zilla-itests/
+        path: |
+          incubator/*/target/zilla-itests/
+          runtime/*/target/zilla-itests/
