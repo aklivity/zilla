@@ -14,15 +14,32 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
-final class StreamUtils
+import java.util.function.LongConsumer;
+
+import org.agrona.DirectBuffer;
+
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
+import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.EndFW;
+
+public class StreamClosesHandler implements MessageConsumer
 {
-    private StreamUtils()
+    private final LongConsumer recorder;
+
+    public StreamClosesHandler(LongConsumer recorder)
     {
+        this.recorder = recorder;
     }
 
-    public static boolean isInitial(
-        long streamId)
+    @Override
+    public void accept(
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
-        return (streamId & 0x0000_0000_0000_0001L) != 0L;
+        if (msgTypeId == EndFW.TYPE_ID)
+        {
+            recorder.accept(1L);
+        }
     }
 }

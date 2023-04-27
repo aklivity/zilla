@@ -14,11 +14,7 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
-import static io.aklivity.zilla.runtime.metrics.stream.internal.StreamUtils.isInitial;
-
 import java.util.function.LongConsumer;
-
-import org.agrona.DirectBuffer;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -51,6 +47,12 @@ public class StreamDataSentMetric implements Metric
     }
 
     @Override
+    public StreamDirection streamDirection()
+    {
+        return StreamDirection.SENT;
+    }
+
+    @Override
     public String description()
     {
         return DESCRIPTION;
@@ -80,28 +82,16 @@ public class StreamDataSentMetric implements Metric
         }
 
         @Override
+        public StreamDirection streamDirection()
+        {
+            return StreamDataSentMetric.this.streamDirection();
+        }
+
+        @Override
         public MessageConsumer supply(
             LongConsumer recorder)
         {
-            return (t, b, i, l) -> handle(recorder, t, b, i, l);
-        }
-
-        private void handle(
-            LongConsumer recorder,
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            if (msgTypeId == DataFW.TYPE_ID) // data frame
-            {
-                DataFW data = dataRO.wrap(buffer, index, index + length);
-                long streamId = data.streamId();
-                if (!isInitial(streamId)) // sent stream
-                {
-                    recorder.accept(data.length());
-                }
-            }
+            return new StreamDataHandler(recorder);
         }
     }
 }

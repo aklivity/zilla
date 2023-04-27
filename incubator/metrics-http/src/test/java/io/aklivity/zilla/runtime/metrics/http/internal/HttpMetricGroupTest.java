@@ -18,6 +18,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -90,6 +91,7 @@ public class HttpMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
+        assertThat(context.getClass().getName(), endsWith("HttpRequestSizeMetric$HttpRequestSizeMetricContext"));
         assertThat(context.group(), equalTo("http"));
         assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
@@ -332,6 +334,7 @@ public class HttpMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
+        assertThat(context.getClass().getName(), endsWith("HttpResponseSizeMetric$HttpResponseSizeMetricContext"));
         assertThat(context.group(), equalTo("http"));
         assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.SENT));

@@ -17,10 +17,13 @@ package io.aklivity.zilla.runtime.metrics.stream.internal;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.Collection;
 import java.util.function.LongConsumer;
 
 import org.agrona.concurrent.AtomicBuffer;
@@ -42,6 +45,26 @@ import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.ResetFW;
 public class StreamMetricGroupTest
 {
     @Test
+    public void shouldReturnMetricNames()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+
+        // WHEN
+        Collection<String> metricNames = metricGroup.metricNames();
+
+        // THEN
+        assertThat(metricNames, containsInAnyOrder(
+            "stream.opens.received", "stream.opens.sent",
+            "stream.data.received", "stream.data.sent",
+            "stream.errors.received", "stream.errors.sent",
+            "stream.closes.received", "stream.closes.sent",
+            "stream.active.received", "stream.active.sent"
+        ));
+    }
+
+    @Test
     public void shouldResolveStreamOpensReceived()
     {
         // GIVEN
@@ -56,7 +79,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.opens.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
         assertThat(metric.description(), equalTo("Number of opened received streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamOpensReceivedContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.opens.received");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamOpensReceivedMetric$StreamOpensReceivedMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
     }
 
     @Test
@@ -98,7 +140,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.opens.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.SENT));
         assertThat(metric.description(), equalTo("Number of closed sent streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamOpensSentContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.opens.sent");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamOpensSentMetric$StreamOpensSentMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.SENT));
     }
 
     @Test
@@ -140,7 +201,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.data.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
         assertThat(metric.description(), equalTo("Bytes of data on received streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamDataReceivedContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.data.received");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamDataReceivedMetric$StreamDataReceivedMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
     }
 
     @Test
@@ -184,7 +264,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.data.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.SENT));
         assertThat(metric.description(), equalTo("Bytes of data on sent streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamDataSentContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.data.sent");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamDataSentMetric$StreamDataSentMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.SENT));
     }
 
     @Test
@@ -213,7 +312,6 @@ public class StreamMetricGroupTest
         verify(recorder, times(1)).accept(8L);
     }
 
-
     @Test
     public void shouldResolveStreamErrorsReceived()
     {
@@ -229,7 +327,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.errors.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
         assertThat(metric.description(), equalTo("Number of errors on received streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamErrorsReceivedContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.errors.received");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamErrorsReceivedMetric$StreamErrorsReceivedMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
     }
 
     @Test
@@ -276,7 +393,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.errors.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.SENT));
         assertThat(metric.description(), equalTo("Number of errors on sent streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamErrorsSentContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.errors.sent");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamErrorsSentMetric$StreamErrorsSentMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.SENT));
     }
 
     @Test
@@ -323,7 +459,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.closes.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
         assertThat(metric.description(), equalTo("Number of closed received streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamClosesReceivedContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.closes.received");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamClosesReceivedMetric$StreamClosesReceivedMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
     }
 
     @Test
@@ -365,7 +520,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.closes.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.SENT));
         assertThat(metric.description(), equalTo("Number of closed sent streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamClosesSentContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.closes.sent");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamClosesSentMetric$StreamClosesSentMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.SENT));
     }
 
     @Test
@@ -407,7 +581,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.active.received"));
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
         assertThat(metric.description(), equalTo("Number of currently active received streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamActiveReceivedContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.active.received");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamActiveReceivedMetric$StreamActiveReceivedMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.GAUGE));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.RECEIVED));
     }
 
     @Test
@@ -456,7 +649,26 @@ public class StreamMetricGroupTest
         assertThat(metric.name(), equalTo("stream.active.sent"));
         assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.streamDirection(), equalTo(Metric.StreamDirection.SENT));
         assertThat(metric.description(), equalTo("Number of currently active sent streams"));
+    }
+
+    @Test
+    public void shouldResolveStreamActiveSentContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new StreamMetricGroup(config);
+        Metric metric = metricGroup.supply("stream.active.sent");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context.getClass().getName(), endsWith("StreamActiveSentMetric$StreamActiveSentMetricContext"));
+        assertThat(context.group(), equalTo("stream"));
+        assertThat(context.kind(), equalTo(Metric.Kind.GAUGE));
+        assertThat(context.streamDirection(), equalTo(Metric.StreamDirection.SENT));
     }
 
     @Test
