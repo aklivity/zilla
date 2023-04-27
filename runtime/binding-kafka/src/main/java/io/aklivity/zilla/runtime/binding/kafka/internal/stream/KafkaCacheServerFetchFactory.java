@@ -706,14 +706,18 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final KafkaOffsetFW progress = kafkaFetchBeginEx.partition();
             final int partitionId = progress.partitionId();
             final long partitionOffset = progress.partitionOffset();
+            final long stableOffset = progress.stableOffset();
+            final long latestOffset = progress.latestOffset();
 
             state = KafkaState.openingReply(state);
 
             assert partitionId == partition.id();
             assert partitionOffset >= 0L && partitionOffset >= this.partitionOffset;
+            assert stableOffset <= latestOffset;
+
             this.partitionOffset = partitionOffset;
-            this.stableOffset = progress.stableOffset();
-            this.latestOffset = progress.latestOffset();
+            this.stableOffset = stableOffset;
+            this.latestOffset = latestOffset;
 
             partition.newHeadIfNecessary(partitionOffset);
 
@@ -736,10 +740,13 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             final KafkaOffsetFW progress = kafkaFetchFlushEx.partition();
             final int partitionId = progress.partitionId();
             final long partitionOffset = progress.partitionOffset();
+            final long stableOffset = progress.stableOffset();
+            final long latestOffset = progress.latestOffset();
             final Array32FW<KafkaTransactionFW> transactions = kafkaFetchFlushEx.transactions();
 
             assert partitionId == partition.id();
             assert partitionOffset >= 0L && partitionOffset >= this.partitionOffset;
+            assert stableOffset <= latestOffset;
 
             if (!transactions.isEmpty())
             {
@@ -759,18 +766,19 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 if (result == KafkaTransactionResult.ABORT)
                 {
-                    Node stable = partition.seekNotBefore(stableOffset);
-                    while (!stable.sentinel())
+                    Node stable = partition.seekNotAfter(stableOffset);
+                    while (!stable.sentinel() &&
+                        stable.segment().lastOffset() > this.stableOffset)
                     {
                         stable.findAndAbortProducerId(producerId, abortedEntryRO);
-                        stable = stable.next();
+                        stable = stable.previous();
                     }
                 }
             }
 
             this.partitionOffset = partitionOffset;
-            this.stableOffset = progress.stableOffset();
-            this.latestOffset = progress.latestOffset();
+            this.stableOffset = stableOffset;
+            this.latestOffset = latestOffset;
 
             members.forEach(s -> s.doServerReplyFlushIfNecessary(traceId));
 

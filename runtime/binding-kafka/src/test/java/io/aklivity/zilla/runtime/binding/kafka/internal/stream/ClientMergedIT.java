@@ -362,4 +362,14 @@ public class ClientMergedIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.filter.sync/client",
+        "${net}/unmerged.fetch.filter.sync/server"})
+    public void shouldFetchMergedFilterSync() throws Exception
+    {
+        k3po.finish();
+    }
 }

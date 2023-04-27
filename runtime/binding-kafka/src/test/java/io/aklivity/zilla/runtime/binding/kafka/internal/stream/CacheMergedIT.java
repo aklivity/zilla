@@ -170,6 +170,17 @@ public class CacheMergedIT
         k3po.finish();
     }
 
+    @Ignore("requires k3po parallel reads")
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.filter.key.or.header.eager/client",
+        "${app}/unmerged.fetch.filter.none/server"})
+    public void shouldFetchMergedMessagesWithKeyOrHeaderEagerFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
@@ -182,6 +193,16 @@ public class CacheMergedIT
         k3po.awaitBarrier("RECEIVED_MESSAGE_B2");
         k3po.notifyBarrier("SEND_MESSAGE_A3");
         k3po.notifyBarrier("SEND_MESSAGE_B3");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.filter.sync/client",
+        "${app}/unmerged.fetch.filter.sync/server"})
+    public void shouldFetchMergedFilterSync() throws Exception
+    {
         k3po.finish();
     }
 
