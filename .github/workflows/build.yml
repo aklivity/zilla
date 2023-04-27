@@ -37,4 +37,4 @@ jobs:
       if: failure()
       with:
         name: zilla-dump
-        path: /run/zilla/
+        path: runtime/*/target/zilla-itests/
