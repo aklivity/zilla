@@ -18,6 +18,8 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_BUDGET_ID;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.internal.layouts.Layout.Mode.CREATE_READ_WRITE;
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
+import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
 import static io.aklivity.zilla.runtime.engine.internal.stream.BudgetId.ownerIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.clientIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.instanceId;
@@ -29,6 +31,8 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttle
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.StreamDirection.RECEIVED;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.StreamDirection.SENT;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -157,10 +161,6 @@ public class DispatchAgent implements EngineContext, Agent
     private final URL configURL;
     private final LabelManager labels;
     private final String agentName;
-    private final LongFunction<MessageConsumer> supplyReceivedOriginMetricRecorder;
-    private final LongFunction<MessageConsumer> supplySentOriginMetricRecorder;
-    private final LongFunction<MessageConsumer> supplyReceivedRoutedMetricRecorder;
-    private final LongFunction<MessageConsumer> supplySentRoutedMetricRecorder;
     private final Counters counters;
     private final Function<String, InetAddress[]> resolveHost;
     private final boolean timestamps;
@@ -288,11 +288,6 @@ public class DispatchAgent implements EngineContext, Agent
         this.streamsLayout = streamsLayout;
         this.bufferPoolLayout = bufferPoolLayout;
         this.runner = new AgentRunner(idleStrategy, errorHandler, null, this);
-
-        this.supplyReceivedOriginMetricRecorder = this::supplyReceivedOriginMetricRecorder;
-        this.supplySentOriginMetricRecorder = this::supplySentOriginMetricRecorder;
-        this.supplyReceivedRoutedMetricRecorder = this::supplyReceivedRoutedMetricRecorder;
-        this.supplySentRoutedMetricRecorder = this::supplySentRoutedMetricRecorder;
 
         final CountersManager countersManager =
                 new CountersManager(metricsLayout.labelsBuffer(), metricsLayout.valuesBuffer());
@@ -1328,14 +1323,14 @@ public class DispatchAgent implements EngineContext, Agent
         final BindingHandler streamFactory = binding != null ? binding.streamFactory() : null;
         if (streamFactory != null)
         {
-            MessageConsumer sentMetricHandler = supplySentOriginMetricRecorder.apply(originId)
-                .andThen(supplySentRoutedMetricRecorder.apply(routedId));
+            MessageConsumer sentMetricHandler = supplyMetricRecorder(originId, ORIGIN, SENT)
+                .andThen(supplyMetricRecorder(routedId, ROUTED, SENT));
             final MessageConsumer replyTo = sentMetricHandler.andThen(supplyReplyTo(initialId));
             newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
             if (newStream != null)
             {
-                MessageConsumer receivedMetricHandler = supplyReceivedOriginMetricRecorder.apply(originId)
-                    .andThen(supplyReceivedRoutedMetricRecorder.apply(routedId));
+                MessageConsumer receivedMetricHandler = supplyMetricRecorder(originId, ORIGIN, RECEIVED)
+                    .andThen(supplyMetricRecorder(routedId, ROUTED, RECEIVED));
                 newStream = receivedMetricHandler.andThen(newStream);
 
                 final long replyId = supplyReplyId(initialId);
@@ -1500,32 +1495,39 @@ public class DispatchAgent implements EngineContext, Agent
         return metricWriterSuppliers.get(kind).apply(bindingId, metricId);
     }
 
-    private MessageConsumer supplyReceivedOriginMetricRecorder(
-        long bindingId)
+    private MessageConsumer supplyMetricRecorder(
+        long bindingId,
+        MetricHandlerKind kind,
+        Metric.StreamDirection direction)
     {
+        MessageConsumer recorder = MessageConsumer.NOOP;
         BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.receivedOriginMetricHandler() : MessageConsumer.NOOP;
-    }
-
-    private MessageConsumer supplySentOriginMetricRecorder(
-        long bindingId)
-    {
-        BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.sentOriginMetricHandler() : MessageConsumer.NOOP;
-    }
-
-    private MessageConsumer supplyReceivedRoutedMetricRecorder(
-        long bindingId)
-    {
-        BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.receivedRoutedMetricHandler() : MessageConsumer.NOOP;
-    }
-
-    private MessageConsumer supplySentRoutedMetricRecorder(
-        long bindingId)
-    {
-        BindingRegistry binding = configuration.resolveBinding(bindingId);
-        return binding != null ? binding.sentRoutedMetricHandler() : MessageConsumer.NOOP;
+        if (binding != null)
+        {
+            if (kind == ROUTED)
+            {
+                if (direction == RECEIVED)
+                {
+                    recorder = binding.receivedRoutedMetricHandler();
+                }
+                else if (direction == SENT)
+                {
+                    recorder = binding.sentRoutedMetricHandler();
+                }
+            }
+            else if (kind == ORIGIN)
+            {
+                if (direction == RECEIVED)
+                {
+                    recorder = binding.receivedOriginMetricHandler();
+                }
+                else if (direction == SENT)
+                {
+                    recorder = binding.sentOriginMetricHandler();
+                }
+            }
+        }
+        return recorder;
     }
 
     private Target newTarget(
