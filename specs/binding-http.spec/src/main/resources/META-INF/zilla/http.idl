@@ -39,6 +39,11 @@ scope http
             HttpHeader[] trailers;
         }
 
+        struct HttpResetEx extends core::stream::Extension
+        {
+            HttpHeader[] headers;
+        }
+
         struct HttpChallengeEx extends core::stream::Extension
         {
             HttpHeader[] headers;

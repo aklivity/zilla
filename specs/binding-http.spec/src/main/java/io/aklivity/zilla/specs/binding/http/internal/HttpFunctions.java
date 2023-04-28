@@ -40,6 +40,7 @@ import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpFlushExFW;
+import io.aklivity.zilla.specs.binding.http.internal.types.stream.HttpResetExFW;
 
 public final class HttpFunctions
 {
@@ -71,6 +72,12 @@ public final class HttpFunctions
     public static HttpEndExBuilder endEx()
     {
         return new HttpEndExBuilder();
+    }
+
+    @Function
+    public static HttpResetExBuilder resetEx()
+    {
+        return new HttpResetExBuilder();
     }
 
     @Function
@@ -525,6 +532,40 @@ public final class HttpFunctions
             final HttpEndExFW endEx = endExRW.build();
             final byte[] array = new byte[endEx.sizeof()];
             endEx.buffer().getBytes(endEx.offset(), array);
+            return array;
+        }
+    }
+
+    public static final class HttpResetExBuilder
+    {
+        private final HttpResetExFW.Builder resetExRW;
+
+        private HttpResetExBuilder()
+        {
+            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+            this.resetExRW = new HttpResetExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+        }
+
+        public HttpResetExBuilder typeId(
+            int typeId)
+        {
+            resetExRW.typeId(typeId);
+            return this;
+        }
+
+        public HttpResetExBuilder header(
+            String name,
+            String value)
+        {
+            resetExRW.headersItem(b -> b.name(name).value(value));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final HttpResetExFW resetEx = resetExRW.build();
+            final byte[] array = new byte[resetEx.sizeof()];
+            resetEx.buffer().getBytes(resetEx.offset(), array);
             return array;
         }
     }

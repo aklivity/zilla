@@ -1,0 +1,241 @@
+[
+    {
+        "op": "add",
+        "path": "/$defs/binding/oneOf/-",
+        "value":
+        {
+            "properties":
+            {
+                "type":
+                {
+                    "const": "grpc-kafka"
+                },
+                "kind":
+                {
+                    "enum": [ "proxy" ]
+                },
+                "vault": false,
+                "options":
+                {
+                    "properties":
+                    {
+                        "last-message-id-field":
+                        {
+                            "title": "Grpc Last Message Id",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 536870911
+                        },
+                        "last-message-id-metadata":
+                        {
+                            "title": "Grpc Last Message Id Metadata Name",
+                            "type": "string"
+                        },
+                        "correlation":
+                        {
+                            "title": "Correlation",
+                            "type": "object",
+                            "properties":
+                            {
+                                "headers":
+                                {
+                                    "title": "Correlation Kafka Headers",
+                                    "type": "object",
+                                    "properties":
+                                    {
+                                        "service":
+                                        {
+                                            "title": "Grpc Service Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:service"
+                                        },
+                                        "method":
+                                        {
+                                            "title": "Grpc Method Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:method"
+                                        },
+                                        "correlation-id":
+                                        {
+                                            "title": "Correlation-Id Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:correlation-id"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required":
+                            [
+                                "headers"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "routes":
+                {
+                    "items":
+                    {
+                        "properties":
+                        {
+                            "when":
+                            {
+                                "items":
+                                {
+                                    "properties":
+                                    {
+                                        "service":
+                                        {
+                                            "title": "Service",
+                                            "type": "string"
+                                        },
+                                        "method":
+                                        {
+                                            "title": "Method",
+                                            "type": "string"
+                                        },
+                                        "metadata":
+                                        {
+                                            "title": "Metadata",
+                                            "type": "object",
+                                            "additionalProperties" :
+                                            {
+                                                "oneOf":
+                                                [
+                                                    {
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "properties":
+                                                        {
+                                                            "base64":
+                                                            {
+                                                                "title": "Base64 value",
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "with":
+                            {
+                                "oneOf":
+                                [
+                                    {
+                                        "properties":
+                                        {
+                                            "capability":
+                                            {
+                                                "title": "Capability",
+                                                "type": "string",
+                                                "const": "fetch"
+                                            },
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "filters":
+                                            {
+                                                "title": "Filters",
+                                                "type": "array",
+                                                "items":
+                                                {
+                                                    "properties":
+                                                    {
+                                                        "key":
+                                                        {
+                                                            "title": "Key",
+                                                            "type": "string"
+                                                        },
+                                                        "headers":
+                                                        {
+                                                            "title": "Headers",
+                                                            "type": "object",
+                                                            "additionalProperties" :
+                                                            {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "additionalProperties": false
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "properties":
+                                        {
+                                            "capability":
+                                            {
+                                                "title": "Capability",
+                                                "type": "string",
+                                                "const": "produce"
+                                            },
+                                            "topic":
+                                            {
+                                                "title": "Topic",
+                                                "type": "string"
+                                            },
+                                            "acks":
+                                            {
+                                                "title": "Acks",
+                                                "type": "string",
+                                                "enum": [ "none", "leader_only", "in_sync_replicas" ]
+                                            },
+                                            "key":
+                                            {
+                                                "title": "Key",
+                                                "type": "string"
+                                            },
+                                            "overrides": {
+                                                "title": "Headers",
+                                                "type": "object",
+                                                "additionalProperties": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "reply-to":
+                                            {
+                                                "title": "Reply-To topic",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "additionalProperties": false,
+                                        "required":
+                                        [
+                                            "reply-to"
+                                        ]
+                                    }
+                                ],
+                                "required":
+                                [
+                                    "capability",
+                                    "topic"
+                                ]
+                            }
+                        },
+                        "required":
+                        [
+                            "with"
+                        ]
+                    }
+                },
+                "exit": false
+            },
+            "required":
+            [
+                "routes"
+            ]
+        }
+    }
+]

@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2021-2022 Aklivity Inc.
  *
@@ -154,7 +155,7 @@ uint32_type
 uint64_type
    : KW_UINT64
    ;
-   
+
 varuint32_type
    : KW_VARUINT32
    ;
@@ -166,7 +167,7 @@ varuint32n_type
 varint32_type
    : KW_VARINT32
    ;
-   
+
 varint64_type
    : KW_VARINT64
    ;
@@ -219,7 +220,7 @@ struct_type
 type_id
    : uint_literal
    ;
-   
+
 member_list
    : member * unbounded_member?
    ;
@@ -236,12 +237,12 @@ member
    | varint_array_member SEMICOLON
    | array_member SEMICOLON
    ;
-   
+
 uint_member_with_default
    : unsigned_integer_type declarator EQUALS uint_literal
    ;
 
-int_member_with_default 
+int_member_with_default
    : signed_integer_type declarator EQUALS int_literal
    ;
 
@@ -332,7 +333,7 @@ list_unbounded_member
 unbounded_member
    : unbounded_octets_member
    ;
-   
+
 unbounded_octets_member
    : unbounded_octets_type declarators SEMICOLON
    ;

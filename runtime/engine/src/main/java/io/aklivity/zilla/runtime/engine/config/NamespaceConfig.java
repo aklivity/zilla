@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.engine.config;
 
 import static java.util.Objects.requireNonNull;
 
-import java.net.URL;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
@@ -28,7 +27,7 @@ public class NamespaceConfig
 {
     public transient int id;
     public transient ToLongFunction<String> resolveId;
-    public transient Function<URL, String> readURL;
+    public transient Function<String, String> readURL;
 
     public final String name;
     public final List<NamespaceRef> references;

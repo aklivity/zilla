@@ -127,7 +127,7 @@
                 "kind":
                 {
                     "title": "Kind",
-                    "type": "string"
+                    "enum": [ "client", "server", "proxy", "remote_server", "cache_client", "cache_server"]
                 },
                 "options":
                 {
@@ -197,6 +197,40 @@
             [
                 "type",
                 "kind"
+            ],
+            "anyOf":
+            [
+                {
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "const": "remote_server"
+                        },
+                        "entry":
+                        {
+                            "title": "Exit",
+                            "type": "string",
+                            "pattern": "^[a-zA-Z]+[a-zA-Z0-9\\._\\-]*$"
+                        }
+                    },
+                    "required":
+                    [
+                        "entry"
+                    ]
+                },
+                {
+                    "properties":
+                    {
+                        "kind":
+                        {
+                            "not":
+                            {
+                                "const": "remote_server"
+                            }
+                        }
+                    }
+                }
             ],
             "oneOf":
             [
