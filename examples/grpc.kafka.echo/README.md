@@ -52,7 +52,7 @@ grpcurl -insecure -proto chart/files/proto/echo.proto  -d '{"message":"Hello Wor
 ```
 
 Verify the message payload, followed by a tombstone to mark the end of the request.
-```
+```bash
 kcat -C -b localhost:9092 -t echo-messages -J -u | jq .
 ```
 ```
