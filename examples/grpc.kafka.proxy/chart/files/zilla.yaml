@@ -1,0 +1,124 @@
+---
+name: example
+vaults:
+  server:
+    type: filesystem
+    options:
+      keys:
+        store: tls/localhost.p12
+        type: pkcs12
+        password: ${{env.KEYSTORE_PASSWORD}}
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 9090
+    exit: tls_server0
+  tls_server0:
+    type: tls
+    kind: server
+    vault: server
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+      alpn:
+        - h2
+    exit: http_server0
+  http_server0:
+    type: http
+    kind: server
+    options:
+      versions:
+        - h2
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              ":scheme": https
+              ":authority": localhost:9090
+        exit: grpc_server0
+  grpc_server0:
+    type: grpc
+    kind: server
+    options:
+      services:
+        - proto/echo.proto
+    routes:
+      - when:
+          - method: example.EchoService/*
+        exit: grpc_kafka0
+  grpc_kafka0:
+    type: grpc-kafka
+    kind: proxy
+    routes:
+      - when:
+          - service: example.EchoService
+        exit: kafka_cache_client0
+        with:
+          capability: produce
+          topic: echo-requests
+          acks: leader_only
+          reply-to: echo-responses
+  kafka_cache_client0:
+    type: kafka
+    kind: cache_client
+    exit: kafka_cache_server0
+  kafka_cache_server0:
+    type: kafka
+    kind: cache_server
+    exit: kafka_client0
+  kafka_client0:
+    type: kafka
+    kind: client
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: kafka
+      port: 29092
+    routes:
+      - when:
+          - cidr: 0.0.0.0/0
+  remote_server0:
+    type: kafka-grpc
+    kind: remote_server
+    entry: kafka_cache_client0
+    options:
+      acks: leader_only
+    routes:
+      - exit: grpc_client0
+        when:
+          - topic: echo-requests
+            reply-to: echo-responses
+        with:
+          scheme: http
+          authority: localhost:9090
+  grpc_client0:
+    type: grpc
+    kind: client
+    options:
+      services:
+        - proto/echo.proto
+    routes:
+      - exit: http_client0
+        when:
+          - method: example.EchoService/*
+  http_client0:
+    type: http
+    kind: client
+    options:
+      versions:
+        - h2
+    exit: tcp_client1
+  tcp_client1:
+    type: tcp
+    kind: client
+    options:
+      host: grpc-echo
+      port: 8080

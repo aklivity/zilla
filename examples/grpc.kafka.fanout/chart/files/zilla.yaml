@@ -1,0 +1,84 @@
+name: example
+vaults:
+  server:
+    type: filesystem
+    options:
+      keys:
+        store: tls/localhost.p12
+        type: pkcs12
+        password: ${{env.KEYSTORE_PASSWORD}}
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 9090
+    exit: tls_server0
+  tls_server0:
+    type: tls
+    kind: server
+    vault: server
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+      alpn:
+        - h2
+    exit: http_server0
+  http_server0:
+    type: http
+    kind: server
+    options:
+      versions:
+        - h2
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              ':scheme': https
+              ':authority': 'localhost:9090'
+        exit: grpc_server0
+  grpc_server0:
+    type: grpc
+    kind: server
+    options:
+      services:
+        - proto/fanout.proto
+    routes:
+      - when:
+          - method: example.FanoutService/*
+        exit: grpc_kafka0
+  grpc_kafka0:
+    type: grpc-kafka
+    kind: proxy
+    routes:
+      - when:
+          - service: example.FanoutService
+        exit: kafka_cache_client0
+        with:
+          capability: fetch
+          topic: messages
+  kafka_cache_client0:
+    type: kafka
+    kind: cache_client
+    exit: kafka_cache_server0
+  kafka_cache_server0:
+    type: kafka
+    kind: cache_server
+    exit: kafka_client0
+  kafka_client0:
+    type: kafka
+    kind: client
+    exit: tcp_client0
+  tcp_client0:
+    type: tcp
+    kind: client
+    options:
+      host: kafka
+      port: 29092
+    routes:
+      - when:
+          - cidr: 0.0.0.0/0
