@@ -181,7 +181,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
@@ -206,7 +205,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.yaml")
     @Specification({
@@ -221,7 +219,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
@@ -280,7 +277,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
