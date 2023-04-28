@@ -28,7 +28,6 @@
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
 
-    <module>command-load</module>
     <module>command-log</module>
     <module>command-dump</module>
     <module>command-tune</module>
@@ -50,11 +49,6 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-mqtt</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>command-load</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

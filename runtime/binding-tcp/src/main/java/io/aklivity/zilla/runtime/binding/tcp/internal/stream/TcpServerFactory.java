@@ -262,9 +262,6 @@ public class TcpServerFactory implements TcpStreamFactory
                 key.handler(OP_READ, this::onNetReadable);
                 key.handler(OP_WRITE, this::onNetWritable);
 
-                context.initialOpened(originId);
-                context.replyOpened(originId);
-
                 doAppBegin();
             }
             catch (IOException ex)
@@ -289,8 +286,6 @@ public class TcpServerFactory implements TcpStreamFactory
 
                 if (bytesRead == -1)
                 {
-                    context.initialClosed(originId);
-
                     key.clear(OP_READ);
                     CloseHelper.close(net::shutdownInput);
 
@@ -303,14 +298,11 @@ public class TcpServerFactory implements TcpStreamFactory
                 }
                 else if (bytesRead != 0)
                 {
-                    context.initialBytes(originId, bytesRead);
-
                     doAppData(readBuffer, 0, bytesRead);
                 }
             }
             catch (IOException ex)
             {
-                context.initialErrored(originId);
                 cleanup(supplyTraceId.getAsLong());
             }
 
@@ -355,11 +347,6 @@ public class TcpServerFactory implements TcpStreamFactory
                 }
 
                 bytesFlushed += bytesWritten;
-
-                if (bytesWritten > 0)
-                {
-                    context.replyBytes(originId, bytesWritten);
-                }
 
                 if (bytesWritten < length)
                 {
@@ -414,8 +401,6 @@ public class TcpServerFactory implements TcpStreamFactory
 
             try
             {
-                context.replyClosed(originId);
-
                 key.clear(OP_WRITE);
                 net.shutdownOutput();
                 state = TcpState.closeReply(state);
@@ -427,7 +412,6 @@ public class TcpServerFactory implements TcpStreamFactory
             }
             catch (IOException ex)
             {
-                context.replyErrored(originId);
                 cleanup(traceId);
             }
         }

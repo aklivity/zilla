@@ -39,7 +39,6 @@ public class ConfigurationRegistry
     private final Function<String, MetricContext> metricsByName;
     private final Function<String, ExporterContext> exportersByType;
     private final ToIntFunction<String> supplyLabelId;
-    private final LongConsumer supplyLoadEntry;
     private final LongConsumer exporterAttached;
     private final LongConsumer exporterDetached;
     private final ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder;
@@ -54,7 +53,6 @@ public class ConfigurationRegistry
             Function<String, MetricContext> metricsByName,
             Function<String, ExporterContext> exportersByType,
             ToIntFunction<String> supplyLabelId,
-            LongConsumer supplyLoadEntry,
             LongConsumer exporterAttached,
             LongConsumer exporterDetached,
             ObjectLongLongFunction<Metric.Kind, LongConsumer> supplyMetricRecorder,
@@ -66,7 +64,6 @@ public class ConfigurationRegistry
         this.metricsByName = metricsByName;
         this.exportersByType = exportersByType;
         this.supplyLabelId = supplyLabelId;
-        this.supplyLoadEntry = supplyLoadEntry;
         this.supplyMetricRecorder = supplyMetricRecorder;
         this.exporterAttached = exporterAttached;
         this.exporterDetached = exporterDetached;
@@ -153,7 +150,7 @@ public class ConfigurationRegistry
     {
         NamespaceRegistry registry =
                 new NamespaceRegistry(namespace, bindingsByType, guardsByType, vaultsByType, metricsByName, exportersByType,
-                    supplyLabelId, this::resolveMetric, supplyLoadEntry, exporterAttached, exporterDetached, supplyMetricRecorder,
+                    supplyLabelId, this::resolveMetric, exporterAttached, exporterDetached, supplyMetricRecorder,
                     detachBinding);
         namespacesById.put(registry.namespaceId(), registry);
         registry.attach();
