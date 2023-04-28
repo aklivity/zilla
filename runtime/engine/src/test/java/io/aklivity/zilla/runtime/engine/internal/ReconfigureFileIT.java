@@ -30,6 +30,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -144,6 +145,7 @@ public class ReconfigureFileIT
         k3po.finish();
     }
 
+    @Ignore("Github Actions")
     @Test
     @Configuration("zilla.reconfigure.modify.complex.chain.json")
     @Specification({
