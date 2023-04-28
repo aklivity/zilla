@@ -56,7 +56,12 @@ public class HttpMetricGroupTest
         Collection<String> metricNames = metricGroup.metricNames();
 
         // THEN
-        assertThat(metricNames, containsInAnyOrder("http.request.size", "http.response.size"));
+        assertThat(metricNames, containsInAnyOrder(
+            "http.request.size",
+            "http.response.size",
+            "http.active.requests",
+            "http.duration"
+        ));
     }
 
     @Test

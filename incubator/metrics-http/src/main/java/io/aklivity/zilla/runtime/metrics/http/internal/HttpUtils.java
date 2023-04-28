@@ -31,10 +31,18 @@ final class HttpUtils
     {
     }
 
-    public static boolean isInitial(
+    public static long commonId(
         long streamId)
     {
-        return (streamId & 0x0000_0000_0000_0001L) != 0L;
+        // reduce both initial and reply stream ids to same id
+        return streamId & ~0b01L;
+    }
+
+    public static long streamDirection(
+        long streamId)
+    {
+        // get stream direction (1: received; 0: sent)
+        return streamId & 0b01L;
     }
 
     public static HttpHeaderFW findContentLength(
