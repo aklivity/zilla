@@ -46,9 +46,9 @@ public class HttpResponseSizeMetric implements Metric
     }
 
     @Override
-    public StreamDirection streamDirection()
+    public Direction direction()
     {
-        return StreamDirection.SENT;
+        return Direction.SENT;
     }
 
     @Override
@@ -79,9 +79,9 @@ public class HttpResponseSizeMetric implements Metric
         }
 
         @Override
-        public Metric.StreamDirection streamDirection()
+        public Direction direction()
         {
-            return HttpResponseSizeMetric.this.streamDirection();
+            return HttpResponseSizeMetric.this.direction();
         }
 
         @Override

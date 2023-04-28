@@ -20,7 +20,6 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.FrameFW;
 
 public class StreamErrorsSentMetric implements Metric
 {
@@ -47,9 +46,9 @@ public class StreamErrorsSentMetric implements Metric
     }
 
     @Override
-    public StreamDirection streamDirection()
+    public Direction direction()
     {
-        return StreamDirection.SENT;
+        return Direction.SENT;
     }
 
     @Override
@@ -67,8 +66,6 @@ public class StreamErrorsSentMetric implements Metric
 
     private final class StreamErrorsSentMetricContext implements MetricContext
     {
-        private final FrameFW frameRO = new FrameFW();
-
         @Override
         public String group()
         {
@@ -82,9 +79,9 @@ public class StreamErrorsSentMetric implements Metric
         }
 
         @Override
-        public StreamDirection streamDirection()
+        public Direction direction()
         {
-            return StreamErrorsSentMetric.this.streamDirection();
+            return StreamErrorsSentMetric.this.direction();
         }
 
         @Override

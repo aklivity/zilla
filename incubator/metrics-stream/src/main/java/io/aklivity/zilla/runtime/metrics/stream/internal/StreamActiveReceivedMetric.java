@@ -46,9 +46,9 @@ public class StreamActiveReceivedMetric implements Metric
     }
 
     @Override
-    public StreamDirection streamDirection()
+    public Direction direction()
     {
-        return StreamDirection.RECEIVED;
+        return Direction.RECEIVED;
     }
 
     @Override
@@ -79,9 +79,9 @@ public class StreamActiveReceivedMetric implements Metric
         }
 
         @Override
-        public StreamDirection streamDirection()
+        public Direction direction()
         {
-            return StreamActiveReceivedMetric.this.streamDirection();
+            return StreamActiveReceivedMetric.this.direction();
         }
 
         @Override

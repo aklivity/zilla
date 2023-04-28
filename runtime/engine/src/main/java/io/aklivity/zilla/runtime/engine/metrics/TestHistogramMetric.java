@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Direction.BOTH;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.BYTES;
 
 import java.util.function.LongConsumer;
 
@@ -43,7 +45,13 @@ public class TestHistogramMetric implements Metric
     @Override
     public Unit unit()
     {
-        return Unit.BYTES;
+        return BYTES;
+    }
+
+    @Override
+    public Direction direction()
+    {
+        return BOTH;
     }
 
     @Override
@@ -68,6 +76,12 @@ public class TestHistogramMetric implements Metric
             public Kind kind()
             {
                 return HISTOGRAM;
+            }
+
+            @Override
+            public Direction direction()
+            {
+                return BOTH;
             }
 
             @Override
