@@ -210,6 +210,16 @@ public class ClientIT
     @Test
     @Configuration("client.host.yaml")
     @Specification({
+        "${app}/connection.failed/client"
+    })
+    public void connnectionFailed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.host.yaml")
+    @Specification({
         "${app}/server.close/client",
         "${net}/server.close/server"
     })

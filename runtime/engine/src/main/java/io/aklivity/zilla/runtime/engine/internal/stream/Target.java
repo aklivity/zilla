@@ -59,7 +59,6 @@ public final class Target implements AutoCloseable
     private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final MessageConsumer writeHandler;
-    //private final LongFunction<LoadEntry> supplyLoadEntry;
 
     private MessagePredicate streamsBuffer;
 
