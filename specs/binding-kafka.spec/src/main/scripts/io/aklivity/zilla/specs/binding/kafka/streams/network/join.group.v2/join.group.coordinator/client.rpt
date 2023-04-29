@@ -28,7 +28,7 @@ connect "zilla://streams/net0"
 
 connected
 
-write 67                                # size
+write 65                                # size
       11s                               # Join Group
       2s                                # v2
       ${newRequestId}
@@ -37,7 +37,6 @@ write 67                                # size
       45000                             # Session Timeout
       300000                            # Rebalance Timeout
       0s                                # Consumer Group Member
-      [0xff 0xff]                       # Consumer Group Instance
       8s "consumer"                     # Protocol Type
       2                                 # Group Protocol
         5s "range"                      # Protocol Name
