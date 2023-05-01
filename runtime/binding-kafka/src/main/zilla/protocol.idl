@@ -336,7 +336,105 @@ scope protocol
 
             struct ProduceResponseTrailer
             {
-                int32 thottleTimeMillis;
+                int32 throttleTimeMillis;
+            }
+        }
+
+        scope consumer_group
+        {
+            struct FindCoordinatorRequest
+            {
+                string16 key;
+                int8 keyType;
+            }
+
+            struct FindCoordinatorResponse
+            {
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                string16 errorMessage;
+                int32 nodeId;
+                string16 host;
+                int32 port;
+            }
+
+            struct ProtocolMetadata
+            {
+                string16 name;
+                octets metadata;
+            }
+
+            struct JoinGroupRequest
+            {
+                string16 groupId;
+                int32 sessionTimeoutMillis;
+                int32 rebalanceTimeoutMillis;
+                string16 memberId;
+                string16 protocolType;
+                ProtocolMetadata[] protocols;
+            }
+
+            struct MemberMetadata
+            {
+                string16 memberId;
+                octets metadata;
+            }
+
+            struct JoinGroupResponse
+            {
+                 int32 throttleTimeMillis;
+                 int16 errorCode;
+                 int32 generatedId;
+                 string16 protocolName;
+                 string16 leader;
+                 string16 memberId;
+                 MemberMetadata[] members;
+            }
+
+            struct Assignment
+            {
+                string16 memberId;
+                octets assignment;
+            }
+
+            struct SyncGroupRequest
+            {
+                string16 groupId;
+                int32 generatedId;
+                string16 memberId;
+                Assignment[] assignments;
+            }
+
+            struct SyncGroupResponse
+            {
+                int32 throttleTimeMillis;
+                int16 errorCode;
+                octets assignment;
+            }
+
+            struct HeartbeatRequest
+            {
+                string16 groupId;
+                int32 generatedId;
+                string16 memberId;
+            }
+
+            struct HeartbeatResponse
+            {
+                int32 throttleTimeMillis;
+                int16 errorCode;
+            }
+
+            struct LeaveGroupRequest
+            {
+                string16 groupId;
+                string16 memberId;
+            }
+
+            struct LeaveGroupResponse
+            {
+                int32 throttleTimeMillis;
+                int16 errorCode;
             }
         }
 

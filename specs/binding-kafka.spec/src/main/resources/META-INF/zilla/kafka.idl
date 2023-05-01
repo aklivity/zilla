@@ -315,5 +315,17 @@ scope kafka
             KafkaKey key;
             KafkaHeader[] headers;
         }
+
+        struct KafkaGroupBeginEx
+        {
+            string16 consumerId;
+            int32 timeout;
+        }
+
+        struct KafkaGroupDataEx
+        {
+            string16 consumerId;
+            int32 timeout;
+        }
     }
 }
