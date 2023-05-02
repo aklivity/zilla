@@ -180,6 +180,7 @@ scope kafka
             case 255: kafka::stream::KafkaMergedBeginEx merged;
             case 3: kafka::stream::KafkaMetaBeginEx meta;
             case 32: kafka::stream::KafkaDescribeBeginEx describe;
+            case 10: kafka::stream::KafkaGroupBeginEx group;
             case 1: kafka::stream::KafkaFetchBeginEx fetch;
             case 0: kafka::stream::KafkaProduceBeginEx produce;
         }
@@ -189,6 +190,7 @@ scope kafka
             case 255: kafka::stream::KafkaMergedDataEx merged;
             case 3: kafka::stream::KafkaMetaDataEx meta;
             case 32: kafka::stream::KafkaDescribeDataEx describe;
+            case 10: kafka::stream::KafkaGroupDataEx group;
             case 1: kafka::stream::KafkaFetchDataEx fetch;
             case 0: kafka::stream::KafkaProduceDataEx produce;
         }
