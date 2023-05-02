@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 
 import java.util.function.Function;
 import java.util.function.LongConsumer;
@@ -139,8 +142,10 @@ public class NamespaceRegistry
         BindingConfig config)
     {
         BindingHandler binding = registry.streamFactory();
-        MessageConsumer originMetricHandler = MessageConsumer.NOOP;
-        MessageConsumer routedMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer sentOriginMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer receivedOriginMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer sentRoutedMetricHandler = MessageConsumer.NOOP;
+        MessageConsumer receivedRoutedMetricHandler = MessageConsumer.NOOP;
         if (config.metricIds != null)
         {
             for (long metricId : config.metricIds)
@@ -149,13 +154,28 @@ public class NamespaceRegistry
                 LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
                 MessageConsumer handler = metric.supplyHandler(metricRecorder);
                 MetricHandlerKind kind = resolveKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
+                MetricContext.Direction direction = metric.direction();
                 if (kind == ROUTED)
                 {
-                    routedMetricHandler = routedMetricHandler.andThen(handler);
+                    if (direction == SENT || direction == BOTH)
+                    {
+                        sentRoutedMetricHandler = sentRoutedMetricHandler.andThen(handler);
+                    }
+                    if (direction == RECEIVED || direction == BOTH)
+                    {
+                        receivedRoutedMetricHandler = receivedRoutedMetricHandler.andThen(handler);
+                    }
                 }
                 else if (kind == ORIGIN)
                 {
-                    originMetricHandler = originMetricHandler.andThen(handler);
+                    if (direction == SENT || direction == BOTH)
+                    {
+                        sentOriginMetricHandler = sentOriginMetricHandler.andThen(handler);
+                    }
+                    if (direction == RECEIVED || direction == BOTH)
+                    {
+                        receivedOriginMetricHandler = receivedOriginMetricHandler.andThen(handler);
+                    }
                 }
                 else
                 {
@@ -164,8 +184,10 @@ public class NamespaceRegistry
                 }
             }
         }
-        registry.originMetricHandler(originMetricHandler);
-        registry.routedMetricHandler(routedMetricHandler);
+        registry.sentOriginMetricHandler(sentOriginMetricHandler);
+        registry.receivedOriginMetricHandler(receivedOriginMetricHandler);
+        registry.sentRoutedMetricHandler(sentRoutedMetricHandler);
+        registry.receivedRoutedMetricHandler(receivedRoutedMetricHandler);
     }
 
     private MetricHandlerKind resolveKind(

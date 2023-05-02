@@ -14,17 +14,11 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
-import static io.aklivity.zilla.runtime.metrics.stream.internal.StreamUtils.isInitial;
-
-import java.util.function.LongConsumer;
-
-import org.agrona.DirectBuffer;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
-import io.aklivity.zilla.runtime.metrics.stream.internal.types.stream.DataFW;
 
 public class StreamDataReceivedMetric implements Metric
 {
@@ -60,48 +54,6 @@ public class StreamDataReceivedMetric implements Metric
     public MetricContext supply(
         EngineContext context)
     {
-        return new StreamDataReceivedMetricContext();
-    }
-
-    private final class StreamDataReceivedMetricContext implements MetricContext
-    {
-        private final DataFW dataRO = new DataFW();
-
-        @Override
-        public String group()
-        {
-            return GROUP;
-        }
-
-        @Override
-        public Metric.Kind kind()
-        {
-            return StreamDataReceivedMetric.this.kind();
-        }
-
-        @Override
-        public MessageConsumer supply(
-            LongConsumer recorder)
-        {
-            return (t, b, i, l) -> handle(recorder, t, b, i, l);
-        }
-
-        private void handle(
-            LongConsumer recorder,
-            int msgTypeId,
-            DirectBuffer buffer,
-            int index,
-            int length)
-        {
-            if (msgTypeId == DataFW.TYPE_ID) // data frame
-            {
-                DataFW data = dataRO.wrap(buffer, index, index + length);
-                long streamId = data.streamId();
-                if (isInitial(streamId)) // received stream
-                {
-                    recorder.accept(data.length());
-                }
-            }
-        }
+        return new StreamDataMetricContext(GROUP, kind(), RECEIVED);
     }
 }

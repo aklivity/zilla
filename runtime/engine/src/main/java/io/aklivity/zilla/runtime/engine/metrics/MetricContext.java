@@ -21,9 +21,18 @@ import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 
 public interface MetricContext
 {
+    enum Direction
+    {
+        RECEIVED,
+        SENT,
+        BOTH
+    }
+
     String group();
 
     Metric.Kind kind();
+
+    Direction direction();
 
     MessageConsumer supply(
         LongConsumer recorder);

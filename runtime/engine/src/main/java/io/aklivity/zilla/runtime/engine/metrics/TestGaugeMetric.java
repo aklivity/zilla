@@ -15,7 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
 
 import java.util.function.LongConsumer;
 
@@ -37,13 +39,13 @@ public class TestGaugeMetric implements Metric
     @Override
     public Kind kind()
     {
-        return Kind.GAUGE;
+        return GAUGE;
     }
 
     @Override
     public Unit unit()
     {
-        return Unit.COUNT;
+        return COUNT;
     }
 
     @Override
@@ -67,7 +69,13 @@ public class TestGaugeMetric implements Metric
             @Override
             public Kind kind()
             {
-                return COUNTER;
+                return GAUGE;
+            }
+
+            @Override
+            public Direction direction()
+            {
+                return BOTH;
             }
 
             @Override
