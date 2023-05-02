@@ -46,12 +46,6 @@ public class StreamErrorsReceivedMetric implements Metric
     }
 
     @Override
-    public Direction direction()
-    {
-        return Direction.RECEIVED;
-    }
-
-    @Override
     public String description()
     {
         return DESCRIPTION;
@@ -81,7 +75,7 @@ public class StreamErrorsReceivedMetric implements Metric
         @Override
         public Direction direction()
         {
-            return StreamErrorsReceivedMetric.this.direction();
+            return Direction.RECEIVED;
         }
 
         @Override

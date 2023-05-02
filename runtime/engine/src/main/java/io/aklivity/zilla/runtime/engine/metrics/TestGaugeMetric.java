@@ -15,9 +15,9 @@
  */
 package io.aklivity.zilla.runtime.engine.metrics;
 
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Direction.BOTH;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.COUNT;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
 
 import java.util.function.LongConsumer;
 
@@ -46,12 +46,6 @@ public class TestGaugeMetric implements Metric
     public Unit unit()
     {
         return COUNT;
-    }
-
-    @Override
-    public Direction direction()
-    {
-        return BOTH;
     }
 
     @Override

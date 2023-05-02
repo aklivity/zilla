@@ -75,7 +75,6 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.request.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
-        assertThat(metric.direction(), equalTo(Metric.Direction.RECEIVED));
         assertThat(metric.description(), equalTo("HTTP request content length"));
     }
 
@@ -94,7 +93,7 @@ public class HttpMetricGroupTest
         assertThat(context.getClass().getName(), endsWith("HttpRequestSizeMetric$HttpRequestSizeMetricContext"));
         assertThat(context.group(), equalTo("http"));
         assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
-        assertThat(context.direction(), equalTo(Metric.Direction.RECEIVED));
+        assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
     }
 
     @Test
@@ -318,7 +317,6 @@ public class HttpMetricGroupTest
         assertThat(metric.name(), equalTo("http.response.size"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
         assertThat(metric.unit(), equalTo(Metric.Unit.BYTES));
-        assertThat(metric.direction(), equalTo(Metric.Direction.SENT));
         assertThat(metric.description(), equalTo("HTTP response content length"));
     }
 
@@ -337,7 +335,7 @@ public class HttpMetricGroupTest
         assertThat(context.getClass().getName(), endsWith("HttpResponseSizeMetric$HttpResponseSizeMetricContext"));
         assertThat(context.group(), equalTo("http"));
         assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
-        assertThat(context.direction(), equalTo(Metric.Direction.SENT));
+        assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
     }
 
     @Test

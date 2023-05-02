@@ -32,20 +32,11 @@ public interface Metric
         COUNT
     }
 
-    enum Direction
-    {
-        RECEIVED,
-        SENT,
-        BOTH
-    }
-
     String name();
 
     Kind kind();
 
     Unit unit();
-
-    Direction direction();
 
     String description();
 

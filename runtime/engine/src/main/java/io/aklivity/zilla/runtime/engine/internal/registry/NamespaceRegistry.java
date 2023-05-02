@@ -17,9 +17,9 @@ package io.aklivity.zilla.runtime.engine.internal.registry;
 
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ORIGIN;
 import static io.aklivity.zilla.runtime.engine.internal.registry.MetricHandlerKind.ROUTED;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Direction.BOTH;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Direction.RECEIVED;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Direction.SENT;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 
 import java.util.function.Function;
 import java.util.function.LongConsumer;
@@ -154,7 +154,7 @@ public class NamespaceRegistry
                 LongConsumer metricRecorder = supplyMetricRecorder.apply(metric.kind(), config.id, metricId);
                 MessageConsumer handler = metric.supplyHandler(metricRecorder);
                 MetricHandlerKind kind = resolveKind(binding.originTypeId(), binding.routedTypeId(), metric.group());
-                Metric.Direction direction = metric.direction();
+                MetricContext.Direction direction = metric.direction();
                 if (kind == ROUTED)
                 {
                     if (direction == SENT || direction == BOTH)

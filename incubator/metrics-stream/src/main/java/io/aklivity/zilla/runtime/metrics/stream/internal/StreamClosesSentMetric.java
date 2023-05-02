@@ -46,12 +46,6 @@ public class StreamClosesSentMetric implements Metric
     }
 
     @Override
-    public Direction direction()
-    {
-        return Direction.SENT;
-    }
-
-    @Override
     public String description()
     {
         return DESCRIPTION;
@@ -81,7 +75,7 @@ public class StreamClosesSentMetric implements Metric
         @Override
         public Direction direction()
         {
-            return StreamClosesSentMetric.this.direction();
+            return Direction.SENT;
         }
 
         @Override

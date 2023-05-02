@@ -46,12 +46,6 @@ public class StreamOpensReceivedMetric implements Metric
     }
 
     @Override
-    public Direction direction()
-    {
-        return Direction.RECEIVED;
-    }
-
-    @Override
     public MetricContext supply(
         EngineContext context)
     {
@@ -81,7 +75,7 @@ public class StreamOpensReceivedMetric implements Metric
         @Override
         public Direction direction()
         {
-            return StreamOpensReceivedMetric.this.direction();
+            return Direction.RECEIVED;
         }
 
         @Override

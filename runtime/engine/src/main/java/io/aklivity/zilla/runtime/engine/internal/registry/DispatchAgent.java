@@ -28,11 +28,11 @@ import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.serverIn
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamId;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.streamIndex;
 import static io.aklivity.zilla.runtime.engine.internal.stream.StreamId.throttleIndex;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Direction.RECEIVED;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Direction.SENT;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.GAUGE;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.HISTOGRAM;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.SENT;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -1498,7 +1498,7 @@ public class DispatchAgent implements EngineContext, Agent
     private MessageConsumer supplyMetricRecorder(
         long bindingId,
         MetricHandlerKind kind,
-        Metric.Direction direction)
+        MetricContext.Direction direction)
     {
         MessageConsumer recorder = MessageConsumer.NOOP;
         BindingRegistry binding = configuration.resolveBinding(bindingId);
@@ -1518,7 +1518,7 @@ public class DispatchAgent implements EngineContext, Agent
 
     private MessageConsumer resolveRoutedMetricRecorder(
         BindingRegistry binding,
-        Metric.Direction direction)
+        MetricContext.Direction direction)
     {
         MessageConsumer recorder = MessageConsumer.NOOP;
         if (direction == RECEIVED)
@@ -1534,7 +1534,7 @@ public class DispatchAgent implements EngineContext, Agent
 
     private MessageConsumer resolveOriginMetricRecorder(
         BindingRegistry binding,
-        Metric.Direction direction)
+        MetricContext.Direction direction)
     {
         MessageConsumer recorder = MessageConsumer.NOOP;
         if (direction == RECEIVED)
