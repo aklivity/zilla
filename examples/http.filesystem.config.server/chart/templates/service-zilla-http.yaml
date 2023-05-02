@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zilla-http
+  labels:
+    app.kubernetes.io/instance: zilla-http
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: zilla-http
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: zilla-http
+    spec:
+      initContainers:
+        - name: wait-for-zilla-config-server
+          image: "busybox:latest"
+          command: [ '/bin/sh', '-c', 'until nc -w 2 zilla-config 8081; do echo . && sleep 5; done' ]
+      containers:
+        - name: zilla-http
+          image: "ghcr.io/aklivity/zilla:latest"
+          args: ["start", "-v", "-e", "-p", "/etc/zilla/zilla.properties"]
+          env:
+            - name: KEYSTORE_PASSWORD
+              value: generated
+          ports:
+            - containerPort: 8080
+            - containerPort: 9090
+          volumeMounts:
+            - name: config-http
+              mountPath: /etc/zilla
+      volumes:
+        - name: config-http
+          configMap:
+            name: zilla-http
+        - name: config-http-served
+          configMap:
+            name: zilla-http-served
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zilla-http
+data:
+  zilla.properties: |-
+  {{ .Files.Get "files/zilla.properties" | indent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zilla-http
+spec:
+  selector:
+    app.kubernetes.io/instance: zilla-http
+  ports:
+    - name: http-before
+      port: 8080
+    - name: https
+      port: 9090
+  type: ClusterIP
