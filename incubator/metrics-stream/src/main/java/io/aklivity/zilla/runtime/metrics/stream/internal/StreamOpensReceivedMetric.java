@@ -14,10 +14,9 @@
  */
 package io.aklivity.zilla.runtime.metrics.stream.internal;
 
-import java.util.function.LongConsumer;
+import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.RECEIVED;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
-import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 
@@ -46,43 +45,16 @@ public class StreamOpensReceivedMetric implements Metric
     }
 
     @Override
-    public MetricContext supply(
-        EngineContext context)
-    {
-        return new StreamOpensReceivedMetricContext();
-    }
-
-    @Override
     public String description()
     {
         return DESCRIPTION;
     }
 
-    private final class StreamOpensReceivedMetricContext implements MetricContext
+    @Override
+    public MetricContext supply(
+        EngineContext context)
     {
-        @Override
-        public String group()
-        {
-            return GROUP;
-        }
-
-        @Override
-        public Metric.Kind kind()
-        {
-            return StreamOpensReceivedMetric.this.kind();
-        }
-
-        @Override
-        public Direction direction()
-        {
-            return Direction.RECEIVED;
-        }
-
-        @Override
-        public MessageConsumer supply(
-            LongConsumer recorder)
-        {
-            return new StreamOpensHandler(recorder);
-        }
+        return new StreamOpensMetricContext(GROUP, kind(), RECEIVED);
     }
+
 }

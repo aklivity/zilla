@@ -18,7 +18,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -94,7 +93,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamOpensReceivedMetric$StreamOpensReceivedMetricContext"));
+        assertThat(context, instanceOf(StreamOpensMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
@@ -154,7 +153,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamOpensSentMetric$StreamOpensSentMetricContext"));
+        assertThat(context, instanceOf(StreamOpensMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
@@ -214,7 +213,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamDataReceivedMetric$StreamDataReceivedMetricContext"));
+        assertThat(context, instanceOf(StreamDataMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
@@ -276,7 +275,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamDataSentMetric$StreamDataSentMetricContext"));
+        assertThat(context, instanceOf(StreamDataMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
@@ -338,7 +337,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamErrorsReceivedMetric$StreamErrorsReceivedMetricContext"));
+        assertThat(context, instanceOf(StreamErrorsMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
@@ -403,7 +402,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamErrorsSentMetric$StreamErrorsSentMetricContext"));
+        assertThat(context, instanceOf(StreamErrorsMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
@@ -468,7 +467,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamClosesReceivedMetric$StreamClosesReceivedMetricContext"));
+        assertThat(context, instanceOf(StreamClosesMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
@@ -528,7 +527,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamClosesSentMetric$StreamClosesSentMetricContext"));
+        assertThat(context, instanceOf(StreamClosesMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.COUNTER));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
@@ -588,7 +587,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamActiveReceivedMetric$StreamActiveReceivedMetricContext"));
+        assertThat(context, instanceOf(StreamActiveMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(context.direction(), equalTo(MetricContext.Direction.RECEIVED));
@@ -655,7 +654,7 @@ public class StreamMetricGroupTest
         MetricContext context = metric.supply(mock(EngineContext.class));
 
         // THEN
-        assertThat(context.getClass().getName(), endsWith("StreamActiveSentMetric$StreamActiveSentMetricContext"));
+        assertThat(context, instanceOf(StreamActiveMetricContext.class));
         assertThat(context.group(), equalTo("stream"));
         assertThat(context.kind(), equalTo(Metric.Kind.GAUGE));
         assertThat(context.direction(), equalTo(MetricContext.Direction.SENT));
