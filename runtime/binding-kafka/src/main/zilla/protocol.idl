@@ -340,7 +340,7 @@ scope protocol
             }
         }
 
-        scope consumer_group
+        scope group
         {
             struct FindCoordinatorRequest
             {

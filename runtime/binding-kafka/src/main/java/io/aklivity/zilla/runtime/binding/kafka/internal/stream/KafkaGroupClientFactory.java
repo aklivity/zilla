@@ -17,9 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static java.lang.System.currentTimeMillis;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +27,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorRequestFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.FindCoordinatorResponseFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
@@ -45,8 +45,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.RequestHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.ResponseHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ConfigResponseFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsRequestFW;
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.DescribeConfigsResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceRequestFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.config.ResourceResponseFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.AbortFW;
@@ -71,16 +69,14 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int ERROR_NONE = 0;
-
     private static final int SIGNAL_NEXT_REQUEST = 1;
+    private static final short FIND_COORDINATOR_API_KEY = 10;
+    private static final short FIND_COORDINATOR_API_VERSION = 1;
 
+    private static final byte GROUP_KEY_TYPE = 0x00;
     private static final DirectBuffer EMPTY_BUFFER = new UnsafeBuffer();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
-
-    private static final short DESCRIBE_CONFIGS_API_KEY = 32;
-    private static final short DESCRIBE_CONFIGS_API_VERSION = 0;
-    private static final byte RESOURCE_TYPE_TOPIC = 2;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -103,12 +99,11 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     private final KafkaResetExFW.Builder kafkaResetExRW = new KafkaResetExFW.Builder();
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
-    private final DescribeConfigsRequestFW.Builder describeConfigsRequestRW = new DescribeConfigsRequestFW.Builder();
+    private final FindCoordinatorRequestFW.Builder findCoordinatorRequestRW = new FindCoordinatorRequestFW.Builder();
     private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
-    private final String16FW.Builder configNameRW = new String16FW.Builder(ByteOrder.BIG_ENDIAN);
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
-    private final DescribeConfigsResponseFW describeConfigsResponseRO = new DescribeConfigsResponseFW();
+    private final FindCoordinatorResponseFW findCoordinatorResponseRO = new FindCoordinatorResponseFW();
     private final ResourceResponseFW resourceResponseRO = new ResourceResponseFW();
     private final ConfigResponseFW configResponseRO = new ConfigResponseFW();
 
@@ -121,7 +116,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     private final KafkaGroupClientDecoder decodeSaslHandshakeMechanism = this::decodeSaslHandshakeMechanism;
     private final KafkaGroupClientDecoder decodeSaslAuthenticateResponse = this::decodeSaslAuthenticateResponse;
     private final KafkaGroupClientDecoder decodeSaslAuthenticate = this::decodeSaslAuthenticate;
-    private final KafkaGroupClientDecoder decodeDescribeResponse = this::decodeDescribeResponse;
+    private final KafkaGroupClientDecoder decodeFindCoordinatorResponse = this::decodeFindCoordinatorResponse;
     private final KafkaGroupClientDecoder decodeIgnoreAll = this::decodeIgnoreAll;
     private final KafkaGroupClientDecoder decodeReject = this::decodeReject;
 
@@ -178,14 +173,22 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         MessageConsumer newStream = null;
 
         final KafkaBindingConfig binding = supplyBinding.apply(routedId);
-        final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, null) : null;
+        final KafkaRouteConfig resolved;
+        final String16FW groupId = kafkaGroupBeginEx.groupId();
+
+        if (binding != null)
+        {
+            resolved = binding.resolve(authorization, null, groupId.asString());
+        }
+        else
+        {
+            resolved = null;
+        }
 
         if (resolved != null)
         {
             final long resolvedId = resolved.id;
             final KafkaSaslConfig sasl = binding.sasl();
-
-            final List<String> configs = new ArrayList<>();
 
             newStream = new KafkaGroupStream(
                     application,
@@ -194,7 +197,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                     initialId,
                     affinity,
                     resolvedId,
-                    configs,
+                    groupId,
                     sasl)::onApplication;
         }
 
@@ -455,7 +458,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             int limit);
     }
 
-    private int decodeDescribeResponse(
+    private int decodeFindCoordinatorResponse(
         KafkaGroupStream.KafkaGroupClient client,
         long traceId,
         long authorization,
@@ -484,55 +487,17 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             {
                 progress = responseHeader.limit();
 
-                final DescribeConfigsResponseFW describeConfigsResponse =
-                        describeConfigsResponseRO.tryWrap(buffer, progress, limit);
+                final FindCoordinatorResponseFW findCoordinatorResponse =
+                        findCoordinatorResponseRO.tryWrap(buffer, progress, limit);
 
-                if (describeConfigsResponse == null)
+                if (findCoordinatorResponse == null)
                 {
                     client.decoder = decodeIgnoreAll;
                     break decode;
                 }
 
-                progress = describeConfigsResponse.limit();
+                progress = findCoordinatorResponse.limit();
 
-                final int resourceCount = describeConfigsResponse.resourceCount();
-                for (int resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
-                {
-                    final ResourceResponseFW resource = resourceResponseRO.tryWrap(buffer, progress, limit);
-                    if (resource == null)
-                    {
-                        client.decoder = decodeIgnoreAll;
-                        break decode;
-                    }
-
-                    progress = resource.limit();
-
-                    final String resourceName = resource.name().asString();
-                    final int resourceError = resource.errorCode();
-
-                    client.onDecodeResource(traceId, client.authorization, resourceError, resourceName);
-
-                    final int configCount = resource.configCount();
-                    newConfigs.clear();
-                    for (int configIndex = 0; configIndex < configCount; configIndex++)
-                    {
-                        final ConfigResponseFW config = configResponseRO.tryWrap(buffer, progress, limit);
-                        if (config == null)
-                        {
-                            client.decoder = decodeIgnoreAll;
-                            break decode;
-                        }
-
-                        progress = config.limit();
-
-                        final String name = config.name().asString();
-                        final String value = config.value().asString();
-
-                        newConfigs.put(name, value);
-                    }
-
-                    client.onDecodeDescribeResponse(traceId, newConfigs);
-                }
             }
         }
 
@@ -604,7 +569,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             long initialId,
             long affinity,
             long resolvedId,
-            List<String> configs,
+            String16FW groupId,
             KafkaSaslConfig sasl)
         {
             this.application = application;
@@ -613,7 +578,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.client = new KafkaGroupClient(routedId, resolvedId, configs, sasl);
+            this.client = new KafkaGroupClient(routedId, resolvedId, groupId, sasl);
         }
 
         private void onApplication(
@@ -866,10 +831,10 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         {
             private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
             private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
-            private final LongLongConsumer encodeDescribeRequest = this::doEncodeDescribeRequest;
+            private final LongLongConsumer encodeFindCoordinatorRequest = this::doEncodeFindCoordinatorRequest;
+            private final String16FW groupId;
 
             private MessageConsumer network;
-            private final Map<String, String> configs;
 
             private int state;
             private long authorization;
@@ -900,14 +865,13 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             KafkaGroupClient(
                 long originId,
                 long routedId,
-                List<String> configs,
+                String16FW groupId,
                 KafkaSaslConfig sasl)
             {
                 super(sasl, originId, routedId);
-                this.configs = new LinkedHashMap<>(configs.size());
-                configs.forEach(c -> this.configs.put(c, null));
+                this.groupId = groupId;
 
-                this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeDescribeRequest;
+                this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeFindCoordinatorRequest;
                 this.decoder = decodeReject;
             }
 
@@ -1229,7 +1193,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                 }
             }
 
-            private void doEncodeDescribeRequest(
+            private void doEncodeFindCoordinatorRequest(
                 long traceId,
                 long budgetId)
             {
@@ -1241,30 +1205,21 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
                 final RequestHeaderFW requestHeader = requestHeaderRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
                         .length(0)
-                        .apiKey(DESCRIBE_CONFIGS_API_KEY)
-                        .apiVersion(DESCRIBE_CONFIGS_API_VERSION)
+                        .apiKey(FIND_COORDINATOR_API_KEY)
+                        .apiVersion(FIND_COORDINATOR_API_VERSION)
                         .correlationId(0)
                         .clientId((String) null)
                         .build();
 
                 encodeProgress = requestHeader.limit();
 
-                final DescribeConfigsRequestFW describeConfigsRequest =
-                        describeConfigsRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                                                .resourceCount(1)
+                final FindCoordinatorRequestFW findCoordinatorRequest =
+                        findCoordinatorRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                                                .key(groupId)
+                                                .keyType(GROUP_KEY_TYPE)
                                                 .build();
 
-                encodeProgress = describeConfigsRequest.limit();
-
-
-                for (String config : configs.keySet())
-                {
-                    final String16FW configName = configNameRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                            .set(config, UTF_8)
-                            .build();
-
-                    encodeProgress = configName.limit();
-                }
+                encodeProgress = findCoordinatorRequest.limit();
 
                 final int requestId = nextRequestId++;
                 final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
@@ -1279,7 +1234,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
                 doNetworkData(traceId, budgetId, encodeBuffer, encodeOffset, encodeProgress);
 
-                decoder = decodeDescribeResponse;
+                decoder = decodeFindCoordinatorResponse;
             }
 
             private void encodeNetwork(
@@ -1454,8 +1409,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
                 switch (errorCode)
                 {
                 case ERROR_NONE:
-                    client.encoder = client.encodeDescribeRequest;
-                    client.decoder = decodeDescribeResponse;
+                    client.encoder = client.encodeFindCoordinatorRequest;
+                    client.decoder = decodeFindCoordinatorResponse;
                     break;
                 default:
                     cleanupApplication(traceId, errorCode);

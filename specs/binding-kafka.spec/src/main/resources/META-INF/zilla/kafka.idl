@@ -320,13 +320,13 @@ scope kafka
 
         struct KafkaGroupBeginEx
         {
-            string16 consumerId;
+            string16 groupId;
             int32 timeout;
         }
 
         struct KafkaGroupDataEx
         {
-            string16 consumerId;
+            string16 groupId;
             int32 timeout;
         }
     }

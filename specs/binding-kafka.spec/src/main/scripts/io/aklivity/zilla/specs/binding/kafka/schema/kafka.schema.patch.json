@@ -201,6 +201,11 @@
                                         {
                                             "title": "Topic",
                                             "type": "string"
+                                        },
+                                        "groupId":
+                                        {
+                                            "title": "ConsumerGroupId",
+                                            "type": "string"
                                         }
                                     },
                                     "additionalProperties": false

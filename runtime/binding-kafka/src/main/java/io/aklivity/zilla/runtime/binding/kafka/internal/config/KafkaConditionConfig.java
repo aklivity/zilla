@@ -20,10 +20,13 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
 public final class KafkaConditionConfig extends ConditionConfig
 {
     public final String topic;
+    public final String groupId;
 
     public KafkaConditionConfig(
-        String topic)
+        String topic,
+        String groupId)
     {
         this.topic = topic;
+        this.groupId = groupId;
     }
 }

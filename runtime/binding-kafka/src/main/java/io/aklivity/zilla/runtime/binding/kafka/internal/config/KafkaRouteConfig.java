@@ -50,8 +50,9 @@ public final class KafkaRouteConfig extends OptionsConfig
     }
 
     boolean matches(
-        String topic)
+        String topic,
+        String groupId)
     {
-        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic));
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(topic, groupId));
     }
 }

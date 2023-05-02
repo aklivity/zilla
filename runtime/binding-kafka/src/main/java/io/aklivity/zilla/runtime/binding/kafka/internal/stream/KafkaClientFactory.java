@@ -58,6 +58,9 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final KafkaClientDescribeFactory clientDescribeFactory = new KafkaClientDescribeFactory(
                 config, context, bindings::get, accountant::supplyDebitor);
 
+        final KafkaGroupClientFactory clientGroupFactory = new KafkaGroupClientFactory(
+            config, context, bindings::get, accountant::supplyDebitor);
+
         final KafkaClientFetchFactory clientFetchFactory = new KafkaClientFetchFactory(
                 config, context, bindings::get, accountant::supplyDebitor, supplyClientRoute);
 
@@ -70,6 +73,7 @@ public final class KafkaClientFactory implements KafkaStreamFactory
         final Int2ObjectHashMap<BindingHandler> factories = new Int2ObjectHashMap<>();
         factories.put(KafkaBeginExFW.KIND_META, clientMetaFactory);
         factories.put(KafkaBeginExFW.KIND_DESCRIBE, clientDescribeFactory);
+        factories.put(KafkaBeginExFW.KIND_GROUP, clientGroupFactory);
         factories.put(KafkaBeginExFW.KIND_FETCH, clientFetchFactory);
         factories.put(KafkaBeginExFW.KIND_PRODUCE, clientProduceFactory);
         factories.put(KafkaBeginExFW.KIND_MERGED, clientMergedFactory);
