@@ -18,14 +18,13 @@ accept "zilla://streams/app0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
-
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
-                                 .filter("sensor/one", 1, "SEND_RETAINED")
+                                 .filter("sensor/one", 1, "SEND_RETAINED", "QOS0")
                                  .build()
                              .build()}
 
@@ -43,9 +42,8 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 
-write "message"
+write "message that should not arrive to client, since it exceeds max packet limit"
 write flush
-
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
@@ -59,5 +57,5 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 
-write "message that should not arrive to client, since it exceeds max packet limit"
+write "message"
 write flush

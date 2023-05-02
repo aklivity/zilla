@@ -44,6 +44,6 @@ read  [0x30 0x36]                    # PUBLISH
       [0x09 0x00 0x04] "info"        # correlation data
       [0xfe 0xfe 0xff 0xff]          # payload
 
-read  [0xe0 0x02]                    # DISCONNECT
+write [0xe0 0x02]                    # DISCONNECT
       [0x99]                         # payload format invalid
       [0x00]                         # properties = none

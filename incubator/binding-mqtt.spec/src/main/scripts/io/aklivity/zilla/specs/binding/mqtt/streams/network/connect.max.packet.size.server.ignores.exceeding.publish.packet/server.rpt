@@ -17,6 +17,7 @@
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 accepted
 connected
@@ -27,7 +28,7 @@ read  [0x10 0x18]                    # CONNECT
       [0x02]                         # flags = clean start
       [0x00 0x3c]                    # keep alive = 60s
       [0x05]                         # properties = maximum packet size
-      [0x27 0x00 0x32]               # maximum packet size = 50
+      [0x27] 50                      # maximum packet size = 50
       [0x00 0x06] "client"           # client id
 
 write [0x20 0x03]                    # CONNACK

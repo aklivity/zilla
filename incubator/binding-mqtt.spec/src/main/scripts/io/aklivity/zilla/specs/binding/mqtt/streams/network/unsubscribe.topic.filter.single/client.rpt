@@ -53,7 +53,7 @@ write  [0xa2 0x0f]                   # UNSUBSCRIBE
        [0x00]                        # properties = none
        [0x00 0x0a] "sensor/one"      # topic filter
 
-read   [0xb0 0x05]                   # UNSUBACK
+read   [0xb0 0x04]                   # UNSUBACK
        [0x00 0x01]                   # packet id = 1
        [0x00]                        # properties = none
-       [0x00 0x00]                   # reason codes
+       [0x00]                        # reason codes

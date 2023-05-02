@@ -215,6 +215,30 @@ public class MqttFunctionsTest
         assertNotNull(matcher.match(byteBuf));
     }
 
+    //    @Test
+    //    public void shouldMatchWillMessage() throws Exception
+    //    {
+    //        BytesMatcher matcher = MqttFunctions.matchWillMessage()
+    //            .topic("willTopic")
+    //            .delay(10)
+    //            .flags("RETAIN")
+    //            .expiryInterval(10)
+    //            .contentType("TEXT")
+    //            .build();
+    //
+    //        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+    //
+    //        new MqttBeginExFW.Builder()
+    //            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+    //            .typeId(0x01)
+    //            .subscribe(f -> f
+    //                .clientId("client")
+    //                .filtersItem(p -> p.pattern("sensor/one").subscriptionId(1).flags(8)))
+    //            .build();
+    //
+    //        assertNotNull(matcher.match(byteBuf));
+    //    }
+
     @Test
     public void shouldEncodeMqttProduceBeginEx()
     {
@@ -300,7 +324,7 @@ public class MqttFunctionsTest
             .typeId(0)
             .subscribe()
             .topic("sensor/one")
-            .flags("SEND_RETAINED", "NO_LOCAL")
+            .flags("QOS0")
             .build()
             .build();
 
@@ -309,7 +333,7 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttDataEx.typeId());
         assertEquals("sensor/one", mqttDataEx.subscribe().topic().asString());
-        assertEquals(0b101000, mqttDataEx.subscribe().flags());
+        assertEquals(0b000001, mqttDataEx.subscribe().flags());
     }
 
     @Test

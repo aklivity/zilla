@@ -24,7 +24,7 @@ read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/+/#", 1, "SEND_RETAINED")
+                                .filter("sensor/+", 1, "SEND_RETAINED", "QOS0")
                                 .build()
                              .build()}
 

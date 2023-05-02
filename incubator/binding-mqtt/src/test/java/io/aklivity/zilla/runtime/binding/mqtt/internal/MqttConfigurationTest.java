@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.CLIENT_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.CONNECT_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.KEEP_ALIVE_MAXIMUM;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.KEEP_ALIVE_MINIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.MAXIMUM_QOS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.NO_LOCAL;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
@@ -37,6 +39,8 @@ public class MqttConfigurationTest
     public static final String PUBLISH_TIMEOUT_NAME = "zilla.binding.mqtt.publish.timeout";
     public static final String CONNECT_TIMEOUT_NAME = "zilla.binding.mqtt.connect.timeout";
     public static final String SESSION_EXPIRY_INTERVAL_NAME = "zilla.binding.mqtt.session.expiry.interval";
+    public static final String KEEP_ALIVE_MINIMUM_NAME = "zilla.binding.mqtt.keep.alive.minimum";
+    public static final String KEEP_ALIVE_MAXIMUM_NAME = "zilla.binding.mqtt.keep.alive.maximum";
     public static final String MAXIMUM_QOS_NAME = "zilla.binding.mqtt.maximum.qos";
     public static final String RETAIN_AVAILABLE_NAME = "zilla.binding.mqtt.retain.available";
     public static final String TOPIC_ALIAS_MAXIMUM_NAME = "zilla.binding.mqtt.topic.alias.maximum";
@@ -54,6 +58,8 @@ public class MqttConfigurationTest
         assertEquals(PUBLISH_TIMEOUT.name(), PUBLISH_TIMEOUT_NAME);
         assertEquals(CONNECT_TIMEOUT.name(), CONNECT_TIMEOUT_NAME);
         assertEquals(SESSION_EXPIRY_INTERVAL.name(), SESSION_EXPIRY_INTERVAL_NAME);
+        assertEquals(KEEP_ALIVE_MINIMUM.name(), KEEP_ALIVE_MINIMUM_NAME);
+        assertEquals(KEEP_ALIVE_MAXIMUM.name(), KEEP_ALIVE_MAXIMUM_NAME);
         assertEquals(MAXIMUM_QOS.name(), MAXIMUM_QOS_NAME);
         assertEquals(RETAIN_AVAILABLE.name(), RETAIN_AVAILABLE_NAME);
         assertEquals(TOPIC_ALIAS_MAXIMUM.name(), TOPIC_ALIAS_MAXIMUM_NAME);

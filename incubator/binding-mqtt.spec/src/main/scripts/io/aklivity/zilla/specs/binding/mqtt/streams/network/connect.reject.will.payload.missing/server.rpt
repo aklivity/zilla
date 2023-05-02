@@ -21,7 +21,7 @@ accept "zilla://streams/net0"
 accepted
 connected
 
-read  [0x10 0x25]                                      # CONNECT
+read  [0x10 0x23]                                      # CONNECT
       [0x00 0x04] "MQTT"                               # protocol name
       [0x05]                                           # protocol version
       [0x06]                                           # flags = will flag, clean start
@@ -35,5 +35,5 @@ read  [0x10 0x25]                                      # CONNECT
 
 write  [0x20 0x03]                                     # CONNACK
        [0x00]                                          # flags = none
-       [0x82]                                          # reason = protocol error
+       [0x81]                                          # reason = malformed packet
        [0x00]                                          # properties = none

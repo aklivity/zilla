@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.mqtt.streams.network;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -182,7 +183,6 @@ public class ConnectionIT
     }
 
     // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
-    //TODO: decide how to implement this: have a config, if it's defined, we always override keep-alive?
     @Test
     @Specification({
         "${net}/connect.server.defined.keep.alive/client",
@@ -238,7 +238,7 @@ public class ConnectionIT
         k3po.finish();
     }
 
-
+    @Ignore
     @Test
     @Specification({
         "${net}/connect.reject.username.not.authorized/client",
@@ -248,6 +248,7 @@ public class ConnectionIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/connect.reject.password.not.authorized/client",

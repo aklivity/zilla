@@ -43,7 +43,7 @@ read  [0x31 0x28]                    # PUBLISH flags = at-most-once, retain
       "message"                      # payload
 
 write [0xe0 0x02]                    # disconnect header
-      [0x82]                         # disconnect = protocol error
+      [0x81]                         # reason = malformed packet
       [0x00]                         # properties = none
 
 write close

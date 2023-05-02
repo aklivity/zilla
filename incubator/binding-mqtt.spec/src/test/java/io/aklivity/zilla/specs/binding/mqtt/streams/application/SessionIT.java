@@ -137,13 +137,20 @@ public class SessionIT
         k3po.finish();
     }
 
-
-    //TODO: use session.subscribe at actual test
     @Test
     @Specification({
         "${app}/session.unsubscribe.via.session.state/client",
         "${app}/session.unsubscribe.via.session.state/server"})
     public void shouldUnsubscribeViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.after.subscribe.deferred/client",
+        "${app}/session.unsubscribe.after.subscribe.deferred/server"})
+    public void shouldUnsubscribeAfterSubscribeDeferred() throws Exception
     {
         k3po.finish();
     }

@@ -22,7 +22,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .clientId("client")
-                                 .filter("sensor/one", 1, "SEND_RETAINED")
+                                 .filter("sensor/one", 1, "SEND_RETAINED", "QOS0")
                                  .build()
                              .build()}
 
@@ -40,7 +40,8 @@ read zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 
-read "message"
+read "message that should not arrive to client, since it exceeds max packet limit"
+
 
 read zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
@@ -54,4 +55,4 @@ read zilla:data.ext ${mqtt:dataEx()
                                  .build()
                              .build()}
 
-read "message that should not arrive to client, since it exceeds max packet limit"
+read "message"

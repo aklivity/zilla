@@ -35,7 +35,7 @@ read zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
-                                .flags("RETAIN")
+                                .flags("RETAIN", "QOS0")
                                 .expiryInterval(15)
                                 .contentType("text/plain")
                                 .build()
@@ -50,7 +50,7 @@ read zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client2")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .filter("sensor/one", 1, "SEND_RETAINED", "QOS0")
                                 .build()
                              .build()}
 
@@ -63,10 +63,10 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .flags("RETAIN")
                                  .subscriptionId(1)
                                  .expiryInterval(15)
-                                 .contentType("text/plain")
+                                 .contentType("message")
+                                 .format("TEXT")
                                  .build()
                              .build()}
 
 write "message"
 write flush
-

@@ -38,7 +38,7 @@ read  [0x82 0x12]                   # SUBSCRIBE
       [0x00 0x01]                   # packet id = 1
       [0x02]                        # properties
       [0x0b 0x01]                   # subscription id = 1
-      [0x00 0x08] "sensor/+/#"      # topic filter
+      [0x00 0x0a] "sensor/+/#"      # topic filter
       [0x00]                        # options = at-most-once, send retained
 
 write [0x90 0x04]                   # SUBACK
@@ -50,7 +50,7 @@ read  [0x82 0x12]                   # SUBSCRIBE
       [0x00 0x01]                   # packet id = 1
       [0x02]                        # properties
       [0x0b 0x02]                   # subscription id = 2
-      [0x00 0x08] "sensor/+/1"      # topic filter
+      [0x00 0x0a] "sensor/+/1"      # topic filter
       [0x00]                        # options = at-most-once, send retained
 
 write [0x90 0x04]                   # SUBACK
@@ -59,8 +59,8 @@ write [0x90 0x04]                   # SUBACK
       [0x00]                        # reason code
 
 write [0x30 0x29]                   # PUBLISH
-      [0x00 0x0a] "sensor/one"      # topic name
-      [0x13]                        # properties
+      [0x00 0x0c] "sensor/one/1"    # topic name
+      [0x15]                        # properties
       [0x0b 0x01]                   # subscription id = 1
       [0x0b 0x02]                   # subscription id = 2
       [0x02] 0x0f                   # expiry = 15 seconds

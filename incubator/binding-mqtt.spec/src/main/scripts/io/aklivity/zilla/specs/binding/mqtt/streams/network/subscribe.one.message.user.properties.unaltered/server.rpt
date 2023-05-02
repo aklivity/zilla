@@ -49,14 +49,14 @@ write [0x90 0x04]                   # SUBACK
 write [0x30 0x3b]                   # PUBLISH
       [0x00 0x0a] "sensor/one"      # topic name
       [0x27]                        # properties
+      [0x0b 0x01]                   # subscription id = 1
+      [0x02] 0x0f                   # expiry = 15 seconds
+      [0x03 0x00 0x07] "message"    # content type
+      [0x01 0x01]                   # format = utf-8
       [0x26]                        # user property id
       [0x00 0x04] "row1"            # user property key
       [0x00 0x01] "1"               # user property value
       [0x26]                        # user property id
       [0x00 0x04] "row1"            # user property key
       [0x00 0x01] "2"               # user property value
-      [0x0b 0x01]                   # subscription id = 1
-      [0x02] 0x0f                   # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"    # content type
-      [0x01 0x01]                   # format = utf-8
       "message"                     # payload

@@ -41,10 +41,30 @@ read ${mqtt:session()
                .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
                .build()}
 
-write close
+write notify CLIENT_TAKEOVER
+
 read closed
+write close
 
 write notify SESSION_READY
+
+connect await SESSION_READY
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1, "SEND_RETAINED", "QOS0")
+                                .build()
+                              .build()}
+
+connected
+
+write close
+read closed
 
 connect await SESSION_READY
         "zilla://streams/app0"
