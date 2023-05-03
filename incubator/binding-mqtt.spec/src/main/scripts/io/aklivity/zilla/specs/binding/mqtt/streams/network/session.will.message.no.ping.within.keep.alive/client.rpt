@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -26,7 +27,7 @@ write [0x10 0x3f]                                      # CONNECT
       [0x06]                                           # flags = will flag, clean start
       [0x00 0x01]                                      # keep alive = 1s
       [0x05]                                           # properties
-      [0x11] 1                                         # session expiry interval = 1s
+      [0x11] 10                                        # session expiry interval = 1s
       [0x00 0x03] "one"                                # client id
       [0x02]                                           # will properties
       [0x01 0x01]                                      # format = utf-8

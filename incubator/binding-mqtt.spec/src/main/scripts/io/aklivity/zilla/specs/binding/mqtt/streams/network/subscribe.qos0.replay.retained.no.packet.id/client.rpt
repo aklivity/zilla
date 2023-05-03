@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
    option zilla:window 8192
    option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -47,6 +48,7 @@ connect await RETAINED_PUBLISHED
         "zilla://streams/net0"
    option zilla:window 8192
    option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
