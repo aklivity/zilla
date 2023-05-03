@@ -40,7 +40,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filter.single.exact/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    public void shouldSubscribeWithExactTopicFilter() throws Exception
+    public void shouldSubscribeToExactTopicFilter() throws Exception
     {
         k3po.finish();
     }
@@ -49,7 +49,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filter.multi.level.wildcard/client",
         "${app}/subscribe.topic.filter.multi.level.wildcard/server"})
-    public void shouldSubscribeWithWildcardTopicFilter() throws Exception
+    public void shouldSubscribeToMultiLevelWildcardTopicFilter() throws Exception
     {
         k3po.finish();
     }
@@ -85,7 +85,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.aggregated.both.exact/client",
         "${app}/subscribe.topic.filters.aggregated.both.exact/server"})
-    public void shouldSubscribeWithAggregatedTopicFiltersBothExact() throws Exception
+    public void shouldSubscribeToAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -94,7 +94,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.isolated.both.exact/client",
         "${app}/subscribe.topic.filters.isolated.both.exact/server"})
-    public void shouldSubscribeWithIsolatedTopicFiltersBothExact() throws Exception
+    public void shouldSubscribeToIsolatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -121,7 +121,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.isolated.both.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.both.wildcard/server"})
-    public void shouldSubscribeWithIsolatedTopicFiltersBothWildcard() throws Exception
+    public void shouldSubscribeToIsolatedTopicFiltersBothWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -130,7 +130,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
-    public void shouldSubscribeWithAggregatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldSubscribeToAggregatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -139,7 +139,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
-    public void shouldSubscribeWithIsolatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldSubscribeToIsolatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -148,7 +148,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.one.message/client",
         "${app}/subscribe.one.message/server"})
-    public void shouldPublishToSubscriberOneMessage() throws Exception
+    public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
@@ -157,7 +157,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.one.message.user.properties.unaltered/client",
         "${app}/subscribe.one.message.user.properties.unaltered/server"})
-    public void shouldSubscribeOneMessageWithUserPropertiesUnaltered() throws Exception
+    public void shouldReceiveOneMessageWithUserPropertiesUnaltered() throws Exception
     {
         k3po.finish();
     }
@@ -166,7 +166,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.publish.no.local/client",
         "${app}/subscribe.publish.no.local/server"})
-    public void shouldSubscribeThenPublishNoLocal() throws Exception
+    public void shouldNotReceivePublishLocal() throws Exception
     {
         k3po.finish();
     }
@@ -175,7 +175,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.receive.message/client",
         "${app}/subscribe.receive.message/server"})
-    public void shouldSubscribeThenReceiveOneMessage() throws Exception
+    public void shouldReceiveOneMessageAfterPublish() throws Exception
     {
         k3po.finish();
     }
@@ -184,7 +184,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.receive.message.wildcard/client",
         "${app}/subscribe.receive.message.wildcard/server"})
-    public void shouldPublishToSubscriberOneMessageWithPatternTopic() throws Exception
+    public void shouldReceiveOneMessageWithPatternTopic() throws Exception
     {
         k3po.finish();
     }
@@ -193,7 +193,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.get.retained.as.published/client",
         "${app}/subscribe.get.retained.as.published/server"})
-    public void shouldSubscribeGetRetainedMessageAsPublished() throws Exception
+    public void shouldReceiveRetainedAsPublished() throws Exception
     {
         k3po.finish();
     }
@@ -202,7 +202,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${app}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
-    public void shouldReceiveCorrelationDataAfterSendingSubscribe() throws Exception
+    public void shouldReceiveCorrelationData() throws Exception
     {
         k3po.finish();
     }
@@ -211,7 +211,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.qos0.replay.retained.no.packet.id/client",
         "${app}/subscribe.qos0.replay.retained.no.packet.id/server"})
-    public void shouldSubscribeAndReplayRetainedQos0() throws Exception
+    public void shouldReceiveAndReplayRetainedQos0() throws Exception
     {
         k3po.finish();
     }

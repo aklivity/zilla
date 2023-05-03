@@ -40,7 +40,7 @@ public class UnsubscribeIT
     @Specification({
         "${app}/unsubscribe.after.subscribe/client",
         "${app}/unsubscribe.after.subscribe/server"})
-    public void shouldSubscribeAndUnsubscribeFromTopic() throws Exception
+    public void shouldUnsubscribeAfterSubscribe() throws Exception
     {
         k3po.finish();
     }
