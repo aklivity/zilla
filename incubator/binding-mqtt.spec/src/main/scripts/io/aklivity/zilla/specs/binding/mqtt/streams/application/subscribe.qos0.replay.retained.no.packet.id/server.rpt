@@ -31,7 +31,7 @@ read zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
@@ -46,7 +46,7 @@ read "message"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client2")

@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.kaazing.k3po.lang.el.BytesMatcher;
 
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttDataExFW;
@@ -215,29 +216,124 @@ public class MqttFunctionsTest
         assertNotNull(matcher.match(byteBuf));
     }
 
-    //    @Test
-    //    public void shouldMatchWillMessage() throws Exception
-    //    {
-    //        BytesMatcher matcher = MqttFunctions.matchWillMessage()
-    //            .topic("willTopic")
-    //            .delay(10)
-    //            .flags("RETAIN")
-    //            .expiryInterval(10)
-    //            .contentType("TEXT")
-    //            .build();
-    //
-    //        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
-    //
-    //        new MqttBeginExFW.Builder()
-    //            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
-    //            .typeId(0x01)
-    //            .subscribe(f -> f
-    //                .clientId("client")
-    //                .filtersItem(p -> p.pattern("sensor/one").subscriptionId(1).flags(8)))
-    //            .build();
-    //
-    //        assertNotNull(matcher.match(byteBuf));
-    //    }
+    @Test
+    public void shouldMatchSessionBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .session()
+                .clientId("client")
+                .expiry(10)
+                .will()
+                    .topic("willTopic")
+                    .delay(10)
+                    .flags("QOS0")
+                    .expiryInterval(20)
+                    .contentType("message")
+                    .format("TEXT")
+                    .responseTopic("willResponseTopic")
+                    .correlation("correlationData")
+                    .userProperty("key1", "value1")
+                    .payload("will message")
+                    .build()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .session(s -> s
+                .clientId("client")
+                .expiry(10)
+                .willMessage(c ->
+                {
+                    c.topic("willTopic");
+                    c.delay(10);
+                    c.flags(1);
+                    c.expiryInterval(20);
+                    c.contentType("message");
+                    c.format(f -> f.set(MqttPayloadFormat.TEXT));
+                    c.responseTopic("willResponseTopic");
+                    c.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
+                    c.userPropertiesItem(p -> p.key("key1").value("value1"));
+                    c.payload(p -> p.bytes(b -> b.set("will message".getBytes(UTF_8))));
+                }))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchSessionBeginExtensionWithEmptyFields() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .session()
+                .clientId("client")
+                .expiry(10)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .session(s -> s
+                .clientId("client")
+                .expiry(10))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchSessionBeginExtensionWithBytes() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+                .session()
+                .clientId("client")
+                .expiry(10)
+                    .will()
+                    .topic("willTopic")
+                    .delay(10)
+                    .flags("QOS0")
+                    .expiryInterval(20)
+                    .contentType("message")
+                    .format("TEXT")
+                    .responseTopic("willResponseTopic")
+                    .correlationBytes("correlationData".getBytes(UTF_8))
+                    .userProperty("key1", "value1")
+                    .payloadBytes("will message".getBytes(UTF_8))
+                    .build()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .session(s -> s
+                .clientId("client")
+                .expiry(10)
+                .willMessage(c ->
+                {
+                    c.topic("willTopic");
+                    c.delay(10);
+                    c.flags(1);
+                    c.expiryInterval(20);
+                    c.contentType("message");
+                    c.format(f -> f.set(MqttPayloadFormat.TEXT));
+                    c.responseTopic("willResponseTopic");
+                    c.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
+                    c.userPropertiesItem(p -> p.key("key1").value("value1"));
+                    c.payload(p -> p.bytes(b -> b.set("will message".getBytes(UTF_8))));
+                }))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
 
     @Test
     public void shouldEncodeMqttProduceBeginEx()
@@ -256,6 +352,115 @@ public class MqttFunctionsTest
         assertEquals(0, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.publish().clientId().asString());
         assertEquals("sensor/one", mqttBeginEx.publish().topic().asString());
+    }
+
+    @Test
+    public void shouldMatchSubscribeDataExtension() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .topic("sensor/one")
+                .flags("QOS0")
+                .subscriptionId(1)
+                .subscriptionId(2)
+                .expiryInterval(20)
+                .contentType("message")
+                .format("TEXT")
+                .responseTopic("sensor/response")
+                .correlation("correlationData")
+                .userProperty("key1", "value1")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s ->
+            {
+                s.topic("sensor/one");
+                s.flags(1);
+                s.subscriptionIdsItem(i -> i.set(1));
+                s.subscriptionIdsItem(i -> i.set(2));
+                s.expiryInterval(20);
+                s.contentType("message");
+                s.format(f -> f.set(MqttPayloadFormat.TEXT));
+                s.responseTopic("sensor/response");
+                s.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
+                s.propertiesItem(p -> p.key("key1").value("value1"));
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchSubscribeDataExtensionWithBytes() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .topic("sensor/one")
+                .flags("QOS0")
+                .subscriptionId(1)
+                .subscriptionId(2)
+                .expiryInterval(20)
+                .contentType("message")
+                .format("TEXT")
+                .responseTopic("sensor/response")
+                .correlationBytes("correlationData".getBytes(UTF_8))
+                .userProperty("key1", "value1")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s ->
+            {
+                s.topic("sensor/one");
+                s.flags(1);
+                s.subscriptionIdsItem(i -> i.set(1));
+                s.subscriptionIdsItem(i -> i.set(2));
+                s.expiryInterval(20);
+                s.contentType("message");
+                s.format(f -> f.set(MqttPayloadFormat.TEXT));
+                s.responseTopic("sensor/response");
+                s.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
+                s.propertiesItem(p -> p.key("key1").value("value1"));
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchSubscribeDataExtensionWithEmptyFields() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .topic("sensor/one")
+                .flags("QOS0")
+                .subscriptionId(1)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s ->
+            {
+                s.topic("sensor/one");
+                s.flags(1);
+                s.subscriptionIdsItem(i -> i.set(1));
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
@@ -541,6 +746,105 @@ public class MqttFunctionsTest
             .matchFirst(h ->
                 "name".equals(h.key().asString()) &&
                     Objects.isNull(h.value().asString())));
+    }
+
+    @Test
+    public void shouldMatchPublishDataExtension() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .publish()
+                .topic("sensor/one")
+                .flags("QOS0")
+                .expiryInterval(20)
+                .contentType("message")
+                .format("TEXT")
+                .responseTopic("sensor/response")
+                .correlation("correlationData")
+                .userProperty("key1", "value1")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .publish(p ->
+            {
+                p.topic("sensor/one");
+                p.flags(1);
+                p.expiryInterval(20);
+                p.contentType("message");
+                p.format(f -> f.set(MqttPayloadFormat.TEXT));
+                p.responseTopic("sensor/response");
+                p.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
+                p.propertiesItem(pi -> pi.key("key1").value("value1"));
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchPublishDataExtensionWithBytes() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .publish()
+                .topic("sensor/one")
+                .flags("QOS0")
+                .expiryInterval(20)
+                .contentType("message")
+                .format("TEXT")
+                .responseTopic("sensor/response")
+                .correlationBytes("correlationData".getBytes(UTF_8))
+                .userProperty("key1", "value1")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .publish(p ->
+            {
+                p.topic("sensor/one");
+                p.flags(1);
+                p.expiryInterval(20);
+                p.contentType("message");
+                p.format(f -> f.set(MqttPayloadFormat.TEXT));
+                p.responseTopic("sensor/response");
+                p.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
+                p.propertiesItem(pi -> pi.key("key1").value("value1"));
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchPublishDataExtensionWithEmptyFields() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .publish()
+                .topic("sensor/one")
+                .flags("QOS0")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .publish(p ->
+            {
+                p.topic("sensor/one");
+                p.flags(1);
+            })
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test
