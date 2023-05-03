@@ -43,8 +43,6 @@ public final class GrpcKafkaWithResolver
     private static final Pattern IDENTITY_PATTERN =
             Pattern.compile("\\$\\{guarded(?:\\['([a-zA-Z]+[a-zA-Z0-9\\._\\-]*)'\\]).identity\\}");
 
-    private static final String8FW GRPC_METADATA_NAME_IDEMPOTENCY_KEY = new String8FW("idempotency-key");
-
     private final OctetsFW dashOctetsRW = new OctetsFW().wrap(new String16FW("-").value(), 0, 1);
     private final OctetsFW.Builder octetsRW = new OctetsFW.Builder()
             .wrap(new UnsafeBuffer(new byte[256]), 0, 256);
@@ -68,7 +66,7 @@ public final class GrpcKafkaWithResolver
         this.with = with;
         this.identityMatcher = IDENTITY_PATTERN.matcher("");
         this.fieldId = new Varuint32FW.Builder() .wrap(new UnsafeBuffer(new byte[8]), 0, 8)
-            .set(options.lastMessageIdField << 3 | BYTES_WIRE_TYPE).build();
+            .set(options.reliability.field << 3 | BYTES_WIRE_TYPE).build();
     }
 
     public GrpcKafkaCapability capability()
@@ -85,7 +83,7 @@ public final class GrpcKafkaWithResolver
         String16FW topic = new String16FW(fetch.topic);
 
         final Array32FW<GrpcMetadataFW> metadata = grpcBeginExFW.metadata();
-        final DirectBuffer metadataName = options.lastMessageIdMetadata.value();
+        final DirectBuffer metadataName = options.reliability.metadata.value();
         GrpcMetadataFW lastMessageIdMetadata = metadata
             .matchFirst(m -> metadataName.compareTo(m.name().value()) == 0);
         Array32FW<KafkaOffsetFW> partitions = null;
@@ -157,7 +155,7 @@ public final class GrpcKafkaWithResolver
         KafkaAckMode acks = produce.acks;
 
         final GrpcMetadataFW idempotencyKey = beginEx.metadata().matchFirst(m ->
-            GRPC_METADATA_NAME_IDEMPOTENCY_KEY.value().compareTo(m.name().value()) == 0);
+            options.idempotency.metadata.value().compareTo(m.name().value()) == 0);
 
         final String16FW service = new String16FW(beginEx.service().asString());
         final String16FW method = new String16FW(beginEx.method().asString());

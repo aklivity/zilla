@@ -27,8 +27,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaCorrelationConfig;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaIdempotencyConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaOptionsConfigAdapter;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config.GrpcKafkaReliabilityConfig;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
@@ -49,16 +51,19 @@ public class GrpcKafkaOptionsConfigAdapterTest
     {
         String text =
                 "{" +
-                    "\"last-message-id-field\": 255," +
-                    "\"last-message-id-metadata\": \"last-message-id-x\"," +
+                    "\"reliability\":" +
+                    "{" +
+                        "\"field\": 255," +
+                        "\"metadata\": \"last-message-id-x\"" +
+                    "}," +
                     "\"correlation\":" +
                     "{" +
-                        "\"headers\":" +
-                        "{" +
-                            "\"service\":\"zilla:service-x\"," +
-                            "\"method\":\"zilla:method-x\"," +
-                            "\"correlation-id\":\"zilla:correlation-id-x\"" +
-                        "}" +
+                    "\"headers\":" +
+                    "{" +
+                    "\"service\":\"zilla:service-x\"," +
+                    "\"method\":\"zilla:method-x\"," +
+                    "\"correlation-id\":\"zilla:correlation-id-x\"" +
+                    "}" +
                     "}" +
                 "}";
 
@@ -66,8 +71,8 @@ public class GrpcKafkaOptionsConfigAdapterTest
 
         assertThat(options, not(nullValue()));
         assertThat(options.correlation, not(nullValue()));
-        assertThat(options.lastMessageIdField, equalTo(255));
-        assertThat(options.lastMessageIdMetadata.asString(), equalTo("last-message-id-x"));
+        assertThat(options.reliability.field, equalTo(255));
+        assertThat(options.reliability.metadata.asString(), equalTo("last-message-id-x"));
         assertThat(options.correlation.service.asString(), equalTo("zilla:service-x"));
         assertThat(options.correlation.method.asString(), equalTo("zilla:method-x"));
         assertThat(options.correlation.correlationId.asString(), equalTo("zilla:correlation-id-x"));
@@ -77,27 +82,37 @@ public class GrpcKafkaOptionsConfigAdapterTest
     public void shouldWriteOptions()
     {
         GrpcKafkaOptionsConfig options = new GrpcKafkaOptionsConfig(
-                255,
-                new String8FW("x-last-message-id"),
+                new GrpcKafkaReliabilityConfig(255,
+                    new String8FW("x-last-message-id")),
+                new GrpcKafkaIdempotencyConfig(new String8FW("x-idempotency-key")),
                 new GrpcKafkaCorrelationConfig(
                     new String16FW("zilla:x-correlation-id"),
                     new String16FW("zilla:x-service"),
-                    new String16FW("zilla:x-method")));
+                    new String16FW("zilla:x-method"),
+                    new String16FW("zilla:x-reply-to")));
 
         String text = jsonb.toJson(options);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo(
                 "{" +
-                    "\"last-message-id-field\":255," +
-                    "\"last-message-id-metadata\":\"x-last-message-id\"," +
+                    "\"reliability\":" +
+                    "{" +
+                        "\"field\":255," +
+                        "\"metadata\":\"x-last-message-id\"" +
+                    "}," +
+                    "\"idempotency\":" +
+                    "{" +
+                        "\"metadata\":\"x-idempotency-key\"" +
+                    "}," +
                     "\"correlation\":" +
                     "{" +
                         "\"headers\":" +
                         "{" +
                             "\"service\":\"zilla:x-service\"," +
                             "\"method\":\"zilla:x-method\"," +
-                            "\"correlation-id\":\"zilla:x-correlation-id\"" +
+                            "\"correlation-id\":\"zilla:x-correlation-id\"," +
+                            "\"reply-to\":\"zilla:x-reply-to\"" +
                         "}" +
                     "}" +
                 "}"));

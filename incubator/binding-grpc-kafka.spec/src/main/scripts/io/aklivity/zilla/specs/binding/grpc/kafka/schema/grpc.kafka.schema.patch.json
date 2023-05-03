@@ -19,17 +19,38 @@
                 {
                     "properties":
                     {
-                        "last-message-id-field":
+                        "reliability":
                         {
-                            "title": "Grpc Last Message Id",
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 536870911
+                            "title": "Reliability",
+                            "type": "object",
+                            "properties":
+                            {
+                                "field":
+                                {
+                                    "title": "Grpc Last Message Id",
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 536870911
+                                },
+                                "metadata":
+                                {
+                                    "title": "Grpc Last Message Id Metadata Name",
+                                    "type": "string"
+                                }
+                            }
                         },
-                        "last-message-id-metadata":
+                        "idempotency":
                         {
-                            "title": "Grpc Last Message Id Metadata Name",
-                            "type": "string"
+                            "title": "Idempotency",
+                            "type": "object",
+                            "properties":
+                            {
+                                "metadata":
+                                {
+                                    "title": "Idempotency Metadata name",
+                                    "type": "string"
+                                }
+                            }
                         },
                         "correlation":
                         {
@@ -60,6 +81,12 @@
                                             "title": "Correlation-Id Kafka Header",
                                             "type": "string",
                                             "default": "zilla:correlation-id"
+                                        },
+                                        "reply-to":
+                                        {
+                                            "title": "Reply to Topic",
+                                            "type": "string",
+                                            "default": "zilla:reply-to"
                                         }
                                     },
                                     "additionalProperties": false
@@ -86,11 +113,6 @@
                                 {
                                     "properties":
                                     {
-                                        "service":
-                                        {
-                                            "title": "Service",
-                                            "type": "string"
-                                        },
                                         "method":
                                         {
                                             "title": "Method",

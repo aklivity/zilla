@@ -31,7 +31,7 @@ bindings:
             - service:echo
         exit: kafka0
         when:
-          - service: example.EchoService
+          - method: example.EchoService/*
             metadata:
               custom: test
         with:
