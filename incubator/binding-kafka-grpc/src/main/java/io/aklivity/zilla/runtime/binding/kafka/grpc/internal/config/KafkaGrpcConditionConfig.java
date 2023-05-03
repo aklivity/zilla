@@ -28,17 +28,22 @@ public final class KafkaGrpcConditionConfig extends ConditionConfig
     public final Optional<String16FW> key;
     public final Optional<Map<String8FW, String16FW>> headers;
     public final String16FW replyTo;
+    public final Optional<String16FW> service;
+    public final Optional<String16FW> method;
 
     public KafkaGrpcConditionConfig(
         String16FW topic,
         String16FW key,
         String16FW replyTo,
-        Map<String8FW, String16FW> headers)
+        Map<String8FW, String16FW> headers,
+        String16FW service,
+        String16FW method)
     {
-
         this.topic = topic;
         this.key =  Optional.ofNullable(key);
         this.headers = Optional.ofNullable(headers);
         this.replyTo = replyTo;
+        this.service =  Optional.ofNullable(service);
+        this.method =  Optional.ofNullable(method);
     }
 }

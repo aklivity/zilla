@@ -30,7 +30,6 @@ public final class GrpcKafkaCorrelationConfig
         String16FW service,
         String16FW method,
         String16FW replyTo)
-
     {
         this.correlationId = correlationId;
         this.service = service;

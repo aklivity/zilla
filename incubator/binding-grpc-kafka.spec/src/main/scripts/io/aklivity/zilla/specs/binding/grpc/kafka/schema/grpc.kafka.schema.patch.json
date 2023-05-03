@@ -116,7 +116,8 @@
                                         "method":
                                         {
                                             "title": "Method",
-                                            "type": "string"
+                                            "type": "string",
+                                            "pattern": "^(?<Service>[^\/]+)(?:/(?<Method>[^\/]+))?$"
                                         },
                                         "metadata":
                                         {

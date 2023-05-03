@@ -51,6 +51,7 @@ public class KafkaGrpcConditionConfigAdapterTest
                 "    \"topic\": \"responses\",\n" +
                 "    \"reply-to\": \"requests\",\n" +
                 "    \"key\": \"test\",\n" +
+                "    \"method\": \"test/*\",\n" +
                 "    \"headers\": {\n" +
                 "        \"custom\": \"test\"\n" +
                 "    }\n" +
@@ -61,6 +62,8 @@ public class KafkaGrpcConditionConfigAdapterTest
         assertThat(condition, not(nullValue()));
         assertThat(condition.topic.asString(), equalTo("responses"));
         assertThat(condition.replyTo.asString(), equalTo("requests"));
+        assertThat(condition.service.get().asString(), equalTo("test"));
+        assertThat(condition.method.get().asString(), equalTo("*"));
         assertThat(condition.key.get().asString(), equalTo("test"));
         assertTrue(!condition.headers.isEmpty());
     }
@@ -72,13 +75,15 @@ public class KafkaGrpcConditionConfigAdapterTest
             new String16FW("responses"),
             new String16FW("test"),
             new String16FW("requests"),
-            singletonMap(new String8FW("custom"), new String16FW("test"))
+            singletonMap(new String8FW("custom"), new String16FW("test")),
+            new String16FW("test"),
+            new String16FW("*")
         );
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"topic\":\"responses\",\"key\":\"test\",\"reply-to\":\"requests\"," +
-            "\"headers\":{\"custom\":\"test\"}}"));
+            "\"headers\":{\"custom\":\"test\"},\"method\":\"test/*\"}"));
     }
 }

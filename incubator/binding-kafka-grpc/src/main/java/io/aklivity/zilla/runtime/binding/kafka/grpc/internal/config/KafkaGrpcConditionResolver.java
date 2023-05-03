@@ -24,6 +24,8 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
 
 public final class KafkaGrpcConditionResolver
 {
+    private static final String16FW WILDCARD = new String16FW("*");
+
     private final KafkaGrpcOptionsConfig options;
     private final KafkaGrpcConditionConfig condition;
     private final KafkaGrpcWithConfig with;
@@ -62,6 +64,23 @@ public final class KafkaGrpcConditionResolver
                 headers.add(new KafkaGrpcFetchFilterHeaderResult(name, value));
             });
         }
+
+        if (condition.service.isPresent())
+        {
+            String16FW service = condition.service.get();
+            headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.service.value(),
+                service.value()));
+        }
+
+        if (condition.method.isPresent() && WILDCARD.value().compareTo(condition.method.get().value()) != 0)
+        {
+            String16FW method = condition.method.get();
+            headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.method.value(),
+                method.value()));
+        }
+
+        headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.replyTo.value(),
+            condition.replyTo.value()));
 
         if (key != null || !headers.isEmpty())
         {

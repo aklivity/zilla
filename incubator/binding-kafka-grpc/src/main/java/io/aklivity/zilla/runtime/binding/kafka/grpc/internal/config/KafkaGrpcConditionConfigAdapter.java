@@ -15,6 +15,8 @@
 package io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -32,10 +34,14 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
+    private static final Pattern METHOD_PATTERN = Pattern.compile("^(?<Service>[^/]+)(?:/(?<Method>[^/]+))?$");
+    private static final String SERVICE_NAME = "Service";
+    private static final String METHOD = "Method";
     private static final String TOPIC_NAME = "topic";
     private static final String KEY_NAME = "key";
     private static final String HEADERS_NAME = "headers";
     private static final String REPLY_TO_NAME = "reply-to";
+    private static final String METHOD_NAME = "method";
 
     @Override
     public String type()
@@ -77,6 +83,13 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
             object.add(HEADERS_NAME, entries);
         }
 
+        if (condition.service.isPresent())
+        {
+            String method = condition.service.get().asString();
+            method = condition.method.isPresent() ? method + "/" + condition.method.get().asString() : method;
+            object.add(METHOD_NAME, method);
+        }
+
         return object.build();
     }
 
@@ -110,6 +123,19 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
             });
         }
 
-        return new KafkaGrpcConditionConfig(topic, key, replyTo, newHeaders);
+        String16FW newService = null;
+        String16FW newMethod = null;
+        if (object.containsKey(METHOD_NAME))
+        {
+            String method = object.getString(METHOD_NAME);
+            final Matcher matcher = METHOD_PATTERN.matcher(method);
+            if (matcher.matches())
+            {
+                newService = new String16FW(matcher.group(SERVICE_NAME));
+                newMethod = new String16FW(matcher.group(METHOD));
+            }
+        }
+
+        return new KafkaGrpcConditionConfig(topic, key, replyTo, newHeaders, newService, newMethod);
     }
 }
