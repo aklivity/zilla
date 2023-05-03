@@ -63,15 +63,8 @@ scope kafka
         case 3: kafka::KafkaHeaders headers;
     }
 
-    enum KafkaEvaluation (uint8)
-    {
-        LAZY(0),
-        ALWAYS(1)
-    }
-
     struct KafkaFilter
     {
-        KafkaEvaluation evaluate = LAZY;
         KafkaCondition[] conditions; // ANDed
     }
 
@@ -230,7 +223,6 @@ scope kafka
             KafkaOffset[] progress;     // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
-            uint64 filters = 0;
             KafkaHeader[] headers;      // INIT + FIN (produce), INIT only (fetch)
         }
 
