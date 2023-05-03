@@ -50,7 +50,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
         "${net}/unsubscribe.after.subscribe/server"})
-    public void shouldSubscribeAndUnsubscribeFromTopic() throws Exception
+    public void shouldUnsubscribeAfterSubscribe() throws Exception
     {
         k3po.finish();
     }
@@ -60,7 +60,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.receive.suback.no.matching.subscription/client",
         "${net}/unsubscribe.receive.suback.no.matching.subscription/server"})
-    public void shouldReceiveSubackAfterUnsubscribeWhenNoMatchingSubscriptionExists() throws Exception
+    public void shouldReceiveSubackWhenNoMatchingSubscriptionExists() throws Exception
     {
         k3po.finish();
     }
@@ -88,7 +88,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/server"})
-    public void shouldRejectMalformedUnsubscribePacket() throws Exception
+    public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
     }
@@ -98,7 +98,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.no.topic.filter/client",
         "${net}/unsubscribe.reject.no.topic.filter/server"})
-    public void shouldRejectUnsubscribeWithNoTopicFilter() throws Exception
+    public void shouldRejectNoTopicFilter() throws Exception
     {
         k3po.finish();
     }

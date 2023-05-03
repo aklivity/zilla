@@ -40,7 +40,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.one.message/client",
         "${app}/publish.one.message/server"})
-    public void shouldPublishOneMessage() throws Exception
+    public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();
     }
@@ -49,7 +49,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.multiple.messages/client",
         "${app}/publish.multiple.messages/server"})
-    public void shouldPublishMultipleMessagesToServer() throws Exception
+    public void shouldSendMultipleMessages() throws Exception
     {
         k3po.finish();
     }
@@ -58,7 +58,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.with.user.property/client",
         "${app}/publish.with.user.property/server"})
-    public void shouldPublishWithUserProperty() throws Exception
+    public void shouldSendWithUserProperty() throws Exception
     {
         k3po.finish();
     }
@@ -67,7 +67,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.with.user.properties.repeated/client",
         "${app}/publish.with.user.properties.repeated/server"})
-    public void shouldPublishWithRepeatedUserProperties() throws Exception
+    public void shouldSendWithRepeatedUserProperties() throws Exception
     {
         k3po.finish();
     }
@@ -76,7 +76,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.with.user.properties.distinct/client",
         "${app}/publish.with.user.properties.distinct/server"})
-    public void shouldPublishWithDistinctUserProperties() throws Exception
+    public void shouldSendWithDistinctUserProperties() throws Exception
     {
         k3po.finish();
     }
@@ -85,7 +85,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.message.after.subscribe.fails/client",
         "${app}/publish.message.after.subscribe.fails/server"})
-    public void shouldFailSubscribeThenPublishMessage() throws Exception
+    public void shouldFailSubscribeThenSendMessage() throws Exception
     {
         k3po.finish();
     }
@@ -94,7 +94,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
-    public void shouldPublishMessageWithTopicAlias() throws Exception
+    public void shouldSendMessageWithTopicAlias() throws Exception
     {
         k3po.finish();
     }
@@ -103,7 +103,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.messages.with.topic.alias.distinct/client",
         "${app}/publish.messages.with.topic.alias.distinct/server"})
-    public void shouldPublishMessagesWithTopicAliasDistinct() throws Exception
+    public void shouldSendMessagesWithTopicAliasDistinct() throws Exception
     {
         k3po.finish();
     }
@@ -112,7 +112,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.messages.with.topic.alias.repeated/client",
         "${app}/publish.messages.with.topic.alias.repeated/server"})
-    public void shouldPublishMessagesWithTopicAliasRepeated() throws Exception
+    public void shouldSendMessagesWithTopicAliasRepeated() throws Exception
     {
         k3po.finish();
     }
@@ -121,7 +121,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.messages.with.topic.alias.replaced/client",
         "${app}/publish.messages.with.topic.alias.replaced/server"})
-    public void shouldPublishMessagesWithTopicAliasesReplaced() throws Exception
+    public void shouldSendMessagesWithTopicAliasesReplaced() throws Exception
     {
         k3po.finish();
     }
@@ -131,7 +131,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.messages.no.carry.over.topic.alias/client",
         "${app}/publish.messages.no.carry.over.topic.alias/server"})
-    public void shouldPublishMessagesNoCarryOverTopicAlias() throws Exception
+    public void shouldSendMessagesNoCarryOverTopicAlias() throws Exception
     {
         k3po.finish();
     }
@@ -140,7 +140,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.retained/client",
         "${app}/publish.retained/server"})
-    public void shouldPublishRetainedMessage() throws Exception
+    public void shouldSendRetainedMessage() throws Exception
     {
         k3po.finish();
     }
@@ -149,7 +149,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.empty.retained.message/client",
         "${app}/publish.empty.retained.message/server"})
-    public void shouldPublishEmptyRetainedMessage() throws Exception
+    public void shouldSendEmptyRetainedMessage() throws Exception
     {
         k3po.finish();
     }
@@ -158,7 +158,7 @@ public class PublishIT
     @Specification({
         "${app}/publish.empty.message/client",
         "${app}/publish.empty.message/server"})
-    public void shouldPublishEmptyMessage() throws Exception
+    public void shouldSendEmptyMessage() throws Exception
     {
         k3po.finish();
     }

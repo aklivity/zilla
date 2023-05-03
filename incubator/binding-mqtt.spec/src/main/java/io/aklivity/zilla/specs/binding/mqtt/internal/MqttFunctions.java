@@ -160,8 +160,7 @@ public final class MqttFunctions
                 return this;
             }
 
-
-            public void willMessage(MqttWillMessageFW willMessage)
+            private void willMessage(MqttWillMessageFW willMessage)
             {
                 sessionBeginExRW.willMessage(willMessage);
             }

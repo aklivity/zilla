@@ -70,7 +70,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldReceivePublishAfterSendingSubscribe() throws Exception
+    public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
@@ -84,7 +84,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldReceivePublishAfterSendingSubscribeWithRouteExtension() throws Exception
+    public void shouldReceiveOneMessageWithRouteExtension() throws Exception
     {
         k3po.finish();
     }
@@ -98,7 +98,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldReceiveCorrelationDataAfterSendingSubscribe() throws Exception
+    public void shouldReceiveCorrelationData() throws Exception
     {
         k3po.finish();
     }
@@ -111,7 +111,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldReceivePublishWithInvalidSubscriptionIdAfterSendingSubscribe() throws Exception
+    public void shouldReceiveOneMessageWithInvalidSubscriptionId() throws Exception
     {
         k3po.finish();
     }
@@ -125,7 +125,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeToOneExactTopic() throws Exception
+    public void shouldSubscribeToExactTopicFilter() throws Exception
     {
         k3po.finish();
     }
@@ -139,7 +139,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeToWildcardTopic() throws Exception
+    public void shouldSubscribeToMultiLevelWildcardTopicFilter() throws Exception
     {
         k3po.finish();
     }
@@ -153,7 +153,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeWithTwoTopicsBothExactOneSubscribePacket() throws Exception
+    public void shouldSubscribeToAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -167,7 +167,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeWithTwoTopicsBothExactTwoSubscribePackets() throws Exception
+    public void shouldSubscribeToIsolatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -195,7 +195,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeWithTwoTopicsBothWildcardTwoSubscribePackets() throws Exception
+    public void shouldSubscribeToIsolatedTopicFiltersBothWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -209,7 +209,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeWithTwoTopicsOneExactOneSubscribePacket() throws Exception
+    public void shouldSubscribeToAggregatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -223,7 +223,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeWithTwoTopicsOneExactTwoSubscribePackets() throws Exception
+    public void shouldSubscribeToIsolatedExactAndWildcardTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -251,7 +251,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeIgnoreRetainAsPublished() throws Exception
+    public void shouldReceiveRetainedAsPublished() throws Exception
     {
         k3po.finish();
     }
@@ -264,7 +264,7 @@ public class SubscribeIT
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
     @Configure(name = NO_LOCAL_NAME, value = "false")
-    public void shouldRejectSubscribeWithNoLocal() throws Exception
+    public void shouldRejectNoLocal() throws Exception
     {
         k3po.finish();
     }
@@ -278,7 +278,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeThenReceiveOneMessage() throws Exception
+    public void shouldReceiveOneMessageAfterPublish() throws Exception
     {
         k3po.finish();
     }
@@ -292,7 +292,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldSubscribeThenPublishNoLocal() throws Exception
+    public void shouldNotReceivePublishLocal() throws Exception
     {
         k3po.finish();
     }
@@ -320,7 +320,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectMalformedSubscribePacket() throws Exception
+    public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
     }
@@ -333,7 +333,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectSubscribePacketWithInvalidTopicFilter() throws Exception
+    public void shouldRejectInvalidTopicFilter() throws Exception
     {
         k3po.finish();
     }
@@ -346,7 +346,7 @@ public class SubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectSubscribeWithWildcardSubscriptionsUnavailable() throws Exception
+    public void shouldRejectWildcardSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();
     }

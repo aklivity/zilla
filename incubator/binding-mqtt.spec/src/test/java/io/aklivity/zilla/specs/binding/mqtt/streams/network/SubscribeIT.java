@@ -40,7 +40,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message/client",
         "${net}/subscribe.one.message/server"})
-    public void shouldSubscribeOneMessage() throws Exception
+    public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
@@ -49,7 +49,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message.user.properties.unaltered/client",
         "${net}/subscribe.one.message.user.properties.unaltered/server"})
-    public void shouldSubscribeOneMessageWithUserPropertiesUnaltered() throws Exception
+    public void shouldReceiveOneMessageWithUserPropertiesUnaltered() throws Exception
     {
         k3po.finish();
     }
@@ -58,7 +58,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.receive.message.wildcard/client",
         "${net}/subscribe.receive.message.wildcard/server"})
-    public void shouldSubscribeOneMessageWithPatternTopic() throws Exception
+    public void shouldReceiveOneMessageWithPatternTopic() throws Exception
     {
         k3po.finish();
     }
@@ -77,7 +77,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.missing.topic.filters/client",
         "${net}/subscribe.reject.missing.topic.filters/server"})
-    public void shouldRejectSubscribeWithMissingTopicFilters() throws Exception
+    public void shouldRejectWithMissingTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -86,7 +86,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.topic.filter/client",
         "${net}/subscribe.invalid.topic.filter/server"})
-    public void shouldRejectSubscribeWithInvalidTopicFilter() throws Exception
+    public void shouldRejectInvalidTopicFilter() throws Exception
     {
         k3po.finish();
     }
@@ -104,7 +104,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.topic.filter.multi.level.wildcard/client",
         "${net}/subscribe.topic.filter.multi.level.wildcard/server"})
-    public void shouldSubscribeToWildcardTopicFilter() throws Exception
+    public void shouldSubscribeToMultiLevelWildcardTopicFilter() throws Exception
     {
         k3po.finish();
     }
@@ -159,7 +159,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.topic.filter.invalid.wildcard/client",
         "${net}/subscribe.reject.topic.filter.invalid.wildcard/server"})
-    public void shouldRejectSubscribeTopicFilterInvalidWildcard() throws Exception
+    public void shouldRejectTopicFilterInvalidWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -213,7 +213,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.invalid.fixed.header.flags/client",
         "${net}/subscribe.invalid.fixed.header.flags/server"})
-    public void shouldRejectMalformedSubscribePacket() throws Exception
+    public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
     }
@@ -233,7 +233,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
         "${net}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
-    public void shouldReceiveCorrelationDataAfterSendingSubscribe() throws Exception
+    public void shouldReceiveCorrelationData() throws Exception
     {
         k3po.finish();
     }
@@ -242,7 +242,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.one.message.with.invalid.subscription.id/client",
         "${net}/subscribe.one.message.with.invalid.subscription.id/server"})
-    public void shouldSubscribeOneMessageWithInvalidSubscriptionId() throws Exception
+    public void shouldReceiveOneMessageWithInvalidSubscriptionId() throws Exception
     {
         k3po.finish();
     }
@@ -251,7 +251,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.receive.message/client",
         "${net}/subscribe.receive.message/server"})
-    public void shouldSubscribeThenReceiveOneMessage() throws Exception
+    public void shouldReceiveOneMessageAfterPublish() throws Exception
     {
         k3po.finish();
     }
@@ -260,7 +260,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.get.retained.as.published/client",
         "${net}/subscribe.get.retained.as.published/server"})
-    public void shouldSubscribeGetRetainedMessageAsPublished() throws Exception
+    public void shouldReceiveRetainedAsPublished() throws Exception
     {
         k3po.finish();
     }
@@ -270,7 +270,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.malformed.subscription.options/client",
         "${net}/subscribe.reject.malformed.subscription.options/server"})
-    public void shouldRejectSubscribeMalformedSubscriptionOptions() throws Exception
+    public void shouldRejectMalformedSubscriptionOptions() throws Exception
     {
         k3po.finish();
     }
@@ -279,7 +279,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.wildcard.subscriptions.not.supported/client",
         "${net}/subscribe.reject.wildcard.subscriptions.not.supported/server"})
-    public void shouldRejectSubscribeWithWildcardSubscriptionsNotSupported() throws Exception
+    public void shouldRejectWildcardSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -288,7 +288,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.subscription.ids.not.supported/client",
         "${net}/subscribe.reject.subscription.ids.not.supported/server"})
-    public void shouldConnectWithSubscriptionIdentifiersNotSupported() throws Exception
+    public void shouldRejectSubscriptionIdentifiersNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -297,7 +297,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.reject.shared.subscriptions.not.supported/client",
         "${net}/subscribe.reject.shared.subscriptions.not.supported/server"})
-    public void shouldConnectWithSharedSubscriptionsNotSupported() throws Exception
+    public void shouldRejectSharedSubscriptionsNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -306,7 +306,7 @@ public class SubscribeIT
     @Specification({
         "${net}/subscribe.qos0.replay.retained.no.packet.id/client",
         "${net}/subscribe.qos0.replay.retained.no.packet.id/server"})
-    public void shouldSubscribeAndReplayRetainedQos0() throws Exception
+    public void shouldReceiveAndReplayRetainedQos0() throws Exception
     {
         k3po.finish();
     }
