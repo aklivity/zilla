@@ -1927,7 +1927,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final int payloadSize = sessionState.sizeof();
 
                     //TODO: is this correct? What is this?
-                    int reserved = payloadSize ;
+                    int reserved = payloadSize;
 
                     sessionStream.doSessionInitialData(traceId, authorization, reserved, sessionState);
                 }

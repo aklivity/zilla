@@ -58,9 +58,9 @@ public class UnsubscribeIT
     // [MQTT-3.10.4-5]
     @Test
     @Specification({
-        "${net}/unsubscribe.receive.unsuback.no.matching.subscription/client",
-        "${net}/unsubscribe.receive.unsuback.no.matching.subscription/server"})
-    public void shouldReceiveSubackWhenNoMatchingSubscriptionExists() throws Exception
+        "${net}/unsubscribe.no.matching.topic.filter/client",
+        "${net}/unsubscribe.no.matching.topic.filter/server"})
+    public void shouldReceiveUnsubackWhenNoMatchingSubscriptionExists() throws Exception
     {
         k3po.finish();
     }

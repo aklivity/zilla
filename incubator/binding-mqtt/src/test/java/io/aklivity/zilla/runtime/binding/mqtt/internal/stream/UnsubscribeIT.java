@@ -107,14 +107,14 @@ public class UnsubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/unsubscribe.receive.unsuback.no.matching.subscription/client",
+        "${net}/unsubscribe.no.matching.topic.filter/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldReceiveUnsubackNoMatchingSubscription() throws Exception
+    public void shouldReceiveUnsubackWhenNoMatchingSubscriptionExists() throws Exception
     {
         k3po.finish();
     }
@@ -129,7 +129,7 @@ public class UnsubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectMalformedUnsubscribePacket() throws Exception
+    public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
     }
@@ -144,7 +144,7 @@ public class UnsubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectMissingUnsubscribePacketId() throws Exception
+    public void shouldRejectWithoutPacketId() throws Exception
     {
         k3po.finish();
     }
@@ -159,7 +159,7 @@ public class UnsubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldRejectMissingUnsubscribeTopicFilter() throws Exception
+    public void shouldRejectNoTopicFilter() throws Exception
     {
         k3po.finish();
     }
