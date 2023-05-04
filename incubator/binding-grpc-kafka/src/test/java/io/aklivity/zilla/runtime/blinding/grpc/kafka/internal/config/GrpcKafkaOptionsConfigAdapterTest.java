@@ -58,12 +58,12 @@ public class GrpcKafkaOptionsConfigAdapterTest
                     "}," +
                     "\"correlation\":" +
                     "{" +
-                    "\"headers\":" +
-                    "{" +
-                    "\"service\":\"zilla:service-x\"," +
-                    "\"method\":\"zilla:method-x\"," +
-                    "\"correlation-id\":\"zilla:correlation-id-x\"" +
-                    "}" +
+                        "\"headers\":" +
+                    "   {" +
+                            "\"service\":\"zilla:service-x\"," +
+                            "\"method\":\"zilla:method-x\"," +
+                            "\"correlation-id\":\"zilla:correlation-id-x\"" +
+                        "}" +
                     "}" +
                 "}";
 
