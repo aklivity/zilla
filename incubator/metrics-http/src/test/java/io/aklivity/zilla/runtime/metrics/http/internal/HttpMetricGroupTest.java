@@ -547,4 +547,171 @@ public class HttpMetricGroupTest
         // THEN
         verify(recorder, never()).accept(anyLong());
     }
+
+    @Test
+    public void shouldResolveHttpActiveRequests()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.active.requests");
+
+        // THEN
+        assertThat(metric, instanceOf(HttpActiveRequestsMetric.class));
+        assertThat(metric.name(), equalTo("http.active.requests"));
+        assertThat(metric.kind(), equalTo(Metric.Kind.GAUGE));
+        assertThat(metric.unit(), equalTo(Metric.Unit.COUNT));
+        assertThat(metric.description(), equalTo("Number of active HTTP requests"));
+    }
+
+    @Test
+    public void shouldResolveHttpActiveRequestsContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        Metric metric = metricGroup.supply("http.active.requests");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context, instanceOf(HttpActiveRequestsMetricContext.class));
+        assertThat(context.group(), equalTo("http"));
+        assertThat(context.kind(), equalTo(Metric.Kind.GAUGE));
+        assertThat(context.direction(), equalTo(MetricContext.Direction.BOTH));
+    }
+
+    @Test
+    public void shouldRecordHttpActiveRequests()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.active.requests");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .typeId(0)
+            .headersItem(h -> h.name(":status").value("200"))
+            .headersItem(h -> h.name("content-length").value("42"))
+            .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frames
+        AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
+            .originId(0L).routedId(0L).streamId(0L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+
+        // THEN
+        verify(recorder, times(1)).accept(1L);
+        verify(recorder, times(1)).accept(-1L);
+    }
+
+    @Test
+    public void shouldResolveHttpDuration()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.duration");
+
+        // THEN
+        assertThat(metric, instanceOf(HttpDurationMetric.class));
+        assertThat(metric.name(), equalTo("http.duration"));
+        assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(metric.unit(), equalTo(Metric.Unit.SECONDS));
+        assertThat(metric.description(), equalTo("Duration of HTTP requests"));
+    }
+
+    @Test
+    public void shouldResolveHttpDurationContext()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        Metric metric = metricGroup.supply("http.duration");
+
+        // WHEN
+        MetricContext context = metric.supply(mock(EngineContext.class));
+
+        // THEN
+        assertThat(context, instanceOf(HttpDurationMetricContext.class));
+        assertThat(context.group(), equalTo("http"));
+        assertThat(context.kind(), equalTo(Metric.Kind.HISTOGRAM));
+        assertThat(context.direction(), equalTo(MetricContext.Direction.BOTH));
+    }
+
+    @Test
+    public void shouldRecordHttpDuration()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.duration");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .typeId(0)
+            .headersItem(h -> h.name(":status").value("200"))
+            .headersItem(h -> h.name("content-length").value("42"))
+            .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frames
+        AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+        AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
+            .originId(0L).routedId(0L).streamId(0L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
+
+        // THEN
+        verify(recorder, times(1)).accept(anyLong());
+    }
 }
