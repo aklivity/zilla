@@ -423,14 +423,14 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                             .build();
                         lastCorrelationId = newCorrelationId;
                         grpcClient = newGrpcClient(traceId, authorization, helper.service, helper.method,
-                            helper.metadata, newCorrelationId);
+                            helper.replyTo, helper.metadata, newCorrelationId);
                     }
 
                     flushGrpcClientData(grpcClient, traceId, authorization, helper.service, helper.method, flags, payload);
                 }
                 else if (helper.correlationId != null)
                 {
-                    errorProducer.onKafkaError(traceId, authorization, helper.correlationId);
+                    errorProducer.onKafkaError(traceId, authorization, helper.replyTo, helper.correlationId);
                 }
             }
             else
@@ -450,10 +450,11 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             OctetsFW service,
             OctetsFW method,
+            OctetsFW replyTo,
             Array32FW<GrpcMetadataFW> metadata,
             OctetsFW correlationId)
         {
-            final GrpcClient grpcClient = new GrpcClient(originId, entryId, routedId, correlationId, this);
+            final GrpcClient grpcClient = new GrpcClient(originId, entryId, routedId, correlationId, replyTo, this);
             grpcClients.put(correlationId, grpcClient);
 
             grpcClient.doGrpcBegin(traceId, authorization, 0L, service, method, metadata);
@@ -492,7 +493,8 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 {
                     GrpcClient grpcClient = grpcClients.get(messageCorrelationId);
                     grpcClient = grpcClient != null ? grpcClient :
-                        newGrpcClient(traceId, authorization, service, method, helper.metadata, messageCorrelationId);
+                        newGrpcClient(traceId, authorization, service, method, helper.replyTo,
+                            helper.metadata, messageCorrelationId);
 
                     final int progress = grpcClient.onKafkaData(messageTraceId, messageAuthorization,
                         flags, payload);
@@ -695,6 +697,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private final long initialId;
         private final long replyId;
         private final KafkaGrpcConditionResult condition;
+        private final OctetsFW replyTo;
         private final GrpcClient delegate;
 
         private int state;
@@ -713,11 +716,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private KafkaCorrelateProxy(
             long originId,
             long routedId,
+            OctetsFW replyTo,
             KafkaGrpcConditionResult condition,
             GrpcClient delegate)
         {
             this.originId = originId;
             this.routedId = routedId;
+            this.replyTo = replyTo;
             this.delegate = delegate;
             this.condition = condition;
             this.initialId = supplyInitialId.applyAsLong(routedId);
@@ -735,7 +740,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             state = KafkaGrpcState.openingInitial(state);
 
             kafka = newKafkaProducer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, condition);
+                traceId, authorization, affinity, replyTo, condition);
         }
 
         private void doKafkaData(
@@ -1016,12 +1021,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private void doKafkaBegin(
             long traceId,
             long authorization,
-            long affinity)
+            long affinity,
+            OctetsFW replyTo)
         {
             state = KafkaGrpcState.openingInitial(state);
 
             kafka = newKafkaProducer(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
-                traceId, authorization, affinity, condition);
+                traceId, authorization, affinity, replyTo, condition);
         }
 
         private void doKafkaData(
@@ -1166,6 +1172,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         private void onKafkaError(
             long traceId,
             long authorization,
+            OctetsFW replyTo,
             OctetsFW correlationId)
         {
             correlationIds.add(new OctetsFW.Builder()
@@ -1175,7 +1182,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
 
             if (!KafkaGrpcState.initialOpened(state))
             {
-                doKafkaBegin(traceId, authorization, 0);
+                doKafkaBegin(traceId, authorization, 0, replyTo);
             }
             else
             {
@@ -1260,6 +1267,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long routedId,
             long resolveId,
             OctetsFW correlationId,
+            OctetsFW replyTo,
             KafkaRemoteServer server)
         {
             this.originId = originId;
@@ -1268,7 +1276,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             this.server = server;
             this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.correlater = new KafkaCorrelateProxy(originId, resolveId, server.condition, this);
+            this.correlater = new KafkaCorrelateProxy(originId, resolveId, replyTo, server.condition, this);
         }
 
         private int initialPendingAck()
@@ -1821,13 +1829,14 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         long traceId,
         long authorization,
         long affinity,
+        OctetsFW replyTo,
         KafkaGrpcConditionResult condition)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
                 .typeId(kafkaTypeId)
                 .merged(m -> m.capabilities(c -> c.set(PRODUCE_ONLY))
-                              .topic(condition.replyTo())
+                              .topic(replyTo.value(), 0, replyTo.sizeof())
                               .partitionsItem(p -> p.partitionId(-1).partitionOffset(-2L))
                               .ackMode(condition::acks))
                 .build();

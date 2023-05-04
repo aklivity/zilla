@@ -164,9 +164,6 @@ public final class GrpcKafkaWithResolver
 
         GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
         hash.digestHash();
-        hash.updateHash(beginEx.service().value());
-        hash.updateHash(beginEx.method().value());
-        hash.updateHash(metadata.items());
 
         List<GrpcKafkaWithProduceOverrideResult> overrides = resolveOverride(authorization, produce, hash);
 

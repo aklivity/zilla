@@ -123,8 +123,8 @@ public class GrpcKafkaWithProduceResult
 
         builder.item(this::service);
         builder.item(this::method);
-        builder.item(this::correlationId);
         builder.item(this::replyTo);
+        builder.item(this::correlationId);
     }
 
     private void service(
@@ -147,7 +147,7 @@ public class GrpcKafkaWithProduceResult
             .value(method.value(), 0, method.length());
     }
 
-    private void correlationId(
+    private void replyTo(
         KafkaHeaderFW.Builder builder)
     {
         builder
@@ -157,7 +157,7 @@ public class GrpcKafkaWithProduceResult
             .value(replyTo.value(), 0, replyTo.length());
     }
 
-    private void replyTo(
+    private void correlationId(
         KafkaHeaderFW.Builder builder)
     {
         final OctetsFW correlationId = hash.correlationId();

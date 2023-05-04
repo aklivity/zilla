@@ -33,7 +33,7 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
     private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
     private static final String ACKS_NAME = "acks";
     private static final String IDEMPOTENCY_NAME = "idempotency";
-    private static final String METADATA_NAME = "metadata";
+    private static final String IDEMPOTENCY_METADATA_NAME = "metadata";
     private static final String CORRELATION_NAME = "correlation";
     private static final String CORRELATION_HEADERS_NAME = "headers";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
@@ -89,7 +89,7 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 
             if (!IDEMPOTENCY_METADATA_DEFAULT.equals(idempotency.metadata))
             {
-                newIdempotency.add(METADATA_NAME, idempotency.metadata.asString());
+                newIdempotency.add(IDEMPOTENCY_METADATA_NAME, idempotency.metadata.asString());
             }
 
             object.add(IDEMPOTENCY_NAME, newIdempotency);
@@ -144,9 +144,9 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
 
             String8FW newMetadata = IDEMPOTENCY_METADATA_DEFAULT;
-            if (idempotency.containsKey(METADATA_NAME))
+            if (idempotency.containsKey(IDEMPOTENCY_METADATA_NAME))
             {
-                newMetadata = new String8FW(idempotency.getString(METADATA_NAME));
+                newMetadata = new String8FW(idempotency.getString(IDEMPOTENCY_METADATA_NAME));
             }
 
             newIdempotency = new KafkaGrpcIdempotencyConfig(newMetadata);

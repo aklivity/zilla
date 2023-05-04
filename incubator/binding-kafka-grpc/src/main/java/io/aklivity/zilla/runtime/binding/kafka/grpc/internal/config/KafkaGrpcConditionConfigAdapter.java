@@ -59,14 +59,14 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
 
         object.add(TOPIC_NAME, condition.topic.asString());
 
+        if (condition.replyTo.isPresent())
+        {
+            object.add(REPLY_TO_NAME, condition.replyTo.get().asString());
+        }
+
         if (condition.key.isPresent())
         {
             object.add(KEY_NAME, condition.key.get().asString());
-        }
-
-        if (condition.replyTo != null)
-        {
-            object.add(REPLY_TO_NAME, condition.replyTo.asString());
         }
 
         if (condition.headers.isPresent() &&
@@ -86,7 +86,9 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
         if (condition.service.isPresent())
         {
             String method = condition.service.get().asString();
-            method = condition.method.isPresent() ? method + "/" + condition.method.get().asString() : method;
+            method = condition.method.isPresent() ?
+                String.format("%s/%s", method, condition.method.get().asString()) :
+                method;
             object.add(METHOD_NAME, method);
         }
 
@@ -99,11 +101,12 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
     {
         String16FW topic = new String16FW(object.getString(TOPIC_NAME));
 
-        String16FW key = object.containsKey(KEY_NAME)
-            ? new String16FW(object.getString(KEY_NAME))
-            : null;
         String16FW replyTo = object.containsKey(REPLY_TO_NAME)
             ? new String16FW(object.getString(REPLY_TO_NAME))
+            : null;
+
+        String16FW key = object.containsKey(KEY_NAME)
+            ? new String16FW(object.getString(KEY_NAME))
             : null;
 
         JsonObject headers = object.containsKey(HEADERS_NAME)
@@ -136,6 +139,6 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
             }
         }
 
-        return new KafkaGrpcConditionConfig(topic, key, replyTo, newHeaders, newService, newMethod);
+        return new KafkaGrpcConditionConfig(topic, replyTo, key, newHeaders, newService, newMethod);
     }
 }

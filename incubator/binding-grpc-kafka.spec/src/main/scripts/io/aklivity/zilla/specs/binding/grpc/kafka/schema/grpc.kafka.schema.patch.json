@@ -30,12 +30,14 @@
                                     "title": "Grpc Last Message Id",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 536870911
+                                    "maximum": 536870911,
+                                    "default": 32767
                                 },
                                 "metadata":
                                 {
                                     "title": "Grpc Last Message Id Metadata Name",
-                                    "type": "string"
+                                    "type": "string",
+                                    "default": "last-message-id"
                                 }
                             }
                         },
@@ -48,7 +50,8 @@
                                 "metadata":
                                 {
                                     "title": "Idempotency Metadata name",
-                                    "type": "string"
+                                    "type": "string",
+                                    "default": "idempotency-key"
                                 }
                             }
                         },

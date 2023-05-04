@@ -45,10 +45,12 @@ public final class KafkaGrpcFetchHeaderHelper
     private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
     private final OctetsFW serviceRO = new OctetsFW();
     private final OctetsFW methodRO = new OctetsFW();
+    private final OctetsFW replyToRO = new OctetsFW();
     private final OctetsFW correlatedIdRO = new OctetsFW();
 
     public OctetsFW service;
     public OctetsFW method;
+    public OctetsFW replyTo;
     public OctetsFW correlationId;
     public Array32FW<GrpcMetadataFW> metadata;
 
@@ -62,6 +64,8 @@ public final class KafkaGrpcFetchHeaderHelper
             0, correlation.service.length()), this::visitService);
         visitors.put(new OctetsFW().wrap(correlation.method.value(),
             0, correlation.method.length()), this::visitMethod);
+        visitors.put(new OctetsFW().wrap(correlation.replyTo.value(),
+            0, correlation.replyTo.length()), this::visitReplyTo);
         visitors.put(new OctetsFW().wrap(correlation.correlationId.value(),
             0, correlation.correlationId.length()), this::visitCorrelationId);
         this.visitors = visitors;
@@ -72,6 +76,7 @@ public final class KafkaGrpcFetchHeaderHelper
     {
         service = null;
         method = null;
+        replyTo = null;
         correlationId = null;
         metadata = null;
         grpcMetadataRW.wrap(metadataBuffer, 0, metadataBuffer.capacity());
@@ -128,6 +133,12 @@ public final class KafkaGrpcFetchHeaderHelper
         OctetsFW value)
     {
         method = methodRO.wrap(value.buffer(), value.offset(), value.limit());
+    }
+
+    private void visitReplyTo(
+        OctetsFW value)
+    {
+        replyTo = replyToRO.wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private void visitCorrelationId(

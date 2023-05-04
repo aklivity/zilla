@@ -28,10 +28,11 @@ import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapterSpi, JsonbAdapter<OptionsConfig, JsonObject>
 {
-    private static final String FIELD_NAME = "field";
-    private static final String METADATA_NAME = "metadata";
     private static final String RELIABILITY_NAME = "reliability";
+    private static final String RELIABILITY_FIELD_NAME = "field";
+    private static final String RELIABILITY_METADATA_NAME = "metadata";
     private static final String IDEMPOTENCY_NAME = "idempotency";
+    private static final String IDEMPOTENCY_METADATA_NAME = "metadata";
     private static final String CORRELATION_NAME = "correlation";
     private static final String CORRELATION_HEADERS_NAME = "headers";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
@@ -88,12 +89,12 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
             if (FIELD_DEFAULT != reliability.field)
             {
-                newReliability.add(FIELD_NAME, reliability.field);
+                newReliability.add(RELIABILITY_FIELD_NAME, reliability.field);
             }
 
             if (!RELIABILITY_METADATA_DEFAULT.equals(reliability.metadata))
             {
-                newReliability.add(METADATA_NAME, reliability.metadata.asString());
+                newReliability.add(RELIABILITY_METADATA_NAME, reliability.metadata.asString());
             }
 
             object.add(RELIABILITY_NAME, newReliability);
@@ -107,7 +108,7 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
 
             if (!IDEMPOTENCY_METADATA_DEFAULT.equals(idempotency.metadata))
             {
-                newIdempotency.add(METADATA_NAME, idempotency.metadata.asString());
+                newIdempotency.add(IDEMPOTENCY_METADATA_NAME, idempotency.metadata.asString());
             }
 
             object.add(IDEMPOTENCY_NAME, newIdempotency);
@@ -158,9 +159,9 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             JsonObject reliability = object.getJsonObject(RELIABILITY_NAME);
 
             int newField = FIELD_DEFAULT;
-            if (reliability.containsKey(FIELD_NAME))
+            if (reliability.containsKey(RELIABILITY_FIELD_NAME))
             {
-                int field = reliability.getInt(FIELD_NAME);
+                int field = reliability.getInt(RELIABILITY_FIELD_NAME);
                 if (field < 19000 || field > 19999)
                 {
                     newField = field;
@@ -168,9 +169,9 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             }
 
             String8FW newMetadata = RELIABILITY_METADATA_DEFAULT;
-            if (reliability.containsKey(METADATA_NAME))
+            if (reliability.containsKey(RELIABILITY_METADATA_NAME))
             {
-                newMetadata = new String8FW(reliability.getString(METADATA_NAME));
+                newMetadata = new String8FW(reliability.getString(RELIABILITY_METADATA_NAME));
             }
 
             newReliability = new GrpcKafkaReliabilityConfig(newField, newMetadata);
@@ -182,9 +183,9 @@ public final class GrpcKafkaOptionsConfigAdapter implements OptionsConfigAdapter
             JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
 
             String8FW newMetadata = IDEMPOTENCY_METADATA_DEFAULT;
-            if (idempotency.containsKey(METADATA_NAME))
+            if (idempotency.containsKey(IDEMPOTENCY_METADATA_NAME))
             {
-                newMetadata = new String8FW(idempotency.getString(METADATA_NAME));
+                newMetadata = new String8FW(idempotency.getString(IDEMPOTENCY_METADATA_NAME));
             }
 
             newIdempotency = new GrpcKafkaIdempotencyConfig(newMetadata);

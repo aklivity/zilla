@@ -79,8 +79,11 @@ public final class KafkaGrpcConditionResolver
                 method.value()));
         }
 
-        headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.replyTo.value(),
-            condition.replyTo.value()));
+        if (condition.replyTo.isPresent())
+        {
+            headers.add(new KafkaGrpcFetchFilterHeaderResult(options.correlation.replyTo.value(),
+                condition.replyTo.get().value()));
+        }
 
         if (key != null || !headers.isEmpty())
         {
@@ -88,9 +91,7 @@ public final class KafkaGrpcConditionResolver
             filters.add(new KafkaGrpcFetchFilterResult(key, headers));
         }
 
-        String16FW replyTo = condition.replyTo;
-
         return new KafkaGrpcConditionResult(with.scheme, with.authority, topic, acks,
-            filters, replyTo, options.correlation);
+            filters, options.correlation);
     }
 }
