@@ -108,9 +108,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttEndReasonCode;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPublishFlags;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
@@ -205,12 +204,6 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int RETAIN_HANDLING_SEND = 0;
 
     private static final int RETAIN_FLAG = 1 << RETAIN.ordinal();
-    private static final int PUBLISH_QOS0_FLAG = 1 << MqttPublishFlags.QOS0.ordinal();
-    private static final int PUBLISH_QOS1_FLAG = 1 << MqttPublishFlags.QOS1.ordinal();
-    private static final int PUBLISH_QOS2_FLAG = 1 << MqttPublishFlags.QOS2.ordinal();
-    private static final int SUBSCRIBE_QOS0_FLAG = 1 << MqttSubscribeFlags.QOS0.ordinal();
-    private static final int SUBSCRIBE_QOS1_FLAG = 1 << MqttSubscribeFlags.QOS1.ordinal();
-    private static final int SUBSCRIBE_QOS2_FLAG = 1 << MqttSubscribeFlags.QOS2.ordinal();
     private static final int SEND_RETAINED_FLAG = 1 << SEND_RETAINED.ordinal();
     private static final int RETAIN_AS_PUBLISHED_FLAG = 1 << RETAIN_AS_PUBLISHED.ordinal();
     private static final int NO_LOCAL_FLAG = 1 << NO_LOCAL.ordinal();
@@ -1707,10 +1700,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                         if (willFlagSet)
                         {
                             final int willFlags = decodeWillFlags(flags);
+                            final int willQos = decodeWillQos(flags);
                             final MqttWillMessageFW.Builder willMessageBuilder =
                                 mqttWillMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                                 .topic(payload.willTopic)
                                 .delay(payload.willDelay)
+                                .qos(willQos)
                                 .flags(willFlags)
                                 .expiryInterval(payload.expiryInterval)
                                 .contentType(payload.contentType)
@@ -1777,6 +1772,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .publish(publishBuilder ->
                 {
                     publishBuilder.topic(mqttPublishHeaderRO.topic);
+                    publishBuilder.qos(mqttPublishHeaderRO.qos);
                     publishBuilder.flags(mqttPublishHeaderRO.flags);
                     publishBuilder.expiryInterval(mqttPublishHeaderRO.expiryInterval);
                     publishBuilder.contentType(mqttPublishHeaderRO.contentType);
@@ -2353,8 +2349,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final int publishApplicationFlags = retainAsPublished.get() ?
                     subscribeDataEx.subscribe().flags() : subscribeDataEx.subscribe().flags() & ~RETAIN_FLAG;
 
+                final int qos = subscribeDataEx.subscribe().qos();
                 final int publishNetworkTypeAndFlags = PUBLISH_TYPE << 4 |
-                    calculatePublishNetworkFlags(PUBLISH_TYPE << 4 | publishApplicationFlags);
+                    calculatePublishNetworkFlags(PUBLISH_TYPE << 4 | publishApplicationFlags, qos);
 
                 if (expiryInterval != -1)
                 {
@@ -2421,7 +2418,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
         }
 
-        private int calculatePublishNetworkFlags(int applicationTypeAndFlags)
+        private int calculatePublishNetworkFlags(int applicationTypeAndFlags, int qos)
         {
             int flags = 0;
 
@@ -2430,11 +2427,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 flags |= RETAIN_MASK;
             }
 
-            if ((applicationTypeAndFlags & PUBLISH_QOS1_FLAG) != 0)
+            if (qos == MqttQoS.AT_LEAST_ONCE.value())
             {
                 flags |= PUBLISH_QOS1_MASK;
             }
-            else if ((applicationTypeAndFlags & PUBLISH_QOS2_FLAG) != 0)
+            else if (qos == MqttQoS.EXACTLY_ONCE.value())
             {
                 flags |= PUBLISH_QOS2_MASK;
             }
@@ -2854,9 +2851,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 break;
             }
 
-            //TODO: QOS1,2
-            flags |= SUBSCRIBE_QOS0_FLAG;
-
             return flags;
         }
 
@@ -2864,6 +2858,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             private int id = 0;
             private String filter;
+            private int qos;
             private int flags;
 
             private boolean retainAsPublished()
@@ -2883,13 +2878,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                     return false;
                 }
                 Subscription other = (Subscription) obj;
-                return this.id == other.id && Objects.equals(this.filter, other.filter) && this.flags == other.flags;
+                return this.id == other.id && Objects.equals(this.filter, other.filter) &&
+                    this.qos == other.qos && this.flags == other.flags;
             }
 
             @Override
             public int hashCode()
             {
-                return Objects.hash(this.id, this.filter, this.flags);
+                return Objects.hash(this.id, this.filter, this.qos, this.flags);
             }
         }
 
@@ -4433,22 +4429,27 @@ public final class MqttServerFactory implements MqttStreamFactory
         return (flags & WILL_QOS_MASK) != 0b0000_0000;
     }
 
+    private static int decodeWillQos(
+        int flags)
+    {
+        int willQos = 0;
+        if (isSetWillQos(flags))
+        {
+            //TODO shift by 3?
+            willQos = (flags & WILL_QOS_MASK) >>> 2;
+        }
+        return willQos;
+    }
+
     private static int decodeWillFlags(
         int flags)
     {
         int willFlags = 0;
-        if (isSetWillQos(flags))
-        {
-            willFlags = (willFlags | WILL_QOS_MASK) >>> 2;
-        }
 
         if (isSetWillRetain(flags))
         {
             willFlags |= RETAIN_FLAG;
         }
-
-        //TODO: add QOS1,2
-        willFlags |= PUBLISH_QOS0_FLAG;
 
         return willFlags;
     }
@@ -4787,6 +4788,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             else
             {
                 flags = calculatePublishApplicationFlags(typeAndFlags);
+                qos = calculatePublishApplicationQos(typeAndFlags);
 
                 int alias = 0;
                 if (qos > maximumQos)
@@ -4878,8 +4880,23 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             return reasonCode;
         }
+        private int calculatePublishApplicationQos(
+            int networkTypeAndFlags)
+        {
+            int qos = 0;
+            if ((networkTypeAndFlags & PUBLISH_QOS1_MASK) != 0)
+            {
+                qos = 1;
+            }
+            else if ((networkTypeAndFlags & PUBLISH_QOS2_MASK) != 0)
+            {
+                qos = 2;
+            }
+            return qos;
+        }
 
-        private int calculatePublishApplicationFlags(int networkTypeAndFlags)
+        private int calculatePublishApplicationFlags(
+            int networkTypeAndFlags)
         {
             int flags = 0;
 
@@ -4887,23 +4904,6 @@ public final class MqttServerFactory implements MqttStreamFactory
             {
                 flags |= RETAIN_FLAG;
                 retained = true;
-            }
-
-            if ((networkTypeAndFlags & PUBLISH_QOS1_MASK) != 0)
-            {
-                flags |= PUBLISH_QOS1_FLAG;
-                qos = 1;
-            }
-            else if ((networkTypeAndFlags & PUBLISH_QOS2_MASK) != 0)
-            {
-                flags |= PUBLISH_QOS2_FLAG;
-                qos = 2;
-            }
-            //TODO: add QOS bits = 11 check here
-            else
-            {
-                flags |= PUBLISH_QOS0_FLAG;
-                qos = 0;
             }
             return flags;
         }

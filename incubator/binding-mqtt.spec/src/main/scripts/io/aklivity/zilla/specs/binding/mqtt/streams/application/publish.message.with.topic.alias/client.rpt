@@ -32,7 +32,7 @@ write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .topic("sensor/one")
-                                .flags("QOS0")
+                                .qos("AT_MOST_ONCE")
                                 .build()
                              .build()}
 

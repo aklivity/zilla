@@ -17,29 +17,29 @@ scope mqtt
 {
     enum MqttSubscribeFlags (uint8)
     {
-        QOS0(0),
-        QOS1(1),
-        QOS2(2),
-        SEND_RETAINED(3),
-        RETAIN_AS_PUBLISHED(4),
-        NO_LOCAL(5),
-        RETAIN(6)
+        SEND_RETAINED(0),
+        RETAIN_AS_PUBLISHED(1),
+        NO_LOCAL(2),
+        RETAIN(3)
+    }
+
+    enum MqttQoS (uint8)
+    {
+        AT_MOST_ONCE(0),
+        AT_LEAST_ONCE(1),
+        EXACTLY_ONCE(2)
     }
 
     enum MqttPublishFlags (uint8)
     {
-        QOS0(0),
-        QOS1(1),
-        QOS2(2),
-        RETAIN(3)
+        RETAIN(0)
     }
 
     enum MqttCapabilities (uint8)
     {
         PUBLISH_ONLY(1),
         SUBSCRIBE_ONLY(2),
-        PUBLISH_AND_SUBSCRIBE(3),
-        SESSION(4)
+        SESSION(3)
     }
 
     enum MqttEndReasonCode (uint8)
@@ -71,6 +71,7 @@ scope mqtt
     {
         string16 pattern;
         varuint32 subscriptionId = 0;
+        uint8 qos = 0;
         uint8 flags = 0;
     }
 
@@ -84,6 +85,7 @@ scope mqtt
     {
         string16 topic = null;
         int32 delay = 0;
+        uint8 qos = 0;
         uint8 flags = 0;
         int32 expiryInterval = -1;
         string16 contentType = null;
@@ -140,6 +142,7 @@ scope mqtt
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
             string16 topic = null;
+            uint8 qos = 0;
             uint8 flags = 0;
             varuint32[] subscriptionIds;
             int32 expiryInterval = -1;
@@ -154,6 +157,7 @@ scope mqtt
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
             string16 topic = null;
+            uint8 qos = 0;
             uint8 flags = 0;
             int32 expiryInterval = -1;
             string16 contentType = null;

@@ -194,15 +194,6 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${net}/ping.keep.alive/client",
-        "${net}/ping.keep.alive/server"})
-    public void shouldKeepAliveWithPingreq() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${net}/connect.timeout.before.connect/client",
         "${net}/connect.timeout.before.connect/server"})
     public void shouldTimeoutBeforeConnect() throws Exception
