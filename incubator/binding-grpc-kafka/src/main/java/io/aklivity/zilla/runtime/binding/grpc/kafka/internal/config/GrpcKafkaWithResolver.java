@@ -155,12 +155,32 @@ public final class GrpcKafkaWithResolver
         KafkaAckMode acks = produce.acks;
 
         Array32FW<GrpcMetadataFW> metadata = beginEx.metadata();
-        final GrpcMetadataFW idempotencyKey = metadata.matchFirst(m ->
-            options.idempotency.metadata.value().compareTo(m.name().value()) == 0);
 
         final String16FW service = new String16FW(beginEx.service().asString());
         final String16FW method = new String16FW(beginEx.method().asString());
 
+        OctetsFW correlationId = resolveCorrelationId(metadata);
+        Supplier<DirectBuffer> keyRef = resolveKey(authorization, produce);
+
+        GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
+        hash.digestHash();
+        hash.updateHash(beginEx.service().value());
+        hash.updateHash(beginEx.method().value());
+        hash.updateHash(metadata.items());
+
+        List<GrpcKafkaWithProduceOverrideResult> overrides = resolveOverride(authorization, produce, hash);
+
+        String16FW replyTo = new String16FW(produce.replyTo);
+
+        return new GrpcKafkaWithProduceResult(service, method, topic, acks, keyRef, overrides, replyTo,
+            options.correlation, hash);
+    }
+
+    private OctetsFW resolveCorrelationId(
+        Array32FW<GrpcMetadataFW> metadata)
+    {
+        final GrpcMetadataFW idempotencyKey = metadata.matchFirst(m ->
+            options.idempotency.metadata.value().compareTo(m.name().value()) == 0);
         OctetsFW correlationId = null;
         if (idempotencyKey != null)
         {
@@ -177,13 +197,13 @@ public final class GrpcKafkaWithResolver
                 .set(newIdempotencyKey)
                 .build();
         }
+        return correlationId;
+    }
 
-        GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
-        hash.digestHash();
-        hash.updateHash(beginEx.service().value());
-        hash.updateHash(beginEx.method().value());
-        hash.updateHash(metadata.items());
-
+    private Supplier<DirectBuffer> resolveKey(
+        long authorization,
+        GrpcKafkaWithProduceConfig produce)
+    {
         Supplier<DirectBuffer> keyRef = () -> null;
         if (produce.key.isPresent())
         {
@@ -198,7 +218,14 @@ public final class GrpcKafkaWithResolver
             String key = key0;
             keyRef = () -> new String16FW(key).value();
         }
+        return keyRef;
+    }
 
+    private List<GrpcKafkaWithProduceOverrideResult> resolveOverride(
+        long authorization,
+        GrpcKafkaWithProduceConfig produce,
+        GrpcKafkaWithProduceHash hash)
+    {
         List<GrpcKafkaWithProduceOverrideResult> overrides = null;
         if (produce.overrides.isPresent())
         {
@@ -222,11 +249,6 @@ public final class GrpcKafkaWithResolver
                 overrides.add(new GrpcKafkaWithProduceOverrideResult(name, valueRef, hash::updateHash));
             }
         }
-
-        String16FW replyTo = new String16FW(produce.replyTo);
-
-
-        return new GrpcKafkaWithProduceResult(service, method, topic, acks, keyRef, overrides, replyTo,
-            options.correlation, hash);
+        return overrides;
     }
 }
