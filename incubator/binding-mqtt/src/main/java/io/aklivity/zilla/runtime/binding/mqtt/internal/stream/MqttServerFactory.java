@@ -1192,7 +1192,6 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private final Int2ObjectHashMap<MqttPublishStream> publishStreams;
         private final Int2ObjectHashMap<MqttSubscribeStream> subscribeStreams;
-        //TODO: do we need activeStreams count?
         private final Int2ObjectHashMap<String> topicAliases;
         private final Map<Integer, Integer> subscribePacketIds;
         private final Map<String, Integer> unsubscribePacketIds;
@@ -1928,7 +1927,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final int payloadSize = sessionState.sizeof();
 
                     //TODO: is this correct? What is this?
-                    int reserved = payloadSize;
+                    int reserved = payloadSize ;
 
                     sessionStream.doSessionInitialData(traceId, authorization, reserved, sessionState);
                 }
@@ -2990,11 +2989,6 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (!MqttState.initialOpened(state))
                 {
                     doCancelConnectTimeoutIfNecessary();
-                    if (!session)
-                    {
-                        //TODO: can this happen?
-                        doEncodeConnack(traceId, authorization, SUCCESS, assignedClientId, false);
-                    }
                 }
 
                 this.state = MqttState.openInitial(state);
