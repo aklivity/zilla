@@ -31,6 +31,7 @@ import org.kaazing.k3po.lang.el.spi.FunctionMapperSpi;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttEndReasonCode;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
@@ -39,7 +40,6 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttSubscribeFlags;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varuint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
@@ -52,6 +52,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttPublishDat
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSessionBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeBeginExFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeDataExFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttSubscribeFlushExFW;
 
 public final class MqttFunctions
 {
@@ -182,9 +183,9 @@ public final class MqttFunctions
                 return this;
             }
 
-            private void willMessage(MqttWillMessageFW willMessage)
+            private void willMessage(MqttMessageFW willMessage)
             {
-                sessionBeginExRW.willMessage(willMessage);
+                sessionBeginExRW.will(willMessage);
             }
 
             public MqttWillMessageBuilder will()
@@ -227,7 +228,7 @@ public final class MqttFunctions
                     .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
                     .reduce(0, (a, b) -> a | b);
                 int qosLocal = MqttQoS.valueOf(qos).ordinal();
-                subscribeBeginExRW.filtersItem(f -> f.pattern(pattern).subscriptionId(id).qos(qosLocal).flags(flagsBitset));
+                subscribeBeginExRW.filtersItem(f -> f.subscriptionId(id).qos(qosLocal).flags(flagsBitset).pattern(pattern));
                 return this;
             }
 
@@ -406,8 +407,8 @@ public final class MqttFunctions
 
             public MqttDataExBuilder build()
             {
-                final MqttSubscribeDataExFW subscribeBeginEx = subscribeDataExRW.build();
-                dataExRO.wrap(writeBuffer, 0, subscribeBeginEx.limit());
+                final MqttSubscribeDataExFW subscribeDataEx = subscribeDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, subscribeDataEx.limit());
                 return MqttDataExBuilder.this;
             }
         }
@@ -506,12 +507,15 @@ public final class MqttFunctions
 
     public static final class MqttFlushExBuilder
     {
-        private final MqttFlushExFW.Builder flushExRW;
+        private final MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
+
+        private final MqttFlushExFW flushExRO = new MqttFlushExFW();
+
+        private final MqttFlushExFW.Builder flushExRW = new MqttFlushExFW.Builder();
 
         private MqttFlushExBuilder()
         {
-            MutableDirectBuffer writeBuffer = new UnsafeBuffer(new byte[1024 * 8]);
-            this.flushExRW = new MqttFlushExFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity());
+            flushExRW.wrap(writeBuffer, 0, writeBuffer.capacity());
         }
 
         public MqttFlushExBuilder typeId(
@@ -521,23 +525,47 @@ public final class MqttFunctions
             return this;
         }
 
-        public MqttFlushExBuilder filter(
-            String topic,
-            int id,
-            String qos,
-            String... flags)
+        public MqttSubscribeFlushExBuilder subscribe()
         {
-            int flagsLocal = Arrays.stream(flags)
-                .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
-                .reduce(0, (a, b) -> a | b);
-            int qosLocal = MqttQoS.valueOf(qos).ordinal();
-            flushExRW.filtersItem(f -> f.pattern(topic).subscriptionId(id).qos(qosLocal).flags(flagsLocal));
-            return this;
+            flushExRW.kind(MqttExtensionKind.SUBSCRIBE.value());
+
+            return new MqttSubscribeFlushExBuilder();
+        }
+
+        public final class MqttSubscribeFlushExBuilder
+        {
+            private final MqttSubscribeFlushExFW.Builder subscribeFlushExRW = new MqttSubscribeFlushExFW.Builder();
+
+            private MqttSubscribeFlushExBuilder()
+            {
+                subscribeFlushExRW.wrap(writeBuffer, MqttBeginExFW.FIELD_OFFSET_PUBLISH, writeBuffer.capacity());
+            }
+
+            public MqttSubscribeFlushExBuilder filter(
+                String topic,
+                int id,
+                String qos,
+                String... flags)
+            {
+                int flagsLocal = Arrays.stream(flags)
+                    .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
+                    .reduce(0, (a, b) -> a | b);
+                int qosLocal = MqttQoS.valueOf(qos).ordinal();
+                subscribeFlushExRW.filtersItem(f -> f.subscriptionId(id).qos(qosLocal).flags(flagsLocal).pattern(topic));
+                return this;
+            }
+
+            public MqttFlushExBuilder build()
+            {
+                final MqttSubscribeFlushExFW subscribeFlushEx = subscribeFlushExRW.build();
+                flushExRO.wrap(writeBuffer, 0, subscribeFlushEx.limit());
+                return MqttFlushExBuilder.this;
+            }
         }
 
         public byte[] build()
         {
-            final MqttFlushExFW flushEx = flushExRW.build();
+            final MqttFlushExFW flushEx = flushExRO;
             final byte[] array = new byte[flushEx.sizeof()];
             flushEx.buffer().getBytes(flushEx.offset(), array);
             return array;
@@ -604,7 +632,7 @@ public final class MqttFunctions
                 .mapToInt(flag -> 1 << MqttSubscribeFlags.valueOf(flag).ordinal())
                 .reduce(0, (a, b) -> a | b);
             int qosLocal = MqttQoS.valueOf(qos).ordinal();
-            sessionStateRW.subscriptionsItem(f -> f.pattern(pattern).subscriptionId(id).qos(qosLocal).flags(flagsLocal));
+            sessionStateRW.subscriptionsItem(f -> f.subscriptionId(id).qos(qosLocal).flags(flagsLocal).pattern(pattern));
             return this;
         }
 
@@ -619,7 +647,7 @@ public final class MqttFunctions
 
     public static final class MqttWillMessageBuilder
     {
-        private final MqttWillMessageFW.Builder willMessageRW = new MqttWillMessageFW.Builder();
+        private final MqttMessageFW.Builder willMessageRW = new MqttMessageFW.Builder();
         private final MqttBeginExBuilder.MqttSessionBeginExBuilder beginExBuilder;
 
         private MqttWillMessageBuilder(MqttBeginExBuilder.MqttSessionBeginExBuilder beginExBuilder)
@@ -706,7 +734,7 @@ public final class MqttFunctions
             String name,
             String value)
         {
-            willMessageRW.userPropertiesItem(p -> p.key(name).value(value));
+            willMessageRW.propertiesItem(p -> p.key(name).value(value));
             return this;
         }
 
@@ -843,10 +871,10 @@ public final class MqttFunctions
                     .reduce(0, (a, b) -> a | b);
                 int qosLocal = MqttQoS.valueOf(qos).ordinal();
                 topicFiltersRW.item(i -> i
-                    .pattern(pattern)
                     .subscriptionId(id)
                     .qos(qosLocal)
-                    .flags(flagsLocal));
+                    .flags(flagsLocal)
+                    .pattern(pattern));
                 return this;
             }
 
@@ -916,7 +944,7 @@ public final class MqttFunctions
                 MqttBeginExFW beginEx)
             {
                 final MqttSessionBeginExFW sessionBeginEx = beginEx.session();
-                final MqttWillMessageFW willMessage = beginEx.session().willMessage();
+                final MqttMessageFW willMessage = beginEx.session().will();
                 return matchClientId(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
                     (willMessageMatcher == null || willMessageMatcher.match(willMessage));
@@ -1084,7 +1112,7 @@ public final class MqttFunctions
                     return MqttSessionBeginExMatcherBuilder.this;
                 }
 
-                private boolean match(MqttWillMessageFW willMessage)
+                private boolean match(MqttMessageFW willMessage)
                 {
                     return matchTopic(willMessage) &&
                         matchDelay(willMessage) &&
@@ -1100,67 +1128,67 @@ public final class MqttFunctions
                 }
 
                 private boolean matchTopic(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return  topic == null || topic.equals(willMessage.topic());
                 }
 
                 private boolean matchDelay(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return  delay == willMessage.delay();
                 }
 
                 private boolean matchQos(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return  qos == willMessage.qos();
                 }
 
                 private boolean matchFlags(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return  flags == willMessage.flags();
                 }
 
                 private boolean matchExpiryInterval(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return expiryInterval == willMessage.expiryInterval();
                 }
 
                 private boolean matchContentType(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return  contentType == null || contentType.equals(willMessage.contentType());
                 }
 
                 private boolean matchFormat(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return  format == null || format.equals(willMessage.format());
                 }
 
                 private boolean matchResponseTopic(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return  responseTopic == null || responseTopic.equals(willMessage.responseTopic());
                 }
 
                 private boolean matchCorrelation(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return correlationRW == null || correlationRW.build().equals(willMessage.correlation());
                 }
 
                 private boolean matchUserProperties(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
-                    return userPropertiesRW == null || userPropertiesRW.build().equals(willMessage.userProperties());
+                    return userPropertiesRW == null || userPropertiesRW.build().equals(willMessage.properties());
                 }
 
                 private boolean matchPayload(
-                    final MqttWillMessageFW willMessage)
+                    final MqttMessageFW willMessage)
                 {
                     return payloadRW == null || payloadRW.build().equals(willMessage.payload());
                 }

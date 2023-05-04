@@ -69,10 +69,10 @@ scope mqtt
 
     struct MqttTopicFilter
     {
-        string16 pattern;
-        varuint32 subscriptionId = 0;
+        uint32 subscriptionId = 0;
         uint8 qos = 0;
         uint8 flags = 0;
+        string16 pattern;
     }
 
     struct MqttSessionState
@@ -81,7 +81,7 @@ scope mqtt
         MqttTopicFilter[] subscriptions;
     }
 
-    struct MqttWillMessage
+    struct MqttMessage
     {
         string16 topic = null;
         int32 delay = 0;
@@ -92,7 +92,7 @@ scope mqtt
         MqttPayloadFormat format = BINARY;
         string16 responseTopic = null;
         MqttBinary correlation;
-        MqttUserProperty[] userProperties;
+        MqttUserProperty[] properties;
         MqttBinary payload;
     }
 
@@ -107,16 +107,16 @@ scope mqtt
 
         union MqttBeginEx switch (uint8) extends core::stream::Extension
         {
-            case 2: mqtt::stream::MqttSessionBeginEx session;
-            case 1: mqtt::stream::MqttSubscribeBeginEx subscribe;
             case 0: mqtt::stream::MqttPublishBeginEx publish;
+            case 1: mqtt::stream::MqttSubscribeBeginEx subscribe;
+            case 2: mqtt::stream::MqttSessionBeginEx session;
         }
 
         struct MqttSessionBeginEx
         {
             string16 clientId;
             int32 expiry = 0;
-            MqttWillMessage willMessage;
+            MqttMessage will;
         }
 
         struct MqttSubscribeBeginEx
@@ -133,10 +133,9 @@ scope mqtt
 
         union MqttDataEx switch (uint8) extends core::stream::Extension
         {
-            case 1: mqtt::stream::MqttSubscribeDataEx subscribe;
             case 0: mqtt::stream::MqttPublishDataEx publish;
+            case 1: mqtt::stream::MqttSubscribeDataEx subscribe;
         }
-
 
         struct MqttSubscribeDataEx
         {
@@ -172,7 +171,12 @@ scope mqtt
             MqttEndReasonCode reasonCode = DISCONNECT;
         }
 
-        struct MqttFlushEx extends core::stream::Extension
+        union MqttFlushEx switch (uint8) extends core::stream::Extension
+        {
+            case 1: mqtt::stream::MqttSubscribeFlushEx subscribe;
+        }
+
+        struct MqttSubscribeFlushEx
         {
             MqttTopicFilter[] filters;
         }

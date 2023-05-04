@@ -107,11 +107,11 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttEndReasonCode;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttQoS;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttSessionStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttTopicFilterFW;
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.Varuint32FW;
@@ -250,7 +250,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttDataExFW.Builder mqttSubscribeDataExRW = new MqttDataExFW.Builder();
     private final MqttDataExFW.Builder mqttSessionDataExRW = new MqttDataExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
-    private final MqttWillMessageFW.Builder mqttWillMessageFW = new MqttWillMessageFW.Builder();
+    private final MqttMessageFW.Builder mqttMessageFW = new MqttMessageFW.Builder();
     private final MqttSessionStateFW.Builder mqttSessionStateFW = new MqttSessionStateFW.Builder();
     private final MqttPacketHeaderFW mqttPacketHeaderRO = new MqttPacketHeaderFW();
     private final MqttConnectFW mqttConnectRO = new MqttConnectFW();
@@ -1701,8 +1701,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             final int willFlags = decodeWillFlags(flags);
                             final int willQos = decodeWillQos(flags);
-                            final MqttWillMessageFW.Builder willMessageBuilder =
-                                mqttWillMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
+                            final MqttMessageFW.Builder willMessageBuilder =
+                                mqttMessageFW.wrap(willMessageBuffer, 0, willMessageBuffer.capacity())
                                 .topic(payload.willTopic)
                                 .delay(payload.willDelay)
                                 .qos(willQos)
@@ -1715,9 +1715,9 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                             final Array32FW<MqttUserPropertyFW> userProperties = willUserPropertiesRW.build();
                             userProperties.forEach(
-                                c -> willMessageBuilder.userPropertiesItem(p -> p.key(c.key()).value(c.value())));
+                                c -> willMessageBuilder.propertiesItem(p -> p.key(c.key()).value(c.value())));
                             willMessageBuilder.payload(p -> p.bytes(payload.willPayload.bytes()));
-                            sessionBuilder.willMessage(willMessageBuilder.build());
+                            sessionBuilder.will(willMessageBuilder.build());
                         }
                     });
 
@@ -1911,9 +1911,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         {
                             sessionStateBuilder.subscriptionsItem(subscriptionBuilder ->
                             {
-                                subscriptionBuilder.pattern(subscription.filter);
                                 subscriptionBuilder.subscriptionId(subscription.id);
                                 subscriptionBuilder.flags(subscription.flags);
+                                subscriptionBuilder.pattern(subscription.filter);
                             });
                             sessionStream.unAckedSubscriptions.add(subscription);
                         }
@@ -3104,7 +3104,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 sessionState.subscriptions().forEach(filter ->
                                 {
                                     Subscription subscription = new Subscription();
-                                    subscription.id = filter.subscriptionId();
+                                    subscription.id = (int) filter.subscriptionId();
                                     subscription.filter = filter.pattern().asString();
                                     subscription.flags = filter.flags();
                                     subscriptions.add(subscription);
@@ -3124,7 +3124,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                             sessionState.subscriptions().forEach(filter ->
                             {
                                 Subscription subscription = new Subscription();
-                                subscription.id = filter.subscriptionId();
+                                subscription.id = (int) filter.subscriptionId();
                                 subscription.filter = filter.pattern().asString();
                                 subscription.flags = filter.flags();
                                 newState.add(subscription);
@@ -3950,9 +3950,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                         subscriptions.forEach(subscription ->
                             subscribeBuilder.filtersItem(filterBuilder ->
                             {
-                                filterBuilder.pattern(subscription.filter);
                                 filterBuilder.subscriptionId(subscription.id);
                                 filterBuilder.flags(subscription.flags);
+                                filterBuilder.pattern(subscription.filter);
                             })
                         );
                     })
@@ -3974,18 +3974,15 @@ public final class MqttServerFactory implements MqttStreamFactory
                     traceId, authorization, 0L, reserved,
                     ex -> ex.set((b, o, l) -> mqttFlushExRW.wrap(b, o, l)
                         .typeId(mqttTypeId)
-                        .filters(builder ->
-                        {
-                            subscriptions.forEach(subscription ->
-                            {
-                                builder.item(filterBuilder ->
-                                {
-                                    filterBuilder.pattern(subscription.filter);
-                                    filterBuilder.subscriptionId(subscription.id);
-                                    filterBuilder.flags(subscription.flags);
-                                });
-                            });
-                        })
+                        .subscribe(subscribeBuilder ->
+                            subscribeBuilder.filters(builder ->
+                                subscriptions.forEach(subscription ->
+                                    builder.item(filterBuilder ->
+                                    {
+                                        filterBuilder.subscriptionId(subscription.id);
+                                        filterBuilder.flags(subscription.flags);
+                                        filterBuilder.pattern(subscription.filter);
+                                    }))))
                         .build()
                         .sizeof()));
 

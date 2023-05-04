@@ -82,19 +82,19 @@ public class MqttFunctionsTest
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
         assertEquals(30, mqttBeginEx.session().expiry());
-        assertEquals("will.client", mqttBeginEx.session().willMessage().topic().asString());
-        assertEquals(20, mqttBeginEx.session().willMessage().delay());
-        assertEquals(15, mqttBeginEx.session().willMessage().expiryInterval());
-        assertEquals("message", mqttBeginEx.session().willMessage().contentType().asString());
-        assertEquals("TEXT", mqttBeginEx.session().willMessage().format().toString());
-        assertEquals("will.client.response", mqttBeginEx.session().willMessage().responseTopic().asString());
-        assertEquals("request-id-1", mqttBeginEx.session().willMessage().correlation()
+        assertEquals("will.client", mqttBeginEx.session().will().topic().asString());
+        assertEquals(20, mqttBeginEx.session().will().delay());
+        assertEquals(15, mqttBeginEx.session().will().expiryInterval());
+        assertEquals("message", mqttBeginEx.session().will().contentType().asString());
+        assertEquals("TEXT", mqttBeginEx.session().will().format().toString());
+        assertEquals("will.client.response", mqttBeginEx.session().will().responseTopic().asString());
+        assertEquals("request-id-1", mqttBeginEx.session().will().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-        assertNotNull(mqttBeginEx.session().willMessage().userProperties()
+        assertNotNull(mqttBeginEx.session().will().properties()
             .matchFirst(h ->
                 "name".equals(h.key().asString()) &&
                     "value".equals(h.value().asString())));
-        assertEquals("client failed", mqttBeginEx.session().willMessage().payload()
+        assertEquals("client failed", mqttBeginEx.session().will().payload()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
     }
 
@@ -139,13 +139,13 @@ public class MqttFunctionsTest
 
         assertEquals(2, mqttBeginEx.kind());
         assertEquals("client", mqttBeginEx.session().clientId().asString());
-        assertEquals("will.client", mqttBeginEx.session().willMessage().topic().asString());
-        assertEquals(1, mqttBeginEx.session().willMessage().flags());
-        assertEquals(0b0001, mqttBeginEx.session().willMessage().flags());
-        assertEquals("BINARY", mqttBeginEx.session().willMessage().format().toString());
-        assertEquals("request-id-1", mqttBeginEx.session().willMessage().correlation()
+        assertEquals("will.client", mqttBeginEx.session().will().topic().asString());
+        assertEquals(1, mqttBeginEx.session().will().flags());
+        assertEquals(0b0001, mqttBeginEx.session().will().flags());
+        assertEquals("BINARY", mqttBeginEx.session().will().format().toString());
+        assertEquals("request-id-1", mqttBeginEx.session().will().correlation()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-        assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, mqttBeginEx.session().willMessage().payload()
+        assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 5}, mqttBeginEx.session().will().payload()
             .bytes().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)).getBytes());
     }
 
@@ -214,7 +214,7 @@ public class MqttFunctionsTest
             .typeId(0x01)
             .subscribe(f -> f
                 .clientId("client")
-                .filtersItem(p -> p.pattern("sensor/one").subscriptionId(1).qos(0).flags(1)))
+                .filtersItem(p -> p.subscriptionId(1).qos(0).flags(1).pattern("sensor/one")))
             .build();
 
         assertNotNull(matcher.match(byteBuf));
@@ -250,7 +250,7 @@ public class MqttFunctionsTest
             .session(s -> s
                 .clientId("client")
                 .expiry(10)
-                .willMessage(c ->
+                .will(c ->
                 {
                     c.topic("willTopic");
                     c.delay(10);
@@ -260,7 +260,7 @@ public class MqttFunctionsTest
                     c.format(f -> f.set(MqttPayloadFormat.TEXT));
                     c.responseTopic("willResponseTopic");
                     c.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
-                    c.userPropertiesItem(p -> p.key("key1").value("value1"));
+                    c.propertiesItem(p -> p.key("key1").value("value1"));
                     c.payload(p -> p.bytes(b -> b.set("will message".getBytes(UTF_8))));
                 }))
             .build();
@@ -321,7 +321,7 @@ public class MqttFunctionsTest
             .session(s -> s
                 .clientId("client")
                 .expiry(10)
-                .willMessage(c ->
+                .will(c ->
                 {
                     c.topic("willTopic");
                     c.delay(10);
@@ -331,7 +331,7 @@ public class MqttFunctionsTest
                     c.format(f -> f.set(MqttPayloadFormat.TEXT));
                     c.responseTopic("willResponseTopic");
                     c.correlation(corr -> corr.bytes(b -> b.set("correlationData".getBytes(UTF_8))));
-                    c.userPropertiesItem(p -> p.key("key1").value("value1"));
+                    c.propertiesItem(p -> p.key("key1").value("value1"));
                     c.payload(p -> p.bytes(b -> b.set("will message".getBytes(UTF_8))));
                 }))
             .build();
@@ -472,17 +472,17 @@ public class MqttFunctionsTest
     {
         final byte[] array = MqttFunctions.dataEx()
             .typeId(0)
-            .subscribe()
-            .topic("sensor/one")
-            .subscriptionId(1)
-            .subscriptionId(2)
-            .expiryInterval(15)
-            .contentType("message")
-            .format("TEXT")
-            .responseTopic("sensor/one")
-            .correlation("request-id-1")
-            .userProperty("name", "value")
-            .build()
+                .subscribe()
+                .topic("sensor/one")
+                .subscriptionId(1)
+                .subscriptionId(2)
+                .expiryInterval(15)
+                .contentType("message")
+                .format("TEXT")
+                .responseTopic("sensor/one")
+                .correlation("request-id-1")
+                .userProperty("name", "value")
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
@@ -1135,18 +1135,20 @@ public class MqttFunctionsTest
     }
 
     @Test
-    public void shouldEncodeMqttFlushEx()
+    public void shouldEncodeMqttSubscribeFlushEx()
     {
         final byte[] array = MqttFunctions.flushEx()
             .typeId(0)
-            .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+            .subscribe()
+                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                .build()
             .build();
 
         DirectBuffer buffer = new UnsafeBuffer(array);
         MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
 
         assertEquals(0, mqttFlushEx.typeId());
-        assertNotNull(mqttFlushEx.filters()
+        assertNotNull(mqttFlushEx.subscribe().filters()
             .matchFirst(f ->
                 "sensor/one".equals(f.pattern().asString()) &&
                     1 == f.subscriptionId() &&

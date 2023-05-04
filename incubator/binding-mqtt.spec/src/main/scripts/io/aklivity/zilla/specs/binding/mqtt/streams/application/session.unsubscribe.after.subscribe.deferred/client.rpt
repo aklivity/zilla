@@ -69,8 +69,9 @@ connected
 
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                 .build()}
+                                 .subscribe()
+                                    .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                    .build()                                 .build()}
 
 write close
 read closed

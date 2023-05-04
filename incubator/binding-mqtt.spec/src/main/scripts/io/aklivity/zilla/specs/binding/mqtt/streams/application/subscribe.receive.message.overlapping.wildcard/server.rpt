@@ -32,8 +32,10 @@ connected
 
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .filter("sensor/+/#", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                 .filter("sensor/+/1", 2, "AT_MOST_ONCE", "SEND_RETAINED")
+                                 .subscribe()
+                                     .filter("sensor/+/#", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                     .filter("sensor/+/1", 2, "AT_MOST_ONCE", "SEND_RETAINED")
+                                     .build()
                                  .build()}
 
 write zilla:data.ext ${mqtt:dataEx()
