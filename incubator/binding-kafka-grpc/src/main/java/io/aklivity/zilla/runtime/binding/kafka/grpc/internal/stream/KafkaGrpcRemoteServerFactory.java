@@ -123,7 +123,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     private final BufferPool bufferPool;
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer metadataBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -145,7 +144,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         this.bufferPool = context.bufferPool();
         this.writeBuffer = context.writeBuffer();
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.metadataBuffer = new UnsafeBuffer(new byte[writeBuffer.capacity()]);
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
