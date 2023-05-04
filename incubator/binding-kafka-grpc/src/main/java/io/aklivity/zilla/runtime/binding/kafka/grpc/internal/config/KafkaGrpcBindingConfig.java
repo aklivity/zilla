@@ -20,8 +20,6 @@ import static java.util.stream.Collectors.toList;
 import java.util.List;
 import java.util.Optional;
 
-import org.agrona.MutableDirectBuffer;
-
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.stream.KafkaGrpcFetchHeaderHelper;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -36,7 +34,6 @@ public final class KafkaGrpcBindingConfig
     public final List<KafkaGrpcRouteConfig> routes;
 
     public KafkaGrpcBindingConfig(
-        MutableDirectBuffer metadataBuffer,
         BindingConfig binding)
     {
         this.id = binding.id;
@@ -47,6 +44,6 @@ public final class KafkaGrpcBindingConfig
                 .orElse(DEFAULT);
         this.routes = binding.routes.stream().map(r -> new KafkaGrpcRouteConfig(options, r))
             .collect(toList());
-        this.helper = new KafkaGrpcFetchHeaderHelper(metadataBuffer, options.correlation);
+        this.helper = new KafkaGrpcFetchHeaderHelper(options.correlation);
     }
 }

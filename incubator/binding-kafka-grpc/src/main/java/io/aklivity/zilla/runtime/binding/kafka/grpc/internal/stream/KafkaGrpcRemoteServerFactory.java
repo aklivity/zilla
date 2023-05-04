@@ -38,7 +38,6 @@ import org.agrona.concurrent.UnsafeBuffer;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.config.KafkaGrpcConditionResult;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
@@ -51,7 +50,6 @@ import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.Extens
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcAbortExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcDataExFW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcMetadataFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.stream.KafkaDataExFW;
@@ -165,7 +163,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
     public void attach(
         BindingConfig binding)
     {
-        KafkaGrpcBindingConfig newBinding = new KafkaGrpcBindingConfig(metadataBuffer, binding);
+        KafkaGrpcBindingConfig newBinding = new KafkaGrpcBindingConfig(binding);
         bindings.put(binding.id, newBinding);
 
         if (activate.test(binding.id))
@@ -423,7 +421,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                             .build();
                         lastCorrelationId = newCorrelationId;
                         grpcClient = newGrpcClient(traceId, authorization, helper.service, helper.method,
-                            helper.replyTo, helper.metadata, newCorrelationId);
+                            helper.replyTo, newCorrelationId);
                     }
 
                     flushGrpcClientData(grpcClient, traceId, authorization, helper.service, helper.method, flags, payload);
@@ -451,13 +449,12 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             OctetsFW service,
             OctetsFW method,
             OctetsFW replyTo,
-            Array32FW<GrpcMetadataFW> metadata,
             OctetsFW correlationId)
         {
             final GrpcClient grpcClient = new GrpcClient(originId, entryId, routedId, correlationId, replyTo, this);
             grpcClients.put(correlationId, grpcClient);
 
-            grpcClient.doGrpcBegin(traceId, authorization, 0L, service, method, metadata);
+            grpcClient.doGrpcBegin(traceId, authorization, 0L, service, method);
 
             return grpcClient;
         }
@@ -493,8 +490,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 {
                     GrpcClient grpcClient = grpcClients.get(messageCorrelationId);
                     grpcClient = grpcClient != null ? grpcClient :
-                        newGrpcClient(traceId, authorization, service, method, helper.replyTo,
-                            helper.metadata, messageCorrelationId);
+                        newGrpcClient(traceId, authorization, service, method, helper.replyTo, messageCorrelationId);
 
                     final int progress = grpcClient.onKafkaData(messageTraceId, messageAuthorization,
                         flags, payload);
@@ -1571,14 +1567,13 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
             long authorization,
             long affinity,
             OctetsFW service,
-            OctetsFW method,
-            Array32FW<GrpcMetadataFW> metadata)
+            OctetsFW method)
         {
             state = KafkaGrpcState.openingReply(state);
 
             grpc = newGrpcStream(this::onGrpcMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, affinity, server.condition.scheme(), server.condition.authority(),
-                service, method, metadata);
+                service, method);
         }
 
         private void doGrpcData(
@@ -1888,8 +1883,7 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
         String16FW scheme,
         String16FW authority,
         OctetsFW service,
-        OctetsFW method,
-        Array32FW<GrpcMetadataFW> metadata)
+        OctetsFW method)
     {
         final GrpcBeginExFW grpcBeginEx =
             grpcBeginExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -1898,7 +1892,6 @@ public final class KafkaGrpcRemoteServerFactory implements KafkaGrpcStreamFactor
                 .authority(authority)
                 .service(service.buffer(), service.offset(), service.sizeof())
                 .method(method.buffer(), method.offset(), method.sizeof())
-                .metadata(metadata)
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
