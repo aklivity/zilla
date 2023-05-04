@@ -40,7 +40,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filter.single.exact/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
-    public void shouldSubscribeToExactTopicFilter() throws Exception
+    public void shouldFilterExact() throws Exception
     {
         k3po.finish();
     }
@@ -49,7 +49,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filter.multi.level.wildcard/client",
         "${app}/subscribe.topic.filter.multi.level.wildcard/server"})
-    public void shouldSubscribeToMultiLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterMultiLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -58,7 +58,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filter.single.level.wildcard/client",
         "${app}/subscribe.topic.filter.single.level.wildcard/server"})
-    public void shouldSubscribeToSingleLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -67,7 +67,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${app}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
-    public void shouldSubscribeToSingleAndMultiLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -76,7 +76,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${app}/subscribe.topic.filter.two.single.level.wildcard/server"})
-    public void shouldSubscribeToTwoSingleLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterTwoSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -85,7 +85,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.aggregated.both.exact/client",
         "${app}/subscribe.topic.filters.aggregated.both.exact/server"})
-    public void shouldSubscribeToAggregatedTopicFiltersBothExact() throws Exception
+    public void shouldFilterAggregatedBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -94,7 +94,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.isolated.both.exact/client",
         "${app}/subscribe.topic.filters.isolated.both.exact/server"})
-    public void shouldSubscribeToIsolatedTopicFiltersBothExact() throws Exception
+    public void shouldFilterIsolatedBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -103,7 +103,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.disjoint.wildcards/client",
         "${app}/subscribe.topic.filters.disjoint.wildcards/server"})
-    public void shouldSubscribeToDisjointWildcardTopicFilters() throws Exception
+    public void shouldFilterDisjointWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -112,7 +112,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.overlapping.wildcards/client",
         "${app}/subscribe.topic.filters.overlapping.wildcards/server"})
-    public void shouldSubscribeToOverlappingWildcardTopicFilters() throws Exception
+    public void shouldFilterOverlappingWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -121,7 +121,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.isolated.both.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.both.wildcard/server"})
-    public void shouldSubscribeToIsolatedTopicFiltersBothWildcard() throws Exception
+    public void shouldFilterIsolatedBothWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -130,7 +130,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
-    public void shouldSubscribeToAggregatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldFilterAggregatedExactAndWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -139,7 +139,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${app}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
-    public void shouldSubscribeToIsolatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldFilterIsolatedExactAndWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -220,7 +220,7 @@ public class SubscribeIT
     @Specification({
         "${app}/subscribe.qos0.publish.retained.no.replay/client",
         "${app}/subscribe.qos0.publish.retained.no.replay/server"})
-    public void shouldSubscribeNoReplayRetained() throws Exception
+    public void shouldNotReplayRetained() throws Exception
     {
         k3po.finish();
     }
