@@ -31,14 +31,14 @@ final class HttpUtils
     {
     }
 
-    public static long commonId(
+    public static long initialId(
         long streamId)
     {
-        // reduce both initial and reply stream ids to same id
+        // reduce both initial and reply stream ids to the same initial id
         return streamId & ~0b01L;
     }
 
-    public static long streamDirection(
+    public static long direction(
         long streamId)
     {
         // get stream direction (1: received; 0: sent)

@@ -15,8 +15,7 @@
 package io.aklivity.zilla.runtime.metrics.http.internal;
 
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
-import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.commonId;
-import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.streamDirection;
+import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.initialId;
 
 import java.util.function.LongConsumer;
 
@@ -73,15 +72,16 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
 
     private final class HttpActiveRequestsMetricHandler implements MessageConsumer
     {
-        private static final long INITIAL_STATUS = 0b11L;
+        private static final long EXCHANGE_CLOSED = 0b11L;
 
         private final LongConsumer recorder;
-        private final Long2LongHashMap streams = new Long2LongHashMap(0L);
+        private final Long2LongHashMap exchanges;
 
         private HttpActiveRequestsMetricHandler(
             LongConsumer recorder)
         {
             this.recorder = recorder;
+            this.exchanges = new Long2LongHashMap(0L);
         }
 
         @Override
@@ -93,30 +93,29 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
         {
             final FrameFW frame = frameRO.wrap(buffer, index, index + length);
             final long streamId = frame.streamId();
-            final long commonId = commonId(streamId);
-            long direction = streamDirection(streamId);
+            final long exchangeId = initialId(streamId);
+            long direction = HttpUtils.direction(streamId);
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
                 if (direction == 1L) //received
                 {
-                    streams.put(commonId, INITIAL_STATUS);
                     recorder.accept(1L);
                 }
                 break;
             case ResetFW.TYPE_ID:
             case AbortFW.TYPE_ID:
             case EndFW.TYPE_ID:
-                long status = streams.get(commonId);
-                status = status & direction; // mark current direction as closed
-                if (status == 0L) // both received and sent streams are closed
+                final long mask = 1L << direction;
+                final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
+                if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
                 {
-                    streams.remove(commonId);
+                    exchanges.remove(exchangeId);
                     recorder.accept(-1L);
                 }
                 else
                 {
-                    streams.put(commonId, status);
+                    exchanges.put(exchangeId, status);
                 }
                 break;
             }
