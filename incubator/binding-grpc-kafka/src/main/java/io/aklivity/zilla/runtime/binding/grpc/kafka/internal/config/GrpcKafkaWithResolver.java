@@ -154,7 +154,8 @@ public final class GrpcKafkaWithResolver
         String16FW topic = new String16FW(produce.topic);
         KafkaAckMode acks = produce.acks;
 
-        final GrpcMetadataFW idempotencyKey = beginEx.metadata().matchFirst(m ->
+        Array32FW<GrpcMetadataFW> metadata = beginEx.metadata();
+        final GrpcMetadataFW idempotencyKey = metadata.matchFirst(m ->
             options.idempotency.metadata.value().compareTo(m.name().value()) == 0);
 
         final String16FW service = new String16FW(beginEx.service().asString());
@@ -181,7 +182,7 @@ public final class GrpcKafkaWithResolver
         hash.digestHash();
         hash.updateHash(beginEx.service().value());
         hash.updateHash(beginEx.method().value());
-        hash.updateHash(beginEx.metadata().items());
+        hash.updateHash(metadata.items());
 
         Supplier<DirectBuffer> keyRef = () -> null;
         if (produce.key.isPresent())
