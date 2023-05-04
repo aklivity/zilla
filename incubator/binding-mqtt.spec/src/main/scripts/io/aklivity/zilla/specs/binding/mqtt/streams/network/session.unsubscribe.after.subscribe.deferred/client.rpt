@@ -54,7 +54,7 @@ write  [0xa2 0x0f]                   # UNSUBSCRIBE
        [0x00]                        # properties = none
        [0x00 0x0a] "sensor/two"      # topic filter
 
-write notify SUBACK_TRIGGER
+write notify UNSUBSCRIBE_ALL_FILTERS
 
 read   [0x90 0x05]                   # SUBACK
        [0x00 0x01]                   # packet id = 1

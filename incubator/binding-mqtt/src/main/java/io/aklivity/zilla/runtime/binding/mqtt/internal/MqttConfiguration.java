@@ -33,7 +33,7 @@ public class MqttConfiguration extends Configuration
     public static final BooleanPropertyDef WILDCARD_SUBSCRIPTION_AVAILABLE;
     public static final BooleanPropertyDef SUBSCRIPTION_IDENTIFIERS_AVAILABLE;
     public static final BooleanPropertyDef SHARED_SUBSCRIPTION_AVAILABLE;
-    public static final BooleanPropertyDef SESSION_AVAILABLE;
+    public static final BooleanPropertyDef SESSIONS_AVAILABLE;
     public static final BooleanPropertyDef NO_LOCAL;
     public static final IntPropertyDef SESSION_EXPIRY_GRACE_PERIOD;
     public static final PropertyDef<String> CLIENT_ID;
@@ -53,7 +53,7 @@ public class MqttConfiguration extends Configuration
         WILDCARD_SUBSCRIPTION_AVAILABLE = config.property("wildcard.subscription.available", true);
         SUBSCRIPTION_IDENTIFIERS_AVAILABLE = config.property("subscription.identifiers.available", true);
         SHARED_SUBSCRIPTION_AVAILABLE = config.property("shared.subscription.available", false);
-        SESSION_AVAILABLE = config.property("session.available", true);
+        SESSIONS_AVAILABLE = config.property("sessions.available", true);
         NO_LOCAL = config.property("no.local", true);
         SESSION_EXPIRY_GRACE_PERIOD = config.property("session.expiry.grace.period", 30);
         CLIENT_ID = config.property("client.id");
@@ -121,9 +121,9 @@ public class MqttConfiguration extends Configuration
         return SHARED_SUBSCRIPTION_AVAILABLE.get(this);
     }
 
-    public boolean sessionAvailable()
+    public boolean sessionsAvailable()
     {
-        return SESSION_AVAILABLE.get(this);
+        return SESSIONS_AVAILABLE.get(this);
     }
 
     public boolean noLocal()

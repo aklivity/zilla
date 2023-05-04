@@ -506,8 +506,8 @@ public class ConnectionIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/connect.max.packet.size.server.ignores.exceeding.publish.packet/client",
-        "${app}/connect.max.packet.size.server.ignores.exceeding.publish.packet/server"})
+        "${net}/connect.max.packet.size.exceeded/client",
+        "${app}/connect.max.packet.size.exceeded/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")

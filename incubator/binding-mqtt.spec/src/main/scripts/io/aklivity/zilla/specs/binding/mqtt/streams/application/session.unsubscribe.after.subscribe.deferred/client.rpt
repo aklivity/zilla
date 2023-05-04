@@ -31,15 +31,15 @@ read zilla:data.empty
 
 write ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-               .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 1)
+               .subscription("sensor/two", 1)
                .build()}
 
-write notify SUBACK_TRIGGER
+write notify UNSUBSCRIBE_ALL_FILTERS
 read ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-               .subscription("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 1)
+               .subscription("sensor/two", 1)
                .build()}
 
 write ${mqtt:session()
@@ -60,8 +60,8 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                .filter("sensor/one", 1)
+                                .filter("sensor/two", 1)
                                 .build()
                              .build()}
 
@@ -70,8 +70,9 @@ connected
 write advise zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
                                  .subscribe()
-                                    .filter("sensor/two", 1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                    .build()                                 .build()}
+                                    .filter("sensor/two", 1)
+                                    .build()
+                                .build()}
 
 write close
 read closed

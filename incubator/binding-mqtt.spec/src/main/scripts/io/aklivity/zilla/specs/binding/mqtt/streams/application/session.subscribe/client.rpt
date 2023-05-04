@@ -31,13 +31,13 @@ read zilla:data.empty
 
 write ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 1)
                .build()}
 write flush
 
 read ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+               .subscription("sensor/one", 1)
                .build()}
 
 connect "zilla://streams/app0"
@@ -48,7 +48,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                .filter("sensor/one", 1)
                                 .build()
                               .build()}
 

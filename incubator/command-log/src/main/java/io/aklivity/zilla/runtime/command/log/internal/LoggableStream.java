@@ -1209,17 +1209,17 @@ public final class LoggableStream implements AutoCloseable
             final String correlation = asString(will.correlation().bytes());
             final Array32FW<MqttUserPropertyFW> userProperties = will.userProperties();
             final String payload = asString(will.payload().bytes());
-            out.printf(verboseFormat, index, offset, timestamp, format("Will topic: %s", willTopic));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will delay: %d", delay));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will flags: %d", flags));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will expiry: %d", expiryInterval));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will content type: %s", contentType));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will format: %s", format.name()));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will response topic: %s", responseTopic));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will correlation: %s", correlation));
-            out.printf(verboseFormat, index, offset, timestamp, format("Will payload: %s", payload));
+            out.printf(verboseFormat, index, offset, timestamp, format("will topic: %s", willTopic));
+            out.printf(verboseFormat, index, offset, timestamp, format("will delay: %d", delay));
+            out.printf(verboseFormat, index, offset, timestamp, format("will flags: %d", flags));
+            out.printf(verboseFormat, index, offset, timestamp, format("will expiry: %d", expiryInterval));
+            out.printf(verboseFormat, index, offset, timestamp, format("will content type: %s", contentType));
+            out.printf(verboseFormat, index, offset, timestamp, format("will format: %s", format.name()));
+            out.printf(verboseFormat, index, offset, timestamp, format("will response topic: %s", responseTopic));
+            out.printf(verboseFormat, index, offset, timestamp, format("will correlation: %s", correlation));
+            out.printf(verboseFormat, index, offset, timestamp, format("will payload: %s", payload));
             userProperties.forEach(u -> out.printf(verboseFormat, index, offset, timestamp,
-                format("Will user property: %s %s ", u.key(), u.value())));
+                format("will user property: %s %s ", u.key(), u.value())));
         }
     }
 

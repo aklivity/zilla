@@ -358,8 +358,8 @@ public class ConnectionIT
     // [MQTT-3.1.2-24]
     @Test
     @Specification({
-        "${net}/connect.max.packet.size.server.ignores.exceeding.publish.packet/client",
-        "${net}/connect.max.packet.size.server.ignores.exceeding.publish.packet/server"})
+        "${net}/connect.max.packet.size.exceeded/client",
+        "${net}/connect.max.packet.size.exceeded/server"})
     public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception
     {
         k3po.finish();

@@ -47,23 +47,15 @@ write [0x90 0x04]                    # SUBACK
       [0x00]                         # properties = none
       [0x00]                         # reason code
 
-read  [0x30 0x39]                    # PUBLISH
+read  [0x30 0x16]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x25]                         # properties
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"     # content type
+      [0x02]                         # properties
       [0x01 0x01]                    # format = utf-8
-      [0x08 0x00 0x0a] "sensor/one"  # response topic
-      [0x09 0x00 0x04] "info"        # correlation data
       "message"                      # payload
 
-write [0x30 0x3b]                    # PUBLISH
+write [0x30 0x18]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x27]                         # properties
+      [0x04]                         # properties
       [0x0b 0x01]                    # subscription id = 1
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"     # content type
       [0x01 0x01]                    # format = utf-8
-      [0x08 0x00 0x0a] "sensor/one"  # response topic
-      [0x09 0x00 0x04] "info"        # correlation data
       "message"                      # payload

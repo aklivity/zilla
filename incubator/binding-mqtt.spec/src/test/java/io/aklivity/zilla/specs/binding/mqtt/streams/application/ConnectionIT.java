@@ -47,8 +47,8 @@ public class ConnectionIT
 
     @Test
     @Specification({
-        "${app}/connect.max.packet.size.server.ignores.exceeding.publish.packet/client",
-        "${app}/connect.max.packet.size.server.ignores.exceeding.publish.packet/server"})
+        "${app}/connect.max.packet.size.exceeded/client",
+        "${app}/connect.max.packet.size.exceeded/server"})
     public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception
     {
         k3po.finish();

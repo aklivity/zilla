@@ -33,8 +33,6 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("/sensors/1")
-                                .qos("AT_MOST_ONCE")
-.flags("RETAIN")
                                 .userProperty("row", "1")
                                 .build()
                             .build()}

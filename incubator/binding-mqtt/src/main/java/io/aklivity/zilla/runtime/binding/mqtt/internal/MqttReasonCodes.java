@@ -36,9 +36,9 @@ public final class MqttReasonCodes
     public static final byte UNSPECIFIED_ERROR = (byte) 0x80;
     public static final byte MALFORMED_PACKET = (byte) 0x81;
     public static final byte PROTOCOL_ERROR = (byte) 0x82;
-    public static final byte WILDCARDS_NOT_SUPPORTED = (byte) 0xa2;
+    public static final byte WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED = (byte) 0xa2;
     public static final byte SHARED_SUBSCRIPTION_NOT_SUPPORTED = (byte) 0x9e;
-    public static final byte SUBSCRIPTION_ID_NOT_SUPPORTED = (byte) 0xa1;
+    public static final byte SUBSCRIPTION_IDS_NOT_SUPPORTED = (byte) 0xa1;
     public static final byte IMPLEMENTATION_SPECIFIC_ERROR = (byte) 0x83;
     public static final byte UNSUPPORTED_PROTOCOL_VERSION = (byte) 0x84;
     public static final byte CLIENT_IDENTIFIER_NOT_VALID = (byte) 0x85;

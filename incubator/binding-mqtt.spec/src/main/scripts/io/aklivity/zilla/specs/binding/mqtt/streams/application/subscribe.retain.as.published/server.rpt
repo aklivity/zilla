@@ -36,8 +36,6 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .topic("sensor/one")
                                  .flags("RETAIN")
                                  .subscriptionId(1)
-                                 .expiryInterval(15)
-                                 .contentType("message")
                                  .format("TEXT")
                                  .build()
                              .build()}

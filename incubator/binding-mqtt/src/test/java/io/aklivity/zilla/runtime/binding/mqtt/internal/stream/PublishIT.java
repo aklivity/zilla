@@ -195,15 +195,15 @@ public class PublishIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/publish.messages.no.carry.over.topic.alias/client",
-        "${app}/publish.messages.no.carry.over.topic.alias/server"})
+        "${net}/publish.messages.with.topic.alias.invalid.scope/client",
+        "${app}/publish.messages.with.topic.alias.invalid.scope/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = TOPIC_ALIAS_MAXIMUM_NAME, value = "1")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldPublishMessagesNoCarryOverTopicAlias() throws Exception
+    public void shouldSendMessagesWithTopicAliasInvalidScope() throws Exception
     {
         k3po.finish();
     }

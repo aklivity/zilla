@@ -34,9 +34,6 @@ read  [0x20 0x03]                    # CONNACK
       [0x00]                         # reason code
       [0x00]                         # properties = none
 
-write [0x30 0x1f]                    # PUBLISH flags = at-most-once
+write [0x30 0x0d]                    # PUBLISH flags = at-most-once
       [0x00 0x0a] "sensor/one"       # topic name
-      [0x12]                         # properties
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x0a] "text/plain"  # content type
-
+      [0x00]                         # properties

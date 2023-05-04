@@ -69,7 +69,7 @@ public class UnsubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldUnsubscribeAfterSubscribe() throws Exception
+    public void shouldAcknowledge() throws Exception
     {
         k3po.finish();
     }
@@ -84,7 +84,7 @@ public class UnsubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldUnsubscribeSingleTopicFilter() throws Exception
+    public void shouldAcknowledgeSingleTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -99,7 +99,7 @@ public class UnsubscribeIT
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldUnsubscribeFromTwoTopicsBothExactOneUnsubackPacket() throws Exception
+    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -107,14 +107,14 @@ public class UnsubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
-        "${net}/unsubscribe.no.matching.topic.filter/client",
+        "${net}/unsubscribe.no.matching.subscription/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
     @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldReceiveUnsubackWhenNoMatchingSubscriptionExists() throws Exception
+    public void shouldAcknowledgeNoMatchingSubscription() throws Exception
     {
         k3po.finish();
     }

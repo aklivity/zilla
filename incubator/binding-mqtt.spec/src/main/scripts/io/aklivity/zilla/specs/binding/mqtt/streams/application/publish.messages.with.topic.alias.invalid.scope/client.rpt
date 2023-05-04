@@ -14,14 +14,11 @@
 # under the License.
 #
 
-accept "zilla://streams/app0"
-        option zilla:window 8192
-        option zilla:transmission "duplex"
+connect "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
 
-
-accepted
-
-read zilla:begin.ext ${mqtt:beginEx()
+write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .publish()
                                 .clientId("client")
@@ -31,23 +28,21 @@ read zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read zilla:data.ext ${mqtt:matchDataEx()
+write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .topic("sensor/one")
-                                .qos("AT_MOST_ONCE")
                                 .build()
                              .build()}
 
-read "message1"
+write "message1"
 
-read zilla:data.ext ${mqtt:matchDataEx()
+write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .publish()
                                 .topic("sensor/one")
-                                .qos("AT_MOST_ONCE")
                                 .build()
                              .build()}
 
-read "message2"
+write "message2"
 

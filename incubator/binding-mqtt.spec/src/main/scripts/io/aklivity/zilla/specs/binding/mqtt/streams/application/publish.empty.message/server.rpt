@@ -35,8 +35,5 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
-                                .qos("AT_MOST_ONCE")
-                                .expiryInterval(15)
-                                .contentType("text/plain")
                                 .build()
                             .build()}

@@ -22,7 +22,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/+/1/#", 1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                .filter("sensor/+/1/#", 1)
                                 .build()
                              .build()}
 
