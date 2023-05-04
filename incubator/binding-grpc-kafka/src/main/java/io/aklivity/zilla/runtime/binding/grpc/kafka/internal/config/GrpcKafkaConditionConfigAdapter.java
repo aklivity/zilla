@@ -63,7 +63,7 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
         if (condition.service != null)
         {
             String method = condition.service;
-            method = condition.method != null ? method + "/" + condition.method : method;
+            method = condition.method != null ? String.format("%s/%s", method, condition.method) : method;
             object.add(METHOD_NAME, method);
         }
 
