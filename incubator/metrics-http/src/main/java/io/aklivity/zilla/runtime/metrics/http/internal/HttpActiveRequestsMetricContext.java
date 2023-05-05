@@ -72,6 +72,7 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
 
     private final class HttpActiveRequestsMetricHandler implements MessageConsumer
     {
+        private static final long INITIAL_VALUE = 0L;
         private static final long EXCHANGE_CLOSED = 0b11L;
 
         private final LongConsumer recorder;
@@ -81,7 +82,7 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
             LongConsumer recorder)
         {
             this.recorder = recorder;
-            this.exchanges = new Long2LongHashMap(0L);
+            this.exchanges = new Long2LongHashMap(INITIAL_VALUE);
         }
 
         @Override
@@ -98,26 +99,36 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                if (direction == 1L) //received
-                {
-                    recorder.accept(1L);
-                }
+                handleBegin(direction);
                 break;
             case ResetFW.TYPE_ID:
             case AbortFW.TYPE_ID:
             case EndFW.TYPE_ID:
-                final long mask = 1L << direction;
-                final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
-                if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
-                {
-                    exchanges.remove(exchangeId);
-                    recorder.accept(-1L);
-                }
-                else
-                {
-                    exchanges.put(exchangeId, status);
-                }
+                handleEnd(exchangeId, direction);
                 break;
+            }
+        }
+
+        private void handleBegin(long direction)
+        {
+            if (direction == 1L) //received
+            {
+                recorder.accept(1L);
+            }
+        }
+
+        private void handleEnd(long exchangeId, long direction)
+        {
+            final long mask = 1L << direction;
+            final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
+            if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
+            {
+                exchanges.remove(exchangeId);
+                recorder.accept(-1L);
+            }
+            else
+            {
+                exchanges.put(exchangeId, status);
             }
         }
     }

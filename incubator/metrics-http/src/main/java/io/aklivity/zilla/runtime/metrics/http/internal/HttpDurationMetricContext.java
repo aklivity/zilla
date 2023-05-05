@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.metrics.http.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
 import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.initialId;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
@@ -72,6 +73,7 @@ public final class HttpDurationMetricContext implements MetricContext
 
     private final class HttpActiveRequestsMetricHandler implements MessageConsumer
     {
+        private static final long INITIAL_VALUE = 0L;
         private static final long EXCHANGE_CLOSED = 0b11L;
 
         private final LongConsumer recorder;
@@ -82,8 +84,8 @@ public final class HttpDurationMetricContext implements MetricContext
             LongConsumer recorder)
         {
             this.recorder = recorder;
-            this.exchanges = new Long2LongHashMap(0L);
-            this.timestamps = new Long2LongHashMap(0L);
+            this.exchanges = new Long2LongHashMap(INITIAL_VALUE);
+            this.timestamps = new Long2LongHashMap(INITIAL_VALUE);
         }
 
         @Override
@@ -100,28 +102,41 @@ public final class HttpDurationMetricContext implements MetricContext
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                if (direction == 1L) //received
-                {
-                    timestamps.put(exchangeId, System.currentTimeMillis());
-                }
+                handleBegin(exchangeId, direction, frame.timestamp());
                 break;
             case ResetFW.TYPE_ID:
             case AbortFW.TYPE_ID:
             case EndFW.TYPE_ID:
-                final long mask = 1L << direction;
-                final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
-                if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
+                handleEnd(msgTypeId, exchangeId, direction, frame.timestamp());
+                break;
+            }
+        }
+
+        private void handleBegin(long exchangeId, long direction, long timestamp)
+        {
+            if (direction == 1L && timestamp != INITIAL_VALUE) //received stream
+            {
+                timestamps.put(exchangeId, timestamp);
+            }
+        }
+
+        private void handleEnd(int msgTypeId, long exchangeId, long direction, long timestamp)
+        {
+            final long mask = 1L << direction;
+            final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
+            if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
+            {
+                exchanges.remove(exchangeId);
+                long start = timestamps.remove(exchangeId);
+                if (msgTypeId == EndFW.TYPE_ID)
                 {
-                    exchanges.remove(exchangeId);
-                    long start = timestamps.remove(exchangeId);
-                    long duration = (System.currentTimeMillis() - start) / 1000L;
+                    long duration = TimeUnit.MILLISECONDS.toSeconds(timestamp - start);
                     recorder.accept(duration);
                 }
-                else
-                {
-                    exchanges.put(exchangeId, status);
-                }
-                break;
+            }
+            else
+            {
+                exchanges.put(exchangeId, status);
             }
         }
     }

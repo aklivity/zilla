@@ -692,7 +692,7 @@ public class HttpMetricGroupTest
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
             .originId(0L).routedId(0L).streamId(1L) // received
-            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(42_000L)
             .traceId(0L).authorization(0L).affinity(0L)
             .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
@@ -701,17 +701,17 @@ public class HttpMetricGroupTest
         AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
             .originId(0L).routedId(0L).streamId(1L) // received
-            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(72_000L)
             .traceId(0L).authorization(0L).build();
         handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
         AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
             .originId(0L).routedId(0L).streamId(0L) // sent
-            .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(77_000L)
             .traceId(0L).authorization(0L).build();
         handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
 
         // THEN
-        verify(recorder, times(1)).accept(anyLong());
+        verify(recorder, times(1)).accept(35L);
     }
 }
