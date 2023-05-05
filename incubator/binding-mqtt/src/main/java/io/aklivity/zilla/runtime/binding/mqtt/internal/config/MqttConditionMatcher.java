@@ -33,11 +33,17 @@ public final class MqttConditionMatcher
     }
 
     public boolean matches(
+        MqttCapabilities capabilities)
+    {
+        return matchesCapabilities(capabilities);
+    }
+
+    public boolean matches(
         String topic,
         MqttCapabilities capabilities)
     {
         return matchesTopic(topic) &&
-                matchesCapabilities(capabilities);
+            matchesCapabilities(capabilities);
     }
 
     private boolean matchesTopic(
@@ -56,9 +62,9 @@ public final class MqttConditionMatcher
         String wildcard)
     {
         return Pattern.compile(wildcard
-                .replace(".", "\\.")
-                .replace("$", "\\$")
-                .replace("+", "[^/]*")
-                .replace("#", ".*")).matcher("");
+            .replace(".", "\\.")
+            .replace("$", "\\$")
+            .replace("+", "[^/]*")
+            .replace("#", ".*")).matcher("");
     }
 }

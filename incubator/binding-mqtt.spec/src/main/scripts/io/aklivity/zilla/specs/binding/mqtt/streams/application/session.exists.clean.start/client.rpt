@@ -22,7 +22,6 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("client")
-                                .expiry(10)
                                 .build()
                              .build()}
 
@@ -30,10 +29,41 @@ connected
 
 read zilla:data.empty
 
-write close
+write ${mqtt:session()
+               .clientId("client")
+               .subscription("sensor/one", 1)
+               .build()}
+write flush
+
+read ${mqtt:session()
+               .clientId("client")
+               .subscription("sensor/one", 1)
+               .build()}
+
+write notify CLIENT_TAKEOVER
+
 read closed
+write close
 
 write notify SESSION_READY
+
+connect await SESSION_READY
+        "zilla://streams/app0"
+         option zilla:window 8192
+         option zilla:transmission "duplex"
+
+write zilla:begin.ext ${mqtt:beginEx()
+                              .typeId(zilla:id("mqtt"))
+                              .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1)
+                                .build()
+                              .build()}
+
+connected
+
+write close
+read closed
 
 connect await SESSION_READY
         "zilla://streams/app0"
@@ -50,4 +80,9 @@ write zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read zilla:data.empty
+read ${mqtt:session()
+               .clientId("client")
+               .subscription("sensor/one", 1)
+               .build()}
+
+write zilla:data.empty

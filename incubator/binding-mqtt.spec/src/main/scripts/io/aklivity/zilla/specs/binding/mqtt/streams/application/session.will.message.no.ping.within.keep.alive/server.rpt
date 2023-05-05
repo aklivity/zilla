@@ -20,15 +20,15 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("one")
-                                .expiry(1)
-                                .willTopic("wills/one")
-                                .willFlags("QOS0")
-                                .willFormat("TEXT")
-                                .willPayload("client one session expired")
+                                .will()
+                                    .topic("wills/one")
+                                    .format("TEXT")
+                                    .payload("client one session expired")
+                                    .build()
                                 .build()
                              .build()}
 

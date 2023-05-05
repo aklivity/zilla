@@ -48,15 +48,6 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.abrupt.disconnect.session.expires/client",
-        "${app}/session.abrupt.disconnect.session.expires/server"})
-    public void shouldExpireSessionAfterAbruptDisconnect() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/session.exists.clean.start/client",
         "${app}/session.exists.clean.start/server"})
     public void shouldRemoveSessionAtCleanStart() throws Exception
@@ -112,8 +103,8 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.abort.connection.reconnect.non.clean.start/client",
-        "${app}/session.abort.connection.reconnect.non.clean.start/server"})
+        "${app}/session.abort.reconnect.non.clean.start/client",
+        "${app}/session.abort.reconnect.non.clean.start/server"})
     public void shouldReconnectNonCleanStart() throws Exception
     {
         k3po.finish();
@@ -139,15 +130,6 @@ public class SessionIT
 
     @Test
     @Specification({
-        "${app}/session.will.abort.subscribe.to.will.topic/client",
-        "${app}/session.will.abort.subscribe.to.will.topic/server"})
-    public void shouldSubscribeToWillTopic() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/session.subscribe.via.session.state/client",
         "${app}/session.subscribe.via.session.state/server"})
     public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
@@ -155,13 +137,20 @@ public class SessionIT
         k3po.finish();
     }
 
-
-    //TODO: use session.subscribe at actual test
     @Test
     @Specification({
         "${app}/session.unsubscribe.via.session.state/client",
         "${app}/session.unsubscribe.via.session.state/server"})
     public void shouldUnsubscribeViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.unsubscribe.after.subscribe.deferred/client",
+        "${app}/session.unsubscribe.after.subscribe.deferred/server"})
+    public void shouldUnsubscribeAfterSubscribeDeferred() throws Exception
     {
         k3po.finish();
     }

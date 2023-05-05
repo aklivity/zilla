@@ -17,6 +17,7 @@
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 accepted
 connected
@@ -41,7 +42,7 @@ read  [0x82 0x14]                    # SUBSCRIBE
       [0x00 0x0c] "sensor/+/1/#"     # topic filter
       [0x00]                         # options = at-most-once, send retained
 
-write  [0x90 0x05]                   # SUBACK
-       [0x00 0x01]                   # packet id = 1
-       [0x00]                        # properties = none
-       [0x00 0x00]                   # reason codes
+write [0x90 0x04]                   # SUBACK
+      [0x00 0x01]                   # packet id = 1
+      [0x00]                        # properties = none
+      [0x00]                        # reason codes

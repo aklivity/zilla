@@ -31,12 +31,10 @@ read zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
                                 .flags("RETAIN")
-                                .expiryInterval(15)
-                                .contentType("text/plain")
                                 .build()
                             .build()}

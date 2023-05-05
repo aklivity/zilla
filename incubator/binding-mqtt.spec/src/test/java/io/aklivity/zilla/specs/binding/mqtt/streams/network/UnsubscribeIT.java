@@ -50,7 +50,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
         "${net}/unsubscribe.after.subscribe/server"})
-    public void shouldSubscribeAndUnsubscribeFromTopic() throws Exception
+    public void shouldAcknowledge() throws Exception
     {
         k3po.finish();
     }
@@ -58,9 +58,9 @@ public class UnsubscribeIT
     // [MQTT-3.10.4-5]
     @Test
     @Specification({
-        "${net}/unsubscribe.receive.suback.no.matching.subscription/client",
-        "${net}/unsubscribe.receive.suback.no.matching.subscription/server"})
-    public void shouldReceiveSubackAfterUnsubscribeWhenNoMatchingSubscriptionExists() throws Exception
+        "${net}/unsubscribe.no.matching.subscription/client",
+        "${net}/unsubscribe.no.matching.subscription/server"})
+    public void shouldAcknowledgeNoMatchingSubscription() throws Exception
     {
         k3po.finish();
     }
@@ -69,16 +69,16 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/server"})
-    public void shouldUnsubscribeFromMultipleTopics() throws Exception
+    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/unsubscribe.only.one.topic/client",
-        "${net}/unsubscribe.only.one.topic/server"})
-    public void shouldUnsubscribeFromOneTopic() throws Exception
+        "${net}/unsubscribe.topic.filter.single/client",
+        "${net}/unsubscribe.topic.filter.single/server"})
+    public void shouldAcknowledgeSingleTopicFilters() throws Exception
     {
         k3po.finish();
     }
@@ -88,7 +88,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/client",
         "${net}/unsubscribe.reject.invalid.fixed.header.flags/server"})
-    public void shouldRejectMalformedUnsubscribePacket() throws Exception
+    public void shouldRejectMalformedPacket() throws Exception
     {
         k3po.finish();
     }
@@ -98,7 +98,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.reject.no.topic.filter/client",
         "${net}/unsubscribe.reject.no.topic.filter/server"})
-    public void shouldRejectUnsubscribeWithNoTopicFilter() throws Exception
+    public void shouldRejectNoTopicFilter() throws Exception
     {
         k3po.finish();
     }

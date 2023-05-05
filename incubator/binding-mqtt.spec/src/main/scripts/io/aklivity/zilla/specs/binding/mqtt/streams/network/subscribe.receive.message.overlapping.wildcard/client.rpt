@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -37,7 +38,7 @@ write [0x82 0x12]                   # SUBSCRIBE
       [0x00 0x01]                   # packet id = 1
       [0x02]                        # properties
       [0x0b 0x01]                   # subscription id = 1
-      [0x00 0x08] "sensor/+/#"      # topic filter
+      [0x00 0x0a] "sensor/+/#"      # topic filter
       [0x00]                        # options = at-most-once, send retained
 
 read  [0x90 0x04]                   # SUBACK
@@ -49,7 +50,7 @@ write [0x82 0x12]                   # SUBSCRIBE
       [0x00 0x01]                   # packet id = 1
       [0x02]                        # properties
       [0x0b 0x02]                   # subscription id = 2
-      [0x00 0x08] "sensor/+/1"      # topic filter
+      [0x00 0x0a] "sensor/+/1"      # topic filter
       [0x00]                        # options = at-most-once, send retained
 
 read  [0x90 0x04]                   # SUBACK
@@ -57,12 +58,10 @@ read  [0x90 0x04]                   # SUBACK
       [0x00]                        # properties = none
       [0x00]                        # reason code
 
-read  [0x30 0x2b]                   # PUBLISH
-      [0x00 0x0a] "sensor/one/1"    # topic name
-      [0x13]                        # properties
+read  [0x30 0x1c]                   # PUBLISH
+      [0x00 0x0c] "sensor/one/1"    # topic name
+      [0x06]                        # properties
       [0x0b 0x01]                   # subscription id = 1
       [0x0b 0x02]                   # subscription id = 2
-      [0x02] 0x0f                   # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"    # content type
       [0x01 0x01]                   # format = utf-8
       "message"                     # payload

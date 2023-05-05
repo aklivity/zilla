@@ -45,9 +45,9 @@ public class MqttConditionConfigAdapterTest
     public void shouldReadCondition()
     {
         String text =
-                "{" +
-                    "\"topic\": \"test\"," +
-                    "\"capabilities\": \"publish_only\"" +
+            "{" +
+                "\"topic\": \"test\"," +
+                "\"capabilities\": \"publish_only\"" +
                 "}";
 
         MqttConditionConfig condition = jsonb.fromJson(text, MqttConditionConfig.class);

@@ -40,7 +40,7 @@ public class UnsubscribeIT
     @Specification({
         "${app}/unsubscribe.after.subscribe/client",
         "${app}/unsubscribe.after.subscribe/server"})
-    public void shouldSubscribeAndUnsubscribeFromTopic() throws Exception
+    public void shouldAcknowledge() throws Exception
     {
         k3po.finish();
     }
@@ -49,16 +49,16 @@ public class UnsubscribeIT
     @Specification({
         "${app}/unsubscribe.aggregated.topic.filters.both.exact/client",
         "${app}/unsubscribe.aggregated.topic.filters.both.exact/server"})
-    public void shouldUnsubscribeFromMultipleTopics() throws Exception
+    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${app}/unsubscribe.only.one.topic/client",
-        "${app}/unsubscribe.only.one.topic/server"})
-    public void shouldUnsubscribeFromOneTopic() throws Exception
+        "${app}/unsubscribe.topic.filter.single/client",
+        "${app}/unsubscribe.topic.filter.single/server"})
+    public void shouldAcknowledgeSingleTopicFilters() throws Exception
     {
         k3po.finish();
     }

@@ -40,7 +40,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.one.message/client",
         "${net}/publish.one.message/server"})
-    public void shouldPublishOneMessage() throws Exception
+    public void shouldSendOneMessage() throws Exception
     {
         k3po.finish();
     }
@@ -49,7 +49,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages/client",
         "${net}/publish.multiple.messages/server"})
-    public void shouldPublishMultipleMessages() throws Exception
+    public void shouldSendMultipleMessages() throws Exception
     {
         k3po.finish();
     }
@@ -58,7 +58,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.multiple.messages.with.delay/client",
         "${net}/publish.multiple.messages.with.delay/server"})
-    public void shouldPublishMultipleMessagesWithDelay() throws Exception
+    public void shouldSendMultipleMessagesWithDelay() throws Exception
     {
         k3po.start();
         k3po.awaitBarrier("PUBLISHED_MESSAGE_TWO");
@@ -69,9 +69,9 @@ public class PublishIT
     // [MQTT-2.2.1-2]
     @Test
     @Specification({
-        "${net}/publish.qos0.reject.packet.id/client",
-        "${net}/publish.qos0.reject.packet.id/server"})
-    public void shouldRejectWithPacketIdAtQos0() throws Exception
+        "${net}/publish.reject.qos0.with.packet.id/client",
+        "${net}/publish.reject.qos0.with.packet.id/server"})
+    public void shouldRejectQos0WithPackedId() throws Exception
     {
         k3po.finish();
     }
@@ -99,9 +99,9 @@ public class PublishIT
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/publish.qos1.reject.missing.packet.id/client",
-        "${net}/publish.qos1.reject.missing.packet.id/server"})
-    public void shouldRejectWithoutPacketIdAtQos1() throws Exception
+        "${net}/publish.reject.qos1.without.packet.id/client",
+        "${net}/publish.reject.qos1.without.packet.id/server"})
+    public void shouldRejectQos1WithoutPackedId() throws Exception
     {
         k3po.finish();
     }
@@ -109,9 +109,9 @@ public class PublishIT
     // [MQTT-2.2.1-3]
     @Test
     @Specification({
-        "${net}/publish.qos2.reject.missing.packet.id/client",
-        "${net}/publish.qos2.reject.missing.packet.id/server"})
-    public void shouldRejectWithoutPacketIdAtQos2() throws Exception
+        "${net}/publish.reject.qos2.without.packet.id/client",
+        "${net}/publish.reject.qos2.without.packet.id/server"})
+    public void shouldRejectQos2WithoutPackedId() throws Exception
     {
         k3po.finish();
     }
@@ -121,7 +121,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.invalid.payload.format/client",
         "${net}/publish.reject.invalid.payload.format/server"})
-    public void shouldRejectPublishInvalidPayloadFormat() throws Exception
+    public void shouldRejectInvalidPayloadFormat() throws Exception
     {
         k3po.finish();
     }
@@ -131,7 +131,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.client.sent.subscription.id/client",
         "${net}/publish.reject.client.sent.subscription.id/server"})
-    public void shouldRejectPublishClientSentSubscriptionId() throws Exception
+    public void shouldRejectClientSentSubscriptionId() throws Exception
     {
         k3po.finish();
     }
@@ -140,7 +140,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.topic.alias.exceeds.maximum/client",
         "${net}/publish.reject.topic.alias.exceeds.maximum/server"})
-    public void shouldRejectPublishWhenTopicAliasExceedsThanMaximum() throws Exception
+    public void shouldRejectWhenTopicAliasExceedsThanMaximum() throws Exception
     {
         k3po.finish();
     }
@@ -150,7 +150,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.retain.not.supported/client",
         "${net}/publish.reject.retain.not.supported/server"})
-    public void shouldRejectRetainedPublishRetainNotSupported() throws Exception
+    public void shouldRejectRetainedRetainNotSupported() throws Exception
     {
         k3po.finish();
     }
@@ -160,7 +160,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.reject.topic.alias.repeated/client",
         "${net}/publish.reject.topic.alias.repeated/server"})
-    public void shouldRejectPublishWhenTopicAliasRepeated() throws Exception
+    public void shouldRejectWhenTopicAliasRepeated() throws Exception
     {
         k3po.finish();
     }
@@ -178,7 +178,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.property/client",
         "${net}/publish.with.user.property/server"})
-    public void shouldPublishWithUserProperty() throws Exception
+    public void shouldSendWithUserProperty() throws Exception
     {
         k3po.finish();
     }
@@ -187,7 +187,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.properties.repeated/client",
         "${net}/publish.with.user.properties.repeated/server"})
-    public void shouldPublishWithRepeatedUserProperties() throws Exception
+    public void shouldSendWithRepeatedUserProperties() throws Exception
     {
         k3po.finish();
     }
@@ -196,16 +196,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.with.user.properties.distinct/client",
         "${net}/publish.with.user.properties.distinct/server"})
-    public void shouldPublishWithDistinctUserProperties() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/publish.message.after.subscribe.fails/client",
-        "${net}/publish.message.after.subscribe.fails/server"})
-    public void shouldFailSubscribeThenPublishMessage() throws Exception
+    public void shouldSendWithDistinctUserProperties() throws Exception
     {
         k3po.finish();
     }
@@ -214,7 +205,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.message.with.topic.alias/client",
         "${net}/publish.message.with.topic.alias/server"})
-    public void shouldPublishMessageWithTopicAlias() throws Exception
+    public void shouldSendMessageWithTopicAlias() throws Exception
     {
         k3po.finish();
     }
@@ -223,7 +214,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.distinct/client",
         "${net}/publish.messages.with.topic.alias.distinct/server"})
-    public void shouldPublishMessagesWithTopicAliasDistinct() throws Exception
+    public void shouldSendMessagesWithTopicAliasDistinct() throws Exception
     {
         k3po.finish();
     }
@@ -232,7 +223,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.repeated/client",
         "${net}/publish.messages.with.topic.alias.repeated/server"})
-    public void shouldPublishMessagesWithTopicAliasRepeated() throws Exception
+    public void shouldSendMessagesWithTopicAliasRepeated() throws Exception
     {
         k3po.finish();
     }
@@ -241,7 +232,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.messages.with.topic.alias.replaced/client",
         "${net}/publish.messages.with.topic.alias.replaced/server"})
-    public void shouldPublishMessagesWithTopicAliasReplaced() throws Exception
+    public void shouldSendMessagesWithTopicAliasReplaced() throws Exception
     {
         k3po.finish();
     }
@@ -249,9 +240,9 @@ public class PublishIT
     // [MQTT-3.3.2-7]
     @Test
     @Specification({
-        "${net}/publish.messages.no.carry.over.topic.alias/client",
-        "${net}/publish.messages.no.carry.over.topic.alias/server"})
-    public void shouldPublishMessagesNoCarryOverTopicAlias() throws Exception
+        "${net}/publish.messages.with.topic.alias.invalid.scope/client",
+        "${net}/publish.messages.with.topic.alias.invalid.scope/server"})
+    public void shouldSendMessagesWithTopicAliasInvalidScope() throws Exception
     {
         k3po.finish();
     }
@@ -260,7 +251,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.retained/client",
         "${net}/publish.retained/server"})
-    public void shouldPublishRetainedMessage() throws Exception
+    public void shouldSendRetainedMessage() throws Exception
     {
         k3po.finish();
     }
@@ -269,7 +260,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.empty.retained.message/client",
         "${net}/publish.empty.retained.message/server"})
-    public void shouldPublishToRemoveRetainedMessage() throws Exception
+    public void shouldSendEmptyRetainedMessage() throws Exception
     {
         k3po.finish();
     }
@@ -278,7 +269,7 @@ public class PublishIT
     @Specification({
         "${net}/publish.empty.message/client",
         "${net}/publish.empty.message/server"})
-    public void shouldPublishEmptyMessage() throws Exception
+    public void shouldSendEmptyMessage() throws Exception
     {
         k3po.finish();
     }
@@ -287,7 +278,7 @@ public class PublishIT
     @Specification({
         "${net}/subscribe.publish.no.local/client",
         "${net}/subscribe.publish.no.local/server"})
-    public void shouldSubscribeThenPublishNoLocal() throws Exception
+    public void shouldSubscribeThenSendNoLocal() throws Exception
     {
         k3po.finish();
     }

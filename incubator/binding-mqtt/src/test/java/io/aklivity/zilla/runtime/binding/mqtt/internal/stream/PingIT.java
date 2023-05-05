@@ -16,7 +16,9 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_EXPIRY_INTERVAL_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.WILDCARD_SUBSCRIPTION_AVAILABLE_NAME;
@@ -42,7 +44,7 @@ public class PingIT
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/mqtt/streams/application");
 
-    private final TestRule timeout = new DisableOnDebug(new Timeout(20, SECONDS));
+    private final TestRule timeout = new DisableOnDebug(new Timeout(10, SECONDS));
 
     private final EngineRule engine = new EngineRule()
         .directory("target/zilla-itests")
@@ -62,11 +64,12 @@ public class PingIT
     @Configuration("server.yaml")
     @Specification({
         "${net}/ping/client"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldExchangeConnectionPacketsThenPingPackets() throws Exception
+    public void shouldConnectThenPingRequestResponse() throws Exception
     {
         k3po.finish();
     }
@@ -76,12 +79,19 @@ public class PingIT
     @Specification({
         "${net}/ping.keep.alive/client",
         "${app}/subscribe.topic.filter.single.exact/server"})
+    @Configure(name = SESSION_AVAILABLE_NAME, value = "false")
     @Configure(name = WILDCARD_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = MAXIMUM_QOS_NAME, value = "2")
     @Configure(name = SESSION_EXPIRY_INTERVAL_NAME, value = "0")
-    public void shouldKeepAliveWithPingreq() throws Exception
+    @Configure(name = KEEP_ALIVE_MINIMUM_NAME, value = "1")
+    public void shouldPingAtKeepAliveInterval() throws Exception
     {
+        k3po.start();
+        Thread.sleep(1000);
+        k3po.notifyBarrier("WAIT_1_SECOND");
+        Thread.sleep(1000);
+        k3po.notifyBarrier("WAIT_1_SECOND2");
         k3po.finish();
     }
 }

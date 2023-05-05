@@ -19,16 +19,16 @@ connect "zilla://streams/app0"
          option zilla:transmission "duplex"
 
 write zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .clientId("one")
-                                .expiry(1)
-                                .willTopic("wills/one")
-                                .willFlags("QOS0")
-                                .willFormat("TEXT")
-                                .willPayload("client one session expired")
-                                .build()
-                             .build()}
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .clientId("one")
+                              .will()
+                                  .topic("wills/one")
+                                  .format("TEXT")
+                                  .payload("client one session expired")
+                                  .build()
+                              .build()
+                           .build()}
 
 connected
 

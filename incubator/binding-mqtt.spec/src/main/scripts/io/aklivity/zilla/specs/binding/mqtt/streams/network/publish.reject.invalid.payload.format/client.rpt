@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
    option zilla:window 8192
    option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -43,6 +44,6 @@ write [0x30 0x36]                    # PUBLISH
       [0x09 0x00 0x04] "info"        # correlation data
       [0xfe 0xfe 0xff 0xff]          # payload
 
-write [0xe0 0x02]                    # DISCONNECT
+read  [0xe0 0x02]                    # DISCONNECT
       [0x99]                         # payload format invalid
       [0x00]                         # properties = none

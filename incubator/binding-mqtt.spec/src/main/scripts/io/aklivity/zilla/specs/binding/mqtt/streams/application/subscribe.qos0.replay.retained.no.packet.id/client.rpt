@@ -33,8 +33,6 @@ write zilla:data.ext ${mqtt:dataEx()
                             .publish()
                                 .topic("sensor/one")
                                 .flags("RETAIN")
-                                .expiryInterval(15)
-                                .contentType("text/plain")
                                 .build()
                             .build()}
 
@@ -51,20 +49,19 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client2")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .filter("sensor/one", 1)
                                 .build()
                              .build()}
 
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one")
                                  .flags("RETAIN")
                                  .subscriptionId(1)
-                                 .expiryInterval(15)
-                                 .contentType("text/plain")
+                                 .format("TEXT")
                                  .build()
                              .build()}
 

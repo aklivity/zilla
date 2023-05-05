@@ -20,16 +20,18 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .session()
-                                .clientId("one")
-                                .willTopic("wills/one")
-                                .willFlags("QOS0", "RETAIN")
-                                .willFormat("TEXT")
-                                .willPayload("client one session expired")
-                                .build()
-                             .build()}
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                            .typeId(zilla:id("mqtt"))
+                            .session()
+                               .clientId("one")
+                               .will()
+                                   .topic("wills/one")
+                                   .flags("RETAIN")
+                                   .format("TEXT")
+                                   .payload("client one session expired")
+                                   .build()
+                               .build()
+                            .build()}
 
 connected
 

@@ -33,8 +33,6 @@ write zilla:data.ext ${mqtt:dataEx()
                              .publish()
                                 .topic("sensor/one")
                                 .flags("RETAIN")
-                                .expiryInterval(15)
-                                .contentType("text/plain")
                                 .build()
                              .build()}
 write zilla:data.empty

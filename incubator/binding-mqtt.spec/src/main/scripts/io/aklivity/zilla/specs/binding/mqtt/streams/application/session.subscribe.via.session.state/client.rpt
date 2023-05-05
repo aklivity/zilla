@@ -29,20 +29,9 @@ connected
 
 read zilla:data.empty
 
-
-read advised zilla:flush ${mqtt:flushEx()
-                                 .typeId(zilla:id("mqtt"))
-                                 .filter("sensor/one", 1, "SEND_RETAINED")
-                                 .build()}
-
-write ${mqtt:sessionState()
+read ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
-               .build()}
-
-read ${mqtt:sessionState()
-               .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one")
                .build()}
 
 connect "zilla://streams/app0"
@@ -53,20 +42,16 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .filter("sensor/one")
                                 .build()
                               .build()}
 
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one")
-                                 .flags("RETAIN")
-                                 .subscriptionId(1)
-                                 .expiryInterval(15)
-                                 .contentType("message")
                                  .format("TEXT")
                                  .build()
                              .build()}

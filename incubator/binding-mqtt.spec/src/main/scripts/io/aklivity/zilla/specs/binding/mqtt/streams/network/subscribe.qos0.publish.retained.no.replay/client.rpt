@@ -17,16 +17,45 @@
 connect "zilla://streams/net0"
    option zilla:window 8192
    option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
-write [0x10 0x13]                    # CONNECT
+write [0x10 0x14]                    # CONNECT
       [0x00 0x04] "MQTT"             # protocol name
       [0x05]                         # protocol version
       [0x02]                         # flags = clean start
       [0x00 0x3c]                    # keep alive = 60s
       [0x00]                         # properties = none
-      [0x00 0x06] "client1"          # client id
+      [0x00 0x07] "client2"          # client id
+
+read  [0x20 0x03]                    # CONNACK
+      [0x00]                         # flags = none
+      [0x00]                         # reason code
+      [0x00]                         # properties = none
+
+write [0x31 0x14]                    # PUBLISH flags = at-most-once, retain
+      [0x00 0x0a] "sensor/one"       # topic name
+      [0x00]                         # properties
+      "message"                      # payload
+
+write notify PUBLISHED
+
+connect await PUBLISHED
+    "zilla://streams/net0"
+   option zilla:window 8192
+   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
+
+connected
+
+write [0x10 0x14]                    # CONNECT
+      [0x00 0x04] "MQTT"             # protocol name
+      [0x05]                         # protocol version
+      [0x02]                         # flags = clean start
+      [0x00 0x3c]                    # keep alive = 60s
+      [0x00]                         # properties = none
+      [0x00 0x07] "client1"          # client id
 
 read  [0x20 0x03]                    # CONNACK
       [0x00]                         # flags = none
@@ -38,39 +67,9 @@ write [0x82 0x12]                    # SUBSCRIBE
       [0x02]                         # properties
       [0x0b 0x01]                    # subscription id = 1
       [0x00 0x0a] "sensor/one"       # topic filter
-      [0x00]                         # options = at-most-once, send retained
+      [0x20]                         # options = at-most-once, do not send retained
 
 read  [0x90 0x04]                    # SUBACK
       [0x00 0x01]                    # packet id = 1
       [0x00]                         # properties = none
       [0x00]                         # reason code
-
-write notify SUBSCRIBED
-
-
-connect await SUBSCRIBED
-    "zilla://streams/net0"
-   option zilla:window 8192
-   option zilla:transmission "duplex"
-
-connected
-
-write [0x10 0x13]                    # CONNECT
-      [0x00 0x04] "MQTT"             # protocol name
-      [0x05]                         # protocol version
-      [0x02]                         # flags = clean start
-      [0x00 0x3c]                    # keep alive = 60s
-      [0x00]                         # properties = none
-      [0x00 0x06] "client2"          # client id
-
-read  [0x20 0x03]                    # CONNACK
-      [0x00]                         # flags = none
-      [0x00]                         # reason code
-      [0x00]                         # properties = none
-
-write [0x31 0x26]                    # PUBLISH flags = at-most-once, retain
-      [0x00 0x0a] "sensor/one"       # topic name
-      [0x12]                         # properties
-      [0x02] 0x0f                    # expiry = 15 seconds
-      [0x03 0x00 0x0a] "text/plain"  # content type
-      "message"                      # payload

@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -44,3 +45,5 @@ read  [0x90 0x04]                   # SUBACK
       [0x00 0x01]                   # packet id = 1
       [0x00]                        # properties = none
       [0x00]                        # reason code
+
+write notify SUBSCRIBED

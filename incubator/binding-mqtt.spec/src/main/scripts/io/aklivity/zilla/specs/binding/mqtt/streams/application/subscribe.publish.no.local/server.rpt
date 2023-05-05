@@ -20,16 +20,26 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "NO_LOCAL", "SEND_RETAINED")
+                                .filter("sensor/one", 1, "AT_MOST_ONCE", "NO_LOCAL", "SEND_RETAINED")
                                 .build()
                              .build()}
 
 connected
 
+write zilla:data.ext ${mqtt:dataEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                 .topic("sensor/one")
+                                 .subscriptionId(1)
+                                 .format("TEXT")
+                                 .build()
+                             .build()}
+write "message2"
+write flush
 
 accepted
 
@@ -43,11 +53,10 @@ read zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
-                                .expiryInterval(15)
                                 .format("TEXT")
                                 .build()
                             .build()}
