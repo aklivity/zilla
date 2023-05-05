@@ -1,0 +1,5 @@
+livenessProbePort: 12345
+readinessProbePort: 12345
+
+service:
+  port: 12345
