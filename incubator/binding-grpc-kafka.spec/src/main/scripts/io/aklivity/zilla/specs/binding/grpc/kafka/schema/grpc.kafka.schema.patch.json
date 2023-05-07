@@ -120,7 +120,7 @@
                                         {
                                             "title": "Method",
                                             "type": "string",
-                                            "pattern": "^(?<Service>[^\/]+)(?:/(?<Method>[^\/]+))?$"
+                                            "pattern": "^(?<Service>[^/]+)/(?<Method>[^/]+)"
                                         },
                                         "metadata":
                                         {

@@ -34,7 +34,7 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private static final Pattern METHOD_PATTERN = Pattern.compile("^(?<Service>[^/]+)(?:/(?<Method>[^/]+))?$");
+    private static final Pattern METHOD_PATTERN = Pattern.compile("^(?<Service>[^/]+)/(?<Method>[^/]+)");
     private static final String SERVICE_NAME = "Service";
     private static final String METHOD = "Method";
     private static final String TOPIC_NAME = "topic";

@@ -61,8 +61,8 @@ public class GrpcKafkaWithProduceResult
         GrpcKafkaCorrelationConfig correlation,
         GrpcKafkaWithProduceHash hash)
     {
-        this.method = method;
         this.service = service;
+        this.method = method;
         this.overrides = overrides;
         this.replyTo = replyTo;
         this.correlation = correlation;
@@ -70,6 +70,15 @@ public class GrpcKafkaWithProduceResult
         this.acks = acks;
         this.keyRef = keyRef;
         this.hash = hash;
+
+        hash.updateHash(correlation.service.value());
+        hash.updateHash(service.value());
+        hash.updateHash(correlation.method.value());
+        hash.updateHash(method.value());
+        hash.updateHash(correlation.replyTo.value());
+        hash.updateHash(replyTo.value());
+        overrides.forEach(o -> hash.updateHash(o.valueRef.get()));
+        hash.digestHash();
     }
 
     public String16FW topic()
@@ -110,6 +119,7 @@ public class GrpcKafkaWithProduceResult
                 .length(correlationId.sizeof())
                 .value(correlationId.value(), 0, correlationId.sizeof());
         }
+        hash.updateHash(key);
     }
 
     public void headers(
@@ -130,21 +140,27 @@ public class GrpcKafkaWithProduceResult
     private void service(
         KafkaHeaderFW.Builder builder)
     {
+        final String16FW name = correlation.service;
+        final DirectBuffer value = service.value();
+
         builder
-            .nameLen(correlation.service.length())
-            .name(correlation.service.value(), 0, correlation.service.length())
+            .nameLen(name.length())
+            .name(name.value(), 0, name.length())
             .valueLen(service.length())
-            .value(service.value(), 0, service.length());
+            .value(value, 0, service.length());
     }
 
     private void method(
         KafkaHeaderFW.Builder builder)
     {
+        final String16FW name = correlation.method;
+        DirectBuffer value = method.value();
+
         builder
-            .nameLen(correlation.method.length())
-            .name(correlation.method.value(), 0, correlation.method.length())
+            .nameLen(name.length())
+            .name(name.value(), 0, name.length())
             .valueLen(method.length())
-            .value(method.value(), 0, method.length());
+            .value(value, 0, method.length());
     }
 
     private void replyTo(

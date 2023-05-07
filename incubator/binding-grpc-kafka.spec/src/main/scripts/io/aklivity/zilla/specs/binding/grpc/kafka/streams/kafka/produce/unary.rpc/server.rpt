@@ -41,7 +41,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:service", "example.EchoService")
                                .header("zilla:method", "EchoUnary")
                                .header("zilla:reply-to", "responses")
-                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-479f2c3fb58bc3f04bbe15440a657670")
                                .build()
                            .build()}
 
@@ -59,7 +59,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:service", "example.EchoService")
                                .header("zilla:method", "EchoUnary")
                                .header("zilla:reply-to", "responses")
-                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                               .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-479f2c3fb58bc3f04bbe15440a657670")
                                .build()
                            .build()}
 read zilla:data.null
@@ -76,7 +76,7 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .topic("responses")
                                   .partition(-1, -2)
                                   .filter()
-                                    .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                    .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-479f2c3fb58bc3f04bbe15440a657670")
                                     .build()
                                   .build()
                               .build()}

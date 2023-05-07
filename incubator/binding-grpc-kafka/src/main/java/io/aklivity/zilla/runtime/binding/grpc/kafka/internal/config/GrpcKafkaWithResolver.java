@@ -163,7 +163,6 @@ public final class GrpcKafkaWithResolver
         Supplier<DirectBuffer> keyRef = resolveKey(authorization, produce);
 
         GrpcKafkaWithProduceHash hash = new GrpcKafkaWithProduceHash(octetsRW, dashOctetsRW, correlationId, hashBytesRW);
-        hash.digestHash();
 
         List<GrpcKafkaWithProduceOverrideResult> overrides = resolveOverride(authorization, produce, hash);
 
