@@ -1,3 +1,17 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.specs.binding.mqtt.kafka.streams;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -23,9 +37,54 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.empty.message/client",
+        "${kafka}/publish.empty.message/server"})
+    public void shouldSendEmptyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.one.message/client",
         "${kafka}/publish.one.message/server"})
-    public void shouldPublishOneMessage() throws Exception
+    public void shouldSendOneMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.multiple.messages/client",
+        "${kafka}/publish.multiple.messages/server"})
+    public void shouldSendMultipleMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.with.user.properties.distinct/client",
+        "${kafka}/publish.with.user.properties.distinct/server"})
+    public void shouldSendWithDistinctUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.with.user.properties.repeated/client",
+        "${kafka}/publish.with.user.properties.repeated/server"})
+    public void shouldSendWithRepeatedUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.with.user.property/client",
+        "${kafka}/publish.with.user.property/server"})
+    public void shouldSendWithUserProperty() throws Exception
     {
         k3po.finish();
     }
@@ -34,16 +93,52 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.one.message/client",
         "${kafka}/subscribe.one.message/server"})
-    public void shouldSubscribeOneMessage() throws Exception
+    public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${kafka}/subscribe.no.local/client",
-        "${kafka}/subscribe.no.local/server"})
-    public void shouldSubscribeNoLocal() throws Exception
+        "${kafka}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
+        "${kafka}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
+    public void shouldReceiveCorrelationData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.one.message.user.properties.unaltered/client",
+        "${kafka}/subscribe.one.message.user.properties.unaltered/server"})
+    public void shouldReceiveOneMessageWithUserPropertiesUnaltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.publish.no.local/client",
+        "${kafka}/subscribe.publish.no.local/server"})
+    public void shouldNotReceiveLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.wildcard/client",
+        "${kafka}/subscribe.receive.message.wildcard/server"})
+    public void shouldReceiveOneMessageWithPatternTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.overlapping.wildcard/client",
+        "${kafka}/subscribe.receive.message.overlapping.wildcard/server"})
+    public void shouldReceiveMessageOverlappingWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -52,7 +147,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filter.multi.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.multi.level.wildcard/server"})
-    public void shouldSubscribeWithWildcardTopicFilter() throws Exception
+    public void shouldFilterMultiLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -61,7 +156,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filter.single.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.single.level.wildcard/server"})
-    public void shouldSubscribeToSingleLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -70,7 +165,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
-    public void shouldSubscribeToSingleAndMultiLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -79,7 +174,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${kafka}/subscribe.topic.filter.two.single.level.wildcard/server"})
-    public void shouldSubscribeToTwoSingleLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterTwoSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -88,7 +183,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filters.aggregated.both.exact/client",
         "${kafka}/subscribe.topic.filters.aggregated.both.exact/server"})
-    public void shouldSubscribeWithAggregatedTopicFiltersBothExact() throws Exception
+    public void shouldFilterAggregatedBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -97,7 +192,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filters.isolated.both.exact/client",
         "${kafka}/subscribe.topic.filters.isolated.both.exact/server"})
-    public void shouldSubscribeWithIsolatedTopicFiltersBothExact() throws Exception
+    public void shouldFilterIsolatedBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -106,7 +201,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filters.overlapping.wildcards/client",
         "${kafka}/subscribe.topic.filters.overlapping.wildcards/server"})
-    public void shouldSubscribeToOverlappingWildcardTopicFilters() throws Exception
+    public void shouldFilterOverlappingWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -115,7 +210,7 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
         "${kafka}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
-    public void shouldSubscribeWithAggregatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldFilterAggregatedExactAndWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -124,7 +219,25 @@ public class KafkaIT
     @Specification({
         "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${kafka}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
-    public void shouldSubscribeWithIsolatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldFilterIsolatedExactAndWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/unsubscribe.after.subscribe/client",
+        "${kafka}/unsubscribe.after.subscribe/server"})
+    public void shouldAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/unsubscribe.topic.filter.single/client",
+        "${kafka}/unsubscribe.topic.filter.single/server"})
+    public void shouldAcknowledgeSingleTopicFilter() throws Exception
     {
         k3po.finish();
     }

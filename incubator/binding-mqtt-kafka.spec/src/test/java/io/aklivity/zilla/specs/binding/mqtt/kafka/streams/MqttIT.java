@@ -1,3 +1,17 @@
+/*
+ * Copyright 2021-2022 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package io.aklivity.zilla.specs.binding.mqtt.kafka.streams;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -23,9 +37,54 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.empty.message/client",
+        "${mqtt}/publish.empty.message/server"})
+    public void shouldSendEmptyMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.one.message/client",
         "${mqtt}/publish.one.message/server"})
-    public void shouldPublishOneMessage() throws Exception
+    public void shouldSendOneMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.multiple.messages/client",
+        "${mqtt}/publish.multiple.messages/server"})
+    public void shouldSendMultipleMessages() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.with.user.properties.distinct/client",
+        "${mqtt}/publish.with.user.properties.distinct/server"})
+    public void shouldSendWithDistinctUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.with.user.properties.repeated/client",
+        "${mqtt}/publish.with.user.properties.repeated/server"})
+    public void shouldSendWithRepeatedUserProperties() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.with.user.property/client",
+        "${mqtt}/publish.with.user.property/server"})
+    public void shouldSendWithUserProperty() throws Exception
     {
         k3po.finish();
     }
@@ -34,16 +93,43 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.one.message/client",
         "${mqtt}/subscribe.one.message/server"})
-    public void shouldSubscribeOneMessage() throws Exception
+    public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${mqtt}/subscribe.no.local/client",
-        "${mqtt}/subscribe.no.local/server"})
-    public void shouldSubscribeNoLocal() throws Exception
+        "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
+        "${mqtt}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
+    public void shouldReceiveCorrelationData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.publish.no.local/client",
+        "${mqtt}/subscribe.publish.no.local/server"})
+    public void shouldNotReceiveLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.overlapping.wildcard/client",
+        "${mqtt}/subscribe.receive.message.overlapping.wildcard/server"})
+    public void shouldReceiveMessageOverlappingWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.receive.message.wildcard/client",
+        "${mqtt}/subscribe.receive.message.wildcard/server"})
+    public void shouldReceiveOneMessageWithPatternTopic() throws Exception
     {
         k3po.finish();
     }
@@ -52,7 +138,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filter.multi.level.wildcard/client",
         "${mqtt}/subscribe.topic.filter.multi.level.wildcard/server"})
-    public void shouldSubscribeWithWildcardTopicFilter() throws Exception
+    public void shouldFilterMultiLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -61,7 +147,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filter.single.level.wildcard/client",
         "${mqtt}/subscribe.topic.filter.single.level.wildcard/server"})
-    public void shouldSubscribeToSingleLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -70,7 +156,16 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
         "${mqtt}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
-    public void shouldSubscribeToSingleAndMultiLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.one.message.user.properties.unaltered/client",
+        "${mqtt}/subscribe.one.message.user.properties.unaltered/server"})
+    public void shouldReceiveOneMessageWithUserPropertiesUnaltered() throws Exception
     {
         k3po.finish();
     }
@@ -79,7 +174,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filter.two.single.level.wildcard/client",
         "${mqtt}/subscribe.topic.filter.two.single.level.wildcard/server"})
-    public void shouldSubscribeToTwoSingleLevelWildcardTopicFilter() throws Exception
+    public void shouldFilterTwoSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -88,7 +183,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filters.aggregated.both.exact/client",
         "${mqtt}/subscribe.topic.filters.aggregated.both.exact/server"})
-    public void shouldSubscribeWithAggregatedTopicFiltersBothExact() throws Exception
+    public void shouldFilterAggregatedBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -97,7 +192,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filters.isolated.both.exact/client",
         "${mqtt}/subscribe.topic.filters.isolated.both.exact/server"})
-    public void shouldSubscribeWithIsolatedTopicFiltersBothExact() throws Exception
+    public void shouldFilterIsolatedBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -106,7 +201,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filters.overlapping.wildcards/client",
         "${mqtt}/subscribe.topic.filters.overlapping.wildcards/server"})
-    public void shouldSubscribeToOverlappingWildcardTopicFilters() throws Exception
+    public void shouldFilterOverlappingWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -115,7 +210,7 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
         "${mqtt}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
-    public void shouldSubscribeWithAggregatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldFilterAggregatedExactAndWildcard() throws Exception
     {
         k3po.finish();
     }
@@ -124,7 +219,25 @@ public class MqttIT
     @Specification({
         "${mqtt}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
         "${mqtt}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
-    public void shouldSubscribeWithIsolatedExactAndWildcardTopicFilters() throws Exception
+    public void shouldFilterIsolatedExactAndWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/unsubscribe.after.subscribe/client",
+        "${mqtt}/unsubscribe.after.subscribe/server"})
+    public void shouldAcknowledge() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/unsubscribe.topic.filter.single/client",
+        "${mqtt}/unsubscribe.topic.filter.single/server"})
+    public void shouldAcknowledgeSingleTopicFilter() throws Exception
     {
         k3po.finish();
     }
