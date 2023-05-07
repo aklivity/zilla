@@ -18,23 +18,23 @@ package io.aklivity.zilla.runtime.engine.internal.stream;
 public final class NamespacedId
 {
     public static int namespaceId(
-        long routeId)
+        long bindingId)
     {
-        return (int)(routeId >> Integer.SIZE) & 0xffff_ffff;
+        return (int)(bindingId >> Integer.SIZE) & 0xffff_ffff;
     }
 
     public static int localId(
-        long routeId)
+        long bindingId)
     {
-        return (int)(routeId >> 0) & 0xffff_ffff;
+        return (int)(bindingId >> 0) & 0xffff_ffff;
     }
 
     public static long id(
         final int namespaceId,
-        final int bindingId)
+        final int localId)
     {
         return (long) namespaceId << Integer.SIZE |
-               (long) bindingId << 0;
+               (long) localId << 0;
     }
 
     private NamespacedId()

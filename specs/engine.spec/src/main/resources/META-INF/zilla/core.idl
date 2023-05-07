@@ -29,7 +29,8 @@ scope core
 
         struct Frame
         {
-            int64 routeId;
+            int64 originId;
+            int64 routedId;
             int64 streamId;
             int64 sequence;
             int64 acknowledge;

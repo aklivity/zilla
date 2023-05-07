@@ -70,14 +70,14 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, 1, 2)
+                                  .partition(0, 1, 8)
                                   .build()
                               .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
-                                 .partition(0, 1, 2)
+                                 .partition(0, 1, 8)
                                  .key("key1")
                                  .build()
                              .build()}

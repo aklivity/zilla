@@ -25,8 +25,8 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public final class ProxyBindingConfig
 {
-    public final long routeId;
-    public final String entry;
+    public final long id;
+    public final String name;
     public final KindConfig kind;
     public final ProxyOptionsConfig options;
     public final List<ProxyRouteConfig> routes;
@@ -34,8 +34,8 @@ public final class ProxyBindingConfig
     public ProxyBindingConfig(
         BindingConfig binding)
     {
-        this.routeId = binding.id;
-        this.entry = binding.entry;
+        this.id = binding.id;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = ProxyOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(ProxyRouteConfig::new).collect(toList());

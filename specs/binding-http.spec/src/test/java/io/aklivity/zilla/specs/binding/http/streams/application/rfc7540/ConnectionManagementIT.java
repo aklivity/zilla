@@ -352,4 +352,13 @@ public class ConnectionManagementIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/streams.on.same.connection/client",
+        "${app}/streams.on.same.connection/server" })
+    public void shouldHandleStreamsOnSameConnection() throws Exception
+    {
+        k3po.finish();
+    }
 }

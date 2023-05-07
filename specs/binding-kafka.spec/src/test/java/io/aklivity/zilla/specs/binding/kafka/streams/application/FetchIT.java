@@ -306,6 +306,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/filter.sync/client",
+        "${app}/filter.sync/server"})
+    public void shouldFetchFilterSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/filter.key/client",
         "${app}/filter.key/server"})
     public void shouldReceiveMessagesWithKeyFilter() throws Exception
@@ -354,6 +363,15 @@ public class FetchIT
         "${app}/filter.header.or.header/client",
         "${app}/filter.header.or.header/server"})
     public void shouldReceiveMessagesWithHeaderOrHeaderFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/filter.header.or.header.eager/client",
+        "${app}/filter.header.or.header.eager/server"})
+    public void shouldReceiveMessagesWithHeaderOrHeaderEAGERFilter() throws Exception
     {
         k3po.finish();
     }
@@ -552,6 +570,15 @@ public class FetchIT
         "${app}/filter.headers.many/client",
         "${app}/filter.headers.many/server"})
     public void shouldReceiveMessagesWithHeadersManyFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/filter.headers.many.eager/client",
+        "${app}/filter.headers.many.eager/server"})
+    public void shouldReceiveMessagesWithHeadersManyEagerFilter() throws Exception
     {
         k3po.finish();
     }

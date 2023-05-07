@@ -20,7 +20,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class FileSystemBindingConfig
 {
     public final long id;
-    public final String entry;
+    public final String name;
     public final FileSystemOptionsConfig options;
     public final KindConfig kind;
 
@@ -28,7 +28,7 @@ public final class FileSystemBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = FileSystemOptionsConfig.class.cast(binding.options);
     }

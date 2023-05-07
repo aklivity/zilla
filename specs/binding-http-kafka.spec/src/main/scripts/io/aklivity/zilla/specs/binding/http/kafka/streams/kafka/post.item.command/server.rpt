@@ -19,7 +19,7 @@ accept "zilla://streams/kafka0"
 
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
@@ -31,6 +31,7 @@ read zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+read option zilla:flags "init"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -50,8 +51,12 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read zilla:data.empty
 
+read option zilla:flags "none"
 read '{ "name": "widget" }'
 
+read await SEND_ASYNC_REQUEST
+
+read option zilla:flags "fin"
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -64,9 +69,10 @@ read zilla:data.empty
 read closed
 write close
 
+
 accepted
 
-read zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                               .typeId(zilla:id("kafka"))
                               .merged()
                                   .capabilities("FETCH_ONLY")
@@ -79,6 +85,10 @@ read zilla:begin.ext ${kafka:beginEx()
                               .build()}
 
 connected
+
+write advise zilla:flush
+
+write notify SEND_ASYNC_REQUEST
 
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
@@ -95,3 +105,6 @@ write flush
 
 write close
 read closed
+
+
+

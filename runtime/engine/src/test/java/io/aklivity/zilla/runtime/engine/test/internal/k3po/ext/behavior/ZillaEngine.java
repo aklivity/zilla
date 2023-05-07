@@ -57,7 +57,7 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
     private final Deque<Runnable> taskQueue;
     private final AtomicLong traceIds;
     private final Int2ObjectHashMap<ZillaScope> scopesByIndex;
-    private final Map<Long, Integer> scopeIndexByRouteId;
+    private final Map<Long, Integer> scopeIndexByBindingId;
     private final LabelManager labels;
 
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
@@ -71,7 +71,7 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
     {
         this.config = config;
         this.scopesByIndex = new Int2ObjectHashMap<>();
-        this.scopeIndexByRouteId = new ConcurrentHashMap<>();
+        this.scopeIndexByBindingId = new ConcurrentHashMap<>();
         this.taskQueue = new ConcurrentLinkedDeque<>();
         this.traceIds = new AtomicLong(Long.MIN_VALUE); // negative
         this.scopes = new ZillaScope[0];
@@ -311,9 +311,9 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
     }
 
     private int lookupTargetIndex(
-        long routeId)
+        long bindingId)
     {
-        return scopeIndexByRouteId.getOrDefault(routeId, 0);
+        return scopeIndexByBindingId.getOrDefault(bindingId, 0);
     }
 
     private final class BindServerTask implements Runnable
@@ -342,11 +342,11 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
                 int scopeIndex = serverChannel.getLocalScope();
                 ZillaScope scope = engine.supplyScope(scopeIndex);
 
-                long routeId = scope.routeId(localAddress);
+                long bindingId = scope.bindingId(localAddress);
                 long authorization = localAddress.getAuthorization();
-                scope.doRoute(routeId, authorization, serverChannel);
+                scope.doBind(bindingId, authorization, serverChannel);
 
-                scopeIndexByRouteId.put(routeId, scopeIndex);
+                scopeIndexByBindingId.put(bindingId, scopeIndex);
 
                 serverChannel.setLocalAddress(localAddress);
                 serverChannel.setBound();
@@ -385,9 +385,9 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
                 int scopeIndex = serverChannel.getLocalScope();
                 ZillaScope scope = engine.supplyScope(scopeIndex);
 
-                long routeId = scope.routeId(localAddress);
+                long bindingId = scope.bindingId(localAddress);
                 long authorization = localAddress.getAuthorization();
-                scope.doUnroute(routeId, authorization, serverChannel);
+                scope.doUnbind(bindingId, authorization, serverChannel);
 
                 serverChannel.setLocalAddress(null);
                 fireChannelUnbound(serverChannel);
@@ -423,9 +423,9 @@ public final class ZillaEngine implements Runnable, ExternalResourceReleasable
                     int scopeIndex = serverChannel.getLocalScope();
                     ZillaScope scope = engine.supplyScope(scopeIndex);
 
-                    long routeId = scope.routeId(localAddress);
+                    long bindingId = scope.bindingId(localAddress);
                     long authorization = localAddress.getAuthorization();
-                    scope.doUnroute(routeId, authorization, serverChannel);
+                    scope.doUnbind(bindingId, authorization, serverChannel);
 
                     serverChannel.setLocalAddress(null);
                     fireChannelUnbound(serverChannel);

@@ -758,4 +758,14 @@ public class DuplexIT
         k3po.finish();
     }
 
+    @Test
+    @Specification({
+        "server.sent.write.abort.with.ext/client",
+        "server.sent.write.abort.with.ext/server"
+    })
+    public void shouldReceiveServerSentWriteAbortWithExt() throws Exception
+    {
+        k3po.finish();
+    }
+
 }
