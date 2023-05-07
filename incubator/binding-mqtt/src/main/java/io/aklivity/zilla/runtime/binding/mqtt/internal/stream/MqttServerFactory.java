@@ -273,7 +273,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final OctetsFW.Builder sessionPayloadRW = new OctetsFW.Builder();
 
     private final BinaryFW willPayloadRO = new BinaryFW();
-    private final OctetsFW passwordRO = new OctetsFW();
+    private final BinaryFW passwordRO = new BinaryFW();
 
     private final MqttPublishHeader mqttPublishHeaderRO = new MqttPublishHeader();
     private final MqttConnectPayload mqttConnectPayloadRO = new MqttConnectPayload();
@@ -4426,13 +4426,13 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final class MqttConnectPayload
     {
         private byte reasonCode = SUCCESS;
-        private MqttPropertiesFW willProperties = null;
-        private byte willQos = 0;
-        private byte willRetain = 0;
-        private String16FW willTopic = null;
-        private BinaryFW willPayload = null;
-        private String16FW username = null;
-        private OctetsFW password = null;
+        private MqttPropertiesFW willProperties;
+        private byte willQos;
+        private byte willRetain;
+        private String16FW willTopic;
+        private BinaryFW willPayload;
+        private String16FW username;
+        private BinaryFW password;
 
         private int willDelay = DEFAULT_WILL_DELAY;
         private MqttPayloadFormat payloadFormat = DEFAULT_FORMAT;
@@ -4533,7 +4533,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (isSetPassword(flags))
                 {
                     password = passwordRO.tryWrap(buffer, progress, limit);
-                    if (password == null || password.sizeof() == 0)
+                    if (password == null)
                     {
                         reasonCode = MALFORMED_PACKET;
                         break decode;
