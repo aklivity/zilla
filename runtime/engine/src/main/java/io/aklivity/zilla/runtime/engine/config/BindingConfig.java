@@ -23,29 +23,33 @@ import java.util.function.ToLongFunction;
 public class BindingConfig
 {
     public transient long id;
+    public transient long entryId;
     public transient ToLongFunction<String> resolveId;
 
     public transient long vaultId;
 
     public final String vault;
-    public final String entry;
+    public final String name;
     public final String type;
     public final KindConfig kind;
+    public final String entry;
     public final OptionsConfig options;
     public final List<RouteConfig> routes;
 
     public BindingConfig(
         String vault,
-        String entry,
+        String name,
         String type,
         KindConfig kind,
+        String entry,
         OptionsConfig options,
         List<RouteConfig> routes)
     {
         this.vault = vault;
-        this.entry = entry;
+        this.name = name;
         this.type = requireNonNull(type);
         this.kind = requireNonNull(kind);
+        this.entry = entry;
         this.options = options;
         this.routes = routes;
     }

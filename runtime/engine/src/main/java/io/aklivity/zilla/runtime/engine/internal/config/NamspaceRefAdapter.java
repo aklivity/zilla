@@ -27,12 +27,22 @@ import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
+
 public class NamspaceRefAdapter implements JsonbAdapter<NamespaceRef, JsonObject>
 {
     private static final String NAME_NAME = "name";
     private static final String LINKS_NAME = "links";
 
     private static final Map<String, String> LINKS_DEFAULT = emptyMap();
+
+    private final ConfigAdapterContext context;
+
+    public NamspaceRefAdapter(
+        ConfigAdapterContext context)
+    {
+        this.context = context;
+    }
 
     @Override
     public JsonObject adaptToJson(

@@ -317,7 +317,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void onBegin(
             BeginFW begin)
         {
-            final long bindingId = begin.routeId();
+            final long bindingId = begin.routedId();
 
             if (allowedBinding.test(bindingId))
             {
@@ -338,7 +338,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void onData(
             DataFW data)
         {
-            final long bindingId = data.routeId();
+            final long bindingId = data.routedId();
 
             if (allowedBinding.test(bindingId))
             {
@@ -366,7 +366,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void onEnd(
             EndFW end)
         {
-            final long bindingId = end.routeId();
+            final long bindingId = end.routedId();
 
             if (allowedBinding.test(bindingId))
             {
@@ -387,7 +387,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void onAbort(
             AbortFW abort)
         {
-            final long bindingId = abort.routeId();
+            final long bindingId = abort.routedId();
 
             if (allowedBinding.test(bindingId))
             {
@@ -408,7 +408,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void onFlush(
             FlushFW flush)
         {
-            final long bindingId = flush.routeId();
+            final long bindingId = flush.routedId();
 
             if (allowedBinding.test(bindingId))
             {
@@ -429,7 +429,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void onReset(
             ResetFW reset)
         {
-            final long bindingId = reset.routeId();
+            final long bindingId = reset.routedId();
 
             if (allowedBinding.test(bindingId))
             {
@@ -450,7 +450,7 @@ public final class ZillaDumpCommand extends ZillaCommand
         private void onWindow(
             WindowFW window)
         {
-            final long bindingId = window.routeId();
+            final long bindingId = window.routedId();
 
             if (allowedBinding.test(bindingId))
             {
@@ -505,7 +505,7 @@ public final class ZillaDumpCommand extends ZillaCommand
 
     private void encodeIpv6Header(
         MutableDirectBuffer buffer,
-        long routeId,
+        long bindingId,
         long sourceId,
         long targetId,
         int payloadLength)
@@ -514,9 +514,9 @@ public final class ZillaDumpCommand extends ZillaCommand
             .prefix(PSEUDO_IPV6_PREFIX)
             .payload_length((short) payloadLength)
             .next_header_and_hop_limit(PSEUDO_NEXT_HEADER_AND_HOP_LIMIT)
-            .src_addr_part1(routeId)
+            .src_addr_part1(bindingId)
             .src_addr_part2(sourceId)
-            .dst_addr_part1(routeId)
+            .dst_addr_part1(bindingId)
             .dst_addr_part2(targetId)
             .build();
     }

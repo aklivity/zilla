@@ -21,16 +21,16 @@ import org.agrona.collections.Long2ObjectHashMap;
 
 public final class KafkaClientRoute
 {
-    public final long routeId;
+    public final long resolvedId;
     public final Long2ObjectHashMap<KafkaBrokerInfo> brokers;
     public final Int2ObjectHashMap<Int2IntHashMap> partitions;
 
     public volatile long metaInitialId;
 
     public KafkaClientRoute(
-        long routeId)
+        long resolvedId)
     {
-        this.routeId = routeId;
+        this.resolvedId = resolvedId;
         this.brokers = new Long2ObjectHashMap<>();
         this.partitions = new Int2ObjectHashMap<>();
     }

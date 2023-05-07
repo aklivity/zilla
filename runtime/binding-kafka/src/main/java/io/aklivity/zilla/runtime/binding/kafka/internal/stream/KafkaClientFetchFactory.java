@@ -246,7 +246,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         MessageConsumer application)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long leaderId = begin.affinity();
         final long authorization = begin.authorization();
@@ -264,7 +265,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             final String16FW beginTopic = kafkaFetchBeginEx.topic();
             final String topicName = beginTopic.asString();
 
-            final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+            final KafkaBindingConfig binding = supplyBinding.apply(routedId);
             final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
             if (resolved != null)
@@ -279,7 +280,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 newStream = new KafkaFetchStream(
                     application,
-                    routeId,
+                    originId,
+                    routedId,
                     initialId,
                     resolvedId,
                     topicName,
@@ -297,7 +299,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -308,7 +311,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -329,7 +333,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -340,7 +345,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -356,7 +362,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -371,7 +378,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -389,7 +397,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -403,7 +412,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -422,7 +432,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -431,24 +442,25 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         long authorization,
         Flyweight extension)
     {
-        final EndFW end = endRW
-                .wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .extension(extension.buffer(), extension.offset(), extension.sizeof())
-               .build();
+        final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -458,7 +470,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -473,7 +486,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -484,7 +498,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         Flyweight extension)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -501,7 +516,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -512,7 +528,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -528,7 +545,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -538,15 +556,16 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         Flyweight extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .extension(extension.buffer(), extension.offset(), extension.sizeof())
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
@@ -883,8 +902,9 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 final int partitionId = partition.partitionId();
                 final int errorCode = partition.errorCode();
 
-                client.stableOffset = partition.lastStableOffset();
+                client.stableOffset = partition.lastStableOffset() - 1;
                 client.latestOffset = partition.highWatermark() - 1;
+                assert client.stableOffset <= client.latestOffset;
 
                 client.decodePartitionError = errorCode;
                 client.decodePartitionId = partitionId;
@@ -1689,7 +1709,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
     private final class KafkaFetchStream
     {
         private final MessageConsumer application;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final long leaderId;
@@ -1697,6 +1718,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         private final KafkaFetchClient client;
 
         private int state;
+        private int flushOrDataFramesSent;
 
         private long initialSeq;
         private long initialAck;
@@ -1713,7 +1735,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
         KafkaFetchStream(
             MessageConsumer application,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             String topic,
@@ -1725,12 +1748,14 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             KafkaSaslConfig sasl)
         {
             this.application = application;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.leaderId = leaderId;
             this.clientRoute = supplyClientRoute.apply(resolvedId);
-            this.client = new KafkaFetchClient(resolvedId, topic, partitionId, initialOffset, latestOffset, isolation, sasl);
+            this.client = new KafkaFetchClient(routedId, resolvedId, topic, partitionId,
+                    initialOffset, latestOffset, isolation, sasl);
         }
 
         private int replyBudget()
@@ -1900,7 +1925,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
         {
             state = KafkaState.openingReply(state);
 
-            doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, leaderId,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                                                         .typeId(kafkaTypeId)
@@ -1912,6 +1937,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                                                      .isolation(i -> i.set(isolation)))
                                                         .build()
                                                         .sizeof()));
+            client.initialLatestOffset = latestOffset;
+            client.initialStableOffset = stableOffset;
         }
 
         private void doApplicationData(
@@ -1922,12 +1949,14 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, flags, replyDebitorId, reserved, payload, extension);
 
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
         }
 
         private void doApplicationFlush(
@@ -1936,12 +1965,44 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             int reserved,
             Flyweight extension)
         {
-            doFlush(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, reserved, extension);
 
             replySeq += reserved;
 
             assert replyAck <= replySeq;
+
+            flushOrDataFramesSent++;
+        }
+
+        private void doApplicationFlushIfNecessary(
+            long traceId,
+            long authorization)
+        {
+            if (KafkaState.replyOpening(state) &&
+                    client.decodeRecordBatchLastOffset >= client.initialLatestOffset &&
+                    client.decodableRecords == 0 &&
+                    flushOrDataFramesSent == 0)
+            {
+                final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                        .typeId(kafkaTypeId)
+                        .fetch(f -> f
+                                .partition(p -> p
+                                        .partitionId(client.partitionId)
+                                        .partitionOffset(client.decodeRecordBatchLastOffset)
+                                        .stableOffset(client.initialStableOffset)
+                                        .latestOffset(client.initialLatestOffset)))
+                        .build();
+
+                doFlush(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
+                        traceId, authorization, 0, kafkaFlushEx);
+
+                replySeq += 0;
+
+                assert replyAck <= replySeq;
+
+                flushOrDataFramesSent++;
+            }
         }
 
         private void doApplicationEnd(
@@ -1951,7 +2012,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
-            doEnd(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_OCTETS);
         }
 
@@ -1962,7 +2023,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
-            doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_OCTETS);
         }
 
@@ -1984,7 +2045,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 state = KafkaState.openedInitial(state);
 
-                doWindow(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, budgetId, minInitialPad);
             }
         }
@@ -1996,7 +2057,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             state = KafkaState.closedInitial(state);
             //client.stream = nullIfClosed(state, client.stream);
 
-            doReset(application, routeId, initialId, initialSeq, initialAck, initialMax,
+            doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, client.authorization, extension);
         }
 
@@ -2066,6 +2127,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private long nextOffset;
             private long stableOffset;
             private long latestOffset;
+            private long initialLatestOffset;
+            private long initialStableOffset;
 
             private int state;
             private long authorization;
@@ -2114,7 +2177,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             private LongLongConsumer encoder;
 
             KafkaFetchClient(
-                long routeId,
+                long originId,
+                long routedId,
                 String topic,
                 int partitionId,
                 long initialOffset,
@@ -2122,7 +2186,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 KafkaIsolation isolation,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, routeId);
+                super(sasl, originId, routedId);
                 this.stream = KafkaFetchStream.this;
                 this.topic = requireNonNull(topic);
                 this.topicPartitions = clientRoute.supplyPartitions(topic);
@@ -2362,7 +2426,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 Consumer<OctetsFW.Builder> extension = EMPTY_EXTENSION;
 
-                final KafkaClientRoute clientRoute = supplyClientRoute.apply(routeId);
+                final KafkaClientRoute clientRoute = supplyClientRoute.apply(routedId);
                 final KafkaBrokerInfo broker = clientRoute.brokers.get(affinity);
                 if (broker != null)
                 {
@@ -2377,7 +2441,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                                                                       .sizeof());
                 }
 
-                network = newStream(this::onNetwork, routeId, initialId, initialSeq, initialAck, initialMax,
+                network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, affinity, extension);
             }
 
@@ -2421,7 +2485,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long authorization)
             {
                 state = KafkaState.closedInitial(state);
-                doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_OCTETS);
 
                 cleanupEncodeSlotIfNecessary();
@@ -2432,7 +2496,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 if (!KafkaState.initialClosed(state))
                 {
-                    doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                    doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_OCTETS);
                     state = KafkaState.closedInitial(state);
                 }
@@ -2445,7 +2509,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
             {
                 if (!KafkaState.replyClosed(state))
                 {
-                    doReset(network, routeId, replyId, replySeq, replyAck, replyMax,
+                    doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, EMPTY_OCTETS);
                     state = KafkaState.closedReply(state);
                 }
@@ -2469,7 +2533,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                     replyMax = minReplyMax;
 
-                    doWindow(network, routeId, replyId, replySeq, replyAck, replyMax,
+                    doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, budgetId, minReplyPad);
 
                     state = KafkaState.openedReply(state);
@@ -2678,7 +2742,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 {
                     final int reserved = length + initialPad;
 
-                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_OCTETS);
 
                     initialSeq += reserved;
@@ -2880,7 +2944,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                         {
                             final MessageConsumer metaInitial = supplyReceiver.apply(metaInitialId);
                             // TODO: improve coordination with meta stream
-                            doFlush(metaInitial, routeId, metaInitialId, 0, 0, 0, traceId, authorization, 0, EMPTY_OCTETS);
+                            doFlush(metaInitial, originId, routedId, metaInitialId, 0, 0, 0,
+                                    traceId, authorization, 0, EMPTY_OCTETS);
                         }
                     }
 
@@ -2974,7 +3039,6 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                             }
                         })
                         .build();
-
                 final int flags = aborted ? FLAG_INIT | FLAG_FIN | FLAG_SKIP : FLAG_INIT | FLAG_FIN;
                 doApplicationData(traceId, authorization, flags, reserved, value, kafkaDataEx);
             }
@@ -3054,7 +3118,7 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeFetchResponse(
@@ -3064,7 +3128,8 @@ public final class KafkaClientFetchFactory extends KafkaClientSaslHandshaker imp
 
                 if (topicPartitions.get(partitionId) == leaderId)
                 {
-                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                    doApplicationFlushIfNecessary(traceId, authorization);
+                    signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
                 else
                 {

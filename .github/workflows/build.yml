@@ -31,4 +31,12 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven
-      run: ./mvnw -B -U -nsu -Ddocker.logStdout -Ddocker.verbose install jacoco:report-aggregate
+      run: ./mvnw -B -U -nsu -Ddocker.logStdout -Dfailsafe.skipAfterFailureCount=1 -Ddocker.verbose install jacoco:report-aggregate
+    - name: Conditional Artifact Upload
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: zilla-dump
+        path: |
+          incubator/*/target/zilla-itests/
+          runtime/*/target/zilla-itests/

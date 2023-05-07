@@ -21,7 +21,7 @@ accepted
 
 read zilla:begin.ext ${http:beginEx()
                              .typeId(zilla:id("http"))
-                             .header(":method", "POST")
+                             .header(":method", "GET")
                              .header(":scheme", "http")
                              .header(":path", "/")
                              .header(":authority", "localhost:8080")

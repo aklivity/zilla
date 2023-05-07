@@ -264,7 +264,6 @@ public class ClientIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("client.yaml")
     @Specification({
@@ -306,7 +305,6 @@ public class ClientIT
         k3po.finish();
     }
 
-    @Ignore("Github Actions")
     @Test
     @Configuration("client.yaml")
     @Specification({

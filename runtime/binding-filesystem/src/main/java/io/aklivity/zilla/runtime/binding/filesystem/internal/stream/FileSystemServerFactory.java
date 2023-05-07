@@ -154,11 +154,12 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         MessageConsumer app)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final FileSystemBeginExFW beginEx = begin.extension().get(beginExRO::tryWrap);
 
-        final FileSystemBindingConfig binding = bindings.get(routeId);
+        final FileSystemBindingConfig binding = bindings.get(routedId);
 
         MessageConsumer newStream = null;
 
@@ -182,8 +183,17 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 if (Files.exists(Paths.get(resolvedPath), symlinks))
                 {
                     String type = probeContentTypeOrDefault(path);
-                    newStream = new FileSystemServer(app, routeId, initialId, type, symlinks,
-                        relativePath, resolvedPath, capabilities, tag)::onAppMessage;
+                    newStream = new FileSystemServer(
+                        app,
+                        originId,
+                        routedId,
+                        initialId,
+                        type,
+                        symlinks,
+                        relativePath,
+                        resolvedPath,
+                        capabilities,
+                        tag)::onAppMessage;
                 }
             }
             catch (IOException ex)
@@ -220,7 +230,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
     private final class FileSystemServer
     {
         private final MessageConsumer app;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final String type;
@@ -250,7 +261,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
         private FileSystemServer(
             MessageConsumer app,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             String type,
             LinkOption[] symlinks,
@@ -260,7 +272,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             String tag)
         {
             this.app = app;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.type = type;
@@ -339,9 +352,9 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             else
             {
                 long timeoutAt = now().toEpochMilli() + beginEx.timeout();
-                long timeoutId = signaler.signalAt(timeoutAt, routeId, replyId, TIMEOUT_EXPIRED_SIGNAL_ID, 0);
+                long timeoutId = signaler.signalAt(timeoutAt, originId, routedId, replyId, TIMEOUT_EXPIRED_SIGNAL_ID, 0);
                 watchedFile = new FileSystemWatcher.WatchedFile(
-                    resolvedPath, symlinks, this::calculateTag, tag, timeoutId, routeId, replyId);
+                    resolvedPath, symlinks, this::calculateTag, tag, timeoutId, originId, routedId, replyId);
                 fileSystemWatcher.watch(watchedFile);
             }
         }
@@ -545,7 +558,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
                 .payloadSize(size)
                 .tag(tag)
                 .build();
-            doBegin(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
+            doBegin(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, 0L, extension);
         }
 
         private void doAppData(
@@ -556,7 +569,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             final int length = payload != null ? payload.sizeof() : 0;
             assert reserved >= length + replyPad : String.format("%d >= %d", reserved, length + replyPad);
 
-            doData(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, replyBud,
+            doData(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, replyBud,
                     reserved, payload, EMPTY_EXTENSION);
 
             replySeq += reserved;
@@ -569,7 +582,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
             {
                 state = FileSystemState.closeReply(state);
-                doEnd(app, routeId, replyId, replySeq, replyAck, replyMax, traceId, 0L, EMPTY_EXTENSION);
+                doEnd(app, originId, routedId, replyId, replySeq, replyAck, replyMax, traceId, 0L, EMPTY_EXTENSION);
             }
         }
 
@@ -579,7 +592,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             if (FileSystemState.replyOpening(state) && !FileSystemState.replyClosed(state))
             {
                 state = FileSystemState.closeReply(state);
-                doAbort(app, routeId, replyId, replySeq, replyAck,
+                doAbort(app, originId, routedId, replyId, replySeq, replyAck,
                         replyMax, traceId, 0L, EMPTY_EXTENSION);
             }
         }
@@ -591,7 +604,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
             {
                 state = FileSystemState.closeInitial(state);
 
-                doReset(app, routeId, initialId, initialSeq, initialAck, initialMax, traceId, 0L);
+                doReset(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId, 0L);
             }
         }
 
@@ -600,7 +613,7 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         {
             state = FileSystemState.openInitial(state);
 
-            doWindow(app, routeId, initialId, initialSeq, initialAck, initialMax, traceId,
+            doWindow(app, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId,
                      initialAuth, 0L, initialPad);
         }
 
@@ -668,7 +681,8 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -679,23 +693,25 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         Flyweight extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(routeId)
-                                     .streamId(streamId)
-                                     .sequence(sequence)
-                                     .acknowledge(acknowledge)
-                                     .maximum(maximum)
-                                     .traceId(traceId)
-                                     .authorization(authorization)
-                                     .affinity(affinity)
-                                     .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                                     .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .affinity(affinity)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(begin.typeId(), begin.buffer(), begin.offset(), begin.sizeof());
     }
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -708,25 +724,27 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                  .routeId(routeId)
-                                  .streamId(streamId)
-                                  .sequence(sequence)
-                                  .acknowledge(acknowledge)
-                                  .maximum(maximum)
-                                  .traceId(traceId)
-                                  .authorization(authorization)
-                                  .budgetId(budgetId)
-                                  .reserved(reserved)
-                                  .payload(payload)
-                                  .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                                  .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .reserved(reserved)
+                .payload(payload)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(data.typeId(), data.buffer(), data.offset(), data.sizeof());
     }
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -736,22 +754,24 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         Flyweight extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                               .routeId(routeId)
-                               .streamId(streamId)
-                               .sequence(sequence)
-                               .acknowledge(acknowledge)
-                               .maximum(maximum)
-                               .traceId(traceId)
-                               .authorization(authorization)
-                               .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -761,22 +781,24 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         Flyweight extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(routeId)
-                                     .streamId(streamId)
-                                     .sequence(sequence)
-                                     .acknowledge(acknowledge)
-                                     .maximum(maximum)
-                                     .traceId(traceId)
-                                     .authorization(authorization)
-                                     .extension(extension.buffer(), extension.offset(), extension.sizeof())
-                                     .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         receiver.accept(abort.typeId(), abort.buffer(), abort.offset(), abort.sizeof());
     }
 
     private void doReset(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -785,21 +807,23 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                     .routeId(routeId)
-                                     .streamId(streamId)
-                                     .sequence(sequence)
-                                     .acknowledge(acknowledge)
-                                     .maximum(maximum)
-                                     .traceId(traceId)
-                                     .authorization(authorization)
-                                     .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .build();
 
         receiver.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     private void doWindow(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -810,16 +834,17 @@ public final class FileSystemServerFactory implements FileSystemStreamFactory
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                                        .routeId(routeId)
-                                        .streamId(streamId)
-                                        .sequence(sequence)
-                                        .acknowledge(acknowledge)
-                                        .maximum(maximum)
-                                        .traceId(traceId)
-                                        .authorization(authorization)
-                                        .budgetId(budgetId)
-                                        .padding(padding)
-                                        .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .budgetId(budgetId)
+                .padding(padding)
+                .build();
 
         receiver.accept(window.typeId(), window.buffer(), window.offset(), window.sizeof());
     }

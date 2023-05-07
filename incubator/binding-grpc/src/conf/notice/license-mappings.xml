@@ -1,0 +1,14 @@
+<license-lookup xmlns="https://source.jasig.org/schemas/maven-notice-plugin/license-lookup" >
+    <artifact>
+        <groupId>classworlds</groupId>
+        <artifactId>classworlds</artifactId>
+        <version>1.1-alpha-2</version>
+        <license>Modified BSD License</license>
+    </artifact>
+    <artifact>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-container-default</artifactId>
+        <version>1.0-alpha-9-stable-1</version>
+        <license>Modified BSD License</license>
+    </artifact>
+</license-lookup>
