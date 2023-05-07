@@ -20,31 +20,37 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("PUBLISH_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .subscriptionId(0)
+                              .publish()
+                                .clientId("client")
+                                .topic("sensor/one")
+                                .build()
                               .build()}
 
 connected
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
+                             .publish()
+                                .topic("sensor/one")
+                                .build()
                              .build()}
 
 write "message1"
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
+                             .publish()
+                                .topic("sensor/one")
+                                .build()
                              .build()}
 
 write "message2"
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
-                             .topic("sensor/one")
+                             .publish()
+                                .topic("sensor/one")
+                                .build()
                              .build()}
 
 write "message3"

@@ -29,7 +29,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 public class SubscribeIT
 {
     private final K3poRule k3po = new K3poRule()
-        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network/subscribe");
+        .addScriptRoot("net", "io/aklivity/zilla/specs/binding/mqtt/streams/network");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -38,108 +38,284 @@ public class SubscribeIT
 
     @Test
     @Specification({
-        "${net}/missing.topic.filters/client",
-        "${net}/missing.topic.filters/server"})
-    public void shouldRejectSubscribeWithMissingTopicFilters() throws Exception
+        "${net}/subscribe.one.message/client",
+        "${net}/subscribe.one.message/server"})
+    public void shouldReceiveOneMessage() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/invalid.topic.filter/client",
-        "${net}/invalid.topic.filter/server"})
-    public void shouldRejectSubscribeWithInvalidTopicFilter() throws Exception
+        "${net}/subscribe.one.message.user.properties.unaltered/client",
+        "${net}/subscribe.one.message.user.properties.unaltered/server"})
+    public void shouldReceiveOneMessageWithUserPropertiesUnaltered() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/single.topic.filter.exact/client",
-        "${net}/single.topic.filter.exact/server"})
-    public void shouldSubscribeToExactTopicFilter() throws Exception
+        "${net}/subscribe.receive.message.wildcard/client",
+        "${net}/subscribe.receive.message.wildcard/server"})
+    public void shouldReceiveOneMessageWithPatternTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-2.2.1-3]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.missing.packet.id/client",
+        "${net}/subscribe.reject.missing.packet.id/server"})
+    public void shouldRejectWithoutPacketId() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/single.topic.filter.wildcard/client",
-        "${net}/single.topic.filter.wildcard/server"})
-    public void shouldSubscribeToWildcardTopicFilter() throws Exception
+        "${net}/subscribe.reject.missing.topic.filters/client",
+        "${net}/subscribe.reject.missing.topic.filters/server"})
+    public void shouldRejectWithMissingTopicFilters() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.both.exact/client",
-        "${net}/aggregated.topic.filters.both.exact/server"})
-    public void shouldSubscribeToAggregatedTopicFiltersBothExact() throws Exception
+        "${net}/subscribe.invalid.topic.filter/client",
+        "${net}/subscribe.invalid.topic.filter/server"})
+    public void shouldRejectInvalidTopicFilter() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/isolated.topic.filters.both.exact/client",
-        "${net}/isolated.topic.filters.both.exact/server"})
-    public void shouldSubscribeToIsolatedTopicFiltersBothExact() throws Exception
+        "${net}/subscribe.topic.filter.single.exact/client",
+        "${net}/subscribe.topic.filter.single.exact/server"})
+    public void shouldFilterExact() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.both.wildcard/client",
-        "${net}/aggregated.topic.filters.both.wildcard/server"})
-    public void shouldSubscribeToAggregatedTopicFiltersBothWildcard() throws Exception
+        "${net}/subscribe.topic.filter.multi.level.wildcard/client",
+        "${net}/subscribe.topic.filter.multi.level.wildcard/server"})
+    public void shouldFilterMultiLevelWildcard() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/isolated.topic.filters.both.wildcard/client",
-        "${net}/isolated.topic.filters.both.wildcard/server"})
-    public void shouldSubscribeToIsolatedTopicFiltersBothWildcard() throws Exception
+        "${net}/subscribe.topic.filter.single.level.wildcard/client",
+        "${net}/subscribe.topic.filter.single.level.wildcard/server"})
+    public void shouldFilterSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/aggregated.topic.filters.exact.and.wildcard/client",
-        "${net}/aggregated.topic.filters.exact.and.wildcard/server"})
-    public void shouldSubscribeToAggregatedExactAndWildcardTopicFilters() throws Exception
+        "${net}/subscribe.topic.filter.two.single.level.wildcard/client",
+        "${net}/subscribe.topic.filter.two.single.level.wildcard/server"})
+    public void shouldFilterTwoSingleLevelWildcard() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/isolated.topic.filters.exact.and.wildcard/client",
-        "${net}/isolated.topic.filters.exact.and.wildcard/server"})
-    public void shouldSubscribeToIsolatedExactAndWildcardTopicFilters() throws Exception
+        "${net}/subscribe.topic.filter.single.and.multi.level.wildcard/client",
+        "${net}/subscribe.topic.filter.single.and.multi.level.wildcard/server"})
+    public void shouldFilterSingleAndMultiLevelWildcard() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/invalid.fixed.header.flags/client",
-        "${net}/invalid.fixed.header.flags/server"})
-    public void shouldRejectMalformedSubscribePacket() throws Exception
+        "${net}/subscribe.topic.filters.disjoint.wildcards/client",
+        "${net}/subscribe.topic.filters.disjoint.wildcards/server"})
+    public void shouldFilterDisjointWildcard() throws Exception
     {
         k3po.finish();
     }
 
     @Test
     @Specification({
-        "${net}/reject.no.local/client",
-        "${net}/reject.no.local/server"})
+        "${net}/subscribe.topic.filters.overlapping.wildcards/client",
+        "${net}/subscribe.topic.filters.overlapping.wildcards/server"})
+    public void shouldFilterOverlappingWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.topic.filter.invalid.wildcard/client",
+        "${net}/subscribe.reject.topic.filter.invalid.wildcard/server"})
+    public void shouldRejectTopicFilterInvalidWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.aggregated.both.exact/client",
+        "${net}/subscribe.topic.filters.aggregated.both.exact/server"})
+    public void shouldFilterAggregatedBothExact() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.isolated.both.exact/client",
+        "${net}/subscribe.topic.filters.isolated.both.exact/server"})
+    public void shouldFilterIsolatedBothExact() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.isolated.both.wildcard/client",
+        "${net}/subscribe.topic.filters.isolated.both.wildcard/server"})
+    public void shouldFilterIsolatedBothWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.aggregated.exact.and.wildcard/client",
+        "${net}/subscribe.topic.filters.aggregated.exact.and.wildcard/server"})
+    public void shouldFilterAggregatedExactAndWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.topic.filters.isolated.exact.and.wildcard/client",
+        "${net}/subscribe.topic.filters.isolated.exact.and.wildcard/server"})
+    public void shouldFilterIsolatedExactAndWildcard() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.invalid.fixed.header.flags/client",
+        "${net}/subscribe.invalid.fixed.header.flags/server"})
+    public void shouldRejectMalformedPacket() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.no.local/client",
+        "${net}/subscribe.reject.no.local/server"})
     public void shouldRejectNoLocal() throws Exception
+    {
+        k3po.finish();
+    }
+
+
+    //  [MQTT-3.3.2-15], [MQTT-3.3.2-16]
+    @Test
+    @Specification({
+        "${net}/subscribe.one.message.receive.response.topic.and.correlation.data/client",
+        "${net}/subscribe.one.message.receive.response.topic.and.correlation.data/server"})
+    public void shouldReceiveCorrelationData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.one.message.with.invalid.subscription.id/client",
+        "${net}/subscribe.one.message.with.invalid.subscription.id/server"})
+    public void shouldReceiveOneMessageWithInvalidSubscriptionId() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.receive.message/client",
+        "${net}/subscribe.receive.message/server"})
+    public void shouldReceiveOneMessageAfterPublish() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.get.retained.as.published/client",
+        "${net}/subscribe.get.retained.as.published/server"})
+    public void shouldReceiveRetainedAsPublished() throws Exception
+    {
+        k3po.finish();
+    }
+
+    // [MQTT-3.8.3-5]
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.malformed.subscription.options/client",
+        "${net}/subscribe.reject.malformed.subscription.options/server"})
+    public void shouldRejectMalformedSubscriptionOptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.wildcard.subscriptions.not.supported/client",
+        "${net}/subscribe.reject.wildcard.subscriptions.not.supported/server"})
+    public void shouldRejectWildcardSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.subscription.ids.not.supported/client",
+        "${net}/subscribe.reject.subscription.ids.not.supported/server"})
+    public void shouldRejectSubscriptionIdentifiersNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.reject.shared.subscriptions.not.supported/client",
+        "${net}/subscribe.reject.shared.subscriptions.not.supported/server"})
+    public void shouldRejectSharedSubscriptionsNotSupported() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.qos0.replay.retained.no.packet.id/client",
+        "${net}/subscribe.qos0.replay.retained.no.packet.id/server"})
+    public void shouldReceiveAndReplayRetainedQos0() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.qos0.publish.retained.no.replay/client",
+        "${net}/subscribe.qos0.publish.retained.no.replay/server"})
+    public void shouldNotReplayRetained() throws Exception
     {
         k3po.finish();
     }

@@ -20,21 +20,23 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
-                              .capabilities("SUBSCRIBE_ONLY")
-                              .clientId("client")
-                              .topic("sensor/one")
-                              .flags("SEND_RETAINED")
-                              .subscriptionId(1)
+                              .subscribe()
+                                 .clientId("client")
+                                 .filter("sensor/one", 1, "SEND_RETAINED")
+                                 .build()
                               .build()}
 
 connected
 
 read zilla:data.ext ${mqtt:dataEx()
-                            .typeId(zilla:id("mqtt"))
-                            .flags("RETAIN")
-                            .expiryInterval(15)
-                            .contentType("message")
-                            .format("TEXT")
-                            .build()}
-
+                              .typeId(zilla:id("mqtt"))
+                              .subscribe()
+                                 .topic("sensor/one")
+                                 .flags("RETAIN")
+                                 .subscriptionId(1)
+                                 .expiryInterval(15)
+                                 .contentType("message")
+                                 .format("TEXT")
+                                 .build()
+                              .build()}
 read "message"

@@ -34,7 +34,7 @@ write [0x20 0x06]                    # CONNACK
       [0x00]                         # flags = none
       [0x00]                         # reason code
       [0x03]                         # properties
-      [0x22] 2s                      # topic alias maximum = 2
+      [0x22 0x00 0x02]               # topic alias maximum = 2
 
 read  [0x30 0x18]                    # PUBLISH
       [0x00 0x0a] "sensor/one"       # topic name

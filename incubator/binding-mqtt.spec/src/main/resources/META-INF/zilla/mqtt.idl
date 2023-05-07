@@ -17,21 +17,28 @@ scope mqtt
 {
     enum MqttSubscribeFlags (uint8)
     {
-        SEND_RETAINED(0),
-        RETAIN_AS_PUBLISHED(1),
-        NO_LOCAL(2)
+        QOS0(0),
+        QOS1(1),
+        QOS2(2),
+        SEND_RETAINED(3),
+        RETAIN_AS_PUBLISHED(4),
+        NO_LOCAL(5),
+        RETAIN(6)
     }
 
     enum MqttPublishFlags (uint8)
     {
-        RETAIN(0)
+        QOS0(0),
+        QOS1(1),
+        QOS2(2),
+        RETAIN(3)
     }
 
-    enum MqttCapabilities (uint8)
+    enum MqttEndReasonCode (uint8)
     {
-        PUBLISH_ONLY(1),
-        SUBSCRIBE_ONLY(2),
-        PUBLISH_AND_SUBSCRIBE(3)
+        DISCONNECT(0),
+        KEEP_ALIVE_EXPIRY(1),
+        DISCONNECT_WITH_WILL(2)
     }
 
     enum MqttPayloadFormat
@@ -52,19 +59,90 @@ scope mqtt
         string16 value;
     }
 
+    struct MqttTopicFilter
+    {
+        string16 pattern;
+        varuint32 subscriptionId = 0;
+        uint8 flags = 0;
+    }
+
+    struct MqttSessionState
+    {
+        string16 clientId;
+        MqttTopicFilter[] subscriptions;
+    }
+
+    struct MqttWillMessage
+    {
+        string16 topic = null;
+        int32 delay = 0;
+        uint8 flags = 0;
+        int32 expiryInterval = -1;
+        string16 contentType = null;
+        MqttPayloadFormat format = BINARY;
+        string16 responseTopic = null;
+        MqttBinary correlation;
+        MqttUserProperty[] userProperties;
+        MqttBinary payload;
+    }
+
     scope stream
     {
-        struct MqttBeginEx extends core::stream::Extension
+        enum MqttExtensionKind (uint8)
         {
-            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
+            SESSION (2),
+            SUBSCRIBE (1),
+            PUBLISH (0)
+        }
+
+        union MqttBeginEx switch (uint8) extends core::stream::Extension
+        {
+            case 2: mqtt::stream::MqttSessionBeginEx session;
+            case 1: mqtt::stream::MqttSubscribeBeginEx subscribe;
+            case 0: mqtt::stream::MqttPublishBeginEx publish;
+        }
+
+        struct MqttSessionBeginEx
+        {
+            string16 clientId;
+            int32 expiry = 0;
+            MqttWillMessage willMessage;
+        }
+
+        struct MqttSubscribeBeginEx
+        {
+            string16 clientId;
+            MqttTopicFilter[] filters;
+        }
+
+        struct MqttPublishBeginEx
+        {
             string16 clientId;
             string16 topic;
+        }
+
+        union MqttDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 1: mqtt::stream::MqttSubscribeDataEx subscribe;
+            case 0: mqtt::stream::MqttPublishDataEx publish;
+        }
+
+
+        struct MqttSubscribeDataEx
+        {
+            int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
+            string16 topic = null;
             uint8 flags = 0;
-            varuint32 subscriptionId = 0;
+            varuint32[] subscriptionIds;
+            int32 expiryInterval = -1;
+            string16 contentType = null;
+            MqttPayloadFormat format = BINARY;
+            string16 responseTopic = null;
+            MqttBinary correlation;
             MqttUserProperty[] properties;
         }
 
-        struct MqttDataEx extends core::stream::Extension
+        struct MqttPublishDataEx
         {
             int32 deferred = 0;             // INIT only (TODO: move to DATA frame)
             string16 topic = null;
@@ -77,15 +155,14 @@ scope mqtt
             MqttUserProperty[] properties;
         }
 
-        struct MqttAbortEx extends core::stream::Extension
+        struct MqttEndEx extends core::stream::Extension
         {
-            uint8 reason;
+            MqttEndReasonCode reasonCode = DISCONNECT;
         }
 
         struct MqttFlushEx extends core::stream::Extension
         {
-            uint8 flags = 0;
-            MqttCapabilities capabilities = PUBLISH_AND_SUBSCRIBE;
+            MqttTopicFilter[] filters;
         }
     }
 }

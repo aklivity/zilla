@@ -19,9 +19,9 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
-import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttCapabilities;
 
 public final class MqttBindingConfig
 {
