@@ -46,10 +46,10 @@ import io.aklivity.zilla.runtime.command.log.internal.types.KafkaPartitionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaSkipFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttEndReasonCode;
+import io.aklivity.zilla.runtime.command.log.internal.types.MqttMessageFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.MqttUserPropertyFW;
-import io.aklivity.zilla.runtime.command.log.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.ProxyAddressInet4FW;
@@ -1193,7 +1193,7 @@ public final class LoggableStream implements AutoCloseable
     {
         final String clientId = session.clientId().asString();
         final int expiry = session.expiry();
-        final MqttWillMessageFW will = session.willMessage();
+        final MqttMessageFW will = session.will();
 
         out.printf(verboseFormat, index, offset, timestamp,
             format("[session] %s %d", clientId, expiry));
@@ -1207,7 +1207,7 @@ public final class LoggableStream implements AutoCloseable
             final MqttPayloadFormat format = will.format().get();
             final String responseTopic = will.responseTopic().asString();
             final String correlation = asString(will.correlation().bytes());
-            final Array32FW<MqttUserPropertyFW> userProperties = will.userProperties();
+            final Array32FW<MqttUserPropertyFW> userProperties = will.properties();
             final String payload = asString(will.payload().bytes());
             out.printf(verboseFormat, index, offset, timestamp, format("will topic: %s", willTopic));
             out.printf(verboseFormat, index, offset, timestamp, format("will delay: %d", delay));
@@ -1298,7 +1298,7 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = flush.extension();
 
         final MqttFlushExFW mqttFlushEx = mqttFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final Array32FW<MqttTopicFilterFW> filters = mqttFlushEx.filters();
+        final Array32FW<MqttTopicFilterFW> filters = mqttFlushEx.subscribe().filters();
 
         filters.forEach(f -> out.printf(verboseFormat, index, offset, timestamp,
             format("%s %d %d", f.pattern(), f.subscriptionId(), f.flags())));
