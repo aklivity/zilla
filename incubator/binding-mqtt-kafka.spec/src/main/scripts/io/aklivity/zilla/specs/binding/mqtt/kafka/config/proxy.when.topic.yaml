@@ -22,4 +22,8 @@ bindings:
     routes:
       - exit: kafka0
         when:
-          - topic: sensor/one
+          - capabilities: PUBLISH_AND_SUBSCRIBE
+            topic: sensor/one
+        with:
+          - topic: mqtt_messages
+

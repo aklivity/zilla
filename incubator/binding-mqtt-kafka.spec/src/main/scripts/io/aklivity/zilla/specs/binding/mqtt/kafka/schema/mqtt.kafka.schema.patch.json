@@ -29,6 +29,7 @@
                                     "additionalProperties": false,
                                     "properties":
                                     {
+                                        //TODO: add capabilities
                                         "topic":
                                         {
                                             "title": "Topic",
@@ -37,7 +38,17 @@
                                     }
                                 }
                             },
-                            "with": false
+                            "with":
+                            {
+                                "properties":
+                                {
+                                    "topic":
+                                    {
+                                        "title": "Topic",
+                                        "type": "string"
+                                    }
+                                }
+                            }
                         }
                     }
                 }
