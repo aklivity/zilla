@@ -49,3 +49,10 @@ Selector labels
 app.kubernetes.io/name: {{ include "helm.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Check if we have a service port defined
+*/}}
+{{- define "zilla.isServicePortDefined" -}}
+{{- default false (gt (len .Values.service.ports) 0) }}
+{{- end }}

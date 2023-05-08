@@ -1,4 +1,4 @@
-{{- if (gt (len .Values.service.ports) 0) }}
+{{- if eq (include "zilla.isServicePortDefined" .) "true" }}
 apiVersion: v1
 kind: Service
 metadata:
