@@ -30,43 +30,28 @@ read zilla:begin.ext ${mqtt:beginEx()
 
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
-                                .expiryInterval(15)
-                                .contentType("message")
-                                .format("TEXT")
-                                .responseTopic("sensor/one")
-                                .correlation("info")
                                 .build()
                             .build()}
 
 read "message1"
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
-                                .expiryInterval(15)
-                                .contentType("message")
-                                .format("TEXT")
-                                .responseTopic("sensor/one")
-                                .correlation("info")
                                 .build()
                             .build()}
 
 read "message2"
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
-                                .expiryInterval(15)
-                                .contentType("message")
-                                .format("TEXT")
-                                .responseTopic("sensor/one")
-                                .correlation("info")
                                 .build()
                             .build()}
 

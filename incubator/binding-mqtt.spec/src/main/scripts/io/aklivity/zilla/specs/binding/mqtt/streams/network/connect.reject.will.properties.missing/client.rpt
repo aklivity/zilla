@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -33,5 +34,5 @@ write [0x10 0x3c]                                      # CONNECT
 
 read  [0x20 0x03]                                      # CONNACK
       [0x00]                                           # flags = none
-      [0x82]                                           # reason = protocol error
+      [0x81]                                           # reason = malformed packet
       [0x00]                                           # properties = none

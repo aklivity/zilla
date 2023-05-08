@@ -17,11 +17,10 @@
 ---
 name: test
 bindings:
-  app0:
+  net0:
     type: mqtt
-    kind: client
+    kind: server
     routes:
-      - exit: net0
+      - exit: app0
         when:
-          - topic: sensor/one
-            capabilities: publish_only
+          - capabilities: session

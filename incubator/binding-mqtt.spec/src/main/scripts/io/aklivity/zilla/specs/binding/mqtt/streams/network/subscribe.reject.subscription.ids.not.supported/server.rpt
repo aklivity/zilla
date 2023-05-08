@@ -17,6 +17,7 @@
 accept "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 accepted
 connected
@@ -46,4 +47,4 @@ write [0xe0 0x02]                   # DISCONNECT
       [0xa1]                        # subscription identifiers unavailable
       [0x00]                        # properties = none
 
-write abort
+write close

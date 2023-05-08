@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
    option zilla:window 8192
    option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -42,7 +43,7 @@ write [0x31 0x28]                    # PUBLISH flags = at-most-once, retain
       "message"                      # payload
 
 read  [0xe0 0x02]                    # disconnect header
-      [0x82]                         # disconnect = protocol error
+      [0x81]                         # reason = malformed packet
       [0x00]                         # properties = none
 
 read closed

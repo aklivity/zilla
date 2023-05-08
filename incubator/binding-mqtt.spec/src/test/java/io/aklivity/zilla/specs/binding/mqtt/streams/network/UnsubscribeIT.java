@@ -50,7 +50,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.after.subscribe/client",
         "${net}/unsubscribe.after.subscribe/server"})
-    public void shouldUnsubscribeAfterSubscribe() throws Exception
+    public void shouldAcknowledge() throws Exception
     {
         k3po.finish();
     }
@@ -58,9 +58,9 @@ public class UnsubscribeIT
     // [MQTT-3.10.4-5]
     @Test
     @Specification({
-        "${net}/unsubscribe.no.matching.topic.filter/client",
-        "${net}/unsubscribe.no.matching.topic.filter/server"})
-    public void shouldReceiveSubackWhenNoMatchingSubscriptionExists() throws Exception
+        "${net}/unsubscribe.no.matching.subscription/client",
+        "${net}/unsubscribe.no.matching.subscription/server"})
+    public void shouldAcknowledgeNoMatchingSubscription() throws Exception
     {
         k3po.finish();
     }
@@ -69,7 +69,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/client",
         "${net}/unsubscribe.aggregated.topic.filters.both.exact/server"})
-    public void shouldUnsubscribeFromMultipleTopics() throws Exception
+    public void shouldAcknowledgeAggregatedTopicFiltersBothExact() throws Exception
     {
         k3po.finish();
     }
@@ -78,7 +78,7 @@ public class UnsubscribeIT
     @Specification({
         "${net}/unsubscribe.topic.filter.single/client",
         "${net}/unsubscribe.topic.filter.single/server"})
-    public void shouldUnsubscribeSingleTopicFilter() throws Exception
+    public void shouldAcknowledgeSingleTopicFilters() throws Exception
     {
         k3po.finish();
     }

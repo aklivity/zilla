@@ -20,12 +20,12 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                .clientId("client")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
-                                .build()
+                                 .clientId("client")
+                                 .filter("sensor/one", 1)
+                                 .build()
                              .build()}
 
 connected
@@ -34,28 +34,21 @@ write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one")
-                                 .flags("RETAIN")
                                  .subscriptionId(1)
-                                 .expiryInterval(15)
-                                 .contentType("message")
-                                 .format("TEXT")
                                  .build()
                              .build()}
 
-write "message1"
+write "message that should not arrive to client, since it exceeds max packet limit"
 write flush
 
 write zilla:data.ext ${mqtt:dataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
-                                 .topic("sensor/two")
-                                 .flags("RETAIN")
+                                 .topic("sensor/one")
                                  .subscriptionId(1)
-                                 .expiryInterval(15)
-                                 .contentType("message")
                                  .format("TEXT")
                                  .build()
                              .build()}
 
-write "message2"
+write "message"
 write flush

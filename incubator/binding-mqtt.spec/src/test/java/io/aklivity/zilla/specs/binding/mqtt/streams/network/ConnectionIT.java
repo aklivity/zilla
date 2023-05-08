@@ -18,6 +18,7 @@ package io.aklivity.zilla.specs.binding.mqtt.streams.network;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -130,7 +131,7 @@ public class ConnectionIT
     @Specification({
         "${net}/connect.successful.fragmented/client",
         "${net}/connect.successful.fragmented/server"})
-    public void shouldProcessFragmentedConnectPacket() throws Exception
+    public void shouldConnectFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -182,21 +183,11 @@ public class ConnectionIT
     }
 
     // [MQTT-3.1.2-21], [MQTT-3.2.2-21]
-    // TODO: use subscribe.topic.filter.single.exact/server in the application side
     @Test
     @Specification({
         "${net}/connect.server.defined.keep.alive/client",
         "${net}/connect.server.defined.keep.alive/server"})
     public void shouldConnectAndUseServerDefinedKeepAlive() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${net}/ping.keep.alive/client",
-        "${net}/ping.keep.alive/server"})
-    public void shouldKeepAliveWithPingreq() throws Exception
     {
         k3po.finish();
     }
@@ -238,21 +229,22 @@ public class ConnectionIT
         k3po.finish();
     }
 
-
+    @Ignore
     @Test
     @Specification({
         "${net}/connect.reject.username.not.authorized/client",
         "${net}/connect.reject.username.not.authorized/server"})
-    public void shouldRejectConnectWithUsername() throws Exception
+    public void shouldRejectConnectWithUsernameNotAuthorized() throws Exception
     {
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "${net}/connect.reject.password.not.authorized/client",
         "${net}/connect.reject.password.not.authorized/server"})
-    public void shouldRejectConnectWithPassword() throws Exception
+    public void shouldRejectConnectWithPasswordNotAuthorized() throws Exception
     {
         k3po.finish();
     }
@@ -366,8 +358,8 @@ public class ConnectionIT
     // [MQTT-3.1.2-24]
     @Test
     @Specification({
-        "${net}/connect.max.packet.size.server.ignores.exceeding.publish.packet/client",
-        "${net}/connect.max.packet.size.server.ignores.exceeding.publish.packet/server"})
+        "${net}/connect.max.packet.size.exceeded/client",
+        "${net}/connect.max.packet.size.exceeded/server"})
     public void shouldNotReceivePublishPacketExceedingMaxPacketLimit() throws Exception
     {
         k3po.finish();

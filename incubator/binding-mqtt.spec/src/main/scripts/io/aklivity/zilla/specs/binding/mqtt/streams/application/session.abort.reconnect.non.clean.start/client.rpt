@@ -31,16 +31,15 @@ read zilla:data.empty
 
 write ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 
 read ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 
 write abort
-read aborted
 write notify SESSION_READY
 
 
@@ -53,13 +52,12 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .filter("sensor/one", 1)
                                 .build()
                              .build()}
 connected
 
 write abort
-read aborted
 write notify ABORTED
 
 
@@ -80,7 +78,7 @@ connected
 
 read ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 
 write notify SESSION_READY2
@@ -94,19 +92,16 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .filter("sensor/one", 1)
                                 .build()
                              .build()}
 connected
 
-read zilla:data.ext ${mqtt:dataEx()
+read zilla:data.ext ${mqtt:matchDataEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                  .topic("sensor/one")
-                                 .flags("RETAIN")
                                  .subscriptionId(1)
-                                 .expiryInterval(15)
-                                 .contentType("message")
                                  .format("TEXT")
                                  .build()
                              .build()}

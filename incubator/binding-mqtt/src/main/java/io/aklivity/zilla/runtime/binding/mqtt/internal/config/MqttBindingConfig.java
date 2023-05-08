@@ -19,9 +19,9 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttCapabilities;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
-import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttCapabilities;
 
 public final class MqttBindingConfig
 {
@@ -37,6 +37,16 @@ public final class MqttBindingConfig
         this.name = binding.name;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(MqttRouteConfig::new).collect(toList());
+    }
+
+    public MqttRouteConfig resolve(
+        long authorization,
+        MqttCapabilities capabilities)
+    {
+        return routes.stream()
+            .filter(r -> r.authorized(authorization) && r.matches(capabilities))
+            .findFirst()
+            .orElse(null);
     }
 
     public MqttRouteConfig resolve(

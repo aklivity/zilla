@@ -20,12 +20,12 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
-                                .filter("sensor/two", 1, "SEND_RETAINED")
+                                .filter("sensor/one", 1)
+                                .filter("sensor/two", 1)
                                 .build()
                              .build()}
 
@@ -33,5 +33,7 @@ connected
 
 read advised zilla:flush ${mqtt:flushEx()
                                  .typeId(zilla:id("mqtt"))
-                                 .filter("sensor/one", 1, "SEND_RETAINED")
+                                 .subscribe()
+                                    .filter("sensor/two", 1)
+                                    .build()
                                  .build()}

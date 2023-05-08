@@ -49,6 +49,12 @@ public final class MqttRouteConfig extends OptionsConfig
     }
 
     boolean matches(
+        MqttCapabilities capabilities)
+    {
+        return when.isEmpty() || when.stream().anyMatch(m -> m.matches(capabilities));
+    }
+
+    boolean matches(
         String topic,
         MqttCapabilities capabilities)
     {

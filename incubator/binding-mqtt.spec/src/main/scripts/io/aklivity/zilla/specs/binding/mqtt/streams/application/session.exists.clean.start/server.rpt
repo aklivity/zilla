@@ -20,11 +20,10 @@ accept "zilla://streams/app0"
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("client")
-                                .expiry(10)
                                 .build()
                              .build()}
 
@@ -35,21 +34,38 @@ write flush
 
 read ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 
 write ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 write flush
+
+read await CLIENT_TAKEOVER
+
+write close
+read closed
+
+accepted
+
+read zilla:begin.ext ${mqtt:matchBeginEx()
+                             .typeId(zilla:id("mqtt"))
+                             .subscribe()
+                                .clientId("client")
+                                .filter("sensor/one", 1)
+                                .build()
+                             .build()}
+
+connected
 
 read closed
 write close
 
 accepted
 
-read zilla:begin.ext ${mqtt:beginEx()
+read zilla:begin.ext ${mqtt:matchBeginEx()
                              .typeId(zilla:id("mqtt"))
                              .session()
                                 .clientId("client")
@@ -60,8 +76,9 @@ connected
 
 write ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 write flush
 
 read zilla:data.empty
+write notify CLIENT_TAKEOVER

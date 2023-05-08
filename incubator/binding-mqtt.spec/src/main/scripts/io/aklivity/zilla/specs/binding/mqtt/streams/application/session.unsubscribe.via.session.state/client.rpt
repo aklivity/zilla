@@ -32,14 +32,15 @@ read zilla:data.empty
 
 write ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 
 read ${mqtt:session()
                .clientId("client")
-               .subscription("sensor/one", 1, "SEND_RETAINED", "QOS0")
+               .subscription("sensor/one", 1)
                .build()}
 
+write notify SUBSCRIBED
 
 read ${mqtt:session()
                .clientId("client")
@@ -57,7 +58,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                               .typeId(zilla:id("mqtt"))
                               .subscribe()
                                 .clientId("client")
-                                .filter("sensor/one", 1, "SEND_RETAINED")
+                                .filter("sensor/one", 1)
                                 .build()
                               .build()}
 

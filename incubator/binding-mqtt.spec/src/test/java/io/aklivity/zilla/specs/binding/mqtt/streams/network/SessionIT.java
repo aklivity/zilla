@@ -137,4 +137,13 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.unsubscribe.after.subscribe.deferred/client",
+        "${net}/session.unsubscribe.after.subscribe.deferred/server"})
+    public void shouldUnsubscribeAfterSubscribeDeferred() throws Exception
+    {
+        k3po.finish();
+    }
 }

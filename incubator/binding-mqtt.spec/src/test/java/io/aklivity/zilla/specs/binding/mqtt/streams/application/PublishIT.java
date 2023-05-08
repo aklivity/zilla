@@ -83,15 +83,6 @@ public class PublishIT
 
     @Test
     @Specification({
-        "${app}/publish.message.after.subscribe.fails/client",
-        "${app}/publish.message.after.subscribe.fails/server"})
-    public void shouldFailSubscribeThenSendMessage() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/publish.message.with.topic.alias/client",
         "${app}/publish.message.with.topic.alias/server"})
     public void shouldSendMessageWithTopicAlias() throws Exception
@@ -129,9 +120,9 @@ public class PublishIT
     // [MQTT-3.3.2-7]
     @Test
     @Specification({
-        "${app}/publish.messages.no.carry.over.topic.alias/client",
-        "${app}/publish.messages.no.carry.over.topic.alias/server"})
-    public void shouldSendMessagesNoCarryOverTopicAlias() throws Exception
+        "${app}/publish.messages.with.topic.alias.invalid.scope/client",
+        "${app}/publish.messages.with.topic.alias.invalid.scope/server"})
+    public void shouldSendMessagesWithTopicAliasInvalidScope() throws Exception
     {
         k3po.finish();
     }

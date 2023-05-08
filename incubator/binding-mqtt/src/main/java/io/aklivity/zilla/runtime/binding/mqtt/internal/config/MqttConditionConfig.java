@@ -31,3 +31,4 @@ public final class MqttConditionConfig extends ConditionConfig
         this.capabilities = capabilities;
     }
 }
+

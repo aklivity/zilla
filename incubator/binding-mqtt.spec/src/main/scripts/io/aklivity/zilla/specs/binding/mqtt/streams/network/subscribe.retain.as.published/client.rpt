@@ -17,6 +17,7 @@
 connect "zilla://streams/net0"
   option zilla:window 8192
   option zilla:transmission "duplex"
+  option zilla:byteorder "network"
 
 connected
 
@@ -45,11 +46,9 @@ read  [0x90 0x04]                   # SUBACK
       [0x00]                        # properties = none
       [0x00]                        # reason code
 
-read  [0x31 0x27]                   # PUBLISH flags = at-most-once, retain
+read  [0x31 0x18]                   # PUBLISH flags = at-most-once, retain
       [0x00 0x0a] "sensor/one"      # topic name
-      [0x13]                        # properties
+      [0x04]                        # properties
       [0x0b 0x01]                   # subscription id = 1
-      [0x02] 0x0f                   # expiry = 15 seconds
-      [0x03 0x00 0x07] "message"    # content type
       [0x01 0x01]                   # format = utf-8
       "message"                     # payload
