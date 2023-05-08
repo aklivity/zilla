@@ -153,7 +153,7 @@ $ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /
 
 Verify behaviour:
 -----------------
-$ openssl s_client -connect localhost:23456 -CAfile test-ca.crt -quiet -alpn echo
+$ openssl s_client -connect localhost:23456 -CAfile examples/tls.echo/test-ca.crt -quiet -alpn echo
 depth=1 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = Test CA
 verify return:1
 depth=0 C = US, ST = California, L = Palo Alto, O = Aklivity, OU = Development, CN = localhost

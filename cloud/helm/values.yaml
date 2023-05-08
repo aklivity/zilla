@@ -20,9 +20,14 @@ readinessProbePort: 0
 
 tls:
   enabled: false
-  keystorePath: ""
-  keystoreLocalPath: ""
-  keystorePassword: ""
+  keystore:
+    name: ""
+    localPath: ""
+    mountPath: ""
+    password: ""
+
+filesToConfigMap:
+  enabled: false
 
 service:
   type: ClusterIP

@@ -13,9 +13,11 @@ service:
 
 tls:
   enabled: true
-  keystorePath: localhost.p12
-  keystoreLocalPath: examples/mqtt.reflect/localhost.p12
-  keystorePassword: generated
+  keystore:
+    name: localhost.p12
+    localPath: examples/mqtt.reflect/localhost.p12
+    mountPath: /etc/zilla/tls
+    password: generated
 
 verify: |
   Connect two subscribing clients first, then send `Hello, world` from publishing client.
@@ -29,7 +31,7 @@ verify: |
   Client 43516069-9fa3-493d-9ab1-17e5e891e5be received PUBLISH (d0, q0, r0, m0, 'zilla', ... (12 bytes))
   Hello, world
 
-  $ mosquitto_sub -V '5' -t 'zilla' --cafile test-ca.crt -d
+  $ mosquitto_sub -V '5' -t 'zilla' --cafile examples/mqtt.reflect/test-ca.crt -d
   Client null sending CONNECT
   Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318  received CONNACK (0)
   Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318  sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)

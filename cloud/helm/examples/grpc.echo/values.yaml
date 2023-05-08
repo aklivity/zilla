@@ -11,9 +11,11 @@ service:
 
 tls:
   enabled: true
-  keystorePath: localhost.p12
-  keystoreLocalPath: examples/grpc.echo/localhost.p12
-  keystorePassword: generated
+  keystore:
+    name: localhost.p12
+    localPath: examples/grpc.echo/localhost.p12
+    mountPath: /etc/zilla/tls
+    password: generated
 
 filesToConfigMap:
   enabled: true

@@ -34,7 +34,7 @@ spec:
           env:
           {{- if .Values.tls.enabled }}
             - name: KEYSTORE_PASSWORD
-              value: {{ .Values.tls.keystorePassword }}
+              value: {{ .Values.tls.keystore.password }}
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -61,7 +61,7 @@ spec:
               mountPath: /etc/zilla
             {{- if .Values.tls.enabled }}
             - name: tls
-              mountPath: /etc/zilla/tls
+              mountPath: {{ .Values.tls.keystore.mountPath }}
             {{- end }}
             {{- if .Values.filesToConfigMap.enabled }}
             - name: {{ .Values.filesToConfigMap.name }}
@@ -88,8 +88,8 @@ spec:
           secret:
             secretName: tls
             items:
-              - key: {{ .Values.tls.keystorePath }}
-                path: {{ .Values.tls.keystorePath }}
+              - key: {{ .Values.tls.keystore.name }}
+                path: {{ .Values.tls.keystore.name }}
         {{- end }}
         {{- if .Values.filesToConfigMap.enabled }}
         - name: {{ .Values.filesToConfigMap.name }}
