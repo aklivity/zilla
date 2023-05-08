@@ -99,36 +99,26 @@ public final class HttpActiveRequestsMetricContext implements MetricContext
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                handleBegin(direction);
+                if (direction == 1L) //received
+                {
+                    recorder.accept(1L);
+                }
                 break;
             case ResetFW.TYPE_ID:
             case AbortFW.TYPE_ID:
             case EndFW.TYPE_ID:
-                handleEnd(exchangeId, direction);
+                final long mask = 1L << direction;
+                final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
+                if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
+                {
+                    exchanges.remove(exchangeId);
+                    recorder.accept(-1L);
+                }
+                else
+                {
+                    exchanges.put(exchangeId, status);
+                }
                 break;
-            }
-        }
-
-        private void handleBegin(long direction)
-        {
-            if (direction == 1L) //received
-            {
-                recorder.accept(1L);
-            }
-        }
-
-        private void handleEnd(long exchangeId, long direction)
-        {
-            final long mask = 1L << direction;
-            final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
-            if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
-            {
-                exchanges.remove(exchangeId);
-                recorder.accept(-1L);
-            }
-            else
-            {
-                exchanges.put(exchangeId, status);
             }
         }
     }
