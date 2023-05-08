@@ -56,7 +56,7 @@ bindings:
     kind: proxy
     routes:
       - when:
-          - service: example.FanoutService
+          - method: example.FanoutService/*
         exit: kafka_cache_client0
         with:
           capability: fetch

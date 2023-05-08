@@ -57,7 +57,7 @@ bindings:
     kind: proxy
     routes:
       - when:
-          - service: example.EchoService
+          - method: example.EchoService/*
         exit: kafka_cache_client0
         with:
           capability: produce
@@ -96,6 +96,7 @@ bindings:
         when:
           - topic: echo-requests
             reply-to: echo-responses
+            method: example.EchoService/*
         with:
           scheme: http
           authority: localhost:9090
