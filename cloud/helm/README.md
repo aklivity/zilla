@@ -46,18 +46,18 @@ started
 
 ## tcp.echo
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+$ helm install zilla-tcp-echo . --namespace zilla-tcp-echo --create-namespace --wait \
     --values examples/tcp.echo/values.yaml --set-file zilla_yaml=examples/tcp.echo/zilla.yaml
-NAME: zilla
+NAME: zilla-tcp-echo
 LAST DEPLOYED: [...]
-NAMESPACE: zilla
+NAMESPACE: zilla-tcp-echo
 STATUS: deployed
 REVISION: 1
 NOTES:
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
-$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
-$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla-tcp-echo zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla-tcp-echo service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
 
 Verify behaviour:
 -----------------
@@ -72,18 +72,18 @@ $ pgrep kubectl && killall kubectl
 
 ## tcp.reflect
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+$ helm install zilla-tcp-reflect . --namespace zilla-tcp-reflect --create-namespace --wait \
     --values examples/tcp.reflect/values.yaml --set-file zilla_yaml=examples/tcp.reflect/zilla.yaml
-NAME: zilla
+NAME: zilla-tcp-reflect
 LAST DEPLOYED: [...]
-NAMESPACE: zilla
+NAMESPACE: zilla-tcp-reflect
 STATUS: deployed
 REVISION: 1
 NOTES:
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
-$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
-$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla-tcp-reflect zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla-tcp-reflect service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
 
 Verify behaviour:
 -----------------
@@ -104,18 +104,18 @@ $ pgrep kubectl && killall kubectl
 
 ## http.echo 
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+$ helm install zilla-http-echo . --namespace zilla-http-echo --create-namespace --wait \
     --values examples/http.echo/values.yaml --set-file zilla_yaml=examples/http.echo/zilla.yaml
-NAME: zilla
+NAME: zilla-http-echo
 LAST DEPLOYED: [...]
-NAMESPACE: zilla
+NAMESPACE: zilla-http-echo
 STATUS: deployed
 REVISION: 1
 NOTES:
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
-$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
-$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla-http-echo zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla-http-echo service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
 
 Verify behaviour:
 -----------------
@@ -138,18 +138,18 @@ $ pgrep kubectl && killall kubectl
 
 ## tls.echo
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+$ helm install zilla-tls-echo . --namespace zilla-tls-echo --create-namespace --wait \
     --values examples/tls.echo/values.yaml --set-file zilla_yaml=examples/tls.echo/zilla.yaml
-NAME: zilla
+NAME: zilla-tls-echo
 LAST DEPLOYED: Mon May  8 13:09:17 2023
-NAMESPACE: zilla
+NAMESPACE: zilla-tls-echo
 STATUS: deployed
 REVISION: 1
 NOTES:
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
-$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
-$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla-tls-echo zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla-tls-echo service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
 
 Verify behaviour:
 -----------------
@@ -168,18 +168,18 @@ $ pgrep kubectl && killall kubectl
 
 ## ws.echo
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+$ helm install zilla-ws-echo . --namespace zilla-ws-echo --create-namespace --wait \
     --values examples/ws.echo/values.yaml --set-file zilla_yaml=examples/ws.echo/zilla.yaml
-NAME: zilla
+NAME: zilla-ws-echo
 LAST DEPLOYED: [...]
-NAMESPACE: zilla
+NAMESPACE: zilla-ws-echo
 STATUS: deployed
 REVISION: 1
 NOTES:
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
-$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
-$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla-ws-echo zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla-ws-echo service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
 
 Verify behaviour:
 -----------------
@@ -200,18 +200,18 @@ $ pgrep kubectl && killall kubectl
 
 ## mqtt.reflect
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+$ helm install zilla-mqtt-reflect . --namespace zilla-mqtt-reflect --create-namespace --wait \
     --values examples/mqtt.reflect/values.yaml --set-file zilla_yaml=examples/mqtt.reflect/zilla.yaml
-NAME: zilla
+NAME: zilla-mqtt-reflect
 LAST DEPLOYED: [...]
-NAMESPACE: zilla
+NAMESPACE: zilla-mqtt-reflect
 STATUS: deployed
 REVISION: 1
 NOTES:
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
-$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
-$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla-mqtt-reflect zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla-mqtt-reflect service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
 
 Verify behaviour:
 -----------------
@@ -248,18 +248,18 @@ $ pgrep kubectl && killall kubectl
 
 ## grpc.echo
 ```
-$ helm install zilla . --namespace zilla --create-namespace --wait \
+$ helm install zilla-grpc-echo . --namespace zilla-grpc-echo --create-namespace --wait \
     --values examples/grpc.echo/values.yaml --set-file zilla_yaml=examples/grpc.echo/zilla.yaml
-NAME: zilla
+NAME: zilla-grpc-echo
 LAST DEPLOYED: [...]
-NAMESPACE: zilla
+NAMESPACE: zilla-grpc-echo
 STATUS: deployed
 REVISION: 1
 NOTES:
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
-$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
-$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla-grpc-echo zilla-grpc-echo --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla-grpc-echo service/zilla-grpc-echo $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
 
 Verify behaviour:
 -----------------
