@@ -39,7 +39,8 @@ write zilla:data.ext ${kafka:dataEx()
                                 .header("zilla:identity", "test")
                                 .header("zilla:service", "example.EchoService")
                                 .header("zilla:method", "EchoServerStream")
-                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                .header("zilla:reply-to", "responses")
+                                .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-08085616660359db13a42b81ed633c5d")
                                 .build()
                             .build()}
 
@@ -59,7 +60,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .topic("responses")
                                    .partition(-1, -2)
                                    .filter()
-                                     .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e")
+                                     .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-08085616660359db13a42b81ed633c5d")
                                      .build()
                                    .build()
                                .build()}

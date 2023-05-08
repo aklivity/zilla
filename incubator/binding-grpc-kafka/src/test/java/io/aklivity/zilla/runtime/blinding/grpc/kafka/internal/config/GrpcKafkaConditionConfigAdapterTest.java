@@ -53,8 +53,7 @@ public class GrpcKafkaConditionConfigAdapterTest
     {
         String text =
                 "{\n" +
-                "    \"service\": \"example.EchoService\",\n" +
-                "    \"method\": \"EchoUnary\",\n" +
+                "    \"method\": \"example.EchoService/EchoUnary\",\n" +
                 "    \"metadata\": {\n" +
                 "        \"custom\": \"test\"\n" +
                 "    }\n" +
@@ -72,13 +71,13 @@ public class GrpcKafkaConditionConfigAdapterTest
     @Test
     public void shouldWriteCondition()
     {
-        GrpcKafkaConditionConfig condition = new GrpcKafkaConditionConfig("GET", "/test",
+        GrpcKafkaConditionConfig condition = new GrpcKafkaConditionConfig("test", "*",
             singletonMap(new String8FW("custom"), new GrpcKafkaMetadataValue(new String16FW("test"),
                 new String16FW(Base64.getUrlEncoder().encodeToString("test".getBytes())))));
 
         String text = jsonb.toJson(condition);
 
         assertThat(text, not(nullValue()));
-        assertThat(text, equalTo("{\"service\":\"GET\",\"method\":\"/test\",\"metadata\":{\"custom\":\"test\"}}"));
+        assertThat(text, equalTo("{\"method\":\"test/*\",\"metadata\":{\"custom\":\"test\"}}"));
     }
 }

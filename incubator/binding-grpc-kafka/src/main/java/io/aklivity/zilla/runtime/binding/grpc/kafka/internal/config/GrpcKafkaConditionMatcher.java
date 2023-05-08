@@ -27,6 +27,8 @@ import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.stream.GrpcMe
 
 public final class GrpcKafkaConditionMatcher
 {
+    private static final String16FW WILDCARD = new String16FW("*");
+
     private final String16FW service;
     private final String16FW method;
     private final Map<String8FW, GrpcKafkaMetadataValue> metadataMatch;
@@ -73,6 +75,7 @@ public final class GrpcKafkaConditionMatcher
     private boolean matchMethod(
         String16FW method)
     {
-        return this.method == null || this.method.value().compareTo(method.value()) == 0;
+        return this.method == null || WILDCARD.value().compareTo(this.method.value()) == 0 ||
+            this.method.value().compareTo(method.value()) == 0;
     }
 }
