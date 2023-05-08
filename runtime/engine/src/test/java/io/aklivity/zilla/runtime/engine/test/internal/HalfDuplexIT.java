@@ -683,4 +683,14 @@ public class HalfDuplexIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "server.write.abort.ext/client",
+        "server.write.abort.ext/server"
+    })
+    public void shouldReceiveServerSentWriteAbortWithExt() throws Exception
+    {
+        k3po.finish();
+    }
 }

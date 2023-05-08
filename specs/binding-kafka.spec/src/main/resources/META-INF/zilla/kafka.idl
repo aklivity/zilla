@@ -171,7 +171,8 @@ scope kafka
             META (3),
             DESCRIBE (32),
             FETCH (1),
-            PRODUCE (0)
+            PRODUCE (0),
+            GROUP (10)
         }
 
         union KafkaBeginEx switch (uint8) extends core::stream::Extension
@@ -183,6 +184,7 @@ scope kafka
             case 10: kafka::stream::KafkaGroupBeginEx group;
             case 1: kafka::stream::KafkaFetchBeginEx fetch;
             case 0: kafka::stream::KafkaProduceBeginEx produce;
+            case 10: kafka::stream::KafkaGroupBeginEx group;
         }
 
         union KafkaDataEx switch (uint8) extends core::stream::Extension
@@ -193,6 +195,7 @@ scope kafka
             case 10: kafka::stream::KafkaGroupDataEx group;
             case 1: kafka::stream::KafkaFetchDataEx fetch;
             case 0: kafka::stream::KafkaProduceDataEx produce;
+            case 10: kafka::stream::KafkaGroupDataEx group;
         }
 
         union KafkaFlushEx switch (uint8) extends core::stream::Extension
@@ -280,7 +283,7 @@ scope kafka
             int64 timestamp = 0;        // INIT only
             int32 headersSizeMax = 4;   // INIT only
             int64 producerId = -1;      // INIT only
-            int64 filters = -1;          // INIT only
+            int64 filters = -1;         // INIT only
             KafkaOffset partition;      // INIT only
             KafkaKey key;               // INIT only
             KafkaDelta delta;           // INIT + FIN
@@ -321,13 +324,14 @@ scope kafka
         struct KafkaGroupBeginEx
         {
             string16 groupId;
+            string16 protocol;
             int32 timeout;
         }
 
         struct KafkaGroupDataEx
         {
-            string16 groupId;
-            int32 timeout;
+            string16 leaderId;
+            string16 memberId;
         }
     }
 }
