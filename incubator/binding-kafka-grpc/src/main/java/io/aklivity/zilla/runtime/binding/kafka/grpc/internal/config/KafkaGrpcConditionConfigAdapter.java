@@ -85,10 +85,8 @@ public final class KafkaGrpcConditionConfigAdapter implements ConditionConfigAda
 
         if (condition.service.isPresent())
         {
-            String method = condition.service.get().asString();
-            method = condition.method.isPresent() ?
-                String.format("%s/%s", method, condition.method.get().asString()) :
-                method;
+            String method = String.format("%s/%s", condition.service.get().asString(),
+                condition.method.get().asString());
             object.add(METHOD_NAME, method);
         }
 
