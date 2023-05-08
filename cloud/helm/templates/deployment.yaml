@@ -63,6 +63,10 @@ spec:
             - name: tls
               mountPath: /etc/zilla/tls
             {{- end }}
+            {{- if .Values.filesToConfigMap.enabled }}
+            - name: {{ .Values.filesToConfigMap.name }}
+              mountPath: {{ .Values.filesToConfigMap.mountPath }}
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -86,4 +90,9 @@ spec:
             items:
               - key: {{ .Values.tls.keystorePath }}
                 path: {{ .Values.tls.keystorePath }}
+        {{- end }}
+        {{- if .Values.filesToConfigMap.enabled }}
+        - name: {{ .Values.filesToConfigMap.name }}
+          configMap:
+            name: {{ .Values.filesToConfigMap.name }}
         {{- end }}

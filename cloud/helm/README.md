@@ -245,3 +245,38 @@ Cleanup port-forwards:
 ----------------------
 $ pgrep kubectl && killall kubectl
 ```
+
+## grpc.echo
+```
+$ helm install zilla . --namespace zilla --create-namespace --wait \
+    --values examples/grpc.echo/values.yaml --set-file zilla_yaml=examples/grpc.echo/zilla.yaml
+NAME: zilla
+LAST DEPLOYED: [...]
+NAMESPACE: zilla
+STATUS: deployed
+REVISION: 1
+NOTES:
+Expose zilla with port-forward by running these commands:
+---------------------------------------------------------
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+
+Verify behaviour:
+-----------------
+$ grpcurl -insecure -proto examples/grpc.echo/proto/echo.proto -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+{
+  "message": "Hello World"
+}
+
+$ grpcurl -insecure -proto examples/grpc.echo/proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+# type this:
+{ "message": "Hello!" }
+# response:
+{
+  "message": "Hello!"
+}
+
+Cleanup port-forwards:
+----------------------
+$ pgrep kubectl && killall kubectl
+```

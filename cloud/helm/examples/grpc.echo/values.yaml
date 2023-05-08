@@ -1,0 +1,36 @@
+image:
+  tag: develop-SNAPSHOT
+
+livenessProbePort: 9090
+readinessProbePort: 9090
+
+service:
+  ports:
+    - port: 9090
+      name: https
+
+tls:
+  enabled: true
+  keystorePath: localhost.p12
+  keystoreLocalPath: examples/grpc.echo/localhost.p12
+  keystorePassword: generated
+
+filesToConfigMap:
+  enabled: true
+  name: proto
+  localPath: examples/grpc.echo/proto/*
+  mountPath: /etc/zilla/proto
+
+verify: |
+  $ grpcurl -insecure -proto examples/grpc.echo/proto/echo.proto -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
+  {
+    "message": "Hello World"
+  }
+  
+  $ grpcurl -insecure -proto examples/grpc.echo/proto/echo.proto -d @ localhost:9090 example.EchoService.EchoBidiStream
+  # type this:
+  { "message": "Hello!" }
+  # response:
+  {
+    "message": "Hello!"
+  }

@@ -1,0 +1,9 @@
+{{- if .Values.filesToConfigMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.filesToConfigMap.name }}
+data:
+  {{ .Values.filesToConfigMap.name }}: |
+{{ (.Files.Glob .Values.filesToConfigMap.localPath).AsConfig | indent 2 }}
+{{- end }}

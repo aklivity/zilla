@@ -1,0 +1,57 @@
+---
+name: example
+vaults:
+  server:
+    type: filesystem
+    options:
+      keys:
+        store: tls/localhost.p12
+        type: pkcs12
+        password: ${{env.KEYSTORE_PASSWORD}}
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 9090
+    exit: tls_server0
+  tls_server0:
+    type: tls
+    kind: server
+    vault: server
+    options:
+      keys:
+        - localhost
+      sni:
+        - localhost
+      alpn:
+        - h2
+    exit: http_server0
+  http_server0:
+    type: http
+    kind: server
+    options:
+      versions:
+        - h2
+      access-control:
+        policy: cross-origin
+    routes:
+      - when:
+          - headers:
+              :scheme: https
+              :authority: localhost:9090
+        exit: grpc_server0
+  grpc_server0:
+    type: grpc
+    kind: server
+    options:
+      services:
+        - proto/echo.proto
+    routes:
+      - when:
+          - method: example.EchoService/*
+        exit: echo_server0
+  echo_server0:
+    type: echo
+    kind: server
