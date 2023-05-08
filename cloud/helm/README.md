@@ -166,4 +166,34 @@ Cleanup port-forwards:
 $ pgrep kubectl && killall kubectl
 ```
 
-// TODO: Ati - add more examples
+## ws.echo
+```
+$ helm install zilla . --namespace zilla --create-namespace --wait \
+    --values examples/ws.echo/values.yaml --set-file zilla_yaml=examples/ws.echo/zilla.yaml
+NAME: zilla
+LAST DEPLOYED: [...]
+NAMESPACE: zilla
+STATUS: deployed
+REVISION: 1
+NOTES:
+Expose zilla with port-forward by running these commands:
+---------------------------------------------------------
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+
+Verify behaviour:
+-----------------
+$ wscat -c ws://localhost:8080/ -s echo
+Connected (press CTRL+C to quit)
+> Hello, world
+< Hello, world
+
+$ wscat -c wss://localhost:9090/ --ca examples/ws.echo/test-ca.crt -s echo
+Connected (press CTRL+C to quit)
+> Hello, world
+< Hello, world
+
+Cleanup port-forwards:
+----------------------
+$ pgrep kubectl && killall kubectl
+```
