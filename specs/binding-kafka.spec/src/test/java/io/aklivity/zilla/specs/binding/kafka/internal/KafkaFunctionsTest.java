@@ -66,6 +66,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchBeg
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -3598,6 +3600,99 @@ public class KafkaFunctionsTest
 
                     return c.kind() == HEADERS.value() && matches;
                 }) != null));
+    }
+
+    @Test
+    public void shouldGenerateGroupBeginExtension()
+    {
+        byte[] build = KafkaFunctions.beginEx()
+            .typeId(0x01)
+            .group()
+                .groupId("test")
+                .protocol("roundrobin")
+                .timeout(10)
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaBeginExFW beginEx = new KafkaBeginExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, beginEx.typeId());
+        assertEquals(KafkaApi.GROUP.value(), beginEx.kind());
+
+        final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
+        assertEquals("test", groupBeginEx.groupId().asString());
+        assertEquals("roundrobin", groupBeginEx.protocol().asString());
+        assertEquals(10, groupBeginEx.timeout());
+    }
+
+    @Test
+    public void shouldMatchGroupBeginExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchBeginEx()
+            .group()
+                .groupId("test")
+                .protocol("roundrobin")
+                .timeout(10)
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .group(f -> f
+                .groupId("test")
+                .protocol("roundrobin")
+                .timeout(10))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldGenerateGroupDataExtension()
+    {
+        byte[] build = KafkaFunctions.dataEx()
+            .typeId(0x01)
+            .group()
+                .leaderId("test1")
+                .memberId("test2")
+                .build()
+            .build();
+
+        DirectBuffer buffer = new UnsafeBuffer(build);
+        KafkaDataExFW dataEx = new KafkaDataExFW().wrap(buffer, 0, buffer.capacity());
+        assertEquals(0x01, dataEx.typeId());
+        assertEquals(KafkaApi.GROUP.value(), dataEx.kind());
+
+        final KafkaGroupDataExFW groupDataEx = dataEx.group();
+        assertEquals("test1", groupDataEx.leaderId().asString());
+        assertEquals("test2", groupDataEx.memberId().asString());
+    }
+
+    @Test
+    public void shouldMatchGroupDataExtension() throws Exception
+    {
+        BytesMatcher matcher = KafkaFunctions.matchDataEx()
+            .typeId(0x01)
+            .group()
+                .leaderId("test1")
+                .memberId("test2")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new KafkaDataExFW.Builder()
+            .wrap(new UnsafeBuffer(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .group(f -> f
+                .leaderId("test1")
+                .memberId("test2"))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
     }
 
     @Test

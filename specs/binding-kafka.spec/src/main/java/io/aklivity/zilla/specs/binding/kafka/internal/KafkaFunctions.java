@@ -1071,7 +1071,7 @@ public final class KafkaFunctions
 
         public KafkaGroupDataExBuilder group()
         {
-            dataExRW.kind(KafkaApi.META.value());
+            dataExRW.kind(KafkaApi.GROUP.value());
 
             return new KafkaGroupDataExBuilder();
         }
@@ -1579,7 +1579,7 @@ public final class KafkaFunctions
 
             private KafkaGroupDataExBuilder()
             {
-                groupDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_META, writeBuffer.capacity());
+                groupDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_GROUP, writeBuffer.capacity());
             }
 
             public KafkaGroupDataExBuilder leaderId(
@@ -2623,6 +2623,11 @@ public final class KafkaFunctions
             {
                 this.memberId = new String16FW(memberId);
                 return this;
+            }
+
+            public KafkaDataExMatcherBuilder build()
+            {
+                return KafkaDataExMatcherBuilder.this;
             }
 
             private boolean match(
