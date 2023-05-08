@@ -13,17 +13,25 @@
 # specific language governing permissions and limitations under the License.
 #
 
+#TODO: this should be the final config
 ---
 name: test
 bindings:
   sse0:
     type: mqtt-kafka
     kind: proxy
+    options:
+      topics:
+        sessions: mqtt_sessions
+        messages: mqtt_messages
     routes:
       - exit: kafka0
         when:
+          - capabilities: SESSION
+        with:
+          - topic: mqtt_sessions
+      - exit: kafka0
+        when:
           - capabilities: PUBLISH_AND_SUBSCRIBE
-            topic: sensor/one
         with:
           - topic: mqtt_messages
-

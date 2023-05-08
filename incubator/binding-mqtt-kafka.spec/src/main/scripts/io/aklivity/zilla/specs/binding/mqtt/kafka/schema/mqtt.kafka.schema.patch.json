@@ -16,42 +16,7 @@
                 },
                 "vault": false,
                 "options": false,
-                "routes":
-                {
-                    "items":
-                    {
-                        "properties":
-                        {
-                            "when":
-                            {
-                                "items":
-                                {
-                                    "additionalProperties": false,
-                                    "properties":
-                                    {
-                                        //TODO: add capabilities
-                                        "topic":
-                                        {
-                                            "title": "Topic",
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            },
-                            "with":
-                            {
-                                "properties":
-                                {
-                                    "topic":
-                                    {
-                                        "title": "Topic",
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                "routes": false
             },
             "anyOf":
             [
@@ -59,12 +24,6 @@
                     "required":
                     [
                         "exit"
-                    ]
-                },
-                {
-                    "required":
-                    [
-                        "routes"
                     ]
                 }
             ]

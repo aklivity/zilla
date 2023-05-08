@@ -30,6 +30,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                         .skip(1)
                                         .build()
                                     .build()
+                                .evaluation("EAGER")
                                 .build()
                             .build()}
 

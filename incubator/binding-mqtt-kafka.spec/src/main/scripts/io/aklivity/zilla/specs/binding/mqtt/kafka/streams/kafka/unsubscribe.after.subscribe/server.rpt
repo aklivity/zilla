@@ -25,12 +25,12 @@ read zilla:begin.ext ${kafka:matchBeginEx()
                                 .capabilities("FETCH_ONLY")
                                 .topic("mqtt_messages")
                                 .filter()
-                                    .evaluate("ALWAYS")
                                     .headers("zilla:topic")
                                         .sequence("sensor")
                                         .sequence("one")
                                         .build()
                                     .build()
+                                .evaluation("EAGER")
                                 .build()
                             .build()}
 

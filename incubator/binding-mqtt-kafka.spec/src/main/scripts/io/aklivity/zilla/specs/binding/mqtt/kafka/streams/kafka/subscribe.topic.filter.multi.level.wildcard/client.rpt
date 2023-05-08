@@ -28,6 +28,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .skipMany()
                                         .build()
                                     .build()
+                                .evaluation("EAGER")
                                 .build()
                             .build()}
 connected

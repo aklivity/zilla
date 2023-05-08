@@ -29,6 +29,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                         .skip(1)
                                         .build()
                                     .build()
+                                .evaluation("EAGER")
                                 .build()
                             .build()}
 

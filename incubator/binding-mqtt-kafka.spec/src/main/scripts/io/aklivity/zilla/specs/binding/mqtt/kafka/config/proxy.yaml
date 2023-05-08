@@ -16,22 +16,7 @@
 ---
 name: test
 bindings:
-  sse0:
+  mqtt0:
     type: mqtt-kafka
     kind: proxy
-    //Have no config, but this should be the default behaviour
-    options:
-      topics:
-        sessions: mqtt_sessions
-        messages: mqtt_messages
-    routes:
-      - exit: kafka0
-        when:
-          - capabilities: SESSION
-        with:
-          - topic: mqtt_sessions
-      - exit: kafka0
-        when:
-          - capabilities: PUBLISH_AND_SUBSCRIBE
-        with:
-          - topic: mqtt_messages
+    exit: kafka0
