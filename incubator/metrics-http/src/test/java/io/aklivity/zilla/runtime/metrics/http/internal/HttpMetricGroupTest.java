@@ -42,6 +42,7 @@ import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.BeginFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.metrics.http.internal.types.stream.ResetFW;
 
 public class HttpMetricGroupTest
 {
@@ -697,13 +698,15 @@ public class HttpMetricGroupTest
             .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
-        // end frames
+        // end frame received
         AtomicBuffer endBuffer1 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer1, 0, endBuffer1.capacity())
             .originId(0L).routedId(0L).streamId(1L) // received
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(72_000L)
             .traceId(0L).authorization(0L).build();
         handler.accept(EndFW.TYPE_ID, endBuffer1, 0, endBuffer1.capacity());
+
+        // end frame sent
         AtomicBuffer endBuffer2 = new UnsafeBuffer(new byte[128], 0, 128);
         new EndFW.Builder().wrap(endBuffer2, 0, endBuffer2.capacity())
             .originId(0L).routedId(0L).streamId(0L) // sent
@@ -713,5 +716,103 @@ public class HttpMetricGroupTest
 
         // THEN
         verify(recorder, times(1)).accept(35L);
+    }
+
+    @Test
+    public void shouldNotRecordHttpDurationIfAborted()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.duration");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .typeId(0)
+            .headersItem(h -> h.name(":status").value("200"))
+            .headersItem(h -> h.name("content-length").value("42"))
+            .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(42_000L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // abort frame received
+        AtomicBuffer abortBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new AbortFW.Builder().wrap(abortBuffer, 0, abortBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(72_000L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(AbortFW.TYPE_ID, abortBuffer, 0, abortBuffer.capacity());
+
+        // end frame sent
+        AtomicBuffer endBuffer = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer, 0, endBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(0L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(77_000L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer, 0, endBuffer.capacity());
+
+        // THEN
+        verify(recorder, never()).accept(anyLong());
+    }
+
+    @Test
+    public void shouldNotRecordHttpDurationIfReset()
+    {
+        // GIVEN
+        Configuration config = new Configuration();
+        MetricGroup metricGroup = new HttpMetricGroup(config);
+        EngineContext engineContext = mock(EngineContext.class);
+        LongConsumer recorder = mock(LongConsumer.class);
+
+        // WHEN
+        Metric metric = metricGroup.supply("http.duration");
+        MetricContext context = metric.supply(engineContext);
+        MessageConsumer handler = context.supply(recorder);
+
+        // begin frame
+        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
+            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
+            .typeId(0)
+            .headersItem(h -> h.name(":status").value("200"))
+            .headersItem(h -> h.name("content-length").value("42"))
+            .build();
+        AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(42_000L)
+            .traceId(0L).authorization(0L).affinity(0L)
+            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+        handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
+
+        // end frame received
+        AtomicBuffer endBuffer0 = new UnsafeBuffer(new byte[128], 0, 128);
+        new EndFW.Builder().wrap(endBuffer0, 0, endBuffer0.capacity())
+            .originId(0L).routedId(0L).streamId(1L) // received
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(72_000L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(EndFW.TYPE_ID, endBuffer0, 0, endBuffer0.capacity());
+
+        // reset frame sent
+        AtomicBuffer resetBuffer = new UnsafeBuffer(new byte[256], 0, 256);
+        new ResetFW.Builder().wrap(resetBuffer, 0, resetBuffer.capacity())
+            .originId(0L).routedId(0L).streamId(0L) // sent
+            .sequence(0L).acknowledge(0L).maximum(0).timestamp(77_000L)
+            .traceId(0L).authorization(0L).build();
+        handler.accept(ResetFW.TYPE_ID, resetBuffer, 0, resetBuffer.capacity());
+
+        // THEN
+        verify(recorder, never()).accept(anyLong());
     }
 }

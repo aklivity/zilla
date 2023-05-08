@@ -110,6 +110,9 @@ public final class HttpDurationMetricContext implements MetricContext
                 break;
             case ResetFW.TYPE_ID:
             case AbortFW.TYPE_ID:
+                exchanges.remove(exchangeId);
+                timestamps.remove(exchangeId);
+                break;
             case EndFW.TYPE_ID:
                 final long mask = 1L << direction;
                 final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
@@ -117,13 +120,13 @@ public final class HttpDurationMetricContext implements MetricContext
                 {
                     exchanges.remove(exchangeId);
                     long start = timestamps.remove(exchangeId);
-                    if (msgTypeId == EndFW.TYPE_ID)
+                    if (start != INITIAL_VALUE)
                     {
                         long duration = TimeUnit.MILLISECONDS.toSeconds(timestamp - start);
                         recorder.accept(duration);
                     }
                 }
-                else
+                else if (timestamps.containsKey(exchangeId)) // prevent memory leak if already aborted
                 {
                     exchanges.put(exchangeId, status);
                 }
