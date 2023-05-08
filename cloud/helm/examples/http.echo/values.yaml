@@ -2,10 +2,27 @@ livenessProbePort: 8080
 readinessProbePort: 8080
 
 service:
-  port: 8080
+  ports:
+    - port: 8080
+      name: http
+    - port: 9090
+      name: https
 
 tls:
   enabled: true
   keystorePath: localhost.p12
   keystoreLocalPath: examples/http.echo/localhost.p12
   keystorePassword: generated
+
+verify: |
+  $ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/
+  Hello, world
+
+  $ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/ --http2-prior-knowledge
+  Hello, world
+
+  $ curl --cacert examples/http.echo/test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http1.1
+  Hello, world
+
+  $ curl --cacert examples/http.echo/test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http2
+  Hello, world

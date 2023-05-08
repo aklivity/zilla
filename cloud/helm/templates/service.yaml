@@ -1,3 +1,4 @@
+{{- if (gt (len .Values.service.ports) 0) }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,9 +8,11 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+  {{- range $port := .Values.service.ports }}
+    - port: {{ $port.port }}
       protocol: TCP
-      name: http
+      name: {{ $port.name }}
+  {{- end }}
   selector:
     {{- include "helm.selectorLabels" . | nindent 4 }}
+{{- end }}

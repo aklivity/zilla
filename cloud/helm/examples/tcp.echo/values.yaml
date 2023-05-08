@@ -2,4 +2,11 @@ livenessProbePort: 12345
 readinessProbePort: 12345
 
 service:
-  port: 12345
+  ports:
+    - port: 12345
+      name: tcp
+
+verify: |
+  $ nc localhost 12345
+  Hello, world
+  Hello, world
