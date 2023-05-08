@@ -99,10 +99,10 @@ public final class HttpDurationMetricContext implements MetricContext
             final long streamId = frame.streamId();
             final long exchangeId = initialId(streamId);
             long direction = HttpUtils.direction(streamId);
+            long timestamp = frame.timestamp();
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                long timestamp = frame.timestamp();
                 if (direction == 1L && timestamp != INITIAL_VALUE) //received stream
                 {
                     timestamps.put(exchangeId, timestamp);
@@ -111,7 +111,6 @@ public final class HttpDurationMetricContext implements MetricContext
             case ResetFW.TYPE_ID:
             case AbortFW.TYPE_ID:
             case EndFW.TYPE_ID:
-                long timestamp1 = frame.timestamp();
                 final long mask = 1L << direction;
                 final long status = exchanges.get(exchangeId) | mask; // mark current direction as closed
                 if (status == EXCHANGE_CLOSED) // both received and sent streams are closed
@@ -120,7 +119,7 @@ public final class HttpDurationMetricContext implements MetricContext
                     long start = timestamps.remove(exchangeId);
                     if (msgTypeId == EndFW.TYPE_ID)
                     {
-                        long duration = TimeUnit.MILLISECONDS.toSeconds(timestamp1 - start);
+                        long duration = TimeUnit.MILLISECONDS.toSeconds(timestamp - start);
                         recorder.accept(duration);
                     }
                 }
