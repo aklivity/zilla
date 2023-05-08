@@ -197,3 +197,51 @@ Cleanup port-forwards:
 ----------------------
 $ pgrep kubectl && killall kubectl
 ```
+
+## mqtt.reflect
+```
+$ helm install zilla . --namespace zilla --create-namespace --wait \
+    --values examples/mqtt.reflect/values.yaml --set-file zilla_yaml=examples/mqtt.reflect/zilla.yaml
+NAME: zilla
+LAST DEPLOYED: [...]
+NAMESPACE: zilla
+STATUS: deployed
+REVISION: 1
+NOTES:
+Expose zilla with port-forward by running these commands:
+---------------------------------------------------------
+$ export SERVICE_PORTS=$(kubectl get svc --namespace zilla zilla --template "{{ range .spec.ports }}{{.port}} {{ end }}")
+$ eval "kubectl port-forward --namespace zilla service/zilla $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
+
+Verify behaviour:
+-----------------
+Connect two subscribing clients first, then send `Hello, world` from publishing client.
+
+$ mosquitto_sub -V '5' -t 'zilla' -d
+Client null sending CONNECT
+Client 43516069-9fa3-493d-9ab1-17e5e891e5be received CONNACK (0)
+Client 43516069-9fa3-493d-9ab1-17e5e891e5be sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)
+Client 43516069-9fa3-493d-9ab1-17e5e891e5be received SUBACK
+Subscribed (mid: 1): 0
+Client 43516069-9fa3-493d-9ab1-17e5e891e5be received PUBLISH (d0, q0, r0, m0, 'zilla', ... (12 bytes))
+Hello, world
+
+$ mosquitto_sub -V '5' -t 'zilla' --cafile examples/mqtt.reflect/test-ca.crt -d
+Client null sending CONNECT
+Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318  received CONNACK (0)
+Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318  sending SUBSCRIBE (Mid: 1, Topic: zilla, QoS: 0, Options: 0x00)
+Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318  received SUBACK
+Subscribed (mid: 1): 0
+Client 42c70f3c-fe67-41f9-8de3-9fae26ba6318 received PUBLISH (d0, q0, r0, m0, 'zilla', ... (12 bytes))
+Hello, world
+
+$ mosquitto_pub -V '5' -t 'zilla' -m 'Hello, world' -d
+Client null sending CONNECT
+Client 5beb7f61-1b92-460c-8a2d-30a38156c601 received CONNACK (0)
+Client 5beb7f61-1b92-460c-8a2d-30a38156c601 sending PUBLISH (d0, q0, r0, m1, 'zilla', ... (12 bytes))
+Client 5beb7f61-1b92-460c-8a2d-30a38156c601 sending DISCONNECT
+
+Cleanup port-forwards:
+----------------------
+$ pgrep kubectl && killall kubectl
+```

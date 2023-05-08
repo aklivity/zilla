@@ -9,7 +9,7 @@ service:
 tls:
   enabled: true
   keystorePath: localhost.p12
-  keystoreLocalPath: examples/http.echo/localhost.p12
+  keystoreLocalPath: examples/tls.echo/localhost.p12
   keystorePassword: generated
 
 verify: |
