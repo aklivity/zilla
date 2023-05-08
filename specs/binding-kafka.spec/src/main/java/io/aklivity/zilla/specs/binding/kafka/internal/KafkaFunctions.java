@@ -69,6 +69,8 @@ import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchBeg
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFetchFlushExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaFlushExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
+import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaGroupDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedBeginExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedDataExFW;
 import io.aklivity.zilla.specs.binding.kafka.internal.types.stream.KafkaMergedFlushExFW;
@@ -607,6 +609,13 @@ public final class KafkaFunctions
             return new KafkaProduceBeginExBuilder();
         }
 
+        public KafkaGroupBeginExBuilder group()
+        {
+            beginExRW.kind(KafkaApi.GROUP.value());
+
+            return new KafkaGroupBeginExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaBeginExFW beginEx = beginExRO;
@@ -964,6 +973,45 @@ public final class KafkaFunctions
                 }
             }
         }
+
+        public final class KafkaGroupBeginExBuilder
+        {
+            private final KafkaGroupBeginExFW.Builder groupBeginExRW = new KafkaGroupBeginExFW.Builder();
+
+
+            private KafkaGroupBeginExBuilder()
+            {
+                groupBeginExRW.wrap(writeBuffer, KafkaBeginExFW.FIELD_OFFSET_PRODUCE, writeBuffer.capacity());
+            }
+
+            public KafkaGroupBeginExBuilder groupId(
+                String groupId)
+            {
+                groupBeginExRW.groupId(groupId);
+                return this;
+            }
+
+            public KafkaGroupBeginExBuilder protocol(
+                String protocol)
+            {
+                groupBeginExRW.protocol(protocol);
+                return this;
+            }
+
+            public KafkaGroupBeginExBuilder timeout(
+                int timeout)
+            {
+                groupBeginExRW.timeout(timeout);
+                return this;
+            }
+
+            public KafkaBeginExBuilder build()
+            {
+                final KafkaGroupBeginExFW groupBeginEx = groupBeginExRW.build();
+                beginExRO.wrap(writeBuffer, 0, groupBeginEx.limit());
+                return KafkaBeginExBuilder.this;
+            }
+        }
     }
 
     public static final class KafkaDataExBuilder
@@ -1021,6 +1069,13 @@ public final class KafkaFunctions
             return new KafkaProduceDataExBuilder();
         }
 
+        public KafkaGroupDataExBuilder group()
+        {
+            dataExRW.kind(KafkaApi.META.value());
+
+            return new KafkaGroupDataExBuilder();
+        }
+
         public byte[] build()
         {
             final KafkaDataExFW dataEx = dataExRO;
@@ -1028,7 +1083,6 @@ public final class KafkaFunctions
             dataEx.buffer().getBytes(dataEx.offset(), array);
             return array;
         }
-
         public final class KafkaFetchDataExBuilder
         {
             private final DirectBuffer keyRO = new UnsafeBuffer(0, 0);
@@ -1518,6 +1572,37 @@ public final class KafkaFunctions
                 return KafkaDataExBuilder.this;
             }
         }
+
+        public final class KafkaGroupDataExBuilder
+        {
+            private final KafkaGroupDataExFW.Builder groupDataExRW = new KafkaGroupDataExFW.Builder();
+
+            private KafkaGroupDataExBuilder()
+            {
+                groupDataExRW.wrap(writeBuffer, KafkaDataExFW.FIELD_OFFSET_META, writeBuffer.capacity());
+            }
+
+            public KafkaGroupDataExBuilder leaderId(
+                String leaderId)
+            {
+                groupDataExRW.leaderId(leaderId);
+                return this;
+            }
+
+            public KafkaGroupDataExBuilder memberId(
+                String memberId)
+            {
+                groupDataExRW.memberId(memberId);
+                return this;
+            }
+
+            public KafkaDataExBuilder build()
+            {
+                final KafkaGroupDataExFW groupDataEx = groupDataExRW.build();
+                dataExRO.wrap(writeBuffer, 0, groupDataEx.limit());
+                return KafkaDataExBuilder.this;
+            }
+        }
     }
 
     public static final class KafkaFlushExBuilder
@@ -1763,6 +1848,15 @@ public final class KafkaFunctions
             final KafkaProduceDataExMatcherBuilder matcherBuilder = new KafkaProduceDataExMatcherBuilder();
 
             this.kind = KafkaApi.PRODUCE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaGroupDataExMatchBuilder group()
+        {
+            final KafkaGroupDataExMatchBuilder matcherBuilder = new KafkaGroupDataExMatchBuilder();
+
+            this.kind = KafkaApi.GROUP.value();
             this.caseMatcher = matcherBuilder::match;
             return matcherBuilder;
         }
@@ -2507,6 +2601,50 @@ public final class KafkaFunctions
                 return filters == null || filters == mergedDataEx.filters();
             }
         }
+
+        public final class KafkaGroupDataExMatchBuilder
+        {
+            private String16FW leaderId;
+            private String16FW memberId;
+
+            private KafkaGroupDataExMatchBuilder()
+            {
+            }
+
+            public KafkaGroupDataExMatchBuilder leaderId(
+                String leaderId)
+            {
+                this.leaderId = new String16FW(leaderId);
+                return this;
+            }
+
+            public KafkaGroupDataExMatchBuilder memberId(
+                String memberId)
+            {
+                this.memberId = new String16FW(memberId);
+                return this;
+            }
+
+            private boolean match(
+                KafkaDataExFW dataEx)
+            {
+                final KafkaGroupDataExFW groupDataEx = dataEx.group();
+                return matchLeaderId(groupDataEx) &&
+                    matchMemberId(groupDataEx);
+            }
+
+            private boolean matchLeaderId(
+                final KafkaGroupDataExFW groupDataEx)
+            {
+                return leaderId == null || leaderId.equals(groupDataEx.leaderId());
+            }
+
+            private boolean matchMemberId(
+                final KafkaGroupDataExFW groupDataEx)
+            {
+                return memberId == null || memberId.equals(groupDataEx.memberId());
+            }
+        }
     }
 
     public static final class KafkaFlushExMatcherBuilder
@@ -2777,6 +2915,15 @@ public final class KafkaFunctions
             final KafkaProduceBeginExMatcherBuilder matcherBuilder = new KafkaProduceBeginExMatcherBuilder();
 
             this.kind = KafkaApi.PRODUCE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
+        public KafkaGroupBeginExMatcherBuilder group()
+        {
+            final KafkaGroupBeginExMatcherBuilder matcherBuilder = new KafkaGroupBeginExMatcherBuilder();
+
+            this.kind = KafkaApi.GROUP.value();
             this.caseMatcher = matcherBuilder::match;
             return matcherBuilder;
         }
@@ -3098,6 +3245,71 @@ public final class KafkaFunctions
                 return partitionRW == null || partitionRW.build().equals(produceBeginEx.partition());
             }
 
+        }
+
+        public final class KafkaGroupBeginExMatcherBuilder
+        {
+            private String16FW groupId;
+            private String16FW protocol;
+            private int timeout;
+
+            private KafkaGroupBeginExMatcherBuilder()
+            {
+            }
+
+            public KafkaGroupBeginExMatcherBuilder groupId(
+                String groupId)
+            {
+                this.groupId = new String16FW(groupId);
+                return this;
+            }
+
+            public KafkaGroupBeginExMatcherBuilder protocol(
+                String protocol)
+            {
+                this.protocol = new String16FW(protocol);
+                return this;
+            }
+
+            public KafkaGroupBeginExMatcherBuilder timeout(
+                int timeout)
+            {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public KafkaBeginExMatcherBuilder build()
+            {
+                return KafkaBeginExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                KafkaBeginExFW beginEx)
+            {
+                final KafkaGroupBeginExFW groupBeginEx = beginEx.group();
+                return matchGroupId(groupBeginEx) &&
+                    matchGroupId(groupBeginEx) &&
+                    matchProtocol(groupBeginEx) &&
+                    matchTimeout(groupBeginEx);
+            }
+
+            private boolean matchGroupId(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return groupId == null || groupId.equals(groupBeginExFW.groupId());
+            }
+
+            private boolean matchProtocol(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return protocol == null || protocol.equals(groupBeginExFW.protocol());
+            }
+
+            private boolean matchTimeout(
+                final KafkaGroupBeginExFW groupBeginExFW)
+            {
+                return timeout == 0 || timeout == groupBeginExFW.timeout();
+            }
         }
 
         public final class KafkaMergedBeginExMatcherBuilder
