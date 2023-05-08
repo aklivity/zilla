@@ -29,6 +29,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write option zilla:flags "init"
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -49,9 +50,15 @@ write zilla:data.ext ${kafka:dataEx()
 write zilla:data.empty
 write flush
 
+write option zilla:flags "none"
 write '{ "name": "widget" }'
 write flush
 
+write notify SENDING_ASYNC_REQUEST
+
+write await RECEIVED_ASYNC_FLUSH
+
+write option zilla:flags "fin"
 write zilla:data.ext ${kafka:dataEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
@@ -62,12 +69,39 @@ write zilla:data.ext ${kafka:dataEx()
 write zilla:data.empty
 write flush
 
-write notify SENT_ASYNC_REQUEST
+write notify SEND_ASYNC_REQUEST
+
 write close
 read closed
 
+connect await SENDING_ASYNC_REQUEST
+        "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 
-connect await SENT_ASYNC_REQUEST
+write zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .merged()
+                                   .capabilities("FETCH_ONLY")
+                                   .topic("items-replies")
+                                   .partition(-1, -2)
+                                   .filter()
+                                     .header("zilla:correlation-id", "59410e57-3e0f-4b61-9328-f645a7968ac8-5d1dfda51f846bbd53ed6c92e633912b")
+                                     .build()
+                                   .build()
+                               .build()}
+
+connected
+
+read advised zilla:flush
+
+read notify RECEIVED_ASYNC_FLUSH
+
+read closed
+write close
+
+
+connect await SEND_ASYNC_REQUEST
         "zilla://streams/kafka0"
     option zilla:window 8192
     option zilla:transmission "duplex"

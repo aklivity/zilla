@@ -21,12 +21,11 @@ connect "zilla://streams/app0"
 
 write zilla:begin.ext ${http:beginEx()
                               .typeId(zilla:id("http"))
-                              .header(":method", "POST")
+                              .header(":method", "GET")
                               .header(":scheme", "http")
                               .header(":path", "/")
                               .header(":authority", "localhost:8080")
                               .build()}
-
 connected
 
 read zilla:begin.ext ${http:beginEx()

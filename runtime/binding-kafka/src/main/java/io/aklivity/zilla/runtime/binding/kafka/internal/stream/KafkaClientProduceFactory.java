@@ -227,7 +227,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         MessageConsumer application)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long affinity = begin.affinity();
         final long authorization = begin.authorization();
@@ -244,7 +245,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             final String16FW beginTopic = kafkaProduceBeginEx.topic();
             final String topicName = beginTopic.asString();
 
-            final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+            final KafkaBindingConfig binding = supplyBinding.apply(routedId);
             final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
             if (resolved != null && kafkaBeginEx != null)
@@ -255,7 +256,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 newStream = new KafkaProduceStream(
                         application,
-                        routeId,
+                        originId,
+                        routedId,
                         initialId,
                         affinity,
                         resolvedId,
@@ -270,7 +272,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -281,7 +284,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -302,7 +306,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -313,7 +318,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -329,7 +335,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -344,7 +351,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -362,7 +370,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -372,22 +381,24 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         Consumer<OctetsFW.Builder> extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                               .routeId(routeId)
-                               .streamId(streamId)
-                               .sequence(sequence)
-                               .acknowledge(acknowledge)
-                               .maximum(maximum)
-                               .traceId(traceId)
-                               .authorization(authorization)
-                               .extension(extension)
-                               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -397,7 +408,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         Consumer<OctetsFW.Builder> extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -412,7 +424,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -423,7 +436,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -439,7 +453,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -449,15 +464,16 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         Flyweight extension)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .extension(extension.buffer(), extension.offset(), extension.sizeof())
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension.buffer(), extension.offset(), extension.sizeof())
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
@@ -833,7 +849,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
     private final class KafkaProduceStream
     {
         private final MessageConsumer application;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final long affinity;
@@ -851,7 +868,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
         KafkaProduceStream(
             MessageConsumer application,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long affinity,
             long resolvedId,
@@ -860,7 +878,8 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             KafkaSaslConfig sasl)
         {
             this.application = application;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
@@ -1018,7 +1037,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         {
             state = KafkaState.openingReply(state);
 
-            doBegin(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                                                         .typeId(kafkaTypeId)
@@ -1035,7 +1054,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         {
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
-            doEnd(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doEnd(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
 
@@ -1044,7 +1063,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         {
             state = KafkaState.closedReply(state);
             //client.stream = nullIfClosed(state, client.stream);
-            doAbort(application, routeId, replyId, replySeq, replyAck, replyMax,
+            doAbort(application, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, client.authorization, EMPTY_EXTENSION);
         }
 
@@ -1074,7 +1093,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 state = KafkaState.openedInitial(state);
 
-                doWindow(application, routeId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, client.authorization, client.initialBud, KAFKA_RECORD_FRAMING);
             }
         }
@@ -1086,7 +1105,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             state = KafkaState.closedInitial(state);
             //client.stream = nullIfClosed(state, client.stream);
 
-            doReset(application, routeId, initialId, initialSeq, initialAck, initialMax,
+            doReset(application, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, client.authorization, extension);
         }
 
@@ -1193,17 +1212,17 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
             KafkaProduceClient(
                 KafkaProduceStream stream,
-                long routeId,
+                long resolvedId,
                 String topic,
                 int partitionId,
                 KafkaSaslConfig sasl)
             {
-                super(sasl, routeId);
+                super(sasl, stream.routedId, resolvedId);
                 this.stream = stream;
                 this.topic = requireNonNull(topic);
                 this.partitionId = partitionId;
                 this.flusher = flushRecord;
-                this.clientRoute = supplyClientRoute.apply(routeId);
+                this.clientRoute = supplyClientRoute.apply(resolvedId);
                 this.encodeableRecordBatchTimestamp = TIMESTAMP_NONE;
                 this.encodeableRecordBatchTimestampMax = TIMESTAMP_NONE;
                 this.encodeableAckMode = KafkaAckMode.NONE;
@@ -1435,7 +1454,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                                                                     .sizeof());
                 }
 
-                network = newStream(this::onNetwork, routeId, initialId, initialSeq, initialAck, initialMax,
+                network = newStream(this::onNetwork, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, affinity, extension);
             }
 
@@ -1479,7 +1498,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 long authorization)
             {
                 state = KafkaState.closedInitial(state);
-                doEnd(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, EMPTY_EXTENSION);
 
                 cleanupEncodeSlotIfNecessary();
@@ -1490,7 +1509,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 if (!KafkaState.initialClosed(state))
                 {
-                    doAbort(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                    doAbort(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, EMPTY_EXTENSION);
                     state = KafkaState.closedInitial(state);
                 }
@@ -1503,7 +1522,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 if (!KafkaState.replyClosed(state))
                 {
-                    doReset(network, routeId, replyId, replySeq, replyAck, replyMax,
+                    doReset(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, EMPTY_OCTETS);
                     state = KafkaState.closedReply(state);
                 }
@@ -1529,7 +1548,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                     state = KafkaState.openedReply(state);
 
-                    doWindow(network, routeId, replyId, replySeq, replyAck, replyMax,
+                    doWindow(network, originId, routedId, replyId, replySeq, replyAck, replyMax,
                             traceId, authorization, budgetId, minReplyPad);
                 }
             }
@@ -1735,12 +1754,12 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 {
                     if (produceRequestMaxDelay == 0)
                     {
-                        signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                        signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
                     }
                     else
                     {
-                        signaler.signalAt(currentTimeMillis() + produceRequestMaxDelay, routeId, initialId,
-                                SIGNAL_NEXT_REQUEST, 0);
+                        signaler.signalAt(currentTimeMillis() + produceRequestMaxDelay, originId, routedId,
+                                initialId, SIGNAL_NEXT_REQUEST, 0);
                     }
                     signaledRequestId = nextRequestId + 1;
                 }
@@ -1951,7 +1970,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 {
                     final int reserved = length + initialPad;
 
-                    doData(network, routeId, initialId, initialSeq, initialAck, initialMax,
+                    doData(network, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                             traceId, authorization, budgetId, reserved, buffer, offset, length, EMPTY_OCTETS);
 
                     initialSeq += reserved;
@@ -2192,7 +2211,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 long traceId)
             {
                 nextResponseId++;
-                signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
             }
 
             private void onDecodeProduceResponse(
@@ -2208,7 +2227,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (encodeSlot != NO_SLOT)
                 {
-                    signaler.signalNow(routeId, initialId, SIGNAL_NEXT_REQUEST, 0);
+                    signaler.signalNow(originId, routedId, initialId, SIGNAL_NEXT_REQUEST, 0);
                 }
             }
 

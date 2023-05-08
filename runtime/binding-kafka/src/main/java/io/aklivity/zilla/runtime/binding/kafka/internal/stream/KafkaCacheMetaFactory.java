@@ -142,7 +142,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         MessageConsumer sender)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
@@ -160,7 +161,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
         MessageConsumer newStream = null;
 
-        final KafkaBindingConfig binding = supplyBinding.apply(routeId);
+        final KafkaBindingConfig binding = supplyBinding.apply(routedId);
         final KafkaRouteConfig resolved = binding != null ? binding.resolve(authorization, topicName) : null;
 
         if (resolved != null)
@@ -171,11 +172,11 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             KafkaCacheMetaFanout fanout = cacheRoute.metaFanoutsByTopic.get(topicKey);
             if (fanout == null)
             {
-                final long cacheId = supplyCacheId.applyAsLong(routeId, resolvedId);
+                final long cacheId = supplyCacheId.applyAsLong(routedId, resolvedId);
                 final String cacheName = String.format("%s.%s", supplyNamespace.apply(cacheId), supplyLocalName.apply(cacheId));
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
-                final KafkaCacheMetaFanout newFanout = new KafkaCacheMetaFanout(resolvedId, authorization, topic);
+                final KafkaCacheMetaFanout newFanout = new KafkaCacheMetaFanout(routedId, resolvedId, authorization, topic);
 
                 cacheRoute.metaFanoutsByTopic.put(topicKey, newFanout);
                 fanout = newFanout;
@@ -186,7 +187,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
                 newStream = new KafkaCacheMetaStream(
                         fanout,
                         sender,
-                        routeId,
+                        originId,
+                        routedId,
                         initialId,
                         affinity,
                         authorization)::onMetaMessage;
@@ -198,7 +200,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
     private MessageConsumer newStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -209,7 +212,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -229,7 +233,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
     }
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -240,7 +245,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -256,7 +262,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
     private void doDataNull(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -268,7 +275,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         Flyweight extension)
     {
         final DataFW data = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -285,7 +293,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -295,22 +304,24 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                               .routeId(routeId)
-                               .streamId(streamId)
-                               .sequence(sequence)
-                               .acknowledge(acknowledge)
-                               .maximum(maximum)
-                               .traceId(traceId)
-                               .authorization(authorization)
-                               .extension(extension)
-                               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .extension(extension)
+                .build();
 
         receiver.accept(end.typeId(), end.buffer(), end.offset(), end.sizeof());
     }
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -320,7 +331,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         Consumer<OctetsFW.Builder> extension)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -335,7 +347,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -346,7 +359,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         int padding)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -362,7 +376,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -371,21 +386,23 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         long authorization)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .authorization(authorization)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .authorization(authorization)
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
     final class KafkaCacheMetaFanout
     {
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long authorization;
         private final KafkaCacheTopic topic;
         private final List<KafkaCacheMetaStream> members;
@@ -410,15 +427,17 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private int reconnectAttempt;
 
         private KafkaCacheMetaFanout(
-            long routeId,
+            long originId,
+            long routedId,
             long authorization,
             KafkaCacheTopic topic)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.authorization = authorization;
             this.topic = topic;
             this.members = new ArrayList<>();
-            this.cacheRoute = supplyCacheRoute.apply(routeId);
+            this.cacheRoute = supplyCacheRoute.apply(routedId);
             this.leadersByPartitionId = cacheRoute.supplyLeadersByPartitionId(topic.name());
         }
 
@@ -502,9 +521,10 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         {
             assert state == 0;
 
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.receiver = newStream(this::onMetaFanoutMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+            this.receiver = newStream(this::onMetaFanoutMessage,
+                originId, routedId, initialId, initialSeq, initialAck, initialMax,
                 traceId, authorization, 0L,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -526,7 +546,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private void doMetaFanoutInitialEnd(
             long traceId)
         {
-            doEnd(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doEnd(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
             state = KafkaState.closedInitial(state);
@@ -544,7 +564,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private void doMetaFanoutInitialAbort(
             long traceId)
         {
-            doAbort(receiver, routeId, initialId, initialSeq, initialAck, initialMax,
+            doAbort(receiver, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, EMPTY_EXTENSION);
 
             state = KafkaState.closedInitial(state);
@@ -787,7 +807,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         private void doMetaFanoutReplyReset(
             long traceId)
         {
-            doReset(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+            doReset(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization);
 
             state = KafkaState.closedReply(state);
@@ -809,7 +829,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
                 state = KafkaState.openedReply(state);
 
-                doWindow(receiver, routeId, replyId, replySeq, replyAck, replyMax,
+                doWindow(receiver, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization, 0L, 0);
             }
         }
@@ -819,7 +839,8 @@ public final class KafkaCacheMetaFactory implements BindingHandler
     {
         private final KafkaCacheMetaFanout group;
         private final MessageConsumer sender;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final long affinity;
@@ -841,14 +862,16 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         KafkaCacheMetaStream(
             KafkaCacheMetaFanout group,
             MessageConsumer sender,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long affinity,
             long authorization)
         {
             this.group = group;
             this.sender = sender;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
@@ -938,7 +961,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         {
             state = KafkaState.closedInitial(state);
 
-            doReset(sender, routeId, initialId, initialSeq, initialAck, initialMax,
+            doReset(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization);
         }
 
@@ -960,7 +983,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
 
                 state = KafkaState.openedInitial(state);
 
-                doWindow(sender, routeId, initialId, initialSeq, initialAck, initialMax,
+                doWindow(sender, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization, budgetId, minInitialPad);
             }
         }
@@ -979,7 +1002,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         {
             state = KafkaState.openingReply(state);
 
-            doBegin(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity,
                 ex -> ex.set((b, o, l) -> kafkaBeginExRW.wrap(b, o, l)
                         .typeId(kafkaTypeId)
@@ -1004,7 +1027,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
         {
             final int reserved = replyPad;
 
-            doDataNull(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doDataNull(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, replyBudgetId, reserved, extension);
 
             replySeq += reserved;
@@ -1025,7 +1048,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             long traceId)
         {
             state = KafkaState.closedReply(state);
-            doEnd(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doEnd(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 
@@ -1044,7 +1067,7 @@ public final class KafkaCacheMetaFactory implements BindingHandler
             long traceId)
         {
             state = KafkaState.closedReply(state);
-            doAbort(sender, routeId, replyId, replySeq, replyAck, replyMax,
+            doAbort(sender, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, EMPTY_EXTENSION);
         }
 

@@ -16,13 +16,10 @@
 
 package io.aklivity.zilla.runtime.engine.internal.registry;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.agrona.LangUtil.rethrowUnchecked;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
-import java.net.URLConnection;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.WatchKey;
@@ -32,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import io.aklivity.zilla.runtime.engine.config.NamespaceConfig;
 
@@ -39,11 +37,14 @@ public class FileWatcherTask extends WatcherTask
 {
     private final Map<WatchKey, WatchedConfig> watchedConfigs;
     private final WatchService watchService;
+    private final Function<String, String> readURL;
 
     public FileWatcherTask(
+        Function<String, String> readURL,
         BiFunction<URL, String, NamespaceConfig> changeListener)
     {
         super(changeListener);
+        this.readURL = readURL;
         this.watchedConfigs = new IdentityHashMap<>();
         WatchService watchService = null;
 
@@ -84,7 +85,7 @@ public class FileWatcherTask extends WatcherTask
                     watchedConfig.unregister();
                     watchedConfig.register();
                     watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-                    String newConfigText = readURL(watchedConfig.getURL());
+                    String newConfigText = readURL.apply(watchedConfig.getURL().toString());
                     byte[] newConfigHash = computeHash(newConfigText);
                     if (watchedConfig.isReconfigureNeeded(newConfigHash))
                     {
@@ -109,7 +110,7 @@ public class FileWatcherTask extends WatcherTask
         WatchedConfig watchedConfig = new WatchedConfig(configURL, watchService);
         watchedConfig.register();
         watchedConfig.keys().forEach(k -> watchedConfigs.put(k, watchedConfig));
-        String configText = readURL(configURL);
+        String configText = readURL.apply(configURL.toString());
         watchedConfig.setConfigHash(computeHash(configText));
         NamespaceConfig config = changeListener.apply(configURL, configText);
         if (config == null)
@@ -123,25 +124,5 @@ public class FileWatcherTask extends WatcherTask
     public void close() throws IOException
     {
         watchService.close();
-    }
-
-    @Override
-    public String readURL(
-        URL configURL)
-    {
-        String configText;
-        try
-        {
-            URLConnection connection = configURL.openConnection();
-            try (InputStream input = connection.getInputStream())
-            {
-                configText = new String(input.readAllBytes(), UTF_8);
-            }
-        }
-        catch (IOException ex)
-        {
-            return "";
-        }
-        return configText;
     }
 }

@@ -36,7 +36,7 @@ public final class HttpFileSystemBindingConfig
     }
 
     public final long id;
-    public final String entry;
+    public final String name;
     public final KindConfig kind;
     public final List<HttpFileSystemRouteConfig> routes;
 
@@ -44,7 +44,7 @@ public final class HttpFileSystemBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.routes = binding.routes.stream().map(HttpFileSystemRouteConfig::new).collect(toList());
     }

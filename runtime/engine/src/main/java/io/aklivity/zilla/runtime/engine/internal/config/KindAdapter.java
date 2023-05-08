@@ -19,10 +19,19 @@ import jakarta.json.Json;
 import jakarta.json.JsonString;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public class KindAdapter implements JsonbAdapter<KindConfig, JsonString>
 {
+    private final ConfigAdapterContext context;
+
+    public KindAdapter(
+        ConfigAdapterContext context)
+    {
+        this.context = context;
+    }
+
     @Override
     public JsonString adaptToJson(
         KindConfig role)

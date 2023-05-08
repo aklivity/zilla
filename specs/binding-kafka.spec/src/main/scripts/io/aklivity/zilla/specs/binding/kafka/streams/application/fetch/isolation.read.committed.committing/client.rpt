@@ -69,6 +69,13 @@ read zilla:begin.ext ${kafka:beginEx()
                                   .build()
                               .build()}
 
+read advised zilla:flush ${kafka:matchFlushEx()
+                               .typeId(zilla:id("kafka"))
+                               .fetch()
+                                   .partition(0, 0, 0, 2)
+                                   .build()
+                               .build()}
+
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()

@@ -64,7 +64,7 @@ public final class TlsBindingConfig
 
     public final long id;
     public final long vaultId;
-    public final String entry;
+    public final String name;
     public final TlsOptionsConfig options;
     public final KindConfig kind;
     public final List<TlsRouteConfig> routes;
@@ -76,7 +76,7 @@ public final class TlsBindingConfig
     {
         this.id = binding.id;
         this.vaultId = binding.vaultId;
-        this.entry = binding.entry;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = TlsOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(TlsRouteConfig::new).collect(toList());
