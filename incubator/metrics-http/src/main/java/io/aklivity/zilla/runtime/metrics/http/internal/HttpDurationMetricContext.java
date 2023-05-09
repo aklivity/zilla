@@ -122,7 +122,7 @@ public final class HttpDurationMetricContext implements MetricContext
                     long start = timestamps.remove(exchangeId);
                     if (start != INITIAL_VALUE)
                     {
-                        long duration = TimeUnit.MILLISECONDS.toSeconds(timestamp - start);
+                        long duration = TimeUnit.NANOSECONDS.toSeconds(timestamp - start);
                         recorder.accept(duration);
                     }
                 }
