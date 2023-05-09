@@ -15,25 +15,19 @@
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
 
-import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String16FW;
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 
-public final class GrpcKafkaCorrelationConfig
+public final class GrpcKafkaReliabilityConfig
 {
-    public final String16FW correlationId;
-    public final String16FW service;
-    public final String16FW method;
-    public final String16FW replyTo;
+    public final int field;
+    public final String8FW metadata;
 
 
-    public GrpcKafkaCorrelationConfig(
-        String16FW correlationId,
-        String16FW service,
-        String16FW method,
-        String16FW replyTo)
+    public GrpcKafkaReliabilityConfig(
+        int field,
+        String8FW metadata)
     {
-        this.correlationId = correlationId;
-        this.service = service;
-        this.method = method;
-        this.replyTo = replyTo;
+        this.field = field;
+        this.metadata = metadata;
     }
 }
