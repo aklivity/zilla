@@ -58,14 +58,14 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: config
-              mountPath: /etc/zilla
+              mountPath: {{ .Values.configPath }}
             {{- if .Values.tls.enabled }}
             - name: tls
-              mountPath: {{ .Values.tls.keystore.mountPath }}
+              mountPath: {{ .Values.configPath }}/{{ .Values.tls.keystore.mountPath }}
             {{- end }}
             {{- if .Values.filesToConfigMap.enabled }}
             - name: {{ .Values.filesToConfigMap.name }}
-              mountPath: {{ .Values.filesToConfigMap.mountPath }}
+              mountPath: {{ .Values.configPath }}/{{ .Values.filesToConfigMap.mountPath }}
             {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

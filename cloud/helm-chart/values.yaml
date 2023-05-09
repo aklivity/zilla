@@ -18,6 +18,8 @@ securityContext: {}
 livenessProbePort: 0
 readinessProbePort: 0
 
+configPath: /etc/zilla
+
 tls:
   enabled: false
   keystore:

@@ -13,7 +13,7 @@ tls:
   keystore:
     name: localhost.p12
     localPath: examples/http.echo/localhost.p12
-    mountPath: /etc/zilla/tls
+    mountPath: tls
     password: generated
 
 verify: |

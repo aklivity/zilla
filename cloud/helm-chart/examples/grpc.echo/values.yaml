@@ -14,14 +14,14 @@ tls:
   keystore:
     name: localhost.p12
     localPath: examples/grpc.echo/localhost.p12
-    mountPath: /etc/zilla/tls
+    mountPath: tls
     password: generated
 
 filesToConfigMap:
   enabled: true
   name: proto
   localPath: examples/grpc.echo/proto/*
-  mountPath: /etc/zilla/proto
+  mountPath: proto
 
 verify: |
   $ grpcurl -insecure -proto examples/grpc.echo/proto/echo.proto -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary
