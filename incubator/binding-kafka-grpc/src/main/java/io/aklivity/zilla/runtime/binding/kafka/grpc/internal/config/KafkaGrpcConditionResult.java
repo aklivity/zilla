@@ -46,7 +46,6 @@ public class KafkaGrpcConditionResult
     private final String16FW topic;
     private final KafkaAckMode acks;
     private final List<KafkaGrpcFetchFilterResult> filters;
-    private final String16FW replyTo;
     private final KafkaGrpcCorrelationConfig correlation;
 
     KafkaGrpcConditionResult(
@@ -55,7 +54,6 @@ public class KafkaGrpcConditionResult
         String16FW topic,
         KafkaAckMode acks,
         List<KafkaGrpcFetchFilterResult> filters,
-        String16FW replyTo,
         KafkaGrpcCorrelationConfig correlation)
     {
         this.scheme = scheme;
@@ -63,7 +61,6 @@ public class KafkaGrpcConditionResult
         this.topic = topic;
         this.acks = acks;
         this.filters = filters;
-        this.replyTo = replyTo;
         this.correlation = correlation;
     }
 
@@ -129,10 +126,5 @@ public class KafkaGrpcConditionResult
         {
             filters.forEach(f -> builder.item(f::filter));
         }
-    }
-
-    public String16FW replyTo()
-    {
-        return replyTo;
     }
 }
