@@ -138,6 +138,7 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final byte SPACE_BYTE = ' ';
     private static final byte ZERO_BYTE = '0';
 
+    private static final int NO_CONTENT_LENGTH = -1;
     private static final int CLIENT_INITIATED = 1;
     private static final long MAX_REMOTE_BUDGET = Integer.MAX_VALUE;
 
@@ -180,7 +181,9 @@ public final class HttpClientFactory implements HttpStreamFactory
     private static final String8FW HEADER_UPGRADE = new String8FW("upgrade");
 
     private static final String8FW PROXY_ALPN_H2 = new String8FW("h2");
+    private static final String16FW METHOD_HEAD = new String16FW("HEAD");
     private static final String16FW METHOD_GET = new String16FW("GET");
+    private static final String16FW METHOD_DELETE = new String16FW("DELETE");
     private static final String16FW PATH_SLASH = new String16FW("/");
     private static final String16FW STATUS_101 = new String16FW("101");
     private static final String16FW UPGRADE_H2C = new String16FW("h2c");
@@ -1187,6 +1190,16 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             @Override
+            public void onApplicationBegin(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                exchange.doRequestWindow(traceId);
+            }
+
+            @Override
             public void onApplicationWindow(
                 HttpClient client,
                 HttpExchange exchange,
@@ -1232,9 +1245,19 @@ public final class HttpClientFactory implements HttpStreamFactory
                 HttpExchange exchange,
                 long traceId,
                 long authorization,
-                long budgetId, Array32FW<HttpHeaderFW> trailers)
+                long budgetId,
+                Array32FW<HttpHeaderFW> trailers)
             {
-                client.doEncodeHttp2Trailers(exchange, traceId, trailers);
+                if (exchange.requestContentLength != exchange.requestContentObserved &&
+                    exchange.requestContentLength != NO_CONTENT_LENGTH)
+                {
+                    client.doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
+                    exchange.cleanup(traceId, authorization);
+                }
+                else if (exchange.requestContentLength == NO_CONTENT_LENGTH)
+                {
+                    client.doEncodeHttp2Trailers(exchange, traceId, authorization, trailers);
+                }
             }
 
             @Override
@@ -1270,6 +1293,16 @@ public final class HttpClientFactory implements HttpStreamFactory
                 int padding)
             {
                 client.onHttp2NetworkWindow(traceId, authorization, budgetId, acknowledge, maximum, padding);
+            }
+
+            @Override
+            public void onApplicationBegin(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                exchange.flushRequestWindow(traceId, 0);
             }
 
             @Override
@@ -1359,11 +1392,21 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             @Override
+            public void onApplicationBegin(
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
+            {
+                exchange.flushRequestWindow(traceId, 0);
+            }
+
+            @Override
             public void onApplicationWindow(
-                    HttpClient client,
-                    HttpExchange exchange,
-                    long traceId,
-                    long authorization)
+                HttpClient client,
+                HttpExchange exchange,
+                long traceId,
+                long authorization)
             {
                 //NOOP
             }
@@ -1417,6 +1460,13 @@ public final class HttpClientFactory implements HttpStreamFactory
             long acknowledge,
             int maximum,
             int padding);
+
+        public abstract void onApplicationBegin(
+            HttpClient client,
+            HttpExchange exchange,
+            long traceId,
+            long authorization
+        );
 
         public abstract void onApplicationWindow(
             HttpClient client,
@@ -2414,6 +2464,10 @@ public final class HttpClientFactory implements HttpStreamFactory
                      pool.versions.contains(HTTP_2))
             {
                 this.encoder = HttpEncoder.H2C;
+                for (HttpExchange exchange: pool.exchanges.values())
+                {
+                    exchange.remoteBudget += encodeMax;
+                }
             }
 
             doNetworkWindow(traceId, 0L, 0, 0);
@@ -3909,7 +3963,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             Array32FW<HttpHeaderFW> headers,
             Map<String8FW, String16FW> overrides)
         {
-            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
+            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved &&
+                exchange.requestContentLength != NO_CONTENT_LENGTH;
 
             doEncodeHttp2Headers(traceId, authorization, exchange.streamId, headers, overrides, endRequest);
             exchange.flushResponseWindowUpdate(traceId, authorization);
@@ -3945,7 +4000,8 @@ public final class HttpClientFactory implements HttpStreamFactory
             exchange.remoteBudget -= length;
             remoteSharedBudget -= length;
 
-            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved;
+            final boolean endRequest = exchange.requestContentLength == exchange.requestContentObserved &&
+                exchange.requestContentLength != NO_CONTENT_LENGTH;
             doEncodeHttp2Data(traceId, authorization, reserved, exchange.streamId, payload, endRequest);
 
             final int remotePaddableMax = Math.min(exchange.remoteBudget, encodeMax);
@@ -3995,11 +4051,28 @@ public final class HttpClientFactory implements HttpStreamFactory
         private void doEncodeHttp2Trailers(
             HttpExchange exchange,
             long traceId,
+            long authorization,
             Array32FW<HttpHeaderFW> trailers)
         {
-            if (exchange.requestContentLength != exchange.requestContentObserved)
+            if (trailers.isEmpty())
             {
-                doEncodeHttp2RstStream(traceId, exchange.streamId, Http2ErrorCode.NO_ERROR);
+                final Http2DataFW http2Data = http2DataRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(exchange.streamId)
+                    .endStream()
+                    .build();
+
+                doNetworkReservedData(traceId, authorization, 0L, http2Data);
+            }
+            else
+            {
+                final Http2HeadersFW http2Headers = http2HeadersRW.wrap(frameBuffer, 0, frameBuffer.capacity())
+                    .streamId(exchange.streamId)
+                    .headers(hb -> headersEncoder.encodeTrailers(encodeContext, trailers, hb))
+                    .endHeaders()
+                    .endStream()
+                    .build();
+
+                doNetworkReservedData(traceId, authorization, 0L, http2Headers);
             }
         }
 
@@ -4506,9 +4579,19 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             if ((streamId & 0x01) == 0x01)
             {
+                final HttpHeaderFW method = headers.matchFirst(header ->
+                    HEADER_METHOD.equals(header.name()));
+
+                boolean isBodilessMethod = method != null &&
+                    (METHOD_HEAD.equals(method.value()) ||
+                    METHOD_GET.equals(method.value()) ||
+                    METHOD_DELETE.equals(method.value()));
+
                 final HttpHeaderFW contentLengthHeader = headers.matchFirst(header ->
-                        header.name().equals(HEADER_CONTENT_LENGTH));
-                requestContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) : 0;
+                        HEADER_CONTENT_LENGTH.equals(header.name()));
+
+                requestContentLength = contentLengthHeader != null ? parseInt(contentLengthHeader.value().asString()) :
+                    isBodilessMethod ? 0 : NO_CONTENT_LENGTH;
 
                 client.doNetworkBegin(traceId, authorization, 0);
 
@@ -4534,7 +4617,12 @@ public final class HttpClientFactory implements HttpStreamFactory
                 }
             }
 
-            doRequestWindow(traceId);
+            if (HttpState.replyOpened(client.state))
+            {
+                remoteBudget = client.remoteSharedBudget;
+            }
+
+            client.encoder.onApplicationBegin(client, this, traceId, authorization);
         }
 
         private void doRequestBegin(
@@ -4700,7 +4788,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 state = HttpState.openInitial(state);
 
                 doWindow(application, originId, routedId, requestId, requestSeq, requestAck, requestMax,
-                        traceId, requestAuth, client.budgetId, client.initialPad);
+                    traceId, requestAuth, client.budgetId, client.initialPad);
             }
         }
 
@@ -4909,7 +4997,7 @@ public final class HttpClientFactory implements HttpStreamFactory
             long traceId,
             int requestCreditMin)
         {
-            if (!HttpState.replyClosed(state))
+            if (!HttpState.initialClosed(state))
             {
                 final int remotePaddableMax = Math.min(remoteBudget, encodeMax);
                 final int remotePad = http2FramePadding(remotePaddableMax, client.remoteSettings.maxFrameSize);
@@ -4918,7 +5006,7 @@ public final class HttpClientFactory implements HttpStreamFactory
                 final int requestWin = requestMax - (int)(requestSeq - requestAck);
                 final int requestCredit = newRequestWin - requestWin;
 
-                if (requestCredit > 0 && requestCredit >= requestCreditMin && newRequestWin > requestPad)
+                if (requestCredit >= 0 && requestCredit >= requestCreditMin && newRequestWin > requestPad)
                 {
                     final int requestNoAck = (int)(requestSeq - requestAck);
                     final int requestAcked = Math.min(requestNoAck, requestCredit);
@@ -5059,6 +5147,15 @@ public final class HttpClientFactory implements HttpStreamFactory
             }
 
             headersMap.forEach((n, v) -> headerBlock.header(b -> encodeHeader(n, v, b)));
+        }
+
+        void encodeTrailers(
+            HpackContext encodeContext,
+            Array32FW<HttpHeaderFW> headers,
+            HpackHeaderBlockFW.Builder headerBlock)
+        {
+            reset(encodeContext);
+            headers.forEach(h -> headerBlock.header(b -> encodeHeader(h.name(), h.value(), b)));
         }
 
         private void reset(

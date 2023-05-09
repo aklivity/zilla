@@ -69,14 +69,14 @@ read zilla:begin.ext ${kafka:beginEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .topic("test")
-                                  .partition(0, 1, 2)
+                                  .partition(0, 1, 8)
                                   .build()
                               .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
-                                 .partition(0, 1, 2)
+                                 .partition(0, 1, 8)
                                  .key("key1")
                                  .build()
                              .build()}
@@ -85,7 +85,7 @@ read "Hello, world"
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
                              .fetch()
-                                 .partition(0, 2, 2)
+                                 .partition(0, 2, 8)
                                  .header("header1", "value1")
                                  .build()
                              .build()}

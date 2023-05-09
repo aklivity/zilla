@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.http.internal.streams.rfc7540.client;
 
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfiguration.HTTP_CONCURRENT_STREAMS;
 import static io.aklivity.zilla.runtime.binding.http.internal.HttpConfigurationTest.HTTP_STREAM_INITIAL_WINDOW_NAME;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
@@ -47,6 +48,7 @@ public class ConnectionManagementIT
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(8192)
         .configure(HTTP_CONCURRENT_STREAMS, 100)
+        .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/http/config/v2")
         .external("net0")
         .clean();
@@ -346,6 +348,17 @@ public class ConnectionManagementIT
         "${net}/http.push.promise.none.cacheable.request/server" })
     @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
     public void shouldRejectNotCacheablePromiseRequest() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/streams.on.same.connection/client",
+        "${net}/streams.on.same.connection/server" })
+    @Configure(name = HTTP_STREAM_INITIAL_WINDOW_NAME, value = "65535")
+    public void shouldHandleStreamsOnSameConnection() throws Exception
     {
         k3po.finish();
     }

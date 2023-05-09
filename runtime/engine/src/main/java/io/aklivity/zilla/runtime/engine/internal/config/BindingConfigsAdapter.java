@@ -32,6 +32,7 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
@@ -44,6 +45,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private static final String EXIT_NAME = "exit";
     private static final String TYPE_NAME = "type";
     private static final String KIND_NAME = "kind";
+    private static final String ENTRY_NAME = "entry";
     private static final String OPTIONS_NAME = "options";
     private static final String ROUTES_NAME = "routes";
     private static final String TELEMETRY_NAME = "telemetry";
@@ -55,11 +57,12 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     private final OptionsAdapter options;
     private final TelemetryRefAdapter telemetryRef;
 
-    public BindingConfigsAdapter()
+    public BindingConfigsAdapter(
+        ConfigAdapterContext context)
     {
-        this.kind = new KindAdapter();
-        this.route = new RouteAdapter();
-        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING);
+        this.kind = new KindAdapter(context);
+        this.route = new RouteAdapter(context);
+        this.options = new OptionsAdapter(OptionsConfigAdapterSpi.Kind.BINDING, context);
         this.telemetryRef = new TelemetryRefAdapter();
     }
 
@@ -85,6 +88,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
 
             item.add(KIND_NAME, kind.adaptToJson(binding.kind));
 
+            if (binding.entry != null)
+            {
+                item.add(ENTRY_NAME, binding.entry);
+            }
+
             if (binding.options != null)
             {
                 item.add(OPTIONS_NAME, options.adaptToJson(binding.options));
@@ -103,7 +111,7 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                 item.add(TELEMETRY_NAME, telemetryRef0);
             }
 
-            object.add(binding.entry, item);
+            object.add(binding.name, item);
         }
 
         return object.build();
@@ -115,9 +123,9 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
     {
         List<BindingConfig> bindings = new LinkedList<>();
 
-        for (String entry : object.keySet())
+        for (String name : object.keySet())
         {
-            JsonObject item = object.getJsonObject(entry);
+            JsonObject item = object.getJsonObject(name);
             String type = item.getString(TYPE_NAME);
 
             route.adaptType(type);
@@ -156,7 +164,11 @@ public class BindingConfigsAdapter implements JsonbAdapter<BindingConfig[], Json
                     ? this.telemetryRef.adaptFromJson(item.getJsonObject(TELEMETRY_NAME))
                     : null;
 
-            bindings.add(new BindingConfig(vault, entry, type, kind, opts, routes, telemetryRef));
+            String entry = item.containsKey(ENTRY_NAME)
+                ? item.getString(ENTRY_NAME)
+                : null;
+
+            bindings.add(new BindingConfig(vault, name, type, kind, entry, opts, routes, telemetryRef));
         }
 
         return bindings.toArray(BindingConfig[]::new);

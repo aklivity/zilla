@@ -33,10 +33,16 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.AttributeConfig;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.ExporterConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.MetricConfig;
@@ -47,13 +53,20 @@ import io.aklivity.zilla.runtime.engine.test.internal.exporter.config.TestExport
 
 public class NamespaceConfigAdapterTest
 {
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
+
+    @Mock
+    private ConfigAdapterContext context;
+
     private Jsonb jsonb;
+
 
     @Before
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter());
+                .withAdapters(new NamespaceAdapter(context));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -118,7 +131,7 @@ public class NamespaceConfigAdapterTest
         assertThat(config, not(nullValue()));
         assertThat(config.name, equalTo("test"));
         assertThat(config.bindings, hasSize(1));
-        assertThat(config.bindings.get(0).entry, equalTo("test"));
+        assertThat(config.bindings.get(0).name, equalTo("test"));
         assertThat(config.bindings.get(0).type, equalTo("test"));
         assertThat(config.bindings.get(0).kind, equalTo(SERVER));
         assertThat(config.vaults, emptyCollectionOf(VaultConfig.class));
@@ -128,7 +141,7 @@ public class NamespaceConfigAdapterTest
     @Test
     public void shouldWriteNamespaceWithBinding()
     {
-        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null);
+        BindingConfig binding = new BindingConfig(null, "test", "test", SERVER, null, null, emptyList(), null);
         NamespaceConfig namespace = new NamespaceConfig("test", emptyList(), null,
                 singletonList(binding), emptyList(), emptyList());
 

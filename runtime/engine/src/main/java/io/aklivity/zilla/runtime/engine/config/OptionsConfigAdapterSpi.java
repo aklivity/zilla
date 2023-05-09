@@ -39,4 +39,9 @@ public interface OptionsConfigAdapterSpi extends JsonbAdapter<OptionsConfig, Jso
     @Override
     OptionsConfig adaptFromJson(
         JsonObject object);
+
+    default void adaptContext(
+        ConfigAdapterContext context)
+    {
+    }
 }

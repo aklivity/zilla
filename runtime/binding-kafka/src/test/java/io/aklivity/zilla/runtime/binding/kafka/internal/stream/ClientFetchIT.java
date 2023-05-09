@@ -512,6 +512,16 @@ public class ClientFetchIT
     @Test
     @Configuration("client.when.topic.yaml")
     @Specification({
+        "${app}/filter.sync/client",
+        "${net}/filter.sync/server"})
+    public void shouldFetchFilterSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
+    @Specification({
         "${app}/isolation.read.committed/client",
         "${net}/isolation.read.committed/server"})
     public void shouldReceiveMessagesWithIsolationReadCommitted() throws Exception

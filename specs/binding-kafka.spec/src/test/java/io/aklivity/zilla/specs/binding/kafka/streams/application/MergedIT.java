@@ -92,9 +92,27 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.filter.key.or.header.eager/client",
+        "${app}/merged.fetch.filter.key.or.header.eager/server"})
+    public void shouldFetchMergedMessagesWithKeyOrHeaderEagerFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.filter.none/client",
         "${app}/merged.fetch.filter.none/server"})
     public void shouldFetchMergedMessagesWithNoFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.fetch.filter.sync/client",
+        "${app}/merged.fetch.filter.sync/server"})
+    public void shouldFetchMergedFilterSync() throws Exception
     {
         k3po.finish();
     }
@@ -271,6 +289,15 @@ public class MergedIT
         k3po.start();
         k3po.notifyBarrier("SEND_MESSAGE_A3");
         k3po.notifyBarrier("SEND_MESSAGE_B3");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.fetch.filter.sync/client",
+        "${app}/unmerged.fetch.filter.sync/server"})
+    public void shouldFetchUnmergedFilterSync() throws Exception
+    {
         k3po.finish();
     }
 

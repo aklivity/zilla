@@ -79,6 +79,7 @@ write flush
 write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
+                                  .filters(1)
                                   .partition(0, 7, 8)
                                   .header("header3", "one")
                                   .header("header3", "two")

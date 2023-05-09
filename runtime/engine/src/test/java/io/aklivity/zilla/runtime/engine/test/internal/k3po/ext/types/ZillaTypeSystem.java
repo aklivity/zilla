@@ -55,6 +55,8 @@ public final class ZillaTypeSystem implements TypeSystemSpi
             new StructuredTypeInfo(NAME, "data.empty", emptyList(), 0);
     public static final StructuredTypeInfo CONFIG_DATA_NULL =
             new StructuredTypeInfo(NAME, "data.null", emptyList(), 0);
+    public static final StructuredTypeInfo CONFIG_ABORT_EXT =
+        new StructuredTypeInfo(NAME, "abort.ext", emptyList(), MAX_VALUE);
     public static final StructuredTypeInfo CONFIG_END_EXT =
             new StructuredTypeInfo(NAME, "end.ext", emptyList(), MAX_VALUE);
     public static final StructuredTypeInfo CONFIG_RESET_EXT =
@@ -123,6 +125,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         readConfigs.add(CONFIG_DATA_EXT);
         readConfigs.add(CONFIG_DATA_EMPTY);
         readConfigs.add(CONFIG_DATA_NULL);
+        readConfigs.add(CONFIG_ABORT_EXT);
         readConfigs.add(CONFIG_END_EXT);
         readConfigs.add(CONFIG_RESET_EXT);
         this.readConfigs = readConfigs;
@@ -131,6 +134,7 @@ public final class ZillaTypeSystem implements TypeSystemSpi
         writeConfigs.add(CONFIG_BEGIN_EXT);
         writeConfigs.add(CONFIG_DATA_EXT);
         writeConfigs.add(CONFIG_DATA_EMPTY);
+        writeConfigs.add(CONFIG_ABORT_EXT);
         writeConfigs.add(CONFIG_END_EXT);
         writeConfigs.add(CONFIG_RESET_EXT);
         this.writeConfigs = writeConfigs;

@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -54,6 +55,7 @@ import org.leadpony.justify.api.ProblemHandler;
 import io.aklivity.zilla.runtime.engine.Engine;
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.GuardConfig;
 import io.aklivity.zilla.runtime.engine.config.GuardedConfig;
 import io.aklivity.zilla.runtime.engine.config.KindConfig;
@@ -84,9 +86,8 @@ public class ConfigurationManager
     private final EngineExtContext context;
     private final EngineConfiguration config;
     private final List<EngineExtSpi> extensions;
+    private final BiFunction<URL, String, String> readURL;
     private final ExpressionResolver expressions;
-    private final Function<URL, String> readURL;
-    private final Consumer<URL> handleConfigURL;
 
     public ConfigurationManager(
         Collection<URL> schemaTypes,
@@ -99,8 +100,7 @@ public class ConfigurationManager
         EngineExtContext context,
         EngineConfiguration config,
         List<EngineExtSpi> extensions,
-        Function<URL, String> readURL,
-        Consumer<URL> handleConfigURL)
+        BiFunction<URL, String, String> readURL)
     {
         this.schemaTypes = schemaTypes;
         this.guardByType = guardByType;
@@ -113,11 +113,11 @@ public class ConfigurationManager
         this.config = config;
         this.extensions = extensions;
         this.readURL = readURL;
-        this.handleConfigURL = handleConfigURL;
         this.expressions = ExpressionResolver.instantiate();
     }
 
     public NamespaceConfig parse(
+        URL configURL,
         String configText)
     {
         NamespaceConfig namespace = null;
@@ -182,8 +182,10 @@ public class ConfigurationManager
                 break parse;
             }
 
+            final Function<String, String> namespaceReadURL = l -> readURL.apply(configURL, l);
+
             JsonbConfig config = new JsonbConfig()
-                .withAdapters(new NamespaceAdapter());
+                .withAdapters(new NamespaceAdapter(new NamespaceConfigAdapterContext(namespaceReadURL)));
             Jsonb jsonb = JsonbBuilder.newBuilder()
                 .withProvider(provider)
                 .withConfig(config)
@@ -197,8 +199,7 @@ public class ConfigurationManager
             }
 
             namespace.id = supplyId.applyAsInt(namespace.name);
-
-            namespace.readURL = this.readURL;
+            namespace.readURL = namespaceReadURL;
 
             // TODO: consider qualified name "namespace::name"
             final NamespaceConfig namespace0 = namespace;
@@ -222,7 +223,8 @@ public class ConfigurationManager
 
             for (BindingConfig binding : namespace.bindings)
             {
-                binding.id = namespace.resolveId.applyAsLong(binding.entry);
+                binding.id = namespace.resolveId.applyAsLong(binding.name);
+                binding.entryId = namespace.resolveId.applyAsLong(binding.entry);
                 binding.resolveId = namespace.resolveId;
 
                 if (binding.vault != null)
@@ -338,5 +340,23 @@ public class ConfigurationManager
         String message)
     {
         logger.accept("Configuration parsing error: " + message);
+    }
+
+    private static final class NamespaceConfigAdapterContext implements ConfigAdapterContext
+    {
+        private final Function<String, String> readURL;
+
+        NamespaceConfigAdapterContext(
+            Function<String, String> readURL)
+        {
+            this.readURL = readURL;
+        }
+
+        @Override
+        public String readURL(
+            String location)
+        {
+            return readURL.apply(location);
+        }
     }
 }

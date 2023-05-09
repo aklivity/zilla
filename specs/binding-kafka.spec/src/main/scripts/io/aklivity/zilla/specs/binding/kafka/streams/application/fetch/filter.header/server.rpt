@@ -69,7 +69,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                .typeId(zilla:id("kafka"))
                                .fetch()
                                    .topic("test")
-                                   .partition(0, 1, 2)
+                                   .partition(0, 1, 8)
                                    .build()
                                .build()}
 write flush
@@ -78,7 +78,7 @@ write zilla:data.ext ${kafka:dataEx()
                               .typeId(zilla:id("kafka"))
                               .fetch()
                                   .timestamp(newTimestamp)
-                                  .partition(0, 2, 2)
+                                  .partition(0, 2, 8)
                                   .header("header1", "value1")
                                   .build()
                               .build()}

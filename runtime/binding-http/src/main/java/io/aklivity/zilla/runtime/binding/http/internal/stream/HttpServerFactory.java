@@ -125,6 +125,7 @@ import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpBeginExF
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpChallengeExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpFlushExFW;
+import io.aklivity.zilla.runtime.binding.http.internal.types.stream.HttpResetExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.http.internal.types.stream.SignalFW;
@@ -413,6 +414,7 @@ public final class HttpServerFactory implements HttpStreamFactory
     private final HttpBeginExFW beginExRO = new HttpBeginExFW();
     private final HttpFlushExFW flushExRO = new HttpFlushExFW();
     private final HttpEndExFW endExRO = new HttpEndExFW();
+    private final HttpResetExFW resetExRO = new HttpResetExFW();
 
     private final BeginFW.Builder beginRW = new BeginFW.Builder();
     private final DataFW.Builder dataRW = new DataFW.Builder();
@@ -5688,7 +5690,11 @@ public final class HttpServerFactory implements HttpStreamFactory
                 }
                 else
                 {
-                    doEncodeHeaders(traceId, sessionId, streamId, headers404, true);
+                    OctetsFW extension = reset.extension();
+                    HttpResetExFW httpResetEx = extension.get(resetExRO::tryWrap);
+                    Array32FW<HttpHeaderFW> headers = httpResetEx != null && !httpResetEx.headers().isEmpty() ?
+                        httpResetEx.headers() : headers404;
+                    doEncodeHeaders(traceId, sessionId, streamId, headers, true);
                 }
 
                 decodeNetworkIfNecessary(traceId);

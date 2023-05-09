@@ -50,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
@@ -532,7 +533,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             this.topicName = topicName;
             this.members = new Long2ObjectHashMap<>();
             this.defaultOffset = KafkaOffsetType.LIVE;
-            this.cursor = cursorFactory.newCursor(cursorFactory.asCondition(EMPTY_FILTER), KafkaDeltaType.NONE);
+            this.cursor = cursorFactory.newCursor(
+                    cursorFactory
+                        .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
+                        KafkaDeltaType.NONE);
 
             partition.newHeadIfNecessary(0L);
 
@@ -1158,7 +1162,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long leaderId,
             long authorization)
         {
-            this.cursor = cursorFactory.newCursor(cursorFactory.asCondition(EMPTY_FILTER), KafkaDeltaType.NONE);
+            this.cursor = cursorFactory.newCursor(
+                    cursorFactory
+                        .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
+                        KafkaDeltaType.NONE);
             this.entryMark = new MutableInteger(0);
             this.position = new MutableInteger(0);
             this.fan = fan;
@@ -1262,7 +1269,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 fan.onClientInitialData(this, data);
             }
 
-            final int noAck = (int) (initialSeq - initialAck);
+            // TODO: defer initialAck until previous DATA frames acked
+            final boolean incomplete = (dataFlags & FLAGS_INCOMPLETE) != 0x00;
+            final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
             doClientInitialWindow(traceId, noAck, noAck + initialBudgetMax);
         }
 

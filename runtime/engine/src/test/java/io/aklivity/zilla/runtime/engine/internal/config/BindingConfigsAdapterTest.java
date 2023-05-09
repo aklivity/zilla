@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal.config;
 
+import static io.aklivity.zilla.runtime.engine.config.KindConfig.REMOTE_SERVER;
 import static io.aklivity.zilla.runtime.engine.config.KindConfig.SERVER;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -34,9 +35,15 @@ import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.MetricRefConfig;
 import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 import io.aklivity.zilla.runtime.engine.config.TelemetryRefConfig;
@@ -44,13 +51,17 @@ import io.aklivity.zilla.runtime.engine.test.internal.binding.config.TestBinding
 
 public class BindingConfigsAdapterTest
 {
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
+    @Mock
+    private ConfigAdapterContext context;
     private Jsonb jsonb;
 
     @Before
     public void initJson()
     {
         JsonbConfig config = new JsonbConfig()
-                .withAdapters(new BindingConfigsAdapter());
+                .withAdapters(new BindingConfigsAdapter(context));
         jsonb = JsonbBuilder.create(config);
     }
 
@@ -79,7 +90,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBinding()
     {
-        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null, emptyList(), null) };
+        BindingConfig[] bindings = { new BindingConfig(null, "test", "test", SERVER, null, null, emptyList(), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -115,7 +126,7 @@ public class BindingConfigsAdapterTest
     @Test
     public void shouldWriteBindingWithVault()
     {
-        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, emptyList(), null) };
+        BindingConfig[] bindings = { new BindingConfig("test", "test", "test", SERVER, null, null, emptyList(), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -142,7 +153,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
         assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].entry, equalTo("test"));
+        assertThat(bindings[0].name, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].options, instanceOf(TestBindingOptionsConfig.class));
         assertThat(((TestBindingOptionsConfig) bindings[0].options).mode, equalTo("test"));
@@ -152,7 +163,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithOptions()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, new TestBindingOptionsConfig("test"), emptyList(), null) };
+            { new BindingConfig(null, "test", "test", SERVER, null, new TestBindingOptionsConfig("test"), emptyList(), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -181,7 +192,7 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
         assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].entry, equalTo("test"));
+        assertThat(bindings[0].name, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].routes, hasSize(1));
         assertThat(bindings[0].routes.get(0).exit, equalTo("test"));
@@ -192,7 +203,7 @@ public class BindingConfigsAdapterTest
     public void shouldWriteBindingWithRoute()
     {
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, null, singletonList(new RouteConfig("test")), null) };
+            { new BindingConfig(null, "test", "test", SERVER, null, null, singletonList(new RouteConfig("test")), null) };
 
         String text = jsonb.toJson(bindings);
 
@@ -222,10 +233,40 @@ public class BindingConfigsAdapterTest
         BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
 
         assertThat(bindings[0], not(nullValue()));
-        assertThat(bindings[0].entry, equalTo("test"));
+        assertThat(bindings[0].name, equalTo("test"));
         assertThat(bindings[0].kind, equalTo(SERVER));
         assertThat(bindings[0].telemetryRef.metricRefs, hasSize(1));
         assertThat(bindings[0].telemetryRef.metricRefs.get(0).name, equalTo("test.counter"));
+    }
+
+    @Test
+    public void shouldReadBindingWithRemoteServerKind()
+    {
+        String text =
+            "{" +
+                "\"test\":" +
+                "{" +
+                "\"type\": \"test\"," +
+                "\"kind\": \"remote_server\"," +
+                "\"entry\": \"test_entry\"," +
+                "\"routes\":" +
+                "[" +
+                "{" +
+                "\"exit\": \"test\"" +
+                "}" +
+                "]" +
+                "}" +
+                "}";
+
+        BindingConfig[] bindings = jsonb.fromJson(text, BindingConfig[].class);
+
+        assertThat(bindings[0], not(nullValue()));
+        assertThat(bindings[0].name, equalTo("test"));
+        assertThat(bindings[0].kind, equalTo(REMOTE_SERVER));
+        assertThat(bindings[0].entry, equalTo("test_entry"));
+        assertThat(bindings[0].routes, hasSize(1));
+        assertThat(bindings[0].routes.get(0).exit, equalTo("test"));
+        assertThat(bindings[0].routes.get(0).when, empty());
     }
 
     @Test
@@ -233,12 +274,27 @@ public class BindingConfigsAdapterTest
     {
         TelemetryRefConfig telemetry = new TelemetryRefConfig(List.of(new MetricRefConfig("test.counter")));
         BindingConfig[] bindings =
-            { new BindingConfig(null, "test", "test", SERVER, null, List.of(), telemetry) };
+            { new BindingConfig(null, "test", "test", SERVER, null, null, List.of(), telemetry) };
 
         String text = jsonb.toJson(bindings);
 
         assertThat(text, not(nullValue()));
         assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"server\"," +
                 "\"telemetry\":{\"metrics\":[\"test.counter\"]}}}"));
+    }
+
+    @Test
+    public void shouldWriteBindingWithRemoteServerKind()
+    {
+        BindingConfig[] bindings =
+            { new BindingConfig(null, "test", "test", REMOTE_SERVER, "test_entry",
+                null, singletonList(new RouteConfig("test")), null) };
+
+        String text = jsonb.toJson(bindings);
+
+        assertThat(text, not(nullValue()));
+        assertThat(text, equalTo("{\"test\":{\"type\":\"test\",\"kind\":\"remote_server\"," +
+                "\"entry\":\"test_entry\",\"routes\":[{\"exit\":\"test\"}]}}"));
+
     }
 }

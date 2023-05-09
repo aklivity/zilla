@@ -18,6 +18,9 @@
 
   <modules>
     <module>binding-amqp.spec</module>
+    <module>binding-grpc.spec</module>
+    <module>binding-grpc-kafka.spec</module>
+    <module>binding-kafka-grpc.spec</module>
     <module>binding-mqtt.spec</module>
 
     <module>exporter-prometheus.spec</module>
@@ -26,6 +29,9 @@
     <module>metrics-http.spec</module>
 
     <module>binding-amqp</module>
+    <module>binding-grpc</module>
+    <module>binding-grpc-kafka</module>
+    <module>binding-kafka-grpc</module>
     <module>binding-mqtt</module>
 
     <module>command-log</module>
@@ -44,6 +50,21 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>binding-amqp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-grpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-grpc-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-kafka-grpc</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -592,7 +592,7 @@ public class DispatchAgent implements EngineContext, Agent
         BindingConfig binding)
     {
         final int namespaceId = labels.supplyLabelId(namespace.name);
-        final int bindingId = labels.supplyLabelId(binding.entry);
+        final int bindingId = labels.supplyLabelId(binding.name);
         return NamespacedId.id(namespaceId, bindingId);
     }
 

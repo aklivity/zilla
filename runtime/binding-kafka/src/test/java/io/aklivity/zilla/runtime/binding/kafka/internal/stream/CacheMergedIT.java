@@ -170,7 +170,17 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
+    @Ignore("requires k3po parallel reads")
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.filter.key.or.header.eager/client",
+        "${app}/unmerged.fetch.filter.none/server"})
+    public void shouldFetchMergedMessagesWithKeyOrHeaderEagerFilter() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
@@ -185,7 +195,16 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.filter.sync/client",
+        "${app}/unmerged.fetch.filter.sync/server"})
+    public void shouldFetchMergedFilterSync() throws Exception
+    {
+        k3po.finish();
+    }
+
     @Test
     @Configuration("cache.yaml")
     @Specification({
@@ -200,7 +219,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
@@ -259,7 +277,6 @@ public class CacheMergedIT
         k3po.finish();
     }
 
-    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.options.merged.yaml")
     @Specification({
