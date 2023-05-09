@@ -36,4 +36,4 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-read abort
+read aborted

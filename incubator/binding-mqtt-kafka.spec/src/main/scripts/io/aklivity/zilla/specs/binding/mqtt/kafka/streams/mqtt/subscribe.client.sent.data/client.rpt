@@ -28,3 +28,4 @@ write zilla:begin.ext ${mqtt:beginEx()
 connected
 
 write zilla:data.empty
+write abort

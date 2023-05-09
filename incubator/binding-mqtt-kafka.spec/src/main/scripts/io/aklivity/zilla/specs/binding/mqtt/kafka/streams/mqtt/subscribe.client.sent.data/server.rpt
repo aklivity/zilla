@@ -30,3 +30,4 @@ read zilla:begin.ext ${mqtt:beginEx()
 connected
 
 read zilla:data.empty
+read aborted
