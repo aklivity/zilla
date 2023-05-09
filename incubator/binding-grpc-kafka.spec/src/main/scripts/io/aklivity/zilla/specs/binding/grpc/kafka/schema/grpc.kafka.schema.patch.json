@@ -19,41 +19,17 @@
                 {
                     "properties":
                     {
-                        "reliability":
+                        "last-message-id-field":
                         {
-                            "title": "Reliability",
-                            "type": "object",
-                            "properties":
-                            {
-                                "field":
-                                {
-                                    "title": "Grpc Last Message Id",
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 536870911,
-                                    "default": 32767
-                                },
-                                "metadata":
-                                {
-                                    "title": "Grpc Last Message Id Metadata Name",
-                                    "type": "string",
-                                    "default": "last-message-id"
-                                }
-                            }
+                            "title": "Grpc Last Message Id",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 536870911
                         },
-                        "idempotency":
+                        "last-message-id-metadata":
                         {
-                            "title": "Idempotency",
-                            "type": "object",
-                            "properties":
-                            {
-                                "metadata":
-                                {
-                                    "title": "Idempotency Metadata name",
-                                    "type": "string",
-                                    "default": "idempotency-key"
-                                }
-                            }
+                            "title": "Grpc Last Message Id Metadata Name",
+                            "type": "string"
                         },
                         "correlation":
                         {
@@ -84,12 +60,6 @@
                                             "title": "Correlation-Id Kafka Header",
                                             "type": "string",
                                             "default": "zilla:correlation-id"
-                                        },
-                                        "reply-to":
-                                        {
-                                            "title": "Reply to Topic",
-                                            "type": "string",
-                                            "default": "zilla:reply-to"
                                         }
                                     },
                                     "additionalProperties": false
@@ -116,11 +86,15 @@
                                 {
                                     "properties":
                                     {
+                                        "service":
+                                        {
+                                            "title": "Service",
+                                            "type": "string"
+                                        },
                                         "method":
                                         {
                                             "title": "Method",
-                                            "type": "string",
-                                            "pattern": "^(?<Service>[^/]+)/(?<Method>[^/]+)"
+                                            "type": "string"
                                         },
                                         "metadata":
                                         {

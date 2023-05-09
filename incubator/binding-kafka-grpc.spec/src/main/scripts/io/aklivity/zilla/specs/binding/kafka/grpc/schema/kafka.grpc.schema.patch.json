@@ -29,20 +29,6 @@
                                 "in_sync_replicas"
                             ]
                         },
-                        "idempotency":
-                        {
-                            "title": "Idempotency",
-                            "type": "object",
-                            "properties":
-                            {
-                                "metadata":
-                                {
-                                    "title": "Idempotency Metadata name",
-                                    "type": "string",
-                                    "default": "idempotency-key"
-                                }
-                            }
-                        },
                         "correlation":
                         {
                             "title": "Correlation",
@@ -67,17 +53,23 @@
                                             "type": "string",
                                             "default": "zilla:method"
                                         },
+                                        "request":
+                                        {
+                                            "title": "Grpc Request Type Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:request"
+                                        },
+                                        "response":
+                                        {
+                                            "title": "Grpc Response Type Kafka Header",
+                                            "type": "string",
+                                            "default": "zilla:response"
+                                        },
                                         "correlation-id":
                                         {
                                             "title": "Correlation-Id Kafka Header",
                                             "type": "string",
                                             "default": "zilla:correlation-id"
-                                        },
-                                        "reply-to":
-                                        {
-                                            "title": "Reply to Topic",
-                                            "type": "string",
-                                            "default": "zilla:reply-to"
                                         }
                                     },
                                     "additionalProperties": false
@@ -122,12 +114,6 @@
                                         {
                                             "title": "ReplyTo",
                                             "type": "string"
-                                        },
-                                        "method":
-                                        {
-                                            "title": "Method",
-                                            "type": "string",
-                                            "pattern": "^(?<Service>[^/]+)/(?<Method>[^/]+)"
                                         }
                                     },
                                     "additionalProperties": false,

@@ -28,7 +28,8 @@ bindings:
             - topic: requests
               reply-to: responses
               key: 59410e57-3e0f-4b61-9328-f645a7968ac8-d41d8cd98f00b204e9800998ecf8427e
-              method: example.EchoService/*
+              headers:
+                zilla:service: example.EchoService
           with:
             scheme: http
             authority: localhost:8080

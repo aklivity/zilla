@@ -60,4 +60,5 @@ public final class GrpcKafkaBindingConfig
             .findFirst()
             .orElse(null);
     }
+
 }

@@ -14,21 +14,22 @@
  */
 package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
+import io.aklivity.zilla.runtime.binding.grpc.kafka.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 
 public final class GrpcKafkaOptionsConfig extends OptionsConfig
 {
-    public final GrpcKafkaReliabilityConfig reliability;
-    public final GrpcKafkaIdempotencyConfig idempotency;
+    public final int lastMessageIdField;
+    public final String8FW lastMessageIdMetadata;
     public final GrpcKafkaCorrelationConfig correlation;
 
     public GrpcKafkaOptionsConfig(
-        GrpcKafkaReliabilityConfig reliability,
-        GrpcKafkaIdempotencyConfig idempotency,
+        int lastMessageIdField,
+        String8FW lastMessageIdMetadata,
         GrpcKafkaCorrelationConfig correlation)
     {
-        this.reliability = reliability;
-        this.idempotency = idempotency;
+        this.lastMessageIdField = lastMessageIdField;
+        this.lastMessageIdMetadata = lastMessageIdMetadata;
         this.correlation = correlation;
     }
 }

@@ -16,8 +16,6 @@ package io.aklivity.zilla.runtime.binding.grpc.kafka.internal.config;
 
 import java.util.Base64;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -38,10 +36,8 @@ import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {
-    private static final Pattern METHOD_PATTERN = Pattern.compile("^(?<Service>[^/]+)/(?<Method>[^/]+)");
-    private static final String SERVICE_NAME = "Service";
-    private static final String METHOD = "Method";
     private static final String BASE64_NAME = "base64";
+    private static final String SERVICE_NAME = "service";
     private static final String METHOD_NAME = "method";
     private static final String METADATA_NAME = "metadata";
     private final Base64.Encoder encoder64 = Base64.getUrlEncoder();
@@ -62,8 +58,12 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
 
         if (condition.service != null)
         {
-            String method = String.format("%s/%s", condition.service, condition.method);
-            object.add(METHOD_NAME, method);
+            object.add(SERVICE_NAME, condition.service);
+        }
+
+        if (condition.method != null)
+        {
+            object.add(METHOD_NAME, condition.method);
         }
 
         if (condition.metadata != null &&
@@ -87,18 +87,12 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
     public ConditionConfig adaptFromJson(
         JsonObject object)
     {
-        String newService = null;
-        String newMethod = null;
-        if (object.containsKey(METHOD_NAME))
-        {
-            String method = object.getString(METHOD_NAME);
-            final Matcher matcher = METHOD_PATTERN.matcher(method);
-            if (matcher.matches())
-            {
-                newService = matcher.group(SERVICE_NAME);
-                newMethod = matcher.group(METHOD);
-            }
-        }
+        String service = object.containsKey(SERVICE_NAME)
+            ? object.getString(SERVICE_NAME)
+            : null;
+        String method = object.containsKey(METHOD_NAME)
+            ? object.getString(METHOD_NAME)
+            : null;
 
         JsonObject metadata = object.containsKey(METADATA_NAME)
             ? object.getJsonObject(METADATA_NAME)
@@ -135,7 +129,7 @@ public final class GrpcKafkaConditionConfigAdapter implements ConditionConfigAda
             });
         }
 
-        return new GrpcKafkaConditionConfig(newService, newMethod, newMetadata);
+        return new GrpcKafkaConditionConfig(service, method, newMetadata);
     }
 
 }

@@ -24,7 +24,6 @@ import jakarta.json.bind.adapter.JsonbAdapter;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.KafkaGrpcBinding;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String16FW;
-import io.aklivity.zilla.runtime.binding.kafka.grpc.internal.types.String8FW;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
@@ -32,29 +31,22 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
 {
     private static final KafkaAckMode ACKS_DEFAULT = KafkaAckMode.IN_SYNC_REPLICAS;
     private static final String ACKS_NAME = "acks";
-    private static final String IDEMPOTENCY_NAME = "idempotency";
-    private static final String IDEMPOTENCY_METADATA_NAME = "metadata";
+
     private static final String CORRELATION_NAME = "correlation";
     private static final String CORRELATION_HEADERS_NAME = "headers";
     private static final String CORRELATION_HEADERS_CORRELATION_ID_NAME = "correlation-id";
     private static final String CORRELATION_HEADERS_SERVICE_NAME = "service";
     private static final String CORRELATION_HEADERS_METHOD_NAME = "method";
-    private static final String CORRELATION_HEADERS_REPLY_TO_NAME = "reply-to";
 
-    private static final String8FW IDEMPOTENCY_METADATA_DEFAULT = new String8FW("idempotency-key");
     private static final String16FW CORRELATION_HEADERS_CORRELATION_ID_DEFAULT = new String16FW("zilla:correlation-id");
     private static final String16FW CORRELATION_HEADERS_SERVICE_DEFAULT = new String16FW("zilla:service");
     private static final String16FW CORRELATION_HEADERS_METHOD_DEFAULT = new String16FW("zilla:method");
-    private static final String16FW CORRELATION_HEADERS_REPLY_TO_DEFAULT = new String16FW("zilla:reply-to");
 
-    private static final KafkaGrpcIdempotencyConfig IDEMPOTENCY_DEFAULT =
-        new KafkaGrpcIdempotencyConfig(IDEMPOTENCY_METADATA_DEFAULT);
     private static final KafkaGrpcCorrelationConfig CORRELATION_DEFAULT =
         new KafkaGrpcCorrelationConfig(CORRELATION_HEADERS_CORRELATION_ID_DEFAULT,
-            CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT,
-            CORRELATION_HEADERS_REPLY_TO_DEFAULT);
+            CORRELATION_HEADERS_SERVICE_DEFAULT, CORRELATION_HEADERS_METHOD_DEFAULT);
     public static final KafkaGrpcOptionsConfig DEFAULT =
-        new KafkaGrpcOptionsConfig(ACKS_DEFAULT, IDEMPOTENCY_DEFAULT, CORRELATION_DEFAULT);
+        new KafkaGrpcOptionsConfig(ACKS_DEFAULT, CORRELATION_DEFAULT);
 
     @Override
     public OptionsConfigAdapterSpi.Kind kind()
@@ -81,20 +73,6 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
             object.add(ACKS_NAME, kafkaGrpcOptions.acks.name().toLowerCase());
         }
 
-        KafkaGrpcIdempotencyConfig idempotency = kafkaGrpcOptions.idempotency;
-        if (idempotency != null &&
-            !IDEMPOTENCY_DEFAULT.equals(idempotency))
-        {
-            JsonObjectBuilder newIdempotency = Json.createObjectBuilder();
-
-            if (!IDEMPOTENCY_METADATA_DEFAULT.equals(idempotency.metadata))
-            {
-                newIdempotency.add(IDEMPOTENCY_METADATA_NAME, idempotency.metadata.asString());
-            }
-
-            object.add(IDEMPOTENCY_NAME, newIdempotency);
-        }
-
         KafkaGrpcCorrelationConfig correlation = kafkaGrpcOptions.correlation;
         if (correlation != null &&
             !CORRELATION_DEFAULT.equals(correlation))
@@ -116,11 +94,6 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 newHeaders.add(CORRELATION_HEADERS_CORRELATION_ID_NAME, correlation.correlationId.asString());
             }
 
-            if (!CORRELATION_HEADERS_REPLY_TO_DEFAULT.equals(correlation.replyTo))
-            {
-                newHeaders.add(CORRELATION_HEADERS_REPLY_TO_NAME, correlation.replyTo.asString());
-            }
-
             JsonObjectBuilder newCorrelation = Json.createObjectBuilder();
             newCorrelation.add(CORRELATION_HEADERS_NAME, newHeaders);
 
@@ -137,20 +110,6 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
         KafkaAckMode newProduceAcks = object.containsKey(ACKS_NAME)
             ? KafkaAckMode.valueOf(object.getString(ACKS_NAME).toUpperCase())
             : ACKS_DEFAULT;
-
-        KafkaGrpcIdempotencyConfig newIdempotency = IDEMPOTENCY_DEFAULT;
-        if (object.containsKey(IDEMPOTENCY_NAME))
-        {
-            JsonObject idempotency = object.getJsonObject(IDEMPOTENCY_NAME);
-
-            String8FW newMetadata = IDEMPOTENCY_METADATA_DEFAULT;
-            if (idempotency.containsKey(IDEMPOTENCY_METADATA_NAME))
-            {
-                newMetadata = new String8FW(idempotency.getString(IDEMPOTENCY_METADATA_NAME));
-            }
-
-            newIdempotency = new KafkaGrpcIdempotencyConfig(newMetadata);
-        }
 
         KafkaGrpcCorrelationConfig newCorrelation = CORRELATION_DEFAULT;
         if (object.containsKey(CORRELATION_NAME))
@@ -178,16 +137,10 @@ public class KafkaGrpcOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                     newCorrelationId = new String16FW(headers.getString(CORRELATION_HEADERS_CORRELATION_ID_NAME));
                 }
 
-                String16FW newReplyTo = CORRELATION_HEADERS_REPLY_TO_DEFAULT;
-                if (headers.containsKey(CORRELATION_HEADERS_REPLY_TO_NAME))
-                {
-                    newReplyTo = new String16FW(headers.getString(CORRELATION_HEADERS_REPLY_TO_NAME));
-                }
-
-                newCorrelation = new KafkaGrpcCorrelationConfig(newCorrelationId, newService, newMethod, newReplyTo);
+                newCorrelation = new KafkaGrpcCorrelationConfig(newCorrelationId, newService, newMethod);
             }
         }
 
-        return new KafkaGrpcOptionsConfig(newProduceAcks, newIdempotency, newCorrelation);
+        return new KafkaGrpcOptionsConfig(newProduceAcks, newCorrelation);
     }
 }

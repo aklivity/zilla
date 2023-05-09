@@ -22,18 +22,16 @@ public final class GrpcKafkaCorrelationConfig
     public final String16FW correlationId;
     public final String16FW service;
     public final String16FW method;
-    public final String16FW replyTo;
 
 
     public GrpcKafkaCorrelationConfig(
         String16FW correlationId,
         String16FW service,
-        String16FW method,
-        String16FW replyTo)
+        String16FW method)
+
     {
         this.correlationId = correlationId;
         this.service = service;
         this.method = method;
-        this.replyTo = replyTo;
     }
 }
