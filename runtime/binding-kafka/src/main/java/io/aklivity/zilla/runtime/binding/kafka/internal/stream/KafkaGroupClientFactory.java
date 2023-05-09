@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongFunction;
 
-import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.codec.group.JoinGroupRequestFW;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongLongConsumer;
@@ -56,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaGroupBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ProxyBeginExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
@@ -101,6 +102,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
     private final RequestHeaderFW.Builder requestHeaderRW = new RequestHeaderFW.Builder();
     private final FindCoordinatorRequestFW.Builder findCoordinatorRequestRW = new FindCoordinatorRequestFW.Builder();
+    private final JoinGroupRequestFW.Builder joinGroupRequestRW = new JoinGroupRequestFW.Builder();
     private final ResourceRequestFW.Builder resourceRequestRW = new ResourceRequestFW.Builder();
 
     private final ResponseHeaderFW responseHeaderRO = new ResponseHeaderFW();
@@ -551,6 +553,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         private final MessageConsumer application;
         private final ClusterClient clusterClient;
         private final CoordinatorClient coordinatorClient;
+        private final String16FW groupId;
         private final long originId;
         private final long routedId;
         private final long initialId;
@@ -586,8 +589,9 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.affinity = affinity;
-            this.clusterClient = new ClusterClient(routedId, resolvedId, groupId, sasl, this);
-            this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, groupId, sasl, this);
+            this.groupId = groupId;
+            this.clusterClient = new ClusterClient(routedId, resolvedId, sasl, this);
+            this.coordinatorClient = new CoordinatorClient(routedId, resolvedId, sasl, this);
         }
 
         private void onApplication(
@@ -852,7 +856,6 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
         private final LongLongConsumer encodeFindCoordinatorRequest = this::doEncodeFindCoordinatorRequest;
         private final KafkaGroupStream delegate;
-        private final String16FW groupId;
 
         private MessageConsumer network;
 
@@ -885,12 +888,10 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         ClusterClient(
             long originId,
             long routedId,
-            String16FW groupId,
             KafkaSaslConfig sasl,
             KafkaGroupStream delegate)
         {
             super(sasl, originId, routedId);
-            this.groupId = groupId;
 
             this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeFindCoordinatorRequest;
             this.delegate = delegate;
@@ -1237,7 +1238,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             final FindCoordinatorRequestFW findCoordinatorRequest =
                 findCoordinatorRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .key(groupId)
+                    .key(delegate.groupId)
                     .keyType(GROUP_KEY_TYPE)
                     .build();
 
@@ -1485,9 +1486,8 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
     {
         private final LongLongConsumer encodeSaslHandshakeRequest = this::doEncodeSaslHandshakeRequest;
         private final LongLongConsumer encodeSaslAuthenticateRequest = this::doEncodeSaslAuthenticateRequest;
-        private final LongLongConsumer encodeFindCoordinatorRequest = this::doEncodeFindCoordinatorRequest;
+        private final LongLongConsumer encodeJoinGroupRequest = this::doEncodeJoinGroupRequest;
         private final KafkaGroupStream delegate;
-        private final String16FW groupId;
 
         private MessageConsumer network;
 
@@ -1520,14 +1520,12 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
         CoordinatorClient(
             long originId,
             long routedId,
-            String16FW groupId,
             KafkaSaslConfig sasl,
             KafkaGroupStream delegate)
         {
             super(sasl, originId, routedId);
-            this.groupId = groupId;
 
-            this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeFindCoordinatorRequest;
+            this.encoder = sasl != null ? encodeSaslHandshakeRequest : encodeJoinGroupRequest;
             this.delegate = delegate;
             this.decoder = decodeReject;
         }
@@ -1862,7 +1860,7 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
             }
         }
 
-        private void doEncodeFindCoordinatorRequest(
+        private void doEncodeJoinGroupRequest(
             long traceId,
             long budgetId)
         {
@@ -1882,13 +1880,15 @@ public final class KafkaGroupClientFactory extends KafkaClientSaslHandshaker imp
 
             encodeProgress = requestHeader.limit();
 
-            final FindCoordinatorRequestFW findCoordinatorRequest =
-                findCoordinatorRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
-                    .key(groupId)
-                    .keyType(GROUP_KEY_TYPE)
+            final JoinGroupRequestFW joinGroupRequest =
+                joinGroupRequestRW.wrap(encodeBuffer, encodeProgress, encodeLimit)
+                    .groupId(delegate.groupId)
+                    .sessionTimeoutMillis(10000)
+                    .rebalanceTimeoutMillis(10000)
+                    .memberId()
                     .build();
 
-            encodeProgress = findCoordinatorRequest.limit();
+            encodeProgress = joinGroupRequest.limit();
 
             final int requestId = nextRequestId++;
             final int requestSize = encodeProgress - encodeOffset - RequestHeaderFW.FIELD_OFFSET_API_KEY;
