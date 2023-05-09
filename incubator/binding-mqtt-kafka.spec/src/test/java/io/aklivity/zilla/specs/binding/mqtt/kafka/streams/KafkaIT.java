@@ -37,6 +37,60 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.client.sent.abort/client",
+        "${kafka}/publish.client.sent.abort/server"})
+    public void shouldPublishReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.client.sent.reset/client",
+        "${kafka}/publish.client.sent.reset/server"})
+    public void shouldPublishReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.server.sent.abort/client",
+        "${kafka}/publish.server.sent.abort/server"})
+    public void shouldPublishReceiveServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.server.sent.flush/client",
+        "${kafka}/publish.server.sent.flush/server"})
+    public void shouldPublishReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.server.sent.reset/client",
+        "${kafka}/publish.server.sent.reset/server"})
+    public void shouldPublishReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.server.sent.data/client",
+        "${kafka}/publish.server.sent.data/server"})
+    public void shouldPublishAbortWhenServerSentData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.empty.message/client",
         "${kafka}/publish.empty.message/server"})
     public void shouldSendEmptyMessage() throws Exception
@@ -85,6 +139,60 @@ public class KafkaIT
         "${kafka}/publish.with.user.property/client",
         "${kafka}/publish.with.user.property/server"})
     public void shouldSendWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.client.sent.abort/client",
+        "${kafka}/subscribe.client.sent.abort/server"})
+    public void shouldSubscribeReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.client.sent.data/client",
+        "${kafka}/subscribe.client.sent.data/server"})
+    public void shouldSubscribeAbortWhenClientSentData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.client.sent.reset/client",
+        "${kafka}/subscribe.client.sent.reset/server"})
+    public void shouldSubscribeReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.server.sent.abort/client",
+        "${kafka}/subscribe.server.sent.abort/server"})
+    public void shouldSubscribeReceiveServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.server.sent.flush/client",
+        "${kafka}/subscribe.server.sent.flush/server"})
+    public void shouldSubscribeReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.server.sent.reset/client",
+        "${kafka}/subscribe.server.sent.reset/server"})
+    public void shouldSubscribeReceiveServerSentReset() throws Exception
     {
         k3po.finish();
     }

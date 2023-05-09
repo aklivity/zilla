@@ -38,6 +38,7 @@ write zilla:data.ext ${mqtt:dataEx()
                                  .format("TEXT")
                                  .userProperty("row1", "1")
                                  .userProperty("row2", "2")
+                                 .userProperty("row2", "3")
                                  .build()
                              .build()}
 

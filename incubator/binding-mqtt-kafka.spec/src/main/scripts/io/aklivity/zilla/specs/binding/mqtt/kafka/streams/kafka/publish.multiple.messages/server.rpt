@@ -41,6 +41,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:topic", "sensor")
                                .header("zilla:topic", "one")
                                .header("zilla:local", "client")
+                               .header("zilla:format", "TEXT")
                                .build()
                            .build()}
 
@@ -55,6 +56,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:topic", "sensor")
                                .header("zilla:topic", "one")
                                .header("zilla:local", "client")
+                               .header("zilla:format", "TEXT")
                                .build()
                            .build()}
 
@@ -69,6 +71,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .header("zilla:topic", "sensor")
                                .header("zilla:topic", "one")
                                .header("zilla:local", "client")
+                               .header("zilla:format", "TEXT")
                                .build()
                            .build()}
 

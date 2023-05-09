@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
+accept "zilla://streams/mqtt0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 
@@ -33,6 +33,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
+                                .format("TEXT")
                                 .build()
                             .build()}
 
@@ -42,6 +43,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
+                                .format("TEXT")
                                 .build()
                             .build()}
 
@@ -51,6 +53,7 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .publish()
                                 .topic("sensor/one")
+                                .format("TEXT")
                                 .build()
                             .build()}
 

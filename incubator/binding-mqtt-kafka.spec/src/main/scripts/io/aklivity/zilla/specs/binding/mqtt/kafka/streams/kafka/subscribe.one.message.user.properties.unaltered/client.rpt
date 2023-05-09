@@ -48,6 +48,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                                 .header("zilla:format", "TEXT")
                                 .header("row1", "1")
                                 .header("row2", "2")
+                                .header("row2", "3")
                                 .build()
                             .build()}
 

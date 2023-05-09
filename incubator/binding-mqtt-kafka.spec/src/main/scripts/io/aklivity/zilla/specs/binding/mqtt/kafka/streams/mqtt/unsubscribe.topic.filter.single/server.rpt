@@ -13,7 +13,7 @@
 # specific language governing permissions and limitations under the License.
 #
 
-accept "zilla://streams/app0"
+accept "zilla://streams/mqtt0"
         option zilla:window 8192
         option zilla:transmission "duplex"
 

@@ -14,11 +14,9 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.engine.config.RouteConfig;
-import static java.util.stream.Collectors.toList;
-
-import java.util.List;
 import java.util.function.LongPredicate;
+
+import io.aklivity.zilla.runtime.engine.config.RouteConfig;
 
 public class MqttKafkaRouteConfig
 {

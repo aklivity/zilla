@@ -14,14 +14,14 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
-import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
-
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.bind.adapter.JsonbAdapter;
+
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfig;
+import io.aklivity.zilla.runtime.engine.config.ConditionConfigAdapterSpi;
 
 public class MqttKafkaConditionConfigAdapter implements ConditionConfigAdapterSpi, JsonbAdapter<ConditionConfig, JsonObject>
 {

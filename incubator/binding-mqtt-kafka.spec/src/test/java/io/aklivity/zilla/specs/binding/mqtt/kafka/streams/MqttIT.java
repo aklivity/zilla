@@ -37,6 +37,60 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.client.sent.abort/client",
+        "${mqtt}/publish.client.sent.abort/server"})
+    public void shouldReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.client.sent.reset/client",
+        "${mqtt}/publish.client.sent.reset/server"})
+    public void shouldReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.server.sent.abort/client",
+        "${mqtt}/publish.server.sent.abort/server"})
+    public void shouldPublishReceiveServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.server.sent.flush/client",
+        "${mqtt}/publish.server.sent.flush/server"})
+    public void shouldPublishReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.server.sent.reset/client",
+        "${mqtt}/publish.server.sent.reset/server"})
+    public void shouldPublishReceiveServerSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.server.sent.data/client",
+        "${mqtt}/publish.server.sent.data/server"})
+    public void shouldPublishAbortWhenServerSentData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.empty.message/client",
         "${mqtt}/publish.empty.message/server"})
     public void shouldSendEmptyMessage() throws Exception
@@ -85,6 +139,60 @@ public class MqttIT
         "${mqtt}/publish.with.user.property/client",
         "${mqtt}/publish.with.user.property/server"})
     public void shouldSendWithUserProperty() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.client.sent.abort/client",
+        "${mqtt}/subscribe.client.sent.abort/server"})
+    public void shouldSubscribeReceiveClientSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.client.sent.data/client",
+        "${mqtt}/subscribe.client.sent.data/server"})
+    public void shouldSubscribeAbortWhenClientSentData() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.client.sent.reset/client",
+        "${mqtt}/subscribe.client.sent.reset/server"})
+    public void shouldSubscribeReceiveClientSentReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.server.sent.abort/client",
+        "${mqtt}/subscribe.server.sent.abort/server"})
+    public void shouldSubscribeReceiveServerSentAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.server.sent.flush/client",
+        "${mqtt}/subscribe.server.sent.flush/server"})
+    public void shouldSubscribeReceiveServerSentFlush() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.server.sent.reset/client",
+        "${mqtt}/subscribe.server.sent.reset/server"})
+    public void shouldSubscribeReceiveServerSentReset() throws Exception
     {
         k3po.finish();
     }

@@ -198,7 +198,8 @@
                   <tag>latest</tag>
                 </tags>
                 <createImageOptions>
-                  <platform>linux/x86_64</platform>
+<!--                  <platform>linux/x86_64</platform>-->
+                  <platform>linux/arm64</platform>
                 </createImageOptions>
                 <assemblies>
                   <assembly>
@@ -295,6 +296,12 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>binding-mqtt</artifactId>
+          <version>${project.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>binding-mqtt-kafka</artifactId>
           <version>${project.version}</version>
           <scope>runtime</scope>
         </dependency>

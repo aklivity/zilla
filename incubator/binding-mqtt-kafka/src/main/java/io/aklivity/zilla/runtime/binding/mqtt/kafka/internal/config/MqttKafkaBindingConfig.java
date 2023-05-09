@@ -14,12 +14,12 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
-import io.aklivity.zilla.runtime.engine.config.BindingConfig;
-import io.aklivity.zilla.runtime.engine.config.KindConfig;
-
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
+
+import io.aklivity.zilla.runtime.engine.config.BindingConfig;
+import io.aklivity.zilla.runtime.engine.config.KindConfig;
 
 public class MqttKafkaBindingConfig
 {

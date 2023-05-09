@@ -13,21 +13,27 @@
 # specific language governing permissions and limitations under the License.
 #
 
-FROM eclipse-temurin:17-alpine AS build
+#FROM eclipse-temurin:17-alpine AS build
+#FROM eclipse-temurin:17-ubi9-minimal AS build
+FROM eclipse-temurin:17-jammy AS build
 
 COPY maven /root/.m2/repository
 
 COPY zpmw zpmw
 COPY zpm.json zpm.json.template
 
-RUN apk add --no-cache gettext
+#RUN apk add --no-cache gettext
+#RUN microdnf install -y --setopt=keepcache=0 gettext
+RUN apt update && apt install -y gettext #&& apt clean
 RUN cat zpm.json.template | env VERSION=${project.version} envsubst > zpm.json
 
-RUN apk add --no-cache wget
+#RUN apk add --no-cache wget
 RUN ./zpmw install --debug --exclude-remote-repositories
 RUN ./zpmw clean --keep-image
 
-FROM alpine
+#FROM alpine
+#FROM redhat/ubi9-minimal
+FROM ubuntu:jammy
 
 COPY --from=build /.zpm /opt/zilla/.zpm
 COPY --from=build /zilla /opt/zilla/zilla

@@ -14,7 +14,10 @@
  */
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaBinding;
+import org.agrona.DirectBuffer;
+import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.Long2ObjectHashMap;
+
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -26,12 +29,9 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.config.BindingConfig;
 
-import org.agrona.DirectBuffer;
-import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.Long2ObjectHashMap;
-
 public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
 {
+    private static final String MQTT_TYPE_NAME = "mqtt";
     private final BeginFW beginRO = new BeginFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
@@ -53,14 +53,14 @@ public class MqttKafkaProxyFactory implements MqttKafkaStreamFactory
         final MqttKafkaSubscribeFactory subscribeFactory = new MqttKafkaSubscribeFactory(
             config, context, bindings::get);
 
-        final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
-            config, context, bindings::get);
+        //        final MqttKafkaSessionFactory sessionFactory = new MqttKafkaSessionFactory(
+        //            config, context, bindings::get);
 
         factories.put(MqttBeginExFW.KIND_PUBLISH, publishFactory);
         factories.put(MqttBeginExFW.KIND_SUBSCRIBE, subscribeFactory);
-        factories.put(MqttBeginExFW.KIND_SESSION, sessionFactory);
+        //        factories.put(MqttBeginExFW.KIND_SESSION, sessionFactory);
 
-        this.mqttTypeId = context.supplyTypeId(MqttKafkaBinding.NAME);
+        this.mqttTypeId = context.supplyTypeId(MQTT_TYPE_NAME);
         this.factories = factories;
         this.bindings = bindings;
     }
