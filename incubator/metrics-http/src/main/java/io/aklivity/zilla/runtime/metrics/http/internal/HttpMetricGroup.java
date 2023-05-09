@@ -29,7 +29,9 @@ public class HttpMetricGroup implements MetricGroup
 
     private final Map<String, Supplier<Metric>> httpMetrics = Map.of(
         "http.request.size", HttpRequestSizeMetric::new,
-        "http.response.size", HttpResponseSizeMetric::new
+        "http.response.size", HttpResponseSizeMetric::new,
+        "http.active.requests", HttpActiveRequestsMetric::new,
+        "http.duration", HttpDurationMetric::new
     );
 
     public HttpMetricGroup(

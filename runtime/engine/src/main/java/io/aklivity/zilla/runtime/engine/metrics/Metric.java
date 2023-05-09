@@ -29,6 +29,7 @@ public interface Metric
     enum Unit
     {
         BYTES,
+        NANOSECONDS,
         COUNT
     }
 

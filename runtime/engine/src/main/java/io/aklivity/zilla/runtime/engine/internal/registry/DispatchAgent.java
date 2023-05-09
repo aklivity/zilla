@@ -1325,7 +1325,7 @@ public class DispatchAgent implements EngineContext, Agent
         {
             MessageConsumer sentMetricHandler = supplyMetricRecorder(originId, ORIGIN, SENT)
                 .andThen(supplyMetricRecorder(routedId, ROUTED, SENT));
-            final MessageConsumer replyTo = sentMetricHandler.andThen(supplyReplyTo(initialId));
+            final MessageConsumer replyTo = supplyReplyTo(initialId).andThen(sentMetricHandler);
             newStream = streamFactory.newStream(msgTypeId, buffer, index, length, replyTo);
             if (newStream != null)
             {
