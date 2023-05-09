@@ -850,6 +850,7 @@ public class CacheFetchIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
     @Configuration("cache.yaml")
     @Specification({
