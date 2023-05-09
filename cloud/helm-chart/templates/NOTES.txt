@@ -1,4 +1,4 @@
-{{- if eq (include "zilla.isServicePortDefined" .) "true" }}
+{{- if eq (include "helm.isServicePortDefined" .) "true" }}
 Expose zilla with port-forward by running these commands:
 ---------------------------------------------------------
 $ export SERVICE_PORTS=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "helm.fullname" . }} --template "{{"{{ range .spec.ports }}{{.port}} {{ end }}"}}")
@@ -9,7 +9,7 @@ Verify behaviour:
 -----------------
 {{ .Values.verify }}
 
-{{- if eq (include "zilla.isServicePortDefined" .) "true" }}
+{{- if eq (include "helm.isServicePortDefined" .) "true" }}
 Cleanup port-forwards:
 ----------------------
 $ pgrep kubectl && killall kubectl

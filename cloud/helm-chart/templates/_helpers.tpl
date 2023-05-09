@@ -53,6 +53,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Check if we have a service port defined
 */}}
-{{- define "zilla.isServicePortDefined" -}}
+{{- define "helm.isServicePortDefined" -}}
 {{- default false (gt (len .Values.service.ports) 0) }}
 {{- end }}
