@@ -16,7 +16,7 @@ package io.aklivity.zilla.runtime.exporter.prometheus.internal.descriptor;
 
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Kind.COUNTER;
 import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.BYTES;
-import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.SECONDS;
+import static io.aklivity.zilla.runtime.engine.metrics.Metric.Unit.NANOSECONDS;
 
 import java.util.Map;
 import java.util.function.Function;
@@ -72,9 +72,9 @@ public class PrometheusMetricDescriptor implements MetricDescriptor
         {
             result += "_bytes";
         }
-        else if (metric.unit() == SECONDS)
+        else if (metric.unit() == NANOSECONDS)
         {
-            result += "_seconds";
+            result += "_nanoseconds";
         }
         if (metric.kind() == COUNTER)
         {

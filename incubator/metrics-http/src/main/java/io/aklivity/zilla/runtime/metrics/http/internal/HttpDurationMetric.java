@@ -39,7 +39,7 @@ public class HttpDurationMetric implements Metric
     @Override
     public Unit unit()
     {
-        return Unit.SECONDS;
+        return Unit.NANOSECONDS;
     }
 
     @Override

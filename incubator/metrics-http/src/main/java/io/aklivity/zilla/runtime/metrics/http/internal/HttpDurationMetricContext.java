@@ -17,7 +17,6 @@ package io.aklivity.zilla.runtime.metrics.http.internal;
 import static io.aklivity.zilla.runtime.engine.metrics.MetricContext.Direction.BOTH;
 import static io.aklivity.zilla.runtime.metrics.http.internal.HttpUtils.initialId;
 
-import java.util.concurrent.TimeUnit;
 import java.util.function.LongConsumer;
 
 import org.agrona.DirectBuffer;
@@ -122,7 +121,7 @@ public final class HttpDurationMetricContext implements MetricContext
                     long start = timestamps.remove(exchangeId);
                     if (start != INITIAL_VALUE)
                     {
-                        long duration = TimeUnit.NANOSECONDS.toSeconds(timestamp - start);
+                        long duration = timestamp - start;
                         recorder.accept(duration);
                     }
                 }

@@ -647,7 +647,7 @@ public class HttpMetricGroupTest
         assertThat(metric, instanceOf(HttpDurationMetric.class));
         assertThat(metric.name(), equalTo("http.duration"));
         assertThat(metric.kind(), equalTo(Metric.Kind.HISTOGRAM));
-        assertThat(metric.unit(), equalTo(Metric.Unit.SECONDS));
+        assertThat(metric.unit(), equalTo(Metric.Unit.NANOSECONDS));
         assertThat(metric.description(), equalTo("Duration of HTTP requests"));
     }
 
@@ -715,7 +715,7 @@ public class HttpMetricGroupTest
         handler.accept(EndFW.TYPE_ID, endBuffer2, 0, endBuffer2.capacity());
 
         // THEN
-        verify(recorder, times(1)).accept(35L);
+        verify(recorder, times(1)).accept(35_000_000_000L);
     }
 
     @Test
