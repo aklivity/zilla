@@ -30,7 +30,7 @@ You can install `helm` with `$ brew install helm`.
 | [grpc.kafka.echo](grpc.kafka.echo)                   | Echoes messages sent to a Kafka topic via gRPC from a gRPC client                         |
 | [grpc.kafka.fanout](grpc.kafka.fanout)               | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
 | [grpc.kafka.proxy](grpc.kafka.proxy)                 | Correlates gRPC requests and responses over separate Kafka topics                         |
-| [grpc.proxy](grpc.proxy).                            | Proxies gRPC requests and responses sent to the gRPC server from a gRPC client            |
+| [grpc.proxy](grpc.proxy)                             | Proxies gRPC requests and responses sent to the gRPC server from a gRPC client            |
 | [amqp.reflect](amqp.reflect)                         | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients  |
 | [mqtt.reflect](mqtt.reflect)                         | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients  |
 | [sse.kafka.fanout](sse.kafka.fanout)                 | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
