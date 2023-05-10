@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -39,8 +38,14 @@ public class MqttKafkaHeaderHelper
     public static final String KAFKA_FORMAT_HEADER_NAME = "zilla:format";
     public static final String KAFKA_REPLY_TO_HEADER_NAME = "zilla:reply-to";
     public static final String KAFKA_CORRELATION_ID_HEADER_NAME = "zilla:correlation-id";
+    public final OctetsFW kafkaTopicHeaderOctets;
+    public final OctetsFW kafkaLocalHeaderOctets;
+    public final OctetsFW kafkaTimeoutHeaderOctets;
+    public final OctetsFW kafkaContentTypeHeaderOctets;
+    public final OctetsFW kafkaFormatHeaderOctets;
+    public final OctetsFW kafkaReplyToHeaderOctets;
+    public final OctetsFW kafkaCorrelationHeaderOctets;
     private final Map<String, Consumer<OctetsFW>> visitors;
-    private final OctetsFW.Builder octetsRW;
     private final MutableDirectBuffer octetsBuffer;
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
 
@@ -48,7 +53,6 @@ public class MqttKafkaHeaderHelper
     public MqttKafkaHeaderHelper()
     {
         octetsBuffer = new UnsafeBuffer(new byte[8 * 1024]);
-        octetsRW = new OctetsFW.Builder();
         visitors = new HashMap<>();
         visitors.put(KAFKA_TOPIC_HEADER_NAME, this::visitTopic);
         visitors.put(KAFKA_LOCAL_HEADER_NAME, this::visitLocal);
@@ -57,6 +61,14 @@ public class MqttKafkaHeaderHelper
         visitors.put(KAFKA_FORMAT_HEADER_NAME, this::visitFormat);
         visitors.put(KAFKA_REPLY_TO_HEADER_NAME, this::visitReplyTo);
         visitors.put(KAFKA_CORRELATION_ID_HEADER_NAME, this::visitCorrelationId);
+
+        kafkaTopicHeaderOctets = stringToOctets(KAFKA_TOPIC_HEADER_NAME);
+        kafkaLocalHeaderOctets = stringToOctets(KAFKA_LOCAL_HEADER_NAME);
+        kafkaTimeoutHeaderOctets = stringToOctets(KAFKA_TIMEOUT_HEADER_NAME);
+        kafkaContentTypeHeaderOctets = stringToOctets(KAFKA_CONTENT_TYPE_HEADER_NAME);
+        kafkaFormatHeaderOctets = stringToOctets(KAFKA_FORMAT_HEADER_NAME);
+        kafkaReplyToHeaderOctets = stringToOctets(KAFKA_REPLY_TO_HEADER_NAME);
+        kafkaCorrelationHeaderOctets = stringToOctets(KAFKA_CORRELATION_ID_HEADER_NAME);
     }
 
     public List<String> topicNames;
@@ -68,16 +80,10 @@ public class MqttKafkaHeaderHelper
     public OctetsFW correlation;
     public Map<String, List<String>> userProperties;
 
-    public OctetsFW stringToOctets(String string)
+    private OctetsFW stringToOctets(String string0)
     {
-        DirectBuffer buffer = new String16FW(string).value();
-        OctetsFW octets = emptyRO;
-        if (buffer != null)
-        {
-            octets = octetsRW.wrap(octetsBuffer, 0, octetsBuffer.capacity())
-                .set(buffer, 0, buffer.capacity()).build();
-        }
-        return octets;
+        String16FW string = new String16FW(string0);
+        return new OctetsFW().wrap(string.value(), 0, string.length());
     }
 
     public void visit(

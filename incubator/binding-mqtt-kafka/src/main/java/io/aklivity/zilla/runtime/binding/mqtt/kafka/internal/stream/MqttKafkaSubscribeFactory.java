@@ -16,17 +16,14 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper.KAFKA_LOCAL_HEADER_NAME;
-import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper.KAFKA_TOPIC_HEADER_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.NO_LOCAL;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.IntArrayList;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
@@ -128,7 +125,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
 
     private String clientId;
     private Array32FW<MqttTopicFilterFW> filters;
-    private List<Integer> subscriptionIds = new ArrayList<>();
+    private IntArrayList subscriptionIds = new IntArrayList();
 
     public MqttKafkaSubscribeFactory(
         MqttKafkaConfiguration config,
@@ -328,11 +325,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                                 boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
                                 if (noLocal)
                                 {
-                                    final DirectBuffer nameBuffer = new String16FW(KAFKA_LOCAL_HEADER_NAME).value();
                                     final DirectBuffer valueBuffer = new String16FW(clientId).value();
                                     f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                        h.nameLen(nameBuffer.capacity())
-                                            .name(nameBuffer, 0, nameBuffer.capacity())
+                                        h.nameLen(helper.kafkaLocalHeaderOctets.sizeof())
+                                            .name(helper.kafkaLocalHeaderOctets)
                                             .valueLen(valueBuffer.capacity())
                                             .value(valueBuffer, 0, valueBuffer.capacity())))));
                                 }
@@ -544,7 +540,6 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
             }
         }
     }
-
 
     final class KafkaProxy
     {
@@ -1088,11 +1083,10 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                             boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
                             if (noLocal)
                             {
-                                final DirectBuffer nameBuffer = new String16FW(KAFKA_LOCAL_HEADER_NAME).value();
                                 final DirectBuffer valueBuffer = new String16FW(clientId).value();
                                 f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                    h.nameLen(nameBuffer.capacity())
-                                        .name(nameBuffer, 0, nameBuffer.capacity())
+                                    h.nameLen(helper.kafkaLocalHeaderOctets.sizeof())
+                                        .name(helper.kafkaLocalHeaderOctets)
                                         .valueLen(valueBuffer.capacity())
                                         .value(valueBuffer, 0, valueBuffer.capacity())))));
                             }
@@ -1127,9 +1121,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         String pattern)
     {
         kafkaFilterHeadersRW.wrap(kafkaFilterHeadersBuffer, 0, kafkaFilterHeadersBuffer.capacity());
-        final DirectBuffer nameBuffer = new String16FW(KAFKA_TOPIC_HEADER_NAME).value();
-        kafkaFilterHeadersRW.nameLen(nameBuffer.capacity())
-            .name(nameBuffer, 0, nameBuffer.capacity());
+        kafkaFilterHeadersRW.nameLen(helper.kafkaTopicHeaderOctets.sizeof())
+            .name(helper.kafkaTopicHeaderOctets);
         String[] headers = pattern.split("/");
         for (String header : headers)
         {

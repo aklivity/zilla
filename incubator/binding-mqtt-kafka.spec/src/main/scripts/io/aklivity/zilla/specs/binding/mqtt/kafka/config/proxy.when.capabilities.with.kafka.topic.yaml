@@ -27,11 +27,11 @@ bindings:
     routes:
       - exit: kafka0
         when:
-          - capabilities: SESSION
+          - capabilities: session
         with:
           - topic: mqtt_sessions
       - exit: kafka0
         when:
-          - capabilities: PUBLISH_AND_SUBSCRIBE
+          - capabilities: publish_and_subscribe
         with:
           - topic: mqtt_messages

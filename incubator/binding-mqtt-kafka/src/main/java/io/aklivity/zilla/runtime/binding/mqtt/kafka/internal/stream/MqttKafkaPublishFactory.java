@@ -18,6 +18,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 import static java.time.Instant.now;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -27,6 +28,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBindingConfig;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaRouteConfig;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
@@ -62,13 +64,6 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private static final KafkaAckMode KAFKA_DEFAULT_ACK_MODE = KafkaAckMode.LEADER_ONLY;
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
-    private static final String KAFKA_TOPIC_HEADER_NAME = "zilla:topic";
-    private static final String KAFKA_LOCAL_HEADER_NAME = "zilla:local";
-    private static final String KAFKA_TIMEOUT_HEADER_NAME = "zilla:timeout-ms";
-    private static final String KAFKA_CONTENT_TYPE_HEADER_NAME = "zilla:content-type";
-    private static final String KAFKA_FORMAT_HEADER_NAME = "zilla:format";
-    private static final String KAFKA_REPLY_TO_HEADER_NAME = "zilla:reply-to";
-    private static final String KAFKA_CORRELATION_ID_HEADER_NAME = "zilla:correlation-id";
 
     private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
     private final BeginFW beginRO = new BeginFW();
@@ -98,29 +93,29 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
-    private KafkaKeyFW.Builder keyRW = new KafkaKeyFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
-
-
-    //TODO: do we need similar for mqtt?
-    //private final SseKafkaIdHelper sseEventId = new SseKafkaIdHelper();
-
+    private final OctetsFW.Builder headerValueRW = new OctetsFW.Builder();
+    private final OctetsFW.Builder headerKeyRW = new OctetsFW.Builder();
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer keyBuffer;
+    private final MutableDirectBuffer headerValueBuffer;
+    private final MutableDirectBuffer headerKeyBuffer;
+    private final ByteBuffer headerIntValueBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer kafkaHeadersBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
+    private final MqttKafkaHeaderHelper helper;
     private final int mqttTypeId;
     private final int kafkaTypeId;
     private final Signaler signaler;
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
-
-    private String topicName;
-    private String clientId;
     private KafkaKeyFW key;
+
+    private OctetsFW[] topicNameHeaders;
+    private OctetsFW clientIdOctets;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -131,8 +126,12 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.keyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.headerValueBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.headerIntValueBuffer = ByteBuffer.allocate(4);
+        this.headerKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.helper = new MqttKafkaHeaderHelper();
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
@@ -159,8 +158,18 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
         assert mqttBeginEx.kind() == MqttBeginExFW.KIND_PUBLISH;
         final MqttPublishBeginExFW mqttPublishBeginEx = mqttBeginEx.publish();
-        topicName = mqttPublishBeginEx.topic().asString();
-        clientId = mqttPublishBeginEx.clientId().asString();
+        String topicName = mqttPublishBeginEx.topic().asString();
+        assert topicName != null;
+
+        String[] topicHeaders = topicName.split("/");
+        topicNameHeaders = new OctetsFW[topicHeaders.length];
+        for (int i = 0; i < topicHeaders.length; i++)
+        {
+            String16FW topicHeader = new String16FW(topicHeaders[i]);
+            topicNameHeaders[i] = new OctetsFW().wrap(topicHeader.value(), 0, topicHeader.length());
+        }
+        clientIdOctets = new OctetsFW()
+            .wrap(mqttPublishBeginEx.clientId().value(), 0, mqttPublishBeginEx.clientId().length());
         final DirectBuffer topicNameBuffer = mqttPublishBeginEx.topic().value();
         key = new KafkaKeyFW.Builder()
             .wrap(keyBuffer, 0, keyBuffer.capacity())
@@ -306,44 +315,37 @@ public class MqttKafkaPublishFactory implements BindingHandler
             assert mqttDataEx.kind() == MqttDataExFW.KIND_PUBLISH;
             final MqttPublishDataExFW mqttPublishDataEx = mqttDataEx.publish();
             kafkaHeadersRW.wrap(kafkaHeadersBuffer, 0, kafkaHeadersBuffer.capacity());
-            final String topic = mqttPublishDataEx.topic().asString();
 
-            //TODO: is it worth to precompute header key byte[]?
-            // And clientId, topicHeader values, since we know them from beginEx
-            if (topic != null)
+            for (OctetsFW topicHeader : topicNameHeaders)
             {
-                String[] topicHeaders = topic.split("/");
-                for (final String topicHeader : topicHeaders)
-                {
-                    addHeader(KAFKA_TOPIC_HEADER_NAME, topicHeader);
-                }
+                addHeader(helper.kafkaTopicHeaderOctets, topicHeader);
             }
 
-            addHeader(KAFKA_LOCAL_HEADER_NAME, clientId);
+            addHeader(helper.kafkaLocalHeaderOctets, clientIdOctets);
 
             if (mqttPublishDataEx.expiryInterval() != -1)
             {
-                addHeader(KAFKA_TIMEOUT_HEADER_NAME, mqttPublishDataEx.expiryInterval() * 1000);
+                addHeader(helper.kafkaTimeoutHeaderOctets, mqttPublishDataEx.expiryInterval() * 1000);
             }
 
             if (mqttPublishDataEx.contentType().asString() != null)
             {
-                addHeader(KAFKA_CONTENT_TYPE_HEADER_NAME, mqttPublishDataEx.contentType().asString());
+                addHeader(helper.kafkaContentTypeHeaderOctets, mqttPublishDataEx.contentType().asString());
             }
 
             if (payload.sizeof() != 0 && mqttPublishDataEx.format() != null)
             {
-                addHeader(KAFKA_FORMAT_HEADER_NAME, mqttPublishDataEx.format().get().name());
+                addHeader(helper.kafkaFormatHeaderOctets, mqttPublishDataEx.format().get().name());
             }
 
             if (mqttPublishDataEx.responseTopic().asString() != null)
             {
-                addHeader(KAFKA_REPLY_TO_HEADER_NAME, mqttPublishDataEx.responseTopic().asString());
+                addHeader(helper.kafkaReplyToHeaderOctets, mqttPublishDataEx.responseTopic().asString());
             }
 
             if (mqttPublishDataEx.correlation().bytes() != null)
             {
-                addHeader(KAFKA_CORRELATION_ID_HEADER_NAME, mqttPublishDataEx.correlation().bytes());
+                addHeader(helper.kafkaCorrelationHeaderOctets, mqttPublishDataEx.correlation().bytes());
             }
 
             mqttPublishDataEx.properties().forEach(property ->
@@ -549,40 +551,61 @@ public class MqttKafkaPublishFactory implements BindingHandler
         }
     }
 
-    private void addHeader(String key, int value)
+    private void addHeader(
+        OctetsFW key,
+        int value)
     {
-        final DirectBuffer nameBuffer = new String16FW(key).value();
+
         kafkaHeadersRW.item(h ->
         {
-            h.nameLen(nameBuffer.capacity());
-            h.name(nameBuffer, 0, nameBuffer.capacity());
+            h.nameLen(key.sizeof());
+            h.name(key);
             h.valueLen(4);
-            h.value(c -> c.set(ByteBuffer.allocate(4).putInt(value).array()));
+            h.value(c -> c.set(headerIntValueBuffer.putInt(value).array()));
         });
     }
 
-    private void addHeader(String key, OctetsFW value)
+    private void addHeader(
+        OctetsFW key,
+        OctetsFW value)
     {
-        final DirectBuffer nameBuffer = new String16FW(key).value();
         kafkaHeadersRW.item(h ->
         {
-            h.nameLen(nameBuffer.capacity());
-            h.name(nameBuffer, 0, nameBuffer.capacity());
+            h.nameLen(key.sizeof());
+            h.name(key);
             h.valueLen(value.sizeof());
             h.value(value);
         });
     }
 
-    private void addHeader(String key, String value)
+    private void addHeader(
+        OctetsFW key,
+        String stringValue)
     {
-        final DirectBuffer nameBuffer = new String16FW(key).value();
-        final DirectBuffer valueBuffer = new String16FW(value).value();
+        OctetsFW value = headerValueRW.wrap(headerValueBuffer, 0, headerValueBuffer.capacity())
+            .put(stringValue.getBytes(StandardCharsets.UTF_8)).build();
         kafkaHeadersRW.item(h ->
         {
-            h.nameLen(nameBuffer.capacity());
-            h.name(nameBuffer, 0, nameBuffer.capacity());
-            h.valueLen(valueBuffer.capacity());
-            h.value(valueBuffer, 0, valueBuffer.capacity());
+            h.nameLen(key.sizeof());
+            h.name(key);
+            h.valueLen(value.sizeof());
+            h.value(value);
+        });
+    }
+
+    private void addHeader(String stringKey, String stringValue)
+    {
+        OctetsFW key = headerKeyRW.wrap(headerKeyBuffer, 0, headerKeyBuffer.capacity())
+            .put(stringKey.getBytes(StandardCharsets.UTF_8)).build();
+        OctetsFW value = headerValueRW.wrap(headerValueBuffer, 0, headerValueBuffer.capacity())
+            .put(stringValue.getBytes(StandardCharsets.UTF_8)).build();
+
+        kafkaHeadersRW.item(h ->
+        {
+            h.nameLen(key.sizeof());
+            h.name(key);
+            h.valueLen(value.sizeof());
+            h.value(value);
         });
     }
 

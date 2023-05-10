@@ -25,7 +25,7 @@ public class MqttKafkaConfiguration extends Configuration
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt.kafka");
-        KAFKA_TOPIC_NAME = config.property("kafka.topic.name", "mqtt_messages");
+        KAFKA_TOPIC_NAME = config.property("messages.topic", "mqtt_messages");
         MQTT_KAFKA_CONFIG = config;
     }
 
