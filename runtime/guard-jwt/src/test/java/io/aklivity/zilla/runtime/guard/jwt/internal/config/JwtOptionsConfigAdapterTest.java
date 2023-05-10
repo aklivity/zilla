@@ -18,6 +18,7 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -33,7 +34,6 @@ import org.junit.Test;
 public class JwtOptionsConfigAdapterTest
 {
     private Jsonb jsonb;
-
     @Before
     public void initJson()
     {
@@ -154,5 +154,40 @@ public class JwtOptionsConfigAdapterTest
                         "]," +
                         "\"challenge\":30" +
                     "}"));
+    }
+
+    @Test
+    public void shouldReadOptionsDynamicKeys()
+    {
+        String text =
+                "{" +
+                    "\"issuer\":\"https://auth.example.com\"," +
+                    "\"audience\":\"https://api.example.com\"," +
+                    "\"keys\": \"https://auth.example.com/.well-known/jwks.json\"," +
+                    "\"challenge\":30" +
+                "}";
+        JwtOptionsConfig options = jsonb.fromJson(text, JwtOptionsConfig.class);
+        assertThat(options, not(nullValue()));
+        assertThat(options.issuer, equalTo("https://auth.example.com"));
+        assertThat(options.audience, equalTo("https://api.example.com"));
+        assertThat(options.keys, empty());
+        assertThat(options.keysURL.isPresent(), is(true));
+        assertThat(options.keysURL.get(), equalTo("https://auth.example.com/.well-known/jwks.json"));
+    }
+
+    @Test
+    public void shouldReadOptionsImplicitKeys()
+    {
+        String text =
+                "{" +
+                    "\"issuer\":\"https://auth.example.com/\"," +
+                    "\"audience\":\"https://api.example.com\"," +
+                    "\"challenge\":3" +
+                "}";
+        JwtOptionsConfig options = jsonb.fromJson(text, JwtOptionsConfig.class);
+        assertThat(options, not(nullValue()));
+        assertThat(options.keys, empty());
+        assertThat(options.keysURL.isPresent(), is(true));
+        assertThat(options.keysURL.get(), equalTo("https://auth.example.com/.well-known/jwks.json"));
     }
 }

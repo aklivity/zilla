@@ -144,13 +144,14 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         MessageConsumer sse)
     {
         final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long initialId = begin.streamId();
         final long authorization = begin.authorization();
         final OctetsFW extension = begin.extension();
         final SseBeginExFW sseBeginEx = extension.get(sseBeginExRO::tryWrap);
 
-        final SseKafkaBindingConfig binding = bindings.get(routeId);
+        final SseKafkaBindingConfig binding = bindings.get(routedId);
 
         SseKafkaRouteConfig route = null;
 
@@ -168,7 +169,13 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                     .map(r -> r.resolve(authorization, sseBeginEx, sseEventId))
                     .orElse(null);
 
-            newStream = new SseProxy(sse, routeId, initialId, resolvedId, resolved)::onSseMessage;
+            newStream = new SseProxy(
+                    sse,
+                    originId,
+                    routedId,
+                    initialId,
+                    resolvedId,
+                    resolved)::onSseMessage;
         }
 
         return newStream;
@@ -177,7 +184,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     private final class SseProxy
     {
         private final MessageConsumer sse;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final KafkaProxy delegate;
@@ -195,16 +203,18 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
         private SseProxy(
             MessageConsumer sse,
-            long routeId,
+            long originId,
+            long routedId,
             long initialId,
             long resolvedId,
             SseKafkaWithResult resolved)
         {
             this.sse = sse;
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.initialId = initialId;
             this.replyId = supplyReplyId.applyAsLong(initialId);
-            this.delegate = new KafkaProxy(resolvedId, this);
+            this.delegate = new KafkaProxy(routedId, resolvedId, this);
             this.resolved = resolved;
         }
 
@@ -380,7 +390,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             replyMax = delegate.replyMax;
             state = SseKafkaState.openingReply(state);
 
-            doBegin(sse, routeId, replyId, replySeq, replyAck, replyMax,
+            doBegin(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, affinity);
         }
 
@@ -393,7 +403,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             OctetsFW payload,
             Flyweight extension)
         {
-            doData(sse, routeId, replyId, replySeq, replyAck, replyMax,
+            doData(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, flags, reserved, payload, extension);
 
             replySeq += reserved;
@@ -409,7 +419,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         {
             replySeq = delegate.replySeq;
 
-            doFlush(sse, routeId, replyId, replySeq, replyAck, replyMax,
+            doFlush(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, reserved);
         }
 
@@ -422,7 +432,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = SseKafkaState.closeReply(state);
 
-                doAbort(sse, routeId, replyId, replySeq, replyAck, replyMax,
+                doAbort(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId, authorization);
             }
         }
@@ -436,7 +446,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 replySeq = delegate.replySeq;
                 state = SseKafkaState.closeReply(state);
 
-                doEnd(sse, routeId, replyId, replySeq, replyAck, replyMax,
+                doEnd(sse, originId, routedId, replyId, replySeq, replyAck, replyMax,
                       traceId, authorization);
             }
         }
@@ -451,7 +461,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             initialAck = delegate.initialAck;
             initialMax = delegate.initialMax;
 
-            doWindow(sse, routeId, initialId, initialSeq, initialAck, initialMax,
+            doWindow(sse, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, budgetId, padding, 0, capabilities);
         }
 
@@ -462,7 +472,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             {
                 state = SseKafkaState.closeInitial(state);
 
-                doReset(sse, routeId, initialId, initialSeq, initialAck, initialMax, traceId);
+                doReset(sse, originId, routedId, initialId, initialSeq, initialAck, initialMax, traceId);
             }
         }
     }
@@ -470,7 +480,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
     final class KafkaProxy
     {
         private MessageConsumer kafka;
-        private final long routeId;
+        private final long originId;
+        private final long routedId;
         private final long initialId;
         private final long replyId;
         private final SseProxy delegate;
@@ -486,12 +497,14 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         private int replyMax;
 
         private KafkaProxy(
-            long routeId,
+            long originId,
+            long routedId,
             SseProxy delegate)
         {
-            this.routeId = routeId;
+            this.originId = originId;
+            this.routedId = routedId;
             this.delegate = delegate;
-            this.initialId = supplyInitialId.applyAsLong(routeId);
+            this.initialId = supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
         }
 
@@ -506,7 +519,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             initialMax = delegate.initialMax;
             state = SseKafkaState.openingInitial(state);
 
-            kafka = newKafkaStream(this::onKafkaMessage, routeId, initialId, initialSeq, initialAck, initialMax,
+            kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                     traceId, authorization, affinity, resolved);
         }
 
@@ -522,7 +535,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = SseKafkaState.closeInitial(state);
 
-                doEnd(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doEnd(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -538,7 +551,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 initialMax = delegate.initialMax;
                 state = SseKafkaState.closeInitial(state);
 
-                doAbort(kafka, routeId, initialId, initialSeq, initialAck, initialMax,
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck, initialMax,
                         traceId, authorization);
             }
         }
@@ -775,7 +788,7 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             {
                 state = SseKafkaState.closeReply(state);
 
-                doReset(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                         traceId);
             }
         }
@@ -791,14 +804,15 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
             replyAck = delegate.replyAck;
             replyMax = delegate.replyMax;
 
-            doWindow(kafka, routeId, replyId, replySeq, replyAck, replyMax,
+            doWindow(kafka, originId, routedId, replyId, replySeq, replyAck, replyMax,
                     traceId, authorization, budgetId, padding, minimum, capabilities);
         }
     }
 
     private void doBegin(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -808,7 +822,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long affinity)
     {
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -823,7 +838,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private void doData(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -837,7 +853,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         Flyweight extension)
     {
         final DataFW frame = dataRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -856,7 +873,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private void doEnd(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -865,7 +883,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long authorization)
     {
         final EndFW end = endRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -879,7 +898,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private void doAbort(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -888,7 +908,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long authorization)
     {
         final AbortFW abort = abortRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -902,7 +923,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private void doFlush(
         MessageConsumer receiver,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -913,7 +935,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         int reserved)
     {
         final FlushFW flush = flushRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -929,7 +952,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private MessageConsumer newKafkaStream(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -949,7 +973,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
                 .build();
 
         final BeginFW begin = beginRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -970,7 +995,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private void doWindow(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -983,7 +1009,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         int capabilities)
     {
         final WindowFW window = windowRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(routeId)
+                .originId(originId)
+                .routedId(routedId)
                 .streamId(streamId)
                 .sequence(sequence)
                 .acknowledge(acknowledge)
@@ -1001,7 +1028,8 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
 
     private void doReset(
         MessageConsumer sender,
-        long routeId,
+        long originId,
+        long routedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -1009,13 +1037,14 @@ public final class SseKafkaProxyFactory implements SseKafkaStreamFactory
         long traceId)
     {
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-               .routeId(routeId)
-               .streamId(streamId)
-               .sequence(sequence)
-               .acknowledge(acknowledge)
-               .maximum(maximum)
-               .traceId(traceId)
-               .build();
+                .originId(originId)
+                .routedId(routedId)
+                .streamId(streamId)
+                .sequence(sequence)
+                .acknowledge(acknowledge)
+                .maximum(maximum)
+                .traceId(traceId)
+                .build();
 
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }

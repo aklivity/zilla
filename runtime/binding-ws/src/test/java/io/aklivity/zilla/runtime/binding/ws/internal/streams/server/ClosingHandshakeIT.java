@@ -54,7 +54,7 @@ public class ClosingHandshakeIT
 
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.send.empty.close.frame/handshake.request.and.frame",
         "${app}/client.send.empty.close.frame/handshake.response.and.frame" })
@@ -65,7 +65,7 @@ public class ClosingHandshakeIT
     }
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.send.close.frame.with.code.1005/handshake.request.and.frame",
         "${app}/client.send.close.frame.with.code.1005/handshake.response.and.frame" })

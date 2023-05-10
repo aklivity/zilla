@@ -1,0 +1,12 @@
+{
+  "name": "test",
+  "bindings":
+  {
+    "net1":
+    {
+      "type" : "test",
+      "kind": "proxy",
+      "exit": "app1"
+    }
+  }
+}

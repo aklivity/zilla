@@ -69,35 +69,25 @@ started
 
 #### Configure Zilla to behave as a `tcp` `echo` server in 2mins.
 
-First create a local `zilla.json` with the following contents.
-```json
-{
-    "name": "example",
-    "bindings":
-    {
-        "tcp_server0":
-        {
-            "type" : "tcp",
-            "kind": "server",
-            "options":
-            {
-                "host": "0.0.0.0",
-                "port": 12345
-            },
-            "exit": "echo_server0"
-        },
-        "echo_server0":
-        {
-            "type" : "echo",
-            "kind": "server"
-        }
-    }
-}
-
+First create a local `zilla.yaml` with the following contents.
+```yaml
+---
+name: example
+bindings:
+  tcp_server0:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port: 12345
+    exit: echo_server0
+  echo_server0:
+    type: echo
+    kind: server
 ```
-Then run Zilla again, this time mounting your local `zilla.json` as a docker volume file.
+Then run Zilla again, this time mounting your local `zilla.yaml` as a docker volume file.
 ```
-docker run -v `pwd`/zilla.json:/zilla.json ghcr.io/aklivity/zilla:latest start -v
+docker run -v `pwd`/zilla.yaml:/etc/zilla/zilla.yaml ghcr.io/aklivity/zilla:latest start -v
 ```
 Now, try it out using `netcat`.
 ```bash
@@ -109,12 +99,12 @@ Hello, world
 ```
 
 ### Connect your Kafka and Create REST and SSE API Endpoints
-Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, and `SASL/PLAIN`.
+Zilla can connect to Kafka over `PLAINTEXT`, `TLS/SSL`, `TLS/SSL with Client Certificates`, `SASL/PLAIN`, and `SASL/SCRAM`.
 
-Follow the [docs][zilla-get-started] that show you how to modify your `zilla.json` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
+Follow the [docs][zilla-get-started] that show you how to modify your `zilla.yaml` to connect it to your Kafka and expose select topics over REST and SSE endpoints.
 <br>
 #### Zilla Studio
-Besides directly creating and modifying a `zilla.json` file, you can use the <a href="https://zilla-studio.aklivity.io/#/">Zilla Studio</a> GUI tool to generate one instead. This simplifies getting started with Zilla even further and helps visualize a Zilla configuration.
+Besides directly creating and modifying a `zilla.yaml` file, you can use the <a href="https://zilla-studio.aklivity.io/#/">Zilla Studio</a> GUI tool to generate one instead. This simplifies getting started with Zilla even further and helps visualize a Zilla configuration.
 <div align="center" float="left">
     <img src="./assets/zilla-studio@2x.png" height="300">  
 </div>
@@ -154,6 +144,11 @@ You can also quickly test out Zilla by running preconfigured Zilla configuration
 | [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kafka topic, fire-and-forget |
 | [http.kafka.sasl.scram](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sasl.scram) | Sends messages to a SASL/SCRAM enabled Kafka |
 | [http.redpanda.sasl.scram](https://github.com/aklivity/zilla-examples/tree/main/http.redpanda.sasl.scram) | Sends messages to a SASL/SCRAM enabled Redpanda Cluster |
+| [grpc.echo](https://github.com/aklivity/zilla-examples/tree/main/grpc.echo) | Echoes messages sent to the gRPC server from a gRPC client |
+| [grpc.kafka.echo](https://github.com/aklivity/zilla-examples/tree/main/grpc.kafka.echo) | Echoes messages sent to a Kafka topic via gRPC from a gRPC client |
+| [grpc.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/grpc.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
+| [grpc.kafka.proxy](https://github.com/aklivity/zilla-examples/tree/main/grpc.kafka.proxy) | Correlates gRPC requests and responses over separate Kafka topics |
+| [grpc.proxy](https://github.com/aklivity/zilla-examples/tree/main/grpc.proxy) | Proxies gRPC requests and responses sent to the gRPC server from a gRPC client |
 | [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
 | [sse.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
@@ -209,21 +204,20 @@ This benchmark was executed on 2019 MacBook Pro laptop with `2.3 GHZ 8-Core Inte
 Zilla is designed from the ground up to be extensible and we anticipate adding support for several new capabilities:
 
 **Protocols and Transformations**
- - gRPC, proxy and Kafka mapping
+ - [gRPC, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=24080080)
+ - [MQTT, proxy and Kafka mapping](https://github.com/orgs/aklivity/projects/4/views/1?pane=issue&itemId=7132841)
  - GraphQL, proxy and Kafka mapping
- - MQTT, proxy and Kafka mapping
+ - WebHooks, Kafka mapping
  - AMQP, proxy and Kafka mapping
  - WebSocket, proxy and Kafka mapping
- - WebHooks, Kafka mapping
  - HTTP, proxy, including HTTP/3
- - SSE, proxy (Kafka mapping done)
 
 **Integrations** 
+ - [Kubernetes integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735594)
+ - [OpenTelemetry integration](https://github.com/orgs/aklivity/projects/4?pane=issue&itemId=6735584)
  - OpenAPI integration
  - AsyncAPI integration
  - Avro integration
- - OpenTelemetry integration
- - Kubernetes integration
 
 Please see the [Roadmap project](https://github.com/orgs/aklivity/projects/4) and let us know in the [Slack community][community-join] if you have additional suggestions.
 

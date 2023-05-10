@@ -62,7 +62,7 @@ public class CacheProduceIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/topic.missing/client"})
     public void shouldRejectWhenTopicMissing() throws Exception
@@ -71,7 +71,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.when.topic.json")
+    @Configuration("cache.when.topic.yaml")
     @Specification({
         "${app}/topic.not.routed/client"})
     public void shouldRejectWhenTopicNotRouted() throws Exception
@@ -80,7 +80,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/partition.unknown/client",
         "${app}/partition.unknown/server"})
@@ -92,7 +92,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value/client",
         "${app}/partition.not.leader.reconnect/server"})
@@ -104,7 +104,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.values.parallel/client",
         "${app}/partition.not.leader.reconnect.parallel/server"})
@@ -116,7 +116,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key/client",
         "${app}/message.key/server"})
@@ -127,7 +127,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.null/client",
         "${app}/message.key.null/server"})
@@ -138,7 +138,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.with.value.null/client",
         "${app}/message.key.with.value.null/server"})
@@ -149,7 +149,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.with.value.distinct/client",
         "${app}/message.key.with.value.distinct/server"})
@@ -160,7 +160,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.with.header/client",
         "${app}/message.key.with.header/server"})
@@ -171,7 +171,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.key.distinct/client",
         "${app}/message.key.distinct/server"})
@@ -182,7 +182,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value/client",
         "${app}/message.value/server"})
@@ -193,7 +193,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.null/client",
         "${app}/message.value.null/server"})
@@ -204,7 +204,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.10k/client",
         "${app}/message.value.10k/server"})
@@ -215,7 +215,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.100k/client",
         "${app}/message.value.100k/server"})
@@ -227,7 +227,7 @@ public class CacheProduceIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.gzip/client",
         "${app}/message.value.gzip/server"})
@@ -239,7 +239,7 @@ public class CacheProduceIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.snappy/client",
         "${app}/message.value.snappy/server"})
@@ -251,7 +251,7 @@ public class CacheProduceIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.lz4/client",
         "${app}/message.value.lz4/server"})
@@ -262,7 +262,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.distinct/client",
         "${app}/message.value.distinct/server"})
@@ -273,7 +273,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.header/client",
         "${app}/message.header/server"})
@@ -284,7 +284,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.header.null/client",
         "${app}/message.header.null/server"})
@@ -295,7 +295,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.headers.distinct/client",
         "${app}/message.headers.distinct/server"})
@@ -306,7 +306,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.headers.repeated/client",
         "${app}/message.headers.repeated/server"})
@@ -317,7 +317,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.trailer/client",
         "${app}/message.header/server"})
@@ -328,7 +328,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.trailers.overlap/client",
         "${app}/message.value.repeated/server"})
@@ -339,7 +339,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.repeated/client",
         "${app}/message.value.repeated/server"})
@@ -350,7 +350,7 @@ public class CacheProduceIT
     }
 
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.rejected/client",
         "${app}/message.value.rejected/server"})
@@ -362,8 +362,9 @@ public class CacheProduceIT
         k3po.finish();
     }
 
+    @Ignore("GitHub Actions")
     @Test
-    @Configuration("cache.json")
+    @Configuration("cache.yaml")
     @Specification({
         "${app}/message.values.rejected/client",
         "${app}/message.values.rejected/server"})

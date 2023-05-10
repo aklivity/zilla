@@ -25,17 +25,20 @@ import java.util.function.Supplier;
 import jakarta.json.JsonObject;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
+import io.aklivity.zilla.runtime.engine.config.ConfigAdapterContext;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfig;
 import io.aklivity.zilla.runtime.engine.config.OptionsConfigAdapterSpi;
 
 public class OptionsAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
 {
     private final Map<String, OptionsConfigAdapterSpi> delegatesByName;
+    private ConfigAdapterContext context;
 
     private OptionsConfigAdapterSpi delegate;
 
     public OptionsAdapter(
-        OptionsConfigAdapterSpi.Kind kind)
+        OptionsConfigAdapterSpi.Kind kind,
+        ConfigAdapterContext context)
     {
         delegatesByName = ServiceLoader
             .load(OptionsConfigAdapterSpi.class)
@@ -43,12 +46,17 @@ public class OptionsAdapter implements JsonbAdapter<OptionsConfig, JsonObject>
             .map(Supplier::get)
             .filter(s -> s.kind() == kind)
             .collect(toMap(OptionsConfigAdapterSpi::type, identity()));
+        this.context = context;
     }
 
     public void adaptType(
         String type)
     {
         delegate = delegatesByName.get(type);
+        if (delegate != null)
+        {
+            delegate.adaptContext(context);
+        }
     }
 
     @Override

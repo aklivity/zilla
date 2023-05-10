@@ -52,7 +52,7 @@ public class HandshakeIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/connection.succeeded/request",
         "${app}/connection.succeeded/server" })
@@ -62,7 +62,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/connection.succeeded.with.request.parameter/request",
         "${app}/connection.succeeded/server" })
@@ -72,7 +72,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/connection.closed/request",
         "${app}/connection.closed/server" })
@@ -82,7 +82,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/connection.closed.deferred/request",
         "${app}/connection.closed.deferred/server" })
@@ -92,7 +92,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.method.unsupported/request" })
     public void shouldFailHandshakeWhenRequestMethodUnsupported() throws Exception
@@ -102,7 +102,7 @@ public class HandshakeIT
 
     @Configure(name = SSE_INITIAL_COMMENT_ENABLED_NAME, value = "true")
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/initial.comment/request",
         "${app}/last.event.id/server" })
@@ -112,7 +112,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.last.event.id/request",
         "${app}/last.event.id/server" })
@@ -122,7 +122,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.last.event.id.empty/request",
         "${app}/last.event.id.empty/server" })
@@ -132,7 +132,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.last.event.id.overflow/request" })
     public void shouldFailHandshakeWithRequestHeaderLastEventIdOverflow() throws Exception
@@ -141,7 +141,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.header.last.event.id.overflow.multibyte/request" })
     public void shouldFailHandshakeWithRequestHeaderLastEventIdOverflowMultibyte() throws Exception
@@ -150,7 +150,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.parameter.last.event.id.empty/request",
         "${app}/last.event.id.empty/server" })
@@ -160,7 +160,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.parameter.last.event.id/request",
         "${app}/last.event.id/server" })
@@ -170,7 +170,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.parameter.last.event.id.overflow/request" })
     public void shouldFailHandshakeWithRequestParameterLastEventIdOverflow() throws Exception
@@ -179,7 +179,7 @@ public class HandshakeIT
     }
 
     @Test
-    @Configuration("server.when.json")
+    @Configuration("server.when.yaml")
     @Specification({
         "${net}/request.parameter.last.event.id.url.encoded/request",
         "${app}/last.event.id/server" })

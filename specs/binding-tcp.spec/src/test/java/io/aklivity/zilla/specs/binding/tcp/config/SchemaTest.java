@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.json");
+        JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -44,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerIPv6()
     {
-        JsonObject config = schema.validate("server.ipv6.json");
+        JsonObject config = schema.validate("server.ipv6.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -52,7 +52,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerPorts()
     {
-        JsonObject config = schema.validate("server.ports.json");
+        JsonObject config = schema.validate("server.ports.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -60,7 +60,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientAuthority()
     {
-        JsonObject config = schema.validate("client.authority.json");
+        JsonObject config = schema.validate("client.authority.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -68,7 +68,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientHostAndSubnetIPv6()
     {
-        JsonObject config = schema.validate("client.host.and.subnet.ipv6.json");
+        JsonObject config = schema.validate("client.host.and.subnet.ipv6.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -76,7 +76,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientHostAndSubnet()
     {
-        JsonObject config = schema.validate("client.host.and.subnet.json");
+        JsonObject config = schema.validate("client.host.and.subnet.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -84,7 +84,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientHost()
     {
-        JsonObject config = schema.validate("client.host.json");
+        JsonObject config = schema.validate("client.host.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -92,7 +92,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientIP()
     {
-        JsonObject config = schema.validate("client.ip.json");
+        JsonObject config = schema.validate("client.ip.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -100,7 +100,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientIPv6()
     {
-        JsonObject config = schema.validate("client.ipv6.json");
+        JsonObject config = schema.validate("client.ipv6.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -108,7 +108,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClient()
     {
-        JsonObject config = schema.validate("client.json");
+        JsonObject config = schema.validate("client.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -116,7 +116,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientSubnetIPv6()
     {
-        JsonObject config = schema.validate("client.subnet.ipv6.json");
+        JsonObject config = schema.validate("client.subnet.ipv6.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -124,7 +124,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientSubnet()
     {
-        JsonObject config = schema.validate("client.subnet.json");
+        JsonObject config = schema.validate("client.subnet.yaml");
 
         assertThat(config, not(nullValue()));
     }

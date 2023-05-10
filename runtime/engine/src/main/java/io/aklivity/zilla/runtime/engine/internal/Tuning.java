@@ -68,12 +68,12 @@ public final class Tuning implements AutoCloseable
     }
 
     public void affinity(
-        long routeId,
+        long bindingId,
         long mask)
     {
         assert (mask & ~available) == 0 || mask == 1L << (Long.SIZE - 1);
 
-        long offset = affinities.get(routeId);
+        long offset = affinities.get(bindingId);
 
         if (offset == affinities.missingValue())
         {
@@ -84,7 +84,7 @@ public final class Tuning implements AutoCloseable
                 ByteBuffer byteBuf = ByteBuffer
                         .wrap(new byte[Long.BYTES + Long.BYTES])
                         .order(nativeOrder());
-                byteBuf.putLong(routeId);
+                byteBuf.putLong(bindingId);
                 byteBuf.putLong(0L);
                 byteBuf.flip();
 
@@ -94,7 +94,7 @@ public final class Tuning implements AutoCloseable
                     Thread.onSpinWait();
                 }
 
-                affinities.put(routeId, offset);
+                affinities.put(bindingId, offset);
             }
             catch (IOException ex)
             {
@@ -102,16 +102,16 @@ public final class Tuning implements AutoCloseable
             }
         }
 
-        offset = affinities.get(routeId);
+        offset = affinities.get(bindingId);
         assert offset != affinities.missingValue();
 
         mappedByteBuf.putLong((int) offset, mask);
     }
 
     public long affinity(
-        long routeId)
+        long bindingId)
     {
-        long offset = affinities.get(routeId);
+        long offset = affinities.get(bindingId);
 
         return offset != affinities.missingValue() ? mappedByteBuf.getLong((int) offset) : available;
     }

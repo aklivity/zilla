@@ -12,7 +12,7 @@
                 },
                 "kind":
                 {
-                    "enum": [ "server" ]
+                    "enum": [ "server", "proxy" ]
                 },
                 "options": false
             },

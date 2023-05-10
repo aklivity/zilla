@@ -25,7 +25,7 @@ import io.aklivity.zilla.runtime.engine.config.KindConfig;
 public final class KafkaBindingConfig
 {
     public final long id;
-    public final String entry;
+    public final String name;
     public final KafkaOptionsConfig options;
     public final KindConfig kind;
     public final List<KafkaRouteConfig> routes;
@@ -34,7 +34,7 @@ public final class KafkaBindingConfig
         BindingConfig binding)
     {
         this.id = binding.id;
-        this.entry = binding.entry;
+        this.name = binding.name;
         this.kind = binding.kind;
         this.options = KafkaOptionsConfig.class.cast(binding.options);
         this.routes = binding.routes.stream().map(KafkaRouteConfig::new).collect(toList());

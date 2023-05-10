@@ -62,7 +62,7 @@ public class ClientFetchIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.missing/client"})
     public void shouldRejectWhenTopicMissing() throws Exception
@@ -71,7 +71,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/topic.not.routed/client"})
     public void shouldRejectWhenTopicNotRouted() throws Exception
@@ -80,7 +80,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.unknown/client",
         "${net}/partition.unknown/server"})
@@ -90,7 +90,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.incomplete/client",
         "${net}/partition.incomplete/server"})
@@ -100,7 +100,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.not.leader/client",
         "${net}/partition.not.leader/server"})
@@ -110,7 +110,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.offset/client",
         "${net}/partition.offset/server"})
@@ -120,7 +120,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.offset.earliest/client",
         "${net}/partition.offset.earliest/server"})
@@ -130,7 +130,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/partition.offset.latest/client",
         "${net}/partition.offset.latest/server"})
@@ -140,7 +140,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key/client",
         "${net}/message.key/server"})
@@ -150,7 +150,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.null/client",
         "${net}/message.key.null/server"})
@@ -160,7 +160,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.with.value.null/client",
         "${net}/message.key.with.value.null/server"})
@@ -170,7 +170,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.with.value.distinct/client",
         "${net}/message.key.with.value.distinct/server"})
@@ -180,7 +180,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.with.header/client",
         "${net}/message.key.with.header/server"})
@@ -190,7 +190,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.key.distinct/client",
         "${net}/message.key.distinct/server"})
@@ -200,7 +200,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value/client",
         "${net}/message.value/server"})
@@ -210,7 +210,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.null/client",
         "${net}/message.value.null/server"})
@@ -220,7 +220,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.10k/client",
         "${net}/message.value.10k/server"})
@@ -230,7 +230,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.100k/client",
         "${net}/message.value.100k/server"})
@@ -242,7 +242,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.gzip/client",
         "${net}/message.value.gzip/server"})
@@ -253,7 +253,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.snappy/client",
         "${net}/message.value.snappy/server"})
@@ -264,7 +264,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.lz4/client",
         "${net}/message.value.lz4/server"})
@@ -274,7 +274,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.value.distinct/client",
         "${net}/message.value.distinct/server"})
@@ -284,7 +284,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.header/client",
         "${net}/message.header/server"})
@@ -294,7 +294,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.header.null/client",
         "${net}/message.header.null/server"})
@@ -304,7 +304,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.headers.distinct/client",
         "${net}/message.headers.distinct/server"})
@@ -314,7 +314,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/message.headers.repeated/client",
         "${net}/message.headers.repeated/server"})
@@ -324,7 +324,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.none/client",
         "${net}/filter.none/server"})
@@ -335,7 +335,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.key/client",
         "${net}/filter.key/server"})
@@ -346,7 +346,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.key.and.header/client",
         "${net}/filter.key.and.header/server"})
@@ -357,7 +357,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.key.or.header/client",
         "${net}/filter.key.or.header/server"})
@@ -368,7 +368,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.header/client",
         "${net}/filter.header/server"})
@@ -379,7 +379,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.header.and.header/client",
         "${net}/filter.header.and.header/server"})
@@ -390,7 +390,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.header.or.header/client",
         "${net}/filter.header.or.header/server"})
@@ -401,7 +401,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.not.header/client",
         "${net}/filter.not.header/server"})
@@ -412,7 +412,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.not.key/client",
         "${net}/filter.not.key/server"})
@@ -423,7 +423,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.key.and.not.header/client",
         "${net}/filter.key.and.not.header/server"})
@@ -434,7 +434,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.headers.one/client",
         "${net}/filter.headers.one/server"})
@@ -445,7 +445,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.headers.one.empty/client",
         "${net}/filter.headers.one.empty/server"})
@@ -456,7 +456,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.headers.many/client",
         "${net}/filter.headers.many/server"})
@@ -467,7 +467,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.headers.many.empty/client",
         "${net}/filter.headers.many.empty/server"})
@@ -478,7 +478,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.headers.skip.one/client",
         "${net}/filter.headers.skip.one/server"})
@@ -489,7 +489,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.headers.skip.two/client",
         "${net}/filter.headers.skip.two/server"})
@@ -500,7 +500,7 @@ public class ClientFetchIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/filter.headers.skip.many/client",
         "${net}/filter.headers.skip.many/server"})
@@ -510,7 +510,17 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
+    @Specification({
+        "${app}/filter.sync/client",
+        "${net}/filter.sync/server"})
+    public void shouldFetchFilterSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/isolation.read.committed/client",
         "${net}/isolation.read.committed/server"})
@@ -520,7 +530,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/isolation.read.uncommitted.aborted/client",
         "${net}/isolation.read.uncommitted.aborted/server"})
@@ -530,7 +540,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/isolation.read.uncommitted.aborting/client",
         "${net}/isolation.read.uncommitted.aborting/server"})
@@ -540,7 +550,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topic.json")
+    @Configuration("client.when.topic.yaml")
     @Specification({
         "${app}/isolation.read.uncommitted.committing/client",
         "${net}/isolation.read.uncommitted.committing/server"})
@@ -550,7 +560,7 @@ public class ClientFetchIT
     }
 
     @Test
-    @Configuration("client.when.topics.json")
+    @Configuration("client.when.topics.yaml")
     @Specification({
         "${app}/partition.leader.distinct/client",
         "${net}/partition.leader.distinct/server"})

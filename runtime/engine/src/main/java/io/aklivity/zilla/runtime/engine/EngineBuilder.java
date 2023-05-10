@@ -34,7 +34,6 @@ public class EngineBuilder
 {
     private Configuration config;
     private ErrorHandler errorHandler;
-
     private Collection<EngineAffinity> affinities;
 
     EngineBuilder()

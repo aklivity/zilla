@@ -30,7 +30,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheServerP
 
 public final class KafkaCacheRoute
 {
-    public final long routeId;
+    public final long resolvedId;
     public final Int2ObjectHashMap<KafkaCacheClientDescribeFanout> clientDescribeFanoutsByTopic;
     public final Int2ObjectHashMap<KafkaCacheServerDescribeFanout> serverDescribeFanoutsByTopic;
     public final Int2ObjectHashMap<KafkaCacheMetaFanout> metaFanoutsByTopic;
@@ -43,9 +43,9 @@ public final class KafkaCacheRoute
 
 
     public KafkaCacheRoute(
-        long routeId)
+        long resolvedId)
     {
-        this.routeId = routeId;
+        this.resolvedId = resolvedId;
         this.clientDescribeFanoutsByTopic = new Int2ObjectHashMap<>();
         this.serverDescribeFanoutsByTopic = new Int2ObjectHashMap<>();
         this.metaFanoutsByTopic = new Int2ObjectHashMap<>();

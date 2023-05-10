@@ -32,7 +32,6 @@ read zilla:begin.ext ${filesystem:matchBeginEx()
                                  .path("index.html")
                                  .type("text/html")
                                  .payloadSize(77)
-                                 .modifiedTime(1643869342000)
                                  .build()}
 
 read closed

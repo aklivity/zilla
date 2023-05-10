@@ -20,10 +20,12 @@ import static java.util.stream.Collectors.toList;
 import java.time.Duration;
 import java.util.List;
 
+
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.adapter.JsonbAdapter;
 
@@ -104,18 +106,39 @@ public final class JwtOptionsConfigAdapter implements OptionsConfigAdapterSpi, J
                 ? object.getString(AUDIENCE_NAME)
                 : null;
 
-        List<JwtKeyConfig> keys = object.containsKey(KEYS_NAME)
-                ? object.getJsonArray(KEYS_NAME)
-                    .stream()
-                    .map(JsonValue::asJsonObject)
-                    .map(key::adaptFromJson)
-                    .collect(toList())
-                : KEYS_DEFAULT;
+        List<JwtKeyConfig> keys = KEYS_DEFAULT;
+        String keysURL = null;
+        if (object.containsKey(KEYS_NAME))
+        {
+            JsonValue keysValue = object.getValue(String.format("/%s", KEYS_NAME));
+            switch (keysValue.getValueType())
+            {
+            case ARRAY:
+                keys = keysValue.asJsonArray()
+                        .stream()
+                        .map(JsonValue::asJsonObject)
+                        .map(key::adaptFromJson)
+                        .collect(toList());
+                break;
+            case STRING:
+                keysURL = ((JsonString) keysValue).getString();
+                break;
+            }
+        }
+        else
+        {
+            if (issuer != null)
+            {
+                keysURL = issuer.endsWith("/")
+                    ? String.format("%s.well-known/jwks.json", issuer)
+                    : String.format("%s/.well-known/jwks.json", issuer);
+            }
+        }
 
         Duration challenge = object.containsKey(CHALLENGE_NAME)
                 ? Duration.ofSeconds(object.getInt(CHALLENGE_NAME))
                 : null;
 
-        return new JwtOptionsConfig(issuer, audience, keys, challenge);
+        return new JwtOptionsConfig(issuer, audience, keys, challenge, keysURL);
     }
 }

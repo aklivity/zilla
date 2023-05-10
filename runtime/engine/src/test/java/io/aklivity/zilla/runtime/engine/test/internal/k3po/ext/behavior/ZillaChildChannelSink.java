@@ -131,7 +131,7 @@ public class ZillaChildChannelSink extends AbstractChannelSink
         ChannelStateEvent evt) throws Exception
     {
         ZillaChannel channel = (ZillaChannel) evt.getChannel();
-        if (!channel.isWriteClosed())
+        if (!channel.isWriteClosed() || !channel.isReadClosed())
         {
             ChannelFuture handlerFuture = evt.getFuture();
             channel.engine.close(channel, handlerFuture);

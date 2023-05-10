@@ -53,7 +53,7 @@ public class FragmentationIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/client.echo.binary.payload.length.125.fragmented/handshake.request.and.frames",
         "${app}/echo.binary.payload.length.125.fragmented/handshake.response.and.frame" })

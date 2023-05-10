@@ -28,6 +28,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongHashSet;
 
 import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
@@ -58,6 +59,7 @@ public final class Target implements AutoCloseable
     private final boolean timestamps;
     private final Long2ObjectHashMap<MessageConsumer> correlations;
     private final Int2ObjectHashMap<MessageConsumer>[] streams;
+    private final Long2ObjectHashMap<LongHashSet> streamSets;
     private final Int2ObjectHashMap<MessageConsumer>[] throttles;
     private final MessageConsumer writeHandler;
     private final LongFunction<LoadEntry> supplyLoadEntry;
@@ -71,6 +73,7 @@ public final class Target implements AutoCloseable
         MutableDirectBuffer writeBuffer,
         Long2ObjectHashMap<MessageConsumer> correlations,
         Int2ObjectHashMap<MessageConsumer>[] streams,
+        Long2ObjectHashMap<LongHashSet> streamSets,
         Int2ObjectHashMap<MessageConsumer>[] throttles,
         LongFunction<LoadEntry> supplyLoadEntry)
     {
@@ -92,6 +95,7 @@ public final class Target implements AutoCloseable
         this.supplyLoadEntry = supplyLoadEntry;
         this.correlations = correlations;
         this.streams = streams;
+        this.streamSets = streamSets;
         this.throttles = throttles;
 
         this.writeHandler = this::handleWrite;
@@ -139,20 +143,21 @@ public final class Target implements AutoCloseable
         }
 
         final FrameFW frame = frameRO.wrap(buffer, index, index + length);
+        final long originId = frame.originId();
+        final long routedId = frame.routedId();
         final long streamId = frame.streamId();
-        final long routeId = frame.routeId();
 
         if (streamId == 0L)
         {
-            handled = handleWriteSystem(streamId, routeId, msgTypeId, buffer, index, length);
+            handled = handleWriteSystem(originId, routedId, streamId, msgTypeId, buffer, index, length);
         }
         else if (isInitial(streamId))
         {
-            handled = handleWriteInitial(streamId, routeId, msgTypeId, buffer, index, length);
+            handled = handleWriteInitial(originId, routedId, streamId, msgTypeId, buffer, index, length);
         }
         else
         {
-            handled = handleWriteReply(streamId, routeId, msgTypeId, buffer, index, length);
+            handled = handleWriteReply(originId, routedId, streamId, msgTypeId, buffer, index, length);
         }
 
         if (!handled)
@@ -162,12 +167,12 @@ public final class Target implements AutoCloseable
     }
 
     private boolean handleWriteSystem(
+        long originId,
+        long routedId,
         long streamId,
-        long routeId,
         int msgTypeId,
         DirectBuffer buffer,
-        int index,
-        int length)
+        int index, int length)
     {
         boolean handled = false;
 
@@ -185,8 +190,9 @@ public final class Target implements AutoCloseable
     }
 
     private boolean handleWriteInitial(
+        long originId,
+        long routedId,
         long streamId,
-        long routeId,
         int msgTypeId,
         DirectBuffer buffer,
         int index,
@@ -230,7 +236,12 @@ public final class Target implements AutoCloseable
             case ResetFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
-                supplyLoadEntry.apply(routeId).initialClosed(1L).initialErrored(1L);
+                supplyLoadEntry.apply(routedId).initialClosed(1L).initialErrored(1L);
+                LongHashSet streamIdSet = streamSets.get(routedId);
+                if (streamIdSet != null)
+                {
+                    streamIdSet.remove(streamId);
+                }
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -248,8 +259,9 @@ public final class Target implements AutoCloseable
     }
 
     private boolean handleWriteReply(
+        long originId,
+        long routedId,
         long streamId,
-        long routeId,
         int msgTypeId,
         DirectBuffer buffer,
         int index,
@@ -262,21 +274,21 @@ public final class Target implements AutoCloseable
             switch (msgTypeId)
             {
             case BeginFW.TYPE_ID:
-                supplyLoadEntry.apply(routeId).replyOpened(1L);
+                supplyLoadEntry.apply(routedId).replyOpened(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
             case DataFW.TYPE_ID:
                 int bytesWritten = Math.max(buffer.getInt(index + DataFW.FIELD_OFFSET_LENGTH), 0);
-                supplyLoadEntry.apply(routeId).replyBytesWritten(bytesWritten);
+                supplyLoadEntry.apply(routedId).replyBytesWritten(bytesWritten);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 break;
             case EndFW.TYPE_ID:
-                supplyLoadEntry.apply(routeId).replyClosed(1L);
+                supplyLoadEntry.apply(routedId).replyClosed(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
                 break;
             case AbortFW.TYPE_ID:
-                supplyLoadEntry.apply(routeId).replyClosed(1L).replyErrored(1L);
+                supplyLoadEntry.apply(routedId).replyClosed(1L).replyErrored(1L);
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 throttles[throttleIndex(streamId)].remove(instanceId(streamId));
                 break;
@@ -299,6 +311,11 @@ public final class Target implements AutoCloseable
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
                 streams[streamIndex(streamId)].remove(instanceId(streamId));
                 correlations.remove(streamId);
+                LongHashSet streamIdSet = streamSets.get(routedId);
+                if (streamIdSet != null)
+                {
+                    streamIdSet.remove(streamId);
+                }
                 break;
             case SignalFW.TYPE_ID:
                 handled = streamsBuffer.test(msgTypeId, buffer, index, length);
@@ -319,10 +336,11 @@ public final class Target implements AutoCloseable
         long streamId,
         MessageConsumer sender)
     {
-        final long syntheticRouteId = 0L;
+        final long syntheticId = 0L;
 
         final ResetFW reset = resetRW.wrap(writeBuffer, 0, writeBuffer.capacity())
-                .routeId(syntheticRouteId)
+                .originId(syntheticId)
+                .routedId(syntheticId)
                 .streamId(streamId)
                 .sequence(-1L)
                 .acknowledge(-1L)

@@ -41,7 +41,8 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
 {
     static final ChannelBufferFactory NATIVE_BUFFER_FACTORY = ZillaByteOrder.NATIVE.toBufferFactory();
 
-    private long routeId;
+    private long originId;
+    private long routedId;
 
     private long writableSeq;
     private long writableAck;
@@ -102,7 +103,8 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
 
         this.engine = engine;
         this.writeRequests = new LinkedList<>();
-        this.routeId = -1L;
+        this.originId = -1L;
+        this.routedId = -1L;
         this.targetId = targetId;
     }
 
@@ -224,15 +226,26 @@ public abstract class ZillaChannel extends AbstractChannel<ZillaChannelConfig>
         return Math.max(readableMax - (int)Math.max(readableSeq - readableAck, 0), 0);
     }
 
-    public void routeId(
-        long routeId)
+    public void originId(
+        long originId)
     {
-        this.routeId = routeId;
+        this.originId = originId;
     }
 
-    public long routeId()
+    public long originId()
     {
-        return routeId;
+        return originId;
+    }
+
+    public void routedId(
+        long routedId)
+    {
+        this.routedId = routedId;
+    }
+
+    public long routedId()
+    {
+        return routedId;
     }
 
     public void sourceId(

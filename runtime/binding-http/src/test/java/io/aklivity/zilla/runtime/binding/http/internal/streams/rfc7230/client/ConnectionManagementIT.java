@@ -51,7 +51,7 @@ public class ConnectionManagementIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.override.json")
+    @Configuration("client.override.yaml")
     @Specification({
         "${app}/request.with.header.override/client",
         "${net}/request.with.header.override/server" })
@@ -61,7 +61,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.with.connection.close/client",
         "${net}/request.with.connection.close/server" })
@@ -72,7 +72,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/response.with.connection.close/client",
         "${net}/response.with.connection.close/server" })
@@ -82,7 +82,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/multiple.requests.serialized/client",
         "${net}/multiple.requests.same.connection/server" })
@@ -96,7 +96,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/concurrent.requests/client",
         "${net}/concurrent.requests.different.connections/server" })
@@ -106,7 +106,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/multiple.requests.pipelined/client",
         "${net}/multiple.requests.pipelined/server" })
@@ -117,7 +117,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/multiple.requests.pipelined.with.retry/client",
         "${net}/multiple.requests.pipelined.with.retry/server" })
@@ -128,7 +128,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/first.pipelined.response.has.connection.close/client",
         "${net}/first.pipelined.response.has.connection.close/server" })
@@ -139,7 +139,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/upgrade.request.and.response/client",
         "${net}/upgrade.request.and.response/server" })
@@ -149,7 +149,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.upgrade.required.response/client",
         "${net}/request.and.upgrade.required.response/server" })
@@ -159,7 +159,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/upgrade.request.and.response.with.data/client",
         "${net}/upgrade.request.and.response.with.data/server" })
@@ -170,7 +170,7 @@ public class ConnectionManagementIT
 
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${net}/proxy.must.not.forward.connection.header/client",
         "${net}/proxy.must.not.forward.connection.header/proxy",
@@ -182,7 +182,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${net}/reverse.proxy.connection.established/client",
         "${net}/reverse.proxy.connection.established/proxy",
@@ -194,7 +194,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${net}/proxy.must.not.retry.non.idempotent.requests/client",
         "${net}/proxy.must.not.retry.non.idempotent.requests/proxy",
@@ -206,7 +206,7 @@ public class ConnectionManagementIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.and.503.response/client",
         "${net}/upgrade.rejected.when.not.requested/server"})

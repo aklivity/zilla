@@ -51,7 +51,7 @@ public class MessageFormatIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.with.headers/client",
         "${net}/request.with.headers/server" })
@@ -61,7 +61,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/request.with.content.length/client",
         "${net}/request.with.content.length/server" })
@@ -71,7 +71,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/response.with.headers/client",
         "${net}/response.with.headers/server" })
@@ -81,7 +81,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/response.with.content.length/client",
         "${net}/response.with.content.length/server" })
@@ -91,7 +91,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/post.request.with.no.content/client",
         "${net}/post.request.with.no.content/server" })
@@ -101,7 +101,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/head.request.and.response/client",
         "${net}/head.request.and.response/server" })
@@ -111,7 +111,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/head.request.and.response.with.content.length/client",
         "${net}/head.request.and.response.with.content.length/server" })
@@ -121,7 +121,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/on.response.proxy.must.remove.space.in.header.with.space.between.header.name.and.colon/client",
         "${net}/on.response.proxy.must.remove.space.in.header.with.space.between.header.name.and.colon/server",
@@ -133,7 +133,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/proxy.gets.response.with.multiple.content.lengths/client",
         "${net}/proxy.gets.response.with.multiple.content.lengths/server" })
@@ -144,7 +144,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/proxy.or.gateway.must.reject.obs.in.header.value/client",
         "${net}/proxy.or.gateway.must.reject.obs.in.header.value/server" })
@@ -155,7 +155,7 @@ public class MessageFormatIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/proxy.should.preserve.unrecognized.headers/client",
         "${net}/proxy.should.preserve.unrecognized.headers/server",

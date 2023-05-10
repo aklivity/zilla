@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClient()
     {
-        JsonObject config = schema.validate("client.json");
+        JsonObject config = schema.validate("client.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -44,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateClientTcp()
     {
-        JsonObject config = schema.validate("client.tcp.json");
+        JsonObject config = schema.validate("client.tcp.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -52,7 +52,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServer()
     {
-        JsonObject config = schema.validate("server.json");
+        JsonObject config = schema.validate("server.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -60,7 +60,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerSockStream()
     {
-        JsonObject config = schema.validate("server.sock.stream.json");
+        JsonObject config = schema.validate("server.sock.stream.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -68,7 +68,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerTcp4Alpn()
     {
-        JsonObject config = schema.validate("server.tcp4.alpn.json");
+        JsonObject config = schema.validate("server.tcp4.alpn.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -76,7 +76,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerTcp4()
     {
-        JsonObject config = schema.validate("server.tcp4.json");
+        JsonObject config = schema.validate("server.tcp4.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -84,7 +84,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerTcp4SslVersion()
     {
-        JsonObject config = schema.validate("server.tcp4.ssl.version.json");
+        JsonObject config = schema.validate("server.tcp4.ssl.version.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -92,7 +92,7 @@ public class SchemaTest
     @Test
     public void shouldValidateServerTcp6()
     {
-        JsonObject config = schema.validate("server.tcp6.json");
+        JsonObject config = schema.validate("server.tcp6.yaml");
 
         assertThat(config, not(nullValue()));
     }

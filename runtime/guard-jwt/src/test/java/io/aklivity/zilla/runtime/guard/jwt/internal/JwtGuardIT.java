@@ -42,8 +42,20 @@ public class JwtGuardIT
     public final TestRule chain = outerRule(engine).around(timeout);
 
     @Test
-    @Configuration("guard.json")
+    @Configuration("guard.yaml")
     public void shouldInitialize() throws Exception
+    {
+    }
+
+    @Test
+    @Configuration("guard-keys-dynamic.yaml")
+    public void shouldInitializeGuardWithDynamicKeys() throws Exception
+    {
+    }
+
+    @Test
+    @Configuration("guard-keys-implicit.yaml")
+    public void shouldInitializeGuardWithImplicitKeys() throws Exception
     {
     }
 }

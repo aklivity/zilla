@@ -26,7 +26,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
+
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 import org.agrona.collections.Long2ObjectHashMap;
 import org.jose4j.jwk.JsonWebKey;
@@ -39,6 +44,8 @@ import org.jose4j.lang.JoseException;
 
 import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeyConfig;
+import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfig;
+import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtKeySetConfigAdapter;
 import io.aklivity.zilla.runtime.guard.jwt.internal.config.JwtOptionsConfig;
 
 public class JwtGuardHandler implements GuardHandler
@@ -55,16 +62,31 @@ public class JwtGuardHandler implements GuardHandler
 
     public JwtGuardHandler(
         JwtOptionsConfig options,
-        LongSupplier supplyAuthorizedId)
+        LongSupplier supplyAuthorizedId,
+        Function<String, String> readURL)
     {
         this.issuer = options.issuer;
         this.audience = options.audience;
         this.challenge = options.challenge.orElse(null);
 
-        Map<String, JsonWebKey> keys = new HashMap<>();
-        if (options.keys != null)
+        List<JwtKeyConfig> keysConfig = options.keys;
+        if ((keysConfig == null || keysConfig.isEmpty()) && options.keysURL.isPresent())
         {
-            for (JwtKeyConfig key : options.keys)
+            JsonbConfig config = new JsonbConfig()
+                    .withAdapters(new JwtKeySetConfigAdapter());
+            Jsonb jsonb = JsonbBuilder.newBuilder()
+                    .withConfig(config)
+                    .build();
+
+            String keysText = readURL.apply(options.keysURL.get());
+            JwtKeySetConfig jwks = jsonb.fromJson(keysText, JwtKeySetConfig.class);
+            keysConfig = jwks.keys;
+        }
+
+        Map<String, JsonWebKey> resolvedKeys = new HashMap<>();
+        if (keysConfig != null)
+        {
+            for (JwtKeyConfig key : keysConfig)
             {
                 try
                 {
@@ -78,7 +100,7 @@ public class JwtGuardHandler implements GuardHandler
                     params.put("x", key.x);
                     params.put("y", key.y);
                     params.put("use", key.use);
-                    keys.put(key.kid, JsonWebKey.Factory.newJwk(params));
+                    resolvedKeys.put(key.kid, JsonWebKey.Factory.newJwk(params));
                 }
                 catch (JoseException ex)
                 {
@@ -86,7 +108,8 @@ public class JwtGuardHandler implements GuardHandler
                 }
             }
         }
-        this.keys = keys;
+
+        this.keys = resolvedKeys;
         this.supplyAuthorizedId = supplyAuthorizedId;
         this.sessionsById = new Long2ObjectHashMap<>();
         this.sessionStoresByContextId = new Long2ObjectHashMap<>();

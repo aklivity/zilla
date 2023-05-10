@@ -56,7 +56,7 @@ public class ProxyClientIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local/client",
         "${net}/connected.local/server" })
@@ -66,7 +66,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.client.sent.data/client",
         "${net}/connected.local.client.sent.data/server"})
@@ -76,7 +76,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.client.sent.flush/client",
         "${net}/connected.local.client.sent.flush/server"})
@@ -86,7 +86,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.client.sent.challenge/client",
         "${net}/connected.local.client.sent.challenge/server"})
@@ -96,7 +96,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.client.sent.abort/client",
         "${net}/connected.local.client.sent.abort/server"})
@@ -106,7 +106,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.client.sent.close/client",
         "${net}/connected.local.client.sent.close/server"})
@@ -116,7 +116,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.client.sent.reset/client",
         "${net}/connected.local.client.sent.reset/server"})
@@ -126,7 +126,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.server.sent.data/client",
         "${net}/connected.local.server.sent.data/server"})
@@ -136,7 +136,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.server.sent.flush/client",
         "${net}/connected.local.server.sent.flush/server"})
@@ -146,7 +146,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.server.sent.challenge/client",
         "${net}/connected.local.server.sent.challenge/server"})
@@ -156,7 +156,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.server.sent.abort/client",
         "${net}/connected.local.server.sent.abort/server"})
@@ -166,7 +166,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.server.sent.close/client",
         "${net}/connected.local.server.sent.close/server"})
@@ -176,7 +176,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.local.server.sent.reset/client",
         "${net}/connected.local.server.sent.reset/server"})
@@ -186,7 +186,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.unresolved/client",
         "${net}/connected.tcp4/server"})
@@ -198,7 +198,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4/client",
         "${net}/connected.tcp4/server"})
@@ -208,7 +208,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.alpn/client",
         "${net}/connected.tcp4.alpn/server"})
@@ -218,7 +218,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.authority/client",
         "${net}/connected.tcp4.authority/server"})
@@ -229,7 +229,7 @@ public class ProxyClientIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.crc32c/client",
         "${net}/connected.tcp4.crc32c/server"})
@@ -239,7 +239,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.identity/client",
         "${net}/connected.tcp4.identity/server"})
@@ -249,7 +249,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.namespace/client",
         "${net}/connected.tcp4.namespace/server"})
@@ -260,7 +260,7 @@ public class ProxyClientIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.ssl/client",
         "${net}/connected.tcp4.ssl/server"})
@@ -270,7 +270,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.ssl.client.cert/client",
         "${net}/connected.tcp4.ssl.client.cert/server"})
@@ -281,7 +281,7 @@ public class ProxyClientIT
 
     @Ignore("TODO")
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp4.ssl.client.cert.session/client",
         "${net}/connected.tcp4.ssl.client.cert.session/server"})
@@ -291,7 +291,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.udp4/client",
         "${net}/connected.udp4/server"})
@@ -301,7 +301,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.tcp.json")
+    @Configuration("client.tcp.yaml")
     @Specification({
         "${app}/connected.tcp6.unresolved/client",
         "${net}/connected.tcp6/server"})
@@ -313,7 +313,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.tcp6/client",
         "${net}/connected.tcp6/server"})
@@ -323,7 +323,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.udp6/client",
         "${net}/connected.udp6/server"})
@@ -333,7 +333,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.sock.stream/client",
         "${net}/connected.sock.stream/server"})
@@ -343,7 +343,7 @@ public class ProxyClientIT
     }
 
     @Test
-    @Configuration("client.json")
+    @Configuration("client.yaml")
     @Specification({
         "${app}/connected.sock.datagram/client",
         "${net}/connected.sock.datagram/server"})

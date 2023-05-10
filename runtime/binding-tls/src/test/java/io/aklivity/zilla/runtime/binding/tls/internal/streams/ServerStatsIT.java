@@ -54,7 +54,7 @@ public class ServerStatsIT
     public final TestRule chain = outerRule(engine).around(k3po).around(timeout);
 
     @Test
-    @Configuration("server.json")
+    @Configuration("server.yaml")
     @Specification({
         "${net}/echo.payload.length.10k/client",
         "${app}/echo.payload.length.10k/server"})

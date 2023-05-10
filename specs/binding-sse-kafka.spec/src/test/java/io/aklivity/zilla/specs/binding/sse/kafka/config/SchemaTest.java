@@ -36,7 +36,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopic()
     {
-        JsonObject config = schema.validate("proxy.with.topic.json");
+        JsonObject config = schema.validate("proxy.with.topic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -44,7 +44,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicDynamic()
     {
-        JsonObject config = schema.validate("proxy.with.topic.dynamic.json");
+        JsonObject config = schema.validate("proxy.with.topic.dynamic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -52,7 +52,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicAndFilters()
     {
-        JsonObject config = schema.validate("proxy.with.topic.and.filters.json");
+        JsonObject config = schema.validate("proxy.with.topic.and.filters.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -60,7 +60,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicAndFiltersDynamic()
     {
-        JsonObject config = schema.validate("proxy.with.topic.and.filters.dynamic.json");
+        JsonObject config = schema.validate("proxy.with.topic.and.filters.dynamic.yaml");
 
         assertThat(config, not(nullValue()));
     }
@@ -68,7 +68,7 @@ public class SchemaTest
     @Test
     public void shouldValidateProxyWithTopicAndEventId()
     {
-        JsonObject config = schema.validate("proxy.with.topic.and.event.id.json");
+        JsonObject config = schema.validate("proxy.with.topic.and.event.id.yaml");
 
         assertThat(config, not(nullValue()));
     }

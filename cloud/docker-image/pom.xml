@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.aklivity.zilla</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.9.42</version>
+    <version>0.9.43</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -52,6 +52,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>binding-http</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-grpc</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -105,7 +111,19 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>binding-grpc-kafka</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>binding-sse-kafka</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>binding-kafka-grpc</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>
@@ -233,6 +251,8 @@
                             <include>com/ibm/icu/**</include>
                             <include>org/bitbucket/b_c/jose4j/**</include>
                             <include>org/slf4j/**</include>
+                            <include>org/antlr/**</include>
+                            <include>org/sonatype/oss/**</include>
                           </includes>
                         </fileSet>
                       </fileSets>

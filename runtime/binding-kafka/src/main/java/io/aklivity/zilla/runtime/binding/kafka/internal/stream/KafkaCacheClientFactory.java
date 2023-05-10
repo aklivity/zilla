@@ -58,7 +58,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
         final KafkaMergedBudgetAccountant accountant = new KafkaMergedBudgetAccountant(context);
 
         final KafkaCacheMetaFactory cacheMetaFactory = new KafkaCacheMetaFactory(
-                config, context, bindings::get, supplyCache, supplyCacheRoute, (routeId, resolvedId) -> resolvedId,
+                config, context, bindings::get, supplyCache, supplyCacheRoute, (routedId, resolvedId) -> resolvedId,
                 KAFKA_CACHE_CLIENT_RECONNECT_DELAY);
 
         final KafkaCacheClientDescribeFactory cacheDescribeFactory = new KafkaCacheClientDescribeFactory(

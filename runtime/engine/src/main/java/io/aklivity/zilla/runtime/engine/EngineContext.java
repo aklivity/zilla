@@ -45,7 +45,7 @@ public interface EngineContext
         String name);
 
     long supplyInitialId(
-        long routeId);
+        long bindingId);
 
     long supplyReplyId(
         long initialId);
@@ -67,6 +67,9 @@ public interface EngineContext
 
     void detachSender(
         long replyId);
+
+    void detachStreams(
+        long bindingId);
 
     BudgetCreditor creditor();
 
@@ -94,15 +97,15 @@ public interface EngineContext
     PollerKey supplyPollerKey(
         SelectableChannel channel);
 
-    long supplyRouteId(
+    long supplyBindingId(
         NamespaceConfig namespace,
         BindingConfig binding);
 
     String supplyNamespace(
-        long routeId);
+        long bindingId);
 
     String supplyLocalName(
-        long routeId);
+        long bindingId);
 
     BindingHandler streamFactory();
 

@@ -68,6 +68,10 @@ import io.aklivity.zilla.runtime.command.log.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.ExtensionFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.FrameFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcAbortExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcBeginExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcDataExFW;
+import io.aklivity.zilla.runtime.command.log.internal.types.stream.GrpcResetExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpBeginExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpEndExFW;
 import io.aklivity.zilla.runtime.command.log.internal.types.stream.HttpFlushExFW;
@@ -118,6 +122,10 @@ public final class LoggableStream implements AutoCloseable
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final HttpFlushExFW httpFlushExRO = new HttpFlushExFW();
     private final HttpEndExFW httpEndExRO = new HttpEndExFW();
+    private final GrpcBeginExFW grpcBeginExRO = new GrpcBeginExFW();
+    private final GrpcDataExFW grpcDataExRO = new GrpcDataExFW();
+    private final GrpcResetExFW grpcResetExRO = new GrpcResetExFW();
+    private final GrpcAbortExFW grpcAbortExRO = new GrpcAbortExFW();
     private final SseDataExFW sseDataExRO = new SseDataExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
@@ -157,8 +165,8 @@ public final class LoggableStream implements AutoCloseable
     {
         this.index = index;
         this.labels = labels;
-        this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
-        this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
+        this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [0x%016x] [%d/%d] %s\n";
+        this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [0x%016x] [%d/%d] %s\n";
         this.verboseFormat = "[%02d/%08x] [%d] %s\n";
 
         this.layout = layout;
@@ -172,6 +180,7 @@ public final class LoggableStream implements AutoCloseable
         final Int2ObjectHashMap<Consumer<EndFW>> endHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<ResetFW>> resetHandlers = new Int2ObjectHashMap<>();
+        final Int2ObjectHashMap<Consumer<AbortFW>> abortHandlers = new Int2ObjectHashMap<>();
 
         if (hasFrameType.test("BEGIN"))
         {
@@ -220,6 +229,14 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
             flushHandlers.put(labels.lookupLabelId("http"), this::onHttpFlushEx);
             endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
+        }
+
+        if (hasExtensionType.test("grpc"))
+        {
+            beginHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcBeginEx);
+            dataHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcDataEx);
+            abortHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcAbortEx);
+            resetHandlers.put(labels.lookupLabelId("grpc"), this::onGrpcResetEx);
         }
 
         if (hasExtensionType.test("sse"))
@@ -301,7 +318,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = begin.offset() - HEADER_LENGTH;
         final long timestamp = begin.timestamp();
-        final long routeId = begin.routeId();
+        final long originId = begin.originId();
+        final long routedId = begin.routedId();
         final long streamId = begin.streamId();
         final long sequence = begin.sequence();
         final long acknowledge = begin.acknowledge();
@@ -310,12 +328,12 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
 
 
@@ -335,7 +353,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = data.offset() - HEADER_LENGTH;
         final long timestamp = data.timestamp();
-        final long routeId = data.routeId();
+        final long originId = data.originId();
+        final long routedId = data.routedId();
         final long streamId = data.streamId();
         final long sequence = data.sequence();
         final long acknowledge = data.acknowledge();
@@ -347,12 +366,12 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
             sequence - acknowledge + reserved, maximum, format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]",
                     budgetId, length, reserved, flags, authorization));
 
@@ -372,7 +391,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = end.offset() - HEADER_LENGTH;
         final long timestamp = end.timestamp();
-        final long routeId = end.routeId();
+        final long originId = end.originId();
+        final long routedId = end.routedId();
         final long streamId = end.streamId();
         final long sequence = end.sequence();
         final long acknowledge = end.acknowledge();
@@ -380,12 +400,12 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = end.traceId();
         final long authorization = end.authorization();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, format("END [0x%016x]", authorization));
 
         final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
@@ -404,7 +424,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = abort.offset() - HEADER_LENGTH;
         final long timestamp = abort.timestamp();
-        final long routeId = abort.routeId();
+        final long originId = abort.originId();
+        final long routedId = abort.routedId();
         final long streamId = abort.streamId();
         final long sequence = abort.sequence();
         final long acknowledge = abort.acknowledge();
@@ -412,12 +433,12 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = abort.traceId();
         final long authorization = abort.authorization();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, format("ABORT [0x%016x]", authorization));
     }
 
@@ -426,19 +447,20 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = reset.offset() - HEADER_LENGTH;
         final long timestamp = reset.timestamp();
-        final long routeId = reset.routeId();
+        final long originId = reset.originId();
+        final long routedId = reset.routedId();
         final long streamId = reset.streamId();
         final long sequence = reset.sequence();
         final long acknowledge = reset.acknowledge();
         final int maximum = reset.maximum();
         final long traceId = reset.traceId();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, "RESET");
 
         final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
@@ -457,7 +479,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = window.offset() - HEADER_LENGTH;
         final long timestamp = window.timestamp();
-        final long routeId = window.routeId();
+        final long originId = window.originId();
+        final long routedId = window.routedId();
         final long streamId = window.streamId();
         final long sequence = window.sequence();
         final long acknowledge = window.acknowledge();
@@ -467,12 +490,12 @@ public final class LoggableStream implements AutoCloseable
         final int minimum = window.minimum();
         final int padding = window.padding();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, format("WINDOW [0x%016x] [%d] [%d]", budgetId, minimum, padding));
     }
 
@@ -481,7 +504,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = signal.offset() - HEADER_LENGTH;
         final long timestamp = signal.timestamp();
-        final long routeId = signal.routeId();
+        final long originId = signal.originId();
+        final long routedId = signal.routedId();
         final long streamId = signal.streamId();
         final long sequence = signal.sequence();
         final long acknowledge = signal.acknowledge();
@@ -490,12 +514,12 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = signal.authorization();
         final long signalId = signal.signalId();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
@@ -504,7 +528,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = challenge.offset() - HEADER_LENGTH;
         final long timestamp = challenge.timestamp();
-        final long routeId = challenge.routeId();
+        final long originId = challenge.originId();
+        final long routedId = challenge.routedId();
         final long streamId = challenge.streamId();
         final long sequence = challenge.sequence();
         final long acknowledge = challenge.acknowledge();
@@ -512,12 +537,12 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = challenge.traceId();
         final long authorization = challenge.authorization();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, format("CHALLENGE [0x%016x]", authorization));
     }
 
@@ -526,7 +551,8 @@ public final class LoggableStream implements AutoCloseable
     {
         final int offset = flush.offset() - HEADER_LENGTH;
         final long timestamp = flush.timestamp();
-        final long routeId = flush.routeId();
+        final long originId = flush.originId();
+        final long routedId = flush.routedId();
         final long streamId = flush.streamId();
         final long sequence = flush.sequence();
         final long acknowledge = flush.acknowledge();
@@ -535,12 +561,12 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = flush.authorization();
         final long budgetId = flush.budgetId();
 
-        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
-        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final int namespaceId = (int)(routedId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routedId >> 0) & 0xffff_ffff;
         final String namespace = labels.lookupLabel(namespaceId);
         final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, originId, routedId, streamId,
                 sequence - acknowledge, maximum, format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
 
         final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
@@ -759,6 +785,65 @@ public final class LoggableStream implements AutoCloseable
         httpEndEx.trailers()
                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                          format("%s: %s", h.name().asString(), h.value().asString())));
+    }
+
+    private void onGrpcBeginEx(
+        final BeginFW begin)
+    {
+        final int offset = begin.offset() - HEADER_LENGTH;
+        final long timestamp = begin.timestamp();
+        final OctetsFW extension = begin.extension();
+
+        final GrpcBeginExFW grpcBeginEx = grpcBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("scheme: %s", grpcBeginEx.scheme().asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("authority: %s", grpcBeginEx.authority().asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("service: %s", grpcBeginEx.service().asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("method: %s", grpcBeginEx.method().asString()));
+
+        grpcBeginEx.metadata().forEach(m ->
+        {
+            OctetsFW metadataName = m.name();
+            OctetsFW metadataValue = m.value();
+            final String formattedMetadataName = metadataName.buffer().getStringWithoutLengthUtf8(
+                metadataName.offset(), metadataName.sizeof());
+            final String formattedMetadataValue = metadataValue.buffer().getStringWithoutLengthUtf8(
+                metadataValue.offset(), metadataValue.sizeof());
+            out.printf(verboseFormat, index, offset, timestamp,
+                format("%s: %s", formattedMetadataName, formattedMetadataValue));
+        });
+    }
+
+    private void onGrpcDataEx(
+        final DataFW data)
+    {
+        final int offset = data.offset() - HEADER_LENGTH;
+        final long timestamp = data.timestamp();
+        final OctetsFW extension = data.extension();
+
+        final GrpcDataExFW grpcDataEx = grpcDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", grpcDataEx.deferred()));
+    }
+
+    private void onGrpcAbortEx(
+        final AbortFW abort)
+    {
+        final int offset = abort.offset() - HEADER_LENGTH;
+        final long timestamp = abort.timestamp();
+        final OctetsFW extension = abort.extension();
+
+        final GrpcAbortExFW grpcAbortEx = grpcAbortExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("status: %s", grpcAbortEx.status().asString()));
+    }
+
+    private void onGrpcResetEx(
+        final ResetFW reset)
+    {
+        final int offset = reset.offset() - HEADER_LENGTH;
+        final long timestamp = reset.timestamp();
+        final OctetsFW extension = reset.extension();
+
+        final GrpcResetExFW grpcResetEx = grpcResetExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        out.printf(verboseFormat, index, offset, timestamp, format("status: %s", grpcResetEx.status().asString()));
     }
 
     private void onSseDataEx(

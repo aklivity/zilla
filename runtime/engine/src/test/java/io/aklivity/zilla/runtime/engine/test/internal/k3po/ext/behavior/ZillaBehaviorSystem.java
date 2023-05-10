@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior;
 
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.ABORT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.BEGIN;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.DATA;
@@ -23,6 +24,7 @@ import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.Z
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.ZillaExtensionKind.RESET;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_CHALLENGE;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.ADVISORY_FLUSH;
+import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_ABORT_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_BEGIN_EXT;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_DATA_EMPTY;
 import static io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.ZillaTypeSystem.CONFIG_DATA_EXT;
@@ -83,6 +85,7 @@ import org.kaazing.k3po.lang.internal.ast.value.AstValue;
 import org.kaazing.k3po.lang.types.StructuredTypeInfo;
 import org.kaazing.k3po.lang.types.TypeInfo;
 
+import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAbortExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadAckOptionHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadBeginExtHandler;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.behavior.handler.ReadDataExtHandler;
@@ -126,6 +129,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         readConfigFactories.put(CONFIG_DATA_EMPTY, ZillaBehaviorSystem::newReadEmptyDataHandler);
         readConfigFactories.put(CONFIG_DATA_EXT, ZillaBehaviorSystem::newReadDataExtHandler);
         readConfigFactories.put(CONFIG_DATA_NULL, ZillaBehaviorSystem::newReadNullDataHandler);
+        readConfigFactories.put(CONFIG_ABORT_EXT, ZillaBehaviorSystem::newReadAbortExtHandler);
         readConfigFactories.put(CONFIG_END_EXT, ZillaBehaviorSystem::newReadEndExtHandler);
         readConfigFactories.put(CONFIG_RESET_EXT, ZillaBehaviorSystem::newReadResetExtHandler);
         this.readConfigFactories = unmodifiableMap(readConfigFactories);
@@ -134,6 +138,7 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         writeConfigFactories.put(CONFIG_BEGIN_EXT, ZillaBehaviorSystem::newWriteBeginExtHandler);
         writeConfigFactories.put(CONFIG_DATA_EMPTY, ZillaBehaviorSystem::newWriteEmptyDataHandler);
         writeConfigFactories.put(CONFIG_DATA_EXT, ZillaBehaviorSystem::newWriteDataExtHandler);
+        writeConfigFactories.put(CONFIG_ABORT_EXT, ZillaBehaviorSystem::newWriteAbortExtHandler);
         writeConfigFactories.put(CONFIG_END_EXT, ZillaBehaviorSystem::newWriteEndExtHandler);
         writeConfigFactories.put(CONFIG_RESET_EXT, ZillaBehaviorSystem::newWriteResetExtHandler);
         this.writeConfigFactories = unmodifiableMap(writeConfigFactories);
@@ -330,6 +335,20 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         return handler;
     }
 
+    private static ReadAbortExtHandler newReadAbortExtHandler(
+        AstReadConfigNode node,
+        Function<AstValueMatcher, MessageDecoder> decoderFactory)
+    {
+        RegionInfo regionInfo = node.getRegionInfo();
+        StructuredTypeInfo type = node.getType();
+        List<MessageDecoder> decoders = node.getMatchers().stream().map(decoderFactory).collect(toList());
+
+        ChannelDecoder decoder = new ZillaExtensionDecoder(ABORT, type, decoders);
+        ReadAbortExtHandler handler = new ReadAbortExtHandler(decoder);
+        handler.setRegionInfo(regionInfo);
+        return handler;
+    }
+
     private static ReadEndExtHandler newReadEndExtHandler(
         AstReadConfigNode node,
         Function<AstValueMatcher, MessageDecoder> decoderFactory)
@@ -389,6 +408,19 @@ public class ZillaBehaviorSystem implements BehaviorSystemSpi
         Function<AstValue<?>, MessageEncoder> encoderFactory)
     {
         WriteEmptyDataHandler handler = new WriteEmptyDataHandler();
+        handler.setRegionInfo(node.getRegionInfo());
+        return handler;
+    }
+
+    private static WriteConfigHandler newWriteAbortExtHandler(
+        AstWriteConfigNode node,
+        Function<AstValue<?>, MessageEncoder> encoderFactory)
+    {
+        StructuredTypeInfo type = node.getType();
+        List<MessageEncoder> encoders = node.getValues().stream().map(encoderFactory).collect(toList());
+
+        ChannelEncoder encoder = new ZillaExtensionEncoder(ABORT, type, encoders);
+        WriteConfigHandler handler = new WriteConfigHandler(encoder);
         handler.setRegionInfo(node.getRegionInfo());
         return handler;
     }

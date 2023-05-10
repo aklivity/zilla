@@ -101,7 +101,7 @@ write 193
       0                                 # partition 0
       0s                                # no error
       3L                                # high water mark
-      0L                                # last stable offset
+      1L                                # last stable offset
       -1L                               # no log start offset
       -1                                # no aborted transaction count
       133                               # record set size
@@ -171,7 +171,7 @@ write 138
       0                                 # partition 0
       0s                                # no error
       4L                                # high water mark
-      3L                                # last stable offset
+      4L                                # last stable offset
       -1L                               # no log start offset
       -1                                # no aborted transaction count
       78                                # record set size
@@ -226,7 +226,7 @@ write 144
       0                                 # partition 0
       0s                                # no error
       5L                                # high water mark
-      4L                                # last stable offset
+      5L                                # last stable offset
       -1L                               # no log start offset
       -1                                # no aborted transaction count
       84                                # record set size
