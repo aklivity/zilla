@@ -8,13 +8,12 @@ service:
     - port: 9090
       name: https
 
-tls:
-  enabled: true
-  keystore:
-    name: localhost.p12
-    localPath: examples/ws.echo/localhost.p12
+secrets:
+  - name: tls
     mountPath: tls
-    password: generated
+    localPath: examples/ws.echo/tls/*
+
+keystorePassword: generated
 
 verify: |
   $ wscat -c ws://localhost:8080/ -s echo

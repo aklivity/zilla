@@ -9,19 +9,17 @@ service:
     - port: 9090
       name: https
 
-tls:
-  enabled: true
-  keystore:
-    name: localhost.p12
-    localPath: examples/grpc.echo/localhost.p12
-    mountPath: tls
-    password: generated
+configMaps:
+  - name: proto
+    localPath: examples/grpc.echo/proto/*
+    mountPath: proto
 
-filesToConfigMap:
-  enabled: true
-  name: proto
-  localPath: examples/grpc.echo/proto/*
-  mountPath: proto
+secrets:
+  - name: tls
+    mountPath: tls
+    localPath: examples/grpc.echo/tls/*
+
+keystorePassword: generated
 
 verify: |
   $ grpcurl -insecure -proto examples/grpc.echo/proto/echo.proto -d '{"message":"Hello World"}' localhost:9090 example.EchoService.EchoUnary

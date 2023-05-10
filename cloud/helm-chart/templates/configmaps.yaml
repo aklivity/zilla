@@ -1,0 +1,10 @@
+{{- $root := . }}
+{{- range $configMap := .Values.configMaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $configMap.name }}
+data:
+{{ ($root.Files.Glob $configMap.localPath).AsConfig | indent 2 }}
+{{- end }}

@@ -6,13 +6,12 @@ service:
     - port: 23456
       name: tls
 
-tls:
-  enabled: true
-  keystore:
-    name: localhost.p12
-    localPath: examples/tls.echo/localhost.p12
+secrets:
+  - name: tls
     mountPath: tls
-    password: generated
+    localPath: examples/tls.echo/tls/*
+
+keystorePassword: generated
 
 verify: |
   $ openssl s_client -connect localhost:23456 -CAfile examples/tls.echo/test-ca.crt -quiet -alpn echo

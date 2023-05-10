@@ -8,13 +8,12 @@ service:
     - port: 9090
       name: https
 
-tls:
-  enabled: true
-  keystore:
-    name: localhost.p12
-    localPath: examples/http.echo/localhost.p12
+secrets:
+  - name: tls
     mountPath: tls
-    password: generated
+    localPath: examples/http.echo/tls/*
+
+keystorePassword: generated
 
 verify: |
   $ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/

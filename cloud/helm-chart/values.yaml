@@ -19,17 +19,8 @@ livenessProbePort: 0
 readinessProbePort: 0
 
 configPath: /etc/zilla
-
-tls:
-  enabled: false
-  keystore:
-    name: ""
-    localPath: ""
-    mountPath: ""
-    password: ""
-
-filesToConfigMap:
-  enabled: false
+configMaps: []
+secrets: []
 
 service:
   type: ClusterIP

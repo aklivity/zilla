@@ -11,13 +11,12 @@ service:
     - port: 8883
       name: mqtts
 
-tls:
-  enabled: true
-  keystore:
-    name: localhost.p12
-    localPath: examples/mqtt.reflect/localhost.p12
+secrets:
+  - name: tls
     mountPath: tls
-    password: generated
+    localPath: examples/mqtt.reflect/tls/*
+
+keystorePassword: generated
 
 verify: |
   Connect two subscribing clients first, then send `Hello, world` from publishing client.
