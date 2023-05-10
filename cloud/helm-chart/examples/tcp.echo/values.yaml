@@ -5,8 +5,3 @@ service:
   ports:
     - port: 12345
       name: tcp
-
-verify: |
-  $ nc localhost 12345
-  Hello, world
-  Hello, world

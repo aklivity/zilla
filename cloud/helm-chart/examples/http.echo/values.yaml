@@ -14,16 +14,3 @@ secrets:
     localPath: examples/http.echo/tls/*
 
 keystorePassword: generated
-
-verify: |
-  $ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/
-  Hello, world
-
-  $ curl -d "Hello, world" -H "Content-Type: text/plain" -X "POST" http://localhost:8080/ --http2-prior-knowledge
-  Hello, world
-
-  $ curl --cacert examples/http.echo/test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http1.1
-  Hello, world
-
-  $ curl --cacert examples/http.echo/test-ca.crt -d "Hello, world" -H "Content-Type: text/plain" -X "POST" https://localhost:9090/ --http2
-  Hello, world

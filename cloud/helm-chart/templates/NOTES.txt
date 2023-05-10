@@ -1,16 +1,15 @@
-{{- if eq (include "helm.isServicePortDefined" .) "true" }}
-Expose zilla with port-forward by running these commands:
----------------------------------------------------------
+Zilla has been installed.
+
+This is how to check zilla logs:
+--------------------------------
+$ export ZILLA_POD=$(kubectl get pods --namespace {{ .Release.Namespace }} --selector app.kubernetes.io/instance={{ .Release.Name }} -o json | jq -r '.items[0].metadata.name')
+$ kubectl logs --namespace {{ .Release.Namespace }} $ZILLA_POD
+{{ if eq (include "helm.isServicePortDefined" .) "true" }}
+This is how to expose zilla with port-forward:
+----------------------------------------------
 $ export SERVICE_PORTS=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "helm.fullname" . }} --template "{{"{{ range .spec.ports }}{{.port}} {{ end }}"}}")
 $ eval "kubectl port-forward --namespace {{ .Release.Namespace }} service/{{ include "helm.fullname" . }} $SERVICE_PORTS" > /tmp/kubectl-zilla.log 2>&1 &
-{{- end }}
 
-Verify behaviour:
------------------
-{{ .Values.verify }}
-
-{{- if eq (include "helm.isServicePortDefined" .) "true" }}
-Cleanup port-forwards:
-----------------------
+# cleanup:
 $ pgrep kubectl && killall kubectl
 {{- end }}

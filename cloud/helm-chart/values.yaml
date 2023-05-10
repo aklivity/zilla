@@ -43,10 +43,3 @@ affinity: {}
 
 zilla_yaml: |
   name: example
-
-verify: |
-  Default install is no-op zilla:
-  $ ZILLA_POD=$(kubectl get pods --namespace zilla --selector app.kubernetes.io/instance=zilla -o json | jq -r '.items[0].metadata.name')
-  $ kubectl logs --namespace zilla $ZILLA_POD
-  name: example
-  started

@@ -14,14 +14,3 @@ secrets:
     localPath: examples/ws.echo/tls/*
 
 keystorePassword: generated
-
-verify: |
-  $ wscat -c ws://localhost:8080/ -s echo
-  Connected (press CTRL+C to quit)
-  > Hello, world
-  < Hello, world
-
-  $ wscat -c wss://localhost:9090/ --ca examples/ws.echo/test-ca.crt -s echo
-  Connected (press CTRL+C to quit)
-  > Hello, world
-  < Hello, world
