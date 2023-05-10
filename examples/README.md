@@ -19,13 +19,18 @@ You can install `helm` with `$ brew install helm`.
 | [http.echo](http.echo)                               | Echoes request sent to the HTTP server from an HTTP client                                |
 | [http.echo.jwt](http.echo.jwt)                       | Echoes request sent to the HTTP server from a JWT-authorized HTTP client                  |
 | [http.proxy](http.proxy)                             | Proxy request sent to the HTTP server from an HTTP client                                 |
-| [http.kafka.sync](http.kafka.sync)                   | Correlates requests and responses over separate Kafka topics                              |
-| [http.kafka.async](http.kafka.async)                 | Correlates requests and responses over separate Kafka topics, asynchronously              |
+| [http.kafka.sync](http.kafka.sync)                   | Correlates HTTP requests and responses over separate Kafka topics                         |
+| [http.kafka.async](http.kafka.async)                 | Correlates HTTP requests and responses over separate Kafka topics, asynchronously         |
 | [http.kafka.cache](http.kafka.cache)                 | Serves cached responses from a Kafka topic, detect when updated                           |
 | [http.kafka.oneway](http.kafka.oneway)               | Sends messages to a Kafka topic, fire-and-forget                                          |
 | [http.kafka.crud](http.kafka.crud)                   | Exposes a REST API with CRUD operations where a log-compacted Kafka topic acts as a table |
 | [http.kafka.sasl.scram](http.kafka.sasl.scram)       | Sends messages to a SASL/SCRAM enabled Kafka                                              |
 | [http.redpanda.sasl.scram](http.redpanda.sasl.scram) | Sends messages to a SASL/SCRAM enabled Redpanda Cluster                                   |
+| [grpc.echo](grpc.echo)                               | Echoes messages sent to the gRPC server from a gRPC client                                |
+| [grpc.kafka.echo](grpc.kafka.echo)                   | Echoes messages sent to a Kafka topic via gRPC from a gRPC client                         |
+| [grpc.kafka.fanout](grpc.kafka.fanout)               | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
+| [grpc.kafka.proxy](grpc.kafka.proxy)                 | Correlates gRPC requests and responses over separate Kafka topics                         |
+| [grpc.proxy](grpc.proxy)                             | Proxies gRPC requests and responses sent to the gRPC server from a gRPC client            |
 | [amqp.reflect](amqp.reflect)                         | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients  |
 | [mqtt.reflect](mqtt.reflect)                         | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients  |
 | [sse.kafka.fanout](sse.kafka.fanout)                 | Streams messages published to a Kafka topic, applying conflation based on log compaction  |
