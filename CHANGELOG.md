@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/aklivity/zilla/tree/HEAD)
+## [0.9.43](https://github.com/aklivity/zilla/tree/0.9.43) (2023-05-10)
 
-[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.42...HEAD)
+[Full Changelog](https://github.com/aklivity/zilla/compare/0.9.42...0.9.43)
 
 **Implemented enhancements:**
 
