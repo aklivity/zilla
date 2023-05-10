@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: zilla
-          image: "ghcr.io/aklivity/zilla:develop-SNAPSHOT"
+          image: "ghcr.io/aklivity/zilla:latest"
           args: ["start", "-v", "-e"]
           env:
             - name: KEYSTORE_PASSWORD
