@@ -144,6 +144,11 @@ You can also quickly test out Zilla by running preconfigured Zilla configuration
 | [http.kafka.oneway](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.oneway) | Sends messages to a Kafka topic, fire-and-forget |
 | [http.kafka.sasl.scram](https://github.com/aklivity/zilla-examples/tree/main/http.kafka.sasl.scram) | Sends messages to a SASL/SCRAM enabled Kafka |
 | [http.redpanda.sasl.scram](https://github.com/aklivity/zilla-examples/tree/main/http.redpanda.sasl.scram) | Sends messages to a SASL/SCRAM enabled Redpanda Cluster |
+| [grpc.echo](https://github.com/aklivity/zilla-examples/tree/main/grpc.echo) | Echoes messages sent to the gRPC server from a gRPC client |
+| [grpc.kafka.echo](https://github.com/aklivity/zilla-examples/tree/main/grpc.kafka.echo) | Echoes messages sent to a Kafka topic via gRPC from a gRPC client |
+| [grpc.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/grpc.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |
+| [grpc.kafka.proxy](https://github.com/aklivity/zilla-examples/tree/main/grpc.kafka.proxy) | Correlates gRPC requests and responses over separate Kafka topics |
+| [grpc.proxy](https://github.com/aklivity/zilla-examples/tree/main/grpc.proxy) | Proxies gRPC requests and responses sent to the gRPC server from a gRPC client |
 | [amqp.reflect](https://github.com/aklivity/zilla-examples/tree/main/amqp.reflect) | Echoes messages published to the AMQP server, broadcasting to all receiving AMQP clients |
 | [mqtt.reflect](https://github.com/aklivity/zilla-examples/tree/main/mqtt.reflect) | Echoes messages published to the MQTT server, broadcasting to all receiving MQTT clients |
 | [sse.kafka.fanout](https://github.com/aklivity/zilla-examples/tree/main/sse.kafka.fanout) | Streams messages published to a Kafka topic, applying conflation based on log compaction |

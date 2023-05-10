@@ -25,12 +25,15 @@
     <module>binding-tcp</module>
     <module>binding-tls</module>
     <module>binding-http</module>
+    <module>binding-grpc</module>
     <module>binding-sse</module>
     <module>binding-ws</module>
     <module>binding-kafka</module>
     <module>binding-http-filesystem</module>
     <module>binding-http-kafka</module>
+    <module>binding-grpc-kafka</module>
     <module>binding-sse-kafka</module>
+    <module>binding-kafka-grpc</module>
     <module>guard-jwt</module>
     <module>vault-filesystem</module>
     <module>command</module>
@@ -87,6 +90,11 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-grpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-sse</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -112,7 +120,17 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
+        <artifactId>binding-grpc-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>binding-sse-kafka</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>binding-kafka-grpc</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
