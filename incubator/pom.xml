@@ -24,6 +24,7 @@
 
     <module>metrics-stream.spec</module>
     <module>metrics-http.spec</module>
+    <module>metrics-grpc.spec</module>
 
     <module>binding-amqp</module>
     <module>binding-mqtt</module>
@@ -37,6 +38,7 @@
 
     <module>metrics-stream</module>
     <module>metrics-http</module>
+    <module>metrics-grpc</module>
   </modules>
 
   <dependencyManagement>
@@ -84,6 +86,11 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>metrics-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>metrics-grpc</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
