@@ -25,12 +25,15 @@
     <module>binding-tcp.spec</module>
     <module>binding-tls.spec</module>
     <module>binding-http.spec</module>
+    <module>binding-grpc.spec</module>
     <module>binding-sse.spec</module>
     <module>binding-ws.spec</module>
     <module>binding-kafka.spec</module>
     <module>binding-http-filesystem.spec</module>
     <module>binding-http-kafka.spec</module>
+    <module>binding-grpc-kafka.spec</module>
     <module>binding-sse-kafka.spec</module>
+    <module>binding-kafka-grpc.spec</module>
     <module>guard-jwt.spec</module>
     <module>vault-filesystem.spec</module>
   </modules>

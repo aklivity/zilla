@@ -4802,7 +4802,7 @@ public final class HttpClientFactory implements HttpStreamFactory
 
             state = HttpState.openingReply(state);
 
-            doBegin(application, originId, routedId, responseId, responseSeq, responseAck, requestMax,
+            doBegin(application, originId, routedId, responseId, responseSeq, responseAck, responseMax,
                     traceId, authorization, 0, extension);
         }
 
