@@ -34,6 +34,7 @@
     "io.aklivity.zilla:engine",
     "io.aklivity.zilla:guard-jwt",
     "io.aklivity.zilla:vault-filesystem",
-    "org.slf4j:slf4j-simple"
+    "org.slf4j:slf4j-simple",
+    "org.antlr:antlr4-runtime"
   ]
 }

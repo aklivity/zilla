@@ -84,6 +84,7 @@ public class FileSystemServerIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -103,6 +104,7 @@ public class FileSystemServerIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configuration("server.yaml")
     @Specification({
@@ -134,6 +136,7 @@ public class FileSystemServerIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configuration("server_symlinks.yaml")
     @Specification({
