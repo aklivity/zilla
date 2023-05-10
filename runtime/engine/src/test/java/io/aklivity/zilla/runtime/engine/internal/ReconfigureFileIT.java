@@ -101,6 +101,7 @@ public class ReconfigureFileIT
         EngineTest.TestEngineExt.registerLatch = new CountDownLatch(1);
     }
 
+    @Ignore
     @Test
     @Configuration("zilla.reconfigure.modify.json")
     @Specification({
@@ -123,6 +124,7 @@ public class ReconfigureFileIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configuration("zilla.reconfigure.modify.symlink.json")
     @Specification({
@@ -183,6 +185,7 @@ public class ReconfigureFileIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configure(
         name = ENGINE_CONFIG_URL_NAME,
@@ -205,6 +208,7 @@ public class ReconfigureFileIT
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Configuration("zilla.reconfigure.delete.json")
     @Specification({

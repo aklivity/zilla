@@ -77,7 +77,12 @@ public class GrpcKafkaWithProduceResult
         hash.updateHash(method.value());
         hash.updateHash(correlation.replyTo.value());
         hash.updateHash(replyTo.value());
-        overrides.forEach(o -> hash.updateHash(o.valueRef.get()));
+
+        if (overrides != null)
+        {
+            overrides.forEach(o -> hash.updateHash(o.valueRef.get()));
+        }
+
         hash.digestHash();
     }
 
@@ -119,7 +124,6 @@ public class GrpcKafkaWithProduceResult
                 .length(correlationId.sizeof())
                 .value(correlationId.value(), 0, correlationId.sizeof());
         }
-        hash.updateHash(key);
     }
 
     public void headers(
