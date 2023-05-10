@@ -6,6 +6,12 @@
 
 **Implemented enhancements:**
 
+- Enhance `grpc` related binding configuration [\#226](https://github.com/aklivity/zilla/issues/226)
+- Move `kafka-grpc` options for `grpc` to `with` section of config [\#218](https://github.com/aklivity/zilla/issues/218)
+- Remove `zilla load` now that we have `zilla metrics` instead [\#214](https://github.com/aklivity/zilla/issues/214)
+- Minimize on-stack performance overhead of metrics recording [\#213](https://github.com/aklivity/zilla/issues/213)
+- Support `eager` evaluation of all `kafka` filters and indicate which filters matched [\#209](https://github.com/aklivity/zilla/issues/209)
+- Integrate Prometheus by exporting local metrics over HTTP [\#193](https://github.com/aklivity/zilla/issues/193)
 - Support gRPC Kafka server streaming [\#186](https://github.com/aklivity/zilla/issues/186)
 - Support Kafka gRPC mapping [\#185](https://github.com/aklivity/zilla/issues/185)
 - Support gRPC Kafka mapping [\#184](https://github.com/aklivity/zilla/issues/184)
@@ -27,6 +33,7 @@
 
 - During reconfigure, we don't log errors [\#177](https://github.com/aklivity/zilla/issues/177)
 - Flyweight wrapping error race condition [\#146](https://github.com/aklivity/zilla/issues/146)
+- CacheMergedIT.shouldFetchMergedMessageValues fails only on GitHub Actions [\#131](https://github.com/aklivity/zilla/issues/131)
 - Add log + rollback on reconfigure errors [\#178](https://github.com/aklivity/zilla/pull/178) ([bmaidics](https://github.com/bmaidics))
 
 **Closed issues:**
@@ -35,6 +42,13 @@
 
 **Merged pull requests:**
 
+- Fix NPE caused by overrides [\#238](https://github.com/aklivity/zilla/pull/238) ([akrambek](https://github.com/akrambek))
+- Fix typo in flow control, use `responseMax` instead of `requestMax` [\#237](https://github.com/aklivity/zilla/pull/237) ([akrambek](https://github.com/akrambek))
+- Consumer group kafka function support [\#232](https://github.com/aklivity/zilla/pull/232) ([akrambek](https://github.com/akrambek))
+- Enhance config [\#228](https://github.com/aklivity/zilla/pull/228) ([akrambek](https://github.com/akrambek))
+- `grpc-kafka` feature baseline [\#225](https://github.com/aklivity/zilla/pull/225) ([jfallows](https://github.com/jfallows))
+- CacheMergedIT.shouldFetchMergedMessageValues failure on GitHub Actions fix [\#221](https://github.com/aklivity/zilla/pull/221) ([aDaemonThread](https://github.com/aDaemonThread))
+- Support eager evaluation of all Kafka filters [\#212](https://github.com/aklivity/zilla/pull/212) ([aDaemonThread](https://github.com/aDaemonThread))
 - Include license header check [\#206](https://github.com/aklivity/zilla/pull/206) ([jfallows](https://github.com/jfallows))
 - Change DumpCommandTest [\#194](https://github.com/aklivity/zilla/pull/194) ([bmaidics](https://github.com/bmaidics))
 - Fix incorrect Assertion in KafkaFunctionsTest [\#192](https://github.com/aklivity/zilla/pull/192) ([bmaidics](https://github.com/bmaidics))
