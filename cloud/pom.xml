@@ -18,5 +18,6 @@
 
   <modules>
     <module>docker-image</module>
+    <module>helm-chart</module>
   </modules>
 </project>
