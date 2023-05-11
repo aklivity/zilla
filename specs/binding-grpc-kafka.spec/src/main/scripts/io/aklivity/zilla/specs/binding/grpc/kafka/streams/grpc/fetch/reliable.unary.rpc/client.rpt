@@ -23,7 +23,7 @@ write zilla:begin.ext ${grpc:beginEx()
                               .authority("localhost:8080")
                               .service("example.EchoService")
                               .method("EchoUnary")
-                              .metadata("last-message-id", "AQQABAIC")
+                              .metadata("last-message-id", "AQIABA")
                               .build()}
 connected
 
