@@ -1965,7 +1965,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final MqttRouteConfig resolved =
                     binding != null ? binding.resolve(authorization, subscription.filter, MqttCapabilities.SUBSCRIBE_ONLY) : null;
 
-                subscriptionsByRouteId.computeIfAbsent(resolved.id, s -> new ArrayList<>()).add(subscription);
+                if (resolved != null)
+                {
+                    subscriptionsByRouteId.computeIfAbsent(resolved.id, s -> new ArrayList<>()).add(subscription);
+                }
+                //TODO: unroutable
             }
 
             subscriptionsByRouteId.forEach((key, value) ->
