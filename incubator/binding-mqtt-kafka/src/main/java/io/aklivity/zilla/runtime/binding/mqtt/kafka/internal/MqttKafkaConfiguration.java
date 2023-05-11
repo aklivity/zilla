@@ -20,12 +20,12 @@ public class MqttKafkaConfiguration extends Configuration
 {
     private static final ConfigurationDef MQTT_KAFKA_CONFIG;
 
-    public static final PropertyDef<String> KAFKA_TOPIC_NAME;
+    public static final PropertyDef<String> KAFKA_MESSAGES_TOPIC;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.mqtt.kafka");
-        KAFKA_TOPIC_NAME = config.property("messages.topic", "mqtt_messages");
+        KAFKA_MESSAGES_TOPIC = config.property("messages.topic", "mqtt_messages");
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -33,5 +33,10 @@ public class MqttKafkaConfiguration extends Configuration
         Configuration config)
     {
         super(MQTT_KAFKA_CONFIG, config);
+    }
+
+    public String kafkaMessagesTopic()
+    {
+        return KAFKA_MESSAGES_TOPIC.get(this);
     }
 }

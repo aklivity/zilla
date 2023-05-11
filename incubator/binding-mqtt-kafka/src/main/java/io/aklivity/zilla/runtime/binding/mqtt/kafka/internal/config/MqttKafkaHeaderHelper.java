@@ -15,14 +15,11 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config;
 
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -31,54 +28,57 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.KafkaM
 
 public class MqttKafkaHeaderHelper
 {
-    public static final String KAFKA_TOPIC_HEADER_NAME = "zilla:topic";
-    public static final String KAFKA_LOCAL_HEADER_NAME = "zilla:local";
-    public static final String KAFKA_TIMEOUT_HEADER_NAME = "zilla:timeout-ms";
-    public static final String KAFKA_CONTENT_TYPE_HEADER_NAME = "zilla:content-type";
-    public static final String KAFKA_FORMAT_HEADER_NAME = "zilla:format";
-    public static final String KAFKA_REPLY_TO_HEADER_NAME = "zilla:reply-to";
-    public static final String KAFKA_CORRELATION_ID_HEADER_NAME = "zilla:correlation-id";
-    public final OctetsFW kafkaTopicHeaderOctets;
-    public final OctetsFW kafkaLocalHeaderOctets;
-    public final OctetsFW kafkaTimeoutHeaderOctets;
-    public final OctetsFW kafkaContentTypeHeaderOctets;
-    public final OctetsFW kafkaFormatHeaderOctets;
-    public final OctetsFW kafkaReplyToHeaderOctets;
-    public final OctetsFW kafkaCorrelationHeaderOctets;
-    private final Map<String, Consumer<OctetsFW>> visitors;
-    private final MutableDirectBuffer octetsBuffer;
-    private final OctetsFW emptyRO = new OctetsFW().wrap(new UnsafeBuffer(0L, 0), 0, 0);
+    private static final String KAFKA_TOPIC_HEADER_NAME = "zilla:topic";
 
+    private static final String KAFKA_LOCAL_HEADER_NAME = "zilla:local";
+
+    private static final String KAFKA_TIMEOUT_HEADER_NAME = "zilla:timeout-ms";
+
+    private static final String KAFKA_CONTENT_TYPE_HEADER_NAME = "zilla:content-type";
+
+    private static final String KAFKA_FORMAT_HEADER_NAME = "zilla:format";
+
+    private static final String KAFKA_REPLY_TO_HEADER_NAME = "zilla:reply-to";
+
+    private static final String KAFKA_CORRELATION_ID_HEADER_NAME = "zilla:correlation-id";
+
+    public final OctetsFW kafkaTopicHeaderName;
+    public final OctetsFW kafkaLocalHeaderName;
+    public final OctetsFW kafkaTimeoutHeaderName;
+    public final OctetsFW kafkaContentTypeHeaderName;
+    public final OctetsFW kafkaFormatHeaderName;
+    public final OctetsFW kafkaReplyToHeaderName;
+    public final OctetsFW kafkaCorrelationHeaderName;
+    private final Map<OctetsFW, Consumer<OctetsFW>> visitors;
+    public final OctetsFW contentTypeRO = new OctetsFW();
+    public final OctetsFW replyToRO = new OctetsFW();
+
+    public int timeout;
+    public OctetsFW contentType;
+    public String format;
+    public OctetsFW replyTo;
+    public OctetsFW correlation;
+    public IntArrayList userPropertiesOffsets;
 
     public MqttKafkaHeaderHelper()
     {
-        octetsBuffer = new UnsafeBuffer(new byte[8 * 1024]);
+        kafkaTopicHeaderName = stringToOctets(KAFKA_TOPIC_HEADER_NAME);
+        kafkaLocalHeaderName = stringToOctets(KAFKA_LOCAL_HEADER_NAME);
+        kafkaTimeoutHeaderName = stringToOctets(KAFKA_TIMEOUT_HEADER_NAME);
+        kafkaContentTypeHeaderName = stringToOctets(KAFKA_CONTENT_TYPE_HEADER_NAME);
+        kafkaFormatHeaderName = stringToOctets(KAFKA_FORMAT_HEADER_NAME);
+        kafkaReplyToHeaderName = stringToOctets(KAFKA_REPLY_TO_HEADER_NAME);
+        kafkaCorrelationHeaderName = stringToOctets(KAFKA_CORRELATION_ID_HEADER_NAME);
+
         visitors = new HashMap<>();
-        visitors.put(KAFKA_TOPIC_HEADER_NAME, this::visitTopic);
-        visitors.put(KAFKA_LOCAL_HEADER_NAME, this::visitLocal);
-        visitors.put(KAFKA_TIMEOUT_HEADER_NAME, this::visitTimeout);
-        visitors.put(KAFKA_CONTENT_TYPE_HEADER_NAME, this::visitContentType);
-        visitors.put(KAFKA_FORMAT_HEADER_NAME, this::visitFormat);
-        visitors.put(KAFKA_REPLY_TO_HEADER_NAME, this::visitReplyTo);
-        visitors.put(KAFKA_CORRELATION_ID_HEADER_NAME, this::visitCorrelationId);
-
-        kafkaTopicHeaderOctets = stringToOctets(KAFKA_TOPIC_HEADER_NAME);
-        kafkaLocalHeaderOctets = stringToOctets(KAFKA_LOCAL_HEADER_NAME);
-        kafkaTimeoutHeaderOctets = stringToOctets(KAFKA_TIMEOUT_HEADER_NAME);
-        kafkaContentTypeHeaderOctets = stringToOctets(KAFKA_CONTENT_TYPE_HEADER_NAME);
-        kafkaFormatHeaderOctets = stringToOctets(KAFKA_FORMAT_HEADER_NAME);
-        kafkaReplyToHeaderOctets = stringToOctets(KAFKA_REPLY_TO_HEADER_NAME);
-        kafkaCorrelationHeaderOctets = stringToOctets(KAFKA_CORRELATION_ID_HEADER_NAME);
+        visitors.put(kafkaTopicHeaderName, this::skip);
+        visitors.put(kafkaLocalHeaderName, this::skip);
+        visitors.put(kafkaTimeoutHeaderName, this::visitTimeout);
+        visitors.put(kafkaContentTypeHeaderName, this::visitContentType);
+        visitors.put(kafkaFormatHeaderName, this::visitFormat);
+        visitors.put(kafkaReplyToHeaderName, this::visitReplyTo);
+        visitors.put(kafkaCorrelationHeaderName, this::visitCorrelationId);
     }
-
-    public List<String> topicNames;
-    public String local;
-    public int timeout;
-    public String contentType;
-    public String format;
-    public String replyTo;
-    public OctetsFW correlation;
-    public Map<String, List<String>> userProperties;
 
     private OctetsFW stringToOctets(String string0)
     {
@@ -89,14 +89,12 @@ public class MqttKafkaHeaderHelper
     public void visit(
         KafkaMergedDataExFW dataEx)
     {
-        topicNames = new ArrayList<>();
-        local = null;
-        timeout = -1;
-        contentType = null;
-        format = null;
-        replyTo = null;
-        correlation = null;
-        userProperties = new HashMap<>();
+        this.timeout = -1;
+        this.contentType = null;
+        this.format = null;
+        this.replyTo = null;
+        this.correlation = null;
+        this.userPropertiesOffsets = new IntArrayList();
         if (dataEx != null)
         {
             dataEx.headers().matchFirst(this::dispatch);
@@ -106,41 +104,27 @@ public class MqttKafkaHeaderHelper
     private boolean dispatch(
         KafkaHeaderFW header)
     {
-        final String headerName = header.name().get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
-        final Consumer<OctetsFW> visitor = visitors
-            .get(headerName);
+        final Consumer<OctetsFW> visitor = visitors.get(header.name());
         if (visitor != null)
         {
             visitor.accept(header.value());
         }
         else
         {
-            OctetsFW value = header.value();
-            if (value != null)
-            {
-                String propertyValue = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
-                userProperties.computeIfAbsent(headerName, h -> new ArrayList<>()).add(propertyValue);
-            }
+            userPropertiesOffsets.add(header.offset());
         }
         return timeout != -1 && contentType != null && format != null && replyTo != null && correlation != null;
     }
 
-    private void visitTopic(
+    private void skip(
         OctetsFW value)
     {
-        topicNames.add(value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o)));
-    }
-
-    private void visitLocal(
-        OctetsFW value)
-    {
-        local = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
     }
 
     private void visitContentType(
         OctetsFW value)
     {
-        contentType = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+        contentType = contentTypeRO.wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private void visitFormat(
@@ -152,7 +136,7 @@ public class MqttKafkaHeaderHelper
     private void visitReplyTo(
         OctetsFW value)
     {
-        replyTo = value.get((b, o, m) -> b.getStringWithoutLengthUtf8(o, m - o));
+        replyTo = replyToRO.wrap(value.buffer(), value.offset(), value.limit());
     }
 
     private void visitCorrelationId(

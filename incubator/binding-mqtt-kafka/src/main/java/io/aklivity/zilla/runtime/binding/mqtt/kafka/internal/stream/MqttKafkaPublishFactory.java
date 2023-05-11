@@ -17,8 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static java.time.Instant.now;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteOrder;
 import java.util.function.LongFunction;
 import java.util.function.LongUnaryOperator;
 
@@ -36,6 +35,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabilities;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaKeyFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.stream.AbortFW;
@@ -95,13 +96,9 @@ public class MqttKafkaPublishFactory implements BindingHandler
     private final KafkaDataExFW.Builder kafkaDataExRW = new KafkaDataExFW.Builder();
     private final Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> kafkaHeadersRW =
         new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW());
-    private final OctetsFW.Builder headerValueRW = new OctetsFW.Builder();
-    private final OctetsFW.Builder headerKeyRW = new OctetsFW.Builder();
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer keyBuffer;
-    private final MutableDirectBuffer headerValueBuffer;
-    private final MutableDirectBuffer headerKeyBuffer;
-    private final ByteBuffer headerIntValueBuffer;
+    private final MutableDirectBuffer headerIntValueBuffer;
     private final MutableDirectBuffer extBuffer;
     private final MutableDirectBuffer kafkaHeadersBuffer;
     private final BindingHandler streamFactory;
@@ -116,6 +113,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
     private OctetsFW[] topicNameHeaders;
     private OctetsFW clientIdOctets;
+    private String16FW binaryFormat;
+    private String16FW textFormat;
 
     public MqttKafkaPublishFactory(
         MqttKafkaConfiguration config,
@@ -126,9 +125,7 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.keyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.headerValueBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.headerIntValueBuffer = ByteBuffer.allocate(4);
-        this.headerKeyBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
+        this.headerIntValueBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.helper = new MqttKafkaHeaderHelper();
@@ -137,6 +134,8 @@ public class MqttKafkaPublishFactory implements BindingHandler
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
+        this.binaryFormat = new String16FW(MqttPayloadFormat.BINARY.name());
+        this.textFormat = new String16FW(MqttPayloadFormat.TEXT.name());
     }
 
     @Override
@@ -318,38 +317,38 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
             for (OctetsFW topicHeader : topicNameHeaders)
             {
-                addHeader(helper.kafkaTopicHeaderOctets, topicHeader);
+                addHeader(helper.kafkaTopicHeaderName, topicHeader);
             }
 
-            addHeader(helper.kafkaLocalHeaderOctets, clientIdOctets);
+            addHeader(helper.kafkaLocalHeaderName, clientIdOctets);
 
             if (mqttPublishDataEx.expiryInterval() != -1)
             {
-                addHeader(helper.kafkaTimeoutHeaderOctets, mqttPublishDataEx.expiryInterval() * 1000);
+                addHeader(helper.kafkaTimeoutHeaderName, mqttPublishDataEx.expiryInterval() * 1000);
             }
 
             if (mqttPublishDataEx.contentType().asString() != null)
             {
-                addHeader(helper.kafkaContentTypeHeaderOctets, mqttPublishDataEx.contentType().asString());
+                addHeader(helper.kafkaContentTypeHeaderName, mqttPublishDataEx.contentType());
             }
 
             if (payload.sizeof() != 0 && mqttPublishDataEx.format() != null)
             {
-                addHeader(helper.kafkaFormatHeaderOctets, mqttPublishDataEx.format().get().name());
+                addHeader(helper.kafkaFormatHeaderName, mqttPublishDataEx.format());
             }
 
             if (mqttPublishDataEx.responseTopic().asString() != null)
             {
-                addHeader(helper.kafkaReplyToHeaderOctets, mqttPublishDataEx.responseTopic().asString());
+                addHeader(helper.kafkaReplyToHeaderName, mqttPublishDataEx.responseTopic());
             }
 
             if (mqttPublishDataEx.correlation().bytes() != null)
             {
-                addHeader(helper.kafkaCorrelationHeaderOctets, mqttPublishDataEx.correlation().bytes());
+                addHeader(helper.kafkaCorrelationHeaderName, mqttPublishDataEx.correlation().bytes());
             }
 
             mqttPublishDataEx.properties().forEach(property ->
-                addHeader(property.key().asString(), property.value().asString()));
+                addHeader(property.key(), property.value()));
 
             final int deferred = mqttPublishDataEx.deferred();
             kafkaDataEx = kafkaDataExRW
@@ -555,13 +554,13 @@ public class MqttKafkaPublishFactory implements BindingHandler
         OctetsFW key,
         int value)
     {
-
+        headerIntValueBuffer.putInt(0, value, ByteOrder.BIG_ENDIAN);
         kafkaHeadersRW.item(h ->
         {
             h.nameLen(key.sizeof());
             h.name(key);
             h.valueLen(4);
-            h.value(c -> c.set(headerIntValueBuffer.putInt(value).array()));
+            h.value(headerIntValueBuffer, 0, 4);
         });
     }
 
@@ -580,32 +579,33 @@ public class MqttKafkaPublishFactory implements BindingHandler
 
     private void addHeader(
         OctetsFW key,
-        String stringValue)
+        MqttPayloadFormatFW format)
     {
-        OctetsFW value = headerValueRW.wrap(headerValueBuffer, 0, headerValueBuffer.capacity())
-            .put(stringValue.getBytes(StandardCharsets.UTF_8)).build();
+        String16FW value = format.get() == MqttPayloadFormat.BINARY ? binaryFormat : textFormat;
+        addHeader(key, value);
+    }
+
+    private void addHeader(
+        OctetsFW key,
+        String16FW value)
+    {
         kafkaHeadersRW.item(h ->
         {
             h.nameLen(key.sizeof());
             h.name(key);
-            h.valueLen(value.sizeof());
-            h.value(value);
+            h.valueLen(value.length());
+            h.value(value.buffer(), value.offset() + 2, value.length());
         });
     }
 
-    private void addHeader(String stringKey, String stringValue)
+    private void addHeader(String16FW key, String16FW value)
     {
-        OctetsFW key = headerKeyRW.wrap(headerKeyBuffer, 0, headerKeyBuffer.capacity())
-            .put(stringKey.getBytes(StandardCharsets.UTF_8)).build();
-        OctetsFW value = headerValueRW.wrap(headerValueBuffer, 0, headerValueBuffer.capacity())
-            .put(stringValue.getBytes(StandardCharsets.UTF_8)).build();
-
         kafkaHeadersRW.item(h ->
         {
-            h.nameLen(key.sizeof());
-            h.name(key);
-            h.valueLen(value.sizeof());
-            h.value(value);
+            h.nameLen(key.length());
+            h.name(key.buffer(), key.offset() + 2, key.length());
+            h.valueLen(value.length());
+            h.value(value.buffer(), value.offset() + 2, value.length());
         });
     }
 

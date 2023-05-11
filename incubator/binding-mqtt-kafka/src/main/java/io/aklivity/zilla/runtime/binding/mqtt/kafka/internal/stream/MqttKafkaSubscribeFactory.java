@@ -36,12 +36,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaCapabili
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaConditionFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeaderFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaHeadersFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaOffsetFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkip;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaSkipFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaValueFW;
-import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaValueMatchFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -70,8 +66,6 @@ import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class MqttKafkaSubscribeFactory implements BindingHandler
 {
-    //TODO: these defaults should come from the binding config
-    private static final String KAFKA_MESSAGES_TOPIC_NAME = "mqtt_messages";
     private static final String MQTT_TYPE_NAME = "mqtt";
     private static final String KAFKA_TYPE_NAME = "kafka";
     private static final String MQTT_SINGLE_LEVEL_WILDCARD = "+";
@@ -103,17 +97,15 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
+    private final KafkaHeaderFW kafkaHeaderRO = new KafkaHeaderFW();
 
     private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
 
     private final KafkaBeginExFW.Builder kafkaBeginExRW = new KafkaBeginExFW.Builder();
     private final KafkaFlushExFW.Builder kafkaFlushExRW = new KafkaFlushExFW.Builder();
-    private final KafkaHeadersFW.Builder kafkaFilterHeadersRW = new KafkaHeadersFW.Builder();
 
     private final MutableDirectBuffer writeBuffer;
     private final MutableDirectBuffer extBuffer;
-    private final MutableDirectBuffer kafkaHeadersBuffer;
-    private final MutableDirectBuffer kafkaFilterHeadersBuffer;
     private final BindingHandler streamFactory;
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
@@ -126,6 +118,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
     private String clientId;
     private Array32FW<MqttTopicFilterFW> filters;
     private IntArrayList subscriptionIds = new IntArrayList();
+    private String16FW kafkaMessagesTopicName;
 
     public MqttKafkaSubscribeFactory(
         MqttKafkaConfiguration config,
@@ -136,14 +129,13 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.extBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.kafkaHeadersBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
-        this.kafkaFilterHeadersBuffer = new UnsafeBuffer(new byte[context.writeBuffer().capacity()]);
         this.signaler = context.signaler();
         this.streamFactory = context.streamFactory();
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyBinding = supplyBinding;
         this.helper = new MqttKafkaHeaderHelper();
+        this.kafkaMessagesTopicName = new String16FW(config.kafkaMessagesTopic());
     }
 
     @Override
@@ -320,15 +312,15 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                                 f.conditionsItem(ci ->
                                 {
                                     subscriptionIds.add((int) filter.subscriptionId());
-                                    set(ci, getHeaders(filter.pattern().asString()));
+                                    buildHeaders(ci, filter.pattern().asString());
                                 });
                                 boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
                                 if (noLocal)
                                 {
                                     final DirectBuffer valueBuffer = new String16FW(clientId).value();
                                     f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                        h.nameLen(helper.kafkaLocalHeaderOctets.sizeof())
-                                            .name(helper.kafkaLocalHeaderOctets)
+                                        h.nameLen(helper.kafkaLocalHeaderName.sizeof())
+                                            .name(helper.kafkaLocalHeaderName)
                                             .valueLen(valueBuffer.capacity())
                                             .value(valueBuffer, 0, valueBuffer.capacity())))));
                                 }
@@ -756,7 +748,8 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                             }
                             if (helper.contentType != null)
                             {
-                                b.contentType(helper.contentType);
+                                b.contentType(
+                                    helper.contentType.buffer(), helper.contentType.offset(), helper.contentType.sizeof());
                             }
                             if (helper.format != null)
                             {
@@ -764,17 +757,29 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                             }
                             if (helper.replyTo != null)
                             {
-                                b.responseTopic(helper.replyTo);
+                                b.responseTopic(
+                                    helper.replyTo.buffer(), helper.replyTo.offset(), helper.replyTo.sizeof());
                             }
                             if (helper.correlation != null)
                             {
                                 b.correlation(c -> c.bytes(helper.correlation));
                             }
 
-                            helper.userProperties.forEach((propertyKey, properties) ->
-                                properties.forEach(p -> b.propertiesItem(pi -> pi.key(propertyKey).value(p))));
-                        })
-                        .build();
+                            final DirectBuffer buffer = kafkaMergedDataEx.buffer();
+                            final int limit = kafkaMergedDataEx.limit();
+                            helper.userPropertiesOffsets.forEach(o ->
+                            {
+                                final KafkaHeaderFW header = kafkaHeaderRO.wrap(buffer, o, limit);
+                                final OctetsFW name = header.name();
+                                final OctetsFW value = header.value();
+                                if (value != null)
+                                {
+                                    b.propertiesItem(pi -> pi
+                                        .key(name.buffer(), name.offset(), name.sizeof())
+                                        .value(value.buffer(), value.offset(), value.sizeof()));
+                                }
+                            });
+                        }).build();
 
                     delegate.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
                 }
@@ -1070,7 +1075,7 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                 .merged(m ->
                 {
                     m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
-                    m.topic(KAFKA_MESSAGES_TOPIC_NAME);
+                    m.topic(kafkaMessagesTopicName);
                     filters.forEach(filter ->
 
                         m.filtersItem(f ->
@@ -1078,15 +1083,15 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
                             f.conditionsItem(ci ->
                             {
                                 subscriptionIds.add((int) filter.subscriptionId());
-                                set(ci, getHeaders(filter.pattern().asString()));
+                                buildHeaders(ci, filter.pattern().asString());
                             });
                             boolean noLocal = (filter.flags() & NO_LOCAL_FLAG) != 0;
                             if (noLocal)
                             {
                                 final DirectBuffer valueBuffer = new String16FW(clientId).value();
                                 f.conditionsItem(i -> i.not(n -> n.condition(c -> c.header(h ->
-                                    h.nameLen(helper.kafkaLocalHeaderOctets.sizeof())
-                                        .name(helper.kafkaLocalHeaderOctets)
+                                    h.nameLen(helper.kafkaLocalHeaderName.sizeof())
+                                        .name(helper.kafkaLocalHeaderName)
                                         .valueLen(valueBuffer.capacity())
                                         .value(valueBuffer, 0, valueBuffer.capacity())))));
                             }
@@ -1117,71 +1122,34 @@ public class MqttKafkaSubscribeFactory implements BindingHandler
         return receiver;
     }
 
-    private KafkaHeadersFW getHeaders(
+    private void buildHeaders(
+        KafkaConditionFW.Builder conditionBuilder,
         String pattern)
     {
-        kafkaFilterHeadersRW.wrap(kafkaFilterHeadersBuffer, 0, kafkaFilterHeadersBuffer.capacity());
-        kafkaFilterHeadersRW.nameLen(helper.kafkaTopicHeaderOctets.sizeof())
-            .name(helper.kafkaTopicHeaderOctets);
         String[] headers = pattern.split("/");
-        for (String header : headers)
+        conditionBuilder.headers(hb ->
         {
-            if (header.equals(MQTT_SINGLE_LEVEL_WILDCARD))
+            hb.nameLen(helper.kafkaTopicHeaderName.sizeof());
+            hb.name(helper.kafkaTopicHeaderName);
+            for (String header : headers)
             {
-                kafkaFilterHeadersRW.valuesItem(vi -> vi.skip(sb -> sb.set(KafkaSkip.SKIP)));
+                if (header.equals(MQTT_SINGLE_LEVEL_WILDCARD))
+                {
+                    hb.valuesItem(vi -> vi.skip(sb -> sb.set(KafkaSkip.SKIP)));
+                }
+                else if (header.equals(MQTT_MULTI_LEVEL_WILDCARD))
+                {
+                    hb.valuesItem(vi -> vi.skip(sb -> sb.set(KafkaSkip.SKIP_MANY)));
+                }
+                else
+                {
+                    final DirectBuffer valueBuffer = new String16FW(header).value();
+                    hb.valuesItem(vi -> vi.value(vb -> vb.length(valueBuffer.capacity())
+                        .value(valueBuffer, 0, valueBuffer.capacity())));
+
+                }
             }
-            else if (header.equals(MQTT_MULTI_LEVEL_WILDCARD))
-            {
-                kafkaFilterHeadersRW.valuesItem(vi -> vi.skip(sb -> sb.set(KafkaSkip.SKIP_MANY)));
-            }
-            else
-            {
-                final DirectBuffer valueBuffer = new String16FW(header).value();
-                kafkaFilterHeadersRW.valuesItem(vi -> vi.value(vb -> vb.length(valueBuffer.capacity())
-                    .value(valueBuffer, 0, valueBuffer.capacity())));
-
-            }
-        }
-        return kafkaFilterHeadersRW.build();
-    }
-
-    private void set(
-        KafkaConditionFW.Builder builder,
-        KafkaHeadersFW headers)
-    {
-        final OctetsFW name = headers.name();
-        final int length = headers.nameLen();
-        final Array32FW<KafkaValueMatchFW> values = headers.values();
-        builder.headers(hb -> set(hb, name, length, values));
-    }
-
-    private void set(
-        KafkaHeadersFW.Builder builder,
-        OctetsFW name,
-        int length,
-        Array32FW<KafkaValueMatchFW> values)
-    {
-        builder.nameLen(length)
-            .name(name);
-        values.forEach(v -> builder.valuesItem(vb -> set(vb, v)));
-    }
-
-    private void set(
-        KafkaValueMatchFW.Builder builder,
-        KafkaValueMatchFW valueMatch)
-    {
-        switch (valueMatch.kind())
-        {
-        case KafkaValueMatchFW.KIND_VALUE:
-            final KafkaValueFW value = valueMatch.value();
-            builder.value(vb -> vb.length(value.length())
-                .value(value.value()));
-            break;
-        case KafkaValueMatchFW.KIND_SKIP:
-            final KafkaSkipFW skip = valueMatch.skip();
-            builder.skip(s -> s.set(skip.get()));
-            break;
-        }
+        });
     }
 
     private void doWindow(
