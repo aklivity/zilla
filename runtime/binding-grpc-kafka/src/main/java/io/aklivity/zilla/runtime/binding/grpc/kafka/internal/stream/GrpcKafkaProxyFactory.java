@@ -147,6 +147,18 @@ public final class GrpcKafkaProxyFactory implements GrpcKafkaStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return grpcTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return kafkaTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {

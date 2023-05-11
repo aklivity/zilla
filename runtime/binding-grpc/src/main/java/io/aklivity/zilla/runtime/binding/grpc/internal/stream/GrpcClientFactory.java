@@ -141,6 +141,18 @@ public class GrpcClientFactory implements GrpcStreamFactory
     }
 
     @Override
+    public int originTypeId()
+    {
+        return grpcTypeId;
+    }
+
+    @Override
+    public int routedTypeId()
+    {
+        return httpTypeId;
+    }
+
+    @Override
     public void attach(
         BindingConfig binding)
     {
