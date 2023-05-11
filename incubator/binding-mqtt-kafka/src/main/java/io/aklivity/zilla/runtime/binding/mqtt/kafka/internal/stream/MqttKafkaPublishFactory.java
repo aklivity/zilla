@@ -589,23 +589,26 @@ public class MqttKafkaPublishFactory implements BindingHandler
         OctetsFW key,
         String16FW value)
     {
+        DirectBuffer buffer = value.value();
         kafkaHeadersRW.item(h ->
         {
             h.nameLen(key.sizeof());
             h.name(key);
             h.valueLen(value.length());
-            h.value(value.buffer(), value.offset() + 2, value.length());
+            h.value(buffer, 0, buffer.capacity());
         });
     }
 
     private void addHeader(String16FW key, String16FW value)
     {
+        DirectBuffer keyBuffer = key.value();
+        DirectBuffer valueBuffer = value.value();
         kafkaHeadersRW.item(h ->
         {
             h.nameLen(key.length());
-            h.name(key.buffer(), key.offset() + 2, key.length());
+            h.name(keyBuffer, 0, keyBuffer.capacity());
             h.valueLen(value.length());
-            h.value(value.buffer(), value.offset() + 2, value.length());
+            h.value(valueBuffer, 0, valueBuffer.capacity());
         });
     }
 
