@@ -18,17 +18,29 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.Collection;
+import java.util.function.LongConsumer;
 
+import org.agrona.concurrent.AtomicBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.binding.function.MessageConsumer;
 import io.aklivity.zilla.runtime.engine.metrics.Metric;
 import io.aklivity.zilla.runtime.engine.metrics.MetricContext;
 import io.aklivity.zilla.runtime.engine.metrics.MetricGroup;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.AbortFW;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.BeginFW;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.EndFW;
+import io.aklivity.zilla.runtime.metrics.grpc.internal.types.stream.ResetFW;
 
 public class GrpcMetricGroupTest
 {
@@ -571,33 +583,27 @@ public class GrpcMetricGroupTest
         assertThat(context.direction(), equalTo(MetricContext.Direction.BOTH));
     }
 
-    /*@Test
-    public void shouldRecordHttpActiveRequests()
+    @Test
+    public void shouldRecordGrpcActiveRequests()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.active.requests");
+        Metric metric = metricGroup.supply("grpc.active.requests");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
         // begin frame
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-            .typeId(0)
-            .headersItem(h -> h.name(":status").value("200"))
-            .headersItem(h -> h.name("content-length").value("42"))
-            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
             .originId(0L).routedId(0L).streamId(1L) // received
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(0L)
             .traceId(0L).authorization(0L).affinity(0L)
-            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // end frames
@@ -617,7 +623,7 @@ public class GrpcMetricGroupTest
         // THEN
         verify(recorder, times(1)).accept(1L);
         verify(recorder, times(1)).accept(-1L);
-    }*/
+    }
 
     @Test
     public void shouldResolveGrpcDuration()
@@ -655,33 +661,27 @@ public class GrpcMetricGroupTest
         assertThat(context.direction(), equalTo(MetricContext.Direction.BOTH));
     }
 
-    /*@Test
-    public void shouldRecordHttpDuration()
+    @Test
+    public void shouldRecordGrpcDuration()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.duration");
+        Metric metric = metricGroup.supply("grpc.duration");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
         // begin frame
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-            .typeId(0)
-            .headersItem(h -> h.name(":status").value("200"))
-            .headersItem(h -> h.name("content-length").value("42"))
-            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
             .originId(0L).routedId(0L).streamId(1L) // received
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(42_000_000_000L)
             .traceId(0L).authorization(0L).affinity(0L)
-            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // end frame received
@@ -705,32 +705,26 @@ public class GrpcMetricGroupTest
     }
 
     @Test
-    public void shouldNotRecordHttpDurationIfAborted()
+    public void shouldNotRecordGrpcDurationIfAborted()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.duration");
+        Metric metric = metricGroup.supply("grpc.duration");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
         // begin frame
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-            .typeId(0)
-            .headersItem(h -> h.name(":status").value("200"))
-            .headersItem(h -> h.name("content-length").value("42"))
-            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
             .originId(0L).routedId(0L).streamId(1L) // received
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(42_000_000_000L)
             .traceId(0L).authorization(0L).affinity(0L)
-            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // abort frame received
@@ -754,32 +748,26 @@ public class GrpcMetricGroupTest
     }
 
     @Test
-    public void shouldNotRecordHttpDurationIfReset()
+    public void shouldNotRecordGrpcDurationIfReset()
     {
         // GIVEN
         Configuration config = new Configuration();
-        MetricGroup metricGroup = new HttpMetricGroup(config);
+        MetricGroup metricGroup = new GrpcMetricGroup(config);
         EngineContext engineContext = mock(EngineContext.class);
         LongConsumer recorder = mock(LongConsumer.class);
 
         // WHEN
-        Metric metric = metricGroup.supply("http.duration");
+        Metric metric = metricGroup.supply("grpc.duration");
         MetricContext context = metric.supply(engineContext);
         MessageConsumer handler = context.supply(recorder);
 
         // begin frame
-        HttpBeginExFW httpBeginEx = new HttpBeginExFW.Builder()
-            .wrap(new UnsafeBuffer(new byte[64]), 0, 64)
-            .typeId(0)
-            .headersItem(h -> h.name(":status").value("200"))
-            .headersItem(h -> h.name("content-length").value("42"))
-            .build();
         AtomicBuffer beginBuffer = new UnsafeBuffer(new byte[256], 0, 256);
         new BeginFW.Builder().wrap(beginBuffer, 0, beginBuffer.capacity())
             .originId(0L).routedId(0L).streamId(1L) // received
             .sequence(0L).acknowledge(0L).maximum(0).timestamp(42_000_000_000L)
             .traceId(0L).authorization(0L).affinity(0L)
-            .extension(httpBeginEx.buffer(), 0, httpBeginEx.buffer().capacity()).build();
+            .build();
         handler.accept(BeginFW.TYPE_ID, beginBuffer, 0, beginBuffer.capacity());
 
         // end frame received
@@ -800,6 +788,6 @@ public class GrpcMetricGroupTest
 
         // THEN
         verify(recorder, never()).accept(anyLong());
-    }*/
+    }
 }
 
