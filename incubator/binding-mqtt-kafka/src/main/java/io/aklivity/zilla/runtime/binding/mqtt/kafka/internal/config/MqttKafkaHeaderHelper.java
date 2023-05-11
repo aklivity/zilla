@@ -80,12 +80,6 @@ public class MqttKafkaHeaderHelper
         visitors.put(kafkaCorrelationHeaderName, this::visitCorrelationId);
     }
 
-    private OctetsFW stringToOctets(String string0)
-    {
-        String16FW string = new String16FW(string0);
-        return new OctetsFW().wrap(string.value(), 0, string.length());
-    }
-
     public void visit(
         KafkaMergedDataExFW dataEx)
     {
@@ -149,5 +143,12 @@ public class MqttKafkaHeaderHelper
         OctetsFW value)
     {
         timeout = value.get((b, o, m) -> b.getInt(o, ByteOrder.BIG_ENDIAN));
+    }
+
+    private static OctetsFW stringToOctets(
+        String input)
+    {
+        String16FW inputFW = new String16FW(input);
+        return new OctetsFW().wrap(inputFW.value(), 0, inputFW.length());
     }
 }
